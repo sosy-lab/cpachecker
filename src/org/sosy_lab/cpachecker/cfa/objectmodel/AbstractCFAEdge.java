@@ -92,25 +92,30 @@ public abstract class AbstractCFAEdge implements CFAEdge
       }
     }
 
+    @Override
     public CFANode getPredecessor ()
     {
         return predecessor;
     }
 
+    @Override
     public CFANode getSuccessor ()
     {
         return successor;
     }
 
+    @Override
     public String getRawStatement ()
     {
         return rawStatement;
     }
 
+    @Override
     public IASTNode getRawAST() {
       return null;
     }
 
+    @Override
     public boolean isJumpEdge ()
     {
         return false;

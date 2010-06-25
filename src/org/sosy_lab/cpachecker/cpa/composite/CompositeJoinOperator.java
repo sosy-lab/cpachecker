@@ -41,6 +41,7 @@ public class CompositeJoinOperator implements JoinOperator
         this.joinOperators = joinOperators;
     }
 
+    @Override
     public AbstractElement join (AbstractElement element1, AbstractElement element2) throws CPAException
     {
         CompositeElement comp1 = (CompositeElement) element1;

@@ -37,6 +37,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
         this.locationNode = locationNode;
     }
 
+    @Override
     public CFANode getLocationNode ()
     {
         return locationNode;

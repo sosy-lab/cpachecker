@@ -75,10 +75,12 @@ public class PathPatternTranslator implements Annotations {
     mFilterEvaluator = new FilterEvaluator(pTargetGraph);
   }
 
+  @Override
   public Set<CFAEdge> getCFAEdges() {
     return mCFAEdges;
   }
 
+  @Override
   public Set<String> getAnnotations(CFAEdge pEdge) {
     return getOrCreateAnnotationEntry(pEdge);
   }
@@ -165,6 +167,7 @@ public class PathPatternTranslator implements Annotations {
     }
   }
 
+  @Override
   public void annotate(CFAEdge pEdge, String pAnnotation) {
     mCFAEdges.add(pEdge);
     getOrCreateAnnotationEntry(pEdge).add(pAnnotation);

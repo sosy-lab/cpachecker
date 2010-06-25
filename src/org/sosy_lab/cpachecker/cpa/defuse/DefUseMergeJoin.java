@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseMergeJoin implements MergeOperator
 {
+  @Override
   public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
   {
     DefUseElement defUseElement1 = (DefUseElement) element1;

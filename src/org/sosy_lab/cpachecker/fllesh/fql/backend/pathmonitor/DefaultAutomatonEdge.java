@@ -43,10 +43,12 @@ public abstract class DefaultAutomatonEdge implements AutomatonEdge {
     pTransitionRelation.addEdge(mSource, mTarget, this);
   }
 
+  @Override
   public Integer getSource() {
     return mSource;
   }
 
+  @Override
   public Integer getTarget() {
     return mTarget;
   }

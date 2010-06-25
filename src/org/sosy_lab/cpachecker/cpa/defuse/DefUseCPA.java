@@ -90,31 +90,37 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
+  @Override
   public AbstractDomain getAbstractDomain ()
   {
     return abstractDomain;
   }
 
+  @Override
   public TransferRelation getTransferRelation ()
   {
     return transferRelation;
   }
 
+  @Override
   public MergeOperator getMergeOperator ()
   {
     return mergeOperator;
   }
 
+  @Override
   public StopOperator getStopOperator ()
   {
     return stopOperator;
   }
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
 
+  @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
   {
     List<DefUseDefinition> defUseDefinitions = null;
@@ -133,6 +139,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     return new DefUseElement (defUseDefinitions);
   }
 
+  @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return null;
   }

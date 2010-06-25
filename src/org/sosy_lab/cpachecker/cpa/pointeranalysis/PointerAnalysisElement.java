@@ -972,6 +972,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     this.currentEdge = currentEdge;
   }
 
+  @Override
   public CFAEdge getCurrentEdge() {
     return currentEdge;
   }

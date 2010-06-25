@@ -165,10 +165,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return domain;
   }
 
+  @Override
   public SymbPredAbsTransferRelation getTransferRelation() {
     return transfer;
   }
 
+  @Override
   public SymbPredAbsMergeOperator getMergeOperator() {
     return merge;
   }
@@ -198,6 +200,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return logger;
   }
 
+  @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     ImmutableList<CFANode> oldAbstractionPath = ImmutableList.of();
     PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
@@ -207,6 +210,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
         pf, pf, initAbstraction, oldAbstractionPath);
   }
 
+  @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return initialPrecision;
   }

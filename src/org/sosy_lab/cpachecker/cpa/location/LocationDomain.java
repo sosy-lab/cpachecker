@@ -86,6 +86,7 @@ public class LocationDomain implements AbstractDomain
 
     private static class LocationJoinOperator implements JoinOperator
     {
+        @Override
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
         {
             // Useless code, but helps to catch bugs by causing cast exceptions
@@ -114,21 +115,25 @@ public class LocationDomain implements AbstractDomain
 
     }
 
+    @Override
     public LocationElement getBottomElement ()
     {
         return bottomElement;
     }
 
+    @Override
     public AbstractElement getTopElement ()
     {
         return topElement;
     }
 
+    @Override
     public JoinOperator getJoinOperator ()
     {
         return joinOperator;
     }
 
+    @Override
     public PartialOrder getPartialOrder ()
     {
         return partialOrder;

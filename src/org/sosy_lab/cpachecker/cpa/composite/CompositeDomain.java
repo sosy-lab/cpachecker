@@ -69,21 +69,25 @@ public class CompositeDomain implements AbstractDomain
         return domains;
     }
 
+    @Override
     public CompositeElement getBottomElement ()
     {
         return bottomElement;
     }
 
+    @Override
     public CompositeElement getTopElement ()
     {
         return topElement;
     }
 
+    @Override
     public JoinOperator getJoinOperator ()
     {
         return joinOperator;
     }
 
+    @Override
     public PartialOrder getPartialOrder ()
     {
         return partialOrder;

@@ -5,8 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +16,6 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedLabel;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class ToControlAutomatonTranslator {

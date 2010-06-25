@@ -88,6 +88,7 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
 
   private static class ArtPartialOrder implements PartialOrder
   {
+    @Override
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
     {
       if (element1.equals (element2)){
@@ -104,6 +105,7 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
 
   private static class ArtJoinOperator implements JoinOperator
   {
+    @Override
     public AbstractElement join (AbstractElement element1, AbstractElement element2)
     {
       // Useless code, but helps to catch bugs by causing cast exceptions
@@ -132,21 +134,25 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
     cpa = pCpa;
   }
 
+  @Override
   public AbstractElement getBottomElement ()
   {
       return bottomElement;
   }
 
+  @Override
   public AbstractElement getTopElement ()
   {
       return topElement;
   }
 
+  @Override
   public JoinOperator getJoinOperator ()
   {
       return joinOperator;
   }
 
+  @Override
   public PartialOrder getPartialOrder ()
   {
       return partialOrder;

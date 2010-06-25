@@ -169,6 +169,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         return trans;
     }
 
+    @Override
     public MergeOperator getMergeOperator() {
         return merge;
     }
@@ -193,6 +194,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         return e;
     }
 
+    @Override
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
       return null;
     }

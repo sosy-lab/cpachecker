@@ -94,6 +94,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
+  @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedElements pElements) {

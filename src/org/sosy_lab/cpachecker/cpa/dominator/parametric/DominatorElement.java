@@ -152,7 +152,8 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
         return builder.toString ();
 	}
 
-	public CFANode getLocationNode() {
+	@Override
+  public CFANode getLocationNode() {
 		return ((AbstractElementWithLocation)dominatedElement).getLocationNode();
 	}
 

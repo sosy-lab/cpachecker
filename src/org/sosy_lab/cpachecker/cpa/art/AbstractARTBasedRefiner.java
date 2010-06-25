@@ -68,6 +68,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
   private static final Function<Pair<ARTElement, CFAEdge>, String> pathToFunctionCalls
         = new Function<Pair<ARTElement, CFAEdge>, String>() {
+    @Override
     public String apply(Pair<ARTElement,CFAEdge> arg) {
 
       if (arg.getSecond() instanceof FunctionCallEdge) {

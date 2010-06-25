@@ -32,12 +32,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseStopJoin implements StopOperator
 {
+  @Override
   public boolean stop (AbstractElement element, Collection<AbstractElement> reached, Precision prec) throws CPAException
   {
     // TODO Erkan implement
     return false;
   }
 
+  @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
     // TODO Erkan implement

@@ -41,6 +41,7 @@ public class DeclarationEdge extends AbstractCFAEdge {
     this.declaration = declaration;
   }
 
+  @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.DeclarationEdge;
   }

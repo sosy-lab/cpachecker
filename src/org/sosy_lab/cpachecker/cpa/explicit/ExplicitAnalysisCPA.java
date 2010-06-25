@@ -91,21 +91,25 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
+  @Override
   public AbstractDomain getAbstractDomain ()
   {
     return abstractDomain;
   }
 
+  @Override
   public MergeOperator getMergeOperator ()
   {
     return mergeOperator;
   }
 
+  @Override
   public StopOperator getStopOperator ()
   {
     return stopOperator;
   }
 
+  @Override
   public TransferRelation getTransferRelation ()
   {
     return transferRelation;

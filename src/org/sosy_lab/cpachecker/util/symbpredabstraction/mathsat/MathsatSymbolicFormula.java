@@ -39,10 +39,12 @@ class MathsatSymbolicFormula implements SymbolicFormula {
         msatTerm = t;
     }
 
+    @Override
     public boolean isFalse() {
         return mathsat.api.msat_term_is_false(msatTerm) != 0;
     }
 
+    @Override
     public boolean isTrue() {
         return mathsat.api.msat_term_is_true(msatTerm) != 0;
     }

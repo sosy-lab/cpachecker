@@ -252,12 +252,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(var);
   }
 
+  @Override
   public String dumpFormula(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
 
     return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
   }
 
+  @Override
   public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
       SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
     
@@ -266,6 +268,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     absPrinter.nextNum();
   }
 
+  @Override
   public SymbolicFormula makeNot(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
 
@@ -274,6 +277,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
+  @Override
   public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -283,6 +287,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
+  @Override
   public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -291,6 +296,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(a);
   }
 
+  @Override
   public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -299,6 +305,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(a);
   }
 
+  @Override
   public SymbolicFormula makeTrue() {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
   }
@@ -311,6 +318,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(f);
   }
 
+  @Override
   public SymbolicFormula makeIfThenElse(SymbolicFormula atom, SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula mAtom = (MathsatSymbolicFormula)atom;
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
@@ -1792,6 +1800,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     else return 1;
   }
 
+  @Override
   public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = new SSAMap();
@@ -2010,6 +2019,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
+  @Override
   public SymbolicFormula makeFalse() {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_false(msatEnv));
   }
@@ -2019,6 +2029,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
    * As a side effect, this method does the same thing as {@link #replaceAssignments(SymbolicFormula)}
    * to the formula.
    */
+  @Override
   public PathFormula shift(SymbolicFormula f, SSAMap ssa) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = new HashMap<Long, Long>();
@@ -2552,6 +2563,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
   
   private static final Comparator<Long> MathsatComparator = new Comparator<Long>() {
+    @Override
     public int compare(Long o1, Long o2) {
       return mathsat.api.msat_term_id(o1) - mathsat.api.msat_term_id(o2);
     }
@@ -2657,6 +2669,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
    * by equalities (which is a valid representation of an assignment for a SSA
    * formula).
    */
+  @Override
   public MathsatSymbolicFormula replaceAssignments(SymbolicFormula f) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = replaceAssignmentsCache;
@@ -2705,6 +2718,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   /**
    * returns an SSA map for the instantiated formula f
    */
+  @Override
   public SSAMap extractSSA(SymbolicFormula f) {
     SSAMap ssa = new SSAMap();
     Stack<Long> toProcess = new Stack<Long>();

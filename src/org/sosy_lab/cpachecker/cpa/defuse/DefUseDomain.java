@@ -53,6 +53,7 @@ public class DefUseDomain implements AbstractDomain
 
     private static class DefUsePartialOrder implements PartialOrder
     {
+        @Override
         public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             DefUseElement defUseElement1 = (DefUseElement) element1;
@@ -72,6 +73,7 @@ public class DefUseDomain implements AbstractDomain
 
     private static class DefUseJoinOperator implements JoinOperator
     {
+        @Override
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
         {
             // Useless code, but helps to catch bugs by causing cast exceptions
@@ -103,21 +105,25 @@ public class DefUseDomain implements AbstractDomain
 
     }
 
+    @Override
     public AbstractElement getBottomElement ()
     {
         return bottomElement;
     }
 
+    @Override
     public AbstractElement getTopElement ()
     {
         return topElement;
     }
 
+    @Override
     public JoinOperator getJoinOperator ()
     {
         return joinOperator;
     }
 
+    @Override
     public PartialOrder getPartialOrder ()
     {
         return partialOrder;

@@ -40,6 +40,7 @@ public class CompositePartialOrder implements PartialOrder
         this.partialOrders = partialOrders;
     }
 
+    @Override
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2) throws CPAException
     {
         CompositeElement comp1 = (CompositeElement) element1;

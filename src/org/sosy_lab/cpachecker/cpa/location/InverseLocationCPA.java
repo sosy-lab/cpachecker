@@ -51,30 +51,37 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
     return new LocationCPAFactory(true);
   }
 
+  @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
+  @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
+  @Override
   public MergeOperator getMergeOperator() {
     return MergeSepOperator.getInstance();
   }
 
+  @Override
   public StopOperator getStopOperator() {
     return stopOperator;
   }
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment () {
     return StaticPrecisionAdjustment.getInstance();
   }
 
+  @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
     return new LocationElement (node);
   }
 
+  @Override
   public Precision getInitialPrecision (CFAFunctionDefinitionNode pNode) {
     return null;
   }

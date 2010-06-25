@@ -64,6 +64,7 @@ public class MathsatTheoremProver implements TheoremProver {
         curEnv = 0;
     }
 
+    @Override
     public boolean isUnsat(SymbolicFormula f) {
         push(f);
         int res = mathsat.api.msat_solve(curEnv);
@@ -72,11 +73,13 @@ public class MathsatTheoremProver implements TheoremProver {
         return res == mathsat.api.MSAT_UNSAT;
     }
 
+    @Override
     public void pop() {
         int ok = mathsat.api.msat_pop_backtrack_point(curEnv);
         assert(ok == 0);
     }
 
+    @Override
     public void push(SymbolicFormula f) {
         mathsat.api.msat_push_backtrack_point(curEnv);
         long t = ((MathsatSymbolicFormula)f).getTerm();
@@ -146,6 +149,7 @@ public class MathsatTheoremProver implements TheoremProver {
         mathsat.api.msat_set_option(curEnv, "ghost_filter", "true");
     }
 
+    @Override
     public void init(int purpose) {
         switch (purpose) {
         case CARTESIAN_ABSTRACTION:
@@ -159,6 +163,7 @@ public class MathsatTheoremProver implements TheoremProver {
         needsTermCopy = purpose == ENTAILMENT_CHECK;
     }
 
+    @Override
     public void reset() {
         if (curEnv != absEnv) {
             mathsat.api.msat_destroy_env(curEnv);
@@ -178,6 +183,7 @@ public class MathsatTheoremProver implements TheoremProver {
             toCall = tc;
         }
 
+        @Override
         public void callback(long[] model) {
             List<SymbolicFormula> outModel = new ArrayList<SymbolicFormula>(model.length);
             for (long t : model) {

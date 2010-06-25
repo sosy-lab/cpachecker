@@ -42,6 +42,7 @@ public class FunctionCallEdge extends AbstractCFAEdge
         this.isExternalCall = isExternalCall;
     }
 
+    @Override
     public CFAEdgeType getEdgeType ()
     {
         return CFAEdgeType.FunctionCallEdge;

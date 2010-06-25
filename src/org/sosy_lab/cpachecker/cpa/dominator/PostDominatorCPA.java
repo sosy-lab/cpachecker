@@ -56,30 +56,37 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA());
 	}
 
+  @Override
   public AbstractDomain getAbstractDomain() {
     return this.parametricDominatorCPA.getAbstractDomain();
   }
 
+  @Override
   public TransferRelation getTransferRelation() {
     return this.parametricDominatorCPA.getTransferRelation();
   }
 
+  @Override
   public MergeOperator getMergeOperator() {
     return this.parametricDominatorCPA.getMergeOperator();
   }
 
+  @Override
   public StopOperator getStopOperator() {
     return this.parametricDominatorCPA.getStopOperator();
   }
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return this.parametricDominatorCPA.getPrecisionAdjustment();
   }
 
+  @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     return this.parametricDominatorCPA.getInitialElement(node);
   }
 
+  @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return this.parametricDominatorCPA.getInitialPrecision(pNode);
   }

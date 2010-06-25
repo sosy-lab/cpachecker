@@ -47,22 +47,27 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	  return new LocationCPAFactory(false);
 	}
 
-	public AbstractDomain getAbstractDomain() {
+	@Override
+  public AbstractDomain getAbstractDomain() {
 	  return abstractDomain;
 	}
 
+  @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-	public MergeOperator getMergeOperator() {
+	@Override
+  public MergeOperator getMergeOperator() {
 	  return MergeSepOperator.getInstance();
 	}
 
-	public StopOperator getStopOperator() {
+	@Override
+  public StopOperator getStopOperator() {
 	  return stopOperator;
 	}
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment () {
     return StaticPrecisionAdjustment.getInstance();
   }
@@ -72,6 +77,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	  return new LocationElement (node);
 	}
 
+  @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return null;
   }

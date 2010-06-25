@@ -100,26 +100,31 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     stats = new ARTStatistics(config, logger);
   }
 
+  @Override
   public AbstractDomain getAbstractDomain ()
   {
     return abstractDomain;
   }
 
+  @Override
   public TransferRelation getTransferRelation ()
   {
     return transferRelation;
   }
 
+  @Override
   public MergeOperator getMergeOperator ()
   {
     return mergeOperator;
   }
 
+  @Override
   public StopOperator getStopOperator ()
   {
     return stopOperator;
   }
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }

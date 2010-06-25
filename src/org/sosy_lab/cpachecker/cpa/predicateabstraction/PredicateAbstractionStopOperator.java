@@ -45,6 +45,7 @@ public class PredicateAbstractionStopOperator implements StopOperator {
     domain = d;
   }
 
+  @Override
   public boolean stop(AbstractElement element,
       Collection<AbstractElement> reached, Precision prec) throws CPAException {
 
@@ -57,6 +58,7 @@ public class PredicateAbstractionStopOperator implements StopOperator {
   }
 
 
+  @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
     // transfer relation does not produce bottom, so no need to check for bottom here

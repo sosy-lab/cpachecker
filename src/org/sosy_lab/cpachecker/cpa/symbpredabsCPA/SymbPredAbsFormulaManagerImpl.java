@@ -179,6 +179,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   /**
    * Abstract post operation.
    */
+  @Override
   public AbstractFormula buildAbstraction(
       AbstractFormula abs, PathFormula pathFormula,
       Collection<Predicate> predicates) {
@@ -428,6 +429,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   /**
    * Checks if (a1 & p1) => a2
    */
+  @Override
   public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
     PathFormula f1 = buildSymbolicFormula(a1, p1);
     
@@ -569,6 +571,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
    * @param pPathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
+  @Override
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
 
     PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
@@ -587,6 +590,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
    * Counterexample analysis and predicate discovery.
    * @throws CPAException
    */
+  @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException {
 

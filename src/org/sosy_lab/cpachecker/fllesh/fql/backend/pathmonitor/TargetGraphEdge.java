@@ -42,6 +42,7 @@ public class TargetGraphEdge extends DefaultAutomatonEdge {
     mTargetGraph = pTargetGraph;
   }
 
+  @Override
   public TargetGraphEdge duplicate(Integer pSource, Integer pTarget, DirectedGraph<Integer, AutomatonEdge> pTransitionRelation) {
     return new TargetGraphEdge(pSource, pTarget, pTransitionRelation, mTargetGraph);
   }

@@ -56,30 +56,37 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPA());
 	}
 
-	public AbstractDomain getAbstractDomain() {
+	@Override
+  public AbstractDomain getAbstractDomain() {
 		return this.parametricDominatorCPA.getAbstractDomain();
 	}
 
+  @Override
   public TransferRelation getTransferRelation() {
     return this.parametricDominatorCPA.getTransferRelation();
   }
 
-	public MergeOperator getMergeOperator() {
+	@Override
+  public MergeOperator getMergeOperator() {
 		return this.parametricDominatorCPA.getMergeOperator();
 	}
 
-	public StopOperator getStopOperator() {
+	@Override
+  public StopOperator getStopOperator() {
 		return this.parametricDominatorCPA.getStopOperator();
 	}
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return this.parametricDominatorCPA.getPrecisionAdjustment();
   }
 
+  @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     return this.parametricDominatorCPA.getInitialElement(node);
   }
 
+  @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return this.parametricDominatorCPA.getInitialPrecision(pNode);
   }

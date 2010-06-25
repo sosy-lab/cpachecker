@@ -67,21 +67,25 @@ public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfa
     this.mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
+  @Override
   public ConcreteAnalysisDomain getAbstractDomain()
   {
     return mAbstractDomain;
   }
 
+  @Override
   public MergeOperator getMergeOperator()
   {
     return this.mMergeOperator;
   }
 
+  @Override
   public StopOperator getStopOperator()
   {
     return mStopOperator;
   }
 
+  @Override
   public ConcreteAnalysisTransferRelation getTransferRelation()
   {
     return mTransferRelation;

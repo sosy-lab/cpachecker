@@ -181,6 +181,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
     }
   }
 
+  @Override
   public Set<AbstractElement> getReached() {
     return unmodifiableReached;
   }
@@ -190,6 +191,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
     return unmodifiableReached.iterator();
   }
 
+  @Override
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
     return reachedWithPrecision; // this is unmodifiable
   }
@@ -209,11 +211,13 @@ public class ReachedElements implements UnmodifiableReachedElements {
    * @param element An abstract element for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
+  @Override
   public Set<AbstractElement> getReached(AbstractElement element) {
     CFANode loc = getLocationFromElement(element);
     return getReached(loc);
   }
 
+  @Override
   public Set<AbstractElement> getReached(CFANode location) {
     if (locationMappedReached != null)
       return Collections.unmodifiableSet(locationMappedReached.get(location));
@@ -221,22 +225,27 @@ public class ReachedElements implements UnmodifiableReachedElements {
       return unmodifiableReached;
   }
 
+  @Override
   public AbstractElement getFirstElement() {
     return firstElement;
   }
 
+  @Override
   public AbstractElement getLastElement() {
     return lastElement;
   }
 
+  @Override
   public TraversalMethod getTraversalMethod() {
     return traversal;
   }
 
+  @Override
   public boolean hasWaitingElement() {
     return !waitlist.isEmpty();
   }
 
+  @Override
   public List<AbstractElement> getWaitlist() {
     return Collections.unmodifiableList(waitlist);
   }
@@ -277,6 +286,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
     return getPrecisionAsPair.apply(result);
   }
 
+  @Override
   public int getWaitlistSize() {
     return waitlist.size();
   }
@@ -286,6 +296,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
    * @param element The element to look for.
    * @return The precision for the element or null.
    */
+  @Override
   public Precision getPrecision(AbstractElement element) {
     return reached.get(element);
   }
@@ -294,6 +305,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
     return reached.containsKey(element);
   }
 
+  @Override
   public int size() {
     return reached.size();
   }

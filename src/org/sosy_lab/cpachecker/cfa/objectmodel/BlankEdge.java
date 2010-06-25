@@ -51,6 +51,7 @@ public class BlankEdge extends AbstractCFAEdge
         return jumpEdge;
     }
 
+    @Override
     public CFAEdgeType getEdgeType ()
     {
         return CFAEdgeType.BlankEdge;

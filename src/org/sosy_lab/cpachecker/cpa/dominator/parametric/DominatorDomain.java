@@ -103,6 +103,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
     private final static DominatorBottomElement bottomElement = new DominatorBottomElement();
     private final static DominatorTopElement topElement = new DominatorTopElement();
 
+    @Override
     public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException
     {
         if (element1.equals(element2))
@@ -133,6 +134,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         return false;
     }
 
+    @Override
     public AbstractElement join(AbstractElement element1, AbstractElement element2) {
       if (!(element1 instanceof DominatorElement)) {
         throw new IllegalArgumentException(
@@ -189,28 +191,32 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getBottomElement()
 	 */
-	public DominatorBottomElement getBottomElement() {
+	@Override
+  public DominatorBottomElement getBottomElement() {
 		return bottomElement;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getTopElement()
 	 */
-	public DominatorTopElement getTopElement() {
+	@Override
+  public DominatorTopElement getTopElement() {
 		return topElement;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getJoinOperator()
 	 */
-	public JoinOperator getJoinOperator() {
+	@Override
+  public JoinOperator getJoinOperator() {
 		return this;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getPartialOrder()
 	 */
-	public PartialOrder getPartialOrder() {
+	@Override
+  public PartialOrder getPartialOrder() {
 		return this;
 	}
 }

@@ -160,6 +160,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
                         bs.edgeAbstCountMap.get(e), e));
             }
             Collections.sort(v, new Comparator<Pair<Integer, CFAEdge>>() {
+                @Override
                 public int compare(Pair<Integer, CFAEdge> o1,
                         Pair<Integer, CFAEdge> o2) {
                     int r = (o2.getFirst() - o1.getFirst());

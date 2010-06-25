@@ -131,6 +131,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
    * @return The values passed to the makePredicate call (symbolic formula for var and atom)
    */
+  @Override
   public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
     return predicateToVarAndAtom.get(p);
   }
@@ -140,6 +141,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
    * @return a Predicate
    */
+  @Override
   public Predicate getPredicate(SymbolicFormula var) {
     Predicate result = symbVarToPredicate.get(var);
     if (result == null) {

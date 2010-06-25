@@ -126,22 +126,27 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.cpas = cpas;
   }
 
+  @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
+  @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
+  @Override
   public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
+  @Override
   public StopOperator getStopOperator() {
     return stopOperator;
   }
 
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
@@ -164,6 +169,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return initialElement;
   }
 
+  @Override
   public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
     Preconditions.checkNotNull(node);
 

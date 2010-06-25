@@ -52,7 +52,8 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		return expression;
 	}
 
-	public CFAEdgeType getEdgeType ()
+	@Override
+  public CFAEdgeType getEdgeType ()
 	{
 		return CFAEdgeType.CallToReturnEdge;
 	}

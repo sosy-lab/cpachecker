@@ -56,6 +56,7 @@ public class StatementEdge extends AbstractCFAEdge
         return jumpEdge;
     }
 
+    @Override
     public CFAEdgeType getEdgeType ()
     {
         return CFAEdgeType.StatementEdge;

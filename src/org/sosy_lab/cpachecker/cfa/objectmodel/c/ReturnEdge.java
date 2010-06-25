@@ -34,6 +34,7 @@ public class ReturnEdge extends AbstractCFAEdge {
     super(rawStatement, lineNumber, predecessor, successor);
   }
 
+  @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.ReturnEdge;
   }

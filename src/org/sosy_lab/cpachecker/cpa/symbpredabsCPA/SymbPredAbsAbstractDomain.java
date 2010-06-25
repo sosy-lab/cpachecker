@@ -64,6 +64,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   }
 
   private final static class SymbPredAbsJoinOperator implements JoinOperator {
+    @Override
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
       return top;
@@ -71,6 +72,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   }
 
   private final class SymbPredAbsPartialOrder implements PartialOrder {
+    @Override
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2) throws CPAException {
       SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
@@ -126,18 +128,22 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   private final static JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
+  @Override
   public SymbPredAbsAbstractElement getBottomElement() {
     return bottom;
   }
 
+  @Override
   public JoinOperator getJoinOperator() {
     return join;
   }
 
+  @Override
   public PartialOrder getPartialOrder() {
     return partial;
   }
 
+  @Override
   public AbstractElement getTopElement() {
     return top;
   }

@@ -52,6 +52,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
   private static class ExplicitAnalysisPartialOrder implements PartialOrder
   {
     // returns true if element1 < element2 on lattice
+    @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
     {
       ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
@@ -99,6 +100,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   private static class ExplicitAnalysisJoinOperator implements JoinOperator
   {
+    @Override
     public AbstractElement join(AbstractElement element1, AbstractElement element2)
     {
       ExplicitAnalysisElement explicitAnalysisElement1 = (ExplicitAnalysisElement) element1;
@@ -144,21 +146,25 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   }
 
+  @Override
   public ExplicitAnalysisElement getBottomElement ()
   {
     return bottomElement;
   }
 
+  @Override
   public ExplicitAnalysisElement getTopElement ()
   {
     return topElement;
   }
 
+  @Override
   public JoinOperator getJoinOperator ()
   {
     return joinOperator;
   }
 
+  @Override
   public PartialOrder getPartialOrder ()
   {
     return partialOrder;

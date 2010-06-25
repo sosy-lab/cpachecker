@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class OctMergeJoin implements MergeOperator{
 
+  @Override
   public AbstractElement merge(AbstractElement element1, AbstractElement element2, Precision prec) {
     OctElement octEl1 = (OctElement) element1;
     OctElement octEl2 = (OctElement) element2;

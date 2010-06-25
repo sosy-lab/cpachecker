@@ -54,6 +54,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     formulaManager = pCpa.getFormulaManager();
   }
 
+  @Override
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2, Precision precision) {
 

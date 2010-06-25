@@ -46,6 +46,7 @@ public class AssumeEdge extends AbstractCFAEdge
         this.expression = expression;
     }
 
+    @Override
     public CFAEdgeType getEdgeType ()
     {
         return CFAEdgeType.AssumeEdge;

@@ -56,6 +56,7 @@ public class OctDomain implements AbstractDomain{
 
   private static class OctPartialOrder implements PartialOrder
   {
+    @Override
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
     {
 
@@ -105,6 +106,7 @@ public class OctDomain implements AbstractDomain{
 
   private static class OctJoinOperator implements JoinOperator
   {
+    @Override
     public AbstractElement join (AbstractElement element1, AbstractElement element2)
     {
       // TODO fix
@@ -124,21 +126,25 @@ public class OctDomain implements AbstractDomain{
 
   }
 
+  @Override
   public AbstractElement getBottomElement ()
   {
     return bottomElement;
   }
 
+  @Override
   public AbstractElement getTopElement ()
   {
     return topElement;
   }
 
+  @Override
   public JoinOperator getJoinOperator ()
   {
     return joinOperator;
   }
 
+  @Override
   public PartialOrder getPartialOrder ()
   {
     return partialOrder;
