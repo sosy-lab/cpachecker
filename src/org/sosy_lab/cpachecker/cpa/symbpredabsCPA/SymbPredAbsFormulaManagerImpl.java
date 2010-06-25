@@ -688,6 +688,13 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
+        if (dumpInterpolationProblems) {
+          int refinement = stats.numCallsCexAnalysis;
+
+          dumpFormulasToFile(Collections.singleton(itp), 
+                new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".itp" + i));
+        }
+        
         if (itp.isTrue() || itp.isFalse()) {
           logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
 
