@@ -49,18 +49,13 @@ public class Automaton<T> {
         return true;
       }
       
-      if (pOther == null) {
+      if (pOther == null || !(pOther instanceof Automaton<?>.Edge)) {
         return false;
       }
       
-      try {
-        Edge lEdge = (Edge)pOther;
+      Automaton<?>.Edge lEdge = (Automaton<?>.Edge)pOther;
         
-        return lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget) && lEdge.getLabel().equals(mLabel);
-      }
-      catch (ClassCastException lException) {
-        return false;
-      }
+      return lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget) && lEdge.getLabel().equals(mLabel);
     }
   }
   
@@ -76,18 +71,13 @@ public class Automaton<T> {
         return true;
       }
       
-      if (pOther == null) {
+      if (pOther == null || !(pOther instanceof Automaton<?>.LambdaEdge)) {
         return false;
       }
       
-      try {
-        LambdaEdge lEdge = (LambdaEdge)pOther;
+      Automaton<?>.LambdaEdge lEdge = (Automaton<?>.LambdaEdge)pOther;
         
-        return lEdge.getSource().equals(getSource()) && lEdge.getTarget().equals(getTarget());
-      }
-      catch (ClassCastException lException) {
-        return false;
-      }
+      return lEdge.getSource().equals(getSource()) && lEdge.getTarget().equals(getTarget());
     }
     
     @Override
