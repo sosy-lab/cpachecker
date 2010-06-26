@@ -29,11 +29,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.sosy_lab.common.Pair;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
@@ -108,6 +109,13 @@ public class SSAMap {
 
   private final Map<Key, Integer> repr = new HashMap<Key, Integer>();
 
+  public SSAMap() { }
+  
+  public SSAMap(SSAMap old) {
+    Preconditions.checkNotNull(old);
+    repr.putAll(old.repr);
+  }
+  
     /**
      * returns the index of the variable in the map
      */
@@ -166,16 +174,6 @@ public class SSAMap {
     @Override
     public String toString() {
       return Joiner.on(" ").withKeyValueSeparator("@").join(repr);
-    }
-
-    /**
-     * Explicit "copy constructor". I am not experienced enough with Java to
-     * dare implementing a proper clone() :-)
-     */
-    public void copyFrom(SSAMap other) {
-        for (Key k : other.repr.keySet()) {
-            repr.put(k, other.repr.get(k));
-        }
     }
 
     /**

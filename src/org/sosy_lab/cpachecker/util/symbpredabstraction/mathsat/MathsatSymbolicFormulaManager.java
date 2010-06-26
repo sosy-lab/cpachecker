@@ -361,8 +361,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       // function start
       Pair<SymbolicFormula, SSAMap> p = makeAndEnterFunction(
           m1, (FunctionDefinitionNode)edge.getPredecessor(), ssa);
-      m1 = (MathsatSymbolicFormula)p.getFirst();
-      f1 = m1;
+      f1 = p.getFirst();
+      m1 = (MathsatSymbolicFormula)f1;
       ssa = p.getSecond();
     }
 
@@ -405,10 +405,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       // get the expression from the summary edge
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-      PathFormula ret =
-        makeAndExitFunction(m1, ce, ssa);
-      //popNamespace(); - done inside makeAndExitFunction
-      return ret;
+      return makeAndExitFunction(m1, ce, ssa);
     }
 
     default:
@@ -423,8 +420,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       throws UnrecognizedCFAEdgeException {
     // at each declaration, we instantiate the variable in the SSA:
     // this is to avoid problems with uninitialized variables
-    SSAMap newssa = new SSAMap();
-    newssa.copyFrom(ssa);
+    ssa = new SSAMap(ssa);
 
     IASTDeclarator[] decls = declarationEdge.getDeclarators();
     IASTDeclSpecifier spec = declarationEdge.getDeclSpecifier();
@@ -443,17 +439,17 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         assert(exp != null);
 
         int idx = 1;
-        newssa.setIndex(var, 1);
+        ssa.setIndex(var, 1);
 
         logger.log(Level.ALL, "DEBUG_3",
             "Declared enum field: ", var, ", index: ", idx);
 
-        long minit = buildMsatTerm(exp, newssa);
+        long minit = buildMsatTerm(exp, ssa);
         long mvar = buildMsatVariable(var, idx);
         long t = makeAssignment(mvar, minit);
         m1 = makeAnd(m1, t);
       }
-      return new PathFormula(m1, newssa);
+      return new PathFormula(m1, ssa);
     }
 
 
@@ -464,7 +460,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       if (spec instanceof IASTCompositeTypeSpecifier) {
         // this is the declaration of a struct, just ignore it...
         log(Level.ALL, "Ignoring declaration", spec);
-        return new PathFormula(m1, newssa);
+        return new PathFormula(m1, ssa);
       } else {
         throw new UnrecognizedCFAEdgeException(
             "UNSUPPORTED SPECIFIER FOR DECLARATION: " +
@@ -474,7 +470,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       log(Level.ALL, "Ignoring typedef", spec);
-      return new PathFormula(m1, newssa);
+      return new PathFormula(m1, ssa);
     }
 
     for (IASTDeclarator d : decls) {
@@ -487,7 +483,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       int idx = ssa.getIndex(var);
       if (idx > 0) idx++;
       else idx = 1;
-      newssa.setIndex(var, idx);
+      ssa.setIndex(var, idx);
 
       logger.log(Level.ALL, "DEBUG_3",
           "Declared variable: ", var, ", index: ", idx);
@@ -515,7 +511,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
         IASTExpression exp =
           ((IASTInitializerExpression)init).getExpression();
-        long minit = buildMsatTerm(exp, newssa);
+        long minit = buildMsatTerm(exp, ssa);
         long mvar = buildMsatVariable(var, idx);
         long t = makeAssignment(mvar, minit);
         m1 = makeAnd(m1, t);
@@ -540,7 +536,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
       }
     }
-    return new PathFormula(m1, newssa);
+    return new PathFormula(m1, ssa);
   }
 
   private Pair<SymbolicFormula, SSAMap> makeAndEnterFunction(
@@ -551,9 +547,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
     }
 
-    SSAMap newssa = new SSAMap();
-    newssa.copyFrom(ssa);
-    ssa = newssa;
+    ssa = new SSAMap(ssa);
 
     long term = mathsat.api.msat_make_true(msatEnv);
     int i = 0;
@@ -578,7 +572,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       assert(!pn.isEmpty());
       String formalParamName = scoped(pn);
-      idx = makeLvalIndex(formalParamName, newssa);
+      idx = makeLvalIndex(formalParamName, ssa);
       long msatFormalParam = buildMsatVariable(formalParamName, idx);
       if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
         throw new UnrecognizedCFAEdgeException(
@@ -614,9 +608,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       assert(exp.getOperator() == IASTBinaryExpression.op_assign);
       String retvar = scoped(VAR_RETURN_NAME);
 
-      SSAMap newssa = new SSAMap();
-      newssa.copyFrom(ssa);
-      ssa = newssa;
+      ssa = new SSAMap(ssa);
 
       int retidx = getIndex(retvar, ssa);
       long msatretvar = buildMsatVariable(retvar, retidx);
@@ -639,9 +631,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       throw new UnrecognizedCFAEdgeException(
           "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
     } else {
-      SSAMap newssa = new SSAMap();
-      newssa.copyFrom(ssa);
-      ssa = newssa;
+      ssa = new SSAMap(ssa);
 
       // build the actual parameters in the caller's context
       long[] msatActualParams;
@@ -699,9 +689,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       // this is a return from a void function, do nothing
       return new PathFormula(m1, ssa);
     } else if (exp instanceof IASTUnaryExpression) {
-      SSAMap ssa2 = new SSAMap();
-      ssa2.copyFrom(ssa);
-      ssa = ssa2;
+      ssa = new SSAMap(ssa);
       
       // we have to save the information about the return value,
       // so that we can use it later on, if it is assigned to
@@ -1484,9 +1472,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       throws UnrecognizedCFAEdgeException {
     IASTExpression expr = stmt.getExpression();
     if (needsSSAUpdate(expr)) {
-      SSAMap ssa2 = new SSAMap();
-      ssa2.copyFrom(ssa);
-      ssa = ssa2;
+      ssa = new SSAMap(ssa);
     }
     long f2 = buildMsatTerm(expr, ssa);
 
