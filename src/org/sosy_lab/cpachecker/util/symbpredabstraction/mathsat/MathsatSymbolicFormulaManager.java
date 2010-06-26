@@ -153,6 +153,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   // that might work (e.g. tightening of a < b into a <= b - 1, splitting
   // negated equalities, ...)
   private final int msatVarType;
+  private final int[] msatVarType1;
+  private final int[] msatVarType2;
 
   // names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -201,32 +203,32 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     setNamespace("");
 
-    int[] argtype  = {msatVarType};
-    int[] argtypes = {msatVarType, msatVarType};
+    msatVarType1 = new int[]{msatVarType};
+    msatVarType2 = new int[]{msatVarType, msatVarType};
     assignUfDecl = mathsat.api.msat_declare_uif(msatEnv, ":=",
-        mathsat.api.MSAT_BOOL, 2, argtypes);
+        mathsat.api.MSAT_BOOL, 2, msatVarType2);
 
     bitwiseAndUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_&_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     bitwiseOrUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_|_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     bitwiseXorUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_^_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     bitwiseNotUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_~_",
-        msatVarType, 1, argtype);
+        msatVarType, 1, msatVarType1);
     leftShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_<<_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     rightShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_>>_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     multUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_*_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     divUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_/_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
     modUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_%_",
-        msatVarType, 2, argtypes);
+        msatVarType, 2, msatVarType2);
 
     stringLitUfDecl = mathsat.api.msat_declare_uif(msatEnv, "__string__",
-        msatVarType, 1, argtype);
+        msatVarType, 1, msatVarType1);
     
     absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs", logger);
   }
@@ -235,6 +237,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return msatEnv;
   }
 
+  private long[] getTerm(SymbolicFormula[] f) {
+    int length = f.length;
+    long[] result = new long[length];
+    for (int i = 0; i < length; i++) {
+      result[i] = ((MathsatSymbolicFormula)f[i]).getTerm();
+    }
+    return result;
+  }
+  
   @Override
   public SymbolicFormula createPredicateVariable(SymbolicFormula atom) {
     long tt = ((MathsatSymbolicFormula)atom).getTerm();
@@ -286,6 +297,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(a);
   }
 
+  private MathsatSymbolicFormula makeAnd(MathsatSymbolicFormula f1, long f2) {
+    long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
+    return new MathsatSymbolicFormula(a);
+  }
 
   @Override
   public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2) {
@@ -436,8 +451,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         long minit = buildMsatTerm(exp, newssa);
         long mvar = buildMsatVariable(var, idx);
         long t = makeAssignment(mvar, minit);
-        t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-        m1 = new MathsatSymbolicFormula(t);
+        m1 = makeAnd(m1, t);
       }
       return new PathFormula(m1, newssa);
     }
@@ -504,8 +518,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         long minit = buildMsatTerm(exp, newssa);
         long mvar = buildMsatVariable(var, idx);
         long t = makeAssignment(mvar, minit);
-        t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-        m1 = new MathsatSymbolicFormula(t);
+        m1 = makeAnd(m1, t);
       } else if (spec.getStorageClass() ==
         IASTDeclSpecifier.sc_extern) {
         log(Level.ALL, "Ignoring initializer of extern declaration", d);
@@ -517,8 +530,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           long mvar = buildMsatVariable(var, idx);
           long z = mathsat.api.msat_make_number(msatEnv, "0");
           long t = makeAssignment(mvar, z);
-          t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-          m1 = new MathsatSymbolicFormula(t);
+          m1 = makeAnd(m1, t);
           logger.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
               (isGlobal ? "GLOBAL" : ""), "VAR: ",
               var, " (", d.getName().getRawSignature(), ")");
@@ -576,9 +588,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       long eq = makeAssignment(msatFormalParam, msatParam);
       term = mathsat.api.msat_make_and(msatEnv, term, eq);
     }
-    term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-    return new Pair<SymbolicFormula, SSAMap>(
-        new MathsatSymbolicFormula(term), ssa);
+    return new PathFormula(makeAnd(m1, term), ssa);
   }
 
   private void log(Level level, String msg, IASTNode astNode) {
@@ -614,9 +624,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       setNamespace(ce.getSuccessor().getFunctionName());
       long msatoutvar = buildMsatLvalueTerm(e, ssa);
       long term = makeAssignment(msatoutvar, msatretvar);
-      term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-      return new PathFormula(
-          new MathsatSymbolicFormula(term), ssa);
+      return new PathFormula(makeAnd(m1, term), ssa);
     } else {
       throw new UnrecognizedCFAEdgeException(
           "UNKNOWN FUNCTION EXIT EXPRESSION: " +
@@ -679,9 +687,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         term = mathsat.api.msat_make_and(msatEnv, term, eq);
       }
       assert(!mathsat.api.MSAT_ERROR_TERM(term));
-      term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-      return new PathFormula(
-          new MathsatSymbolicFormula(term), ssa);
+      return new PathFormula(makeAnd(m1, term), ssa);
     }
   }
 
@@ -708,13 +714,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       long retval = buildMsatTerm(exp, ssa);
       if (!mathsat.api.MSAT_ERROR_TERM(retval)) {
         long term = makeAssignment(retvar, retval);
-        if (!mathsat.api.MSAT_ERROR_TERM(term)) {
-          term = mathsat.api.msat_make_and(
-              msatEnv, m1.getTerm(), term);
-          assert(!mathsat.api.MSAT_ERROR_TERM(term));
-          return new PathFormula(
-              new MathsatSymbolicFormula(term), ssa);
-        }
+        return new PathFormula(makeAnd(m1, term), ssa);
       }
     }
     // if we are here, we can't handle the return properly...
@@ -741,15 +741,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     long decl = mathsat.api.msat_declare_uif(
         msatEnv, name + "@" + idx, msatVarType, tp.length, tp);
     return mathsat.api.msat_make_uif(msatEnv, decl, args);
-  }
-
-  private long buildMsatUFLvalue(
-      String name, SymbolicFormula[] args, int idx) {
-    long[] a = new long[args.length];
-    for (int i = 0; i < a.length; ++i) {
-      a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
-    }
-    return buildMsatUFLvalue(name, a, idx);
   }
 
   private String exprToVarName(IASTExpression e) {
@@ -897,8 +888,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
           // build the  function corresponding to this operation.
           long decl = mathsat.api.msat_declare_uif(
-              msatEnv, opname + "@" + idx, msatVarType, 1,
-              new int[]{msatVarType});
+              msatEnv, opname + "@" + idx, msatVarType, 1, msatVarType1);
           return mathsat.api.msat_make_uif(msatEnv, decl,
               new long[]{term});
         } else {
@@ -1124,8 +1114,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
         // see above for the case of &x and *x
         long decl = mathsat.api.msat_declare_uif(
-            msatEnv, ufname + "@" + idx, msatVarType, 1,
-            new int[]{msatVarType});
+            msatEnv, ufname + "@" + idx, msatVarType, 1, msatVarType1);
         return mathsat.api.msat_make_uif(msatEnv, decl, aterm);
       } else {
         warnUnsafeVar(exp);
@@ -1149,8 +1138,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         int idx = getIndex(ufname, args, ssa, true);
 
         long decl = mathsat.api.msat_declare_uif(
-            msatEnv, ufname + "@" + idx, msatVarType, 2,
-            new int[]{msatVarType, msatVarType});
+            msatEnv, ufname + "@" + idx, msatVarType, 2, msatVarType2);
         return mathsat.api.msat_make_uif(msatEnv, decl,
             new long[]{aterm, sterm});
       } else {
@@ -1298,7 +1286,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
       long decl = mathsat.api.msat_declare_uif(msatEnv,
-          opname + "@" + idx, msatVarType, 1, new int[]{msatVarType});
+          opname + "@" + idx, msatVarType, 1, msatVarType1);
       return mathsat.api.msat_make_uif(msatEnv, decl, new long[]{term});
 
     } else if (exp instanceof IASTFieldReference) {
@@ -1318,7 +1306,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
       // see above for the case of &x and *x
       long decl = mathsat.api.msat_declare_uif(msatEnv,
-          ufname + "@" + idx, msatVarType, 1, new int[]{msatVarType});
+          ufname + "@" + idx, msatVarType, 1, msatVarType1);
       return mathsat.api.msat_make_uif(msatEnv, decl, new long[]{term});
 
     } else if (exp instanceof IASTArraySubscriptExpression) {
@@ -1337,8 +1325,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       int idx = makeLvalIndex(ufname, args, ssa);
 
       long decl = mathsat.api.msat_declare_uif(msatEnv,
-          ufname + "@" + idx, msatVarType, 2,
-          new int[]{msatVarType, msatVarType});
+          ufname + "@" + idx, msatVarType, 2, msatVarType2);
       return mathsat.api.msat_make_uif(msatEnv, decl,
           new long[]{aterm, sterm});
     }
@@ -1516,9 +1503,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             stmt.getExpression());
         return new PathFormula(f1, ssa);
       }
-      long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
-      return new PathFormula(
-          new MathsatSymbolicFormula(a), ssa);
+      return new PathFormula(makeAnd(f1, f2), ssa);
     } else {
       throw new UnrecognizedCFAEdgeException("STATEMENT: " +
           stmt.getRawStatement());
@@ -1643,39 +1628,27 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
   }
 
-  private PathFormula makeAndAssume(
-      MathsatSymbolicFormula f1, AssumeEdge assume, SSAMap ssa
-      ) throws UnrecognizedCFAEdgeException {
+  private PathFormula makeAndAssume(MathsatSymbolicFormula f1,
+      AssumeEdge assume, SSAMap ssa) throws UnrecognizedCFAEdgeException {
     MathsatSymbolicFormula f2 = buildFormulaPredicate(
         assume.getExpression(), assume.getTruthAssumption(), ssa);
     if (f2 == null) {
-      throw new UnrecognizedCFAEdgeException("ASSUME: " +
-          assume.getRawStatement());
+      throw new UnrecognizedCFAEdgeException("ASSUME: " + assume.getRawStatement());
     } else {
-      long res = mathsat.api.msat_make_and(msatEnv, f1.getTerm(),
-          f2.getTerm());
-      return new PathFormula(
-          new MathsatSymbolicFormula(res), ssa);
+      return new PathFormula(makeAnd(f1, f2), ssa);
     }
   }
 
   // creates the two mathsat terms
   // (var@newidx = var@i1) and (var@newidx = var@i2)
-  // used by mergeSSAMaps
-  // This function used to generate a new index "newidx" at every merge.
-  // However, this is not necessary, and it was very inefficient, because it
-  // created a lot of extra variables. Now, we have the invariant that
-  // newidx is either i1 or i2 (the highest of the two), so merging SSA maps
-  // does not generate new variables
-  private Pair<Long, Long> makeSSAMerger(String var, int i1, int i2,
-      int newidx) {
+  // used by mergeSSAMaps (where newidx = max(i1, i2))
+  private Pair<Long, Long> makeSSAMerger(String var, int i1, int i2) {
     // retrieve the mathsat terms corresponding to the two variables
     long v1 = buildMsatVariable(var, i1);
     long v2 = buildMsatVariable(var, i2);
     long e1 = mathsat.api.msat_make_true(msatEnv);
     long e2 = mathsat.api.msat_make_true(msatEnv);
     if (i1 < i2) {
-      assert(newidx == i2);
       for (int i = i1+1; i <= i2; ++i) {
         long v = buildMsatVariable(var, i);
         long e = mathsat.api.msat_make_equal(msatEnv, v, v1);
@@ -1683,7 +1656,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
     } else {
       assert(i2 < i1);
-      assert(newidx == i1);
       for (int i = i2+1; i <= i1; ++i) {
         long v = buildMsatVariable(var, i);
         long e = mathsat.api.msat_make_equal(msatEnv, v, v2);
@@ -1694,14 +1666,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private Pair<Long, Long> makeSSAMerger(String name,
-      SymbolicFormula[] args, int i1, int i2, int newidx) {
+      long[] args, int i1, int i2) {
     // retrieve the mathsat terms corresponding to the two variables
     long v1 = buildMsatUFLvalue(name, args, i1);
     long v2 = buildMsatUFLvalue(name, args, i2);
     long e1 = mathsat.api.msat_make_true(msatEnv);
     long e2 = mathsat.api.msat_make_true(msatEnv);
     if (i1 < i2) {
-      assert(newidx == i2);
       for (int i = i1+1; i <= i2; ++i) {
         long v = buildMsatUFLvalue(name, args, i);
         long e = mathsat.api.msat_make_equal(msatEnv, v, v1);
@@ -1709,7 +1680,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
     } else {
       assert(i2 < i1);
-      assert(newidx == i1);
       for (int i = i2+1; i <= i1; ++i) {
         long v = buildMsatUFLvalue(name, args, i);
         long e = mathsat.api.msat_make_equal(msatEnv, v, v2);
@@ -1731,13 +1701,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       assert(i1 > 0);
       if (i2 > 0 && i2 != i1) {
         // we have to merge this variable assignment
-        int i3 = Math.max(i1, i2);
-        result.setIndex(var, i3);
-        Pair<Long, Long> t = makeSSAMerger(var, i1, i2, i3);
-        mt1 = mathsat.api.msat_make_and(msatEnv, mt1,
-            t.getFirst());
-        mt2 = mathsat.api.msat_make_and(msatEnv, mt2,
-            t.getSecond());
+        result.setIndex(var, Math.max(i1, i2));
+        Pair<Long, Long> t = makeSSAMerger(var, i1, i2);
+        mt1 = mathsat.api.msat_make_and(msatEnv, mt1, t.getFirst());
+        mt2 = mathsat.api.msat_make_and(msatEnv, mt2, t.getSecond());
       } else {
         if (i2 <= 0) {
           // it's not enough to set the SSA index. We *must* also
@@ -1769,7 +1736,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
         result.setIndex(var, i2);
       } else {
-        //assert(i1 == i2 || result.getIndex(var) > Math.max(i1, i2));
         assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
       }
     }
@@ -1780,24 +1746,17 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       assert(i1 > 0);
       if (i2 > 0 && i2 != i1) {
         // we have to merge this lvalue assignment
-        int i3 = Math.max(i1, i2);
-        result.setIndex(f.getFirst(), f.getSecond(), i3);
-        Pair<Long, Long> t = makeSSAMerger(
-            f.getFirst(), f.getSecond(), i1, i2, i3);
-        mt1 = mathsat.api.msat_make_and(msatEnv, mt1,
-            t.getFirst());
-        mt2 = mathsat.api.msat_make_and(msatEnv, mt2,
-            t.getSecond());
+        result.setIndex(f.getFirst(), f.getSecond(), Math.max(i1, i2));
+        long[] args = getTerm(f.getSecond());
+        Pair<Long, Long> t = makeSSAMerger(f.getFirst(), args, i1, i2);
+        mt1 = mathsat.api.msat_make_and(msatEnv, mt1, t.getFirst());
+        mt2 = mathsat.api.msat_make_and(msatEnv, mt2, t.getSecond());
       } else {
         if (i2 <= 0) {
           // it's not enough to set the SSA index. We *must* also
           // generate a formula saying that the var does not change
           // in this branch!
-          long[] args = new long[f.getSecond().length];
-          for (int i = 0; i < args.length; ++i) {
-            args[i] = ((MathsatSymbolicFormula)
-                f.getSecond()[i]).getTerm();
-          }
+          long[] args = getTerm(f.getSecond());
           long v1 = buildMsatUFLvalue(f.getFirst(), args, 1);
           for (int i = 2; i <= i1; ++i) {
             long v = buildMsatUFLvalue(f.getFirst(), args, i);
@@ -1816,11 +1775,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         // it's not enough to set the SSA index. We *must* also
         // generate a formula saying that the var does not change
         // in this branch!
-        long[] args = new long[f.getSecond().length];
-        for (int i = 0; i < args.length; ++i) {
-          args[i] = ((MathsatSymbolicFormula)
-              f.getSecond()[i]).getTerm();
-        }
+        long[] args = getTerm(f.getSecond());
         long v1 = buildMsatUFLvalue(f.getFirst(), args, 1);
         for (int i = 2; i <= i2; ++i) {
           long v = buildMsatUFLvalue(f.getFirst(), args, i);
