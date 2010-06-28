@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,7 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,6 +49,29 @@ public class AutomatonTest {
   private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
   
   // Specification Tests
+  @Test
+  public void CyclicInclusionTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointeranalysis.PointerAnalysisCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "specification",     "test/config/automata/tmpSpecification.spc",
+        "log.consoleLevel",               "INFO",
+        "analysis.stopAfterError",        "FALSE"
+      );
+    try {
+      File tmpSpc = new File("test/config/automata/tmpSpecification.spc");
+      String content = "#include test/config/automata/UninitializedVariablesTestAutomaton.txt \n" +
+      "#include test/config/automata/tmpSpecification.spc \n";
+      Files.writeFile(tmpSpc, content, false);
+      TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
+      Assert.assertTrue(results.isSafe());
+      Assert.assertTrue(results.logContains("File \"test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
+      Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    } catch (IOException e) {
+      Assert.fail("could not generate tmpSpecification.spc");
+    }
+  }
   @Test
   public void IncludeSpecificationTest() {
     Map<String, String> prop = ImmutableMap.of(
@@ -447,6 +473,10 @@ public class AutomatonTest {
     }
     boolean isUnsafe() {
       return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
+    }
+    @Override
+    public String toString() {
+      return log.toString();
     }
   }
 }
