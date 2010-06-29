@@ -584,7 +584,7 @@ implements PredicateAbstractionFormulaManager {
 
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
-    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
+    thmProver.init();
 
 //    if (isFunctionExit(e)) {
       // we have to take the context before the function call
@@ -1334,7 +1334,7 @@ implements PredicateAbstractionFormulaManager {
       boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat) {
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
-    thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
+    thmProver.init();
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length: ", f.size());

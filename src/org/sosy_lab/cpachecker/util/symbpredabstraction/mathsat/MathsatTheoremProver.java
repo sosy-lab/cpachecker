@@ -47,7 +47,6 @@ public class MathsatTheoremProver implements TheoremProver {
 
     private final long msatEnv;
     private long curEnv;
-    private boolean sharedEnv;
 
     public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr,
             Configuration config) throws InvalidConfigurationException {
@@ -67,28 +66,22 @@ public class MathsatTheoremProver implements TheoremProver {
 
     @Override
     public void pop() {
+        Preconditions.checkState(curEnv != 0);
         int ok = mathsat.api.msat_pop_backtrack_point(curEnv);
         assert(ok == 0);
     }
 
     @Override
     public void push(SymbolicFormula f) {
+        Preconditions.checkState(curEnv != 0);
         mathsat.api.msat_push_backtrack_point(curEnv);
         long t = ((MathsatSymbolicFormula)f).getTerm();
-        if (!sharedEnv) {
-            t = mathsat.api.msat_make_copy_from(curEnv, t, msatEnv);
-        }
         mathsat.api.msat_assert_formula(curEnv, t);
     }
 
-    private long createEnvironment(boolean shared) {
-        long env;
-        if (shared) {
-            env = mathsat.api.msat_create_shared_env(msatEnv);
-        } else {
-            env = mathsat.api.msat_create_env();
-        }
-
+    private long createEnvironment() {
+        long env = mathsat.api.msat_create_shared_env(msatEnv);
+        
         mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
         if (useIntegers) {
             mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
@@ -110,11 +103,10 @@ public class MathsatTheoremProver implements TheoremProver {
     }
 
     @Override
-    public void init(int purpose) {
+    public void init() {
         Preconditions.checkState(curEnv == 0);
   
-        sharedEnv = !(purpose == ENTAILMENT_CHECK);
-        curEnv = createEnvironment(sharedEnv);
+        curEnv = createEnvironment();
     }
     
     @Override
@@ -146,7 +138,7 @@ public class MathsatTheoremProver implements TheoremProver {
             List<SymbolicFormula> important, AllSatCallback callback) {
         long formula = ((MathsatSymbolicFormula)f).getTerm();
         
-        long allsatEnv = createEnvironment(true);
+        long allsatEnv = createEnvironment();
         
         long[] imp = new long[important.size()];
         for (int i = 0; i < imp.length; ++i) {

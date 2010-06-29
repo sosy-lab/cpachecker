@@ -360,7 +360,7 @@ public class YicesTheoremProver implements TheoremProver {
     }
 
     @Override
-    public void init(int purpose) {}
+    public void init() {}
 
     @Override
     public boolean isUnsat(SymbolicFormula f) {

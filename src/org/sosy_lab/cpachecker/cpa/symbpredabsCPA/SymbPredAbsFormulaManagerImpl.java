@@ -251,7 +251,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
     long solveStartTime = System.currentTimeMillis();
 
-    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
+    thmProver.init();
     try {
 
       if (!skipFeasibilityCheck) {
@@ -439,7 +439,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
-    thmProver.init(TheoremProver.ENTAILMENT_CHECK);
+    thmProver.init();
     boolean ret = thmProver.isUnsat(toCheck);
     thmProver.reset();
 
@@ -577,9 +577,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula.getFirst());
 
-    // purpose = ENTAILMENT_CHECK copied from MathsatSymbolicFormulaManager.entails()
-    // this method does essentially the same (just check one formula for unsatisfiability)
-    thmProver.init(TheoremProver.ENTAILMENT_CHECK);
+    thmProver.init();
     boolean result = thmProver.isUnsat(symbFormula.getFirst());
     thmProver.reset();
 
@@ -855,7 +853,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
-    thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
+    thmProver.init();
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
