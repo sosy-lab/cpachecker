@@ -31,12 +31,22 @@
     	 symbols="AutomatonSym"
     	 nopositions="true"
     />
+
     <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" skel="src/org/sosy_lab/cpachecker/cpa/automatonanalysis/skeleton.nested"/>
-  	<!-- places the suppressWarnings-tag in front of the outer class -->
-  	<replace file="${parserDir}/AutomatonParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>
-  	<!-- places the suppressWarnings-tag in front of the inner class -->
-  	<replace file="${parserDir}/AutomatonParser.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class  CUP$"/>
-  	<!-- SVN had "inconsistent line endings"-Problems. Let ANT fix it -->
-  	<fixcrlf file="${parserDir}/AutomatonParser.java" eol="lf" />
+
+    <!-- remove generation date to not interfere with SVN -->
+    <replaceregexp match="(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \w\w\w \d\d \d\d:\d\d:\d\d \w+ \d\d\d\d" replace="[date omitted]" flags="g">
+	<fileset dir="${parserDir}">
+	    <include name="AutomatonParser.java"/>
+	    <include name="AutomatonSym.java"/>
+	</fileset>
+    </replaceregexp>
+    <replaceregexp file="${parserDir}/AutomatonScanner.java" match="\d\d\.\d\d.\d\d \d\d:\d\d" replace="[date omitted]" flags="g" />
+    <replaceregexp file="${parserDir}/AutomatonScanner.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/cpa/automatonanalysis/Scanner.jflex./tt>)" replace="\1\2" />
+
+    <!-- places the suppressWarnings-tag in front of the outer class -->
+    <replace file="${parserDir}/AutomatonParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>
+    <!-- places the suppressWarnings-tag in front of the inner class -->
+    <replace file="${parserDir}/AutomatonParser.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class  CUP$"/>
   </target>
 </project>
