@@ -123,7 +123,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager, false, config);
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager, config);
     } else if (whichProver.equals("YICES")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {

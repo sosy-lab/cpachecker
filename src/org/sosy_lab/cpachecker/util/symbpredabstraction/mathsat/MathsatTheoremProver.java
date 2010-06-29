@@ -45,8 +45,6 @@ public class MathsatTheoremProver implements TheoremProver {
     private final static int THEORY_UF = 2;
     private final static int THEORY_ARITH = 4;
     
-    private final static int RESET_INCR_ABS_ENV_FREQUENCY = 100;
-
     @Option
     private boolean useIntegers = false;
 
@@ -56,20 +54,16 @@ public class MathsatTheoremProver implements TheoremProver {
     private long absEnv;
     private long msatEnv;
     private long curEnv;
-    private boolean incremental;
-    private int incrAbsEnvCount;
     private boolean needsTermCopy;
 
     // cache
     private final Map<Long, Integer> neededTheories = new HashMap<Long, Integer>();
 
     public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr,
-            boolean incr, Configuration config) throws InvalidConfigurationException {
+            Configuration config) throws InvalidConfigurationException {
         config.inject(this);
         msatEnv = mgr.getMsatEnv();
-        incremental = incr;
         absEnv = 0;
-        incrAbsEnvCount = 0;
         curEnv = 0;
     }
 
@@ -99,38 +93,24 @@ public class MathsatTheoremProver implements TheoremProver {
     }
 
     private void initCartesian() {
-        if (absEnv == 0 || !incremental) {
-            absEnv = mathsat.api.msat_create_shared_env(msatEnv);
-            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
-            if (useIntegers) {
-                mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
-                int ok = mathsat.api.msat_set_option(
-                        absEnv, "split_eq", "false");
-                assert(ok == 0);
-            } else {
-                mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
-            }
-            if (useDtc) {
-                mathsat.api.msat_set_theory_combination(absEnv,
-                        mathsat.api.MSAT_COMB_DTC);
-            }
-            // disable static learning. For small problems,
-            // this is just overhead
-            mathsat.api.msat_set_option(absEnv, "sl", "0");
-            mathsat.api.msat_set_option(absEnv, "ghost_filter", "true");
-
-            if (incremental) {
-                mathsat.api.msat_push_backtrack_point(absEnv);
-            }
-        } else { // incremental
-            if (++incrAbsEnvCount == RESET_INCR_ABS_ENV_FREQUENCY) {
-                incrAbsEnvCount = 0;
-                mathsat.api.msat_destroy_env(absEnv);
-                initCartesian();
-            } else {
-                mathsat.api.msat_push_backtrack_point(absEnv);
-            }
+        absEnv = mathsat.api.msat_create_shared_env(msatEnv);
+        mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
+        if (useIntegers) {
+            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
+            int ok = mathsat.api.msat_set_option(
+                    absEnv, "split_eq", "false");
+            assert(ok == 0);
+        } else {
+            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
         }
+        if (useDtc) {
+            mathsat.api.msat_set_theory_combination(absEnv,
+                    mathsat.api.MSAT_COMB_DTC);
+        }
+        // disable static learning. For small problems,
+        // this is just overhead
+        mathsat.api.msat_set_option(absEnv, "sl", "0");
+        mathsat.api.msat_set_option(absEnv, "ghost_filter", "true");
     }
 
     private void initNormal(boolean shared) {
@@ -174,15 +154,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
     @Override
     public void reset() {
-        if (curEnv != absEnv) {
-            mathsat.api.msat_destroy_env(curEnv);
-        } else {
-            if (!incremental) {
-                mathsat.api.msat_destroy_env(curEnv);
-            } else {
-                mathsat.api.msat_pop_backtrack_point(curEnv);
-            }
-        }
+        mathsat.api.msat_destroy_env(curEnv);
     }
 
     private int getNeededTheories(SymbolicFormula f) {

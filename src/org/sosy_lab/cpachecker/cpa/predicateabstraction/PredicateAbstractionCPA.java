@@ -122,7 +122,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager(config, logger);
         TheoremProver prover = null;
         if (whichProver.equals("mathsat")) {
-            prover = new MathsatTheoremProver(mgr, false, config);
+            prover = new MathsatTheoremProver(mgr, config);
         } else if (whichProver.equals("yices")) {
             prover = new YicesTheoremProver(mgr);
         } else {
