@@ -24,46 +24,35 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
+
+import com.google.common.base.Preconditions;
 
 
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatTheoremProver implements TheoremProver {
 
-    private final static int THEORY_EQ = 1;
-    private final static int THEORY_UF = 2;
-    private final static int THEORY_ARITH = 4;
-    
     @Option
     private boolean useIntegers = false;
 
     @Option
     private boolean useDtc = false;
 
-    private long absEnv;
-    private long msatEnv;
+    private final long msatEnv;
     private long curEnv;
-    private boolean needsTermCopy;
-
-    // cache
-    private final Map<Long, Integer> neededTheories = new HashMap<Long, Integer>();
+    private boolean sharedEnv;
 
     public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr,
             Configuration config) throws InvalidConfigurationException {
         config.inject(this);
         msatEnv = mgr.getMsatEnv();
-        absEnv = 0;
         curEnv = 0;
     }
 
@@ -86,126 +75,53 @@ public class MathsatTheoremProver implements TheoremProver {
     public void push(SymbolicFormula f) {
         mathsat.api.msat_push_backtrack_point(curEnv);
         long t = ((MathsatSymbolicFormula)f).getTerm();
-        if (needsTermCopy) {
+        if (!sharedEnv) {
             t = mathsat.api.msat_make_copy_from(curEnv, t, msatEnv);
         }
         mathsat.api.msat_assert_formula(curEnv, t);
     }
 
-    private void initCartesian() {
-        absEnv = mathsat.api.msat_create_shared_env(msatEnv);
-        mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
-        if (useIntegers) {
-            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
-            int ok = mathsat.api.msat_set_option(
-                    absEnv, "split_eq", "false");
-            assert(ok == 0);
-        } else {
-            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
-        }
-        if (useDtc) {
-            mathsat.api.msat_set_theory_combination(absEnv,
-                    mathsat.api.MSAT_COMB_DTC);
-        }
-        // disable static learning. For small problems,
-        // this is just overhead
-        mathsat.api.msat_set_option(absEnv, "sl", "0");
-        mathsat.api.msat_set_option(absEnv, "ghost_filter", "true");
-    }
-
-    private void initNormal(boolean shared) {
+    private long createEnvironment(boolean shared) {
+        long env;
         if (shared) {
-            curEnv = mathsat.api.msat_create_shared_env(msatEnv);
+            env = mathsat.api.msat_create_shared_env(msatEnv);
         } else {
-            curEnv = mathsat.api.msat_create_env();
+            env = mathsat.api.msat_create_env();
         }
-        mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_UF);
+
+        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
         if (useIntegers) {
-            mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_LIA);
-            int ok = mathsat.api.msat_set_option(
-                    curEnv, "split_eq", "false");
+            mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
+            int ok = mathsat.api.msat_set_option(env, "split_eq", "false");
             assert(ok == 0);
         } else {
-            mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_LRA);
+            mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
         }
         if (useDtc) {
-            mathsat.api.msat_set_theory_combination(curEnv,
-                    mathsat.api.MSAT_COMB_DTC);
+            mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
         }
         // disable static learning. For small problems,
         // this is just overhead
-        mathsat.api.msat_set_option(curEnv, "sl", "0");
-        mathsat.api.msat_set_option(curEnv, "ghost_filter", "true");
+        mathsat.api.msat_set_option(env, "sl", "0");
+        
+        mathsat.api.msat_set_option(env, "ghost_filter", "true");
+        
+        return env;
     }
 
     @Override
     public void init(int purpose) {
-        switch (purpose) {
-        case CARTESIAN_ABSTRACTION:
-            initCartesian();
-            curEnv = absEnv;
-            break;
-        default:
-            initNormal(purpose != ENTAILMENT_CHECK);
-            absEnv = 0;
-        }
-        needsTermCopy = purpose == ENTAILMENT_CHECK;
+        Preconditions.checkState(curEnv == 0);
+  
+        sharedEnv = !(purpose == ENTAILMENT_CHECK);
+        curEnv = createEnvironment(sharedEnv);
     }
-
+    
     @Override
     public void reset() {
+        Preconditions.checkState(curEnv != 0);
         mathsat.api.msat_destroy_env(curEnv);
-    }
-
-    private int getNeededTheories(SymbolicFormula f) {
-      long term = ((MathsatSymbolicFormula)f).getTerm();
-      if (neededTheories.containsKey(term)) {
-        return neededTheories.get(term);
-      }
-      Stack<Long> toProcess = new Stack<Long>();
-      toProcess.push(term);
-      while (!toProcess.empty()) {
-        long t = toProcess.peek();
-        if (neededTheories.containsKey(t)) {
-          toProcess.pop();
-          continue;
-        }
-        int needed = 0;
-        boolean childrenDone = true;
-        for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
-          long c = mathsat.api.msat_term_get_arg(t, i);
-          if (neededTheories.containsKey(c)) {
-            needed |= neededTheories.get(c);
-          } else {
-            childrenDone = false;
-            toProcess.push(c);
-          }
-        }
-        if (childrenDone) {
-          toProcess.pop();
-          if (mathsat.api.msat_term_is_equal(t) != 0) {
-            needed |= THEORY_EQ;
-          } else if (isArithmetic(t)) {
-            needed |= THEORY_ARITH;
-          } else if (mathsat.api.msat_term_is_uif(t) != 0) {
-            needed |= THEORY_UF;
-          }
-          neededTheories.put(t, needed);
-        }
-      }
-      return neededTheories.get(term);
-    }
-
-
-    private static boolean isArithmetic(long t) {
-      return (mathsat.api.msat_term_is_plus(t) != 0 ||
-          mathsat.api.msat_term_is_minus(t) != 0 ||
-          mathsat.api.msat_term_is_negate(t) != 0 ||
-          mathsat.api.msat_term_is_times(t) != 0 ||
-          mathsat.api.msat_term_is_lt(t) != 0 ||
-          mathsat.api.msat_term_is_gt(t) != 0 ||
-          mathsat.api.msat_term_is_leq(t) != 0 ||
-          mathsat.api.msat_term_is_geq(t) != 0);
+        curEnv = 0;
     }
     
     private static class MathsatAllSatCallback implements mathsat.AllSatModelCallback {
@@ -228,28 +144,10 @@ public class MathsatTheoremProver implements TheoremProver {
     @Override
     public int allSat(SymbolicFormula f,
             List<SymbolicFormula> important, AllSatCallback callback) {
-        long allsatEnv = mathsat.api.msat_create_shared_env(msatEnv);
-
-        int theories = getNeededTheories(f);
-
-        mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_UF);
-        if ((theories & THEORY_ARITH) != 0) {
-            if (useIntegers) {
-                mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LIA);
-                int ok = mathsat.api.msat_set_option(allsatEnv, "split_eq",
-                        "true");
-                assert(ok == 0);
-            } else {
-                mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LRA);
-            }
-            if (useDtc) {
-                mathsat.api.msat_set_theory_combination(allsatEnv,
-                        mathsat.api.MSAT_COMB_DTC);
-            }
-        }
-        mathsat.api.msat_set_option(allsatEnv, "sl", "0");
-
         long formula = ((MathsatSymbolicFormula)f).getTerm();
+        
+        long allsatEnv = createEnvironment(true);
+        
         long[] imp = new long[important.size()];
         for (int i = 0; i < imp.length; ++i) {
             imp[i] = ((MathsatSymbolicFormula)important.get(i)).getTerm();
