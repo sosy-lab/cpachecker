@@ -34,6 +34,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
 
   private long timeOfTranferToComputeElement;
   private long totalTimeOnThePath;
+  private int numberOfBranches = 0;
   public static long maxTimeOfTransfer = 0;
   public static long maxTotalTimeForPath = 0;
   public static long totalTimeOfTransfer = 0;
@@ -134,7 +135,15 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     // TODO Auto-generated method stub
     return "No of nodes> " + this.noOfNodesOnPath
     + "/n Total time> " + this.totalTimeOnThePath 
-    + "/n Max Single Operation Time> " + maxTimeOfTransfer;
+    + "/n Max Single Operation Time> " + maxTimeOfTransfer
+    + "/n Number of Branches" + numberOfBranches;
   }
 
+  public int getNoOfBranchesOnPath() {
+    return numberOfBranches;
+  }
+
+  public void setNoOfBranches(int pI) {
+    numberOfBranches = pI;
+  }
 }

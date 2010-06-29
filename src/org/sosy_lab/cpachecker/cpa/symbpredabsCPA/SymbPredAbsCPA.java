@@ -98,6 +98,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
   
+  @Option(name="interpolation.changesolverontimeout")
+  private boolean changeItpSolveOTF = false;
+  
+  
   private final Configuration config;
   private final LogManager logger;
 
@@ -131,14 +135,21 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
 
     InterpolatingTheoremProver<Integer> itpProver;
+    InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
       itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+      if(changeItpSolveOTF){
+        alternativeItpProver =  new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
+      }
     } else if (whichItpProver.equals("CSISAT")) {
       itpProver = new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
+      if(changeItpSolveOTF){
+        alternativeItpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+      }
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
+    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);

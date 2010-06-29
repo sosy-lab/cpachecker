@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,6 +67,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
   @Option(name="pathlengthlimit")
   private long nodeLimitForPath = 0;
+  
+  @Option(name="brancheslimit")
+  private long limitForBranches = 0;
   
   public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
@@ -130,14 +134,21 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
       successorElem.setNoOfNodesOnPath(element.getNoOfNodesOnPath()+1);
+      if(pCfaEdge instanceof AssumeEdge){
+        successorElem.setNoOfBranches(element.getNoOfBranchesOnPath()+1);  
+      }
       if(element.getNoOfNodesOnPath() > maxSizeOfSinglePath){
         maxSizeOfSinglePath = element.getNoOfNodesOnPath();
+        if(limitForBranches > 0 &&  successorElem.getNoOfBranchesOnPath() > limitForBranches){
+          return Collections.emptySet();
+        }
       }
 //      if(!successorElem.isIgnore()){
         if((timeLimitForPath > 0 &&
             successorElem.getTotalTimeOnThePath() > timeLimitForPath)
             ||
-            (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)){
+            (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)
+        ){
 //          noOfStops++;
 //          if(noOfStops % 20 == 0){
 //            successorElem.resetTotalTime();
