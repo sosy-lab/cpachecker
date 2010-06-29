@@ -100,10 +100,6 @@ import com.google.common.base.Preconditions;
 @Options(prefix="cpas.symbpredabs")
 public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
-  public final static int THEORY_EQ = 1;
-  public final static int THEORY_UF = 2;
-  public final static int THEORY_ARITH = 4;
-
   @Option(name="mathsat.useIntegers")
   private boolean useIntegers = false;
 
@@ -181,7 +177,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   // cache for replacing assignments
   private final Map<Long, Long> replaceAssignmentsCache = new HashMap<Long, Long>();
-  private final Map<Long, Integer> neededTheories = new HashMap<Long, Integer>();
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -2086,56 +2081,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     assert(cache.containsKey(term));
     return new PathFormula(
         new MathsatSymbolicFormula(cache.get(term)), newssa);
-  }
-
-  private boolean isArithmetic(long t) {
-    return (mathsat.api.msat_term_is_plus(t) != 0 ||
-        mathsat.api.msat_term_is_minus(t) != 0 ||
-        mathsat.api.msat_term_is_negate(t) != 0 ||
-        mathsat.api.msat_term_is_times(t) != 0 ||
-        mathsat.api.msat_term_is_lt(t) != 0 ||
-        mathsat.api.msat_term_is_gt(t) != 0 ||
-        mathsat.api.msat_term_is_leq(t) != 0 ||
-        mathsat.api.msat_term_is_geq(t) != 0);
-  }
-
-  int getNeededTheories(SymbolicFormula f) {
-    long term = ((MathsatSymbolicFormula)f).getTerm();
-    if (neededTheories.containsKey(term)) {
-      return neededTheories.get(term);
-    }
-    Stack<Long> toProcess = new Stack<Long>();
-    toProcess.push(term);
-    while (!toProcess.empty()) {
-      long t = toProcess.peek();
-      if (neededTheories.containsKey(t)) {
-        toProcess.pop();
-        continue;
-      }
-      int needed = 0;
-      boolean childrenDone = true;
-      for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
-        long c = mathsat.api.msat_term_get_arg(t, i);
-        if (neededTheories.containsKey(c)) {
-          needed |= neededTheories.get(c);
-        } else {
-          childrenDone = false;
-          toProcess.push(c);
-        }
-      }
-      if (childrenDone) {
-        toProcess.pop();
-        if (mathsat.api.msat_term_is_equal(t) != 0) {
-          needed |= THEORY_EQ;
-        } else if (isArithmetic(t)) {
-          needed |= THEORY_ARITH;
-        } else if (mathsat.api.msat_term_is_uif(t) != 0) {
-          needed |= THEORY_UF;
-        }
-        neededTheories.put(t, needed);
-      }
-    }
-    return neededTheories.get(term);
   }
 
   /**
