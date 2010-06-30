@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -112,9 +113,7 @@ public class CPABuilder {
 
     Class<?> cpaClass = getCPAClass(optionName, cpaName);
 
-    Method factoryMethod = getFactoryMethod(cpaName, cpaClass);
-
-    CPAFactory factory = getFactoryInstance(cpaName, factoryMethod);
+    CPAFactory factory = getFactoryInstance(cpaName, cpaClass);
 
     // now use factory to get an instance of the CPA
 
@@ -172,30 +171,27 @@ public class CPABuilder {
     return cpaClass;
   }
 
-  private Method getFactoryMethod(String cpaName, Class<?> cpaClass) throws CPAException {
-    try {
-      return cpaClass.getMethod("factory", (Class<?>[]) null);
-    } catch (NoSuchMethodException e) {
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-    }
-  }
-
-  private CPAFactory getFactoryInstance(String cpaName, Method factoryMethod) throws CPAException {
+  private CPAFactory getFactoryInstance(String cpaName, Class<?> cpaClass) throws CPAException {
     Object factoryObj;
     try {
-       factoryObj = factoryMethod.invoke(null, (Object[])null);
+      Method factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
+      factoryObj = factoryMethod.invoke(null, (Object[])null);
+    
+    } catch (NoSuchMethodException e) {
+      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
+    
     } catch (IllegalArgumentException e) {
       // method is not static
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
+    
     } catch (IllegalAccessException e) {
       // method is not public
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
-      if (cause instanceof Error) {
-        throw (Error)cause; // errors should never be caught
-      }
+      Classes.throwExceptionIfPossible(cause, CPAException.class);
+      
       logger.logException(Level.FINE, cause, "CPA factory methods should never throw an exception!");
       throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
     }

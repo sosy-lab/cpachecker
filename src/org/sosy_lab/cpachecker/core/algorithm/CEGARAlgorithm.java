@@ -24,13 +24,15 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -87,7 +89,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
-  private static final String CLASS_NAME_PREFIX = "org.sosy_lab.cpachecker.";
+  private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker";
 
   @Option(required=true)
   private String refiner = "";
@@ -101,40 +103,22 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   public static final ExecutorService executor = Executors.newCachedThreadPool();
 
-  /**
-   * Creates an instance of class className, passing the objects from argumentList
-   * to the constructor and casting the object to class type. Throws a CPAException
-   * if anything goes wrong.
-   *
-   * TODO This method could be used in other places, too. Perhaps move it to a central location.
-   */
-  @SuppressWarnings("unchecked")
-  private static <T> T createInstance(String className, Object[] argumentList, Class<T> type)
-  throws CPAException {
+  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException {
+    Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
+    
     try {
-      Class<?> cls;
-      try {
-        cls = Class.forName(className);
-      } catch (ClassNotFoundException e1) {
-        try {
-          // try with prefix added
-          cls = Class.forName(CLASS_NAME_PREFIX + className);
-        } catch (ClassNotFoundException e2) {
-          throw e1; // re-throw original exception to get correct error message
-        }
-      }
-      Class<?> parameterTypes[] = {ConfigurableProgramAnalysis.class};
-      Constructor<?> ct = cls.getConstructor(parameterTypes);
-      Object obj = ct.newInstance(argumentList);
-      if (type.isAssignableFrom(obj.getClass())) {
-        return (T)obj;
-      } else {
-        throw new ClassCastException(obj.getClass() + " cannot be cast to " + type);
-      }
-    } catch (Exception e) {
-      throw new CPAException("Could not instantiate " + className + ": " + e.getMessage());
-    }
+      return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
+    
+    } catch (ClassInstantiationException e) {
+      throw new CPAException("Invalid refiner specified (" + e.getMessage() + ")!");
 
+    } catch (InvocationTargetException e) {
+      Throwable t = e.getCause();
+      Classes.throwExceptionIfPossible(t, CPAException.class);
+      
+      logger.logException(Level.FINE, t, "Unexpected exception during refiner instantiation!");
+      throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during refiner instantiation (" + t.getMessage() + ")!");
+    }
   }
 
   public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {

@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.Option.Type;
 
@@ -322,31 +323,24 @@ public class Configuration {
         assert false : "Accessibility setting failed silently above.";
       } catch (InvocationTargetException e) {
         // ITEs always have a wrapped exception which is the real one thrown by
-        // the invoked method. We want to handle this exception, so throw it
-        // (again) and catch it immediately.
+        // the invoked method. We want to handle this exception.
+        Throwable t = e.getCause();
         try {
-          throw e.getCause();
-
+          Classes.throwExceptionIfPossible(t, InvalidConfigurationException.class);
+        
         } catch (IllegalArgumentException iae) {
           throw new InvalidConfigurationException("Invalid value in configuration file: \""
               + name + " = " + valueStr + '\"'
               + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""));
-
-        } catch (RuntimeException re) {
-          throw re; // for these exceptions it is easy, we can just re-throw without declaring them
-
-        } catch (Error err) {
-          throw err; // errors should never be caught!
-
-        } catch (Throwable t) {
-          // We can't handle it correctly, but we can't throw it either.
-          InvalidConfigurationException newException = new InvalidConfigurationException(
-              "Unexpected checked exception in method "
-              + method.toGenericString()
-              + ", which was invoked by Configuration.inject()");
-          newException.initCause(t);
-          throw newException;
         }
+        
+        // We can't handle it correctly, but we can't throw it either.
+        InvalidConfigurationException newException = new InvalidConfigurationException(
+            "Unexpected checked exception in method "
+            + method.toGenericString()
+            + ", which was invoked by Configuration.inject()");
+        newException.initCause(t);
+        throw newException;
       }
     }
   }
