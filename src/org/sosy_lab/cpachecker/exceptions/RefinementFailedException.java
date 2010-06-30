@@ -34,27 +34,24 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 public class RefinementFailedException extends CPAException {
 
   public static enum Reason {
-    InterpolationFailed,
-    NoNewPredicates,
-    TooMuchUnrolling
+    InterpolationFailed("Interpolation failed"),
+    NoNewPredicates("No new predicates"),
+    TooMuchUnrolling("Too much unrolling"),
+    TIMEOUT("SMT-solver timed out");
+    
+    private final String humanReableReason;
+    
+    private Reason(String pHumanReableReason) {
+      humanReableReason = pHumanReableReason;
+    }
+    
+    @Override
+    public String toString() {
+      return humanReableReason;
+    }
   }
 
   private static final long serialVersionUID = 2353178323706458175L;
-
-  public String reasonToString(Reason reason) {
-    switch (reason)
-    {
-    case InterpolationFailed:
-      return "Interpolation failed";
-    case NoNewPredicates:
-      return "No new predicates";
-    case TooMuchUnrolling:
-      return "Too much unrolling";
-    default:
-      assert false;
-      return "";
-    }
-  }
 
   private final Reason reason;
   private final Path path;

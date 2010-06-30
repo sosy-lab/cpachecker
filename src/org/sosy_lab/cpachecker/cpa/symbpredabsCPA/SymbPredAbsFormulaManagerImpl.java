@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +52,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
@@ -151,9 +154,6 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   // 1: predicate is true
   private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
   private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
-
-  // instance of the thread to call the interpolation process
-  private TransferCallable tc = new TransferCallable();
 
   public SymbPredAbsFormulaManagerImpl(
       AbstractFormulaManager pAmgr,
@@ -609,7 +609,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
    * @return counterexample info with predicated information
    * @throws CPAException
    */
-  public CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
+  private CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
 
     InterpolatingTheoremProver<T> lItpProver = pItpProver;
@@ -789,50 +789,50 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace) throws CPAException {
-
+    
+    // if we don't want to limit the time given to the solver
+    if (itpTimeLimit == 0) {
+      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, itpProver);
+    }
+    
     // how many times is the problem tried to be solved so far?
     int noOfTries = 0;
     
-    while(true){
-      CounterexampleTraceInfo cti = null;
-
-      // if we don't want to limit the time given to the solver
-      if(itpTimeLimit == 0){
-        return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, itpProver);
+    while (true) {
+      TransferCallable tc;
+      
+      if (noOfTries == 0) {
+        tc = new TransferCallable(pAbstractTrace, itpProver);
+      } else {
+        tc = new TransferCallable(pAbstractTrace, alternativeItpProver);
       }
 
-      else {
-        tc.setAbstractTrace(pAbstractTrace);
-        if(noOfTries == 0){
-          tc.setpItpProver(itpProver);
-        }
-        else{
-          tc.setpItpProver(alternativeItpProver);
-        }
+      Future<CounterexampleTraceInfo> future = CEGARAlgorithm.executor.submit(tc);
 
-        Future<CounterexampleTraceInfo> future = CEGARAlgorithm.executor.submit(tc);
+      try {
+        // here we get the result of the post computation but there is a time limit
+        // given to complete the task specified by timeLimit
+        return future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
+        
+      } catch (TimeoutException e){
+        // if first try failed and changeItpSolveOTF enabled try the alternative solver
+        if (changeItpSolveOTF && noOfTries == 0) {
+          logger.log(Level.WARNING, "SMT-solver timed out during interpolation process, trying next solver.");
+          noOfTries++;
 
-        try{
-          // here we get the result of the post computation but there is a time limit
-          // given to complete the task specified by timeLimit
-          cti = future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException exc){
-          // if first try failed and changeItpSolveOTF enabled try the alternative solver
-          if(changeItpSolveOTF && noOfTries == 0){
-            logger.log(Level.ALL, "First solver timed out during interpolation process");
-            noOfTries++;
-            continue;
-          }
-          else{
-            logger.log(Level.ALL, "Both solvers timed out during interpolation process");
-          }
-        } catch (InterruptedException exc) {
-          exc.printStackTrace();
-        } catch (ExecutionException exc) {
-          exc.printStackTrace();
+        } else {
+          logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
+          throw new RefinementFailedException(Reason.TIMEOUT, null);
         }
-
-        return cti;
+      } catch (InterruptedException e) {
+        throw new ForceStopCPAException();
+      
+      } catch (ExecutionException e) {
+        Throwable t = e.getCause();
+        Classes.throwExceptionIfPossible(t, CPAException.class);
+        
+        logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
+        throw new ForceStopCPAException();
       }
     }
   }
@@ -1041,35 +1041,18 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
   private class TransferCallable implements Callable<CounterexampleTraceInfo> {
 
-    ArrayList<SymbPredAbsAbstractElement> abstractTrace;
-    InterpolatingTheoremProver<T> itpProver;
+    private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;
+    private final InterpolatingTheoremProver<T> currentItpProver;
 
-    public TransferCallable() {
-
+    public TransferCallable(ArrayList<SymbPredAbsAbstractElement> pAbstractTrace,
+        InterpolatingTheoremProver<T> pItpProver) {
+      abstractTrace = pAbstractTrace;
+      currentItpProver = pItpProver;
     }
 
     @Override
-    public CounterexampleTraceInfo call() throws Exception {
-      return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, itpProver);
+    public CounterexampleTraceInfo call() throws CPAException {
+      return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, currentItpProver);
     }
-
-    public ArrayList<SymbPredAbsAbstractElement> getAbstractTrace() {
-      return abstractTrace;
-    }
-
-    public void setAbstractTrace(
-        ArrayList<SymbPredAbsAbstractElement> pAbstractTrace) {
-      abstractTrace = pAbstractTrace;
-    }
-
-    public InterpolatingTheoremProver<T> getpItpProver() {
-      return itpProver;
-    }
-
-    public void setpItpProver(InterpolatingTheoremProver<T> pitpProver) {
-      itpProver = pitpProver;
-    }
-
   }
-
 }
