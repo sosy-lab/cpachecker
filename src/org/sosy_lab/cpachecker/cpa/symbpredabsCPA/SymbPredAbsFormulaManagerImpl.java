@@ -96,7 +96,6 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     public long bddCoverageCheckMaxTime = 0;
     public long cexAnalysisGetUsefulBlocksTime = 0;
     public long cexAnalysisGetUsefulBlocksMaxTime = 0;
-    public long replacing = 0;
   }
   final Stats stats;
 
@@ -213,26 +212,9 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
     long startTime = System.currentTimeMillis();
 
-    final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abs), null);
-    final SSAMap absSsa = smgr.extractSSA(absFormula);
-
-
-    pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
-    final SymbolicFormula symbFormula = smgr.replaceAssignments(pathFormula.getSymbolicFormula());
-    final SSAMap ssa = pathFormula.getSsa();
-
-    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
-
-    //    Pair<SymbolicFormula, SSAMap> pc =
-    //        buildConcreteFormula(mmgr, e, succ, edge, false);
-    //    SymbolicFormula f = pc.getFirst();
-    //    SSAMap ssa = pc.getSecond();
-    //    SymbolicFormula f = pathFormula.getSymbolicFormula();
-    //    SSAMap ssa = pathFormula.getSsa();
-    //
-    //    f = mmgr.replaceAssignments((MathsatSymbolicFormula)f);
-    SymbolicFormula fkey = f;
-
+    final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
+    SSAMap ssa = pathFormula.getSsa();
+    
     byte[] predVals = null;
     final byte NO_VALUE = -2;
     if (useCache) {
@@ -252,7 +234,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
     boolean skipFeasibilityCheck = false;
     if (useCache) {
-      FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+      FeasibilityCacheKey key = new FeasibilityCacheKey(f);
       if (feasibilityCache.containsKey(key)) {
         skipFeasibilityCheck = true;
         if (!feasibilityCache.get(key)) {
@@ -261,8 +243,6 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
         }
       }
     }
-
-    f = smgr.prepareFormula(fkey);
 
     long solveStartTime = System.currentTimeMillis();
 
@@ -273,7 +253,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
         //++stats.abstractionNumMathsatQueries;
         boolean unsat = thmProver.isUnsat(f);
         if (useCache) {
-          FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+          FeasibilityCacheKey key = new FeasibilityCacheKey(f);
           feasibilityCache.put(key, !unsat);
         }
         if (unsat) {
@@ -378,7 +358,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
             if (useCache) {
               CartesianAbstractionCacheKey key =
-                new CartesianAbstractionCacheKey(fkey, p);
+                new CartesianAbstractionCacheKey(f, p);
               cartesianAbstractionCache.put(key, predVal);
             }
           }
@@ -410,35 +390,24 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     }
   }
 
-  private PathFormula buildSymbolicFormula(AbstractFormula abstractionFormula,
-      PathFormula pathFormula) {
+  private SymbolicFormula buildSymbolicFormula(AbstractFormula abstractionFormula,
+      SymbolicFormula symbFormula) {
 
     // build the concrete representation of the abstract formula of e
     // this is an abstract formula - specifically it is a bddabstractformula
     // which is basically an integer which represents it
     // create the concrete form of the abstract formula
     // (abstract formula is the bdd representation)
-    final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
+    SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
 
-    // create an ssamap from concrete formula
-    final SSAMap absSsa = smgr.extractSSA(absFormula);
-
-    // shift pathFormula indices by the offsets in absSsa
-    long start = System.currentTimeMillis();
-
-    pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
-    SymbolicFormula symbFormula = smgr.replaceAssignments(pathFormula.getSymbolicFormula());
-    final SSAMap symbSsa = pathFormula.getSsa();
-
-    long end = System.currentTimeMillis();
-    stats.replacing += (end - start);
-
-    // from now on, abstractionFormula, pathFormula and functionExitFormula should not be used,
-    // only absFormula, absSsa, symbFormula, symbSsa
+    // the indices of all variables in absFormula are now 1
+    // this fits exactly to the indices of symbFormula
+    
+    symbFormula = smgr.replaceAssignments(symbFormula);
 
     symbFormula = smgr.prepareFormula(symbFormula);
 
-    return new PathFormula(smgr.makeAnd(absFormula, symbFormula), symbSsa);
+    return smgr.makeAnd(absFormula, symbFormula);
   }
 
   /**
@@ -446,11 +415,9 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
    */
   @Override
   public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
-    PathFormula f1 = buildSymbolicFormula(a1, p1);
+    SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
 
-    SymbolicFormula a = f1.getSymbolicFormula();
-
-    SymbolicFormula b = smgr.instantiate(toConcrete(a2), f1.getSsa());
+    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSsa());
 
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
@@ -478,9 +445,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
 
-    PathFormula symbFormulaPair = buildSymbolicFormula(abstractionFormula, pathFormula);
-    SymbolicFormula symbFormula = symbFormulaPair.getFirst();
-    SSAMap symbSsa = symbFormulaPair.getSecond();
+    SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
+    SSAMap symbSsa = pathFormula.getSecond();
 
     // build the definition of the predicates, and instantiate them
     PredicateInfo predinfo = buildPredicateInformation(predicates);
@@ -589,11 +555,11 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   @Override
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
 
-    PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
-    logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula.getFirst());
+    SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
+    logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
 
     thmProver.init();
-    boolean result = thmProver.isUnsat(symbFormula.getFirst());
+    boolean result = thmProver.isUnsat(symbFormula);
     thmProver.reset();
 
     return result;
