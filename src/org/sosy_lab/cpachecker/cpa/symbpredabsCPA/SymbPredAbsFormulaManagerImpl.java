@@ -121,9 +121,6 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   @Option(name="refinement.splitItpAtoms")
   private boolean splitItpAtoms = false;
 
-  @Option(name="mathsat.useDtc")
-  private boolean useDtc = false;
-
   @Option(name="shortestCexTraceUseSuffix")
   private boolean useSuffix = false;
 
@@ -621,9 +618,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
     List<SymbolicFormula> f = getFormulasForTrace(pAbstractTrace);
 
-    if (useDtc) {
-      smgr.prepareFormulas(f);
-    }
+    smgr.prepareFormulas(f);
     f = Collections.unmodifiableList(f);
 
     logger.log(Level.ALL, "Counterexample trace formulas:", f);
