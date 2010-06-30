@@ -54,7 +54,7 @@ import com.google.common.collect.ImmutableList;
 public class CPABuilder {
 
   private static final String CPA_OPTION_NAME = "cpa";
-  private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker.";
+  private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
 
   @Option(name=CPA_OPTION_NAME)
   private String cpaName = CompositeCPA.class.getCanonicalName();
@@ -155,13 +155,9 @@ public class CPABuilder {
   private Class<?> getCPAClass(String optionName, String cpaName) throws InvalidConfigurationException {
     Class<?> cpaClass;
     try {
-      cpaClass = Class.forName(cpaName);
-    } catch (ClassNotFoundException e1) {
-      try {
-        cpaClass = Class.forName(CPA_CLASS_PREFIX + cpaName);
-      } catch (ClassNotFoundException e2) {
-        throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName);
-      }
+      cpaClass = Classes.forName(cpaName, CPA_CLASS_PREFIX);
+    } catch (ClassNotFoundException e) {
+      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName);
     }
 
     if (!ConfigurableProgramAnalysis.class.isAssignableFrom(cpaClass)) {

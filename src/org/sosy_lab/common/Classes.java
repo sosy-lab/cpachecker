@@ -95,21 +95,7 @@ public final class Classes {
       Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type)
       throws ClassInstantiationException, InvocationTargetException {
     try {
-      Class<?> cls;
-      try {
-        cls = Class.forName(className);
-      } catch (ClassNotFoundException e1) {
-        if (prefix != null && !prefix.isEmpty()) {
-          try {
-            // try with prefix added
-            cls = Class.forName(prefix + "." + className);
-          } catch (ClassNotFoundException e2) {
-            throw e1; // re-throw original exception to get correct error message
-          }
-        } else {
-          throw e1;
-        }
-      }
+      Class<?> cls = forName(className, prefix);
       Constructor<?> ct = cls.getConstructor(argumentTypes);
       Object obj = ct.newInstance(argumentValues);
       if (type.isAssignableFrom(obj.getClass())) {
@@ -128,5 +114,31 @@ public final class Classes {
     } catch (IllegalAccessException e) {
       throw new ClassInstantiationException(className, e.getMessage());
     } 
+  }
+  
+  /**
+   * Similar to {@link Class#forName(String)}, but if the class is not found this
+   * method re-tries with a package name prefixed.
+   * 
+   * @param name The class name.
+   * @param prefix An optional package name as prefix.
+   * @return The class object for  name  or  prefix + "." + name  
+   * @throws ClassNotFoundException If none of the two classes can be found.
+   */
+  public static Class<?> forName(String name, String prefix) throws ClassNotFoundException {
+    try {
+      return Class.forName(name);
+      
+    } catch (ClassNotFoundException e1) {
+      if (prefix == null || prefix.isEmpty()) {
+        throw e1;
+      }
+      
+      try {
+        return Class.forName(prefix + "." + name); // try with prefix added
+      } catch (ClassNotFoundException e2) {
+        throw e1; // re-throw original exception to get correct error message
+      }
+    }
   }
 }
