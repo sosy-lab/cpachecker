@@ -608,7 +608,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
               TypesElement typeElem = (TypesElement) other;
 
               Type t1 = checkForFieldReferenceType(op1, typeElem, cfaEdge);
-              Type t2 = checkForFieldReferenceType(op2, typeElem, cfaEdge);;
+              Type t2 = checkForFieldReferenceType(op2, typeElem, cfaEdge);
 
               if (t1 != null && t2 != null) {
 
