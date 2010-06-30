@@ -120,16 +120,15 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         precisionAdjustment = StaticPrecisionAdjustment.getInstance();
         abstractFormulaManager = new BDDAbstractFormulaManager(config);
         MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager(config, logger);
-        TheoremProver prover = null;
+        TheoremProver prover;
         if (whichProver.equals("mathsat")) {
-            prover = new MathsatTheoremProver(mgr, config);
+            prover = new MathsatTheoremProver(mgr);
         } else if (whichProver.equals("yices")) {
             prover = new YicesTheoremProver(mgr);
         } else {
           throw new InternalError("Update list of allowed solvers!");
         }
-        InterpolatingTheoremProver<Integer> itpProver =
-            new MathsatInterpolatingProver(mgr, true, config);
+        InterpolatingTheoremProver<Integer> itpProver = new MathsatInterpolatingProver(mgr, true);
         amgr = new PredicateAbstractionFormulaManagerImpl<Integer>(abstractFormulaManager, mgr, prover, itpProver, config, logger);
 
 //        covers = new HashMap<ExplicitAbstractElement,

@@ -127,7 +127,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager, config);
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager);
     } else if (whichProver.equals("YICES")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
@@ -137,14 +137,14 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
       if(changeItpSolveOTF){
         alternativeItpProver =  new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
       }
     } else if (whichItpProver.equals("CSISAT")) {
       itpProver = new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
       if(changeItpSolveOTF){
-        alternativeItpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+        alternativeItpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
       }
     } else {
       throw new InternalError("Update list of allowed solvers!");

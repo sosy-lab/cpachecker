@@ -103,6 +103,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   @Option(name="mathsat.useIntegers")
   private boolean useIntegers = false;
 
+  @Option(name="mathsat.useDtc")
+  private boolean useDtc = false;
+  
   @Option
   private boolean initAllVars = false;
 
@@ -232,6 +235,35 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return msatEnv;
   }
 
+  long createEnvironment(boolean shared, boolean ghostFilter) {
+    long env;
+    if (shared) {
+      env = mathsat.api.msat_create_shared_env(msatEnv);
+    } else {
+      env = mathsat.api.msat_create_env();
+    }
+    
+    mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
+    if (useIntegers) {
+      mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
+      int ok = mathsat.api.msat_set_option(env, "split_eq", "false");
+      assert(ok == 0);
+    } else {
+      mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
+    }
+    if (useDtc) {
+      mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
+    }
+    // disable static learning. For small problems, this is just overhead
+    mathsat.api.msat_set_option(env, "sl", "0");
+    
+    if (ghostFilter) {
+      mathsat.api.msat_set_option(env, "ghost_filter", "true");
+    }
+    
+    return env;
+  }
+  
   private long[] getTerm(SymbolicFormula[] f) {
     int length = f.length;
     long[] result = new long[length];

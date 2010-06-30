@@ -26,32 +26,18 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
-
-@Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatTheoremProver implements TheoremProver {
 
-    @Option
-    private boolean useIntegers = false;
-
-    @Option
-    private boolean useDtc = false;
-
-    private final long msatEnv;
+    private final MathsatSymbolicFormulaManager mgr;
     private long curEnv;
 
-    public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr,
-            Configuration config) throws InvalidConfigurationException {
-        config.inject(this);
-        msatEnv = mgr.getMsatEnv();
+    public MathsatTheoremProver(MathsatSymbolicFormulaManager pMgr) {
+        mgr = pMgr;
         curEnv = 0;
     }
 
@@ -79,34 +65,11 @@ public class MathsatTheoremProver implements TheoremProver {
         mathsat.api.msat_assert_formula(curEnv, t);
     }
 
-    private long createEnvironment() {
-        long env = mathsat.api.msat_create_shared_env(msatEnv);
-        
-        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
-        if (useIntegers) {
-            mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
-            int ok = mathsat.api.msat_set_option(env, "split_eq", "false");
-            assert(ok == 0);
-        } else {
-            mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
-        }
-        if (useDtc) {
-            mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
-        }
-        // disable static learning. For small problems,
-        // this is just overhead
-        mathsat.api.msat_set_option(env, "sl", "0");
-        
-        mathsat.api.msat_set_option(env, "ghost_filter", "true");
-        
-        return env;
-    }
-
     @Override
     public void init() {
         Preconditions.checkState(curEnv == 0);
   
-        curEnv = createEnvironment();
+        curEnv = mgr.createEnvironment(true, true);
     }
     
     @Override
@@ -138,7 +101,7 @@ public class MathsatTheoremProver implements TheoremProver {
             List<SymbolicFormula> important, AllSatCallback callback) {
         long formula = ((MathsatSymbolicFormula)f).getTerm();
         
-        long allsatEnv = createEnvironment();
+        long allsatEnv = mgr.createEnvironment(true, true);
         
         long[] imp = new long[important.size()];
         for (int i = 0; i < imp.length; ++i) {

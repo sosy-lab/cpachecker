@@ -23,86 +23,43 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import com.google.common.base.Preconditions;
 
-
-@Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
 
-    @Option
-    private boolean useIntegers = false;
-
-    @Option
-    private boolean useDtc = false;
-
-    private final long msatEnv;
+    private final MathsatSymbolicFormulaManager mgr;
     private long env;
+    
     private final boolean useSharedEnv;
-    private final Map<Long, Long> copyFromCache;
 
-    public MathsatInterpolatingProver(MathsatSymbolicFormulaManager mgr,
-                                      boolean useSharing,
-                                      Configuration config) throws InvalidConfigurationException {
-        config.inject(this);
-        msatEnv = mgr.getMsatEnv();
+    public MathsatInterpolatingProver(MathsatSymbolicFormulaManager pMgr, boolean shared) {
+        mgr = pMgr;
         env = 0;
-        useSharedEnv = useSharing;
-        copyFromCache = new HashMap<Long, Long>();
+        useSharedEnv = shared;
     }
 
     @Override
     public void init() {
-        assert copyFromCache.isEmpty();
-        assert env == 0;
+        Preconditions.checkState(env == 0);
 
-        if (useSharedEnv) {
-            env = mathsat.api.msat_create_shared_env(msatEnv);
-        } else {
-            env = mathsat.api.msat_create_env();
-        }
+        env = mgr.createEnvironment(useSharedEnv, false);
 
-        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
-        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
-
-        boolean theoryCombinationNeeded = useDtc;
-
-        if (theoryCombinationNeeded) {
-            mathsat.api.msat_set_theory_combination(env,
-                    mathsat.api.MSAT_COMB_DTC);
-        } else if (useIntegers) {
-            int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
-            assert(ok == 0);
-        }
-        int ok = mathsat.api.msat_set_option(env, "sl", "0");
+        int ok = mathsat.api.msat_init_interpolation(env);
         assert(ok == 0);
-
-        mathsat.api.msat_init_interpolation(env);
     }
 
     @Override
     public Integer addFormula(SymbolicFormula f) {
-        assert env != 0;
+        Preconditions.checkState(env != 0);
 
         long t = ((MathsatSymbolicFormula)f).getTerm();
         if (!useSharedEnv) {
-            long t2;
-            if (copyFromCache.containsKey(t)) {
-                t2 = copyFromCache.get(t);
-            } else {
-                t2 = mathsat.api.msat_make_copy_from(env, t, msatEnv);
-                copyFromCache.put(t, t2);
-            }
-            t = t2;
+            t = mathsat.api.msat_make_copy_from(env, t, mgr.getMsatEnv());
         }
         int group = mathsat.api.msat_create_itp_group(env);
         mathsat.api.msat_set_itp_group(env, group);
@@ -112,6 +69,8 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
     @Override
     public boolean isUnsat() {
+        Preconditions.checkState(env != 0);
+
         int res = mathsat.api.msat_solve(env);
         assert(res != mathsat.api.MSAT_UNKNOWN);
         return res == mathsat.api.MSAT_UNSAT;
@@ -119,7 +78,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
     @Override
     public SymbolicFormula getInterpolant(List<Integer> formulasOfA) {
-        assert env != 0;
+        Preconditions.checkState(env != 0);
 
         int[] groupsOfA = new int[formulasOfA.size()];
         int i = 0;
@@ -129,16 +88,16 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         long itp = mathsat.api.msat_get_interpolant(env, groupsOfA);
         assert(!mathsat.api.MSAT_ERROR_TERM(itp));
         if (!useSharedEnv) {
-            itp = mathsat.api.msat_make_copy_from(msatEnv, itp, env);
+            itp = mathsat.api.msat_make_copy_from(mgr.getMsatEnv(), itp, env);
         }
-
         return new MathsatSymbolicFormula(itp);
     }
 
     @Override
     public void reset() {
+        Preconditions.checkState(env != 0);
+
         mathsat.api.msat_destroy_env(env);
         env = 0;
-        copyFromCache.clear();
     }
 }
