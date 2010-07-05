@@ -291,7 +291,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
     } catch (InvalidPointerException e) {
       addError(e.getMessage(), cfaEdge);
-      successor.setError(true);
+      // removed because the cpas should not declare errors any more
+      //successor.setError(true);
+      
       //assert that at least one flag is set
       if (successor.getProperties().isEmpty()) {
         logger.log(Level.WARNING, "InvalidPointerException thrown but no Flag set");
