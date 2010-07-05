@@ -153,6 +153,7 @@ public class AutomatonTest {
         "cpas.explicit.threshold",       "10");
     try {
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      System.out.println(results.log);
       Assert.assertTrue(results.logContains("MODIFIED"));
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());

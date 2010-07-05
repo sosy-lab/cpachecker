@@ -1,2 +1,2 @@
 
-ASSERT ! CHECK(PointerAnalysis("DOUBLE_FREE")) ;
+ASSERT ! CHECK(PointerAnalysis, "DOUBLE_FREE") ;

@@ -121,7 +121,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton automaton ;
 non terminal String InitDef ;
@@ -216,7 +216,10 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
 Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
 			// InnerInt in this position allows for x = EVAL(..) Statements
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
+/*next statement is deprecated*/            
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
+            | MODIFY OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
               {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
             ;
             
@@ -234,7 +237,10 @@ Int       ::= ConstantInt:c  {: RESULT = c; :}
 // the int Expression "( EVAL(...) )" is forbidden (would conflict with the same BoolExpression if Bool would use EVAL instead of CHECK)
 
 InnerInt  ::= Int:i {: RESULT = i; :}
+/*next statement is deprecated*/
 			| EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+             {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            | EVAL OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
              {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
              ; 
             
@@ -259,7 +265,10 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
+/*next statement is deprecated*/ 
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            | CHECK OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
             | CHECK OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString()); :}
@@ -268,6 +277,9 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
 Expression	  ::= Int:i {: RESULT = i; :}
 			| Bool:b {: RESULT = b; :}
 			| STRING_LITERAL:lit {: RESULT = new AutomatonExpression.StringExpression(lit.toString()); :}
+/*next statement is deprecated*/
 			| EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+             {: RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); :}
+            | EVAL OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
              {: RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); :}
              ; 
