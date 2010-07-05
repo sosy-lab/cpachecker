@@ -84,7 +84,7 @@ public class ToControlAutomatonTranslator {
         lWriter.println("  TRUE -> GOTO " + lStateNameMap.get(lState) + ";");
       }
       else {
-        lWriter.println("STATE NONDET " + lStateNameMap.get(lState) + ":");
+        lWriter.println("STATE USEALL " + lStateNameMap.get(lState) + ":");
         lWriter.print(getTransitions(lNodeSetFreeAutomaton.getOutgoingEdges(lState), mEdgeSetNameMap, lStateNameMap));
         if (lState.equals(lInitialState)) {      
           lWriter.println("  !CHECK(edgevisit(\"" + lAlphaEdgeSetName + "\")) -> GOTO " + lStateNameMap.get(lState) + ";");

@@ -5,7 +5,7 @@ OBSERVER AUTOMATON simple_setuid
 LOCAL int uid = 0;
 INITIAL STATE Init;
 
-STATE Init: 
+STATE USEFIRST Init: 
   MATCH { $? = system($?); } -> 
     ASSERT !(uid == 0) PRINT "Systemcall in line $line with userid " PRINT uid GOTO Init;
   MATCH { system($?); } -> 

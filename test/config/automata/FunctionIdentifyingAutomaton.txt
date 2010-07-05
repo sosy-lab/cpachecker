@@ -6,7 +6,7 @@ OBSERVER AUTOMATON FunctionIdentifyingAutomaton
 
 INITIAL STATE Init;
 
-STATE Init :
+STATE USEFIRST Init :
   CHECK(location("functionName==main")) -> PRINT "i'm in Main after Edge " PRINT "$RawStatement" GOTO Init;
   CHECK(location("functionName==f")) -> PRINT "i'm in f after Edge " PRINT "$RawStatement" GOTO Init;
 

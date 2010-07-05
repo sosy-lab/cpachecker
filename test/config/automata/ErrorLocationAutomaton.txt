@@ -9,7 +9,7 @@ OBSERVER AUTOMATON ErrorLocationAutomaton
 
 INITIAL STATE Init;
 
-STATE Init :
+STATE USEFIRST Init :
        // this transition matches if the label of the successor CFA location starts with "error"
      MATCH LABEL [[Ee\][Rr\][Rr\][Oo\][Rr\].*]
        // matches if assert_fail is called without arguments

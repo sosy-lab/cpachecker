@@ -99,7 +99,7 @@ public class ObserverAutomatonTranslator {
       lWriter.println();
 
       for (Automaton<Atom>.State lState : lAutomaton.getStates()) {
-        lWriter.println("STATE NONDET " + getStateIdentifier(lState, lStateNames) + ":");
+        lWriter.println("STATE USEALL " + getStateIdentifier(lState, lStateNames) + ":");
 
         for (Automaton<Atom>.Edge lOutgoingEdge : lAutomaton.getOutgoingEdges(lState)) {
           Automaton<Atom>.State lTarget = lOutgoingEdge.getTarget();

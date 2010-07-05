@@ -14,7 +14,8 @@ public class AutomatonPartitionScanner extends RuleBasedPartitionScanner {
 	
 	private final static String[] keywords = {
 		"STATE",
-		"NONDET",
+		"USEALL",
+		"USEFIRST",
 		"INITIAL",
 		"LOCAL",
 		"MATCH",

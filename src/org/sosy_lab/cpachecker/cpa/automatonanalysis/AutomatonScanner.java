@@ -156,14 +156,15 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
     "\1\22\1\23\1\20\1\22\1\24\3\0\1\25\12\3"+
     "\1\26\13\3\1\27\1\30\1\31\1\32\1\33\1\34"+
     "\1\35\1\36\1\37\1\40\1\2\3\0\7\3\1\41"+
-    "\16\3\2\0\2\3\1\42\5\3\1\43\1\3\1\44"+
-    "\7\3\1\45\1\3\1\0\3\3\1\46\2\3\1\47"+
+    "\16\3\2\0\4\3\1\42\4\3\1\43\1\3\1\44"+
+    "\7\3\1\45\1\3\1\0\5\3\1\46\1\3\1\47"+
     "\1\50\1\3\1\51\1\52\1\53\1\3\1\54\1\55"+
-    "\1\0\1\3\1\56\1\3\1\57\1\60\2\3\1\0"+
-    "\2\3\1\61\1\62\1\0\1\3\1\63\1\64\1\65";
+    "\1\0\1\3\1\56\1\57\2\3\1\60\2\3\1\0"+
+    "\3\3\1\61\1\62\1\0\1\3\1\63\1\64\1\65"+
+    "\1\66";
 
   private static int [] zzUnpackAction() {
-    int [] result = new int[168];
+    int [] result = new int[173];
     int offset = 0;
     offset = zzUnpackAction(ZZ_ACTION_PACKED_0, offset, result);
     return result;
@@ -202,16 +203,17 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
     "\0\u0ec6\0\u0f03\0\u0f40\0\u0f7d\0\u0fba\0\u0ff7\0\u1034\0\u1071"+
     "\0\u10ae\0\u01ab\0\u10eb\0\u1128\0\u1165\0\u11a2\0\u11df\0\u121c"+
     "\0\u1259\0\u1296\0\u12d3\0\u1310\0\u134d\0\u138a\0\u13c7\0\u1404"+
-    "\0\u1441\0\u147e\0\u14bb\0\u14f8\0\u01ab\0\u1535\0\u1572\0\u15af"+
-    "\0\u15ec\0\u1629\0\u01ab\0\u1666\0\u01ab\0\u16a3\0\u16e0\0\u171d"+
-    "\0\u175a\0\u1797\0\u17d4\0\u1811\0\u01ab\0\u184e\0\u188b\0\u18c8"+
-    "\0\u1905\0\u1942\0\u01ab\0\u197f\0\u19bc\0\u01ab\0\u01ab\0\u19f9"+
-    "\0\u01ab\0\u01ab\0\u01ab\0\u1a36\0\u01ab\0\u01ab\0\u1a73\0\u1ab0"+
-    "\0\u01ab\0\u1aed\0\u01ab\0\u01ab\0\u1b2a\0\u1b67\0\u1ba4\0\u1be1"+
-    "\0\u1c1e\0\u01ab\0\u01ab\0\u1c5b\0\u1c98\0\u01ab\0\u1c5b\0\u01ab";
+    "\0\u1441\0\u147e\0\u14bb\0\u14f8\0\u1535\0\u1572\0\u01ab\0\u15af"+
+    "\0\u15ec\0\u1629\0\u1666\0\u01ab\0\u16a3\0\u01ab\0\u16e0\0\u171d"+
+    "\0\u175a\0\u1797\0\u17d4\0\u1811\0\u184e\0\u01ab\0\u188b\0\u18c8"+
+    "\0\u1905\0\u1942\0\u197f\0\u19bc\0\u19f9\0\u01ab\0\u1a36\0\u01ab"+
+    "\0\u01ab\0\u1a73\0\u01ab\0\u01ab\0\u01ab\0\u1ab0\0\u01ab\0\u01ab"+
+    "\0\u1aed\0\u1b2a\0\u01ab\0\u01ab\0\u1b67\0\u1ba4\0\u01ab\0\u1be1"+
+    "\0\u1c1e\0\u1c5b\0\u1c98\0\u1cd5\0\u1d12\0\u01ab\0\u01ab\0\u1d4f"+
+    "\0\u1d8c\0\u01ab\0\u01ab\0\u1d4f\0\u01ab";
 
   private static int [] zzUnpackRowMap() {
-    int [] result = new int[168];
+    int [] result = new int[173];
     int offset = 0;
     offset = zzUnpackRowMap(ZZ_ROWMAP_PACKED_0, offset, result);
     return result;
@@ -236,7 +238,7 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
   private static final String ZZ_TRANS_PACKED_0 =
     "\1\5\1\6\2\7\1\10\1\5\1\11\1\5\1\12"+
     "\1\13\1\14\7\11\1\15\1\16\1\17\1\20\1\21"+
-    "\1\5\1\22\1\11\1\23\1\24\1\25\1\26\1\27"+
+    "\1\5\1\22\1\23\1\24\1\25\1\26\1\11\1\27"+
     "\1\30\1\11\1\31\2\11\1\32\1\33\1\34\1\35"+
     "\2\11\1\36\1\11\1\37\1\40\1\11\1\41\2\11"+
     "\1\42\1\43\1\44\1\45\1\46\1\47\1\50\1\51"+
@@ -246,10 +248,10 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
     "\1\64\75\0\4\11\1\0\7\11\6\0\32\11\23\0"+
     "\2\13\76\0\1\65\110\0\1\66\53\0\4\11\1\0"+
     "\7\11\6\0\1\11\1\67\7\11\1\70\20\11\21\0"+
-    "\4\11\1\0\7\11\6\0\12\11\1\71\17\11\21\0"+
-    "\4\11\1\0\7\11\6\0\10\11\1\72\21\11\21\0"+
-    "\4\11\1\0\7\11\6\0\1\73\2\11\1\74\26\11"+
-    "\21\0\4\11\1\0\7\11\6\0\3\11\1\75\26\11"+
+    "\4\11\1\0\7\11\6\0\11\11\1\71\20\11\21\0"+
+    "\4\11\1\0\7\11\6\0\12\11\1\72\17\11\21\0"+
+    "\4\11\1\0\7\11\6\0\10\11\1\73\21\11\21\0"+
+    "\4\11\1\0\7\11\6\0\1\74\2\11\1\75\26\11"+
     "\21\0\4\11\1\0\7\11\6\0\5\11\1\76\4\11"+
     "\1\77\1\100\16\11\21\0\4\11\1\0\7\11\6\0"+
     "\3\11\1\101\26\11\21\0\4\11\1\0\7\11\6\0"+
@@ -271,11 +273,11 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
     "\1\7\72\63\5\130\1\131\67\130\14\0\1\132\66\0"+
     "\4\11\1\0\7\11\6\0\2\11\1\133\27\11\21\0"+
     "\4\11\1\0\7\11\6\0\11\11\1\134\20\11\21\0"+
-    "\4\11\1\0\7\11\6\0\1\11\1\135\30\11\21\0"+
-    "\4\11\1\0\7\11\6\0\11\11\1\136\20\11\21\0"+
-    "\4\11\1\0\7\11\6\0\2\11\1\137\27\11\21\0"+
-    "\4\11\1\0\7\11\6\0\7\11\1\140\22\11\21\0"+
-    "\4\11\1\0\7\11\6\0\5\11\1\141\24\11\21\0"+
+    "\4\11\1\0\7\11\6\0\6\11\1\135\23\11\21\0"+
+    "\4\11\1\0\7\11\6\0\1\11\1\136\30\11\21\0"+
+    "\4\11\1\0\7\11\6\0\11\11\1\137\20\11\21\0"+
+    "\4\11\1\0\7\11\6\0\2\11\1\140\27\11\21\0"+
+    "\4\11\1\0\7\11\6\0\7\11\1\141\22\11\21\0"+
     "\4\11\1\0\7\11\6\0\7\11\1\142\22\11\21\0"+
     "\4\11\1\0\7\11\6\0\12\11\1\143\17\11\21\0"+
     "\4\11\1\0\7\11\6\0\1\144\31\11\21\0\4\11"+
@@ -293,60 +295,64 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
     "\5\130\1\161\67\130\4\0\1\7\1\131\104\0\1\162"+
     "\65\0\4\11\1\0\7\11\6\0\3\11\1\163\26\11"+
     "\21\0\4\11\1\0\7\11\6\0\6\11\1\164\23\11"+
-    "\21\0\4\11\1\0\7\11\6\0\6\11\1\165\23\11"+
-    "\21\0\4\11\1\0\7\11\6\0\6\11\1\166\23\11"+
-    "\21\0\4\11\1\0\7\11\6\0\14\11\1\167\15\11"+
-    "\21\0\4\11\1\0\7\11\6\0\16\11\1\170\13\11"+
-    "\21\0\4\11\1\0\7\11\6\0\7\11\1\171\22\11"+
-    "\21\0\4\11\1\0\7\11\6\0\3\11\1\172\26\11"+
-    "\21\0\4\11\1\0\7\11\6\0\15\11\1\173\14\11"+
-    "\21\0\4\11\1\0\7\11\6\0\2\11\1\174\27\11"+
-    "\21\0\4\11\1\0\7\11\6\0\17\11\1\175\12\11"+
-    "\21\0\4\11\1\0\7\11\6\0\2\11\1\176\27\11"+
-    "\21\0\4\11\1\0\7\11\6\0\14\11\1\177\15\11"+
-    "\21\0\4\11\1\0\7\11\6\0\6\11\1\200\23\11"+
-    "\21\0\4\11\1\0\7\11\6\0\1\201\31\11\21\0"+
-    "\4\11\1\0\7\11\6\0\2\11\1\202\27\11\21\0"+
-    "\4\11\1\0\7\11\6\0\5\11\1\203\24\11\21\0"+
-    "\4\11\1\0\7\11\6\0\11\11\1\204\20\11\21\0"+
-    "\4\11\1\0\7\11\6\0\3\11\1\205\26\11\21\0"+
-    "\4\11\1\0\6\11\1\165\6\0\32\11\21\0\4\11"+
-    "\1\0\7\11\6\0\31\11\1\206\13\0\4\130\1\7"+
-    "\1\161\67\130\16\0\1\207\64\0\4\11\1\0\7\11"+
-    "\6\0\4\11\1\210\25\11\21\0\4\11\1\0\7\11"+
-    "\6\0\12\11\1\211\17\11\21\0\4\11\1\0\7\11"+
-    "\6\0\12\11\1\212\17\11\21\0\4\11\1\0\7\11"+
-    "\6\0\20\11\1\213\11\11\21\0\4\11\1\0\7\11"+
-    "\6\0\22\11\1\214\7\11\21\0\4\11\1\0\7\11"+
-    "\6\0\6\11\1\215\23\11\21\0\4\11\1\0\7\11"+
-    "\6\0\12\11\1\216\17\11\21\0\4\11\1\0\7\11"+
-    "\6\0\6\11\1\217\23\11\21\0\4\11\1\0\7\11"+
-    "\6\0\12\11\1\220\17\11\21\0\4\11\1\0\7\11"+
-    "\6\0\21\11\1\221\10\11\21\0\4\11\1\0\7\11"+
-    "\6\0\15\11\1\222\14\11\21\0\4\11\1\0\7\11"+
-    "\6\0\15\11\1\223\14\11\21\0\4\11\1\0\7\11"+
-    "\6\0\16\11\1\224\13\11\21\0\4\11\1\0\7\11"+
-    "\6\0\2\11\1\225\27\11\21\0\4\11\1\0\7\11"+
-    "\6\0\6\11\1\226\23\11\21\0\4\11\1\0\6\11"+
-    "\1\226\6\0\32\11\32\0\1\227\63\0\4\11\1\0"+
-    "\7\11\6\0\1\230\31\11\21\0\4\11\1\0\7\11"+
-    "\6\0\2\11\1\231\27\11\21\0\4\11\1\0\7\11"+
-    "\6\0\13\11\1\232\16\11\21\0\4\11\1\0\7\11"+
-    "\6\0\23\11\1\233\6\11\21\0\4\11\1\0\7\11"+
-    "\6\0\2\11\1\234\27\11\21\0\4\11\1\0\7\11"+
-    "\6\0\3\11\1\235\26\11\21\0\4\11\1\0\7\11"+
-    "\6\0\1\236\31\11\33\0\1\237\62\0\4\11\1\0"+
-    "\7\11\6\0\2\11\1\240\27\11\21\0\4\11\1\0"+
-    "\7\11\6\0\6\11\1\241\23\11\21\0\4\11\1\0"+
-    "\7\11\6\0\15\11\1\242\14\11\21\0\4\11\1\0"+
-    "\7\11\6\0\15\11\1\243\14\11\34\0\1\244\61\0"+
-    "\4\11\1\0\7\11\6\0\3\11\1\245\26\11\21\0"+
-    "\4\11\1\0\7\11\6\0\12\11\1\246\17\11\13\0"+
-    "\2\247\1\0\72\247\6\0\4\11\1\0\7\11\6\0"+
-    "\5\11\1\250\24\11\13\0";
+    "\21\0\4\11\1\0\7\11\6\0\1\165\21\11\1\166"+
+    "\7\11\21\0\4\11\1\0\7\11\6\0\6\11\1\167"+
+    "\23\11\21\0\4\11\1\0\7\11\6\0\6\11\1\170"+
+    "\23\11\21\0\4\11\1\0\7\11\6\0\14\11\1\171"+
+    "\15\11\21\0\4\11\1\0\7\11\6\0\16\11\1\172"+
+    "\13\11\21\0\4\11\1\0\7\11\6\0\3\11\1\173"+
+    "\26\11\21\0\4\11\1\0\7\11\6\0\15\11\1\174"+
+    "\14\11\21\0\4\11\1\0\7\11\6\0\2\11\1\175"+
+    "\27\11\21\0\4\11\1\0\7\11\6\0\17\11\1\176"+
+    "\12\11\21\0\4\11\1\0\7\11\6\0\2\11\1\177"+
+    "\27\11\21\0\4\11\1\0\7\11\6\0\14\11\1\200"+
+    "\15\11\21\0\4\11\1\0\7\11\6\0\6\11\1\201"+
+    "\23\11\21\0\4\11\1\0\7\11\6\0\1\202\31\11"+
+    "\21\0\4\11\1\0\7\11\6\0\2\11\1\203\27\11"+
+    "\21\0\4\11\1\0\7\11\6\0\5\11\1\204\24\11"+
+    "\21\0\4\11\1\0\7\11\6\0\11\11\1\205\20\11"+
+    "\21\0\4\11\1\0\7\11\6\0\3\11\1\206\26\11"+
+    "\21\0\4\11\1\0\6\11\1\167\6\0\32\11\21\0"+
+    "\4\11\1\0\7\11\6\0\31\11\1\207\13\0\4\130"+
+    "\1\7\1\161\67\130\16\0\1\210\64\0\4\11\1\0"+
+    "\7\11\6\0\4\11\1\211\25\11\21\0\4\11\1\0"+
+    "\7\11\6\0\12\11\1\212\17\11\21\0\4\11\1\0"+
+    "\7\11\6\0\15\11\1\213\14\11\21\0\4\11\1\0"+
+    "\7\11\6\0\16\11\1\214\13\11\21\0\4\11\1\0"+
+    "\7\11\6\0\12\11\1\215\17\11\21\0\4\11\1\0"+
+    "\7\11\6\0\20\11\1\216\11\11\21\0\4\11\1\0"+
+    "\7\11\6\0\22\11\1\217\7\11\21\0\4\11\1\0"+
+    "\7\11\6\0\12\11\1\220\17\11\21\0\4\11\1\0"+
+    "\7\11\6\0\6\11\1\221\23\11\21\0\4\11\1\0"+
+    "\7\11\6\0\12\11\1\222\17\11\21\0\4\11\1\0"+
+    "\7\11\6\0\21\11\1\223\10\11\21\0\4\11\1\0"+
+    "\7\11\6\0\15\11\1\224\14\11\21\0\4\11\1\0"+
+    "\7\11\6\0\15\11\1\225\14\11\21\0\4\11\1\0"+
+    "\7\11\6\0\16\11\1\226\13\11\21\0\4\11\1\0"+
+    "\7\11\6\0\2\11\1\227\27\11\21\0\4\11\1\0"+
+    "\7\11\6\0\6\11\1\230\23\11\21\0\4\11\1\0"+
+    "\6\11\1\230\6\0\32\11\32\0\1\231\63\0\4\11"+
+    "\1\0\7\11\6\0\1\232\31\11\21\0\4\11\1\0"+
+    "\7\11\6\0\2\11\1\233\27\11\21\0\4\11\1\0"+
+    "\7\11\6\0\15\11\1\234\14\11\21\0\4\11\1\0"+
+    "\7\11\6\0\12\11\1\235\17\11\21\0\4\11\1\0"+
+    "\7\11\6\0\13\11\1\236\16\11\21\0\4\11\1\0"+
+    "\7\11\6\0\23\11\1\237\6\11\21\0\4\11\1\0"+
+    "\7\11\6\0\3\11\1\240\26\11\21\0\4\11\1\0"+
+    "\7\11\6\0\1\241\31\11\33\0\1\242\62\0\4\11"+
+    "\1\0\7\11\6\0\2\11\1\243\27\11\21\0\4\11"+
+    "\1\0\7\11\6\0\11\11\1\244\20\11\21\0\4\11"+
+    "\1\0\7\11\6\0\6\11\1\245\23\11\21\0\4\11"+
+    "\1\0\7\11\6\0\15\11\1\246\14\11\21\0\4\11"+
+    "\1\0\7\11\6\0\15\11\1\247\14\11\34\0\1\250"+
+    "\61\0\4\11\1\0\7\11\6\0\3\11\1\251\26\11"+
+    "\21\0\4\11\1\0\7\11\6\0\2\11\1\252\27\11"+
+    "\21\0\4\11\1\0\7\11\6\0\12\11\1\253\17\11"+
+    "\13\0\2\254\1\0\72\254\6\0\4\11\1\0\7\11"+
+    "\6\0\5\11\1\255\24\11\13\0";
 
   private static int [] zzUnpackTrans() {
-    int [] result = new int[7381];
+    int [] result = new int[7625];
     int offset = 0;
     offset = zzUnpackTrans(ZZ_TRANS_PACKED_0, offset, result);
     return result;
@@ -387,11 +393,11 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
     "\4\0\1\11\1\1\1\11\2\1\1\11\2\1\4\11"+
     "\21\1\3\11\4\1\1\11\1\1\1\11\3\1\1\11"+
     "\2\1\1\11\3\0\1\11\26\1\12\11\1\1\3\0"+
-    "\26\1\2\0\24\1\1\0\17\1\1\0\7\1\1\0"+
-    "\4\1\1\0\4\1";
+    "\26\1\2\0\25\1\1\0\20\1\1\0\10\1\1\0"+
+    "\5\1\1\0\5\1";
 
   private static int [] zzUnpackAttribute() {
-    int [] result = new int[168];
+    int [] result = new int[173];
     int offset = 0;
     offset = zzUnpackAttribute(ZZ_ATTRIBUTE_PACKED_0, offset, result);
     return result;
@@ -968,96 +974,92 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
       zzMarkedPos = zzMarkedPosL;
 
       switch (zzAction < 0 ? zzAction : ZZ_ACTION[zzAction]) {
-        case 53: 
+        case 54: 
           { return symbol("AUTOMATON", AutomatonSym.AUTOMATON);
           }
-        case 54: break;
+        case 55: break;
         case 2: 
           { /* ignore */
           }
-        case 55: break;
+        case 56: break;
         case 19: 
           { yybegin(YYINITIAL); 
                                    return symbol("CURLYEXPR", AutomatonSym.CURLYEXPR, 
                                    string.toString());
           }
-        case 56: break;
+        case 57: break;
         case 50: 
           { return symbol("INITIAL", AutomatonSym.INITIAL);
           }
-        case 57: break;
+        case 58: break;
         case 6: 
           { return symbol(":", AutomatonSym.COLON);
           }
-        case 58: break;
+        case 59: break;
         case 39: 
           { return symbol("ERROR", AutomatonSym.ERROR);
           }
-        case 59: break;
+        case 60: break;
         case 13: 
           { return symbol("!", AutomatonSym.EXCLAMATION);
           }
-        case 60: break;
+        case 61: break;
         case 23: 
           { return symbol("!=", AutomatonSym.NEQ);
           }
-        case 61: break;
+        case 62: break;
         case 28: 
           { string.append('\t');
           }
-        case 62: break;
+        case 63: break;
         case 26: 
           { return symbol("||", AutomatonSym.OR);
           }
-        case 63: break;
+        case 64: break;
         case 10: 
           { string.setLength(0); yybegin(STRING);
           }
-        case 64: break;
+        case 65: break;
+        case 20: 
+          { yybegin(YYINITIAL); 
+                                   return symbol("CURLYEXPR", AutomatonSym.SQUAREEXPR, 
+                                   string.toString());
+          }
+        case 66: break;
         case 40: 
           { return symbol("STATE", AutomatonSym.STATE);
           }
-        case 65: break;
+        case 67: break;
         case 34: 
           { return symbol("TRUE", AutomatonSym.TRUE);
           }
-        case 66: break;
+        case 68: break;
         case 9: 
           { return symbol("-", AutomatonSym.MINUS);
           }
-        case 67: break;
+        case 69: break;
         case 30: 
           { string.append('"');
           }
-        case 68: break;
+        case 70: break;
         case 18: 
           { string.append('\\');
           }
-        case 69: break;
-        case 48: 
-          { return symbol("NONDET", AutomatonSym.NONDET);
-          }
-        case 70: break;
+        case 71: break;
         case 36: 
           { return symbol("STOP", AutomatonSym.STOP);
           }
-        case 71: break;
-        case 51: 
+        case 72: break;
+        case 52: 
           { return symbol("OBSERVER", AutomatonSym.OBSERVER);
           }
-        case 72: break;
+        case 73: break;
         case 29: 
           { string.append('\r');
           }
-        case 73: break;
+        case 74: break;
         case 5: 
           { return symbol(";", AutomatonSym.SEMICOLON);
-          }
-        case 74: break;
-        case 17: 
-          { yybegin(YYINITIAL); 
-                                   return symbol("STRING", AutomatonSym.STRING_LITERAL, 
-                                   string.toString());
           }
         case 75: break;
         case 43: 
@@ -1088,106 +1090,114 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
           { return symbol("LABEL", AutomatonSym.LABEL);
           }
         case 82: break;
+        case 47: 
+          { return symbol("USEALL", AutomatonSym.USEALL);
+          }
+        case 83: break;
         case 21: 
           { return symbol("->", AutomatonSym.ARROW);
           }
-        case 83: break;
+        case 84: break;
         case 45: 
           { return symbol("FALSE", AutomatonSym.FALSE);
           }
-        case 84: break;
+        case 85: break;
         case 25: 
           { return symbol("&&", AutomatonSym.AND);
           }
-        case 85: break;
-        case 41: 
-          { return symbol("EVAL", AutomatonSym.CHECK);
-          }
         case 86: break;
-        case 4: 
-          { return symbol("INT", AutomatonSym.INTEGER_LITERAL, yytext());
-          }
-        case 87: break;
-        case 32: 
-          { string.append(']');
-          }
-        case 88: break;
-        case 22: 
-          { return symbol("DO", AutomatonSym.DO);
-          }
-        case 89: break;
-        case 47: 
-          { return symbol("MODIFY", AutomatonSym.MODIFY);
-          }
-        case 90: break;
-        case 15: 
-          { return symbol("+", AutomatonSym.PLUS);
-          }
-        case 91: break;
-        case 31: 
-          { string.append('}');
-          }
-        case 92: break;
-        case 7: 
-          { return symbol("(", AutomatonSym.OPEN_BRACKETS);
-          }
-        case 93: break;
-        case 12: 
-          { string.setLength(0); yybegin(SQUAREEXPR);
-          }
-        case 94: break;
-        case 27: 
-          { string.append('\n');
-          }
-        case 95: break;
-        case 3: 
-          { return symbol("ID", AutomatonSym.IDENTIFIER, yytext());
-          }
-        case 96: break;
-        case 20: 
-          { yybegin(YYINITIAL); 
-                                   return symbol("CURLYEXPR", AutomatonSym.SQUAREEXPR, 
-                                   string.toString());
-          }
-        case 97: break;
-        case 35: 
-          { return symbol("EVAL", AutomatonSym.EVAL);
-          }
-        case 98: break;
-        case 37: 
-          { return symbol("GOTO", AutomatonSym.GOTO);
-          }
-        case 99: break;
         case 1: 
           { error("Fallback error"); throw new Error("Illegal character <"+
                                                     yytext()+">");
           }
-        case 100: break;
-        case 52: 
+        case 87: break;
+        case 41: 
+          { return symbol("EVAL", AutomatonSym.CHECK);
+          }
+        case 88: break;
+        case 4: 
+          { return symbol("INT", AutomatonSym.INTEGER_LITERAL, yytext());
+          }
+        case 89: break;
+        case 32: 
+          { string.append(']');
+          }
+        case 90: break;
+        case 17: 
+          { yybegin(YYINITIAL); 
+                                   return symbol("STRING", AutomatonSym.STRING_LITERAL, 
+                                   string.toString());
+          }
+        case 91: break;
+        case 51: 
+          { return symbol("USEFIRST", AutomatonSym.USEFIRST);
+          }
+        case 92: break;
+        case 22: 
+          { return symbol("DO", AutomatonSym.DO);
+          }
+        case 93: break;
+        case 53: 
           { File file = getFile(yytext()); 
 	  if (file != null) yypushStream(new FileReader(file));
           }
+        case 94: break;
+        case 48: 
+          { return symbol("MODIFY", AutomatonSym.MODIFY);
+          }
+        case 95: break;
+        case 15: 
+          { return symbol("+", AutomatonSym.PLUS);
+          }
+        case 96: break;
+        case 31: 
+          { string.append('}');
+          }
+        case 97: break;
+        case 7: 
+          { return symbol("(", AutomatonSym.OPEN_BRACKETS);
+          }
+        case 98: break;
+        case 12: 
+          { string.setLength(0); yybegin(SQUAREEXPR);
+          }
+        case 99: break;
+        case 27: 
+          { string.append('\n');
+          }
+        case 100: break;
+        case 3: 
+          { return symbol("ID", AutomatonSym.IDENTIFIER, yytext());
+          }
         case 101: break;
+        case 35: 
+          { return symbol("EVAL", AutomatonSym.EVAL);
+          }
+        case 102: break;
+        case 37: 
+          { return symbol("GOTO", AutomatonSym.GOTO);
+          }
+        case 103: break;
         case 46: 
           { return symbol("ASSERT", AutomatonSym.ASS);
           }
-        case 102: break;
+        case 104: break;
         case 14: 
           { return symbol("=", AutomatonSym.EQ);
           }
-        case 103: break;
+        case 105: break;
         case 16: 
           { string.append( yytext() );
           }
-        case 104: break;
+        case 106: break;
         case 44: 
           { return symbol("PRINT", AutomatonSym.PRINT);
           }
-        case 105: break;
+        case 107: break;
         case 33: 
           { return symbol("LABEL", AutomatonSym.END);
           }
-        case 106: break;
+        case 108: break;
         default: 
           if (zzInput == YYEOF && zzStartRead == zzCurrentPos) {
             zzAtEOF = true;

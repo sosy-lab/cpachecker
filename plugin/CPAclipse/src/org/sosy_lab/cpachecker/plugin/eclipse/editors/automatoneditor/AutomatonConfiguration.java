@@ -94,7 +94,8 @@ public class AutomatonConfiguration extends TextSourceViewerConfiguration {
 	private class KeywordScanner extends RuleBasedScanner {
 		private String[] keywords = {
 			"STATE",
-			"NONDET",
+			"USEALL",
+			"USEFIRST",
 			"INITIAL",
 			"LOCAL",
 			"MATCH",

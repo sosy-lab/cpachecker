@@ -4,7 +4,7 @@ CONTROL AUTOMATON modifyingAutomaton
 LOCAL int a = 1;
 INITIAL STATE Init;
 
-STATE Init:
+STATE USEFIRST Init:
   MATCH {$? = func($1, $2); } -> 
     ASSERT CHECK(ExplicitAnalysis("$1==$$a")) 
     MODIFY(ExplicitAnalysis("deletevalues($2);setvalue($2:=0)"))

@@ -4,7 +4,7 @@ OBSERVER AUTOMATON ParserTestingAutomaton
 
 INITIAL STATE Init;
 
-STATE Init :
+STATE USEFIRST Init :
   //!(FALSE == TRUE) -> GOTO Init;
   (TRUE && !TRUE) -> GOTO Init;
   TRUE -> ERROR;

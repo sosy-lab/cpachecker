@@ -121,7 +121,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton automaton ;
 non terminal String InitDef ;
@@ -188,8 +188,9 @@ StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonInternalState>(); :}
               ;
 
-StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts); :}
-            | STATE NONDET IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, true); :}
+StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, true); :}
+            | STATE USEALL IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, true); :}
+            | STATE USEFIRST IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, false); :}
             ;
 
 Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}

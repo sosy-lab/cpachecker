@@ -16,10 +16,10 @@ public interface AutomatonSym {
   public static final int MATCH = 20;
   public static final int SEMICOLON = 6;
   public static final int AND = 3;
+  public static final int USEALL = 40;
   public static final int EVAL = 23;
   public static final int OR = 4;
   public static final int OPEN_BRACKETS = 8;
-  public static final int NONDET = 40;
   public static final int CURLYEXPR = 38;
   public static final int PLUS = 33;
   public static final int EXCLAMATION = 2;
@@ -40,6 +40,7 @@ public interface AutomatonSym {
   public static final int STOP = 18;
   public static final int GOTO = 27;
   public static final int MODIFY = 24;
+  public static final int USEFIRST = 41;
   public static final int END = 13;
   public static final int CLOSE_BRACKETS = 9;
   public static final int LOCAL = 14;
