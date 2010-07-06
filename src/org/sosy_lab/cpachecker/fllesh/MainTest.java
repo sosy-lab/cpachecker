@@ -523,8 +523,8 @@ public class MainTest {
   @Test
   public void testMain020() throws Exception {
     String[] lArguments = getParameters("COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"", 
-                                        "test/programs/fql/locks_2.c", 
-                                        "foo", 
+                                        "test/programs/fql/test_locks_2.c", 
+                                        "main", 
                                         false);
     
     long lStartTime = System.currentTimeMillis();
@@ -535,9 +535,36 @@ public class MainTest {
     
     mExperiment.addExperiment("020", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(48, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(44, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(45, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(3, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    /**
+     * Discussion: get_exit_nondet() in its original implementation is faulty
+     */
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain021() throws Exception {
+    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"", 
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
+                                        "main", 
+                                        false);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("021", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
     // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
     

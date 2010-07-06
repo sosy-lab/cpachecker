@@ -111,7 +111,7 @@ public class Cilly {
     }
     
     if (!pSourceFile.exists()) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("File " + pSourceFile.getAbsolutePath() + " does not exist!");
     }
     
     if (!pSourceFile.canRead()) {
