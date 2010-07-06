@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
@@ -44,11 +45,28 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 public class CounterexampleTraceInfo {
     private final boolean spurious;
     private final Map<AbstractElement, Set<Predicate>> pmap;
+    private final Model mCounterexample;
 
-    public CounterexampleTraceInfo(boolean spurious) {
+    /*public CounterexampleTraceInfo(boolean spurious) {
         this.spurious = spurious;
         pmap = new HashMap<AbstractElement, Set<Predicate>>();
+    }*/
+    public CounterexampleTraceInfo() {
+      this.spurious = true;
+      pmap = new HashMap<AbstractElement, Set<Predicate>>();
+      mCounterexample = null;
     }
+    
+    public CounterexampleTraceInfo(Model pModel) {
+      if (pModel == null) {
+        throw new IllegalArgumentException("Parameter is null!");
+      }
+      
+      mCounterexample = pModel;
+      this.spurious = false;
+      pmap = new HashMap<AbstractElement, Set<Predicate>>();
+    }
+    
     /**
      * checks whether this trace is a real bug or a spurious counterexample
      * @return true if this trace is spurious, false otherwise
@@ -94,4 +112,17 @@ public class CounterexampleTraceInfo {
       return "Spurious: " + isSpurious() +
         (isSpurious() ? ", new predicates: " + pmap : "");
     }
+    
+    public boolean hasCounterexample() {
+      return (mCounterexample != null);
+    }
+    
+    public Model getCounterexample() {
+      if (!hasCounterexample()) {
+        throw new RuntimeException("No model available!");
+      }
+      
+      return mCounterexample;
+    }
+    
 }

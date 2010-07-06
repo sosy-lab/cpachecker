@@ -36,4 +36,5 @@ public interface InterpolatingTheoremProver<T> {
     public T addFormula(SymbolicFormula f);
     public boolean isUnsat();
     public SymbolicFormula getInterpolant(List<T> formulasOfA);
+    public Model getModel();
 }

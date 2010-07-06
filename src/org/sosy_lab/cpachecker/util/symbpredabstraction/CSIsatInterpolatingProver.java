@@ -169,4 +169,10 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     formulas.clear();
     interpolants.clear();
   }
+
+  @Override
+  public CSIsatModel getModel() {
+    return new CSIsatModel();
+  }
+  
 }

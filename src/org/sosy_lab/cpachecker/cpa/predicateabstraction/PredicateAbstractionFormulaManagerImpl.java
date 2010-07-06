@@ -910,7 +910,8 @@ implements PredicateAbstractionFormulaManager {
 
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
-      info = new CounterexampleTraceInfo(true);
+      //info = new CounterexampleTraceInfo(true);
+      info = new CounterexampleTraceInfo();
       // how to partition the trace into (A, B) depends on whether
       // there are function calls involved or not: in general, A
       // is the trace from the entry point of the current function
@@ -1008,7 +1009,8 @@ implements PredicateAbstractionFormulaManager {
     } else {
 
       // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(false);
+      //info = new CounterexampleTraceInfo(false);
+      info = new CounterexampleTraceInfo(itpProver.getModel());
 //      ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
 //      for (PredicateAbstractionAbstractElement e : abstractTrace) {
 //        cf.add(e.getLocationNode().getFunctionName());

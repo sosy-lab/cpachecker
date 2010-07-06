@@ -639,7 +639,16 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     long msatSolveTimeEnd = System.currentTimeMillis();
     long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 
-    CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
+    CounterexampleTraceInfo info;
+    
+    if (spurious) {
+      info = new CounterexampleTraceInfo();
+    }
+    else {
+      info = new CounterexampleTraceInfo(lItpProver.getModel());
+    }
+    
+    //CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
