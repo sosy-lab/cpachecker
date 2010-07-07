@@ -41,6 +41,7 @@ public class TasksIO {
 	private final static String TASK_NODE_NAME = "Task";
 	private final static String TASKNAME_ATTR_NAME = "Name";
 	private final static String CONFIG_NODE_NAME = "ConfigFile";
+	private final static String SPEC_NODE_NAME = "SpecificationFile";
 	private final static String SOURCE_NODE_NAME = "SourceFile";
 	private final static String PATH_ATTR_NAME = "WorkspaceRelativePath";
 	private static final String LOADER_GENERATED_NAME = "loader_generated_name";
@@ -49,7 +50,7 @@ public class TasksIO {
 	private static File getFile(String location) throws URISyntaxException, MalformedURLException {
 		IResource root = ResourcesPlugin.getWorkspace().getRoot();
 		String newPath = root.getLocation().toPortableString() + location;
-		System.out.println(newPath);
+		//System.out.println(newPath);
 		return new File(newPath);
 	}
 	
@@ -93,17 +94,20 @@ public class TasksIO {
 				// determine config and source file (one of them should be specified)
 				NodeList taskChilds = nd.getChildNodes();
 				IFile config = null;
+				IFile specification = null;
 				ITranslationUnit source = null;
 				for (int j = 0; j < taskChilds.getLength(); j++) {
 					Node child = taskChilds.item(j);
 					if (child.getNodeName().equals(CONFIG_NODE_NAME)) {
 						config = loadConfigFile(child, taskName);
+					} else if (child.getNodeName().equals(SPEC_NODE_NAME)) {
+						specification = loadSpecificationFile(child, taskName);
 					} else if (child.getNodeName().equals(SOURCE_NODE_NAME)) {
 						source = loadSourceFile(child, taskName);
 					}
 				}
-				assert (config != null || source != null) : "Task had neither a configFile nor a sourceFile defined";
-				Task t = new Task(taskName, config, source);
+				assert (config != null || source != null || specification != null) : "Task had neither a configFile nor a sourceFile nor a specification defined";
+				Task t = new Task(taskName, config, source, specification);
 				Node taskResultNode = nd.getAttributes().getNamedItem(LAST_RESULT_ATTR_NAME);
 				if (taskResultNode != null) {
 					t.setLastResult(CPAcheckerResult.Result.valueOf(taskResultNode.getNodeValue()));
@@ -128,14 +132,14 @@ public class TasksIO {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IResource member = root.findMember(path);
 			if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
-				System.out.println("Failed to locate the file " + pathStr);
+				CPAclipse.logInfo("Failed to locate the file " + pathStr);
 				return null;
 			} else {
 				//ICModel fInput = CoreModel.create(root);
 				return CoreModelUtil.findTranslationUnit((IFile) member);
 			}
 		} else {
-			System.out.println("error during load of configFile for Task " + taskName);
+			CPAclipse.logInfo("error during load of configFile for Task " + taskName);
 			return null;
 		}
 	}
@@ -146,13 +150,30 @@ public class TasksIO {
 			IPath path = Path.fromPortableString(pathStr.getNodeValue());
 			IResource member = ResourcesPlugin.getWorkspace().getRoot().findMember(path);
 			if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
-				System.out.println("Failed to locate the file " + pathStr);
+				CPAclipse.logInfo("Failed to locate the file " + pathStr);
 				return null;
 			} else {
 				return (IFile)member;
 			}
 		} else {
-			System.out.println("error during load of configFile for Task " + taskName);
+			CPAclipse.logInfo("error during load of configFile for Task " + taskName);
+			return null;
+		}
+	}
+	private static IFile loadSpecificationFile(Node specNode, String taskName) {
+		NamedNodeMap attr = specNode.getAttributes();
+		Node pathStr = attr.getNamedItem(PATH_ATTR_NAME);
+		if (pathStr != null) {
+			IPath path = Path.fromPortableString(pathStr.getNodeValue());
+			IResource member = ResourcesPlugin.getWorkspace().getRoot().findMember(path);
+			if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
+				CPAclipse.logInfo("Failed to locate the file " + pathStr);
+				return null;
+			} else {
+				return (IFile)member;
+			}
+		} else {
+			CPAclipse.logInfo("error during load of specFile for Task " + taskName);
 			return null;
 		}
 	}
@@ -265,6 +286,16 @@ public class TasksIO {
 			 eventWriter.add(newline);
 			 eventWriter.add(tab);eventWriter.add(tab);eventWriter.add(tab);
 			 eventWriter.add(eventFactory.createEndElement("", "", CONFIG_NODE_NAME));
+			 eventWriter.add(newline);
+		}
+		if (task.hasSpecificationFile()) {
+			 String path = task.getSpecFile().getFullPath().toPortableString();
+			 eventWriter.add(tab);eventWriter.add(tab);eventWriter.add(tab);
+			 eventWriter.add(eventFactory.createStartElement("", "", SPEC_NODE_NAME));
+			 eventWriter.add(eventFactory.createAttribute(PATH_ATTR_NAME, path));
+			 eventWriter.add(newline);
+			 eventWriter.add(tab);eventWriter.add(tab);eventWriter.add(tab);
+			 eventWriter.add(eventFactory.createEndElement("", "", SPEC_NODE_NAME));
 			 eventWriter.add(newline);
 		}
 		if (task.getTranslationUnit() != null) {

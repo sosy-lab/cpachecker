@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.views;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
@@ -28,6 +29,7 @@ public class TaskTreeViewer extends TreeViewer {
 	private Image unsafeResultIcon;
 	private Image unknownResultIcon;
 	private Image configIcon;
+	private Image specIcon;
 	private Image sourceFileImage;
 	private Image mainLogoIcon;
 	private List<Image> imagesToBeDisposed = new ArrayList<Image>();
@@ -52,6 +54,10 @@ public class TaskTreeViewer extends TreeViewer {
 			ImageDescriptor desc = CPAclipse.getImageDescriptor("icons/config.gif"); 	
 			if (desc != null) configIcon = desc.createImage(true);
 			else configIcon = missingImage;
+			
+			desc = CPAclipse.getImageDescriptor("icons/specification.gif");
+			if (desc != null) specIcon = desc.createImage(true);
+			else specIcon = missingImage;
 			
 			desc = CPAclipse.getImageDescriptor("icons/Thumbs up.gif");
 			if (desc != null) safeResultIcon = desc.createImage(true);
@@ -102,14 +108,18 @@ public class TaskTreeViewer extends TreeViewer {
 					
 					IFolder outDir = t.getOutputDirectory(false);
 					IFile c = t.hasConfigurationFile() ? t.getConfigFile() : null;
+					IFile s = t.hasSpecificationFile() ? t.getSpecFile() : null;
 					ITranslationUnit u = ((TaskNode)ex1).getTask().getTranslationUnit();
-					if (c != null && u != null) {
-						return new Object[] {c, u, outDir };
-					} else if (c != null) {
-						return new Object[] {c, outDir };
-					} else {
-						return new Object[] {u, outDir };
-					}
+					List<Object> result = new LinkedList<Object>();
+					
+					if (c != null)
+						result.add(c);
+					if (s != null)
+						result.add(s);
+					if (u != null)
+						result.add(u);
+					result.add(outDir);
+					return result.toArray();
 				} else if (ex1.getType() == NodeType.TOP) {
 					return ((TopNode)ex1).getChildren();
 				}
@@ -174,6 +184,8 @@ public class TaskTreeViewer extends TreeViewer {
 				}
 			} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
 				return configIcon;
+			}  else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("spc")) {
+				return specIcon;
 			}
 			return myWorkbenchLabelProvider.getImage(element);
 		}

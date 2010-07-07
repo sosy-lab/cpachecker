@@ -38,7 +38,7 @@ public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
 	    }
 	    
 		Task t;
-		t = new Task(firstPage.getTaskName(),firstPage.getConfigFile() , source);
+		t = new Task(firstPage.getTaskName(),firstPage.getConfigFile() , source, firstPage.getSpecificationFile());
 		CPAclipse.getPlugin().addTask(t);
 		return true;
 	}

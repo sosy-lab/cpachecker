@@ -42,23 +42,34 @@ public class NewTaskAction implements IObjectActionDelegate {
 		IStructuredSelection structured = (IStructuredSelection) selection;
 		ITranslationUnit selectedSource = null;
 		IFile selectedConfig = null;
+		IFile selectedSpecification = null;
 		List selectedElements = structured.toList();
 		//assert selectedElements.size() == 2;
 		for (Object element : selectedElements) {
 			if (element instanceof ITranslationUnit) {
 				selectedSource = (ITranslationUnit)element;
 			} else if (element instanceof IFile) {
-				selectedConfig = (IFile)element;
+				IFile file = (IFile)element;
+				if (file.getFileExtension() != null) {
+					if (file.getFileExtension().equals("spc")) {
+						selectedSpecification = file;
+					} else if(file.getFileExtension().equals("properties")) {
+						selectedConfig = file;
+					} else {
+						MessageDialog.openError(shell, "Unable to perform", "Configuration file must have a \".properties\"-Ending. Specification Files must have \".spc\"-Ending");
+						return;
+					}
+				} else {
+					MessageDialog.openError(shell, "Unable to perform", "Configuration file must have a \".properties\"-Ending. Specification Files must have \".spc\"-Ending");
+					return;
+				}
 			}
 		}
-		
-		if (selectedConfig != null && ! selectedConfig.getFileExtension().equals("properties")) {
-			MessageDialog.openError(shell, "Unable to perform", "Configuration file must be a \".properties\" File.");
-		} else {
-			Task t = new Task("generated", selectedConfig, selectedSource);
+		{
+			Task t = new Task("generated", selectedConfig, selectedSource, selectedSpecification);
 			// at this time config does not need to be a correct configuration file
 			CPAclipse.getPlugin().addTask(t);
-			System.out.println("NewTaskAction: Task added");
+			System.out.println("NewTaskAction: Task added: " +  t.getName());
 		}
 	}
 
@@ -71,18 +82,34 @@ public class NewTaskAction implements IObjectActionDelegate {
 		IStructuredSelection structured = (IStructuredSelection) selection;
 		ITranslationUnit selectedSource = null;
 		IFile selectedConfig = null;
+		IFile selectedSpecification = null;
 		List selectedElements = structured.toList();
 		//assert selectedElements.size() == 2;
 		for (Object element : selectedElements) {
 			if (element instanceof ITranslationUnit) {
 				selectedSource = (ITranslationUnit)element;
 			} else if (element instanceof IFile) {
-				selectedConfig = (IFile)element;
+				IFile file = (IFile)element;
+				if (file.getFileExtension() != null) {
+					if (file.getFileExtension().equals("spc")) {
+						selectedSpecification = file;
+					} else if(file.getFileExtension().equals("properties")) {
+						selectedConfig = file;
+					} else {
+						MessageDialog.openError(shell, "Unable to perform", "Configuration file must have a \".properties\"-Ending. Specification Files must have \".spc\"-Ending");
+						return;
+					}
+				} else {
+					MessageDialog.openError(shell, "Unable to perform", "Configuration file must have a \".properties\"-Ending. Specification Files must have \".spc\"-Ending");
+					return;
+				}
 			}
 		}
 		if (selectedConfig != null && ! selectedConfig.getFileExtension().equals("properties")) {
 			action.setEnabled(false);
-		} else if (selectedConfig != null || selectedSource != null) {
+		} else if (selectedSpecification != null && ! selectedConfig.getFileExtension().equals("spc")) {
+			action.setEnabled(false);
+		} else if (selectedConfig != null || selectedSource != null || selectedSpecification != null) {
 			action.setEnabled(true);
 		} else {
 			action.setEnabled(false);

@@ -5,8 +5,10 @@ package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -23,7 +25,7 @@ public class Task {
 	private String name;
 	private ITranslationUnit sourceTranslationUnit = null;
 	private IFile configFile = null;
-	//private Configuration config = null;
+	private IFile specificationFile = null;
 	private boolean isDirty = true;
 	private Result lastResult = Result.UNKNOWN;
 
@@ -34,10 +36,11 @@ public class Task {
 	 * @param configFile
 	 * @param source
 	 */
-	public Task(String taskName, IFile configFile, ITranslationUnit source) {
+	public Task(String taskName, IFile configFile, ITranslationUnit source, IFile specificationFile) {
 		this.name = createUniqueName(taskName);
 		this.configFile = configFile;
 		this.sourceTranslationUnit = source;
+		this.specificationFile = specificationFile;
 	}
 
 	public void setLastResult(Result result) {
@@ -82,7 +85,6 @@ public class Task {
 		String projectRoot = configFile.getProject().getLocation().toPortableString();
 		Configuration config =  new Configuration(configFile.getContents(),
 				Collections.<String, String>emptyMap(), projectRoot);
-		
 		// append Task Name to Output Path
 		String newPath = config.getProperty("output.path", DEFAULT_OUTPUT_DIR);
 		if (newPath.endsWith("/")) {
@@ -90,8 +92,10 @@ public class Task {
 		} else {
 			newPath = newPath + "/" + this.name + "/";
 		}
-		return new Configuration(configFile.getContents(),
-				Collections.singletonMap("output.path", newPath), projectRoot);
+		Map<String, String> overridesMap = new HashMap<String, String>(2);
+		overridesMap.put("output.path", newPath);
+		overridesMap.put("specification", this.specificationFile.getLocation().toPortableString());
+		return new Configuration(configFile.getContents(), overridesMap, projectRoot);
 	}
 
 	public String getName() {
@@ -100,6 +104,9 @@ public class Task {
 
 	public IFile getConfigFile() {
 		return this.configFile;
+	}
+	public IFile getSpecFile() {
+		return this.specificationFile;
 	}
 
 	public String getConfigFilePathProjRelative() {
@@ -115,6 +122,8 @@ public class Task {
 		try {
 			if (configFile == null || createConfig() == null) {
 				return true;
+			} else if (specificationFile == null) {
+				return true;
 			} else if (this.getTranslationUnit() == null) {
 				return true;
 			}
@@ -129,6 +138,8 @@ public class Task {
 	public String getErrorMessage() {
 		if (this.configFile == null) {
 			return "No configuration file was associated with this task!";
+		} else if (specificationFile == null) {
+			return "No specification file was associated with this task!";
 		} else if (this.getTranslationUnit() == null) {
 			return "No Source file was associated with this Task!";
 		} else {
@@ -142,6 +153,9 @@ public class Task {
 
 	public boolean hasConfigurationFile() {
 		return this.configFile != null;
+	}
+	public boolean hasSpecificationFile() {
+		return this.specificationFile != null;
 	}
 
 	public void setName(String newName) {
@@ -204,6 +218,10 @@ public class Task {
 		file.mkdirs();
 		return file;
 		*/
+	}
+
+	public void setSpecificationFile(IFile file) {
+		this.specificationFile = file;
 	}
 	
 }

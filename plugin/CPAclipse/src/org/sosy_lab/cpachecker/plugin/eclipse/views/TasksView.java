@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RunMultipleTasksActi
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SaveTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetConfigFileInTaskAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetSourceFileInTaskAction;
+import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetSpecFileInTaskAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
@@ -136,9 +137,10 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 			}
 			@Override
 			public void tasksChanged(List<Task> changed) {
-				for (Task t: changed) {
+				/*for (Task t: changed) {
 					myTreeViewer.refresh(t);
-				}
+				}*/
+				TasksView.this.refresh();
 			}
 		};
 		CPAclipse plugin = CPAclipse.getPlugin();
@@ -161,6 +163,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 	public void refresh() {
 		myTreeViewer.refresh();
 		this.progress.setText(CPAclipse.getPlugin().getTasks().size() + "Tasks listed");
+		System.out.println("refreshed");
 	}
 	
 	@Override
@@ -205,7 +208,6 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 		
 		final IStructuredSelection selection = (IStructuredSelection) myTreeViewer.getSelection();
 		if (selection.isEmpty()) {
-			System.out.println("I think this cant happen");
 			return;
 		}
 		List<Task> selectedTasks = new ArrayList<Task>();
@@ -274,6 +276,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 					&& selection.getFirstElement() instanceof Node 
 					&& (((Node)selection.getFirstElement()).getType().equals(NodeType.TASK))) {
 				manager.add(new SetConfigFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
+				manager.add(new SetSpecFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
 				manager.add(new SetSourceFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
 			}
 		}

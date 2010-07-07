@@ -49,13 +49,13 @@
             name="PropertiesTableEditor">
       </editor>  	
       	<editor
-            name="Automaton Editor"
-            extensions="auto"
-            icon="icons/automaton.gif"
+            name="Specification Editor"
+            extensions="spc"
+            icon="icons/specification.gif"
             default="true"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
-            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"
-            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor">
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.specificationEditor">
       	</editor>
       	<editor
             name="ErrorPath Editor"
@@ -126,9 +126,9 @@
             <context type="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor"/>
       </target>
       <target
-            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor"
             name="CPAtextEditorTargetSpecification">
-            <context type="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"/>
+            <context type="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor"/>
       </target>
    </extension>
    <extension
@@ -142,10 +142,10 @@
       </hyperlinkDetector>
       <hyperlinkDetector
       		activate="true"
-            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.IncludeHyperlinkDetector"
-            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.IncludeHyperlinkDetector"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.IncludeHyperlinkDetector"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.IncludeHyperlinkDetector"
             name="IncludeHyperlinkDetector"
-            targetId="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor">
+            targetId="org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor">
       </hyperlinkDetector>
    </extension> 
 </plugin>

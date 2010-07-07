@@ -41,6 +41,7 @@ public class DeleteTasksAction extends Action {
 			CPAclipse.getPlugin().fireTasksChanged();
 		}
 	}
+	@SuppressWarnings("unused")
 	private boolean deleteDir(File dir) {
 		if (!dir.exists()) return true;
 		boolean success = true;

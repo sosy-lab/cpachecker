@@ -25,12 +25,14 @@ import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 public class NewTaskCreationWizardPage extends WizardPage {
 	private Text sourceTextControl;
 	private Text configTextControl;
+	private Text specificationTextControl;
 	private Text nameTextControl;
 	
 	NewTaskCreationWizard parent;
 	private Composite composite;
 	private ITranslationUnit sourceFile;
 	private IFile configFile;
+	private IFile specificationFile;
 
 	protected NewTaskCreationWizardPage(String pageName, NewTaskCreationWizard newTaskWizard) {
 		super(pageName);
@@ -107,6 +109,12 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		}
 		return configFile;
 	}
+	IFile getSpecificationFile() {
+		if (specificationFile == null) {
+			obtainSpecificationFile(this.specificationTextControl.getText());
+		}
+		return configFile;
+	}
 	
 	private void setITranslationUnit(ITranslationUnit source) {
 		this.sourceFile = source;
@@ -135,7 +143,19 @@ public class NewTaskCreationWizardPage extends WizardPage {
 			return true;
 		}
 	}
-	
+	private boolean obtainSpecificationFile(String specFilePath) {
+		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+		IResource member = fWorkspaceRoot.findMember(specFilePath);
+		if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
+			this.setErrorMessage("Failed to locate the file " + specFilePath);
+			return false;
+		} else {
+			IFile file = (IFile)member;
+			this.specificationFile = file;
+			this.setMessage("Specification is now: " + member.getFullPath().toPortableString());
+			return true;
+		}
+	}
 	
 	private boolean obtainSourceFile(String sourceFilePath) {
 		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();

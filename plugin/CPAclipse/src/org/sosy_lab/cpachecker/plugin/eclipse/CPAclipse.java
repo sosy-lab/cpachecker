@@ -338,6 +338,32 @@ public class CPAclipse extends AbstractUIPlugin {
         }
         return null;
 	}
+	public static IFile askForSpecFile(Shell shell, IFile initial) {
+		String extension = "*.spc";
+        FileDialog dialog = new FileDialog(shell, SWT.OPEN | SWT.SHEET);
+        
+        if (initial != null) {
+			dialog.setFileName(initial.getLocation().toPortableString());
+		} else {
+			dialog.setFileName(CPAclipse.getWorkspace().getRoot().getLocation().toPortableString());
+		}
+        
+		dialog.setFilterExtensions(new String[] {extension});
+        String file = dialog.open();
+        if (file != null) {
+            file = file.trim();
+            if (file.length() > 0) {
+            	Path p = new Path(file);
+            	IFile member = CPAclipse.getWorkspace().getRoot().getFileForLocation(p);
+            	if (member != null) {
+            		return member;
+            	} else {
+            		MessageDialog.openError(shell, "Error opening the file", "Could not locate the file " + file +" in the workspace");
+            	}
+			}
+        }
+        return null;
+	}
 	public static void log(IStatus status) {
 		getPlugin().getLog().log(status);
 	}
