@@ -60,6 +60,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
+  private CounterexampleTraceInfo mCounterexampleTraceInfo;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -110,6 +111,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     // build the counterexample
     CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
+    mCounterexampleTraceInfo = info;
 
     // if error is spurious refine
     if (info.isSpurious()) {
@@ -223,4 +225,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     throw new CPAException("Inconsistent ART");
   }
+  
+  public CounterexampleTraceInfo getCounterexampleTraceInfo() {
+    return mCounterexampleTraceInfo;
+  }
+  
 }

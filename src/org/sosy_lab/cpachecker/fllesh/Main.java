@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
@@ -67,6 +68,8 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
 
@@ -191,8 +194,10 @@ public class Main {
       ConfigurableProgramAnalysis lARTCPA = getARTCPA(lComponentAnalyses, lConfiguration, lLogManager);
 
       CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, lLogManager);
-
-      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lConfiguration, lLogManager);
+      
+      SymbPredAbsRefiner lRefiner = new SymbPredAbsRefiner(lBasicAlgorithm.getCPA());
+      
+      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, lConfiguration, lLogManager);
 
       Statistics lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
       Set<Statistics> lStatistics = new HashSet<Statistics>();
@@ -211,11 +216,16 @@ public class Main {
         throw new RuntimeException(e);
       }
 
+      CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
+      
       boolean lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
       
       if (lIsFeasible) {
-        // TODO add correct test case
-        lResultFactory.addFeasibleTestCase(lGoal, "feasible");
+        Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
+        
+        System.out.println(lCounterexample);
+        
+        lResultFactory.addFeasibleTestCase(lGoal, lCounterexample);
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
       }
       else {

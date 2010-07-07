@@ -130,6 +130,29 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     mRefiner = createInstance(refiner, refinerArguments, Refiner.class);
   }
+  
+  /**
+   * This constructor gets a Refiner object instead of generating it
+   * from the refiner parameter.
+   * 
+   * @param algorithm
+   * @param pRefiner
+   * @param config
+   * @param logger
+   * @throws InvalidConfigurationException
+   * @throws CPAException
+   */
+  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+    config.inject(this);
+    this.algorithm = algorithm;
+    this.logger = logger;
+
+    if (pRefiner == null) {
+      throw new IllegalArgumentException("Given Refiner object is null!");
+    }
+    
+    mRefiner = pRefiner;
+  }
 
   @Override
   public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
