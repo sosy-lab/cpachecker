@@ -39,7 +39,7 @@ import java.util.logging.Level;
      return this.yycolumn;
    }
    
-   private File getFile(String pYytext) throws FileNotFoundException {
+  private File getFile(String pYytext) throws FileNotFoundException {
   	assert pYytext.startsWith("#include ");
   	String fileName = pYytext.replaceFirst("#include ", "").trim();
   	if (scannedFiles.contains(fileName)) {
@@ -50,7 +50,11 @@ import java.util.logging.Level;
   	if (config != null && config.getRootDirectory() != null) {
   	  rootPrefix = config.getRootDirectory();
   	}
-  	File file = new File(rootPrefix + fileName);
+  	File file = new File(fileName);
+  	if (rootPrefix != null && !file.isAbsolute()) {
+      file = new File(rootPrefix, file.getPath());    
+    }
+  	
   	Files.checkReadableFile(file);
   	scannedFiles.add(fileName);
   	return file;
