@@ -2,15 +2,15 @@ package org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor;
 
 import org.eclipse.ui.editors.text.TextEditor;
 
-public class AutomatonEditor extends TextEditor {
+public class SpecificationEditor extends TextEditor {
 
 	private ColorManager colorManager;
 
-	public AutomatonEditor() {
+	public SpecificationEditor() {
 		super();
 		colorManager = new ColorManager();
-		setSourceViewerConfiguration(new AutomatonConfiguration(colorManager, this, getPreferenceStore()));
-		setDocumentProvider(new AutomatonDocumentProvider());
+		setSourceViewerConfiguration(new SpecificationConfiguration(colorManager, this, getPreferenceStore()));
+		setDocumentProvider(new SpecificationDocumentProvider());
 	}
 	
 	@Override

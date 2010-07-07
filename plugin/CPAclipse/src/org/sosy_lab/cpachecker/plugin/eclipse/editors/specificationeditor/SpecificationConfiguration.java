@@ -21,8 +21,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.editors.text.TextSourceViewerConfiguration;
 
-public class AutomatonConfiguration extends TextSourceViewerConfiguration {
-	private AutomatonDoubleClickStrategy doubleClickStrategy;
+public class SpecificationConfiguration extends TextSourceViewerConfiguration {
+	private SpecificationDoubleClickStrategy doubleClickStrategy;
 	private TextEditor fEditor;
 	private ColorManager colorManager;
 	public final static String AUTOMATON_KEYWORD = "__automaton_KEYWORD";
@@ -30,7 +30,7 @@ public class AutomatonConfiguration extends TextSourceViewerConfiguration {
 	public final static String SPECIFICATION_INCLUDE = "__specification_INCLUDE";
 	public final static String SPECIFICATION_COMMENT = "__specification_COMMENT";
 	
-	public AutomatonConfiguration(ColorManager colorManager, TextEditor pEditor, IPreferenceStore iPreferenceStore) {
+	public SpecificationConfiguration(ColorManager colorManager, TextEditor pEditor, IPreferenceStore iPreferenceStore) {
 		super(iPreferenceStore);
 		this.colorManager = colorManager;
 		fEditor = pEditor;
@@ -52,7 +52,7 @@ public class AutomatonConfiguration extends TextSourceViewerConfiguration {
 		ISourceViewer sourceViewer,
 		String contentType) {
 		if (doubleClickStrategy == null)
-			doubleClickStrategy = new AutomatonDoubleClickStrategy();
+			doubleClickStrategy = new SpecificationDoubleClickStrategy();
 		return doubleClickStrategy;
 	}
 	@SuppressWarnings("unchecked") // this part of the API is not generic

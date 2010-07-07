@@ -10,7 +10,7 @@ import org.eclipse.jface.text.rules.RuleBasedPartitionScanner;
 import org.eclipse.jface.text.rules.SingleLineRule;
 import org.eclipse.jface.text.rules.Token;
 
-public class AutomatonPartitionScanner extends RuleBasedPartitionScanner {
+public class SpecificationPartitionScanner extends RuleBasedPartitionScanner {
 	
 	private final static String[] keywords = {
 		"STATE",
@@ -31,19 +31,19 @@ public class AutomatonPartitionScanner extends RuleBasedPartitionScanner {
 		"PRINT"
 	};
 
-	public AutomatonPartitionScanner() {
+	public SpecificationPartitionScanner() {
 
 		List<IPredicateRule> rules = new ArrayList<IPredicateRule>();
-		rules.add(new SingleLineRule("\"", "\"", new Token(AutomatonConfiguration.AUTOMATON_STRING), '\\')); 
-		Token keywordToken = new Token(AutomatonConfiguration.AUTOMATON_KEYWORD);
+		rules.add(new SingleLineRule("\"", "\"", new Token(SpecificationConfiguration.AUTOMATON_STRING), '\\')); 
+		Token keywordToken = new Token(SpecificationConfiguration.AUTOMATON_KEYWORD);
 		for (int i = 0; i < keywords.length; i++) {
 			rules.add(new SingleLineRule(keywords[i], " ", keywordToken));
 		}
 		
-		rules.add(new MultiLineRule("/*", "*/", new Token(AutomatonConfiguration.SPECIFICATION_COMMENT)));
-		rules.add(new EndOfLineRule("//", new Token(AutomatonConfiguration.SPECIFICATION_COMMENT)));
+		rules.add(new MultiLineRule("/*", "*/", new Token(SpecificationConfiguration.SPECIFICATION_COMMENT)));
+		rules.add(new EndOfLineRule("//", new Token(SpecificationConfiguration.SPECIFICATION_COMMENT)));
 		
-		rules.add(new EndOfLineRule("#include ", new Token(AutomatonConfiguration.SPECIFICATION_INCLUDE)));
+		rules.add(new EndOfLineRule("#include ", new Token(SpecificationConfiguration.SPECIFICATION_INCLUDE)));
 
 		IPredicateRule[] result= new IPredicateRule[rules.size()];
 		rules.toArray(result);

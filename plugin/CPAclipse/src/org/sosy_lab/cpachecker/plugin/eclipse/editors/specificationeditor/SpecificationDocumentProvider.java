@@ -9,7 +9,7 @@ import org.eclipse.jface.text.rules.FastPartitioner;
 import org.eclipse.jface.text.rules.IPartitionTokenScanner;
 import org.eclipse.ui.editors.text.FileDocumentProvider;
 
-public class AutomatonDocumentProvider extends FileDocumentProvider {
+public class SpecificationDocumentProvider extends FileDocumentProvider {
 
 	@Override
 	protected IDocument createDocument(Object element) throws CoreException {
@@ -17,12 +17,12 @@ public class AutomatonDocumentProvider extends FileDocumentProvider {
 		if (document != null) {
 			IDocumentPartitioner partitioner =
 				new MyFastPartitioner(
-					new AutomatonPartitionScanner(),
+					new SpecificationPartitionScanner(),
 					new String[] {
-						AutomatonConfiguration.SPECIFICATION_COMMENT,
-						AutomatonConfiguration.SPECIFICATION_INCLUDE,
-						AutomatonConfiguration.AUTOMATON_KEYWORD,
-						AutomatonConfiguration.AUTOMATON_STRING
+						SpecificationConfiguration.SPECIFICATION_COMMENT,
+						SpecificationConfiguration.SPECIFICATION_INCLUDE,
+						SpecificationConfiguration.AUTOMATON_KEYWORD,
+						SpecificationConfiguration.AUTOMATON_STRING
 						
 						});
 			partitioner.connect(document);
