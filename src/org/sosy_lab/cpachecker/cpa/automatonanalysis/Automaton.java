@@ -83,6 +83,10 @@ public class Automaton {
    */
   void writeDotFile(PrintStream pOut) {
     pOut.println("digraph " + name + "{");
+    
+    pOut.println(AutomatonInternalState.ERROR.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.ERROR.getName() + "\"]");
+    pOut.println(AutomatonInternalState.BOTTOM.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.BOTTOM.getName() + "\"]");
+    
     for (AutomatonInternalState s : states) {
       if (initState.equals(s)) {
         pOut.println(s.getStateId() + " [shape=\"circle\" color=\"green\" label=\"" +  s.getName() + "\"]");
