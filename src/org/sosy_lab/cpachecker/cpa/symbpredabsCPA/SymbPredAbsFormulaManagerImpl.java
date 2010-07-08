@@ -653,6 +653,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
     if (spurious) {
+      int refinement = stats.numCallsCexAnalysis;
+
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
 
@@ -683,8 +685,6 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
         if (dumpInterpolationProblems) {
-          int refinement = stats.numCallsCexAnalysis;
-
           dumpFormulasToFile(Collections.singleton(itp), 
               new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".itp" + i));
         }
@@ -705,6 +705,11 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
               "atoms ", atoms,
               "predicates", preds);
 
+          if (dumpInterpolationProblems) {
+            dumpFormulasToFile(atoms,
+                new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".atoms" + i));
+          }
+          
         }
 
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
