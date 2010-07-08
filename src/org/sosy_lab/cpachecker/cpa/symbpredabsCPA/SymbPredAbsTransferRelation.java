@@ -195,9 +195,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
         element.getAbstractionLocation(), pf,
-        // set 'initAbstractionFormula', 'abstraction' and 'abstractionPathList' to last element's values, they don't change
+        // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
-        element.getAbstractionPathList(),
+        element.getAbstractionId(),
         // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
         element.getSizeSinceAbstraction() + 1));
   }
@@ -265,8 +265,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         edge.getSuccessor(), newPathFormula,
         // set 'initAbstractionFormula' to  pathFormula computed above
         // set 'abstraction' to newly computed abstraction
-        // set 'abstractionPathList' to old pathList (element will update itself)
-        pathFormula, newAbstraction, element.getAbstractionPathList()));
+        pathFormula, newAbstraction));
   }
 
   /**
@@ -435,9 +434,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
             edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap()),
             // set 'initAbstractionFormula' to old pathFormula
             // set 'abstraction' to true (we don't know better)
-            element.getPathFormula(), abstractFormulaManager.makeTrue(),
-            // set 'abstractionPathList' to old pathList (element will update itself)
-            element.getAbstractionPathList()));
+            element.getPathFormula(), abstractFormulaManager.makeTrue()));
       }
     } else {
       if (element != pElement) {

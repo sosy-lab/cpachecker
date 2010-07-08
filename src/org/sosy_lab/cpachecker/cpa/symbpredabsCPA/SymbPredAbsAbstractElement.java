@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
@@ -56,11 +55,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   private final PathFormula initAbstractionFormula;
   /** The abstraction which is updated only on abstraction locations */
   private AbstractFormula abstraction;
-  /** List of abstraction locations with the order of their computation
-   * up to that point. We use this list in {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision)} and
-   * for partial order operator*/
-  private final ImmutableList<CFANode> abstractionPathList;
 
+  /** The unique id for the abstraction */
+  private final int abstractionId;
+  
+  private static int nextAbstractionId = 0;
+  
   private final int sizeSinceAbstraction;
 
   /**
@@ -98,12 +98,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     abstraction = pAbstraction;
   }
 
-  public ImmutableList<CFANode> getAbstractionPathList() {
-    return abstractionPathList;
-  }
-
   public CFANode getAbstractionLocation() {
     return abstractionLocation;
+  }
+  
+  public int getAbstractionId() {
+    return abstractionId;
   }
 
   public SymbPredAbsAbstractElement() {
@@ -112,7 +112,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.pathFormula = null;
     this.initAbstractionFormula = null;
     this.abstraction = null;
-    this.abstractionPathList = null;
+    this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
   }
 
@@ -123,18 +123,17 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * @param pfParentsList
    * @param initFormula
    * @param a
-   * @param pl
    * @param sizeSinceAbstraction
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a, 
-      ImmutableList<CFANode> pl, int sizeSinceAbstraction){
+      PathFormula pf, PathFormula initFormula, AbstractFormula a, int abstractionId,
+      int sizeSinceAbstraction){
     this.isAbstractionNode = false;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-    this.abstractionPathList = pl;
+    this.abstractionId = abstractionId;
     this.sizeSinceAbstraction = sizeSinceAbstraction;
   }
 
@@ -144,24 +143,16 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * @param pf  The new path formula.
    * @param initFormula The path formula before the abstraction.
    * @param a The abstraction.
-   * @param oldAbstractionPathList The old abstraction path.
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a,
-      ImmutableList<CFANode> oldAbstractionPathList){
+      PathFormula pf, PathFormula initFormula, AbstractFormula a){
     // set 'isAbstractionLocation' to true
     this.isAbstractionNode = true;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-
-    // add the new abstraction location to the abstractionPath
-    ImmutableList.Builder<CFANode> newAbstractionPath = ImmutableList.builder();
-    newAbstractionPath.addAll(oldAbstractionPathList);
-    newAbstractionPath.add(abstLoc);
-    this.abstractionPathList = newAbstractionPath.build();
-
+    this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
   }
 
@@ -209,7 +200,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   @Override
   public String toString() {
     return "Abstraction location: " + isAbstractionNode
-        + " Abstraction path: " + abstractionPathList;
+        + " Abstraction id: " + abstractionId;
   }
 
   /*@Override

@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -64,8 +63,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicate
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -213,12 +210,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    ImmutableList<CFANode> oldAbstractionPath = ImmutableList.of();
     PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
     return new SymbPredAbsAbstractElement(node,
-        pf, pf, initAbstraction, oldAbstractionPath);
+        pf, pf, initAbstraction);
   }
 
   @Override
