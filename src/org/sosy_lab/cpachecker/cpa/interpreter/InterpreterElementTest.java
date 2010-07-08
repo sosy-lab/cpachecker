@@ -21,27 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
+
 import java.util.HashMap;
 
-public class ConcreteAnalysisElementTest {
+public class InterpreterElementTest {
 
   @Test
   public void testHashCode() {
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     lElement.assignConstant("x", 10);
     lElement.assignConstant("y", 55);
 
-    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
+    InterpreterElement lElement2 = new InterpreterElement(lElement);
 
     assertEquals(lElement.hashCode(), lElement2.hashCode());
 
-    assertFalse(ConcreteAnalysisTopElement.getInstance().hashCode() == ConcreteAnalysisBottomElement.getInstance().hashCode());
+    assertFalse(InterpreterTopElement.getInstance().hashCode() == InterpreterBottomElement.getInstance().hashCode());
 
     int lElement2HashCode = lElement2.hashCode();
 
@@ -53,7 +54,7 @@ public class ConcreteAnalysisElementTest {
 
   @Test
   public void testConcreteAnalysisElement() {
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     assertFalse(lElement.contains("x"));
 
@@ -61,7 +62,7 @@ public class ConcreteAnalysisElementTest {
 
     assertTrue(lElement.contains("x"));
 
-    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
+    InterpreterElement lElement2 = new InterpreterElement(lElement);
 
     assertTrue(lElement.equals(lElement2));
 
@@ -69,7 +70,7 @@ public class ConcreteAnalysisElementTest {
 
     lMap.put("x", Long.valueOf(10));
 
-    ConcreteAnalysisElement lElement3 = new ConcreteAnalysisElement(lMap);
+    InterpreterElement lElement3 = new InterpreterElement(lMap);
 
     assertTrue(lElement.equals(lElement3));
 
@@ -96,7 +97,7 @@ public class ConcreteAnalysisElementTest {
 
   @Test
   public void testAssignConstant() {
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     lElement.assignConstant("x", 10);
 
@@ -120,7 +121,7 @@ public class ConcreteAnalysisElementTest {
 
   @Test
   public void testContains() {
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     lElement.assignConstant("x", 10);
 
@@ -132,7 +133,7 @@ public class ConcreteAnalysisElementTest {
 
     assertFalse(lElement.contains("z"));
 
-    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
+    InterpreterElement lElement2 = new InterpreterElement(lElement);
 
     assertTrue(lElement2.contains("x"));
 
@@ -143,48 +144,48 @@ public class ConcreteAnalysisElementTest {
 
   @Test
   public void testClone() {
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     lElement.assignConstant("x", 10);
     lElement.assignConstant("y", 55);
 
-    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
+    InterpreterElement lElement2 = new InterpreterElement(lElement);
 
     assertTrue(lElement.equals(lElement2));
   }
 
   @Test
   public void testEqualsObject() {
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     lElement.assignConstant("z", -100);
     lElement.assignConstant("w", -800980);
 
-    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
+    InterpreterElement lElement2 = new InterpreterElement(lElement);
 
     assertTrue(lElement.equals(lElement2));
 
-    ConcreteAnalysisElement lElement3 = new ConcreteAnalysisElement();
+    InterpreterElement lElement3 = new InterpreterElement();
 
     assertFalse(lElement3.equals(lElement2));
 
-    assertFalse(lElement.equals(ConcreteAnalysisTopElement.getInstance()));
+    assertFalse(lElement.equals(InterpreterTopElement.getInstance()));
 
-    assertFalse(lElement.equals(ConcreteAnalysisBottomElement.getInstance()));
+    assertFalse(lElement.equals(InterpreterBottomElement.getInstance()));
 
     assertFalse(lElement.equals(null));
 
     assertTrue(lElement.equals(lElement));
 
-    assertFalse(ConcreteAnalysisTopElement.getInstance().equals(ConcreteAnalysisBottomElement.getInstance()));
+    assertFalse(InterpreterTopElement.getInstance().equals(InterpreterBottomElement.getInstance()));
 
-    assertFalse(ConcreteAnalysisBottomElement.getInstance().equals(ConcreteAnalysisTopElement.getInstance()));
+    assertFalse(InterpreterBottomElement.getInstance().equals(InterpreterTopElement.getInstance()));
 
     lElement2.assignConstant("z", 10);
 
     assertFalse(lElement.equals(lElement2));
 
-    ConcreteAnalysisElement lElement4 = new ConcreteAnalysisElement();
+    InterpreterElement lElement4 = new InterpreterElement();
 
     lElement4.assignConstant("u", 0);
 
@@ -195,9 +196,9 @@ public class ConcreteAnalysisElementTest {
 
   @Test
   public void testToString() {
-    assertFalse(ConcreteAnalysisTopElement.getInstance().toString().equals(ConcreteAnalysisBottomElement.getInstance().toString()));
+    assertFalse(InterpreterTopElement.getInstance().toString().equals(InterpreterBottomElement.getInstance().toString()));
 
-    ConcreteAnalysisElement lElement = new ConcreteAnalysisElement();
+    InterpreterElement lElement = new InterpreterElement();
 
     lElement.assignConstant("z", -100);
     lElement.assignConstant("w", -800980);
@@ -207,7 +208,7 @@ public class ConcreteAnalysisElementTest {
 
   @Test
   public void testIsError() {
-    assertFalse(ConcreteAnalysisBottomElement.getInstance().isError());
+    assertFalse(InterpreterBottomElement.getInstance().isError());
   }
 
 }

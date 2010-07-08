@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -59,15 +59,15 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-public class ConcreteAnalysisTransferRelation implements TransferRelation {
+public class InterpreterTransferRelation implements TransferRelation {
 
   private final LogManager logger;
   
-  private ConcreteAnalysisDomain mDomain;
+  private InterpreterDomain mDomain;
 
   private Set<String> globalVars;
 
-  public ConcreteAnalysisTransferRelation(ConcreteAnalysisDomain pDomain, LogManager logger)
+  public InterpreterTransferRelation(InterpreterDomain pDomain, LogManager logger)
   {
     this.logger = logger;
     this.mDomain = pDomain;
@@ -79,7 +79,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    ConcreteAnalysisDomainElement lSuccessor = getAbstractSuccessor((ConcreteAnalysisDomainElement)pElement, pCfaEdge, pPrecision);
+    InterpreterDomainElement lSuccessor = getAbstractSuccessor((InterpreterDomainElement)pElement, pCfaEdge, pPrecision);
 
     if (lSuccessor.equals(this.mDomain.getBottomElement())) {
       return Collections.emptySet();
@@ -89,8 +89,8 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  public ConcreteAnalysisDomainElement getAbstractSuccessor(
-      ConcreteAnalysisDomainElement pCurrentElement, CFAEdge pCfaEdge,
+  public InterpreterDomainElement getAbstractSuccessor(
+      InterpreterDomainElement pCurrentElement, CFAEdge pCfaEdge,
       Precision pPrecision) throws CPATransferException {
 
     assert(pCurrentElement != null);
@@ -108,9 +108,9 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       //throw new UnsupportedOperationException("Top element is not allowed to occur during analysis!");
     }
 
-    assert(pCurrentElement instanceof ConcreteAnalysisElement);
+    assert(pCurrentElement instanceof InterpreterElement);
 
-    ConcreteAnalysisElement lCurrentElement = (ConcreteAnalysisElement)pCurrentElement;
+    InterpreterElement lCurrentElement = (InterpreterElement)pCurrentElement;
 
 
     // check the type of the edge
@@ -139,7 +139,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
           return handleAssignmentToVariable(lCurrentElement, "___cpa_temp_result_var_", lExpression, lStatementEdge);
         }
         else {
-          return new ConcreteAnalysisElement(lCurrentElement);
+          return new InterpreterElement(lCurrentElement);
         }
       }
       else{
@@ -168,7 +168,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
 
     case BlankEdge:
     {
-      return new ConcreteAnalysisElement(lCurrentElement);
+      return new InterpreterElement(lCurrentElement);
     }
 
     case FunctionCallEdge:
@@ -218,7 +218,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
    * @param pFunctionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    */
-  private ConcreteAnalysisDomainElement handleFunctionReturn(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleFunctionReturn(InterpreterElement pCurrentElement,
       ReturnEdge pFunctionReturnEdge) {
 
     CallToReturnEdge lSummaryEdge =
@@ -231,9 +231,9 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
 
     // CAUTION: This is not possible because of nested access!!!
     // TODO: query for ConcreteAnalysisDomainElement?
-    ConcreteAnalysisElement lPreviousElement = lSummaryEdge.extractAbstractElement(ConcreteAnalysisElement.class);
+    InterpreterElement lPreviousElement = lSummaryEdge.extractAbstractElement(InterpreterElement.class);
 
-    ConcreteAnalysisElement newElement = new ConcreteAnalysisElement(lPreviousElement);
+    InterpreterElement newElement = new InterpreterElement(lPreviousElement);
 
     String callerFunctionName = pFunctionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
@@ -317,7 +317,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleFunctionCall(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleFunctionCall(InterpreterElement pCurrentElement,
       FunctionCallEdge callEdge) {
 
     FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
@@ -333,7 +333,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
 
     assert (paramNames.size() == arguments.length);
 
-    ConcreteAnalysisElement newElement = new ConcreteAnalysisElement();
+    InterpreterElement newElement = new InterpreterElement();
 
     for (String globalVar : globalVars) {
       if (pCurrentElement.contains(globalVar)) {
@@ -413,20 +413,20 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ConcreteAnalysisDomainElement handleAssumption(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleAssumption(InterpreterElement pCurrentElement,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue) {
 
     Boolean result = getBooleanExpressionValue(pCurrentElement, expression, cfaEdge, truthValue);
 
     if (result != null && result) {
-      return new ConcreteAnalysisElement(pCurrentElement);
+      return new InterpreterElement(pCurrentElement);
     }
 
     // result is false or don't know
     return mDomain.getBottomElement();
   }
 
-  private Boolean getBooleanExpressionValue(ConcreteAnalysisElement element,
+  private Boolean getBooleanExpressionValue(InterpreterElement element,
                               IASTExpression expression, CFAEdge cfaEdge, boolean truthValue) {
 
     if (expression instanceof IASTUnaryExpression) {
@@ -517,10 +517,10 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleDeclaration(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleDeclaration(InterpreterElement pCurrentElement,
       DeclarationEdge declarationEdge) {
 
-    ConcreteAnalysisElement lNewElement = new ConcreteAnalysisElement(pCurrentElement);
+    InterpreterElement lNewElement = new InterpreterElement(pCurrentElement);
 
     IASTDeclarator[] declarators = declarationEdge.getDeclarators();
     // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
@@ -559,15 +559,15 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
 
             IASTInitializerExpression lInitializerExpression = (IASTInitializerExpression)lInitializer;
 
-            ConcreteAnalysisDomainElement lTmpElement = handleAssignmentToVariable(lNewElement, varName, lInitializerExpression.getExpression(), declarationEdge);
+            InterpreterDomainElement lTmpElement = handleAssignmentToVariable(lNewElement, varName, lInitializerExpression.getExpression(), declarationEdge);
 
             if (lTmpElement.equals(mDomain.getBottomElement())) {
               return lTmpElement;
             }
             else {
-              assert(lTmpElement instanceof ConcreteAnalysisElement);
+              assert(lTmpElement instanceof InterpreterElement);
 
-              lNewElement = (ConcreteAnalysisElement)lTmpElement;
+              lNewElement = (InterpreterElement)lTmpElement;
             }
           }
         }
@@ -577,7 +577,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     return lNewElement;
   }
 
-  private ConcreteAnalysisDomainElement handleStatement(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleStatement(InterpreterElement element,
       IASTExpression expression, CFAEdge cfaEdge) {
 
     if (expression instanceof IASTBinaryExpression) {
@@ -620,7 +620,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleUnaryStatement(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleUnaryStatement(InterpreterElement element,
       IASTExpression expression, CFAEdge cfaEdge) {
 
     IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
@@ -647,7 +647,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       String functionName = cfaEdge.getPredecessor().getFunctionName();
       String varName = getvarName(operand.getRawSignature(), functionName);
 
-      ConcreteAnalysisElement newElement = new ConcreteAnalysisElement(element);
+      InterpreterElement newElement = new InterpreterElement(element);
 
       assert(newElement.contains(varName));
 
@@ -662,7 +662,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleBinaryStatement(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleBinaryStatement(InterpreterElement element,
       IASTExpression expression, CFAEdge cfaEdge) {
     IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
     switch (binaryExpression.getOperator ())
@@ -691,7 +691,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleOperationAndAssign(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleOperationAndAssign(InterpreterElement element,
                                       IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) {
 
     IASTExpression leftOp = binaryExpression.getOperand1();
@@ -742,7 +742,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
                                                   rightOp, newOperator, cfaEdge);
   }
 
-  private ConcreteAnalysisDomainElement handleAssignment(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleAssignment(InterpreterElement element,
                             IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) {
 
     IASTExpression op1 = binaryExpression.getOperand1();
@@ -798,7 +798,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleAssignmentToVariable(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleAssignmentToVariable(InterpreterElement element,
                           String lParam, IASTExpression rightExp, CFAEdge cfaEdge) {
     assert(rightExp != null);
 
@@ -847,20 +847,20 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleAssignmentOfCast(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleAssignmentOfCast(InterpreterElement element,
                               String lParam, IASTCastExpression castExp, CFAEdge cfaEdge) {
 
     IASTExpression castOperand = castExp.getOperand();
     return handleAssignmentToVariable(element, lParam, castOperand, cfaEdge);
   }
 
-  private ConcreteAnalysisDomainElement handleAssignmentOfUnaryExp(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleAssignmentOfUnaryExp(InterpreterElement pCurrentElement,
     String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
     String assignedVar = getvarName(lParam, functionName);
-    ConcreteAnalysisElement newElement = new ConcreteAnalysisElement(pCurrentElement);
+    InterpreterElement newElement = new InterpreterElement(pCurrentElement);
 
     IASTExpression unaryOperand = unaryExp.getOperand();
     int unaryOperator = unaryExp.getOperator();
@@ -911,14 +911,14 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ConcreteAnalysisDomainElement handleAssignmentOfBinaryExp(ConcreteAnalysisElement element,
+  private InterpreterDomainElement handleAssignmentOfBinaryExp(InterpreterElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
                        int binaryOperator, CFAEdge cfaEdge) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
     String assignedVar = getvarName(lParam, functionName);
-    ConcreteAnalysisElement newElement = new ConcreteAnalysisElement(element);
+    InterpreterElement newElement = new InterpreterElement(element);
 
     switch (binaryOperator) {
     case IASTBinaryExpression.op_divide:
@@ -994,7 +994,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long getExpressionValue(ConcreteAnalysisElement element, IASTExpression expression,
+  private Long getExpressionValue(InterpreterElement element, IASTExpression expression,
                                   String functionName, CFAEdge cfaEdge) {
 
     if (expression instanceof IASTLiteralExpression) {
@@ -1044,7 +1044,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ConcreteAnalysisDomainElement handleAssignmentOfVariable(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleAssignmentOfVariable(InterpreterElement pCurrentElement,
       String lParam, IASTExpression op2, String functionName) {
 
     String rParam = op2.getRawSignature();
@@ -1052,7 +1052,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     String leftVarName = getvarName(lParam, functionName);
     String rightVarName = getvarName(rParam, functionName);
 
-    ConcreteAnalysisElement newElement = new ConcreteAnalysisElement(pCurrentElement);
+    InterpreterElement newElement = new InterpreterElement(pCurrentElement);
 
     assert(newElement.contains(rightVarName));
 
@@ -1061,10 +1061,10 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ConcreteAnalysisDomainElement handleAssignmentOfLiteral(ConcreteAnalysisElement pCurrentElement,
+  private InterpreterDomainElement handleAssignmentOfLiteral(InterpreterElement pCurrentElement,
                         String lParam, IASTExpression op2, String functionName) {
 
-    ConcreteAnalysisElement newElement = new ConcreteAnalysisElement(pCurrentElement);
+    InterpreterElement newElement = new InterpreterElement(pCurrentElement);
 
     assert(op2 != null);
 

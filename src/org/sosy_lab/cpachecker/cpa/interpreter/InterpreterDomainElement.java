@@ -21,28 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public class ConcreteAnalysisDomain extends FlatLatticeDomain {
-  private static ConcreteAnalysisDomain mInstance = new ConcreteAnalysisDomain();
+public interface InterpreterDomainElement extends AbstractElement {
 
-  private ConcreteAnalysisDomain() {
-    super(ConcreteAnalysisTopElement.getInstance(), ConcreteAnalysisBottomElement.getInstance());
-  }
-
-  @Override
-  public ConcreteAnalysisTopElement getTopElement() {
-    return ConcreteAnalysisTopElement.getInstance();
-  }
-
-  @Override
-  public ConcreteAnalysisBottomElement getBottomElement() {
-    return ConcreteAnalysisBottomElement.getInstance();
-  }
-
-  public static ConcreteAnalysisDomain getInstance() {
-    return mInstance;
-  }
 }

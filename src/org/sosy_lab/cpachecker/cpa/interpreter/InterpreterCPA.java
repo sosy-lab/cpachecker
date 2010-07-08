@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -36,13 +36,13 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
-public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis {
+public class InterpreterCPA implements org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis {
 
   private static class ConcreteAnalysisCPAFactory extends AbstractCPAFactory {
 
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      return new ConcreteAnalysisCPA(getLogger());
+      return new InterpreterCPA(getLogger());
     }
   }
 
@@ -50,17 +50,17 @@ public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfa
     return new ConcreteAnalysisCPAFactory();
   }
 
-  private ConcreteAnalysisDomain mAbstractDomain;
+  private InterpreterDomain mAbstractDomain;
   private MergeOperator mMergeOperator;
   private StopOperator mStopOperator;
-  private ConcreteAnalysisTransferRelation mTransferRelation;
+  private InterpreterTransferRelation mTransferRelation;
   private PrecisionAdjustment mPrecisionAdjustment;
 
-  public ConcreteAnalysisCPA(LogManager logger) {
+  public InterpreterCPA(LogManager logger) {
 
-    this.mAbstractDomain = ConcreteAnalysisDomain.getInstance();
+    this.mAbstractDomain = InterpreterDomain.getInstance();
 
-    this.mTransferRelation = new ConcreteAnalysisTransferRelation(this.mAbstractDomain, logger);
+    this.mTransferRelation = new InterpreterTransferRelation(this.mAbstractDomain, logger);
 
     this.mMergeOperator = MergeSepOperator.getInstance();
     this.mStopOperator = new StopSepOperator(this.mAbstractDomain.getPartialOrder());
@@ -68,7 +68,7 @@ public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfa
   }
 
   @Override
-  public ConcreteAnalysisDomain getAbstractDomain()
+  public InterpreterDomain getAbstractDomain()
   {
     return mAbstractDomain;
   }
@@ -86,15 +86,15 @@ public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfa
   }
 
   @Override
-  public ConcreteAnalysisTransferRelation getTransferRelation()
+  public InterpreterTransferRelation getTransferRelation()
   {
     return mTransferRelation;
   }
 
   @Override
-  public ConcreteAnalysisElement getInitialElement(CFAFunctionDefinitionNode node)
+  public InterpreterElement getInitialElement(CFAFunctionDefinitionNode node)
   {
-    return new ConcreteAnalysisElement();
+    return new InterpreterElement();
   }
 
   @Override

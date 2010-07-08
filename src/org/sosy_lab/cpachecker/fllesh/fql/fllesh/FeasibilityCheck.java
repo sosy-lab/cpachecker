@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.core.CallElement;
 import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisTopElement;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTopElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisCPA;
@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.reachability.Waypoint;
 public class FeasibilityCheck {
 
   private AlwaysTopCPA mMayCPA;
-  private ConcreteAnalysisCPA mMustCPA;
+  private InterpreterCPA mMustCPA;
   private MustMayAnalysisCPA mMustMayAnalysisCPA;
   private LocationCPA mLocationCPA;
   private ConfigurableProgramAnalysis mCompositeCPA;
@@ -70,7 +70,7 @@ public class FeasibilityCheck {
   public FeasibilityCheck(LogManager pLogManager) throws InvalidConfigurationException, CPAException {
 
     mMayCPA = new AlwaysTopCPA();
-    mMustCPA = new ConcreteAnalysisCPA(pLogManager);
+    mMustCPA = new InterpreterCPA(pLogManager);
 
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
 
@@ -214,7 +214,7 @@ public class FeasibilityCheck {
     CFANode lInitialCFANode = pInitialNode.getCFANode();
 
     AlwaysTopTopElement lAlwaysTopTopElement = AlwaysTopTopElement.getInstance();
-    ConcreteAnalysisTopElement lConcreteAnalysisTopElement = ConcreteAnalysisTopElement.getInstance();
+    InterpreterTopElement lConcreteAnalysisTopElement = InterpreterTopElement.getInstance();
     MustMayAnalysisElement lInitialMustMayAnalysisElement = new MustMayAnalysisElement(lConcreteAnalysisTopElement, lAlwaysTopTopElement);
 
     //LocationElement lInitialLocationElement = new LocationElement(lInitialCFANode);

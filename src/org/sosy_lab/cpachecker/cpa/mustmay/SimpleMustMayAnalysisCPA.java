@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
-import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
@@ -52,7 +52,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   public SimpleMustMayAnalysisCPA(LogManager pLogManager) {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(pLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(pLogManager);
 
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
   }

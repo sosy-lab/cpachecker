@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisTopElement;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTopElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
@@ -108,7 +108,7 @@ public class StandardQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -179,7 +179,7 @@ public class StandardQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -253,7 +253,7 @@ public class StandardQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -336,7 +336,7 @@ public class StandardQueryTest {
     lMayARTFactory.setConfiguration(lConfiguration);
     lMayARTFactory.setLogger(lLogManager);*/
 
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -349,7 +349,7 @@ public class StandardQueryTest {
 
     ConfigurableProgramAnalysis lCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
 
-    ConcreteAnalysisTopElement lConcreteAnalysisTopElement = ConcreteAnalysisTopElement.getInstance();
+    InterpreterTopElement lConcreteAnalysisTopElement = InterpreterTopElement.getInstance();
 
     // Caution: take care of abstraction location
     AbstractElement lMayTopElement = lMayCPA.getInitialElement(lMainFunction);

@@ -21,27 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
+public class InterpreterElement implements InterpreterDomainElement {
 
   // map that keeps the name of variables and their constant values
   private Map<String, Long> mConstantsMap;
 
-  public ConcreteAnalysisElement() {
+  public InterpreterElement() {
     mConstantsMap = new HashMap<String, Long>();
   }
 
-  public ConcreteAnalysisElement(Map<String, Long> pConstantsMap) {
+  public InterpreterElement(Map<String, Long> pConstantsMap) {
     assert(pConstantsMap != null);
 
     this.mConstantsMap = pConstantsMap;
   }
 
-  public ConcreteAnalysisElement(ConcreteAnalysisElement pElement) {
+  public InterpreterElement(InterpreterElement pElement) {
     assert(pElement != null);
     assert(pElement.mConstantsMap != null);
 
@@ -81,7 +81,7 @@ public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
     }
 
     if (pOther.getClass() == getClass()) {
-      ConcreteAnalysisElement lOtherElement = (ConcreteAnalysisElement) pOther;
+      InterpreterElement lOtherElement = (InterpreterElement) pOther;
 
       return lOtherElement.mConstantsMap.equals(mConstantsMap);
     }

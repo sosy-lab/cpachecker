@@ -21,11 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import org.junit.Test;
 
-public class ConcreteAnalysisCPATest {
+public class InterpreterCPATest {
 
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/concreteAnalysis.properties";

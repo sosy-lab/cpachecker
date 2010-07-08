@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -102,7 +102,7 @@ public class SingletonQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 

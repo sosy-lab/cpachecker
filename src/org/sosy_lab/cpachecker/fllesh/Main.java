@@ -218,9 +218,22 @@ public class Main {
 
       CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
       
+      // TODO remove in future ... here for debugging purposes
       boolean lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
       
-      if (lIsFeasible) {
+      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
+        if (lIsFeasible) {
+          throw new RuntimeException("Inconsitent result!");
+        }
+        
+        lResultFactory.addInfeasibleTestCase(lGoal);
+        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+      }
+      else {
+        if (!lIsFeasible) {
+          throw new RuntimeException("Inconsitent result!");
+        }
+        
         Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
         
         System.out.println(lCounterexample);
@@ -228,12 +241,6 @@ public class Main {
         lResultFactory.addFeasibleTestCase(lGoal, lCounterexample);
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
       }
-      else {
-        lResultFactory.addInfeasibleTestCase(lGoal);
-        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
-      }
-      
-      //lCompoundCPAFactory.pop();
     }
     
     mResult = lResultFactory.create();
@@ -280,38 +287,6 @@ public class Main {
 
     if (lErrorReached) {
       pStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, pReachedElements);
-      
-      /** determine test input */
-      // TODO get data direct from SymbPredAbsCPA
-      /*
-      List<String> lCommand = new LinkedList<String>();
-      lCommand.add("/home/holzera/mathsat-4.2.8-linux-x86/bin/mathsat");
-      lCommand.add("-solve");
-      lCommand.add("-print_model");
-      lCommand.add("-tsolver=la");
-      lCommand.add("test/output/cex.msat");
-      
-      ProcessBuilder lMathsatBuilder = new ProcessBuilder(lCommand);
-      Process lMathsat = lMathsatBuilder.start();
-      
-      AutomaticStreamReader lInputReader = new AutomaticStreamReader(lMathsat.getInputStream());
-      Thread lInputReaderThread = new Thread(lInputReader);
-      lInputReaderThread.start();
-      
-      AutomaticStreamReader lErrorReader = new AutomaticStreamReader(lMathsat.getErrorStream());
-      Thread lErrorReaderThread = new Thread(lErrorReader);
-      lErrorReaderThread.start();
-
-      try {
-        lMathsat.waitFor();
-        lInputReaderThread.join();
-        lErrorReaderThread.join();
-
-        System.out.println(lInputReader.getInput());
-        System.out.println(lErrorReader.getInput());
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }*/
       
       return true;
     }

@@ -24,21 +24,21 @@
 /**
  *
  */
-package org.sosy_lab.cpachecker.cpa.concrete;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 /**
  * @author holzera
  *
  * Top element of the concrete analysis lattice.
  */
-public class ConcreteAnalysisTopElement implements ConcreteAnalysisDomainElement {
-  private final static ConcreteAnalysisTopElement mInstance = new ConcreteAnalysisTopElement();
+public class InterpreterTopElement implements InterpreterDomainElement {
+  private final static InterpreterTopElement mInstance = new InterpreterTopElement();
 
-  public static ConcreteAnalysisTopElement getInstance() {
+  public static InterpreterTopElement getInstance() {
     return mInstance;
   }
 
-  private ConcreteAnalysisTopElement() {
+  private InterpreterTopElement() {
 
   }
 
