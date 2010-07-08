@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +44,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,6 +72,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager.AllSatCallback;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+
+import com.google.common.base.Joiner;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -706,8 +710,13 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
               "predicates", preds);
 
           if (dumpInterpolationProblems) {
-            dumpFormulasToFile(atoms,
-                new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".atoms" + i));
+            try {
+              Files.writeFile(new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".atoms" + i),
+                  Joiner.on('\n').join(atoms) + '\n', false);
+            } catch (IOException ex) {
+              logger.log(Level.WARNING, "Could not dump interpolant atoms to file! ("
+                  + ex.getMessage() + ")");
+            }
           }
           
         }
