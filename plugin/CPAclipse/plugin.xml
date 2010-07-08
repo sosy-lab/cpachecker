@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-	<extension-point id="listeners" name="Test Listeners" />
 	<!--
 	<extension point="org.sosy_lab.cpachecker.plugin.eclipse.listeners">
 	<listener
@@ -10,11 +9,11 @@
 	</extension> -->
 	<extension point="org.eclipse.ui.views">
 		<category
-			name="CPAchecker"
+			name="CPAclipse"
 			id="org.sosy_lab.cpachecker.plugin.eclipse.catMain">
 		</category>
 		<view
-			name="CPAchecker Tasks View"
+			name="CPAclipse Tasks View"
 			icon="icons/MainLogo.gif"
 			category="org.sosy_lab.cpachecker.plugin.eclipse.catMain"
 			class="org.sosy_lab.cpachecker.plugin.eclipse.views.TasksView"
@@ -23,17 +22,17 @@
 	</extension>
 	<extension point="org.eclipse.ui.newWizards">
       <category
-            name="CPAchecker"
+            name="CPAclipse"
             id="org.sosy_lab.cpachecker.plugin.eclipse.wizards">
       </category>
       <wizard
       		category="org.sosy_lab.cpachecker.plugin.eclipse.wizards"
-            name="new CPAchecker Task"
-            icon="$nl$/icons/sample.gif"
+            name="new CPAclipse Task"
+            icon="$nl$/icons/MainLogo.gif"
             class="org.sosy_lab.cpachecker.plugin.eclipse.wizards.NewTaskCreationWizard"
             id="org.sosy_lab.cpachecker.plugin.eclipse.wizards.NewTaskCreationWizard">
          <description>
-            new CPAchecker Task
+            new CPAclipse Task
          </description>
       </wizard>
    </extension>
@@ -79,7 +78,8 @@
 			</visibility>
          <menu
                id="org.sosy_lab.cpachecker.plugin.eclipse.generalMenu"
-               label="CPAchecker"
+               label="CPAclipse"
+               icon="icons/MainLogo.gif"
                path="additions">
             <separator name="group2">
             </separator>
@@ -96,7 +96,7 @@
    <extension
          point="org.eclipse.ui.preferencePages">
       <page
-            name="CPAcheckerPlugin"
+            name="CPAclipse"
             class="org.sosy_lab.cpachecker.plugin.eclipse.preferences.CPAPreferencePage"
             id="org.sosy_lab.cpachecker.plugin.eclipse.preferences.CPAPreferencePage">
       </page>

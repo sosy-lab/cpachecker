@@ -216,7 +216,7 @@ public class TaskTreeViewer extends TreeViewer {
 	static class TopNode implements Node {
 		private Node[] children = new Node[0];
 		public NodeType getType() { return NodeType.TOP; }
-		public String getName() { return "CPAcheckerTasks"; }
+		public String getName() { return "CPAclipseTasks"; }
 		public Node getParent() {return null; }
 		void reconstruct(List<Task> tasks) {
 			children = new Node[tasks.size()];

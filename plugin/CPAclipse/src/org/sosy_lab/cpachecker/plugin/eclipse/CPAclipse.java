@@ -36,7 +36,7 @@ public class CPAclipse extends AbstractUIPlugin {
 	
 	private static final String listenerId = "org.sosy_lab.cpachecker.plugin.eclipse.listeners";
 
-	private List<ITestListener> listeners;
+	private List<ITaskListener> listeners;
 	private List<Task> tasks = new ArrayList<Task>();
 	private static CPAclipse instance = null;
 	
@@ -44,7 +44,7 @@ public class CPAclipse extends AbstractUIPlugin {
 		super();
 		// instance will be overwritten each time, but this seems to be intended by eclipse people
 		instance = this;
-		this.addTestListener(new ITestListener() {
+		this.addTestListener(new ITaskListener() {
 			@Override
 			public void tasksStarted(int taskCount) {
 				System.out.println(taskCount + " Tasks started");
@@ -119,21 +119,21 @@ public class CPAclipse extends AbstractUIPlugin {
 		TaskRunner.run(tasks);
 	}
 
-	public List<ITestListener> getListeners() {
+	public List<ITaskListener> getListeners() {
 		if (listeners == null) {
 			// compute the listeners. This is lazy loading (not all plugins have to be loaded at eclipse startup)
 			IExtensionRegistry registry = Platform.getExtensionRegistry();
 			IExtensionPoint extensionPoint = registry.getExtensionPoint(listenerId);
 			IExtension[] extensions = extensionPoint.getExtensions();
-			listeners = new ArrayList<ITestListener>();
+			listeners = new ArrayList<ITaskListener>();
 			for (int i = 0; i< extensions.length; i++) {
 				IConfigurationElement[] elements =
 					extensions[i].getConfigurationElements();
 				for (int j = 0; j < elements.length; j++) {
 					try {
 						Object listener = elements[j].createExecutableExtension("class");
-						if (listener instanceof ITestListener) {
-							listeners.add((ITestListener) listener);
+						if (listener instanceof ITaskListener) {
+							listeners.add((ITaskListener) listener);
 						}
 					} catch (CoreException e) {
 						logError("Listener caused an exception: ", e);
@@ -144,16 +144,16 @@ public class CPAclipse extends AbstractUIPlugin {
 		return listeners;
 	}
 	
-	public void addTestListener(ITestListener listener) {
+	public void addTestListener(ITaskListener listener) {
 		getListeners().add(listener);
 	}
-	public void removeTestListener(ITestListener listener) {
+	public void removeTestListener(ITaskListener listener) {
 		getListeners().remove(listener);
 	}
 	
 	public void fireTasksStarted(final int count) {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
@@ -168,8 +168,8 @@ public class CPAclipse extends AbstractUIPlugin {
 		}
 	}
 	public void fireTasksFinished() {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
@@ -184,8 +184,8 @@ public class CPAclipse extends AbstractUIPlugin {
 		}
 	}
 	public void fireTaskStarted(final Task taskID) {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
@@ -200,8 +200,8 @@ public class CPAclipse extends AbstractUIPlugin {
 		}
 	}
 	public void fireTaskFinished(final Task taskID, final CPAcheckerResult results) {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
@@ -216,8 +216,8 @@ public class CPAclipse extends AbstractUIPlugin {
 		}
 	}
 	public void fireTasksChanged() {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
@@ -232,8 +232,8 @@ public class CPAclipse extends AbstractUIPlugin {
 		}
 	}
 	public void fireTasksChanged(final List<Task> changed) {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
@@ -265,8 +265,8 @@ public class CPAclipse extends AbstractUIPlugin {
 	}
 
 	public void firePreRunError(final Task t, final String errorMessage) {
-		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
-			final ITestListener current = iter.next();
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {

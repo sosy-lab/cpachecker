@@ -95,19 +95,13 @@ public class NewTaskAction implements IObjectActionDelegate {
 						selectedSpecification = file;
 					} else if(file.getFileExtension().equals("properties")) {
 						selectedConfig = file;
-					} else {
-						MessageDialog.openError(shell, "Unable to perform", "Configuration file must have a \".properties\"-Ending. Specification Files must have \".spc\"-Ending");
-						return;
 					}
-				} else {
-					MessageDialog.openError(shell, "Unable to perform", "Configuration file must have a \".properties\"-Ending. Specification Files must have \".spc\"-Ending");
-					return;
 				}
 			}
 		}
 		if (selectedConfig != null && ! selectedConfig.getFileExtension().equals("properties")) {
 			action.setEnabled(false);
-		} else if (selectedSpecification != null && ! selectedConfig.getFileExtension().equals("spc")) {
+		} else if (selectedSpecification != null && ! selectedSpecification.getFileExtension().equals("spc")) {
 			action.setEnabled(false);
 		} else if (selectedConfig != null || selectedSource != null || selectedSpecification != null) {
 			action.setEnabled(true);

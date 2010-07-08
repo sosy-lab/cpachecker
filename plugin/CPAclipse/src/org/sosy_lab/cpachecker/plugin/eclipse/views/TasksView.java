@@ -33,7 +33,7 @@ import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
-import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
+import org.sosy_lab.cpachecker.plugin.eclipse.ITaskListener;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DeleteTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RenameTasksAction;
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
 public class TasksView extends ViewPart implements ISetSelectionTarget, IShellProvider {
-	private ITestListener listener = null;
+	private ITaskListener listener = null;
 	private Label progress;
 	
 	private TaskTreeViewer myTreeViewer;
@@ -107,7 +107,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 		gridData.grabExcessVerticalSpace = true;
 		myTreeViewer.getTree().setLayoutData(gridData);
 		this.getSite().setSelectionProvider(myTreeViewer);
-		listener = new ITestListener() {
+		listener = new ITaskListener() {
 			@Override
 			public void tasksChanged() {
 				TasksView.this.refresh();

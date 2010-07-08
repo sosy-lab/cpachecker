@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
-public interface ITestListener {
+public interface ITaskListener {
 	void tasksStarted(int taskCount);
 	void tasksChanged(List<Task> changed);
 	void tasksFinished();
@@ -18,7 +18,7 @@ public interface ITestListener {
 	void taskHasPreRunError(Task t, String errorMessage);
 	void tasksChanged();
 	
-	static class DefaultImplementation implements ITestListener {
+	static class DefaultImplementation implements ITaskListener {
 		@Override
 		public void taskFinished(Task id, CPAcheckerResult resultsOrNull) {}
 		@Override
