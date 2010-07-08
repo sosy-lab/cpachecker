@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,6 +33,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +60,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
+  
+  @Option(name="errorPath.export")
+  private boolean exportErrorPath = true;
+  
+  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
+  private File exportFile = new File("ErrorPathAssignment.txt");
   
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
@@ -130,6 +139,15 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
+      
+      if (exportErrorPath) {
+        try {
+          Files.writeFile(exportFile, info.getCounterexample(), false);
+        } catch (IOException e) {
+          logger.log(Level.WARNING, "Could not write satisfying assignment for error path to file! ("
+              + e.getMessage() + ")");
+        }
+      }
       return false;
     }
   }

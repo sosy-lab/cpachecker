@@ -337,6 +337,10 @@ cpas.symbpredabs.refinement.finalPredMapFile = predmap.txt
 cpas.symbpredabs.predmap.export = true
 cpas.symbpredabs.predmap.file = predmap.txt
 
+# export one satisfying assignment for the error path
+cpas.symbpredabs.errorPath.export = true
+cpas.symbpredabs.errorPath.file = ErrorPathAssignment.txt
+
 # dump the abstraction formulas in both .msat and .smv formats if they took to long
 cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
 
