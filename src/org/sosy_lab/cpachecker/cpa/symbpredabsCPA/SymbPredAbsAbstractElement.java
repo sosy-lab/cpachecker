@@ -69,43 +69,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    */
   private SymbPredAbsAbstractElement mergedInto = null;
   
-  public int getSizeSinceAbstraction() {
-    return sizeSinceAbstraction;
-  }
-
-  SymbPredAbsAbstractElement getMergedInto() {
-    return mergedInto;
-  }
-  
-  void setMergedInto(SymbPredAbsAbstractElement pMergedInto) {
-    Preconditions.checkNotNull(pMergedInto);
-    mergedInto = pMergedInto;
-  }
-  
-  public PathFormula getPathFormula() {
-    return pathFormula;
-  }
-
-  public boolean isAbstractionNode(){
-    return isAbstractionNode;
-  }
-
-  public AbstractFormula getAbstraction() {
-    return abstraction;
-  }
-
-  public void setAbstraction(AbstractFormula pAbstraction) {
-    abstraction = pAbstraction;
-  }
-
-  public CFANode getAbstractionLocation() {
-    return abstractionLocation;
-  }
-  
-  public int getAbstractionId() {
-    return abstractionId;
-  }
-
   public SymbPredAbsAbstractElement() {
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
@@ -114,27 +77,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.abstraction = null;
     this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
-  }
-
-  /**
-   * Constructor for non-abstraction location.
-   * @param abstLoc
-   * @param pf
-   * @param pfParentsList
-   * @param initFormula
-   * @param a
-   * @param sizeSinceAbstraction
-   */
-  public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a, int abstractionId,
-      int sizeSinceAbstraction){
-    this.isAbstractionNode = false;
-    this.abstractionLocation = abstLoc;
-    this.pathFormula = pf;
-    this.initAbstractionFormula = initFormula;
-    this.abstraction = a;
-    this.abstractionId = abstractionId;
-    this.sizeSinceAbstraction = sizeSinceAbstraction;
   }
 
   /**
@@ -155,67 +97,77 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
   }
-
-  /*@Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-
-    } else if (o == null || !(o instanceof SymbPredAbsAbstractElement)) {
-      return false;
-
-    } else{
-      SymbPredAbsAbstractElement other = (SymbPredAbsAbstractElement)o;
-
-      if ((this.isAbstractionNode != other.isAbstractionNode)
-          || !this.getAbstractionPathList().equals(other.getAbstractionPathList())) {
-        return false;
-      }
-
-      if (isAbstractionNode()) {
-        // if this is an abstraction location
-
-        // if the abstraction formulas are same, we return true
-        // TODO note: if this is called before an abstraction is computed
-        // it might be buggy because initAbstractionFormula is used to
-        // compute abstraction and we don't check if they are equal
-        // ** initAbstractionFormula cannot be different though, we have the same
-        // AbstractionPathList
-        return this.getAbstraction().equals(other.getAbstraction());
-
-      } else{
-        // if this is not an abstraction location
-
-        // we check if this element and the other element has the same
-        // PathFormulas. We can do this by comparing pfParents because
-        // since two elements have the same abstraction path list PathFormulas
-        // of two elements are same if they are constructed by same edges
-
-        return this.getAbstraction().equals(other.getAbstraction())
-            && this.getPfParents().equals(other.getPfParents());
-      }
-    }
-  }*/
-
-  @Override
-  public String toString() {
-    return "Abstraction location: " + isAbstractionNode
-        + " Abstraction id: " + abstractionId;
+  
+  /**
+   * Constructor for non-abstraction location.
+   * @param abstLoc
+   * @param pf
+   * @param pfParentsList
+   * @param initFormula
+   * @param a
+   * @param sizeSinceAbstraction
+   */
+  public SymbPredAbsAbstractElement(CFANode abstLoc,
+      PathFormula pf, PathFormula initFormula, AbstractFormula a, int abstractionId,
+      int sizeSinceAbstraction){
+    this.isAbstractionNode = false;
+    this.abstractionLocation = abstLoc;
+    this.pathFormula = pf;
+    this.initAbstractionFormula = initFormula;
+    this.abstraction = a;
+    this.abstractionId = abstractionId;
+    this.sizeSinceAbstraction = sizeSinceAbstraction;
+  }
+  
+  public AbstractFormula getAbstraction() {
+    return abstraction;
   }
 
-  /*@Override
-  public int hashCode() {
-    return abstractionPathList.hashCode()
-      + 17 * abstraction.hashCode()
-      + 23 * pathFormula.hashCode();
-  }*/
+  public int getAbstractionId() {
+    return abstractionId;
+  }
+
+  public CFANode getAbstractionLocation() {
+    return abstractionLocation;
+  }
 
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
   }
 
+  SymbPredAbsAbstractElement getMergedInto() {
+    return mergedInto;
+  }
+  
+  public PathFormula getPathFormula() {
+    return pathFormula;
+  }
+
+  public int getSizeSinceAbstraction() {
+    return sizeSinceAbstraction;
+  }
+
+  public boolean isAbstractionNode(){
+    return isAbstractionNode;
+  }
+
   @Override
   public boolean isError() {
     return false;
+  }
+
+  public void setAbstraction(AbstractFormula pAbstraction) {
+    abstraction = pAbstraction;
+  }
+
+  void setMergedInto(SymbPredAbsAbstractElement pMergedInto) {
+    Preconditions.checkNotNull(pMergedInto);
+    mergedInto = pMergedInto;
+  }
+
+  @Override
+  public String toString() {
+    return "Abstraction location: " + isAbstractionNode
+        + " Abstraction id: " + abstractionId;
   }
 }
