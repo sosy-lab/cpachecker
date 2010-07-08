@@ -9,6 +9,7 @@ public class MathsatModel implements Model {
   public enum MathsatType {
     Boolean,
     Uninterpreted,
+    Integer,
     Real,
     Bitvector;
     
@@ -19,6 +20,8 @@ public class MathsatModel implements Model {
         return Boolean;
       case mathsat.api.MSAT_U:
         return Uninterpreted;
+      case mathsat.api.MSAT_INT:
+        return Integer;
       case mathsat.api.MSAT_REAL:
         return Real;
       case mathsat.api.MSAT_BV:
@@ -31,6 +34,9 @@ public class MathsatModel implements Model {
   }
   
   public interface MathsatAssignable {
+   
+    public MathsatType getType();
+    public String getName();
     
   }
   
@@ -44,10 +50,12 @@ public class MathsatModel implements Model {
       mType = pType;
     }
     
+    @Override
     public String getName() {
       return mName;
     }
     
+    @Override
     public MathsatType getType() {
       return mType;
     }
@@ -99,27 +107,29 @@ public class MathsatModel implements Model {
     
     private String mName;
     private MathsatType mReturnType;
-    private long[] mArguments;
+    private MathsatValue[] mArguments;
     
     private int mHashCode;
     
-    public MathsatFunction(String pName, MathsatType pReturnType, long[] pArguments) {
+    public MathsatFunction(String pName, MathsatType pReturnType, MathsatValue[] pArguments) {
       mName = pName;
       mReturnType = pReturnType;
       mArguments = pArguments;
       
       mHashCode = 32453 + mName.hashCode() + mReturnType.hashCode();
       
-      for (long lValue : mArguments) {
-        mHashCode += lValue;
+      for (MathsatValue lValue : mArguments) {
+        mHashCode += lValue.hashCode();
       }
     }
     
+    @Override
     public String getName() {
       return mName;
     }
     
-    public MathsatType getReturnType() {
+    @Override
+    public MathsatType getType() {
       return mReturnType;
     }
     
@@ -127,7 +137,7 @@ public class MathsatModel implements Model {
       return mArguments.length;
     }
     
-    public long getArgument(int lArgumentIndex) {
+    public MathsatValue getArgument(int lArgumentIndex) {
       return mArguments[lArgumentIndex];
     }
     
@@ -137,7 +147,7 @@ public class MathsatModel implements Model {
       
       boolean lIsFirst = true;
       
-      for (long lValue : mArguments) {
+      for (MathsatValue lValue : mArguments) {
         if (lIsFirst) {
           lIsFirst = false;
         }
@@ -198,12 +208,33 @@ public class MathsatModel implements Model {
       int lArity = mathsat.api.msat_decl_get_arity(lDeclarationId);
       
       // TODO we assume only constants (reals) as parameters for now
-      long[] lArguments = new long[lArity];
+      MathsatValue[] lArguments = new MathsatValue[lArity];
       
       for (int lArgumentIndex = 0; lArgumentIndex < lArity; lArgumentIndex++) {
         long lArgument = mathsat.api.msat_term_get_arg(pFunctionId, lArgumentIndex);
         
-        lArguments[lArgumentIndex] = MathsatNumber.toNumber(lArgument);
+        String lTermRepresentation = mathsat.api.msat_term_repr(lArgument);
+        
+        MathsatValue lValue;
+        
+        try {
+          lValue = new MathsatRealValue(Double.valueOf(lTermRepresentation));
+        }
+        catch (NumberFormatException e) {
+          // lets try special case for mathsat
+          String[] lNumbers = lTermRepresentation.split("/");
+          
+          if (lNumbers.length != 2) {
+            throw new RuntimeException("I do not understand this format!");
+          }
+          
+          double lNumerator = Double.valueOf(lNumbers[0]);
+          double lDenominator = Double.valueOf(lNumbers[1]);
+          
+          lValue = new MathsatRealValue(lNumerator/lDenominator); 
+        }
+        
+        lArguments[lArgumentIndex] = lValue;
       }
       
       return new MathsatFunction(lName, lType, lArguments);
@@ -211,14 +242,127 @@ public class MathsatModel implements Model {
     
   }
   
-  public static class MathsatNumber {
+  public interface MathsatValue {
     
-    public static long toNumber(long pTermId) {
-      if (mathsat.api.msat_term_is_number(pTermId) == 0) {
-        throw new IllegalArgumentException("Mathsat term is not a number!");
+  }
+  
+  public static class MathsatBooleanValue implements MathsatValue {
+    
+    private boolean mValue;
+    
+    public MathsatBooleanValue(boolean pValue) {
+      mValue = pValue;
+    }
+    
+    public boolean isTrue() {
+      return mValue;
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
       }
       
-      return Long.valueOf(mathsat.api.msat_term_repr(pTermId));
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (!getClass().equals(pOther.getClass())) {
+        return false;
+      }
+      
+      MathsatBooleanValue lValue = (MathsatBooleanValue)pOther;
+      
+      return (lValue.mValue == mValue);
+    }
+    
+    @Override
+    public int hashCode() {
+      return 23421 + (mValue?0:1);
+    }
+    
+    @Override
+    public String toString() {
+      return "" + mValue;
+    }
+    
+  }
+  
+  public static class MathsatRealValue implements MathsatValue {
+    
+    private double mValue;
+    
+    public MathsatRealValue(double pValue) {
+      mValue = pValue;
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (!getClass().equals(pOther.getClass())) {
+        return false;
+      }
+      
+      MathsatRealValue lValue = (MathsatRealValue)pOther;
+      
+      return (lValue.mValue == mValue);
+    }
+    
+    @Override
+    public int hashCode() {
+      return 234820 + (int)mValue;
+    }
+    
+    @Override
+    public String toString() {
+      return "" + mValue;
+    }
+    
+  }
+  
+public static class MathsatIntegerValue implements MathsatValue {
+    
+    private long mValue;
+    
+    public MathsatIntegerValue(long pValue) {
+      mValue = pValue;
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (!getClass().equals(pOther.getClass())) {
+        return false;
+      }
+      
+      MathsatIntegerValue lValue = (MathsatIntegerValue)pOther;
+      
+      return (lValue.mValue == mValue);
+    }
+    
+    @Override
+    public int hashCode() {
+      return 234345 + (int)mValue;
+    }
+    
+    @Override
+    public String toString() {
+      return "" + mValue;
     }
     
   }
@@ -238,10 +382,10 @@ public class MathsatModel implements Model {
     }
   }
   
-  private HashMap<MathsatAssignable, Long> mModel;
+  private HashMap<MathsatAssignable, MathsatValue> mModel;
   
   public MathsatModel(long lMathsatEnvironmentID) {
-    mModel = new HashMap<MathsatAssignable, Long>();
+    mModel = new HashMap<MathsatAssignable, MathsatValue>();
     
     long lModelIterator = mathsat.api.msat_create_model_iterator(lMathsatEnvironmentID);
       
@@ -255,7 +399,42 @@ public class MathsatModel implements Model {
       
       // TODO maybe we have to convert to SMTLIB format and then read in values in a controlled way, e.g., size of bitvector
       // TODO we are assuming numbers as values
-      long lValue = MathsatNumber.toNumber(lValueTerm);
+      if (mathsat.api.msat_term_is_number(lValueTerm) == 0) {
+        throw new IllegalArgumentException("Mathsat term is not a number!");
+      }
+      
+      String lTermRepresentation = mathsat.api.msat_term_repr(lValueTerm);
+      
+      MathsatValue lValue;
+      
+      switch (lAssignable.getType()) {
+      case Boolean:
+        lValue = new MathsatBooleanValue(Boolean.valueOf(lTermRepresentation));
+      case Real:
+        try {
+          lValue = new MathsatRealValue(Double.valueOf(lTermRepresentation));
+        }
+        catch (NumberFormatException e) {
+          // lets try special case for mathsat
+          String[] lNumbers = lTermRepresentation.split("/");
+          
+          if (lNumbers.length != 2) {
+            throw new RuntimeException("I do not understand this format!");
+          }
+          
+          double lNumerator = Double.valueOf(lNumbers[0]);
+          double lDenominator = Double.valueOf(lNumbers[1]);
+          
+          lValue = new MathsatRealValue(lNumerator/lDenominator); 
+        }
+        
+        break;
+      case Integer:
+        lValue = new MathsatIntegerValue(Long.valueOf(lTermRepresentation));
+        break;
+      default:
+        throw new RuntimeException("I don't understand this!");
+      }
       
       mModel.put(lAssignable, lValue);
     }
