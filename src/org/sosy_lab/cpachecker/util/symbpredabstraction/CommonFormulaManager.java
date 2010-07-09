@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -149,38 +146,18 @@ public abstract class CommonFormulaManager implements FormulaManager {
     }
     return result;
   }
-
-
-  protected static class PredicateInfo {
-    // formula for \bigwedge_preds (var <-> def)
-    public final SymbolicFormula predicateDefinition;
-
-    // list of important terms (the names of the preds)
-    public final List<SymbolicFormula> predicateNames;
-
-    // list of variable names occurring in the definitions of the preds
-    public final Set<String> allVariables;
-
-    // list of functions occurring in the preds defs and their arguments' values
-    public final Set<Pair<String, SymbolicFormula[]>> allFunctions;
-
-    public PredicateInfo(SymbolicFormula pd, List<SymbolicFormula> imp, Set<String> av,
-                    Set<Pair<String, SymbolicFormula[]>> af) {
-        predicateDefinition = pd;
-        predicateNames = Collections.unmodifiableList(imp);
-        allVariables = Collections.unmodifiableSet(av);
-        allFunctions = Collections.unmodifiableSet(af);
-    }
-  }
-
+  
   /**
-   * Get some needed information out of a list of predicates.
-   * See {@link PredicateInfo} for more information.
-   * @param predicates Some predicates to analyze.
-   * @return PredicateInfo
+   * Create the formula \bigwedge (predvar <-> preddef)
+   * All variables will be instantiated with the indices from the given SSAMap.
+   * @param predicates The predicates to include in the formula.
+   * @param ssa The SSAMap for the instantiation of the formula.
+   * @return The above formula.
    */
-  protected PredicateInfo buildPredicateInformation(Collection<Predicate> predicates) {
-    List<SymbolicFormula> important = new ArrayList<SymbolicFormula>(predicates.size());
+  protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
+                                                  SSAMap ssa) {
+    ssa = new SSAMap(ssa); // clone ssa map because we need to change it
+    
     Set<String> allvars = new HashSet<String>();
     Set<Pair<String, SymbolicFormula[]>> allfuncs = new HashSet<Pair<String, SymbolicFormula[]>>();
     SymbolicFormula preddef = smgr.makeTrue();
@@ -189,16 +166,35 @@ public abstract class CommonFormulaManager implements FormulaManager {
         SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
         SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
         smgr.collectVarNames(def, allvars, allfuncs);
-        important.add(var);
+        
         // build the formula (var <-> def)
         SymbolicFormula equiv = smgr.makeEquivalence(var, def);
 
         // and add it to the list of definitions
         preddef = smgr.makeAnd(preddef, equiv);
     }
-    return new PredicateInfo(preddef, important, allvars, allfuncs);
-  }
+    
+    // update the SSA map, by instantiating all the uninstantiated
+    // variables that occur in the predicates definitions (at index 1)
+    for (String var : allvars) {
+      if (ssa.getIndex(var) < 0) {
+        ssa.setIndex(var, 1);
+      }
+    }
+    Map<SymbolicFormula, SymbolicFormula> cache =
+      new HashMap<SymbolicFormula, SymbolicFormula>();
+    for (Pair<String, SymbolicFormula[]> p : allfuncs) {
+      SymbolicFormula[] args =
+        smgr.getInstantiatedAt(p.getSecond(), ssa, cache);
+      if (ssa.getIndex(p.getFirst(), args) < 0) {
+        ssa.setIndex(p.getFirst(), args, 1);
+      }
+    }
 
+    // instantiate the definitions with the right SSA
+    return smgr.instantiate(preddef, ssa);
+  }
+  
   /**
    * Given an abstract formula (which is a BDD over the predicates), build
    * its concrete representation (which is a MathSAT formula corresponding

@@ -450,58 +450,36 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     // (So, for now we don't need to to anything...)
 
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
-    SSAMap symbSsa = pathFormula.getSecond();
 
     // build the definition of the predicates, and instantiate them
-    PredicateInfo predinfo = buildPredicateInformation(predicates);
-    {
-      // update the SSA map, by instantiating all the uninstantiated
-      // variables that occur in the predicates definitions (at index 1)
-      for (String var : predinfo.allVariables) {
-        if (symbSsa.getIndex(var) < 0) {
-          symbSsa.setIndex(var, 1);
-        }
-      }
-      Map<SymbolicFormula, SymbolicFormula> cache =
-        new HashMap<SymbolicFormula, SymbolicFormula>();
-      for (Pair<String, SymbolicFormula[]> p : predinfo.allFunctions) {
-        SymbolicFormula[] args =
-          smgr.getInstantiatedAt(p.getSecond(), symbSsa, cache);
-        if (symbSsa.getIndex(p.getFirst(), args) < 0) {
-          symbSsa.setIndex(p.getFirst(), args, 1);
-        }
-      }
-    }
-
-    List<SymbolicFormula> importantPreds = predinfo.predicateNames;
-    logger.log(Level.ALL,
-        "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
-        importantPreds);
-
-    // instantiate the definitions with the right SSA
-    SymbolicFormula predDef = smgr.instantiate(predinfo.predicateDefinition, symbSsa);
+    SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSecond());
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    final SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
+    SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
+    
+    // collect all predicate variables so that the solver knows for which
+    // variables we want to have the satisfying assignments
+    List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
+    for (Predicate p : predicates) {
+      predVars.add(getPredicateVarAndAtom(p).getFirst());
+    }
 
     logger.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     Pair<SymbolicFormula, List<SymbolicFormula>> absKey =
-      new Pair<SymbolicFormula, List<SymbolicFormula>>(fm, importantPreds);
+      new Pair<SymbolicFormula, List<SymbolicFormula>>(fm, predVars);
     AbstractFormula result;
     if (useCache && abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
 
       logger.log(Level.ALL, "Abstraction was cached, result is", result);
-    } else {
-      // get the environment from the manager - this is unique, it is the
-      // environment in which all terms are created
 
+    } else {
       AllSatCallback allSatCallback = smgr.getAllSatCallback(this, amgr);
       long solveStartTime = System.currentTimeMillis();
-      final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
+      final int numModels = thmProver.allSat(fm, predVars, allSatCallback);
       long solveEndTime = System.currentTimeMillis();
 
       assert(numModels != -1);  // msat_all_sat returns -1 on error
@@ -535,7 +513,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       // TODO dump hard abst
       if (solveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, importantPreds);
+        smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, predVars);
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }

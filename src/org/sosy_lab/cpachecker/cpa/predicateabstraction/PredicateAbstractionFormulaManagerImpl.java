@@ -497,42 +497,19 @@ implements PredicateAbstractionFormulaManager {
     }
 
     // build the definition of the predicates, and instantiate them
-    PredicateInfo predinfo = buildPredicateInformation(predicates);
-    List<SymbolicFormula> important = predinfo.predicateNames;
-    Collection<String> predvars = predinfo.allVariables;
-    Collection<Pair<String, SymbolicFormula[]>> predlvals =
-      predinfo.allFunctions;
-
-    // update the SSA map, by instantiating all the uninstantiated
-    // variables that occur in the predicates definitions (at index 1)
-    for (String var : predvars) {
-      if (ssa.getIndex(var) < 0) {
-        ssa.setIndex(var, 1);
-      }
+    SymbolicFormula preddef = buildPredicateFormula(predicates, ssa);
+    
+    List<SymbolicFormula> important = new ArrayList<SymbolicFormula>(predicates.size());
+    for (Predicate p : predicates) {
+      important.add(getPredicateVarAndAtom(p).getFirst());
     }
-    Map<SymbolicFormula, SymbolicFormula> cache =
-      new HashMap<SymbolicFormula, SymbolicFormula>();
-    for (Pair<String, SymbolicFormula[]> p : predlvals) {
-      SymbolicFormula[] args =
-        smgr.getInstantiatedAt(p.getSecond(), ssa, cache);
-      if (ssa.getIndex(p.getFirst(), args) < 0) {
-        ssa.setIndex(p.getFirst(), args, 1);
-      }
-    }
-
-    logger.log(Level.ALL, "DEBUG_1",
-        "IMPORTANT SYMBOLS (", important.size(), "): ",
-        important);
-
+    
     // first, create the new formula corresponding to
     // (f & edges from e to succ)
     // TODO - at the moment, we assume that all the edges connecting e and
     // succ have no statement or assertion attached (i.e. they are just
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
-
-    // instantiate the definitions with the right SSA
-    SymbolicFormula preddef = mmgr.instantiate(predinfo.predicateDefinition, ssa);
 
     // the formula is (curstate & term & preddef)
     // build the formula and send it to the absEnv
