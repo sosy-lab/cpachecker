@@ -113,7 +113,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
-  // ue variables
+  // use variables
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
 
@@ -758,6 +758,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return mathsat.api.msat_make_uif(msatEnv, decl, args);
   }
 
+  private Pair<String, Integer> parseVariable(String var) {
+    String[] s = var.split("@");
+    if (s.length != 2) {
+      throw new IllegalArgumentException("Not an instantiated variable: " + var);
+    }
+    
+    return new Pair<String, Integer>(s[0], Integer.parseInt(s[1]));
+  }
+  
   private String exprToVarName(IASTExpression e) {
     return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
@@ -1982,21 +1991,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
       if (mathsat.api.msat_term_is_variable(t) != 0) {
         toProcess.pop();
-        String name = mathsat.api.msat_term_repr(t);
         // check whether this is an instantiated variable
-        String[] bits = name.split("@");
-        int idx = -1;
-        if (bits.length == 2) {
-          try {
-            idx = Integer.parseInt(bits[1]);
-            name = bits[0];
-          } catch (NumberFormatException e) {
-            logger.log(Level.ALL, "DEBUG_1",
-                "Bad variable name!: ", name, ", exception: ",
-                e);
-            assert(false); // should not happen
-          }
-        }
+        Pair<String, Integer> var = parseVariable(mathsat.api.msat_term_repr(t));
+        String name = var.getFirst();
+        int idx = var.getSecond();
+
         if (idx > 0) {
           // ok, the variable is instantiated in the formula
           // retrieve the index in the SSA, and shift
@@ -2045,19 +2044,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             }
             if (name != null && ufCanBeLvalue(name)) {
               // we have to shift this uif as well
-              String[] bits = name.split("@");
-              int idx = -1;
-              if (bits.length == 2) {
-                try {
-                  idx = Integer.parseInt(bits[1]);
-                  name = bits[0];
-                } catch (NumberFormatException e) {
-                  logger.log(Level.ALL, "DEBUG_1",
-                      "Bad UF name!: ", name,
-                      ", exception: ", e);
-                  assert(false); // should not happen
-                }
-              }
+              Pair<String, Integer> uif = parseVariable(name);
+              name = uif.getFirst();
+              int idx = uif.getSecond();
+              
               if (idx > 0) {
                 // ok, the UF is instantiated in the formula
                 // retrieve the index in the SSA, and shift
@@ -2216,10 +2206,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         continue;
       }
       if (mathsat.api.msat_term_is_variable(t) != 0) {
-        String name = mathsat.api.msat_term_repr(t);
-        String[] bits = name.split("@");
-        assert(bits.length == 2) : "Not exactly one '@' in term '" + name + "' when uninstantiating.";
-        name = bits[0];
+        String name = parseVariable(mathsat.api.msat_term_repr(t)).getFirst();
+        
         long d = mathsat.api.msat_declare_variable(msatEnv, name,
             msatVarType);
         long newt = mathsat.api.msat_make_variable(msatEnv, d);
@@ -2244,9 +2232,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             name = mathsat.api.msat_decl_get_name(d);
           }
           if (name != null && ufCanBeLvalue(name)) {
-            String[] bits = name.split("@");
-            assert(bits.length == 2);
-            name = bits[0];
+            name = parseVariable(name).getFirst(); 
+            
             int[] tp = new int[children.length];
             for (int i = 0; i < tp.length; ++i) {
               tp[i] = msatVarType;
@@ -2508,18 +2495,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       cache.add(t);
       if (mathsat.api.msat_term_is_variable(t) != 0) {
-        String name = mathsat.api.msat_term_repr(t);
-        String[] bits = name.split("@");
-        if (bits.length == 2) {
-          try {
-            int idx = Integer.parseInt(bits[1]);
-            name = bits[0];
-            if (idx > ssa.getIndex(name)) {
-              ssa.setIndex(name, idx);
-            }
-          } catch (NumberFormatException e) {
-            assert(false);
-          }
+        Pair<String, Integer> var = parseVariable(mathsat.api.msat_term_repr(t));
+        String name = var.getFirst();
+        int idx = var.getSecond();
+        if (idx > ssa.getIndex(name)) {
+          ssa.setIndex(name, idx);
         }
       } else {
         for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
