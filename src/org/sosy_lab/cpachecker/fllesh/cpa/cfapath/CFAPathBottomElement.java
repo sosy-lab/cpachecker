@@ -1,0 +1,20 @@
+package org.sosy_lab.cpachecker.fllesh.cpa.cfapath;
+
+public class CFAPathBottomElement implements CFAPathElement {
+
+  private static CFAPathBottomElement sInstance = new CFAPathBottomElement();
+  
+  public static CFAPathBottomElement getInstance() {
+    return sInstance;
+  }
+  
+  private CFAPathBottomElement() {
+    
+  }
+  
+  @Override
+  public boolean isError() {
+    return false;
+  }
+
+}
