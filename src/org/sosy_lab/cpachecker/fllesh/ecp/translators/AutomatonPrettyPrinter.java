@@ -164,10 +164,13 @@ public class AutomatonPrettyPrinter {
 
     @Override
     public String visit(GuardedEdgeLabel pLabel) {
-      String lPrefix = "";
       
       if (pLabel instanceof InverseGuardedEdgeLabel) {
-        lPrefix = "!";
+        return visitInverseGuardedEdgeLabel((InverseGuardedEdgeLabel)pLabel);
+      }
+      
+      if (pLabel instanceof AllCFAEdgesGuardedEdgeLabel) {
+        return "TRUE";
       }
       
       if (pLabel.hasGuards()) {
@@ -199,11 +202,15 @@ public class AutomatonPrettyPrinter {
         
         lGuardBuffer.append("]");
         
-        return lPrefix + getId(pLabel.getEdgeSet()) + " " + lGuardBuffer.toString();
+        return getId(pLabel.getEdgeSet()) + " " + lGuardBuffer.toString();
       }
       else {
-        return lPrefix + getId(pLabel.getEdgeSet());
+        return getId(pLabel.getEdgeSet());
       }
+    }
+    
+    private String visitInverseGuardedEdgeLabel(InverseGuardedEdgeLabel pLabel) {
+      return ("!" + pLabel.getInvertedLabel().accept(this));
     }
   }
 }

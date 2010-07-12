@@ -34,6 +34,10 @@ public class ToGuardedAutomatonTranslator {
     
     lAutomaton3.createEdge(lAutomaton3.getInitialState(), lAutomaton3.getInitialState(), new InverseGuardedEdgeLabel(new GuardedEdgeLabel(lAlphaEdgeSet)));
     
+    for (Automaton<GuardedEdgeLabel>.State lFinalState : lAutomaton3.getFinalStates()) {
+      lAutomaton3.createEdge(lFinalState, lFinalState, AllCFAEdgesGuardedEdgeLabel.getInstance());
+    }
+    
     return lAutomaton3;
   }
   
