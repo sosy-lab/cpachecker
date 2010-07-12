@@ -23,6 +23,12 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   private StopOperator mStopOperator;
   private MergeOperator mMergeOperator;
   
+  private static CFAPathCPA sInstance = new CFAPathCPA();
+  
+  public static CFAPathCPA getInstance() {
+    return sInstance;
+  }
+  
   public CFAPathCPA() {
     mDomain = CFAPathDomain.getInstance();
     mTransferRelation = new CFAPathTransferRelation();

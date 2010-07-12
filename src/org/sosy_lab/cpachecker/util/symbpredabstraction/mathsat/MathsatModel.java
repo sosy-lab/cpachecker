@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
 import java.util.HashMap;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 
@@ -328,7 +329,7 @@ public class MathsatModel implements Model {
     
   }
   
-public static class MathsatIntegerValue implements MathsatValue {
+  public static class MathsatIntegerValue implements MathsatValue {
     
     private long mValue;
     
@@ -438,6 +439,14 @@ public static class MathsatIntegerValue implements MathsatValue {
       
       mModel.put(lAssignable, lValue);
     }
+  }
+  
+  public Set<MathsatAssignable> getAssignables() {
+    return mModel.keySet();
+  }
+  
+  public MathsatValue getValue(MathsatAssignable pAssignable) {
+    return mModel.get(pAssignable);
   }
   
   @Override
