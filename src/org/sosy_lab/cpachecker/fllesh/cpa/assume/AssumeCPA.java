@@ -23,6 +23,10 @@ public class AssumeCPA implements ConfigurableProgramAnalysis {
   private StopOperator mStopOperator;
   private AssumeTransferRelation mTransferRelation;
   
+  public static AssumeCPA getCBMCAssume() {
+    return new AssumeCPA("__CPROVER_assume");
+  }
+  
   public AssumeCPA(String pAssumeFunctionName) {
     mDomain = new AssumeDomain();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
