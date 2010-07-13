@@ -507,11 +507,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         globalVars.add(var);
       }
       var = scoped(var);
-      // TODO here makeLvalIndex(var, ssa) should be used
-      int idx = ssa.getIndex(var);
-      if (idx > 0) idx++;
-      else idx = 1;
-      ssa.setIndex(var, idx);
+      // assign new index to variable
+      // (a declaration contains an implicit assignment, even without initializer)
+      int idx = makeLvalIndex(var, ssa);
 
       logger.log(Level.ALL, "DEBUG_3",
           "Declared variable: ", var, ", index: ", idx);
