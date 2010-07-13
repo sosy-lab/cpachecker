@@ -159,7 +159,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-
+  private static final String NONDET_VARIABLE = "__nondet__";
+  
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
   
@@ -188,6 +189,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private int nextStringLitIndex = 0;
   private final long stringLitUfDecl;
 
+  private int nondetCounter = 0;
+  
   private final LogManager logger;
   private final MathsatAbstractionPrinter absPrinter;  
   
@@ -535,6 +538,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           log(Level.ALL, "Ingoring unsupported initializer", init);
           continue;
         }
+        if (isNondetVariable(var)) {
+          logger.log(Level.WARNING, "Assignment to special non-determinism variable",
+              var, "will be ignored.");
+        }
         IASTExpression exp =
           ((IASTInitializerExpression)init).getExpression();
         long minit = buildMsatTerm(exp, ssa);
@@ -735,6 +742,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     throw new UnrecognizedCFAEdgeException(edge);
   }
 
+  private boolean isNondetVariable(String var) {
+    return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix); 
+  }
+  
   private void setNamespace(String ns) {
     namespace = ns;
   }
@@ -771,8 +782,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private long buildMsatTermVar(String var, SSAMap ssa) {
-    var = scoped(var);
-    int idx = getIndex(var, ssa);
+    int idx;
+    if (isNondetVariable(var)) {
+      // on every read access to special non-determininism variable, increase index
+      var = NONDET_VARIABLE;
+      idx = nondetCounter++;
+    } else {
+      var = scoped(var);
+      idx = getIndex(var, ssa);
+    }
     return buildMsatVariable(var, idx);
   }
 
@@ -1268,6 +1286,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         var = ((IASTIdExpression)exp).getName().getRawSignature();
       } else {
         var = exprToVarName(exp);
+      }
+      if (isNondetVariable(var)) {
+        logger.log(Level.WARNING, "Assignment to special non-determinism variable",
+            exp.getRawSignature(), "will be ignored.");
       }
       var = scoped(var);
       int idx = makeLvalIndex(var, ssa);
