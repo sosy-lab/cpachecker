@@ -24,10 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.List;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -64,12 +66,12 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
     algorithm.run(reached, true);
 
     if (reached.getLastElement().isError()) {
-      List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
-      String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
+      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath((ARTElement)reached.getLastElement());
+      String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
       
       boolean cbmcResult;
       try {
-        cbmcResult = CProver.checkSat(pathProgram, logger);
+        cbmcResult = CProver.checkFeasibility(pathProgram, logger);
       } catch (IOException e) {
         throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
       }
@@ -83,28 +85,26 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         // TODO: continue analysis
       }
     }
-    return;
   }
 
-  private List<ARTElement> getElementsToErrorPath(ARTElement pElement) {
+  private Set<ARTElement> getElementsOnErrorPath(ARTElement pElement) {
 
-    List<ARTElement> waitList = new ArrayList<ARTElement>();
-    List<ARTElement> retList = new ArrayList<ARTElement>();
+    Set<ARTElement> result = new HashSet<ARTElement>();
+    Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
 
+    result.add(pElement);
     waitList.add(pElement);
 
-    while(waitList.size() > 0){
-      ARTElement currentElement = waitList.remove(0);
-      retList.add(currentElement);
-      for(ARTElement parent: currentElement.getParents()){
-        if((!retList.contains(parent)) &&
-            (!waitList.contains(parent))){
-          waitList.add(parent);
+    while (!waitList.isEmpty()) {
+      ARTElement currentElement = waitList.poll();
+      for (ARTElement parent : currentElement.getParents()) {
+        if (result.add(parent)) {
+          waitList.push(parent);
         }
       }
     }
 
-    return retList;
+    return result;
   }
 
   @Override

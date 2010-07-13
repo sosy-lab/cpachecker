@@ -29,6 +29,7 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,7 +43,6 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
@@ -69,7 +69,7 @@ public class AbstractPathToCTranslator {
   private static List<String> mFunctionDecls = null;
   private static int mFunctionIndex = 0;
 
-  public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, List<ARTElement> elementsOnErrorPath) {
+  public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
     String ret = "";
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
@@ -98,7 +98,7 @@ public class AbstractPathToCTranslator {
       mFunctionDecls.add(lOriginalFunctionDecl);
     }
 
-    List<StringBuffer> lTranslation = translatePath(elementsOnErrorPath);
+    List<StringBuffer> lTranslation = translatePath(artRoot, elementsOnErrorPath);
 
     if (mFunctionDecls != null) {
       for (String decl : mFunctionDecls) {
@@ -158,7 +158,8 @@ public class AbstractPathToCTranslator {
     return lProgramText;
   }
 
-  public static List<StringBuffer> translatePath(List<ARTElement> pElementsOnPath){
+  public static List<StringBuffer> translatePath(final ARTElement firstElement,
+                                        Collection<ARTElement> pElementsOnPath) {
 
 //  ARTElement parentElement;
     ARTElement childElement;
@@ -173,8 +174,6 @@ public class AbstractPathToCTranslator {
     // the code for the function recursively starting from that node
     List<CBMCStackElement> functions = new ArrayList<CBMCStackElement>();
 
-    // first element on the ART
-    ARTElement firstElement = pElementsOnPath.get(pElementsOnPath.size()-1);
     // the first element should have one child
     // TODO add more children support later
     assert(firstElement.getChildren().size() == 1);

@@ -28,49 +28,74 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 
+import com.google.common.base.Preconditions;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
  */
 public class CProver {
+  
+  private static class CBMCExecutor extends ProcessExecutor<RuntimeException> {
+    
+    // TODO function name
+    private static final String[] CBMC_ARGS = {"cbmc", "--function", "main_0",
+            "--no-bounds-check", "--no-div-by-zero-check", "--no-pointer-check"};
+    
+    private Boolean result = null;
+    
+    public CBMCExecutor(LogManager logger, File file) throws IOException {
+      super(logger, getCmdline(file));
+    }
+    
+    private static String[] getCmdline(File file) {
+      Preconditions.checkArgument(file.canRead());
+      
+      String[] result = Arrays.copyOf(CBMC_ARGS, CBMC_ARGS.length + 1);
+      result[result.length-1] = file.getAbsolutePath();
+      return result;
+    }
+    
+    @Override
+    protected void handleExitCode(int pCode) {
+      switch (pCode) {
+      case 0: // Verification successful (Path is infeasible)
+        result = false;
+        break;
+        
+      case 10: // Verification failed (Path is feasible)
+        result = true;
+        break;
+        
+      default:
+        super.handleExitCode(pCode);
+      }
+    }
+  }
 
-  public static boolean checkSat (String pTranslatedProgram, LogManager logger) throws IOException {
-
-    File cFile = Files.createTempFile("path", ".c", pTranslatedProgram);
+  public static boolean checkFeasibility(String program, LogManager logger) throws IOException {
+    File cFile = Files.createTempFile("path", ".c", program);
     try {
-      
-      // TODO function name
-      String[] args = {"cbmc", "--function", "main_0", "--no-bounds-check", "--no-div-by-zero-check", "--no-pointer-check", cFile.getAbsolutePath()}; 
-      
       logger.log(Level.FINER, "Starting CBMC verification.");
-      ProcessExecutor<IOException> cbmc = new ProcessExecutor<IOException>(logger, args);
+      CBMCExecutor cbmc = new CBMCExecutor(logger, cFile);
       cbmc.read();
       logger.log(Level.FINER, "CBMC finished.");
       
-      switch (cbmc.getExitCode()) {
-      case 0: // Verification successful (Path is infeasible)
-        return false;
-      case 10: // Verification failed (Path is feasible)
-        return true;
-      default:
-        // exit code == 6 : Start function symbol not found, but also gcc not found
-        // more error codes?
-        
-        // exit code and stderr are already logged with level WARNING by ProcessExecutor
+      if (cbmc.result == null) {
+        // exit code and stderr are already logged with level WARNING
         throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
       }
+      return cbmc.result;
       
     } finally {
-      if (cFile.exists()) {
-        cFile.delete();
-      }
+      cFile.delete();
     }
   }
 }
