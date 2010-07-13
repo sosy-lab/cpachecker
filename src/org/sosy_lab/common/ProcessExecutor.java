@@ -120,6 +120,7 @@ public class ProcessExecutor<E extends Exception> {
     }
     try {
       String line;
+      // TODO move this to separate threads, as it doesn't work if the output of the process is too large
       while ((line = out.readLine()) != null) {
         handleOutput(line);
       }
@@ -152,7 +153,7 @@ public class ProcessExecutor<E extends Exception> {
    * to a list which may later be retrieved with {@link #getOutput()}. It never
    * throws an exception (but client implementations may do so).
    */
-  public void handleOutput(String line) throws E {
+  protected void handleOutput(String line) throws E {
     logger.log(Level.ALL, name, "output:", line);
     output.add(line);
   }
@@ -163,7 +164,7 @@ public class ProcessExecutor<E extends Exception> {
    * to a list which may later be retrieved with {@link #getErrorOutput()}. It never
    * throws an exception (but client implementations may do so).
    */
-  public void handleErrorOutput(String line) throws E {
+  protected void handleErrorOutput(String line) throws E {
     logger.log(Level.WARNING, name, "error output:", line);
     errorOutput.add(line);
   }
@@ -173,7 +174,7 @@ public class ProcessExecutor<E extends Exception> {
    * by clients. The default implementation logs the code on level WARNING, if
    * it is non-zero.
    */
-  public void handleExitCode(int code) throws E {
+  protected void handleExitCode(int code) throws E {
     if (code != 0) {
       logger.log(Level.WARNING, "Exit code from", name, "was", code);
     }
