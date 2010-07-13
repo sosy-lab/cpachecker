@@ -52,7 +52,6 @@ public final class Classes {
    * @throws RuntimeException If t is a RuntimeException, it is thrown. 
    * @throws T If t is a T exception, it is thrown.
    */
-  @SuppressWarnings("unchecked")
   public static <T extends Throwable> void throwExceptionIfPossible(Throwable t, Class<T> c) throws T {
     if (t instanceof Error) {
       throw (Error)t;
@@ -61,8 +60,7 @@ public final class Classes {
       throw (RuntimeException)t;
     
     } else if (c.isAssignableFrom(t.getClass())) {
-      throw (T)t;
-      
+      throw c.cast(t);
     }
   }
   
@@ -90,7 +88,6 @@ public final class Classes {
    * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
    * @throws InvocationTargetException If the constructor throws an exception.  
    */
-  @SuppressWarnings("unchecked")
   public static <T> T createInstance(String className, String prefix,
       Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type)
       throws ClassInstantiationException, InvocationTargetException {
@@ -98,11 +95,8 @@ public final class Classes {
       Class<?> cls = forName(className, prefix);
       Constructor<?> ct = cls.getConstructor(argumentTypes);
       Object obj = ct.newInstance(argumentValues);
-      if (type.isAssignableFrom(obj.getClass())) {
-        return (T)obj;
-      } else {
-        throw new ClassInstantiationException(className, "Not an instance of " + type.getCanonicalName());
-      }
+      return type.cast(obj);
+
     } catch (ClassNotFoundException e) {
       throw new ClassInstantiationException(className, "Class not found!");
     } catch (SecurityException e) {
@@ -113,7 +107,9 @@ public final class Classes {
       throw new ClassInstantiationException(className, e.getMessage());
     } catch (IllegalAccessException e) {
       throw new ClassInstantiationException(className, e.getMessage());
-    } 
+    } catch (ClassCastException e) {
+      throw new ClassInstantiationException(className, "Not an instance of " + type.getCanonicalName());
+    }
   }
   
   /**
@@ -126,14 +122,14 @@ public final class Classes {
    * @throws ClassNotFoundException If none of the two classes can be found.
    */
   public static Class<?> forName(String name, String prefix) throws ClassNotFoundException {
+    if (prefix == null || prefix.isEmpty()) {
+      return Class.forName(name);
+    }
+    
     try {
       return Class.forName(name);
       
     } catch (ClassNotFoundException e1) {
-      if (prefix == null || prefix.isEmpty()) {
-        throw e1;
-      }
-      
       try {
         return Class.forName(prefix + "." + name); // try with prefix added
       } catch (ClassNotFoundException e2) {
