@@ -10,10 +10,12 @@ import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.CellLabelProvider;
+import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.ITreeContentProvider;
-import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.StyledString;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
@@ -40,6 +42,8 @@ public class TaskTreeViewer extends TreeViewer {
 		setLabelProvider(new MyTreeLabelProvider());
 		setContentProvider(new MyTreeContentProvider());
 		this.setInput(new Node[]{topNode});
+		ColumnViewerToolTipSupport.enableFor(this);
+		
 	}
 
 	@Override
@@ -160,7 +164,7 @@ public class TaskTreeViewer extends TreeViewer {
 		}
 	}
 
-	public class MyTreeLabelProvider extends LabelProvider implements IStyledLabelProvider {
+	public class MyTreeLabelProvider extends CellLabelProvider implements IStyledLabelProvider {
 		WorkbenchLabelProvider myWorkbenchLabelProvider = new WorkbenchLabelProvider();
 		@Override
 		public Image getImage(Object element) {
@@ -189,13 +193,13 @@ public class TaskTreeViewer extends TreeViewer {
 			}
 			return myWorkbenchLabelProvider.getImage(element);
 		}
-		@Override
 		public String getText(Object element) {
 			if (element instanceof Node) {
 				Node ex1 = (Node) element;
 				return ex1.getName();	
 			} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
-				return ((IFile)element).getProjectRelativePath().toPortableString();
+				//return ((IFile)element).getProjectRelativePath().toPortableString();
+				return ((IFile)element).getName();
 			} else {
 				return myWorkbenchLabelProvider.getText(element);
 			}
@@ -203,6 +207,28 @@ public class TaskTreeViewer extends TreeViewer {
 		@Override
 		public StyledString getStyledText(Object element) {
 			return new StyledString(this.getText(element));
+		}
+		@Override
+		public void update(ViewerCell cell) {
+			cell.setText(this.getText(cell.getElement()));
+			cell.setImage(this.getImage(cell.getElement()));
+		}
+		@Override
+		public String getToolTipText(Object element) {
+			if (element instanceof Node) {
+				Node ex1 = (Node) element;
+				switch (ex1.getType()) {
+					case TOP: return null;
+					case TASK : return ((TaskNode)ex1).getName();
+					case CONFIG: return null;
+				}
+			} else if (element instanceof IFile) {
+				//return ((IFile)element).getProjectRelativePath().toPortableString();
+				return ((IFile)element).getFullPath().toPortableString();
+			} else {
+				return myWorkbenchLabelProvider.getText(element);
+			}
+			return null;
 		}
 	}
 

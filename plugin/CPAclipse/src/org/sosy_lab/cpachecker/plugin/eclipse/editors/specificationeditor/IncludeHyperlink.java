@@ -54,7 +54,7 @@ public class IncludeHyperlink implements IHyperlink {
 			IEditorInput input = new FileEditorInput(file);
 			if (input != null) {
 				try {
-					page.openEditor(input, "org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor", true);
+					page.openEditor(input, "org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor", true);
 				} catch (PartInitException e) {
 					CPAclipse.logError(e);
 				}

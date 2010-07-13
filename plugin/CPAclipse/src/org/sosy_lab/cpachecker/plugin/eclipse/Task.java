@@ -201,7 +201,7 @@ public class Task {
 				this.configFile.getProject().getFullPath().append(projectRelativePath));
 		assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
 		outDir = outDir.getFolder(this.getName());
-		if (create) {
+		if (create && !outDir.exists()) {
 			try {
 				outDir.create(true, true, null);
 			} catch (CoreException e) {

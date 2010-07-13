@@ -59,7 +59,7 @@ public class SpecificationConfiguration extends TextSourceViewerConfiguration {
 	@Override
 	protected Map getHyperlinkDetectorTargets(ISourceViewer sourceViewer) {
 		Map targets= super.getHyperlinkDetectorTargets(sourceViewer);
-		targets.put("org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor", fEditor);
+		targets.put("org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor", fEditor);
 		return targets;
 	}
 

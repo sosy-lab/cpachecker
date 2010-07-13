@@ -1,11 +1,17 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.logging.StreamHandler;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -228,6 +234,20 @@ public class TaskRunner {
 						}
 					}
 					task.setLastResult(results.getResult());
+					IFolder outDir = task.getOutputDirectory(true);
+					if (outDir.exists()) {
+						IFile result = outDir.getFile("VerificationResult.txt");						
+						File f = new File(result.getLocation().toPortableString());
+						f.createNewFile();
+						results.printStatistics(new PrintWriter(f));
+						result.refreshLocal(IResource.DEPTH_ONE, null);
+						
+						IFile prevConfig = outDir.getFile("UsedConfiguration.properties");
+						if (prevConfig.exists()) {
+							prevConfig.delete(true, true, null);
+						}
+						task.getConfigFile().copy(prevConfig.getFullPath(), true, null);
+					}
 					// finshedAnnouncement must be fired in Eclipse UI thread
 					fireTaskFinished(results, monitor);
 				} catch (Exception e) {
