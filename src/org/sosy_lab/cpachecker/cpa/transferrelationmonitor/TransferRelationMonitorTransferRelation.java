@@ -33,14 +33,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -54,10 +53,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
   private final AbstractDomain domain;
   private final TransferRelation transferRelation;
-  private TransferCallable tc = new TransferCallable();
   public static long maxSizeOfSinglePath = 0;
-  
-  private static int noOfStops = 0;
 
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
@@ -84,42 +80,37 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
-    Collection<? extends AbstractElement> successors = null;
-    long timeOfExecution = 0;
-    long start = 0;
-    long end = 0;
+    Collection<? extends AbstractElement> successors;
+    long start = System.currentTimeMillis();
 
-    AbstractElement wrappedElement = element.getWrappedElement();
+    TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
+        element.getWrappedElement(), pPrecision);
 
-    // set the edge and element
-    tc.setEdge(pCfaEdge);
-    tc.setElement(wrappedElement);
-    tc.setPrecision(pPrecision);
-    Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
-    try{
-      start = System.currentTimeMillis();
-      if(timeLimit == 0){
-        successors = future.get();
-      }
-      // here we get the result of the post computation but there is a time limit
-      // given to complete the task specified by timeLimit
-      else{
+    if (timeLimit == 0) {
+      successors = tc.call();
+    } else {
+    
+      Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
+      try {
+        // here we get the result of the post computation but there is a time limit
+        // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
+      } catch (TimeoutException e){
+        return Collections.emptySet();
+        
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return Collections.emptySet();
+
+      } catch (ExecutionException e) {
+        Classes.throwExceptionIfPossible(e.getCause(), CPATransferException.class);
+        // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
+        throw new AssertionError(e);
       }
-      end = System.currentTimeMillis();
-    } catch (TimeoutException exc){
-      TransferRelationMonitorElement bottom = new TransferRelationMonitorElement(null, null);
-      bottom.setAsStopElement();
-      return Collections.emptySet();
-    } catch (InterruptedException exc) {
-      exc.printStackTrace();
-    } catch (ExecutionException exc) {
-      exc.printStackTrace();
     }
 
-    timeOfExecution = end-start;
+    long timeOfExecution = System.currentTimeMillis() - start;
 
-    assert(successors != null);
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
@@ -143,21 +134,11 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
           return Collections.emptySet();
         }
       }
-//      if(!successorElem.isIgnore()){
-        if((timeLimitForPath > 0 &&
-            successorElem.getTotalTimeOnThePath() > timeLimitForPath)
-            ||
-            (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)
-        ){
-//          noOfStops++;
-//          if(noOfStops % 20 == 0){
-//            successorElem.resetTotalTime();
-//          }
-//          else{
-            return Collections.emptySet();
-//          }
-        }
-//      }
+      if(    (timeLimitForPath > 0 && successorElem.getTotalTimeOnThePath() > timeLimitForPath)
+          || (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)
+          ){
+        return Collections.emptySet();
+      }
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
@@ -193,32 +174,24 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     return null;
   }
 
-  private class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
+  private static class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
 
-    CFAEdge cfaEdge;
-    AbstractElement abstractElement;
-    Precision precision;
+    private final TransferRelation transferRelation;
+    private final CFAEdge cfaEdge;
+    private final AbstractElement abstractElement;
+    private final Precision precision;
 
-    public TransferCallable() {
-
+    private TransferCallable(TransferRelation transferRelation, CFAEdge cfaEdge,
+        AbstractElement abstractElement, Precision precision) {
+      this.transferRelation = transferRelation;
+      this.cfaEdge = cfaEdge;
+      this.abstractElement = abstractElement;
+      this.precision = precision;
     }
 
     @Override
-    public Collection<? extends AbstractElement> call() throws Exception {
+    public Collection<? extends AbstractElement> call() throws CPATransferException {
       return transferRelation.getAbstractSuccessors(abstractElement, precision, cfaEdge);
     }
-
-    public void setEdge(CFAEdge pCfaEdge){
-      cfaEdge = pCfaEdge;
-    }
-
-    public void setElement(AbstractElement pAbstractElement){
-      abstractElement = pAbstractElement;
-    }
-
-    public void setPrecision(Precision pPrecision){
-      precision = pPrecision;
-    }
   }
-
 }
