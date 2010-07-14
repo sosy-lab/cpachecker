@@ -109,7 +109,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
   private final MathsatSymbolicFormulaManager symbolicFormulaManager;
-  private final SymbPredAbsFormulaManager formulaManager;
+  private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -146,7 +146,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer, Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
@@ -192,7 +192,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return abstractFormulaManager;
   }
 
-  protected SymbPredAbsFormulaManager getFormulaManager() {
+  protected SymbPredAbsFormulaManagerImpl<?, ?> getFormulaManager() {
     return formulaManager;
   }
 

@@ -77,7 +77,7 @@ import com.google.common.base.Joiner;
 
 
 @Options(prefix="cpas.symbpredabs")
-class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements SymbPredAbsFormulaManager {
+class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager implements SymbPredAbsFormulaManager {
 
   static class Stats {
     public long abstractionTime = 0;
@@ -104,8 +104,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   final Stats stats;
 
   private final TheoremProver thmProver;
-  private final InterpolatingTheoremProver<T> itpProver;
-  private final InterpolatingTheoremProver<T> alternativeItpProver;
+  private final InterpolatingTheoremProver<T1> firstItpProver;
+  private final InterpolatingTheoremProver<T2> secondItpProver;
 
   private static final int MAX_CACHE_SIZE = 100000;
 
@@ -159,8 +159,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       AbstractFormulaManager pAmgr,
       SymbolicFormulaManager pSmgr,
       TheoremProver pThmProver,
-      InterpolatingTheoremProver<T> pItpProver,
-      InterpolatingTheoremProver<T> pAltItpProver,
+      InterpolatingTheoremProver<T1> pItpProver,
+      InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager logger) throws InvalidConfigurationException {
     super(pAmgr, pSmgr, config, logger);
@@ -168,8 +168,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
     stats = new Stats();
     thmProver = pThmProver;
-    itpProver = pItpProver;
-    alternativeItpProver = pAltItpProver;
+    firstItpProver = pItpProver;
+    secondItpProver = pAltItpProver;
 
     if (inlineFunctions && wellScopedPredicates) {
       logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
@@ -554,7 +554,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
    * @return counterexample info with predicated information
    * @throws CPAException
    */
-  private CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
+  private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
     long startTime = System.currentTimeMillis();
@@ -752,19 +752,19 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, itpProver);
+      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
     }
     
     // how many times is the problem tried to be solved so far?
     int noOfTries = 0;
     
     while (true) {
-      TransferCallable tc;
+      TransferCallable<?> tc;
       
       if (noOfTries == 0) {
-        tc = new TransferCallable(pAbstractTrace, itpProver);
+        tc = new TransferCallable<T1>(pAbstractTrace, firstItpProver);
       } else {
-        tc = new TransferCallable(pAbstractTrace, alternativeItpProver);
+        tc = new TransferCallable<T2>(pAbstractTrace, secondItpProver);
       }
 
       Future<CounterexampleTraceInfo> future = CEGARAlgorithm.executor.submit(tc);
@@ -829,7 +829,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     return result;
   }
 
-  private boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas,
+  private <T> boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas,
         List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) {
     Boolean tmpSpurious = null;
 
@@ -999,7 +999,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     return f;
   }
 
-  private class TransferCallable implements Callable<CounterexampleTraceInfo> {
+  private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
 
     private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;
     private final InterpolatingTheoremProver<T> currentItpProver;

@@ -71,8 +71,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
-      SymbPredAbsFormulaManagerImpl<?> amgr =
-        (SymbPredAbsFormulaManagerImpl<?>)cpa.getFormulaManager();
+      SymbPredAbsFormulaManagerImpl<?, ?> amgr = cpa.getFormulaManager();
 
       Multimap<CFANode, Predicate> predicates = HashMultimap.create();
 
