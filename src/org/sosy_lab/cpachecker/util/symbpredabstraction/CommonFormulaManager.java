@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -93,8 +95,8 @@ public abstract class CommonFormulaManager implements FormulaManager {
   /**
    * Generates the predicates corresponding to the given atoms.
    */
-  protected Set<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
-    Set<Predicate> ret = new HashSet<Predicate>(atoms.size());
+  protected List<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
+    List<Predicate> ret = new ArrayList<Predicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {
       ret.add(makePredicate(smgr.createPredicateVariable(atom), atom));

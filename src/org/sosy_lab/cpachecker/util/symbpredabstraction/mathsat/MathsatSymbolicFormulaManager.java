@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.DOMException;
@@ -2319,20 +2317,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     return ret;
   }
-  
-  private static final Comparator<Long> MathsatComparator = new Comparator<Long>() {
-    @Override
-    public int compare(Long o1, Long o2) {
-      return mathsat.api.msat_term_id(o1) - mathsat.api.msat_term_id(o2);
-    }
-  };
 
   @Override
   public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
       boolean splitArithEqualities, boolean conjunctionsOnly) {
     Set<Long> cache = new HashSet<Long>();
-    //Set<Long> atoms = new HashSet<Long>();
-    Set<Long> atoms = new TreeSet<Long>(MathsatComparator);
+    List<SymbolicFormula> atoms = new ArrayList<SymbolicFormula>();
 
     Stack<Long> toProcess = new Stack<Long>();
     toProcess.push(((MathsatSymbolicFormula)f).getTerm());
@@ -2358,11 +2348,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           //long t2 = mathsat.api.msat_make_leq(msatEnv, a2, a1);
           cache.add(t1);
           //cache.add(t2);
-          atoms.add(t1);
+          atoms.add(new MathsatSymbolicFormula(t1));
           //atoms.add(t2);
-          atoms.add(term);
+          atoms.add(new MathsatSymbolicFormula(term));
         } else {
-          atoms.add(term);
+          atoms.add(new MathsatSymbolicFormula(term));
         }
       } else if (conjunctionsOnly) {
         if (mathsat.api.msat_term_is_not(term) != 0 ||
@@ -2377,7 +2367,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         } else {
           // otherwise, treat this as atomic
           term = uninstantiate(term);
-          atoms.add(term);
+          atoms.add(new MathsatSymbolicFormula(term));
         }
       } else {
         for (int i = 0; i < mathsat.api.msat_term_arity(term); ++i){
@@ -2389,11 +2379,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
     }
 
-    ArrayList<SymbolicFormula> ret = new ArrayList<SymbolicFormula>(atoms.size());
-    for (long term : atoms) {
-      ret.add(new MathsatSymbolicFormula(term));
-    }
-    return ret;
+    return atoms;
   }
 
   // returns true if the given term is a pure arithmetic term

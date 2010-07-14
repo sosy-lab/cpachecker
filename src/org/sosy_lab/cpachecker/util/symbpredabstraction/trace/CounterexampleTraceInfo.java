@@ -24,14 +24,15 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.trace;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 
 /**
@@ -44,27 +45,21 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final Map<AbstractElement, Set<Predicate>> pmap;
+    private final Multimap<AbstractElement, Predicate> pmap;
     private final Model mCounterexample;
 
-    /*public CounterexampleTraceInfo(boolean spurious) {
-        this.spurious = spurious;
-        pmap = new HashMap<AbstractElement, Set<Predicate>>();
-    }*/
     public CounterexampleTraceInfo() {
-      this.spurious = true;
-      pmap = new HashMap<AbstractElement, Set<Predicate>>();
       mCounterexample = null;
+      spurious = true;
+      pmap = ArrayListMultimap.create();
     }
     
     public CounterexampleTraceInfo(Model pModel) {
-      if (pModel == null) {
-        throw new IllegalArgumentException("Parameter is null!");
-      }
+      Preconditions.checkNotNull(pModel);
       
       mCounterexample = pModel;
-      this.spurious = false;
-      pmap = new HashMap<AbstractElement, Set<Predicate>>();
+      spurious = false;
+      pmap = HashMultimap.create();
     }
     
     /**
@@ -83,11 +78,7 @@ public class CounterexampleTraceInfo {
      * @return a list of predicates
      */
     public Collection<Predicate> getPredicatesForRefinement(AbstractElement e) {
-        if (pmap.containsKey(e)) {
-            return pmap.get(e);
-        } else {
-            return Collections.emptySet();
-        }
+        return pmap.get(e);
     }
 
     /**
@@ -95,16 +86,8 @@ public class CounterexampleTraceInfo {
      * AbstractElement
      */
     public void addPredicatesForRefinement(AbstractElement e,
-                                           Set<Predicate> preds) {
-      if (!preds.isEmpty()) {
-        if (pmap.containsKey(e)) {
-            Set<Predicate> old = pmap.get(e);
-            old.addAll(preds);
-            pmap.put(e, old);
-        } else {
-            pmap.put(e, preds);
-        }
-      }
+                                           Iterable<Predicate> preds) {
+      pmap.putAll(e, preds);
     }
 
     @Override
@@ -118,9 +101,7 @@ public class CounterexampleTraceInfo {
     }
     
     public Model getCounterexample() {
-      if (!hasCounterexample()) {
-        throw new RuntimeException("No model available!");
-      }
+      Preconditions.checkState(hasCounterexample());
       
       return mCounterexample;
     }

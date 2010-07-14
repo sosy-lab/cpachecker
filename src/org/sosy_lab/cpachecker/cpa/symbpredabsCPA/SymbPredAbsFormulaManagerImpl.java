@@ -619,20 +619,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     long msatSolveTimeEnd = System.currentTimeMillis();
     long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 
-    CounterexampleTraceInfo info;
-    
-    if (spurious) {
-      info = new CounterexampleTraceInfo();
-    }
-    else {
-      info = new CounterexampleTraceInfo(pItpProver.getModel());
-    }
-    
-    //CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
-
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
+    CounterexampleTraceInfo info;
+
     if (spurious) {
+      info = new CounterexampleTraceInfo();
       int refinement = stats.numCallsCexAnalysis;
 
       // the counterexample is spurious. Extract the predicates from
@@ -677,7 +669,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
           Collection<SymbolicFormula> atoms = smgr.extractAtoms(itp, splitItpAtoms, false);
           assert !atoms.isEmpty();
-          Set<Predicate> preds = buildPredicates(atoms);
+          Collection<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
           logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
@@ -717,6 +709,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     } else {
       // this is a real bug, notify the user
+      info = new CounterexampleTraceInfo(pItpProver.getModel());
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
