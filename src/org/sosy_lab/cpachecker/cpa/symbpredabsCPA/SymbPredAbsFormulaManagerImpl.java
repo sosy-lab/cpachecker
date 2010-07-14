@@ -556,8 +556,6 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
    */
   private CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
-
-    InterpolatingTheoremProver<T> lItpProver = pItpProver;
     
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
@@ -577,7 +575,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     // concrete counterexample
 
     // create a working environment
-    lItpProver.init();
+    pItpProver.init();
 
     long msatSolveTimeStart = System.currentTimeMillis();
 
@@ -608,12 +606,12 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       for (int i = useSuffix ? f.size()-1 : 0;
       useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
 
-        itpGroupsIds.set(i, lItpProver.addFormula(f.get(i)));
+        itpGroupsIds.set(i, pItpProver.addFormula(f.get(i)));
       }
-      spurious = lItpProver.isUnsat();
+      spurious = pItpProver.isUnsat();
 
     } else {
-      spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds);
+      spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds, pItpProver);
     }
     assert itpGroupsIds.size() == f.size();
     assert !itpGroupsIds.contains(null); // has to be filled completely
@@ -627,7 +625,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       info = new CounterexampleTraceInfo();
     }
     else {
-      info = new CounterexampleTraceInfo(lItpProver.getModel());
+      info = new CounterexampleTraceInfo(pItpProver.getModel());
     }
     
     //CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
@@ -662,7 +660,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
             start_of_a, "to", i);
 
         msatSolveTimeStart = System.currentTimeMillis();
-        SymbolicFormula itp = lItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
+        SymbolicFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
@@ -725,7 +723,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       dumpFormulasToFile(f, msatCexFile);
     }
 
-    lItpProver.reset();
+    pItpProver.reset();
 
     // update stats
     long endTime = System.currentTimeMillis();
@@ -832,7 +830,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   }
 
   private boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas,
-      List<T> itpGroupsIds) {
+        List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) {
     Boolean tmpSpurious = null;
 
     if (useZigZag) {
@@ -847,12 +845,12 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
         tmpSpurious = null;
         SymbolicFormula fm = traceFormulas.get(i);
-        itpGroupsIds.set(i, itpProver.addFormula(fm));
+        itpGroupsIds.set(i, pItpProver.addFormula(fm));
         if (!fm.isTrue()) {
-          if (itpProver.isUnsat()) {
+          if (pItpProver.isUnsat()) {
             tmpSpurious = Boolean.TRUE;
             for (int j = s; j <= e; ++j) {
-              itpGroupsIds.set(j, itpProver.addFormula(traceFormulas.get(j)));
+              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
             }
             break;
           } else {
@@ -867,16 +865,16 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
         tmpSpurious = null;
         SymbolicFormula fm = traceFormulas.get(i);
-        itpGroupsIds.set(i, itpProver.addFormula(fm));
+        itpGroupsIds.set(i, pItpProver.addFormula(fm));
         if (!fm.isTrue()) {
-          if (itpProver.isUnsat()) {
+          if (pItpProver.isUnsat()) {
             tmpSpurious = Boolean.TRUE;
             // we need to add the other formulas to the itpProver
             // anyway, so it can setup its internal state properly
             for (int j = i+(useSuffix ? -1 : 1);
             useSuffix ? j >= 0 : j < traceFormulas.size();
             j += useSuffix ? -1 : 1) {
-              itpGroupsIds.set(j, itpProver.addFormula(traceFormulas.get(j)));
+              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
             }
             break;
           } else {
@@ -886,7 +884,7 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       }
     }
 
-    return (tmpSpurious == null) ? itpProver.isUnsat() : tmpSpurious;
+    return (tmpSpurious == null) ? pItpProver.isUnsat() : tmpSpurious;
   }
 
   private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,
