@@ -168,11 +168,9 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula replaceAssignments(SymbolicFormula f);
       
     /**
-     * Extracts the atoms from the given formula. If uninstantiate is true,
-     * then the atoms are in the "generic" form
+     * Extracts the atoms from the given formula. Any SSA indices are removed
+     * from the symbols in the atoms.
      * @param f the formula to operate on
-     * @param uninstantiate controls whether the returned atoms are still
-     *                      instantiated or not
      * @param splitArithEqualities if true, return (x <= y) and (y <= x)
      *                             instead of (x = y)
      * @param conjunctionsOnly if true, don't extract atoms, but only top-level
@@ -182,8 +180,7 @@ public interface SymbolicFormulaManager {
      * @return a collection of (atomic) formulas
      */
     public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
-            boolean uninstantiate, boolean splitArithEqualities,
-            boolean conjunctionsOnly);
+             boolean splitArithEqualities, boolean conjunctionsOnly);
 
     /**
      * Extracts the SSA indices from a formula. 

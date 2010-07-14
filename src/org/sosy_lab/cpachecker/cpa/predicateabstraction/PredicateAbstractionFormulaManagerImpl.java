@@ -933,7 +933,7 @@ implements PredicateAbstractionFormulaManager {
 
         extTimeStart = System.currentTimeMillis();
         Collection<SymbolicFormula> atoms = smgr.extractAtoms(
-            itp, true, splitItpAtoms, nonAtomicPredicates);
+            itp, splitItpAtoms, nonAtomicPredicates);
         Set<Predicate> preds = buildPredicates(atoms);
 
         extTimeEnd = System.currentTimeMillis();

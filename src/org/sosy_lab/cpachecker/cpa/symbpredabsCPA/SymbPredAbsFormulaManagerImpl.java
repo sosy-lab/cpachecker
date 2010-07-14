@@ -675,7 +675,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         } else {
           foundPredicates = true;
 
-          Collection<SymbolicFormula> atoms = smgr.extractAtoms(itp, true, splitItpAtoms, false);
+          Collection<SymbolicFormula> atoms = smgr.extractAtoms(itp, splitItpAtoms, false);
           assert !atoms.isEmpty();
           Set<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);

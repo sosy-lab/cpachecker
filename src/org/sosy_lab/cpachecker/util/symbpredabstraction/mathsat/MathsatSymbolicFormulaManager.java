@@ -2329,8 +2329,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   @Override
   public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
-      boolean uninst, boolean splitArithEqualities,
-      boolean conjunctionsOnly) {
+      boolean splitArithEqualities, boolean conjunctionsOnly) {
     Set<Long> cache = new HashSet<Long>();
     //Set<Long> atoms = new HashSet<Long>();
     Set<Long> atoms = new TreeSet<Long>(MathsatComparator);
@@ -2349,9 +2348,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
 
       if (mathsat.api.msat_term_is_atom(term) != 0) {
-        if (uninst) {
-          term = uninstantiate(term);
-        }
+        term = uninstantiate(term);
         if (splitArithEqualities &&
             mathsat.api.msat_term_is_equal(term) != 0 &&
             isPurelyArithmetic(term, arithCache)) {
@@ -2379,9 +2376,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           }
         } else {
           // otherwise, treat this as atomic
-          if (uninst) {
-            term = uninstantiate(term);
-          }
+          term = uninstantiate(term);
           atoms.add(term);
         }
       } else {
