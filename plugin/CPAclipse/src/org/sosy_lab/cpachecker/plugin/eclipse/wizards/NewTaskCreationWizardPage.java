@@ -15,11 +15,16 @@ import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.dialogs.ResourceSelectionDialog;
+import org.eclipse.ui.internal.ide.IDEWorkbenchMessages;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 
 public class NewTaskCreationWizardPage extends WizardPage {
@@ -62,7 +67,20 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
 		configTextControl.setLayoutData(gridData);
-		configTextControl.setText("TestProjekt/src/setuid.properties");
+		configTextControl.setText("something.properties");
+		
+		Label specificationLabel = new Label(composite, SWT.NONE);
+		specificationLabel.setText("Specification File:");
+		gridData = new GridData();
+		gridData.verticalAlignment = SWT.TOP;
+		specificationLabel.setLayoutData(gridData);
+		
+		specificationTextControl = new Text(composite, SWT.BORDER);
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		specificationTextControl.setLayoutData(gridData);
+		specificationTextControl.setText("something.spc");
 		
 		Label sourceLabel = new Label(composite, SWT.NONE);
 		sourceLabel.setText("Source File:");
@@ -77,7 +95,7 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		gridData.verticalAlignment = SWT.FILL;
 		gridData.grabExcessVerticalSpace = true;
 		sourceTextControl.setLayoutData(gridData);
-		sourceTextControl.setText("src/simple_setuid_test.c");
+		sourceTextControl.setText("something.c");
 		sourceTextControl.addFocusListener(new FocusListener() {
 			@Override
 			public void focusLost(FocusEvent e) {
