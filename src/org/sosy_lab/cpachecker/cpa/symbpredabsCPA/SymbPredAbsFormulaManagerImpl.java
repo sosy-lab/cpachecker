@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -795,28 +796,28 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
-    SSAMap ssa = null;
-
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
-    for (SymbPredAbsAbstractElement e : abstractTrace) {
-      // here we take the formula from the abstract element
-      PathFormula p = e.getInitAbstractionFormula();
-      SSAMap newSsa;
-      SymbolicFormula f;
+    Iterator<SymbPredAbsAbstractElement> it = abstractTrace.iterator();
+    assert it.hasNext();
+    
+    // handle first formula separately because we don't need to shift
+    PathFormula p = it.next().getInitAbstractionFormula();
+    SSAMap ssa = p.getSsa();
+    result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
+    
+    while (it.hasNext()) {
+      p = it.next().getInitAbstractionFormula();
 
-      if (ssa != null) {
-        // don't need to call replaceAssignments because shift does the same trick
-        p = smgr.shift(p.getSymbolicFormula(), ssa);
-        f = p.getSymbolicFormula();
-        newSsa = p.getSsa();
-        newSsa.update(ssa);
-      } else {
-        f = smgr.replaceAssignments(p.getSymbolicFormula());
-        newSsa = p.getSsa();
-      }
-
-      result.add(f);
+      // don't need to call replaceAssignments because shift does the same trick
+      p = smgr.shift(p.getSymbolicFormula(), ssa);
+      
+      result.add(p.getSymbolicFormula());
+      
+      // shift returns a new ssa map,
+      // we need to add those variables that were not used by shift()
+      SSAMap newSsa = p.getSsa();
+      newSsa.update(ssa);
       ssa = newSsa;
     }
     return result;
