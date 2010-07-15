@@ -1,11 +1,8 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.logging.StreamHandler;

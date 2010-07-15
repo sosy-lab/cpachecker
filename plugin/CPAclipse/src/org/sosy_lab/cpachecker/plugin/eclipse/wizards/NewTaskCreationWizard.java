@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
 	private NewTaskCreationWizardPage firstPage;
-	private IWorkbench workbench;
-	private IStructuredSelection selection;
+	//private IWorkbench workbench;
+	//private IStructuredSelection selection;
 	
 	public NewTaskCreationWizard() {
 		super();
@@ -45,8 +45,8 @@ public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
 	
 	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
-		this.workbench = workbench;
-		this.selection = selection;
+		//this.workbench = workbench;
+		//this.selection = selection;
 		setWindowTitle("new Task");
 		//setDefaultPageImageDescriptor(ReadmeImages.README_WIZARD_BANNER);
 	}

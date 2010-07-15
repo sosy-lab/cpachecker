@@ -270,7 +270,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 			manager.add(new Separator());
 			manager.add(new RenameTasksAction(this.getSite().getShell(), selectedTasks));
 			manager.add(new DeleteTasksAction(this.getSite().getShell(), selectedTasks));
-			manager.add(new SaveTasksAction(this.getSite().getShell(), selectedTasks));
+			manager.add(new SaveTasksAction());
 			manager.add(new Separator());
 			if (selection.size()==1 
 					&& selection.getFirstElement() instanceof Node 

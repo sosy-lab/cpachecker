@@ -3,11 +3,7 @@ package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 import java.util.Collections;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.action.Action;
-import org.eclipse.jface.dialogs.IInputValidator;
 import org.eclipse.swt.widgets.Shell;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
@@ -52,7 +48,7 @@ public class SetConfigFileInTaskAction extends Action {
 			CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
 		}*/
 	}
-	
+	/*
 	private static class Vaildator implements IInputValidator {
 		@Override
 		public String isValid(String newText) {
@@ -64,5 +60,5 @@ public class SetConfigFileInTaskAction extends Action {
 				return null;
 			}
 		}
-	}
+	}*/
 }
