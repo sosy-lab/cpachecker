@@ -8,13 +8,10 @@ import org.eclipse.cdt.core.model.ICProject;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.FocusEvent;
-import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.layout.GridData;
@@ -23,8 +20,9 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.dialogs.ResourceSelectionDialog;
-import org.eclipse.ui.internal.ide.IDEWorkbenchMessages;
+import org.eclipse.ui.dialogs.ElementTreeSelectionDialog;
+import org.eclipse.ui.model.BaseWorkbenchContentProvider;
+import org.eclipse.ui.model.WorkbenchLabelProvider;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 
 public class NewTaskCreationWizardPage extends WizardPage {
@@ -43,7 +41,14 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		super(pageName);
 		parent = newTaskWizard;
 	}
-
+	
+	public void infoChanged() {
+		if (getITranslationUnit() == null || getConfigFile() == null || getSpecificationFile() == null) {
+			super.setPageComplete(false);
+		} else {
+			super.setPageComplete(true);
+		}
+	}
 	@Override
 	public void createControl(Composite parent) {
 		composite = new Composite(parent, SWT.NONE);
@@ -62,12 +67,54 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		Label configLabel = new Label(composite, SWT.NONE);
 		configLabel.setText("Config File:");
 		
-		configTextControl = new Text(composite, SWT.BORDER);
+		Composite partComposite = new Composite(composite, SWT.NONE);
+		partComposite.setLayout(new GridLayout(2, false));
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		partComposite.setLayoutData(gridData);
+		
+		configTextControl = new Text(partComposite, SWT.BORDER);
+		configTextControl.setEnabled(false);
 		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
 		configTextControl.setLayoutData(gridData);
 		configTextControl.setText("something.properties");
+		
+		Button selButton = new Button(partComposite, SWT.NONE);
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.RIGHT;
+		gridData.grabExcessHorizontalSpace = false;
+		selButton.setLayoutData(gridData);
+		selButton.setText("select config file");
+		selButton.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
+						NewTaskCreationWizardPage.this.getShell(), 
+						new WorkbenchLabelProvider(), new BaseWorkbenchContentProvider());
+				dialog.setTitle("Config File Selection");
+				dialog.setMessage("Select the config file from the tree:");
+				dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
+				dialog.setAllowMultiple(false);
+				dialog.open();
+				if (dialog.getFirstResult() instanceof IFile) {
+					IFile result = (IFile) dialog.getFirstResult();
+					if (result.getFileExtension().equals("properties")) {
+						NewTaskCreationWizardPage.this.configFile = result;
+						NewTaskCreationWizardPage.this.configTextControl.setText(result.getFullPath().toPortableString());
+						NewTaskCreationWizardPage.this.setMessage("Config File Set");
+					} else {
+						setErrorMessage("No Java Properties File.");
+					}
+				} else {
+					setErrorMessage("Failed to locate the file.");
+				}
+				NewTaskCreationWizardPage.this.infoChanged();
+				super.mouseDown(e);
+			}
+		});
 		
 		Label specificationLabel = new Label(composite, SWT.NONE);
 		specificationLabel.setText("Specification File:");
@@ -75,12 +122,54 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		gridData.verticalAlignment = SWT.TOP;
 		specificationLabel.setLayoutData(gridData);
 		
-		specificationTextControl = new Text(composite, SWT.BORDER);
+		partComposite = new Composite(composite, SWT.NONE);
+		partComposite.setLayout(new GridLayout(2, false));
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		partComposite.setLayoutData(gridData);
+		
+		specificationTextControl = new Text(partComposite, SWT.BORDER);
+		specificationTextControl.setEnabled(false);
 		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
 		specificationTextControl.setLayoutData(gridData);
 		specificationTextControl.setText("something.spc");
+		
+		selButton = new Button(partComposite, SWT.NONE);
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.RIGHT;
+		gridData.grabExcessHorizontalSpace = false;
+		selButton.setLayoutData(gridData);
+		selButton.setText("select specification file");
+		selButton.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
+						NewTaskCreationWizardPage.this.getShell(), 
+						new WorkbenchLabelProvider(), new BaseWorkbenchContentProvider());
+				dialog.setTitle("Specification File Selection");
+				dialog.setMessage("Select the specification file from the tree:");
+				dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
+				dialog.setAllowMultiple(false);
+				dialog.open();
+				if (dialog.getFirstResult() instanceof IFile) {
+					IFile result = (IFile) dialog.getFirstResult();
+					if (result.getFileExtension().equals("spc")) {
+						NewTaskCreationWizardPage.this.specificationFile = result;
+						NewTaskCreationWizardPage.this.specificationTextControl.setText(result.getFullPath().toPortableString());
+						NewTaskCreationWizardPage.this.setMessage("Specification File Set");
+					} else {
+						setErrorMessage("No Specification File.");
+					}
+				} else {
+					setErrorMessage("Failed to locate the file.");
+				}
+				NewTaskCreationWizardPage.this.infoChanged();
+				super.mouseDown(e);
+			}
+		});
 		
 		Label sourceLabel = new Label(composite, SWT.NONE);
 		sourceLabel.setText("Source File:");
@@ -88,7 +177,15 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		gridData.verticalAlignment = SWT.TOP;
 		sourceLabel.setLayoutData(gridData);
 		
-		sourceTextControl = new Text(composite, SWT.BORDER | SWT.WRAP | SWT.MULTI);
+		partComposite = new Composite(composite, SWT.NONE);
+		partComposite.setLayout(new GridLayout(2, false));
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		partComposite.setLayoutData(gridData);
+		
+		sourceTextControl = new Text(partComposite, SWT.BORDER | SWT.WRAP | SWT.MULTI);
+		sourceTextControl.setEnabled(false);
 		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
@@ -96,89 +193,57 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		gridData.grabExcessVerticalSpace = true;
 		sourceTextControl.setLayoutData(gridData);
 		sourceTextControl.setText("something.c");
-		sourceTextControl.addFocusListener(new FocusListener() {
+		
+		selButton = new Button(partComposite, SWT.NONE);
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.RIGHT;
+		gridData.grabExcessHorizontalSpace = false;
+		selButton.setLayoutData(gridData);
+		selButton.setText("select source file");
+		selButton.addMouseListener(new MouseAdapter() {
 			@Override
-			public void focusLost(FocusEvent e) {
-				NewTaskCreationWizardPage.this.obtainSourceFile(sourceTextControl.getText());
-				
-			}
-			@Override
-			public void focusGained(FocusEvent e) {
-				// nothing
-			}
-		});
-		configTextControl.addFocusListener(new FocusListener() {
-			@Override
-			public void focusLost(FocusEvent e) {
-				NewTaskCreationWizardPage.this.obtainConfigFile(configTextControl.getText());
-				
-			}
-			@Override
-			public void focusGained(FocusEvent e) {
-				// nothing
+			public void mouseDown(MouseEvent e) {
+				ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
+						NewTaskCreationWizardPage.this.getShell(), 
+						new WorkbenchLabelProvider(), new BaseWorkbenchContentProvider());
+				dialog.setTitle("Source File Selection");
+				dialog.setMessage("Select the source file from the tree:");
+				dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
+				dialog.setAllowMultiple(false);
+				dialog.open();
+				if (dialog.getFirstResult() instanceof IFile) {
+					IFile result = (IFile) dialog.getFirstResult();
+					if (obtainSourceFile(result)) {
+						NewTaskCreationWizardPage.this.sourceTextControl.setText(result.getFullPath().toPortableString());
+					}
+				} else {
+					setErrorMessage("Failed to locate the file.");
+				}
+				NewTaskCreationWizardPage.this.infoChanged();
+				super.mouseDown(e);
 			}
 		});
 		super.setControl(composite);
 	}
 	
 	IFile getConfigFile() {
-		if (configFile == null) {
-			obtainConfigFile(this.configTextControl.getText());
-		}
 		return configFile;
 	}
 	IFile getSpecificationFile() {
-		if (specificationFile == null) {
-			obtainSpecificationFile(this.specificationTextControl.getText());
-		}
-		return configFile;
+		return specificationFile;
 	}
 	
 	private void setITranslationUnit(ITranslationUnit source) {
 		this.sourceFile = source;
 	}
-	
-	public ITranslationUnit getITranslationUnit() {
-		if (this.sourceFile == null) {
-			obtainSourceFile(this.sourceTextControl.getText());
-		}
-		return this.sourceFile;
-	}
 
 	public String getTaskName() {
 		return nameTextControl.getText();
 	}
-	private boolean obtainConfigFile(String configFilePath) {
-		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-		IResource member = fWorkspaceRoot.findMember(configFilePath);
-		if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
-			this.setErrorMessage("Failed to locate the file " + configFilePath);
-			return false;
-		} else {
-			IFile file = (IFile)member;
-			this.configFile = file;
-			this.setMessage("ConfigFile is now: " + member.getFullPath().toPortableString());
-			return true;
-		}
-	}
-	private boolean obtainSpecificationFile(String specFilePath) {
-		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-		IResource member = fWorkspaceRoot.findMember(specFilePath);
-		if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
-			this.setErrorMessage("Failed to locate the file " + specFilePath);
-			return false;
-		} else {
-			IFile file = (IFile)member;
-			this.specificationFile = file;
-			this.setMessage("Specification is now: " + member.getFullPath().toPortableString());
-			return true;
-		}
-	}
 	
-	private boolean obtainSourceFile(String sourceFilePath) {
+	private boolean obtainSourceFile(IFile sourceFile) {
 		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
 	    ICModel fInput = CoreModel.create(fWorkspaceRoot);
-	    
 		ITranslationUnit tu = null;
 		try {
 			ICProject[] cProjects = fInput.getCProjects();
@@ -186,20 +251,18 @@ public class NewTaskCreationWizardPage extends WizardPage {
 			for (int i = 0; i < cProjects.length; i++) {
 				projectsToLookIn[i] = cProjects[i].getProject();
 			}
-			//TODO: so far we are only looking in the first project!
-			IFile ifile = projectsToLookIn[0].getFile(sourceFilePath);
-			tu = CoreModelUtil.findTranslationUnit(ifile);
+			tu = CoreModelUtil.findTranslationUnit(sourceFile);
 		} catch (CModelException e) {
 			this.setErrorMessage("Exception in the CModel: " + e.getLocalizedMessage());
 			CPAclipse.logError("Exception in the CModel: ", e);
 			return false;
 		} catch (Exception e) {
-			this.setErrorMessage("Failed to locate the file " + sourceFilePath);
+			this.setErrorMessage("Failed to locate the file " + sourceFile.getFullPath().toString());
 			CPAclipse.logError("Failed to locate the file ", e);
 			return false;
 		}
 		if (tu == null) {
-			this.setErrorMessage("Could not find the c source file " + sourceFilePath);
+			this.setErrorMessage("Could not find the c source file " + sourceFile.getFullPath().toString());
 			return false;
 		} else {
 			this.setITranslationUnit(tu);
@@ -207,6 +270,9 @@ public class NewTaskCreationWizardPage extends WizardPage {
 			this.setMessage("Source is " + tu.getPath() + " in Project " + tu.getCProject().getElementName());
 			return true;
 		}
-		
+	}
+
+	public ITranslationUnit getITranslationUnit() {
+		return sourceFile;
 	}
 }
