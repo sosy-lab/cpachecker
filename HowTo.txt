@@ -18,6 +18,7 @@ Building CPAchecker:
 2. Checkout CPAchecker from SVN repository.
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
 3. Install ant (anything since version 1.6 should be ok).
+   The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
 4. Run "ant" in CPAchecker directory to build CPAchecker.
 
 Running CPAchecker:
