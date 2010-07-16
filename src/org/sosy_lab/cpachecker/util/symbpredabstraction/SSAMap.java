@@ -25,15 +25,18 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -44,35 +47,7 @@ import com.google.common.collect.Lists;
  */
 public class SSAMap {
 
-  private static interface Key {}
-
-  private static class VarKey implements Key {
-    private final String name;
-
-    public VarKey(String str) { name = str; }
-    public String getName() { return name; }
-
-    @Override
-    public int hashCode() {
-      return name.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      } else if (o instanceof VarKey) {
-        return name.equals(((VarKey)o).name);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public String toString() { return name; }
-  }
-
-  private static class FuncKey implements Key {
+  private static class FuncKey {
     private final String name;
     private final SymbolicFormula[] args;
 
@@ -107,84 +82,83 @@ public class SSAMap {
     }
   }
 
-  private final Map<Key, Integer> repr = new HashMap<Key, Integer>();
+  private final Map<String, Integer> vars = new HashMap<String, Integer>();
+  private final Map<FuncKey, Integer> funcs = new HashMap<FuncKey, Integer>();
+  
 
   public SSAMap() { }
   
   public SSAMap(SSAMap old) {
     Preconditions.checkNotNull(old);
-    repr.putAll(old.repr);
+    vars.putAll(old.vars);
+    funcs.putAll(old.funcs);
   }
   
-    /**
-     * returns the index of the variable in the map
-     */
-    public int getIndex(String variable) {
-      int i;
-      VarKey k = new VarKey(variable);
-      if (repr.containsKey(k)) {
-          i = repr.get(k);
-      } else {
-          // no index found, return -1
-          i = -1;
-      }
+  /**
+   * returns the index of the variable in the map
+   */
+  public int getIndex(String variable) {
+    Integer i = vars.get(variable);
+    if (i != null) {
       return i;
+    } else {
+      // no index found, return -1
+      return -1;
     }
+  }
 
-    public void setIndex(String variable, int idx) {
-        repr.put(new VarKey(variable), idx);
+  public void setIndex(String variable, int idx) {
+    vars.put(variable, idx);
+  }
+
+  public int getIndex(String name, SymbolicFormula[] args) {
+    Integer i = funcs.get(new FuncKey(name, args));
+    if (i != null) {
+      return i;
+    } else {
+      // no index found, return -1
+      return -1;
     }
+  }
 
-    public int getIndex(String name, SymbolicFormula[] args) {
-        FuncKey k = new FuncKey(name, args);
-        if (repr.containsKey(k)) {
-            return repr.get(k);
-        } else {
-            return -1;
-        }
+  public void setIndex(String name, SymbolicFormula[] args, int idx) {
+    funcs.put(new FuncKey(name, args), idx);
+  }
+
+  public Collection<String> allVariables() {
+    return Collections.unmodifiableSet(vars.keySet());
+  }
+
+  public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
+    List<Pair<String, SymbolicFormula[]>> ret = Lists.newArrayList();
+
+    for (FuncKey k : funcs.keySet()) {
+      ret.add(new Pair<String, SymbolicFormula[]>(k.getName(), k.getArgs()));
     }
+    return ret;
+  }
 
-    public void setIndex(String name, SymbolicFormula[] args, int idx) {
-        repr.put(new FuncKey(name, args), idx);
-    }
+  private static final MapJoiner joiner = Joiner.on(" ").withKeyValueSeparator("@");
+  
+  @Override
+  public String toString() {
+    return joiner.join(vars) + " " + joiner.join(funcs);
+  }
 
-    public Collection<String> allVariables() {
-      List<String> ret = Lists.newArrayList();
-
-      for (Key k : repr.keySet()) {
-        if (k instanceof VarKey) {
-          ret.add(((VarKey)k).getName());
-        }
+  /**
+   * updates this map with the contents of other. That is, adds to this map
+   * all the variables present in other but not in this
+   */
+  public void update(SSAMap other) {
+    for (Entry<String, Integer> k : other.vars.entrySet()) {
+      if (!vars.containsKey(k.getKey())) {
+        vars.put(k.getKey(), k.getValue());
       }
-      return ret;
     }
-
-    public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
-      List<Pair<String, SymbolicFormula[]>> ret = Lists.newArrayList();
-
-      for (Key k : repr.keySet()) {
-        if (k instanceof FuncKey) {
-          FuncKey kk = (FuncKey)k;
-          ret.add(new Pair<String, SymbolicFormula[]>(kk.getName(), kk.getArgs()));
-        }
+    for (Entry<FuncKey, Integer> k : other.funcs.entrySet()) {
+      if (!funcs.containsKey(k.getKey())) {
+        funcs.put(k.getKey(), k.getValue());
       }
-      return ret;
     }
-
-    @Override
-    public String toString() {
-      return Joiner.on(" ").withKeyValueSeparator("@").join(repr);
-    }
-
-    /**
-     * updates this map with the contents of other. That is, adds to this map
-     * all the variables present in other but not in this
-     */
-    public void update(SSAMap other) {
-        for (Key k : other.repr.keySet()) {
-            if (!repr.containsKey(k)) {
-                repr.put(k, other.repr.get(k));
-            }
-        }
-    }
+  }
 }
