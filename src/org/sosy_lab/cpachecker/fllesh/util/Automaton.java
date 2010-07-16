@@ -53,7 +53,7 @@ public class Automaton<T> {
         return false;
       }
       
-      Automaton<?>.Edge lEdge = (Automaton<?>.Edge)pOther;
+      Edge lEdge = (Edge)pOther;
         
       return lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget) && lEdge.getLabel().equals(mLabel);
     }
@@ -75,7 +75,7 @@ public class Automaton<T> {
         return false;
       }
       
-      Automaton<?>.LambdaEdge lEdge = (Automaton<?>.LambdaEdge)pOther;
+      LambdaEdge lEdge = (LambdaEdge)pOther;
         
       return lEdge.getSource().equals(getSource()) && lEdge.getTarget().equals(getTarget());
     }
