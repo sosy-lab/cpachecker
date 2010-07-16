@@ -288,7 +288,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, newSsa);
+    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa));
   }
 
   @Override

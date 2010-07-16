@@ -35,7 +35,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.Lists;
 
@@ -47,6 +46,42 @@ import com.google.common.collect.Lists;
  */
 public class SSAMap {
 
+  private static class UnmodifiableSSAMap extends SSAMap {
+    
+    private UnmodifiableSSAMap(SSAMap ssa) {
+      super(ssa.vars, ssa.funcs);
+    }
+    
+    @Override
+    public void setIndex(String pName, SymbolicFormula[] pArgs, int pIdx) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void setIndex(String pVariable, int pIdx) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void update(SSAMap pOther) {
+      throw new UnsupportedOperationException();
+    }
+  }
+  
+  public static SSAMap unmodifiableSSAMap(SSAMap ssa) {
+    if (ssa instanceof UnmodifiableSSAMap) {
+      return ssa;
+    } else {
+      return new UnmodifiableSSAMap(ssa);
+    }
+  }
+  
+  private static final SSAMap EMPTY_SSA_MAP = new UnmodifiableSSAMap(new SSAMap());
+  
+  public static SSAMap emptySSAMap() {
+    return EMPTY_SSA_MAP;
+  }
+  
   private static class FuncKey {
     private final String name;
     private final SymbolicFormula[] args;
@@ -82,16 +117,23 @@ public class SSAMap {
     }
   }
 
-  private final Map<String, Integer> vars = new HashMap<String, Integer>();
-  private final Map<FuncKey, Integer> funcs = new HashMap<FuncKey, Integer>();
-  
+  private final Map<String, Integer> vars;
+  private final Map<FuncKey, Integer> funcs;
 
-  public SSAMap() { }
+  public SSAMap() {
+    vars = new HashMap<String, Integer>();
+    funcs = new HashMap<FuncKey, Integer>();
+  }
   
   public SSAMap(SSAMap old) {
-    Preconditions.checkNotNull(old);
+    this();
     vars.putAll(old.vars);
     funcs.putAll(old.funcs);
+  }
+  
+  private SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
+    this.vars = vars;
+    this.funcs = funcs;
   }
   
   /**

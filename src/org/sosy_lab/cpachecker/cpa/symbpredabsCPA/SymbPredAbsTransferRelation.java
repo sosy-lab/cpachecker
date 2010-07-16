@@ -255,7 +255,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
+    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), SSAMap.emptySSAMap());
 
     numAbstractions++;
 
@@ -431,7 +431,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         return Collections.singleton(new SymbPredAbsAbstractElement(
             // set 'abstractionLocation' to edge.getSuccessor()
             // set 'pathFormula' to true
-            edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap()),
+            edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), SSAMap.emptySSAMap()),
             // set 'initAbstractionFormula' to old pathFormula
             // set 'abstraction' to true (we don't know better)
             element.getPathFormula(), abstractFormulaManager.makeTrue()));

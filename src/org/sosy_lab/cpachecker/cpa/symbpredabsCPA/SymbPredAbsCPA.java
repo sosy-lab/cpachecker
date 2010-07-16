@@ -210,7 +210,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
+    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), SSAMap.emptySSAMap());
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
     return new SymbPredAbsAbstractElement(node,
