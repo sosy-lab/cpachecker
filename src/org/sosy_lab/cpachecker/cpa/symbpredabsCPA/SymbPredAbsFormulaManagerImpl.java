@@ -218,7 +218,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     long startTime = System.currentTimeMillis();
 
     final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
-    SSAMap ssa = pathFormula.getSsa();
+    
+    // clone ssa map because we might change it
+    SSAMap ssa = new SSAMap(pathFormula.getSsa());
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
