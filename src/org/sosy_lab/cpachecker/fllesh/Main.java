@@ -142,6 +142,8 @@ public class Main {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
+    //String lTestHarness = "void __FLLESH__main() { foo(10); }";
+    //Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager, lTestHarness);
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
     
@@ -471,6 +473,9 @@ public class Main {
   }
   
   private static CFAEdge[] reconstructPath(Model pCounterexample, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, Configuration pConfiguration, LogManager pLogManager, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
+    
+    System.out.println(pCounterexample);
+    
     // location CPA
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
@@ -508,7 +513,10 @@ public class Main {
     Set<AbstractElement> lEndNodes = getFinalStates(pCounterexample, lAlgorithm, pEntry, pEndNode);
     
     if (lEndNodes.size() != 1) {
+      System.out.println(lEndNodes);
       throw new RuntimeException();
+      // TODO add proper handling
+      //return new CFAEdge[0];
     }
     
     CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
@@ -611,6 +619,8 @@ public class Main {
       throw new RuntimeException(e);
     }
     
+    System.out.println(lReachedElements.getReached());
+    
     return lReachedElements.getReached(pEndNode);
   }
   
@@ -622,7 +632,11 @@ public class Main {
     Set<MathsatAssignable> lAssignables = lCounterexample.getAssignables();
     
     for (MathsatAssignable lAssignable : lAssignables) {
-      if (lAssignable.getName().endsWith("@1")) {
+      
+      // TODO hier liegt wohl ein Problem vor!!! Muss behoben werden!!!
+      
+      //if (lAssignable.getName().endsWith("@1")) {
+      if (lAssignable.getName().endsWith("@2")) {
         String lVariableName = lAssignable.getName().substring(0, lAssignable.getName().length() - 2);
         
         MathsatValue lValue = lCounterexample.getValue(lAssignable);
@@ -632,6 +646,8 @@ public class Main {
         lElement.assignConstant(lVariableName, (long)lDoubleValue, Integer.MAX_VALUE);
       }
     }
+    
+    System.out.println("Initial element: " + lElement.toString());
     
     return lElement;
   }

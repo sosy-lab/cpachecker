@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.Annotations;
 import org.sosy_lab.cpachecker.fllesh.util.CFATraversal;
 import org.sosy_lab.cpachecker.fllesh.util.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CParser;
@@ -161,36 +160,22 @@ public class Wrapper {
     }
   }
 
-  public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, Annotations pAnnotations, LogManager pLogManager) {
-    mLogManager = pLogManager;
-    mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-    mCFAs.putAll(this.getWrapper(pMainFunction));
-    mCFAs.putAll(pCFAs);
-
-    mEntry = mCFAs.get("__FLLESH__main");
-
-    // set function names
-    CFATraversal.traverse(mEntry, Wrapper.FunctionNameSetter.getInstance());
-
-    // correct call to main function
-    //mVisitor = new AddFunctionCallVisitor(this.getCFAs());
-    mVisitor = new AddFunctionCallVisitor();
-
-    CFATraversal.traverse(mEntry, mVisitor);
-
-    for (CFAEdge lEdge : mVisitor.getEdges()) {
-      pAnnotations.getId(lEdge);
-    }
+  public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
+    this(pMainFunction, pCFAs, pLogManager, getWrapperCFunction(pMainFunction));
   }
   
-  public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
+  public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager, String pWrapperSource) {
+    this(pMainFunction, pCFAs, pLogManager, pWrapperSource, "__FLLESH__main");
+  }
+  
+  public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager, String pWrapperSource, String pEntryFunction) {
     mLogManager = pLogManager;
     mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-    mCFAs.putAll(this.getWrapper(pMainFunction));
+    mCFAs.putAll(this.getWrapper(pWrapperSource));
     mCFAs.putAll(pCFAs);
-
-    mEntry = mCFAs.get("__FLLESH__main");
-
+    
+    mEntry = mCFAs.get(pEntryFunction);
+    
     // set function names
     CFATraversal.traverse(mEntry, Wrapper.FunctionNameSetter.getInstance());
 
@@ -221,7 +206,7 @@ public class Wrapper {
     return mEntry;
   }
 
-  private String getWrapperCFunction(FunctionDefinitionNode pMainFunction) {
+  private static String getWrapperCFunction(FunctionDefinitionNode pMainFunction) {
     StringWriter lWrapperFunction = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lWrapperFunction);
 
@@ -254,16 +239,14 @@ public class Wrapper {
 
     return lWrapperFunction.toString();
   }
-
-  private Map<String, CFAFunctionDefinitionNode> getWrapper(FunctionDefinitionNode pMainFunction) {
-    String lWrapperFunction = getWrapperCFunction(pMainFunction);
-
+  
+  private Map<String, CFAFunctionDefinitionNode> getWrapper(String pWrapperFunction) {
     IASTTranslationUnit ast;
     try {
-       ast = CParser.parseString(lWrapperFunction, Dialect.C99);
+       ast = CParser.parseString(pWrapperFunction, Dialect.C99);
     } catch (CoreException e) {
       throw new RuntimeException("Error during parsing C code \""
-          + lWrapperFunction.toString() + "\": " + e.getMessage());
+          + pWrapperFunction.toString() + "\": " + e.getMessage());
     }
 
     checkForASTProblems(ast);
