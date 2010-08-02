@@ -37,9 +37,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CProver;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -65,8 +67,9 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     algorithm.run(reached, true);
 
-    if (reached.getLastElement().isError()) {
-      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath((ARTElement)reached.getLastElement());
+    AbstractElement lastElement = reached.getLastElement();
+    if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
+      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath((ARTElement)lastElement);
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
       
       boolean cbmcResult;

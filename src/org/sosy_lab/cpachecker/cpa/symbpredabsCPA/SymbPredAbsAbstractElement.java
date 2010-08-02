@@ -151,11 +151,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     return isAbstractionNode;
   }
 
-  @Override
-  public boolean isError() {
-    return false;
-  }
-
   public void setAbstraction(AbstractFormula pAbstraction) {
     abstraction = pAbstraction;
   }

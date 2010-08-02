@@ -206,9 +206,4 @@ public class InterpreterElementTest {
     assertEquals(lElement.toString(), "[ <w = -800980>  <z = -100> ] size->  2");
   }
 
-  @Test
-  public void testIsError() {
-    assertFalse(InterpreterBottomElement.getInstance().isError());
-  }
-
 }

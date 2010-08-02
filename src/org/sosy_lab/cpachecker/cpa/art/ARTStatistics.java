@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
@@ -81,11 +80,11 @@ public class ARTStatistics implements Statistics {
     }
 
     if (exportErrorPath) {
-      AbstractElement lastElement = pReached.getLastElement();
-      if (lastElement != null && lastElement.isError() && (lastElement instanceof ARTElement)) {
+      ARTElement lastElement = (ARTElement)pReached.getLastElement();
+      if (lastElement != null && lastElement.isTarget()) {
         try {
           Files.writeFile(errorPathFile,
-              AbstractARTBasedRefiner.buildPath((ARTElement)lastElement), false);
+              AbstractARTBasedRefiner.buildPath(lastElement), false);
         } catch (IOException e) {
           logger.log(Level.WARNING,
               "Could not write error path to file (", e.getMessage(), ")");
@@ -118,7 +117,7 @@ public class ARTStatistics implements Statistics {
         String color;
         if (currentElement.isCovered()) {
           color = "green";
-        } else if (currentElement.isError()) {
+        } else if (currentElement.isTarget()) {
           color = "red";
         } else {
           SymbPredAbsAbstractElement symbpredabselem = currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);

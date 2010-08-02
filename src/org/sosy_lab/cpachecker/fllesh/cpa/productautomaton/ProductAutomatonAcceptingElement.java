@@ -13,11 +13,6 @@ public class ProductAutomatonAcceptingElement implements ProductAutomatonElement
   }
   
   @Override
-  public boolean isError() {
-    return true;
-  }
-  
-  @Override
   public String toString() {
     return "Accept";
   }

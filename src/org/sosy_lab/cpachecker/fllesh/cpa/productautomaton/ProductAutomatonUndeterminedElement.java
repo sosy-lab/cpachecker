@@ -12,12 +12,7 @@ public class ProductAutomatonUndeterminedElement implements
   private ProductAutomatonUndeterminedElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
-  
+
   @Override
   public String toString() {
     return "Undetermined";

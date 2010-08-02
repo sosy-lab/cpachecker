@@ -11,10 +11,5 @@ public class UnconstrainedAssumeElement implements AssumeElement {
   private UnconstrainedAssumeElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
 
 }

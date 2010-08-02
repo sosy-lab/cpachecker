@@ -11,10 +11,5 @@ public class CFAPathBottomElement implements CFAPathElement {
   private CFAPathBottomElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
 
 }

@@ -63,7 +63,7 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
   }
 
   @Override
-  public boolean isError() {
+  public boolean isTarget() {
     return false;
   }
 

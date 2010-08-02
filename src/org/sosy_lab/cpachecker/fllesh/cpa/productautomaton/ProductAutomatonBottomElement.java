@@ -11,10 +11,5 @@ public class ProductAutomatonBottomElement implements ProductAutomatonElement {
   private ProductAutomatonBottomElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
 
 }

@@ -227,7 +227,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throws CPATransferException {
 
     PointerAnalysisElement successor = ((PointerAnalysisElement)element).clone();
-    if (successor.isError()) {
+    if (successor.isTarget()) {
       return Collections.emptySet();
     }
 

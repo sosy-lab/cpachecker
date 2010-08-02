@@ -69,11 +69,6 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
   }
 
   @Override
-  public boolean isError() {
-    return false;
-  }
-
-  @Override
   public boolean equals(Object pObj) {
     if (pObj instanceof GenericAssumptionsElement)
       return assumption.equals(((GenericAssumptionsElement)pObj).assumption);

@@ -11,10 +11,5 @@ public class GuardedEdgeAutomatonBottomElement implements GuardedEdgeAutomatonEl
   private GuardedEdgeAutomatonBottomElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
 
 }

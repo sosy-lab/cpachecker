@@ -113,11 +113,6 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     public String getCPAName() {
       return "edgevisit";
     }
-
-    @Override
-    public boolean isError() {
-      return false;
-    }
     
     @Override
     public void modifyProperty(String pModification)

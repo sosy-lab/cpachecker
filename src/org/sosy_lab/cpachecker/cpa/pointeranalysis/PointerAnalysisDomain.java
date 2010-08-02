@@ -37,22 +37,12 @@ public class PointerAnalysisDomain implements AbstractDomain {
   private static class PointerAnalysisBottomElement implements AbstractElement {
 
     @Override
-    public boolean isError() {
-      return false;
-    }
-
-    @Override
     public String toString() {
       return "<PointerAnalysis BOTTOM>";
     }
   }
 
   private static class PointerAnalysisTopElement implements AbstractElement {
-
-    @Override
-    public boolean isError() {
-      return false;
-    }
 
     @Override
     public String toString() {

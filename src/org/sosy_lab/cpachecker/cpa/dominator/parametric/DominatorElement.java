@@ -101,11 +101,6 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 	}
 
 	@Override
-  public boolean isError() {
-    return false;
-  }
-
-	@Override
 	public boolean equals(Object other) {
 		if (!(other instanceof DominatorElement)) {
 			return false;

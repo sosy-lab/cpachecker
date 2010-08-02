@@ -43,22 +43,12 @@ public class FlatLatticeDomain implements AbstractDomain {
 
   private static class BottomElement implements AbstractElement {
     @Override
-    public boolean isError() {
-      return false;
-    }
-
-    @Override
     public String toString() {
       return "<BOTTOM>";
     }
   }
 
   private static class TopElement implements AbstractElement {
-    @Override
-    public boolean isError() {
-      return false;
-    }
-
     @Override
     public String toString() {
       return "<TOP>";

@@ -67,11 +67,6 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
     return new ProgressObserverElement(cpa, node);
   }
 
-  @Override
-  public boolean isError() {
-    return false;
-  }
-
   public ProgressObserverElement(ProgressObserverCPA a, CFANode node)
   {
     this(new ArrayList<StopHeuristicsData>(a.getEnabledHeuristics().size()));

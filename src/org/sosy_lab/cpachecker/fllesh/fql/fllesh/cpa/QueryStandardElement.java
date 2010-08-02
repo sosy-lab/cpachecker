@@ -102,10 +102,4 @@ public class QueryStandardElement implements QueryElement {
     return "( <" + (mMustState1?mAutomatonState1.toString():"bot") + ", " + mAutomatonState1.toString() + ">, <" + (mMustState2?mAutomatonState2.toString():"bot") + ", " + mAutomatonState2.toString() + ">, " + mDataSpace.toString() + ")";
   }
 
-  @Override
-  public boolean isError() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 }

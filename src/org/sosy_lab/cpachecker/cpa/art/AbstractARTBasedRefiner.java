@@ -132,7 +132,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // first with the incoming edge and second with the outgoing edge
 
     ARTElement currentARTElement = pLastElement;
-    assert pLastElement.isError();
+    assert pLastElement.isTarget();
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges

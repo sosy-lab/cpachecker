@@ -11,10 +11,5 @@ public class AssumeBottomElement implements AssumeElement {
   private AssumeBottomElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
 
 }

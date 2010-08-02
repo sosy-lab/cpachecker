@@ -159,11 +159,6 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   }
 
   @Override
-  public boolean isError() {
-    return false;
-  }
-
-  @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     pProperty = pProperty.trim();
     String[] parts = pProperty.split("==");

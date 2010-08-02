@@ -6,8 +6,9 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
-public class CompoundElement implements AbstractWrapperElement {
+public class CompoundElement implements AbstractWrapperElement, Targetable {
   
   private List<AbstractElement> mElements;
   
@@ -66,9 +67,9 @@ public class CompoundElement implements AbstractWrapperElement {
   }
 
   @Override
-  public boolean isError() {
+  public boolean isTarget() {
     for (AbstractElement lSubelement : mElements) {
-      if (lSubelement.isError()) {
+      if ((lSubelement instanceof Targetable) && ((Targetable)lSubelement).isTarget()) {
         return true;
       }
     }

@@ -107,7 +107,7 @@ class AutomatonTransferRelation implements TransferRelation {
     if (state == state.getAutomatonCPA().getBottomState()) {
       return Collections.emptySet();
     }
-    if (state.isError()) {
+    if (state.isTarget()) {
       return Collections.singleton((AbstractElement)state);
     }
     

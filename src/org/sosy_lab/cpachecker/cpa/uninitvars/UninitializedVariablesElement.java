@@ -108,11 +108,6 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     localVars.pollLast();
   }
 
-  @Override
-  public boolean isError() {
-    return false;
-  }
-
   public void addWarning(Integer lineNumber, String variable, String message) {
     Triple<Integer, String, String> warning = new Triple<Integer, String, String>(lineNumber, variable, message);
     if (!warnings.contains(warning)) {

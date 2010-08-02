@@ -12,12 +12,7 @@ public class ProductAutomatonNonAcceptingElement implements
   private ProductAutomatonNonAcceptingElement() {
     
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
-  
+
   @Override
   public String toString() {
     return "NonAccept";

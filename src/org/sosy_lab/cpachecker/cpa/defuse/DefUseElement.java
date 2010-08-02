@@ -90,11 +90,6 @@ public class DefUseElement implements AbstractElement
     }
 
     @Override
-    public boolean isError() {
-      return false;
-    }
-
-    @Override
     public boolean equals (Object other)
     {
         if (this == other)

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -196,7 +197,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           reachedElements.add(successor, precision);
 
-          if(stopAfterError && successor.isError()) {
+          if(stopAfterError
+              // TODO refactor this
+              && (successor instanceof Targetable)
+              && ((Targetable)successor).isTarget()) {
             end = System.currentTimeMillis();
             stats.stopTime += (end - start);
             stats.totalTime += (end - startTotalTime);

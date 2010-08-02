@@ -21,22 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.alwaystop;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-public class AlwaysTopBottomElement implements AlwaysTopElement {
-  private static AlwaysTopBottomElement mInstance = new AlwaysTopBottomElement();
+/**
+ * This interface provides a method that signals if an abstract element will
+ * lead to an interruption of the CPA algorithm.
+ *
+ * It is provided as a shortcut, so that other CPAs' strengthen operator can
+ * check this condition without needing to know more about the current element
+ * (especially without knowing its actual type).
+ */
+public interface Targetable {
 
-  private AlwaysTopBottomElement() {
-
-  }
-
-  public static AlwaysTopBottomElement getInstance() {
-    return mInstance;
-  }
-
-  @Override
-  public String toString() {
-    return "FALSE";
-  }
+  public boolean isTarget();
 
 }

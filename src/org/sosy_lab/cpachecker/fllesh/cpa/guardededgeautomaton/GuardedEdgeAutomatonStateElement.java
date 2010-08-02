@@ -52,11 +52,6 @@ public abstract class GuardedEdgeAutomatonStateElement implements
   }
   
   @Override
-  public boolean isError() {
-    return false;
-  }
-  
-  @Override
   public String toString() {
     return mStringRepresentation;
   }

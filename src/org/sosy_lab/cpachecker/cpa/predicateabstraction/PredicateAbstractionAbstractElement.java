@@ -86,11 +86,6 @@ public class PredicateAbstractionAbstractElement implements AbstractElement, For
 //  }
 
   @Override
-  public boolean isError() {
-    return false;
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;

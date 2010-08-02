@@ -58,10 +58,4 @@ public class QueryTopElement implements QueryElement {
     return "Query Top Element";
   }
 
-  @Override
-  public boolean isError() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 }

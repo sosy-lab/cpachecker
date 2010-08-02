@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -33,7 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Instaces of this class are passed to the CPAchecker as AbstractElement.
  * @author rhein
  */
-class AutomatonState implements AbstractQueryableElement {
+class AutomatonState implements AbstractQueryableElement, Targetable {
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
   static class TOP extends AutomatonState {
@@ -50,7 +51,7 @@ class AutomatonState implements AbstractQueryableElement {
       return AutomatonAnalysisNamePrefix +  getAutomatonCPA().getAutomaton().getName();
     }
     @Override
-    public boolean isError() {
+    public boolean isTarget() {
       return false;
     }
   }
@@ -68,7 +69,7 @@ class AutomatonState implements AbstractQueryableElement {
       return AutomatonAnalysisNamePrefix +  getAutomatonCPA().getAutomaton().getName();
     }
     @Override
-    public boolean isError() {
+    public boolean isTarget() {
       return false;
     }
   }
@@ -102,7 +103,7 @@ class AutomatonState implements AbstractQueryableElement {
   }
 
   @Override
-  public boolean isError() {
+  public boolean isTarget() {
     if (this==this.automatonCPA.getTopState() || this == this.automatonCPA.getBottomState()) return false;
     return internalState == AutomatonInternalState.ERROR;
   }
@@ -197,7 +198,7 @@ class AutomatonState implements AbstractQueryableElement {
       return previousState.getVars();
     }
     @Override
-    public boolean isError() {
+    public boolean isTarget() {
       return false;
     }
 

@@ -44,11 +44,6 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     @Override
-    public boolean isError() {
-      return false;
-    }
-
-    @Override
     public boolean equals (Object other)
     {
       if (other == null) {

@@ -24,6 +24,4 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 public interface AbstractElement {
-
-  public boolean isError();
 }

@@ -89,11 +89,6 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
   }
 
   @Override
-  public boolean isError() {
-    return false;
-  }
-
-  @Override
   public Iterable<? extends AbstractElement> getWrappedElements() {
     return mWrappedElements;
   }

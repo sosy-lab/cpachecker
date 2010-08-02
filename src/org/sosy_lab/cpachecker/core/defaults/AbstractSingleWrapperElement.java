@@ -25,18 +25,19 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collections;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 
 /**
  * Base class for AbstractElements which wrap the abstract element of exactly
  * one CPA.
  */
-public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement {
+public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable {
 
   private static Function<AbstractElement, AbstractElement> unwrapFunction
       = new Function<AbstractElement, AbstractElement>() {
@@ -66,8 +67,12 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
   }
 
   @Override
-  public boolean isError() {
-    return wrappedElement.isError();
+  public boolean isTarget() {
+    if (wrappedElement instanceof Targetable) {
+      return ((Targetable)wrappedElement).isTarget();
+    } else {
+      return false;
+    }
   }
 
   @Override

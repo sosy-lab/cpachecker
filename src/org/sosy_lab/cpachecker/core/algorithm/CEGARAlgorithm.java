@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cegar")
@@ -166,7 +167,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       AbstractElement lastElement = reached.getLastElement();
 
       // if the element is an error element
-      if (lastElement != null && lastElement.isError()) {
+      if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
 
         logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;

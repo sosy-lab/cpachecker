@@ -47,8 +47,4 @@ public class InterpreterBottomElement implements InterpreterDomainElement {
     return "<ConcreteAnalysis BOTTOM>";
   }
 
-  @Override
-  public boolean isError() {
-    return false;
-  }
 }

@@ -81,11 +81,6 @@ public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge>
       return mPredecessor.get(lIndex);
     }
   }
-  
-  @Override
-  public boolean isError() {
-    return false;
-  }
 
   @Override
   /*

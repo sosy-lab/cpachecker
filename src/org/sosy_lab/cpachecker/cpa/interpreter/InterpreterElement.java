@@ -122,9 +122,4 @@ public class InterpreterElement implements InterpreterDomainElement {
     return lBuffer.toString();
   }
 
-  @Override
-  public boolean isError() {
-    return false;
-  }
-
 }

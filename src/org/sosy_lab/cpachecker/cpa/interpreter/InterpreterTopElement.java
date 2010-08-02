@@ -47,8 +47,4 @@ public class InterpreterTopElement implements InterpreterDomainElement {
     return "<ConcreteAnalysis TOP>";
   }
 
-  @Override
-  public boolean isError() {
-    return false;
-  }
 }

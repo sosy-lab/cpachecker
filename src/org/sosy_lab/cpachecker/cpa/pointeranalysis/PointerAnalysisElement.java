@@ -30,11 +30,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.Assign;
 import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.AssumeInequality;
 import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.PointerOperation;
@@ -47,7 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * @author Philipp Wendler
  */
 public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
-    Cloneable {
+    Cloneable, Targetable {
 
   private static final char                                    FUNCTION_NAME_SEPARATOR =
                                                                                            ':';
@@ -978,7 +979,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   }
 
   @Override
-  public boolean isError() {
+  public boolean isTarget() {
     return this.error;
   }
 
@@ -1073,7 +1074,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     return "PointerAnalysis";
   }
 
-  public void setError(boolean pError) {
+  void setError(boolean pError) {
     this.error = pError;
   }
 }

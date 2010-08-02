@@ -25,14 +25,15 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
-public class CompositeElement implements AbstractWrapperElement {
+import com.google.common.collect.ImmutableList;
+
+public class CompositeElement implements AbstractWrapperElement, Targetable {
   private final ImmutableList<AbstractElement> elements;
   private CallStack callStack;
 
@@ -52,9 +53,9 @@ public class CompositeElement implements AbstractWrapperElement {
   }
 
   @Override
-  public boolean isError() {
+  public boolean isTarget() {
     for (AbstractElement element : elements) {
-      if (element.isError()) {
+      if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
         return true;
       }
     }

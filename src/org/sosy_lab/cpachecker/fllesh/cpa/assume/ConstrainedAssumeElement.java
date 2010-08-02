@@ -15,11 +15,6 @@ public class ConstrainedAssumeElement implements AssumeElement {
   }
   
   @Override
-  public boolean isError() {
-    return false;
-  }
-  
-  @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;

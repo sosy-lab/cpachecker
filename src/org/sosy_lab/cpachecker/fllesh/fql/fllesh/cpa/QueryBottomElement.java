@@ -58,10 +58,4 @@ public class QueryBottomElement implements QueryElement {
     return "Query Bottom Element";
   }
 
-  @Override
-  public boolean isError() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 }

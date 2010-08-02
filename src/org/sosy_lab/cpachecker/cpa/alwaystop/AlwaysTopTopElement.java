@@ -39,10 +39,4 @@ public class AlwaysTopTopElement implements AlwaysTopElement {
     return "TRUE";
   }
 
-  @Override
-  public boolean isError() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 }
