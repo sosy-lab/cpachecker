@@ -39,6 +39,24 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     public String toString() {
       return "<ExplicitAnalysis BOTTOM>";
     }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      
+      if (pOther == null) {
+        return false;
+      }
+      
+      return (getClass().equals(pOther.getClass()));
+    }
+    
+    @Override
+    public int hashCode() {
+      return Integer.MIN_VALUE;
+    }
   }
 
   private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement
@@ -46,6 +64,24 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     @Override
     public String toString() {
       return "<ExplicitAnalysis TOP>";
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      
+      if (pOther == null) {
+        return false;
+      }
+      
+      return (getClass().equals(pOther.getClass()));
+    }
+    
+    @Override
+    public int hashCode() {
+      return Integer.MAX_VALUE;
     }
   }
 

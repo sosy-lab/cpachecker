@@ -102,5 +102,20 @@ public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge>
     
     return lPath;
   }
+  
+  @Override
+  public String toString() {
+    if (getLength() == 0) {
+      return "<>";
+    }
+    else {
+      if (getLength() == 1) {
+        return "< " + mCFAEdge.toString() + " >";
+      }
+      else {
+        return "< ... " + mCFAEdge.toString() + " >";
+      }
+    }
+  }
 
 }

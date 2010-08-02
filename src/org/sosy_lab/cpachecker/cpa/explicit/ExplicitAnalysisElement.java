@@ -109,7 +109,15 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     if (this == other)
       return true;
 
-    assert (other instanceof ExplicitAnalysisElement);
+    //assert (other instanceof ExplicitAnalysisElement);
+    
+    if (other == null) {
+      return false;
+    }
+    
+    if (!getClass().equals(other.getClass())) {
+      return false;
+    }
 
     ExplicitAnalysisElement otherElement = (ExplicitAnalysisElement) other;
     if (otherElement.constantsMap.size() != constantsMap.size()){
