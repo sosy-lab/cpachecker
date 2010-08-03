@@ -28,6 +28,7 @@ import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
@@ -63,7 +64,8 @@ public class ModifiedCPAchecker extends CPAchecker {
       throw new RuntimeException(e);
     }
 
-    Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> lCFA = super.createCFA(lAst);
+    CFACreator lCFACreator = new CFACreator(getConfiguration(), getLogger());
+    Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> lCFA = lCFACreator.createCFA(lAst);
 
     mCFAMap = lCFA.getFirst();
     mMainFunction = lCFA.getSecond();

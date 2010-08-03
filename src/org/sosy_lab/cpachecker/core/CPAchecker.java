@@ -23,37 +23,21 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFABuilder;
-import org.sosy_lab.cpachecker.cfa.CFACheck;
-import org.sosy_lab.cpachecker.cfa.CFAReduction;
-import org.sosy_lab.cpachecker.cfa.CFASimplifier;
-import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
-import org.sosy_lab.cpachecker.cfa.CPASecondPassBuilder;
-import org.sosy_lab.cpachecker.cfa.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectionAlgorithm;
@@ -72,7 +56,6 @@ import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 
 public class CPAchecker {
 
@@ -81,35 +64,6 @@ public class CPAchecker {
 
     @Option(name="parser.dialect")
     Dialect parserDialect = Dialect.GNUC;
-
-    // CFA creation and initialization options
-
-    @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
-    String mainFunctionName = "main";
-
-    @Option(name="cfa.combineBlockStatements")
-    boolean combineBlockStatements = false;
-
-    @Option(name="cfa.removeDeclarations")
-    boolean removeDeclarations = false;
-
-    @Option(name="analysis.noExternalCalls")
-    boolean noExternalCalls = true;
-
-    @Option(name="analysis.interprocedural")
-    boolean interprocedural = true;
-
-    @Option(name="analysis.useGlobalVars")
-    boolean useGlobalVars = true;
-
-    @Option(name="cfa.removeIrrelevantForErrorLocations")
-    boolean removeIrrelevantForErrorLocations = false;
-
-    @Option(name="cfa.export")
-    boolean exportCfa = true;
-
-    @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE)
-    File exportCfaFile = new File("cfa.dot");
 
     // algorithm options
 
@@ -190,7 +144,8 @@ public class CPAchecker {
       stats.startProgramTimer();
 
       // create CFA
-      Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = createCFA(ast);
+      CFACreator cfaCreator = new CFACreator(getConfiguration(), logger);
+      Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = cfaCreator.createCFA(ast);
       if (cfa == null) {
         // empty program, do nothing
         return new CPAcheckerResult(Result.UNKNOWN, null, null);
@@ -255,170 +210,6 @@ public class CPAchecker {
     IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
     logger.log(Level.FINE, "Parser Finished");
     return ast;
-  }
-
-  /**
-   * --Refactoring:
-   * Initializes the CFA. This method is created based on the
-   * "extract method refactoring technique" to help simplify the createCFA method body.
-   * @param builder
-   * @param cfas
-   * @return
-   * @throws InvalidConfigurationException
-   */
-  private CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final Map<String, CFAFunctionDefinitionNode> cfas) throws InvalidConfigurationException
-  {
-    CFAFunctionDefinitionNode mainFunction = cfas.get(options.mainFunctionName);
-
-    if (mainFunction == null) {
-      throw new InvalidConfigurationException("Function " + options.mainFunctionName + " not found!");
-    }
-
-    // Insert call and return edges and build the supergraph
-    if (options.interprocedural) {
-      logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
-
-      CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, options.noExternalCalls);
-      Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(options.mainFunctionName);
-
-      // remove all functions which are never reached from cfas
-      cfas.keySet().retainAll(calledFunctions);
-    }
-
-    if (options.useGlobalVars){
-      // add global variables at the beginning of main
-
-      List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
-      insertGlobalDeclarations(mainFunction, globalVars);
-    }
-
-    // simplify CFA
-    if (options.combineBlockStatements || options.removeDeclarations) {
-      CFASimplifier simplifier = new CFASimplifier(options.combineBlockStatements, options.removeDeclarations);
-      simplifier.simplify(mainFunction);
-    }
-
-    return mainFunction;
-  }
-
-
-  protected Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
-
-    // Build CFA
-    final CFABuilder builder = new CFABuilder(logger);
-    ast.accept(builder);
-
-    final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
-
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-
-    // --Refactoring:
-    CFAFunctionDefinitionNode mainFunction = initCFA(builder, cfas);
-
-    // --Refactoring: The following commented section does not affect the actual
-    //                execution of the code
-
-    // check the CFA of each function
-    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-      assert CFACheck.check(cfa);
-    }
-
-    // --Refactoring: The following section was relocated to after the "initCFA" method
-
-    // remove irrelevant locations
-    if (options.removeIrrelevantForErrorLocations) {
-      CFAReduction coi =  new CFAReduction();
-      coi.removeIrrelevantForErrorLocations(mainFunction);
-
-      if (mainFunction.getNumLeavingEdges() == 0) {
-        logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
-              + ", analysis not necessary. "
-              + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
-        return null;
-      }
-    }
-
-    // check the super CFA starting at the main function
-    assert CFACheck.check(mainFunction);
-
-    // write CFA to file
-    if (options.exportCfa) {
-      try {
-        Files.writeFile(options.exportCfaFile,
-            DOTBuilder.generateDOT(cfas.values(), mainFunction), false);
-      } catch (IOException e) {
-        logger.log(Level.WARNING,
-          "Could not write CFA to dot file, check configuration option cfa.file! (",
-          e.getMessage() + ")");
-        // continue with analysis
-      }
-    }
-
-    logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
-
-    return new Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode>(
-        ImmutableMap.copyOf(cfas), mainFunction);
-  }
-
-  /**
-   * Insert nodes for global declarations after first node of CFA.
-   */
-  private void insertGlobalDeclarations(
-      final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars) {
-    if (globalVars.isEmpty()) {
-      return;
-    }
-    // create a series of GlobalDeclarationEdges, one for each declaration,
-    // and add them as successors of the input node
-    List<CFANode> decls = new LinkedList<CFANode>();
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    decls.add(cur);
-
-    for (IASTDeclaration d : globalVars) {
-      assert(d instanceof IASTSimpleDeclaration);
-      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-      // TODO refactor this
-//      if (sd.getDeclarators().length == 1 &&
-//          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-//        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
-//          // do nothing
-//        }
-//        else {
-//          System.out.println(d.getRawSignature());
-//          continue;
-//        }
-//      }
-      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
-          sd.getFileLocation().getStartingLineNumber(), cur, n);
-      e.addToCFA(logger);
-      decls.add(n);
-      cur = n;
-    }
-
-    // split off first node of CFA
-    assert cfa.getNumLeavingEdges() == 1;
-    assert cfa.getLeavingSummaryEdge() == null;
-    CFAEdge firstEdge = cfa.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
-    CFANode secondNode = firstEdge.getSuccessor();
-
-    cfa.removeLeavingEdge(firstEdge);
-    secondNode.removeEnteringEdge(firstEdge);
-
-    // and add a blank edge connecting the first node of CFA with declarations
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, decls.get(0));
-    be.addToCFA(logger);
-
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    be.addToCFA(logger);
-
-    return;
   }
 
   private Result runAlgorithm(final Algorithm algorithm,
