@@ -71,14 +71,11 @@ public class Wrapper {
     private CFAEdge mAlphaEdge;
     private CFAEdge mOmegaEdge;
     private CFAEdge mAlphaToOmegaEdge;
-    //private Map<String, CFAFunctionDefinitionNode> mCFAs;
 
     private Set<CFAEdge> mCFAEdges;
 
-    //private AddFunctionCallVisitor(Map<String, CFAFunctionDefinitionNode> pCFAs) {
     private AddFunctionCallVisitor() {
       mCFAEdges = new HashSet<CFAEdge>();
-      //mCFAs = pCFAs;
     }
 
     public CFAEdge getAlphaEdge() {
@@ -87,10 +84,6 @@ public class Wrapper {
 
     public CFAEdge getOmegaEdge() {
       return mOmegaEdge;
-    }
-
-    public Set<CFAEdge> getEdges() {
-      return mCFAEdges;
     }
 
     @Override
@@ -180,7 +173,6 @@ public class Wrapper {
     CFATraversal.traverse(mEntry, Wrapper.FunctionNameSetter.getInstance());
 
     // correct call to main function
-    //mVisitor = new AddFunctionCallVisitor(this.getCFAs());
     mVisitor = new AddFunctionCallVisitor();
 
     CFATraversal.traverse(mEntry, mVisitor);
@@ -196,6 +188,10 @@ public class Wrapper {
   
   public CFAFunctionDefinitionNode getCFA(String pFunctionName) {
     return mCFAs.get(pFunctionName);
+  }
+  
+  public void toDot(String pFileName) throws IOException {
+    toDot(new File(pFileName));
   }
   
   public void toDot(File pFile) throws IOException {

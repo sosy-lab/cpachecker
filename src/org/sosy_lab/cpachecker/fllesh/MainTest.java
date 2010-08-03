@@ -575,4 +575,22 @@ public class MainTest {
     Assert.assertTrue(false);
   }
   
+  @Test
+  public void testMain022() throws Exception {
+    String[] lArguments = new String[2];
+
+    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/simple/functionCall.c";
+
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("022", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertTrue(false);
+  }
+  
 }

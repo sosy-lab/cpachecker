@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.AssumeEdgeMaskFunctor;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.BasicBlockEntryMaskFunctor;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionCallMaskFunctor;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionCallsMaskFunctor;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionEntryMaskFunctor;
@@ -74,7 +75,13 @@ public class FilterEvaluator {
         return mCache.get(mTargetGraph, pBasicBlockEntry);
       }
       
-      throw new UnsupportedOperationException();
+      MaskFunctor<Node, Edge> lMaskFunctor = BasicBlockEntryMaskFunctor.getInstance();
+
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+
+      mCache.add(mTargetGraph, pBasicBlockEntry, lResultGraph);
+
+      return lResultGraph;
     }
 
     @Override
