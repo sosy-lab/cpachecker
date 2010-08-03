@@ -6,7 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph.Builder;
@@ -47,7 +47,7 @@ public class TargetGraphUtil {
       CallToReturnEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
 
       if (lNumberOfLeavingEdges == 0 && lCallToReturnEdge == null) {
-        assert(lCFANode instanceof CFAExitNode);
+        assert(lCFANode instanceof CFAFunctionExitNode);
 
         lBuilder.addFinalNode(lNode);
       }

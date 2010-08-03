@@ -59,7 +59,7 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -95,7 +95,7 @@ public class CFABuilder extends ASTVisitor
 
 	// Data structures for handling function declarations
 	private Map<String, CFAFunctionDefinitionNode> cfas;
-	private CFAExitNode returnNode;
+	private CFAFunctionExitNode returnNode;
 
 	// Data structure for storing global declarations
 	private List<IASTDeclaration> globalDeclarations;
@@ -200,7 +200,7 @@ public class CFABuilder extends ASTVisitor
 			locStack.add (functionStartDummyNode);
 			cfas.put(nameOfFunction, newCFA);
 
-			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
+			returnNode = new CFAFunctionExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);
 
 		} else if (declaration instanceof IASTProblemDeclaration) {

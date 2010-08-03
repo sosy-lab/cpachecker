@@ -8,7 +8,7 @@ import java.util.Set;
 import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -52,7 +52,7 @@ public class TargetGraphUtil {
       CallToReturnEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
 
       if (lNumberOfLeavingEdges == 0 && lCallToReturnEdge == null) {
-        assert(lCFANode instanceof CFAExitNode);
+        assert(lCFANode instanceof CFAFunctionExitNode);
 
         lBuilder.addFinalNode(lNode);
       }
@@ -251,7 +251,7 @@ public class TargetGraphUtil {
    * belong the the function given by pFunctionName. The set of initial nodes is
    * changed to the set of nodes in the resulting target graph that contain a
    * CFAFunctionDefinitionNode. The set of final nodes is changed to the set of
-   * nodes in the resulting target graph that contain a CFAExitNode.
+   * nodes in the resulting target graph that contain a CFAFunctionExitNode.
    */
   public static TargetGraph applyFunctionNameFilter(TargetGraph pTargetGraph, String pFunctionName) {
     if (pTargetGraph == null || pFunctionName == null) {
@@ -269,7 +269,7 @@ public class TargetGraphUtil {
         lBuilder.addInitialNode(lNode);
       }
 
-      if (lCFANode instanceof CFAExitNode) {
+      if (lCFANode instanceof CFAFunctionExitNode) {
         lBuilder.addFinalNode(lNode);
       }
     }
