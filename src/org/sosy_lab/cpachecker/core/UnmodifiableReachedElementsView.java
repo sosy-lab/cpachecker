@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.core;
 import java.util.Collection;
 import java.util.Iterator;
 
-import javax.naming.OperationNotSupportedException;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Function;
@@ -94,8 +92,8 @@ public class UnmodifiableReachedElementsView
   }
 
   @Override
-  public Precision getPrecision(AbstractElement pElement) throws OperationNotSupportedException {
-    throw new OperationNotSupportedException("Unwrapping prevents reverse mapping");
+  public Precision getPrecision(AbstractElement pElement) throws UnsupportedOperationException {
+    throw new UnsupportedOperationException("Unwrapping prevents reverse mapping");
   }
 
   @Override
@@ -104,8 +102,8 @@ public class UnmodifiableReachedElementsView
   }
 
   @Override
-  public Collection<AbstractElement> getReached(AbstractElement pElement) throws OperationNotSupportedException {
-    throw new OperationNotSupportedException("Unwrapping may prevent to know the location");
+  public Collection<AbstractElement> getReached(AbstractElement pElement) throws UnsupportedOperationException {
+    throw new UnsupportedOperationException("Unwrapping may prevent to know the location");
   }
 
   @Override
