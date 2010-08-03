@@ -244,6 +244,12 @@ public class TaskRunner {
 							prevConfig.delete(true, true, null);
 						}
 						task.getConfigFile().copy(prevConfig.getFullPath(), true, null);
+						
+						IFile prevSpec = outDir.getFile("UsedSpecification.spc");
+						if (prevSpec.exists()) {
+							prevSpec.delete(true, true, null);
+						}
+						task.getSpecFile().copy(prevSpec.getFullPath(), true, null);
 					}
 					// finshedAnnouncement must be fired in Eclipse UI thread
 					fireTaskFinished(results, monitor);
