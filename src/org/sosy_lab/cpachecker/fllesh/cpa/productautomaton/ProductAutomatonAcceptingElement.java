@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.productautomaton;
 
-public class ProductAutomatonAcceptingElement implements ProductAutomatonElement {
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+
+public class ProductAutomatonAcceptingElement implements ProductAutomatonElement, Targetable {
 
   private static ProductAutomatonAcceptingElement mInstance = new ProductAutomatonAcceptingElement();
   
@@ -15,6 +17,11 @@ public class ProductAutomatonAcceptingElement implements ProductAutomatonElement
   @Override
   public String toString() {
     return "Accept";
+  }
+
+  @Override
+  public boolean isTarget() {
+    return true;
   }
 
 }

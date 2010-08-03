@@ -143,6 +143,8 @@ public class Main {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
+    lWrapper.toDot("test/output/wrapper.dot");
+    
     //String lTestHarness = "void __FLLESH__main() { foo(10); }";
     //Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager, lTestHarness);
     
@@ -166,7 +168,7 @@ public class Main {
     for (ElementaryCoveragePattern lGoalPattern : lTask) {
       //lTmpIndex++;
       
-      //if (lTmpIndex == 4) {
+      //if (lTmpIndex == 1) {
         //Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lGoalPattern, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
         //lGoals.add(new Pair<ElementaryCoveragePattern, Automaton<GuardedEdgeLabel>>(lGoalPattern, lAutomaton));
 
@@ -237,6 +239,8 @@ public class Main {
         throw new RuntimeException(e);
       }
 
+      //System.out.println(lReachedElements);
+      
       CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
       
       // TODO remove in future ... here for debugging purposes
@@ -338,8 +342,8 @@ public class Main {
   public static boolean determineGoalFeasibility(ReachedElements pReachedElements, Statistics pStatistics) throws IOException {
     boolean lErrorReached = false;
     
-    for (AbstractElement reachedElement : pReachedElements) {
-      if ((reachedElement instanceof Targetable) && ((Targetable)reachedElement).isTarget()) {
+    for (AbstractElement lReachedElement : pReachedElements) {
+      if ((lReachedElement instanceof Targetable) && ((Targetable)lReachedElement).isTarget()) {
         lErrorReached = true;
       }
 

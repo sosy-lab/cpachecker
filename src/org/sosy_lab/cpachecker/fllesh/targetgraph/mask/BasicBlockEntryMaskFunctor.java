@@ -58,26 +58,26 @@ public class BasicBlockEntryMaskFunctor implements MaskFunctor<Node, Edge> {
   }
   
   private boolean isBasicBlockEntry(CFAEdge pCFAEdge) {
-    System.out.println("CHECKING " +pCFAEdge.toString());
+    //System.out.println("CHECKING " +pCFAEdge.toString());
     
     if (isFunctionEntryEdge(pCFAEdge)) {
-      System.out.println(pCFAEdge.toString() + "is fentry");
+      //System.out.println(pCFAEdge.toString() + "is fentry");
       
       return true;
     }
     
     if (isSplitEdge(pCFAEdge)) {
-      System.out.println(pCFAEdge.toString() + " is a split edge");
+      //System.out.println(pCFAEdge.toString() + " is a split edge");
       return false;
     }
     
     if (isJoinEdge(pCFAEdge)) {
-      System.out.println(pCFAEdge.toString() + " is a join edge");
+      //System.out.println(pCFAEdge.toString() + " is a join edge");
       return false;
     }
     
     if (pCFAEdge.getPredecessor().getNumEnteringEdges() != 1) {
-      System.out.println(pCFAEdge.toString() + " has more then one predecessor edges");
+      //System.out.println(pCFAEdge.toString() + " has more then one predecessor edges");
       
       return true;
     }
@@ -86,9 +86,9 @@ public class BasicBlockEntryMaskFunctor implements MaskFunctor<Node, Edge> {
     
     boolean lIsSplitingEdge = isSplitEdge(pPredecessorEdge);
     
-    if (lIsSplitingEdge) {
+    /*if (lIsSplitingEdge) {
       System.out.println(pCFAEdge.toString() + " is splitting edge");
-    }
+    }*/
     
     return lIsSplitingEdge;
   }
@@ -104,13 +104,13 @@ public class BasicBlockEntryMaskFunctor implements MaskFunctor<Node, Edge> {
   private boolean isJoinEdge(CFAEdge pCFAEdge) {
     CFANode lSuccessor = pCFAEdge.getSuccessor();
     
-    System.out.println(pCFAEdge.toString() + " : " + lSuccessor.getNumEnteringEdges());
+    /*System.out.println(pCFAEdge.toString() + " : " + lSuccessor.getNumEnteringEdges());
     
     if (lSuccessor.getNodeNumber() == 10) {
       for (int lIndex = 0; lIndex < lSuccessor.getNumEnteringEdges(); lIndex++) {
         System.out.println("-> " + lSuccessor.getEnteringEdge(lIndex));
       }
-    }
+    }*/
     
     return (lSuccessor.getNumEnteringEdges() > 1);
   }

@@ -59,6 +59,9 @@ public class MainTest {
   
   private static Experiment mExperiment = null;
   
+  private static String BASIC_BLOCK_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  private static String STATEMENT_COVERAGE = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+  
   @BeforeClass
   public static void createLogFile() {
     if (mExperiment != null) {
@@ -92,6 +95,11 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("001", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());    
   }
 
   @Test
@@ -110,6 +118,11 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("002", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
   }
 
   @Test
@@ -128,6 +141,11 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("003", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
   }
 
   @Test
@@ -146,6 +164,16 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("004", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(20, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(20, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    
+    /*
+     * Discussion: Creates a real valued assignment (3.5) to integer variable x!
+     * 
+     */
   }
   
   @Test
@@ -153,7 +181,7 @@ public class MainTest {
     String[] lArguments = new String[4];
 
     // This query should be equivalent to statement coverage
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/conditioncoverage.cil.c";
     lArguments[2] = "foo";
     lArguments[3] = "disablecilpreprocessing";
@@ -165,6 +193,11 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("005", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(18, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(18, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -172,7 +205,7 @@ public class MainTest {
     String[] lArguments = new String[3];
 
     // This query should be equivalent to statement coverage
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/conditioncoverage.c";
     lArguments[2] = "foo";
     
@@ -242,7 +275,7 @@ public class MainTest {
   public void testMain010() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/minimal.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -270,7 +303,7 @@ public class MainTest {
   public void testMain011() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/variables.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -298,7 +331,7 @@ public class MainTest {
   public void testMain012() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/globals.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -326,7 +359,7 @@ public class MainTest {
   public void testMain013() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/boolop-control-flow1.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -355,7 +388,7 @@ public class MainTest {
   public void testMain014() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/boolop-control-flow2.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -384,7 +417,7 @@ public class MainTest {
   public void testMain015() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/cov-union.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -414,7 +447,7 @@ public class MainTest {
   public void testMain016() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/undefined-func.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -443,7 +476,7 @@ public class MainTest {
   public void testMain017() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/repeat.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -467,7 +500,7 @@ public class MainTest {
   public void testMain018() throws Exception {
     String[] lArguments = new String[4];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/labels.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -496,7 +529,7 @@ public class MainTest {
   public void testMain019() throws Exception {
     String[] lArguments = new String[4];
     
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[0] = STATEMENT_COVERAGE;
     lArguments[1] = "test/programs/fql/basic/simple-control-flow.cil.c";
     lArguments[2] = "main";
     lArguments[3] = "disablecilpreprocessing";
@@ -523,7 +556,7 @@ public class MainTest {
   
   @Test
   public void testMain020() throws Exception {
-    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"", 
+    String[] lArguments = getParameters(STATEMENT_COVERAGE, 
                                         "test/programs/fql/test_locks_2.c", 
                                         "main", 
                                         false);
@@ -550,7 +583,7 @@ public class MainTest {
   
   @Test
   public void testMain021() throws Exception {
-    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"", 
+    String[] lArguments = getParameters(STATEMENT_COVERAGE, 
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
                                         "main", 
                                         false);
@@ -579,7 +612,7 @@ public class MainTest {
   public void testMain022() throws Exception {
     String[] lArguments = new String[2];
 
-    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+    lArguments[0] = BASIC_BLOCK_COVERAGE;
     lArguments[1] = "test/programs/simple/functionCall.c";
 
     long lStartTime = System.currentTimeMillis();
@@ -589,6 +622,70 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("022", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain023() throws Exception {
+    String[] lArguments = getParameters(
+        BASIC_BLOCK_COVERAGE, 
+        "test/programs/fql/basic/globals.cil.c", 
+        "main", 
+        false);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("023", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(3, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(2, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    /**
+     * Discussion: ok. We get one more test goal than FShell 2 does.
+     */
+  }
+  
+  @Test
+  public void testMain024() throws Exception {
+    String[] lArguments = getParameters(
+        BASIC_BLOCK_COVERAGE, 
+        "test/programs/fql/conditioncoverage.cil.c", 
+        "foo", 
+        true); // disable CIL preprocessing
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("024", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(6, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(6, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    
+    /*
+     * Discussion: Creates a real valued assignment (3.5) to integer variable x!
+     * 
+     * Generates a different amount of test goals: 
+     *  
+     * E.g., there is no test goal generated for the structure
+     * 
+     * if (a) {
+     * }
+     * else {
+     * }
+     * 
+     */
     
     Assert.assertTrue(false);
   }
