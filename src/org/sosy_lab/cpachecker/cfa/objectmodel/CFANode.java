@@ -151,7 +151,11 @@ public class CFANode implements Comparable<CFANode>
     }
 
     public void setFunctionName(String fName){
-    	functionName = fName;
+      if (functionName == null) {
+        functionName = fName;
+      } else {
+        assert functionName.equals(fName);
+      }
     }
 
     public String getFunctionName(){

@@ -30,17 +30,16 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 
 
-public class FunctionDefinitionNode extends CFAFunctionDefinitionNode
-{
-  private IASTFunctionDefinition functionDefinition;
+public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
-  public FunctionDefinitionNode (int lineNumber, IASTFunctionDefinition functionDefinition)
-  {
-    super (lineNumber, functionDefinition.getDeclarator().getName().toString());
+  private final IASTFunctionDefinition functionDefinition;
+
+  public FunctionDefinitionNode(int lineNumber, IASTFunctionDefinition functionDefinition, CFAFunctionExitNode exitNode) {
+    super(lineNumber, functionDefinition.getDeclarator().getName().toString(), exitNode);
     this.functionDefinition = functionDefinition;
   }
 

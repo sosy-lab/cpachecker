@@ -188,20 +188,18 @@ public class CFABuilder extends ASTVisitor
 			labelMap.clear ();
 
 			IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
+			String nameOfFunction = fdef.getDeclarator().getName().toString();
 
-			FunctionDefinitionNode newCFA = new FunctionDefinitionNode (fileloc.getStartingLineNumber (), fdef);
-			String nameOfFunction = newCFA.getFunctionName();
-			newCFA.setFunctionName(nameOfFunction);
+			returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
 
-			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber ());
+			FunctionDefinitionNode newCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode);
+
+			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber());
 			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), newCFA, functionStartDummyNode);
 			dummyEdge.addToCFA(logger);
 
 			locStack.add (functionStartDummyNode);
 			cfas.put(nameOfFunction, newCFA);
-
-			returnNode = new CFAFunctionExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
-			newCFA.setExitNode(returnNode);
 
 		} else if (declaration instanceof IASTProblemDeclaration) {
 		  // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
