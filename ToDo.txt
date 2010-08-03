@@ -6,21 +6,6 @@
 * cleanup and prioritization to be done in telephone conference *
 * probably group them in design/technical/conceptual *
 
-Technical:
-----------
-- [PW] find out which JARs from Eclipse and CDT are needed for running CPAchecker,
-  add them to lib/eclipse and change cpa.sh and build.xml so that they use these
-  libraries (no need to search for Eclipse directory on disk anymore)
-
-- [PW] run script to add license text to all classes which don't contain it
-
-- [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
-
-- [PW] Perhaps move CompositeCPA to cpa.composite package.
-
-- [PW] finish removing accesses to static CPAchecker fields and convert these fields
-  to instance fields.
-
 
 Conceptual suggestions:
 -----------------------
@@ -56,10 +41,6 @@ Conceptual suggestions:
 
 - [MT] cleanup stop operator, rename compositestopsep, compositemergesep
 
-- [MT] cleanup CPAMain
-  * make separate function "preprocess"
-  * is there any non-interprocedural analysis
-
 - [DB] Maybe rename satisfiesPartialOrder to isLessOrEqual
 
 - [MT] compositestop is broken
@@ -77,10 +58,6 @@ Conceptual suggestions:
 - [MT] Overriding equals (and possibly also hashCode) is a design flaw in almost
   all cases, apply proper design patterns (Singleton and Factory); I'd expect a
   speedup by several orders of magnitude
-
-- [MT] CPAAlgorithm is unnecessarily slow because we use sets where lists could
-  be used as well (we know when we insert an element that already exists in the
-  collection); sets will always check for uniqueness
 
 - [MT] DefUse became useless after not updating for a long time. Fix some time.
 
@@ -137,6 +114,26 @@ Architecture
 
 Handled Jobs
 ================================
+- [PW] find out which JARs from Eclipse and CDT are needed for running CPAchecker,
+  add them to lib/eclipse and change cpa.sh and build.xml so that they use these
+  libraries (no need to search for Eclipse directory on disk anymore)
+
+- [PW] run script to add license text to all classes which don't contain it
+
+- [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
+
+- [PW] Perhaps move CompositeCPA to cpa.composite package.
+
+- [PW] finish removing accesses to static CPAchecker fields and convert these fields
+  to instance fields.
+
+- [MT] cleanup CPAMain
+  * make separate function "preprocess"
+  * is there any non-interprocedural analysis
+
+- [MT] CPAAlgorithm is unnecessarily slow because we use sets where lists could
+  be used as well (we know when we insert an element that already exists in the
+  collection); sets will always check for uniqueness
 
 - [MT]
   * I'd suggest introducing CPABuilder and *Builder classes that instantiate a
