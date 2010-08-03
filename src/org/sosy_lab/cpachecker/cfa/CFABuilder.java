@@ -95,7 +95,7 @@ public class CFABuilder extends ASTVisitor
 
 	// Data structures for handling function declarations
 	private Map<String, CFAFunctionDefinitionNode> cfas;
-	private CFAFunctionExitNode returnNode;
+	private CFAFunctionDefinitionNode currentCFA;
 
 	// Data structure for storing global declarations
 	private List<IASTDeclaration> globalDeclarations;
@@ -128,7 +128,7 @@ public class CFABuilder extends ASTVisitor
 		gotoLabelNeeded = new HashMap<String, List<CFANode>> ();
 
 		cfas = new HashMap<String, CFAFunctionDefinitionNode>();
-		returnNode = null;
+		currentCFA = null;
 
 		globalDeclarations = new ArrayList<IASTDeclaration> ();
 	}
@@ -163,7 +163,7 @@ public class CFABuilder extends ASTVisitor
 			if (locStack.size () > 0) // i.e. we're in a function
 			{
 				CFANode prevNode = locStack.pop ();
-				CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
+				CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
 				DeclarationEdge edge = new DeclarationEdge ((IASTSimpleDeclaration) declaration,
 				        fileloc.getStartingLineNumber(), prevNode, nextNode);
@@ -187,19 +187,21 @@ public class CFABuilder extends ASTVisitor
 
 			labelMap.clear ();
 
+			assert currentCFA == null;
+			
 			IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
 			String nameOfFunction = fdef.getDeclarator().getName().toString();
 
-			returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
+			CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
 
-			FunctionDefinitionNode newCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode);
+			currentCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode);
 
-			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber());
-			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), newCFA, functionStartDummyNode);
+			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), currentCFA, functionStartDummyNode);
 			dummyEdge.addToCFA(logger);
 
 			locStack.add (functionStartDummyNode);
-			cfas.put(nameOfFunction, newCFA);
+			cfas.put(nameOfFunction, currentCFA);
 
 		} else if (declaration instanceof IASTProblemDeclaration) {
 		  // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
@@ -213,7 +215,7 @@ public class CFABuilder extends ASTVisitor
 		  logger.log(Level.WARNING, "Ignoring inline assembler code at line " + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
 
 		  CFANode prevNode = locStack.pop();
-		  CFANode nextNode = new CFANode(fileloc.getStartingLineNumber());
+		  CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
 		  BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
 		  edge.addToCFA(logger);
@@ -239,11 +241,11 @@ public class CFABuilder extends ASTVisitor
 
 			if (!lastNode.hasJumpEdgeLeaving ())
 			{
-				BlankEdge blankEdge = new BlankEdge ("default return", lastNode.getLineNumber(), lastNode, returnNode);
+				BlankEdge blankEdge = new BlankEdge ("default return", lastNode.getLineNumber(), lastNode, currentCFA.getExitNode());
 				blankEdge.addToCFA(logger);
 			}
 
-			returnNode = null;
+			currentCFA = null;
 		}
 
 		return PROCESS_CONTINUE;
@@ -325,7 +327,7 @@ public class CFABuilder extends ASTVisitor
 	private void handleExpressionStatement (IASTExpressionStatement exprStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.pop ();
-		CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
+		CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
 		StatementEdge edge = new StatementEdge(exprStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression(), false);
 		edge.addToCFA(logger);
@@ -351,7 +353,7 @@ public class CFABuilder extends ASTVisitor
 	private void handleIfStatement (IASTIfStatement ifStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.pop ();
-		CFANode postIfNode = new CFANode (fileloc.getEndingLineNumber ());
+		CFANode postIfNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
 
 		locStack.push (postIfNode);
 
@@ -364,29 +366,29 @@ public class CFABuilder extends ASTVisitor
 		        edge.addToCFA(logger);
 		    } else {
 		        CFANode elseNode =
-		            new CFANode(fileloc.getStartingLineNumber());
+		            new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
             BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, elseNode);
 		        edge.addToCFA(logger);
 		        elseStack.push(elseNode);
-		        CFANode n = new CFANode(-1);
+		        CFANode n = new CFANode(-1, currentCFA.getFunctionName());
 		        locStack.push(n);
 		    }
 		}
 		    break;
 		case ALWAYS_TRUE: {
 		    CFANode thenNode =
-		        new CFANode(fileloc.getStartingLineNumber());
+		        new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
         BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, thenNode);
 		    edge.addToCFA(logger);
 		    locStack.push(thenNode);
 		    if (ifStatement.getElseClause() != null) {
-		        CFANode n = new CFANode(-1);
+		        CFANode n = new CFANode(-1, currentCFA.getFunctionName());
 		        elseStack.push(n);
 		    }
 		}
 		    break;
 		case NORMAL: {
-		    CFANode ifStartTrue = new CFANode (fileloc.getStartingLineNumber ());
+		    CFANode ifStartTrue = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
 		            fileloc.getStartingLineNumber(), prevNode, ifStartTrue,
 		            ifStatement.getConditionExpression (),
@@ -396,7 +398,7 @@ public class CFABuilder extends ASTVisitor
 		    locStack.push (ifStartTrue);
 
 		    if (ifStatement.getElseClause () != null) {
-		        CFANode ifStartFalse = new CFANode (fileloc.getStartingLineNumber ());
+		        CFANode ifStartFalse = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, ifStartFalse,
 		                ifStatement.getConditionExpression (),
@@ -422,10 +424,10 @@ public class CFABuilder extends ASTVisitor
 	private void handleWhileStatement (IASTWhileStatement whileStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.pop ();
-		CFANode loopStart = new CFANode (fileloc.getStartingLineNumber ());
+		CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		loopStart.setLoopStart();
 
-		CFANode postLoopNode = new CFANode (fileloc.getEndingLineNumber ());
+		CFANode postLoopNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
 		locStack.push (postLoopNode);
 		locStack.push (loopStart);
 
@@ -463,10 +465,9 @@ public class CFABuilder extends ASTVisitor
 		if (labelName.toLowerCase().startsWith("error")) {
 		    // AG - we want to know which are the error locations: each
 		    // node with a label starting with "error"
-		    labelNode = new CFAErrorNode(
-		            fileloc.getStartingLineNumber(), labelName);
+		    labelNode = new CFAErrorNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
 		} else {
-		    labelNode = new CFALabelNode (fileloc.getStartingLineNumber(), labelName);
+		    labelNode = new CFALabelNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
 		}
 
 		BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
@@ -517,7 +518,7 @@ public class CFABuilder extends ASTVisitor
 	private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.peek ();
-		CFANode nextNode = returnNode;
+		CFANode nextNode = currentCFA.getExitNode();
 
 		StatementEdge edge = new StatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue(), true);
 		edge.addToCFA(logger);

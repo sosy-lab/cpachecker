@@ -98,7 +98,7 @@ public class QueryTransferRelationTest {
 
     QueryStandardElement lElement = new QueryStandardElement(0, true, 1, false, lMustMayCPA.getAbstractDomain().getTopElement());
 
-    CFANode lNode = new CFANode(10);
+    CFANode lNode = new CFANode(10, null);
 
     CFAEdge lCFAEdge = InternalSelfLoop.getOrCreate(lNode);
 

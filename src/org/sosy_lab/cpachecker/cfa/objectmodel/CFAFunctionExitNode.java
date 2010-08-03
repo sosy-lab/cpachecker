@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class CFAFunctionExitNode extends CFANode {
 
   public CFAFunctionExitNode(int lineNumber, String functionName) {
-      super(lineNumber);
-      this.setFunctionName(functionName);
+      super(lineNumber, functionName);
   }
 }

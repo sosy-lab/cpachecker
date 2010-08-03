@@ -9,8 +9,7 @@ public class FlleShCFANode extends CFANode {
   public FlleShCFANode(CFANode pNode) {
     // TODO should we use the line number of pNode ?
     // TODO should we copy use the node number of pNode ?
-    super(FlleShLineNumber);
-    super.setFunctionName(pNode.getFunctionName());
+    super(FlleShLineNumber, pNode.getFunctionName());
   }
   
   @Override

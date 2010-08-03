@@ -134,12 +134,9 @@ public class Wrapper {
       callEdge.addToCFA(null);
       mAlphaEdge = callEdge;
 
-      // set name of the function
-      fDefNode.setFunctionName(functionName);
       // set return edge from exit node of the function
       ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), mCFAs.get(functionName).getExitNode(), successorNode);
       returnEdge.addToCFA(null);
-      returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
       mOmegaEdge = returnEdge;
 
@@ -168,9 +165,6 @@ public class Wrapper {
     mCFAs.putAll(pCFAs);
     
     mEntry = mCFAs.get(pEntryFunction);
-    
-    // set function names
-    CFATraversal.traverse(mEntry, Wrapper.FunctionNameSetter.getInstance());
 
     // correct call to main function
     mVisitor = new AddFunctionCallVisitor();
@@ -272,30 +266,5 @@ public class Wrapper {
       }
     }
   }
-
-  public static class FunctionNameSetter implements CFAVisitor {
-
-    private String mFunctionName;
-    private static FunctionNameSetter mInstance = new FunctionNameSetter();
-
-    private FunctionNameSetter() {
-
-    }
-
-    public static FunctionNameSetter getInstance() {
-      return mInstance;
-    }
-
-    @Override
-    public void init(CFANode pInitialNode) {
-      mFunctionName = pInitialNode.getFunctionName();
-    }
-
-    @Override
-    public void visit(CFAEdge pP) {
-      pP.getSuccessor().setFunctionName(mFunctionName);
-    }
-
-  };
 
 }

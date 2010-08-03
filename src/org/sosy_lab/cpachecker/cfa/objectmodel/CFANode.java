@@ -38,7 +38,7 @@ public class CFANode implements Comparable<CFANode>
     // is start node of a loop?
     private boolean isLoopStart = false;
     // in which function is that node?
-    private String functionName;
+    private final String functionName;
     // list of summary edges
     protected CallToReturnEdge leavingSummaryEdge;
     protected CallToReturnEdge enteringSummaryEdge;
@@ -47,9 +47,9 @@ public class CFANode implements Comparable<CFANode>
 
     private static int nextNodeNumber = 0;
 
-    public CFANode (int lineNumber)
-    {
+    public CFANode(int lineNumber, String functionName) {
         this.lineNumber = lineNumber;
+        this.functionName = functionName;
         this.nodeNumber = nextNodeNumber++;
         leavingEdges = new ArrayList<CFAEdge>();
         enteringEdges = new ArrayList<CFAEdge> ();
@@ -148,14 +148,6 @@ public class CFANode implements Comparable<CFANode>
 
     public boolean isLoopStart(){
     	return isLoopStart;
-    }
-
-    public void setFunctionName(String fName){
-      if (functionName == null) {
-        functionName = fName;
-      } else {
-        assert functionName.equals(fName);
-      }
     }
 
     public String getFunctionName(){

@@ -45,12 +45,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
- * Used for post processing the CFA. This class provides methods which are used
- * to modify the CFAs for each function according to user's needs. For example
- * to handle function calls, call, return and summary edges can be inserted to
- * the CFA using methods in this class.
+ * This class takes several CFAs (each for a single function) and combines them
+ * into one CFA by inserting the necessary function call and return edges.
  * @author erkan
- *
  */
 public class CPASecondPassBuilder {
 
@@ -97,12 +94,11 @@ public class CPASecondPassBuilder {
   /**
    * Traverses a CFA with the specified function name and insert call edges
    * and return edges from the call site and to the return site of the function
-   * call. Each node carries information about the function they are in and
-   * this information is also set by this method, see {@link CFANode#setFunctionName(String)}.
+   * call.
    * @param initialNode CFANode where to start processing
    * @return a list of all function calls encountered (may contain duplicates)
    */
-  public List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode){
+  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode){
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode> ();
     Deque<CFANode> processedList = new ArrayDeque<CFANode> ();
@@ -135,10 +131,6 @@ public class CPASecondPassBuilder {
               calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
               createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
             }
-            // if this is not a function call just set the function name
-            else{
-              successorNode.setFunctionName(node.getFunctionName());
-            }
           }
 
           // if expression is function call, e.g. call(a,b);
@@ -148,15 +140,6 @@ public class CPASecondPassBuilder {
             calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
             createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
           }
-
-          else{
-            successorNode.setFunctionName(node.getFunctionName());
-          }
-        }
-
-        else if(!((edge instanceof FunctionCallEdge) ||
-            (edge instanceof ReturnEdge))){
-          successorNode.setFunctionName(node.getFunctionName());
         }
 
         // if the node is not already processed and if successor node is not
@@ -212,7 +195,6 @@ public class CPASecondPassBuilder {
 
       callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, edge.getSuccessor(), parameters, true);
       callEdge.addToCFA(null);
-      callEdge.getSuccessor().setFunctionName(node.getFunctionName());
       CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", edge.getLineNumber(), node, edge.getSuccessor(), expr);
       calltoReturnEdge.addToCFA(null);
       node.removeLeavingEdge(edge);
@@ -223,11 +205,9 @@ public class CPASecondPassBuilder {
     callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, fDefNode, parameters, false);
     callEdge.addToCFA(null);
     // set name of the function
-    fDefNode.setFunctionName(functionName);
     // set return edge from exit node of the function
     ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), cfas.get(functionName).getExitNode(), successorNode);
     returnEdge.addToCFA(null);
-    returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
     calltoReturnEdge.addToCFA(null);

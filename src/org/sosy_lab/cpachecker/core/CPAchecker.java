@@ -375,8 +375,7 @@ public class CPAchecker {
     // create a series of GlobalDeclarationEdges, one for each declaration,
     // and add them as successors of the input node
     List<CFANode> decls = new LinkedList<CFANode>();
-    CFANode cur = new CFANode(0);
-    cur.setFunctionName(cfa.getFunctionName());
+    CFANode cur = new CFANode(0, cfa.getFunctionName());
     decls.add(cur);
 
     for (IASTDeclaration d : globalVars) {
@@ -393,8 +392,7 @@ public class CPAchecker {
 //          continue;
 //        }
 //      }
-      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber());
-      n.setFunctionName(cur.getFunctionName());
+      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
           sd.getFileLocation().getStartingLineNumber(), cur, n);
       e.addToCFA(logger);

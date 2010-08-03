@@ -29,8 +29,8 @@ package org.sosy_lab.cpachecker.cfa.objectmodel;
  */
 public class CFAErrorNode extends CFALabelNode {
 
-    public CFAErrorNode(int lineNumber, String label) {
-        super(lineNumber, label);
+    public CFAErrorNode(int lineNumber, String functionName, String label) {
+        super(lineNumber, functionName, label);
     }
 
 }

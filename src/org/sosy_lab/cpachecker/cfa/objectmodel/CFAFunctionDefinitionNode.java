@@ -29,8 +29,7 @@ public abstract class CFAFunctionDefinitionNode extends CFANode {
   private final CFAFunctionExitNode exitNode;
 
   public CFAFunctionDefinitionNode(int lineNumber, String functionName, CFAFunctionExitNode exitNode) {
-    super(lineNumber);
-    this.setFunctionName(functionName);
+    super(lineNumber, functionName);
     this.exitNode = exitNode;
   }
 
