@@ -236,11 +236,6 @@ public class ReachedElements implements UnmodifiableReachedElements {
   }
 
   @Override
-  public TraversalMethod getTraversalMethod() {
-    return traversal;
-  }
-
-  @Override
   public boolean hasWaitingElement() {
     return !waitlist.isEmpty();
   }

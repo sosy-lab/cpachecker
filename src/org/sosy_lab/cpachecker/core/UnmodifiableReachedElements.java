@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.ReachedElements.TraversalMethod;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -88,8 +87,6 @@ public interface UnmodifiableReachedElements extends Iterable<AbstractElement> {
   public AbstractElement getFirstElement();
 
   public AbstractElement getLastElement();
-
-  public TraversalMethod getTraversalMethod();
 
   public boolean hasWaitingElement();
 

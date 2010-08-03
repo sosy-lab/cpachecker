@@ -34,7 +34,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.ReachedElements.TraversalMethod;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -114,11 +113,6 @@ public class UnmodifiableReachedElementsView
   @Override
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
     return Collections2.transform(underlying.getReachedWithPrecision(), mapElementAndPrecisionFunction);
-  }
-
-  @Override
-  public TraversalMethod getTraversalMethod() {
-    return underlying.getTraversalMethod();
   }
 
   @Override
