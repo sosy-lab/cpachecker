@@ -128,7 +128,23 @@ public class AutomatonTest {
   }
   
   //Automaton Tests
-  
+  @Test
+  public void MatchEndOfProgramTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA",
+        "specification",     "test/config/automata/PrintLastStatementAutomaton.spc",
+        "log.consoleLevel",               "INFO",
+        "analysis.stopAfterError",        "TRUE"
+      );
+    try {
+      TestResults results = run(prop, "test/programs/simple/loop1.c");
+      Assert.assertTrue(results.logContains("Last statement is \"return (0);\""));
+      Assert.assertTrue(results.logContains("Last statement is \"return (-1);\""));
+      Assert.assertTrue(results.isSafe());      
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
   @Test
   public void failIfNoAutomatonGiven() {
     Map<String, String> prop = ImmutableMap.of(
@@ -138,7 +154,7 @@ public class AutomatonTest {
     try {
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertTrue(results.getCheckerResult().getResult().equals(CPAcheckerResult.Result.UNKNOWN));
-      results.logContains("Explicitly specified automaton CPA needs option automatonAnalysis.inputFile!");
+      Assert.assertTrue(results.logContains("Explicitly specified automaton CPA needs option automatonAnalysis.inputFile!"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -153,7 +169,6 @@ public class AutomatonTest {
         "cpas.explicit.threshold",       "10");
     try {
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      System.out.println(results.log);
       Assert.assertTrue(results.logContains("MODIFIED"));
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());

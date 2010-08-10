@@ -45,6 +45,19 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   @Override
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs);
 
+  public class MatchProgramExit implements AutomatonBoolExpr {
+  
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
+    }
+  
+  }
+
   /**
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.
