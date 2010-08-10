@@ -44,19 +44,21 @@ public class AssumeEdgeMaskFunctor implements MaskFunctor<Node, Edge> {
   }
   
   @Override
-  public boolean isEdgeMasked(Edge pArg0) {
-    if (pArg0 == null) {
+  public boolean isEdgeMasked(Edge pEdge) {
+    if (pEdge == null) {
       throw new IllegalArgumentException();
     }
     
-    return !isAssumeEdge(pArg0.getCFAEdge());
+    boolean lIsAssumeEdge = isAssumeEdge(pEdge.getCFAEdge());
+    
+    return !lIsAssumeEdge;
   }
 
   @Override
-  public boolean isVertexMasked(Node pArg0) {
-    assert(pArg0 != null);
+  public boolean isVertexMasked(Node pNode) {
+    assert(pNode != null);
 
-    CFANode lCFANode = pArg0.getCFANode();
+    CFANode lCFANode = pNode.getCFANode();
     
     for (int lIndex = 0; lIndex < lCFANode.getNumEnteringEdges(); lIndex++) {
       if (isAssumeEdge(lCFANode.getEnteringEdge(lIndex))) {

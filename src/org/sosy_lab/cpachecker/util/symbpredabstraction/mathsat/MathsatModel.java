@@ -390,6 +390,10 @@ public class MathsatModel implements Model {
     
     long lModelIterator = mathsat.api.msat_create_model_iterator(lMathsatEnvironmentID);
       
+    if (mathsat.api.MSAT_ERROR_MODEL_ITERATOR(lModelIterator)) {
+      throw new RuntimeException("Erroneous model iterator! (" + lModelIterator + ")");
+    }
+    
     while (mathsat.api.msat_model_iterator_has_next(lModelIterator) != 0) {
       long[] lModelElement = mathsat.api.msat_model_iterator_next(lModelIterator);
       
@@ -439,6 +443,8 @@ public class MathsatModel implements Model {
       
       mModel.put(lAssignable, lValue);
     }
+    
+    mathsat.api.msat_destroy_model_iterator(lModelIterator);
   }
   
   public Set<MathsatAssignable> getAssignables() {
