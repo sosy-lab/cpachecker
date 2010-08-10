@@ -527,7 +527,7 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
   	  logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
   	  return null;
   	}
-  	String rootPrefix = "";
+  	String rootPrefix = null;
   	if (config != null && config.getRootDirectory() != null) {
   	  rootPrefix = config.getRootDirectory();
   	}
