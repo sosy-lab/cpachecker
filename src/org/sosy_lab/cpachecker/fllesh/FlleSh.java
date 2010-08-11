@@ -1,26 +1,3 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2010  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
 package org.sosy_lab.cpachecker.fllesh;
 
 import java.io.File;
@@ -42,8 +19,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ReachedElements;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -76,7 +53,6 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
-import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
@@ -86,91 +62,33 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTrac
 
 import com.google.common.base.Joiner;
 
-public class Main {
-  
-  public static FlleShResult mResult = null;
-  
-  public static void main(String[] pArguments) throws IOException {
-    assert(pArguments != null);
-    assert(pArguments.length > 1);
-    
-    mResult = null;
-    
-    String lFQLSpecificationString = pArguments[0];
-    String lSourceFileName = pArguments[1];
-    
-    String lEntryFunction = "main";
-    
-    if (pArguments.length > 2) {
-      lEntryFunction = pArguments[2];
-    }
-    
-    // TODO implement nicer mechanism for disabling cilly preprocessing
-    if (pArguments.length <= 3) {  
-      // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
-      Cilly lCilly = new Cilly();
-  
-      if (!lCilly.isCillyInvariant(lSourceFileName)) {
-        File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
-        //lCillyProcessedFile.deleteOnExit();
-  
-        lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-  
-        System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
-      }
-    }
+public class FlleSh {
 
-    mResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, false);
-    
-    System.out.println("#Goals: " + mResult.getTask().getNumberOfTestGoals() + ", #Feas: " + mResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + mResult.getNumberOfInfeasibleTestGoals());
-  }
-  
-  /**
-   * @param pArguments
-   * @throws Exception
-   */
-  public static void main_old(String[] pArguments) throws Exception {
-    assert(pArguments != null);
-    assert(pArguments.length > 1);
-    
-    mResult = null;
-    
-    String lFQLSpecificationString = pArguments[0];
-    String lSourceFileName = pArguments[1];
-    
-    String lEntryFunction = "main";
-    
-    if (pArguments.length > 2) {
-      lEntryFunction = pArguments[2];
-    }
-    
-    // TODO implement nicer mechanism for disabling cilly preprocessing
-    if (pArguments.length <= 3) {  
-      // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
-      Cilly lCilly = new Cilly();
-  
-      if (!lCilly.isCillyInvariant(lSourceFileName)) {
-        File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
-        //lCillyProcessedFile.deleteOnExit();
-  
-        lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-  
-        System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
-      }
-    }
+  public static FlleShResult run(String pSourceFileName, String pFQLSpecification, String pEntryFunction, boolean pApplySubsumptionCheck) {
 
-    File lPropertiesFile = Main.createPropertiesFile(lEntryFunction);
-    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    File lPropertiesFile = Main.createPropertiesFile(pEntryFunction);
+    Configuration lConfiguration = Main.createConfiguration(pSourceFileName, lPropertiesFile.getAbsolutePath());
 
-    LogManager lLogManager = new LogManager(lConfiguration);
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    LogManager lLogManager;
+    ModifiedCPAchecker lCPAchecker;
+    try {
+      lLogManager = new LogManager(lConfiguration);
+      lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    FQLSpecification lFQLSpecification = FQLSpecification.parse(lFQLSpecificationString);
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     
     System.out.println("FQL query: " + lFQLSpecification);
-    System.out.println("File: " + lSourceFileName);
+    System.out.println("File: " + pSourceFileName);
     
     Task lTask = Task.create(lFQLSpecification, lMainFunction);
     
@@ -178,10 +96,11 @@ public class Main {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
-    lWrapper.toDot("test/output/wrapper.dot");
-    
-    //String lTestHarness = "void __FLLESH__main() { foo(10); }";
-    //Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager, lTestHarness);
+    try {
+      lWrapper.toDot("test/output/wrapper.dot");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
     
@@ -198,25 +117,12 @@ public class Main {
     
     LinkedList<Goal> lGoals = new LinkedList<Goal>();
     
-    //int lTmpIndex = 0;
-    
     for (ElementaryCoveragePattern lGoalPattern : lTask) {
-      //lTmpIndex++;
-      
-      //if (lTmpIndex == 2) {
-        //Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lGoalPattern, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-        //lGoals.add(new Pair<ElementaryCoveragePattern, Automaton<GuardedEdgeLabel>>(lGoalPattern, lAutomaton));
-
-        Goal lGoal = new Goal(lGoalPattern, lWrapper);
-        lGoals.add(lGoal);
-      //}
+      Goal lGoal = new Goal(lGoalPattern, lWrapper);
+      lGoals.add(lGoal);
     }
     
     System.out.println(lGoals.size());
-    
-    /*if (true) {
-      return;
-    }*/
     
     int lIndex = 0;
     
@@ -229,12 +135,26 @@ public class Main {
       System.out.println(lPrettyPrinter.printPretty(lGoal.getPattern()));
       
       CPAFactory lLocationCPAFactory = LocationCPA.factory();
-      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
+      ConfigurableProgramAnalysis lLocationCPA;
+      try {
+        lLocationCPA = lLocationCPAFactory.createInstance();
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      }
 
       CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
       lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
       lSymbPredAbsCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
+      ConfigurableProgramAnalysis lSymbPredAbsCPA;
+      try {
+        lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      }
       
       CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
       
@@ -253,17 +173,49 @@ public class Main {
       
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
       lComponentAnalyses.add(lLocationCPA);
-      lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
+      try {
+        lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      }
 
-      ConfigurableProgramAnalysis lARTCPA = getARTCPA(lComponentAnalyses, lConfiguration, lLogManager);
+      ConfigurableProgramAnalysis lARTCPA;
+      try {
+        lARTCPA = getARTCPA(lComponentAnalyses, lConfiguration, lLogManager);
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      }
 
       CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, lLogManager);
       
-      SymbPredAbsRefiner lRefiner = new SymbPredAbsRefiner(lBasicAlgorithm.getCPA());
+      SymbPredAbsRefiner lRefiner;
+      try {
+        lRefiner = new SymbPredAbsRefiner(lBasicAlgorithm.getCPA());
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      }
       
-      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, lConfiguration, lLogManager);
+      CEGARAlgorithm lAlgorithm;
+      try {
+        lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, lConfiguration, lLogManager);
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      }
 
-      Statistics lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
+      Statistics lARTStatistics;
+      try {
+        lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      }
       Set<Statistics> lStatistics = new HashSet<Statistics>();
       lStatistics.add(lARTStatistics);
       lAlgorithm.collectStatistics(lStatistics);
@@ -285,7 +237,12 @@ public class Main {
       CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
       
       // TODO remove in future ... here for debugging purposes
-      boolean lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
+      boolean lIsFeasible;
+      try {
+        lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       
       if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
         if (lIsFeasible) {
@@ -308,63 +265,75 @@ public class Main {
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
         
         
-        /** goal subsumption check */
-        System.out.println("ACTIVATE SUBSUMPTION CHECK AGAIN!");
-        /*
-        // a) determine cfa path
-        CFAEdge[] lCFAPath;
-        if (lTask.hasPassingClause()) {
-          lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lPassingCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
-        }
-        else {
-          lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
-        }
-        
-        HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
-        
-        // check whether remaining goals are subsumed by current counter example
-        for (Goal lOpenGoal : lGoals) {
-          // is goal subsumed by structural path?
-          ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
+        if (pApplySubsumptionCheck) {
+          /** goal subsumption check */
           
-          if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
-            // test case satisfies goal 
-            
-            // I) remove goal from task list
-            lSubsumedGoals.add(lOpenGoal);
-            
-            // II) log information
-            lResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), lCounterexample);
-            
-            System.out.println("SUBSUMED");
+          // a) determine cfa path
+          CFAEdge[] lCFAPath;
+          if (lTask.hasPassingClause()) {
+            try {
+              lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lPassingCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
+            } catch (InvalidConfigurationException e) {
+              throw new RuntimeException(e);
+            } catch (CPAException e) {
+              throw new RuntimeException(e);
+            }
           }
-          else if (lAcceptanceAnswer == ThreeValuedAnswer.UNKNOWN) {
-            // we need a more expensive subsumption analysis
-            // c) check predicate goals for subsumption
-            // TODO implement
-            
-            throw new RuntimeException();
+          else {
+            try {
+              lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
+            } catch (InvalidConfigurationException e) {
+              throw new RuntimeException(e);
+            } catch (CPAException e) {
+              throw new RuntimeException(e);
+            }
           }
+          
+          HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
+          
+          // check whether remaining goals are subsumed by current counter example
+          for (Goal lOpenGoal : lGoals) {
+            // is goal subsumed by structural path?
+            ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
+            
+            if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
+              // test case satisfies goal 
+              
+              // I) remove goal from task list
+              lSubsumedGoals.add(lOpenGoal);
+              
+              // II) log information
+              lResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), lCounterexample);
+              
+              System.out.println("SUBSUMED");
+            }
+            else if (lAcceptanceAnswer == ThreeValuedAnswer.UNKNOWN) {
+              // we need a more expensive subsumption analysis
+              // c) check predicate goals for subsumption
+              // TODO implement
+              
+              throw new RuntimeException();
+            }
+          }
+          
+          // remove all subsumed goals
+          lGoals.removeAll(lSubsumedGoals);
         }
-        
-        // remove all subsumed goals
-        lGoals.removeAll(lSubsumedGoals);*/
       }
     }
     
-    mResult = lResultFactory.create();
-    
-    System.out.println("#Goals: " + mResult.getTask().getNumberOfTestGoals() + ", #Feas: " + mResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + mResult.getNumberOfInfeasibleTestGoals());
+    return lResultFactory.create();
   }
   
-  public static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
+
+  private static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
     Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(pPattern, pWrapper.getAlphaEdge(), pWrapper.getOmegaEdge());
     GuardedEdgeAutomatonCPA lCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     
     return lCPA;
   }
   
-  public static ConfigurableProgramAnalysis getARTCPA(List<ConfigurableProgramAnalysis> pComponentCPAs, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException, CPAException {
+  private static ConfigurableProgramAnalysis getARTCPA(List<ConfigurableProgramAnalysis> pComponentCPAs, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException, CPAException {
     // create composite CPA
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(pComponentCPAs);
@@ -381,7 +350,7 @@ public class Main {
     return lARTCPAFactory.createInstance();
   }
   
-  public static boolean determineGoalFeasibility(ReachedElements pReachedElements, Statistics pStatistics) throws IOException {
+  private static boolean determineGoalFeasibility(ReachedElements pReachedElements, Statistics pStatistics) throws IOException {
     boolean lErrorReached = false;
     
     for (AbstractElement lReachedElement : pReachedElements) {
@@ -406,7 +375,7 @@ public class Main {
     }
   }
   
-  public static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
+  private static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
     return createConfiguration(Collections.singletonList(pSourceFile), pPropertiesFile);
   }
 
@@ -427,7 +396,7 @@ public class Main {
     return lConfiguration;
   }
 
-  public static File createPropertiesFile(String pEntryFunction) {
+  private static File createPropertiesFile(String pEntryFunction) {
     if (pEntryFunction == null) {
       throw new IllegalArgumentException("Parameter pEntryFunction is null!");
     }
@@ -703,4 +672,3 @@ public class Main {
   }
   
 }
-

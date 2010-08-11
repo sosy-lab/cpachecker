@@ -34,6 +34,7 @@ import junit.framework.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.fllesh.experiments.Experiment;
 
 public class MainTest {
 
@@ -61,6 +62,7 @@ public class MainTest {
   
   private static String BASIC_BLOCK_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   private static String STATEMENT_COVERAGE = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+  private static String CONDITION_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"";
   
   @BeforeClass
   public static void createLogFile() {
@@ -686,6 +688,189 @@ public class MainTest {
      * }
      * 
      */
+    
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain025() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_COVERAGE, 
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
+                                        "main", 
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("025", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    /**
+     * Discussion: get_exit_nondet() in its original implementation is faulty
+     */
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain026() throws Exception {
+    String[] lArguments = getParameters(CONDITION_COVERAGE, 
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        //"/home/andreas/ase-experimente/kbfiltr.c",
+                                        "main", 
+                                        //false);
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("026", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    /**
+     * Discussion: get_exit_nondet() in its original implementation is faulty
+     */
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain027() throws Exception {
+    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"", 
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
+                                        "main", 
+                                        false);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("027", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain028() throws Exception {
+    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+                                        "test/programs/fql/arrays/infeasible_label.1.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("028", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain029() throws Exception {
+    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+                                        "test/programs/fql/arrays/assignment.1.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("029", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain030() throws Exception {
+    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+                                        "test/programs/fql/arrays/assignment.2.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("030", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain031() throws Exception {
+    String[] lArguments = getParameters(//STATEMENT_COVERAGE,
+                                        //CONDITION_COVERAGE,
+                                        "COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+                                        //BASIC_BLOCK_COVERAGE, 
+                                        //"/home/andreas/ase-experimente/sort1.c", 
+                                        //"/home/andreas/ase-experimente/list2.i",
+                                        //"/home/andreas/ase-experimente/adapted/list2.c",
+                                        "/home/andreas/ase-experimente/modeling/test.c",
+                                        "main",
+                                        //false);
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("031", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    // TODO this is a dummy test case
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
     
     Assert.assertTrue(false);
   }
