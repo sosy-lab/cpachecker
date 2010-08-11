@@ -28,7 +28,8 @@ public class SpecificationPartitionScanner extends RuleBasedPartitionScanner {
 		"GOTO",
 		"CHECK",
 		"MODIFY",
-		"PRINT"
+		"PRINT",
+		"EXIT"
 	};
 
 	public SpecificationPartitionScanner() {
