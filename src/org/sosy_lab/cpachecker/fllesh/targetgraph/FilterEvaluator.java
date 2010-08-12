@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.fllesh.targetgraph;
 
+import java.util.Set;
+
 import org.jgrapht.graph.MaskFunctor;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.BasicBlockEntry;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Column;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Complement;
@@ -38,9 +41,11 @@ public class FilterEvaluator {
   
   private static FilterEvaluationCache mCache = new FilterEvaluationCache();
   private Visitor mVisitor;
+  private BasicBlockEntryMaskFunctor mBasicBlockEntryMaskFunctor;
   
-  public FilterEvaluator(TargetGraph pTargetGraph) {
+  public FilterEvaluator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
     mVisitor = new Visitor(pTargetGraph);
+    mBasicBlockEntryMaskFunctor = new BasicBlockEntryMaskFunctor(pBasicBlockEntries);
   }
   
   public TargetGraph evaluate(Filter pFilter) {
@@ -75,9 +80,7 @@ public class FilterEvaluator {
         return mCache.get(mTargetGraph, pBasicBlockEntry);
       }
       
-      MaskFunctor<Node, Edge> lMaskFunctor = BasicBlockEntryMaskFunctor.getInstance();
-
-      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, mBasicBlockEntryMaskFunctor);
 
       mCache.add(mTargetGraph, pBasicBlockEntry, lResultGraph);
 

@@ -24,10 +24,12 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.io.File;
+import java.util.Set;
 
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
@@ -72,8 +74,10 @@ public class PathPatternTranslatorTest {
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
+    
     /** do translation */
-    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -113,8 +117,10 @@ public class PathPatternTranslatorTest {
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
+    
     /** do translation */
-    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -154,8 +160,10 @@ public class PathPatternTranslatorTest {
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
+    
     /** do translation */
-    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -195,8 +203,10 @@ public class PathPatternTranslatorTest {
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
+    
     /** do translation */
-    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();

@@ -3,11 +3,13 @@ package org.sosy_lab.cpachecker.fllesh.targetgraph;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.Set;
 
 import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -18,6 +20,104 @@ import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionNameMaskFunctor;
 
 public class TargetGraphUtil {
 
+  public static Set<CFAEdge> getBasicBlockEntries(CFANode pInitialNode) {
+    HashSet<CFAEdge> lBasicBlockEntries = new HashSet<CFAEdge>();
+    
+    HashSet<CFAEdge> lVisitedEdges = new HashSet<CFAEdge>();
+    
+    LinkedList<CFAEdge> lWorklist = new LinkedList<CFAEdge>();
+    
+    for (int lIndex = 0; lIndex < pInitialNode.getNumLeavingEdges(); lIndex++) {
+      CFAEdge lOutgoingEdge = pInitialNode.getLeavingEdge(lIndex);
+      lWorklist.add(lOutgoingEdge);
+    }
+    
+    while (!lWorklist.isEmpty()) {
+      CFAEdge lCurrentEdge = lWorklist.removeFirst();
+      
+      if (lVisitedEdges.contains(lCurrentEdge)) {
+        continue;
+      }
+      
+      lVisitedEdges.add(lCurrentEdge);
+      
+      
+      LinkedList<CFAEdge> lTrace = new LinkedList<CFAEdge>();
+      
+      CFAEdge lCurrentTraceEdge = lCurrentEdge;
+      
+      lTrace.add(lCurrentTraceEdge);
+      
+      while (!isLastEdge(lCurrentTraceEdge)) {
+        CFANode lSuccessor = lCurrentTraceEdge.getSuccessor();
+        
+        if (lSuccessor.getNumLeavingEdges() != 1) {
+          throw new RuntimeException();
+        }
+        
+        lCurrentTraceEdge = lSuccessor.getLeavingEdge(0);
+        
+        lTrace.add(lCurrentTraceEdge);
+      }
+
+      // assumptions are not basic block entries
+      while (!lTrace.isEmpty() && lTrace.getFirst().getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        lTrace.removeFirst();
+      }
+            
+      if (!lTrace.isEmpty()) {
+        lCurrentEdge = lTrace.getFirst();
+        
+        for (CFAEdge lCFAEdge : lTrace) {
+          CFAEdgeType lEdgeType = lCFAEdge.getEdgeType();
+          
+          if (lEdgeType.equals(CFAEdgeType.FunctionCallEdge) ||
+              lEdgeType.equals(CFAEdgeType.ReturnEdge)) {
+            
+            lCurrentTraceEdge = lCFAEdge;
+            
+            break;
+          }
+        }
+        
+        CFAEdgeType lEdgeType = lCurrentEdge.getEdgeType();
+        
+        if (!lEdgeType.equals(CFAEdgeType.FunctionCallEdge) && 
+            !lEdgeType.equals(CFAEdgeType.ReturnEdge)) {
+          // basic block consists not only of an interprocedural cfa edge (function call edge or return edge)
+          lBasicBlockEntries.add(lCurrentEdge);
+        }
+      }
+      
+      CFANode lSuccessor = lCurrentTraceEdge.getSuccessor();
+      
+      for (int lIndex = 0; lIndex < lSuccessor.getNumLeavingEdges(); lIndex++) {
+        CFAEdge lSuccessorEdge = lSuccessor.getLeavingEdge(lIndex);
+        lWorklist.add(lSuccessorEdge);
+      }
+    }
+    
+    return lBasicBlockEntries;
+  }
+  
+  private static boolean isLastEdge(CFAEdge pCFAEdge) {
+    CFANode lSuccessor = pCFAEdge.getSuccessor();
+    
+    if (lSuccessor.getNumLeavingEdges() != 1) {
+      return true;
+    }
+    
+    if (lSuccessor.getNumEnteringEdges() != 1) {
+      return true;
+    }
+    
+    if (pCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+      return true;
+    }
+    
+    return false;
+  }
+  
   public static TargetGraph cfa(CFANode pInitialNode) {
     if (pInitialNode == null) {
       throw new IllegalArgumentException();

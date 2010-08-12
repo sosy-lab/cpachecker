@@ -75,10 +75,8 @@ public class ToControlAutomatonTranslatorTest {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
     /** do translation */
-    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
@@ -134,10 +132,8 @@ public class ToControlAutomatonTranslatorTest {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
     /** do translation */
-    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
@@ -193,10 +189,8 @@ public class ToControlAutomatonTranslatorTest {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
     /** do translation */
-    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
@@ -252,10 +246,8 @@ public class ToControlAutomatonTranslatorTest {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
     /** do translation */
-    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
@@ -311,10 +303,8 @@ public class ToControlAutomatonTranslatorTest {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
     /** do translation */
-    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
@@ -370,10 +360,8 @@ public class ToControlAutomatonTranslatorTest {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
     /** do translation */
-    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());

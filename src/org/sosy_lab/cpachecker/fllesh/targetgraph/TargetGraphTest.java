@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fllesh.targetgraph;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -35,6 +36,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.ConditionEdge;
@@ -239,9 +242,13 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(Identity.getInstance());
     
     // identity returns the (physically) same target graph
@@ -259,11 +266,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Function lFunctionFilter = new Function("f");
     
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph1 = lFilterEvaluator.evaluate(lFunctionFilter);
 
@@ -298,11 +309,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
+    
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
 
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
     
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallFilter);
 
@@ -323,11 +338,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     FunctionCall lFunctionCallFilter = new FunctionCall("func");
 
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
     
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallFilter);
 
@@ -353,11 +372,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lFunctionCallsFilter = FunctionCalls.getInstance();
 
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
     
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallsFilter);
 
@@ -378,11 +401,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lFunctionEntryFilter = new FunctionEntry("func");
 
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
     
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionEntryFilter);
 
@@ -408,11 +435,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lLineFilter = new Line(102);
     
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLineFilter);
 
@@ -438,11 +469,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lLabelFilter = new Label("ERROR");
     
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLabelFilter);
 
@@ -468,11 +503,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lLabelFilter = new Label("ERROR");
     
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLabelFilter);
 
@@ -516,11 +555,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lFilter = ConditionEdge.getInstance();
     
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFilter);
 
@@ -541,11 +584,15 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    CFANode lInitialNode = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
+
+    Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lFilter = ConditionEdge.getInstance();
     
-    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFilter);
 

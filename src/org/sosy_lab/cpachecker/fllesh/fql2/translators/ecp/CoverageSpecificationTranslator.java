@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
@@ -11,6 +13,7 @@ import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Path;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -27,9 +30,13 @@ public class CoverageSpecificationTranslator {
   private Visitor mVisitor;
   private PathPatternTranslator mPathPatternTranslator;
   
-  public CoverageSpecificationTranslator(TargetGraph pTargetGraph) {
+  public CoverageSpecificationTranslator(CFANode pInitialNode) {
+    this(TargetGraphUtil.cfa(pInitialNode), TargetGraphUtil.getBasicBlockEntries(pInitialNode));
+  }
+  
+  public CoverageSpecificationTranslator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
     mVisitor = new Visitor();
-    mPathPatternTranslator = new PathPatternTranslator(pTargetGraph);
+    mPathPatternTranslator = new PathPatternTranslator(pTargetGraph, pBasicBlockEntries);
   }
   
   public CoverageSpecificationTranslator(PathPatternTranslator pPatternTranslator) {

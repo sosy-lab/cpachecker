@@ -328,10 +328,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_5.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(14, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(14, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(5, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(32, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(26, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -349,10 +349,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_6.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(16, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(16, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(37, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(30, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(7, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(20, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -370,10 +370,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_7.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(18, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(18, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(5, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(42, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(34, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(8, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -391,10 +391,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_8.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(20, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(20, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(18, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(47, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(38, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(9, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(34, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -412,10 +412,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_9.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(22, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(22, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(52, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(42, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(10, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -433,10 +433,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_10.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(24, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(24, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(8, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(57, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(46, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(11, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -454,10 +454,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_11.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(26, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(26, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(62, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(50, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(12, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(33, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -475,10 +475,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_12.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(28, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(28, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(22, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(67, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(54, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(13, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(47, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -496,10 +496,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_13.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(30, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(30, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(72, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(58, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(14, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(55, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -517,10 +517,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_14.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(32, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(32, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(22, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(77, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(62, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(51, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
@@ -538,10 +538,10 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_15.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(34, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(34, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(32, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(82, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(66, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(16, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(63, Main.mResult.getNumberOfTestCases());
   }
   
 }

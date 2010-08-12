@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.fllesh;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
@@ -43,9 +44,12 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
   }
   
   public static Task create(FQLSpecification pSpecification, CFANode pInitialNode) {
+    /*Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(pInitialNode);
+    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(pInitialNode);
     
-    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lTargetGraph);
+    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lTargetGraph, lBasicBlockEntries);*/
+    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(pInitialNode);
     Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
     
     if (pSpecification.hasPassingClause()) {
