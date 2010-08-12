@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -66,8 +67,8 @@ public class FlleSh {
 
   public static FlleShResult run(String pSourceFileName, String pFQLSpecification, String pEntryFunction, boolean pApplySubsumptionCheck) {
 
-    File lPropertiesFile = Main.createPropertiesFile(pEntryFunction);
-    Configuration lConfiguration = Main.createConfiguration(pSourceFileName, lPropertiesFile.getAbsolutePath());
+    File lPropertiesFile = FlleSh.createPropertiesFile(pEntryFunction);
+    Configuration lConfiguration = FlleSh.createConfiguration(pSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager;
     ModifiedCPAchecker lCPAchecker;
@@ -94,6 +95,10 @@ public class FlleSh {
     
     FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
     
+    // TODO implement possibility to load existing test suites in an elegant way
+    //String lTestHarness = "void __FLLESH__main() { foo(10); }";
+    //Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager, lTestHarness);
+    
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
     try {
@@ -115,19 +120,14 @@ public class FlleSh {
     
     System.out.println("TEST GOALS:");
     
-    LinkedList<Goal> lGoals = new LinkedList<Goal>();
-    
-    for (ElementaryCoveragePattern lGoalPattern : lTask) {
-      Goal lGoal = new Goal(lGoalPattern, lWrapper);
-      lGoals.add(lGoal);
-    }
+    Queue<Goal> lGoals = lTask.toGoals(lWrapper);
     
     System.out.println(lGoals.size());
     
     int lIndex = 0;
     
     while (!lGoals.isEmpty()) {
-      Goal lGoal = lGoals.pollFirst();
+      Goal lGoal = lGoals.poll();
       
       int lCurrentGoalNumber = ++lIndex;
       
@@ -239,7 +239,7 @@ public class FlleSh {
       // TODO remove in future ... here for debugging purposes
       boolean lIsFeasible;
       try {
-        lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
+        lIsFeasible = FlleSh.determineGoalFeasibility(lReachedElements, lARTStatistics);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -375,7 +375,7 @@ public class FlleSh {
     }
   }
   
-  private static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
+  public static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
     return createConfiguration(Collections.singletonList(pSourceFile), pPropertiesFile);
   }
 
@@ -396,7 +396,7 @@ public class FlleSh {
     return lConfiguration;
   }
 
-  private static File createPropertiesFile(String pEntryFunction) {
+  public static File createPropertiesFile(String pEntryFunction) {
     if (pEntryFunction == null) {
       throw new IllegalArgumentException("Parameter pEntryFunction is null!");
     }

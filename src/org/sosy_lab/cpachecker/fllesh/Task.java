@@ -1,15 +1,14 @@
 package org.sosy_lab.cpachecker.fllesh;
 
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 
 public class Task implements Iterable<ElementaryCoveragePattern> {
 
@@ -60,6 +59,17 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
     else {
       return new Task(lGoals);
     }
+  }
+  
+  public Queue<Goal> toGoals(Wrapper pWrapper) {
+    LinkedList<Goal> lGoals = new LinkedList<Goal>();
+    
+    for (ElementaryCoveragePattern lGoalPattern : this) {
+      Goal lGoal = new Goal(lGoalPattern, pWrapper);
+      lGoals.add(lGoal);
+    }
+    
+    return lGoals;
   }
   
 }

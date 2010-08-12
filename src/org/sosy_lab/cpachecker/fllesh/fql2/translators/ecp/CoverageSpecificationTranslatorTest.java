@@ -31,7 +31,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.fllesh.Main;
+import org.sosy_lab.cpachecker.fllesh.FlleSh;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
@@ -63,8 +63,8 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile("main");
-    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    File lPropertiesFile = FlleSh.createPropertiesFile("main");
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
@@ -118,8 +118,8 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile("main");
-    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    File lPropertiesFile = FlleSh.createPropertiesFile("main");
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
@@ -173,8 +173,8 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile("main");
-    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    File lPropertiesFile = FlleSh.createPropertiesFile("main");
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
@@ -228,8 +228,8 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile("main");
-    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    File lPropertiesFile = FlleSh.createPropertiesFile("main");
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
