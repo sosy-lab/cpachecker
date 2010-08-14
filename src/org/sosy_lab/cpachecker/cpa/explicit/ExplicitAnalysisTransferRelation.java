@@ -42,7 +42,10 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -52,12 +55,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -394,113 +391,693 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(ExplicitAnalysisElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws UnrecognizedCCodeException {
+                  throws UnrecognizedCFAEdgeException {
+    
 
-    Boolean result = getBooleanExpressionValue(element, expression, cfaEdge, truthValue);
 
-    if (result != null) {
-      if (result) {
-        return element.clone();
-      } else {
-        // return null for bottom element
-        return null;
-      }
-    } else {
-      // don't know
-      return element.clone();
-    }
-  }
-
-  private Boolean getBooleanExpressionValue(ExplicitAnalysisElement element,
-                              IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                              throws UnrecognizedCCodeException {
-    if (expression instanceof IASTUnaryExpression) {
-      // [!exp]
-      IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
-
-      switch (unaryExp.getOperator()) {
-
-      case IASTUnaryExpression.op_bracketedPrimary: // [(exp)]
-        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, truthValue);
-
-      case IASTUnaryExpression.op_not: // [! exp]
-        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
-
-      default:
-        throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
-      }
-
-    } else if (expression instanceof IASTIdExpression) {
-      // [exp]
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-      String varName = getvarName(expression.getRawSignature(), functionName);
-
-      if (element.contains(varName)) {
-        boolean expressionValue = (element.getValueFor(varName) != 0); // != 0 is true, == 0 is false
-
-        return expressionValue == truthValue;
-
-      } else {
-        return null;
-      }
-
-    } else if (expression instanceof IASTBinaryExpression) {
-      // [exp1 == exp2]
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
+    String functionName = cfaEdge.getPredecessor().getFunctionName();
+    // Binary operation
+    if (expression instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
+      int opType = binExp.getOperator ();
 
-      Long val1 = getExpressionValue(element, binExp.getOperand1(), functionName, cfaEdge);
-      Long val2 = getExpressionValue(element, binExp.getOperand2(), functionName, cfaEdge);
+      IASTExpression op1 = binExp.getOperand1();
+      IASTExpression op2 = binExp.getOperand2();
 
-      if (val1 != null && val2 != null) {
-        boolean expressionValue;
-
-        switch (binExp.getOperator()) {
-        case IASTBinaryExpression.op_equals:
-          expressionValue = val1.equals(val2);
-          break;
-
-        case IASTBinaryExpression.op_notequals:
-          expressionValue = !val1.equals(val2);
-          break;
-
-        case IASTBinaryExpression.op_greaterThan:
-          expressionValue = val1 > val2;
-          break;
-
-        case IASTBinaryExpression.op_greaterEqual:
-          expressionValue = val1 >= val2;
-          break;
-
-        case IASTBinaryExpression.op_lessThan:
-          expressionValue = val1 < val2;
-          break;
-
-        case IASTBinaryExpression.op_lessEqual:
-          expressionValue = val1 <= val2;
-          break;
-
-        default:
-          throw new UnrecognizedCCodeException(cfaEdge, binExp);
+      return propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue);
+    }
+    // Unary operation
+    else if (expression instanceof IASTUnaryExpression)
+    {
+      IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
+      // ! exp
+      if(unaryExp.getOperator() == IASTUnaryExpression.op_not)
+      {
+        IASTExpression exp1 = unaryExp.getOperand();
+        // ! unaryExp
+        if(exp1 instanceof IASTUnaryExpression){
+          IASTUnaryExpression unaryExp1 = ((IASTUnaryExpression)exp1);
+          // (exp)
+          if (unaryExp1.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
+            IASTExpression exp2 = unaryExp1.getOperand();
+            // (binaryExp)
+            if(exp2 instanceof IASTBinaryExpression){
+              IASTBinaryExpression binExp2 = (IASTBinaryExpression)exp2;
+              return handleAssumption(element, binExp2, cfaEdge, !truthValue);
+            }
+            else {
+              throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+            }
+          }
+          else {
+            throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+          }
         }
 
-        return expressionValue == truthValue;
-
-      } else {
-        return null;
+        if(exp1 instanceof IASTIdExpression ||
+            exp1 instanceof IASTFieldReference){
+          return handleAssumption(element, exp1, cfaEdge, !truthValue);
+        }
+        else {
+          throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+        }
       }
-
-    } else if (expression instanceof IASTCastExpression) {
-        IASTCastExpression castExpr = (IASTCastExpression) expression;
-        return getBooleanExpressionValue(element, castExpr.getOperand(), cfaEdge, truthValue);
-
+      else if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
+        return handleAssumption(element, unaryExp.getOperand(), cfaEdge, truthValue);
+      }
+      else if(unaryExp instanceof IASTCastExpression){
+        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+      }
+      else {
+        throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+      }
     }
 
-  {
-      // TODO fields, arrays
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+    else if(expression instanceof IASTIdExpression
+        || expression instanceof IASTFieldReference){
+      return propagateBooleanExpression(element, -999, expression, null, functionName, truthValue);
     }
+
+    else{
+      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+    }
+    
   }
+
+  private AbstractElement propagateBooleanExpression(AbstractElement element, 
+      int opType,IASTExpression op1, 
+      IASTExpression op2, String functionName, boolean truthValue) 
+  throws UnrecognizedCFAEdgeException {
+
+    ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+
+    // a (bop) ?
+    if(op1 instanceof IASTIdExpression || 
+        op1 instanceof IASTFieldReference ||
+        op1 instanceof IASTArraySubscriptExpression)
+    {
+      // [literal]
+      if(op2 == null && opType == -999){
+        String varName = op1.getRawSignature();
+        if(truthValue){
+          if(newElement.contains(getvarName(varName, functionName))){
+            if(newElement.getValueFor(getvarName(varName, functionName)) == 0){
+              return null;
+            }
+          }
+          else{
+          }
+        }
+        // ! [literal]
+        else {
+          if(newElement.contains(getvarName(varName, functionName))){
+            if(newElement.getValueFor(getvarName(varName, functionName)) != 0){
+              return null;
+            }
+          }
+          else{
+            newElement.assignConstant(getvarName(varName, functionName), 0, this.threshold);
+          }
+        }
+      }
+      // a (bop) 9
+      else if(op2 instanceof IASTLiteralExpression)
+      {
+        String varName = op1.getRawSignature();
+        int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
+        if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
+            //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
+        )
+        {
+          String literalString = op2.getRawSignature();
+          if(literalString.contains("L") || literalString.contains("U")){
+            literalString = literalString.replace("L", "");
+            literalString = literalString.replace("U", "");
+          }
+          int valueOfLiteral = Integer.valueOf(literalString).intValue();
+
+          // a == 9
+          if(opType == IASTBinaryExpression.op_equals) {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+                newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral, this.threshold);
+              }
+            }
+            // ! a == 9
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+            }
+          }
+          // a != 9
+          else if(opType == IASTBinaryExpression.op_notequals)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            // ! a != 9
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+            }
+          }
+
+          // a > 9
+          else if(opType == IASTBinaryExpression.op_greaterThan)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+            }
+          }
+          // a >= 9
+          else if(opType == IASTBinaryExpression.op_greaterEqual)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+            }
+          }
+          // a < 9
+          else if(opType == IASTBinaryExpression.op_lessThan)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+            }
+          }
+          // a <= 9
+          else if(opType == IASTBinaryExpression.op_lessEqual)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+            }
+          }
+          // [a - 9]
+          else if(opType == IASTBinaryExpression.op_minus)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            // ! a != 9
+            else {
+              return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+            }
+          }
+
+          // [a + 9]
+          else if(opType == IASTBinaryExpression.op_plus)
+          {
+            if(truthValue){
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) == (0 - valueOfLiteral)){
+                  return null;
+                }
+              }
+              else{
+              }
+            }
+            // ! a != 9
+            else {
+              if(newElement.contains(getvarName(varName, functionName))){
+                if(newElement.getValueFor(getvarName(varName, functionName)) != (0 - valueOfLiteral)){
+                  return null;
+                }
+              }
+              else{
+                newElement.assignConstant(getvarName(varName, functionName), (0 - valueOfLiteral), this.threshold);
+              }
+            }
+          }
+
+          // TODO nothing
+          else if(opType == IASTBinaryExpression.op_binaryAnd ||
+              opType == IASTBinaryExpression.op_binaryOr ||
+              opType == IASTBinaryExpression.op_binaryXor){
+            return newElement;
+          }
+
+          else{
+            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          }
+        }
+        else{
+          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+        }
+      }
+      // a (bop) b
+      else if(op2 instanceof IASTIdExpression ||
+          (op2 instanceof IASTUnaryExpression && (
+              (((IASTUnaryExpression)op2).getOperator() == IASTUnaryExpression.op_amper) || 
+              (((IASTUnaryExpression)op2).getOperator() == IASTUnaryExpression.op_star))))
+      {
+        String leftVarName = op1.getRawSignature();
+        String rightVarName = op2.getRawSignature();
+
+        // a == b
+        if(opType == IASTBinaryExpression.op_equals)
+        {
+          if(truthValue){
+            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+                !newElement.contains(getvarName(rightVarName, functionName))){
+              newElement.assignConstant(getvarName(rightVarName, functionName),
+                  newElement.getValueFor(getvarName(leftVarName, functionName)), this.threshold);
+            }
+            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
+                !newElement.contains(getvarName(leftVarName, functionName))){
+              newElement.assignConstant(getvarName(leftVarName, functionName),
+                  newElement.getValueFor(getvarName(rightVarName, functionName)), this.threshold);
+            }
+            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
+                newElement.contains(getvarName(leftVarName, functionName))){
+              if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
+                newElement.getValueFor(getvarName(leftVarName, functionName))){
+                return null;
+              }
+            }
+          }
+          else{
+            return propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+          }
+        }
+        // a != b
+        else if(opType == IASTBinaryExpression.op_notequals)
+        {
+          if(truthValue){
+            if(newElement.contains(getvarName(rightVarName, functionName)) && 
+                newElement.contains(getvarName(leftVarName, functionName))){
+              if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
+                newElement.getValueFor(getvarName(leftVarName, functionName))){
+                return null;
+              }
+            }
+            else{
+
+            }
+          }
+          else{
+            return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+          }
+        }
+        // a > b
+        else if(opType == IASTBinaryExpression.op_greaterThan)
+        {
+          if(truthValue){
+            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+                newElement.contains(getvarName(rightVarName, functionName))){
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
+                newElement.getValueFor(getvarName(rightVarName, functionName))){
+                return null;
+              }
+            }
+            else{
+
+            }
+          }
+          else{
+            return  propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+          }
+        }
+        // a >= b
+        else if(opType == IASTBinaryExpression.op_greaterEqual)
+        {
+          if(truthValue){
+            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+                newElement.contains(getvarName(rightVarName, functionName))){
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
+                  newElement.getValueFor(getvarName(rightVarName, functionName))){
+                return null;
+              }
+            }
+            else{
+
+            }
+          }
+          else{
+            return propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+          }
+        }
+        // a < b
+        else if(opType == IASTBinaryExpression.op_lessThan)
+        {
+          if(truthValue){
+            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+                newElement.contains(getvarName(rightVarName, functionName))){
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
+                newElement.getValueFor(getvarName(rightVarName, functionName))){
+                return null;
+              }
+            }
+            else{
+
+            }
+          }
+          else{
+            return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+          }
+        }
+        // a <= b
+        else if(opType == IASTBinaryExpression.op_lessEqual)
+        {
+          if(truthValue){
+            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+                newElement.contains(getvarName(rightVarName, functionName))){
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
+              newElement.getValueFor(getvarName(rightVarName, functionName))){
+                return null;
+              }
+            }
+            else{
+
+            }
+          }
+          else{
+            return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+          }
+        }
+        else{
+          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+        }
+      }
+      else if(op2 instanceof IASTUnaryExpression)
+      {
+        String varName = op1.getRawSignature();
+
+        IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
+        IASTExpression unaryExpOp = unaryExp.getOperand();
+
+        int operatorType = unaryExp.getOperator();
+        // a == -8
+        if(operatorType == IASTUnaryExpression.op_minus){
+
+          if(unaryExpOp instanceof IASTLiteralExpression){
+            IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
+            int typeOfLiteral = literalExp.getKind();
+            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
+                //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
+            )
+            {
+              String literalValue = op2.getRawSignature();
+              if(literalValue.contains("L") || literalValue.contains("U")){
+                literalValue = literalValue.replace("L", "");
+                literalValue = literalValue.replace("U", "");
+              }
+
+              int valueOfLiteral = Integer.valueOf(literalValue).intValue();
+
+              // a == 9
+              if(opType == IASTBinaryExpression.op_equals) {
+                if(truthValue){
+                  if(newElement.contains(getvarName(varName, functionName))){
+                    if(newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
+                      return null;  
+                    }
+                  }
+                  else{
+                    newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral, this.threshold);
+                  }
+                }
+                // ! a == 9
+                else {
+                  return propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a != 9
+              else if(opType == IASTBinaryExpression.op_notequals)
+              {
+                if(truthValue){
+                  if(newElement.contains(getvarName(varName, functionName))){
+                    if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
+                      return null;  
+                    }
+                  }
+                  else{
+                  }
+                }
+                // ! a != 9
+                else {
+                  return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+                }
+              }
+
+              // a > 9
+              else if(opType == IASTBinaryExpression.op_greaterThan)
+              {
+                if(truthValue){
+                  if(newElement.contains(getvarName(varName, functionName))){
+                    if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
+                      return null;  
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  return propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a >= 9
+              else if(opType == IASTBinaryExpression.op_greaterEqual)
+              {
+                if(truthValue){
+                  if(newElement.contains(getvarName(varName, functionName))){
+                    if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
+                      return null;  
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  return propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a < 9
+              else if(opType == IASTBinaryExpression.op_lessThan)
+              {
+                if(truthValue){
+                  if(newElement.contains(getvarName(varName, functionName))){
+                    if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral){
+                      return null;  
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a <= 9
+              else if(opType == IASTBinaryExpression.op_lessEqual)
+              {
+                if(truthValue){
+                  if(newElement.contains(getvarName(varName, functionName))){
+                    if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral){
+                      return null;  
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+                }
+              }
+              else{
+                throw new UnrecognizedCFAEdgeException("Unhandled case ");
+              }
+            }
+            else{
+              throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            }
+          }
+          else{
+            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          }
+        }
+        else if(operatorType == IASTUnaryExpression.op_bracketedPrimary){
+          IASTUnaryExpression unaryExprInPar = (IASTUnaryExpression)op2;
+          IASTExpression exprInParanhesis = unaryExprInPar.getOperand();
+          return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
+        }
+        // right hand side is a cast exp
+        else if(unaryExp instanceof IASTCastExpression){
+          IASTCastExpression castExp = (IASTCastExpression)unaryExp;
+          IASTExpression exprInCastOp = castExp.getOperand();
+          return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
+        }
+        else{
+          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+        }
+      }
+      else if(op2 instanceof IASTBinaryExpression){
+        String varName = op1.getRawSignature();
+        // TODO forgetting
+        newElement.forget(varName);
+      }
+      else{
+      String varName = op1.getRawSignature();
+      // TODO forgetting
+      newElement.forget(varName);
+//        System.out.println(op2);
+//        System.out.println(op2.getRawSignature());
+//        System.exit(0);
+//        throw new UnrecognizedCFAEdgeException("Unhandled case ");
+      }
+    }
+    else if(op1 instanceof IASTCastExpression){
+      IASTCastExpression castExp = (IASTCastExpression) op1;
+      IASTExpression castOperand = castExp.getOperand();
+      return propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue);
+    }
+    else{
+    String varName = op1.getRawSignature();
+    // TODO forgetting
+    newElement.forget(varName);
+//      throw new UnrecognizedCFAEdgeException("Unhandled case " );
+    }
+    return newElement;
+  }
+  
+//  private Boolean getBooleanExpressionValue(ExplicitAnalysisElement element,
+//                              IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+//                              throws UnrecognizedCCodeException {
+//    if (expression instanceof IASTUnaryExpression) {
+//      // [!exp]
+//      IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
+//
+//      switch (unaryExp.getOperator()) {
+//
+//      case IASTUnaryExpression.op_bracketedPrimary: // [(exp)]
+//        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, truthValue);
+//
+//      case IASTUnaryExpression.op_not: // [! exp]
+//        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
+//
+//      default:
+//        throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
+//      }
+//
+//    } else if (expression instanceof IASTIdExpression) {
+//      // [exp]
+//      String functionName = cfaEdge.getPredecessor().getFunctionName();
+//      String varName = getvarName(expression.getRawSignature(), functionName);
+//
+//      if (element.contains(varName)) {
+//        boolean expressionValue = (element.getValueFor(varName) != 0); // != 0 is true, == 0 is false
+//
+//        return expressionValue == truthValue;
+//
+//      } else {
+//        return null;
+//      }
+//
+//    } else if (expression instanceof IASTBinaryExpression) {
+//      // [exp1 == exp2]
+//      String functionName = cfaEdge.getPredecessor().getFunctionName();
+//      IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
+//
+//      Long val1 = getExpressionValue(element, binExp.getOperand1(), functionName, cfaEdge);
+//      Long val2 = getExpressionValue(element, binExp.getOperand2(), functionName, cfaEdge);
+//
+//      if (val1 != null && val2 != null) {
+//        boolean expressionValue;
+//
+//        switch (binExp.getOperator()) {
+//        case IASTBinaryExpression.op_equals:
+//          expressionValue = val1.equals(val2);
+//          break;
+//
+//        case IASTBinaryExpression.op_notequals:
+//          expressionValue = !val1.equals(val2);
+//          break;
+//
+//        case IASTBinaryExpression.op_greaterThan:
+//          expressionValue = val1 > val2;
+//          break;
+//
+//        case IASTBinaryExpression.op_greaterEqual:
+//          expressionValue = val1 >= val2;
+//          break;
+//
+//        case IASTBinaryExpression.op_lessThan:
+//          expressionValue = val1 < val2;
+//          break;
+//
+//        case IASTBinaryExpression.op_lessEqual:
+//          expressionValue = val1 <= val2;
+//          break;
+//
+//        default:
+//          throw new UnrecognizedCCodeException(cfaEdge, binExp);
+//        }
+//
+//        return expressionValue == truthValue;
+//
+//      } else {
+//        return null;
+//      }
+//
+//    } else if (expression instanceof IASTCastExpression) {
+//        IASTCastExpression castExpr = (IASTCastExpression) expression;
+//        return getBooleanExpressionValue(element, castExpr.getOperand(), cfaEdge, truthValue);
+//
+//    }
+//
+//  {
+//      // TODO fields, arrays
+//      throw new UnrecognizedCCodeException(cfaEdge, expression);
+//    }
+//  }
 
   private ExplicitAnalysisElement handleDeclaration(ExplicitAnalysisElement element,
       DeclarationEdge declarationEdge) {
