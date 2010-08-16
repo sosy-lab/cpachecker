@@ -27,6 +27,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -58,6 +59,7 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
@@ -668,4 +671,61 @@ public class CFABuilder extends ASTVisitor
 	public int visit (IASTProblem problem) {
 	  throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
 	}
+	
+	/**
+   * Insert nodes for global declarations after first node of CFA.
+   */
+  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, LogManager logger) {
+    if (globalVars.isEmpty()) {
+      return;
+    }
+    // create a series of GlobalDeclarationEdges, one for each declaration,
+    // and add them as successors of the input node
+    List<CFANode> decls = new LinkedList<CFANode>();
+    CFANode cur = new CFANode(0, cfa.getFunctionName());
+    decls.add(cur);
+
+    for (IASTDeclaration d : globalVars) {
+      assert(d instanceof IASTSimpleDeclaration);
+      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
+      // TODO refactor this
+//      if (sd.getDeclarators().length == 1 &&
+//          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
+//        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
+//          // do nothing
+//        }
+//        else {
+//          System.out.println(d.getRawSignature());
+//          continue;
+//        }
+//      }
+      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
+          sd.getFileLocation().getStartingLineNumber(), cur, n);
+      e.addToCFA(logger);
+      decls.add(n);
+      cur = n;
+    }
+
+    // split off first node of CFA
+    assert cfa.getNumLeavingEdges() == 1;
+    assert cfa.getLeavingSummaryEdge() == null;
+    CFAEdge firstEdge = cfa.getLeavingEdge(0);
+    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    CFANode secondNode = firstEdge.getSuccessor();
+
+    cfa.removeLeavingEdge(firstEdge);
+    secondNode.removeEnteringEdge(firstEdge);
+
+    // and add a blank edge connecting the first node of CFA with declarations
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, decls.get(0));
+    be.addToCFA(logger);
+
+    // and a blank edge connecting the declarations with the second node of CFA
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    be.addToCFA(logger);
+
+    return;
+  }
+  
 }

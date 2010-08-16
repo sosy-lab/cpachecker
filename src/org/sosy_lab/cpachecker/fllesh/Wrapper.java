@@ -29,126 +29,32 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTProblem;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
-import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
-import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.fllesh.util.CFATraversal;
-import org.sosy_lab.cpachecker.fllesh.util.CFAVisitor;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.fllesh.cfa.TranslationUnit;
 
 public class Wrapper {
 
   private LogManager mLogManager;
-  private Map<String, CFAFunctionDefinitionNode> mCFAs;
   private CFAFunctionDefinitionNode mEntry;
-  private AddFunctionCallVisitor mVisitor;
-
-  private class AddFunctionCallVisitor implements CFAVisitor {
-
-    private CFAEdge mAlphaEdge;
-    private CFAEdge mOmegaEdge;
-    private CFAEdge mAlphaToOmegaEdge;
-
-    private Set<CFAEdge> mCFAEdges;
-
-    private AddFunctionCallVisitor() {
-      mCFAEdges = new HashSet<CFAEdge>();
-    }
-
-    public CFAEdge getAlphaEdge() {
-      return mAlphaEdge;
-    }
-
-    public CFAEdge getOmegaEdge() {
-      return mOmegaEdge;
-    }
-
-    @Override
-    public void init(CFANode pInitialNode) {
-
-    }
-
-    @Override
-    public void visit(CFAEdge pP) {
-      if (pP instanceof StatementEdge) {
-        IASTExpression expr = ((StatementEdge)pP).getExpression();
-
-        if (expr instanceof IASTFunctionCallExpression) {
-          createCallAndReturnEdges(pP.getPredecessor(), pP.getSuccessor(), pP, expr, (IASTFunctionCallExpression)expr);
-
-          mCFAEdges.add(mAlphaEdge);
-          mCFAEdges.add(mOmegaEdge);
-          mCFAEdges.add(mAlphaToOmegaEdge);
-        }
-        else {
-          mCFAEdges.add(pP);
-        }
-
-      }
-      else {
-        mCFAEdges.add(pP);
-      }
-    }
-
-    private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
-      String functionName = functionCall.getFunctionNameExpression().getRawSignature();
-      CFAFunctionDefinitionNode fDefNode = mCFAs.get(functionName);
-
-      //get the parameter expression
-      IASTExpression parameterExpression = functionCall.getParameterExpression();
-      IASTExpression[] parameters = null;
-      //in case of an expression list, get the corresponding array
-      if (parameterExpression instanceof IASTExpressionList) {
-        IASTExpressionList paramList = (IASTExpressionList)parameterExpression;
-        parameters = paramList.getExpressions();
-      //in case of a single parameter, use a single-entry array
-      } else if (parameterExpression != null) {
-        parameters = new IASTExpression[] {parameterExpression};
-      }
-      FunctionCallEdge callEdge;
-
-      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, fDefNode, parameters, false);
-      callEdge.addToCFA(null);
-      mAlphaEdge = callEdge;
-
-      // set return edge from exit node of the function
-      ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), mCFAs.get(functionName).getExitNode(), successorNode);
-      returnEdge.addToCFA(null);
-
-      mOmegaEdge = returnEdge;
-
-      CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
-      calltoReturnEdge.addToCFA(null);
-
-      mAlphaToOmegaEdge = calltoReturnEdge;
-
-      node.removeLeavingEdge(edge);
-      successorNode.removeEnteringEdge(edge);
-    }
-  }
+  private CFAEdge mAlphaEdge;
+  private CFAEdge mOmegaEdge;
+  
+  private TranslationUnit mTranslationUnit;
+  
+  private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
 
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
     this(pMainFunction, pCFAs, pLogManager, getWrapperCFunction(pMainFunction));
@@ -159,29 +65,124 @@ public class Wrapper {
   }
   
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager, String pWrapperSource, String pEntryFunction) {
+    mReplacedEdges = new HashMap<CallToReturnEdge, CFAEdge>();
     mLogManager = pLogManager;
-    mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-    mCFAs.putAll(this.getWrapper(pWrapperSource));
-    mCFAs.putAll(pCFAs);
     
-    mEntry = mCFAs.get(pEntryFunction);
+    TranslationUnit lWrapper = getWrapper(pWrapperSource);
+    
+    mTranslationUnit = new TranslationUnit();
+    mTranslationUnit.add(lWrapper);
+    mTranslationUnit.add(pCFAs);
+    
+    for (String lFunctionName : mTranslationUnit.functionNames()) {
+      mReplacedEdges.putAll(mTranslationUnit.insertCallEdgesRecursively(lFunctionName));
+    }
+    
+    mEntry = mTranslationUnit.getFunction(pEntryFunction);
+    
+    CFABuilder.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
+    
+    determineAlphaAndOmegaEdges(mEntry, pMainFunction);
+  }
+  
+  public void addFunctions(String pFileName) {
+    TranslationUnit lTranslationUnit = TranslationUnit.parseFile(pFileName, mLogManager);
+    
+    mTranslationUnit.add(lTranslationUnit);
+    
+    for (String lFunctionName : mTranslationUnit.functionNames()) {
+      if (!lTranslationUnit.contains(lFunctionName)) {
+        Map<CallToReturnEdge, CFAEdge> lMapping = mTranslationUnit.insertCallEdgesRecursively(lFunctionName);
+        mReplacedEdges.putAll(lMapping);
+      }
+    }
+    
+    CFABuilder.insertGlobalDeclarations(mEntry, mTranslationUnit.getGlobalDeclarations(), mLogManager);
+  }
+  
+  public Map<CallToReturnEdge, CFAEdge> getReplacedEdges() {
+    return mReplacedEdges;
+  }
+  
+  private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
+    assert(pInitialNode != null);
 
-    // correct call to main function
-    mVisitor = new AddFunctionCallVisitor();
+    Set<CFANode> lWorklist = new LinkedHashSet<CFANode>();
+    Set<CFANode> lVisitedNodes = new HashSet<CFANode>();
 
-    CFATraversal.traverse(mEntry, mVisitor);
+    lWorklist.add(pInitialNode);
+
+    while (!lWorklist.isEmpty()) {
+      CFANode lCFANode = lWorklist.iterator().next();
+      lWorklist.remove(lCFANode);
+
+      if (lVisitedNodes.contains(lCFANode)) {
+        continue;
+      }
+
+      lVisitedNodes.add(lCFANode);
+
+      // determine successors
+      CallToReturnEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
+
+      if (lCallToReturnEdge != null) {
+
+        if (lCFANode.getNumLeavingEdges() != 1) {
+          throw new IllegalArgumentException();
+        }
+        
+        CFAEdge lEdge = lCFANode.getLeavingEdge(0);
+        
+        CFANode lPredecessor = lEdge.getPredecessor();
+        CFANode lSuccessor = lEdge.getSuccessor();
+        
+        if (lSuccessor.equals(pOriginalInitialNode)) {
+          if (!lEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+            throw new RuntimeException();
+          }
+          
+          mAlphaEdge = lEdge;
+          
+          CFAEdge lSummaryEdge = lPredecessor.getLeavingSummaryEdge();
+          
+          if (lSummaryEdge == null) {
+            throw new RuntimeException();
+          }
+          
+          CFANode lSummarySuccessor = lSummaryEdge.getSuccessor();
+          
+          if (lSummarySuccessor.getNumEnteringEdges() != 1) {
+            throw new RuntimeException();
+          }
+          
+          mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);
+        }
+        
+        lWorklist.add(lCallToReturnEdge.getSuccessor());
+      }
+      else {
+        int lNumberOfLeavingEdges = lCFANode.getNumLeavingEdges();
+
+        for (int lEdgeIndex = 0; lEdgeIndex < lNumberOfLeavingEdges; lEdgeIndex++) {
+          CFAEdge lEdge = lCFANode.getLeavingEdge(lEdgeIndex);
+
+          CFANode lSuccessor = lEdge.getSuccessor();
+          lWorklist.add(lSuccessor);
+        }
+      }
+    }
   }
 
   public CFAEdge getAlphaEdge() {
-    return mVisitor.getAlphaEdge();
+    return mAlphaEdge;
   }
 
   public CFAEdge getOmegaEdge() {
-    return mVisitor.getOmegaEdge();
+    return mOmegaEdge;
   }
   
   public CFAFunctionDefinitionNode getCFA(String pFunctionName) {
-    return mCFAs.get(pFunctionName);
+    return mTranslationUnit.getFunction(pFunctionName);
   }
   
   public void toDot(String pFileName) throws IOException {
@@ -189,7 +190,7 @@ public class Wrapper {
   }
   
   public void toDot(File pFile) throws IOException {
-    Files.writeFile(pFile, DOTBuilder.generateDOT(mCFAs.values(), mEntry), false);
+    mTranslationUnit.toDot(mEntry.getFunctionName(), pFile);
   }
 
   public CFAFunctionDefinitionNode getEntry() {
@@ -200,8 +201,25 @@ public class Wrapper {
     StringWriter lWrapperFunction = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lWrapperFunction);
 
+    // TODO simulator is not capable of handling initialization of global declarations
+    //lWriter.println("int __FLLESH__input_index = 0;");
+    lWriter.println("int __FLLESH__input_index;");
+    
+    // we use the input function for providing input data
+    // during test generation nondeterministically
+    // during test simulation via specific generated input function
+    lWriter.println("int input()");
+    lWriter.println("{");
+    lWriter.println("  int __BLAST_NONDET;");
+    lWriter.println("  return (__BLAST_NONDET);");
+    lWriter.println("}");
+    
     lWriter.println("void __FLLESH__main()");
     lWriter.println("{");
+    
+    // this initialization is a workaround
+    // TODO correct in explicit analysis
+    lWriter.println("  __FLLESH__input_index = 0;");
 
     for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.getRawSignature() + ";");
@@ -230,41 +248,12 @@ public class Wrapper {
     return lWrapperFunction.toString();
   }
   
-  private Map<String, CFAFunctionDefinitionNode> getWrapper(String pWrapperFunction) {
-    IASTTranslationUnit ast;
-    try {
-       ast = CParser.parseString(pWrapperFunction, Dialect.C99);
-    } catch (CoreException e) {
-      throw new RuntimeException("Error during parsing C code \""
-          + pWrapperFunction.toString() + "\": " + e.getMessage());
-    }
-
-    checkForASTProblems(ast);
-
-    CFABuilder lCFABuilder = new CFABuilder(mLogManager);
-
-    ast.accept(lCFABuilder);
-
-    Map<String, CFAFunctionDefinitionNode> cfas = lCFABuilder.getCFAs();
-
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-
-    return cfas;
+  private TranslationUnit getWrapper(String pWrapperFunction) {
+    return TranslationUnit.parseString(pWrapperFunction, mLogManager);
   }
-
-  private static void checkForASTProblems(IASTNode pAST) {
-    if (pAST instanceof IASTProblem) {
-      throw new RuntimeException("Error during parsing C code \""
-          + pAST.getRawSignature() + "\": " + ((IASTProblem)pAST).getMessage());
-    } else {
-      for (IASTNode n : pAST.getChildren()) {
-        checkForASTProblems(n);
-      }
-    }
+  
+  public CFAFunctionDefinitionNode replace(CFAFunctionDefinitionNode pFunctionEntry) {
+    return mTranslationUnit.replace(pFunctionEntry, mLogManager);
   }
 
 }

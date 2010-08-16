@@ -85,10 +85,12 @@ public class MainTest {
   
   @Test
   public void testMain001() throws Exception {
-    String[] lArguments = new String[2];
-
-    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
-    lArguments[1] = "test/programs/simple/functionCall.c";
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"",
+        "test/programs/simple/functionCall.c",
+        "main",
+        true
+    );
 
     long lStartTime = System.currentTimeMillis();
     

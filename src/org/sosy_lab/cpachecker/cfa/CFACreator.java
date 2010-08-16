@@ -123,7 +123,7 @@ public class CFACreator {
   
     if (useGlobalVars){
       // add global variables at the beginning of main
-      insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations());
+      CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
     }
   
     // simplify CFA
@@ -172,60 +172,4 @@ public class CFACreator {
         ImmutableMap.copyOf(cfas), mainFunction);
   }
 
-  /**
-   * Insert nodes for global declarations after first node of CFA.
-   */
-  private void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars) {
-    if (globalVars.isEmpty()) {
-      return;
-    }
-    // create a series of GlobalDeclarationEdges, one for each declaration,
-    // and add them as successors of the input node
-    List<CFANode> decls = new LinkedList<CFANode>();
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    decls.add(cur);
-
-    for (IASTDeclaration d : globalVars) {
-      assert(d instanceof IASTSimpleDeclaration);
-      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-      // TODO refactor this
-//      if (sd.getDeclarators().length == 1 &&
-//          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-//        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
-//          // do nothing
-//        }
-//        else {
-//          System.out.println(d.getRawSignature());
-//          continue;
-//        }
-//      }
-      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
-          sd.getFileLocation().getStartingLineNumber(), cur, n);
-      e.addToCFA(logger);
-      decls.add(n);
-      cur = n;
-    }
-
-    // split off first node of CFA
-    assert cfa.getNumLeavingEdges() == 1;
-    assert cfa.getLeavingSummaryEdge() == null;
-    CFAEdge firstEdge = cfa.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
-    CFANode secondNode = firstEdge.getSuccessor();
-
-    cfa.removeLeavingEdge(firstEdge);
-    secondNode.removeEnteringEdge(firstEdge);
-
-    // and add a blank edge connecting the first node of CFA with declarations
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, decls.get(0));
-    be.addToCFA(logger);
-
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    be.addToCFA(logger);
-
-    return;
-  }
-  
 }
