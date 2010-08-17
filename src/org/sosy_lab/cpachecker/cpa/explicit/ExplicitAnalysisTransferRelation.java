@@ -1106,6 +1106,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         if(declarationEdge instanceof GlobalDeclarationEdge)
         {
           globalVars.add(varName);
+          // global declarations are set to 0
+          newElement.assignConstant(varName, 0, this.threshold);
         }
       }
     }
@@ -1388,10 +1390,10 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       // a = (b + c)
       return handleAssignmentToVariable(element, lParam, unaryOperand, cfaEdge);
 
-    } else {
+    } 
+    else {
       // a = -b or similar
-      Long value = getExpressionValue(element, unaryOperand, functionName, cfaEdge);
-
+      Long value = getExpressionValue(element, unaryExp, functionName, cfaEdge);
       if (value != null) {
         newElement.assignConstant(assignedVar, value, this.threshold);
       } else {
@@ -1502,7 +1504,6 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
       case IASTUnaryExpression.op_minus:
         Long val = getExpressionValue(element, unaryOperand, functionName, cfaEdge);
-
         return (val != null) ? -val : null;
 
       case IASTUnaryExpression.op_bracketedPrimary:

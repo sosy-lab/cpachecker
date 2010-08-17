@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -37,6 +38,9 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   private Map<String, Long> constantsMap;
 
   private Map<String, Integer> noOfReferences;
+  
+  @Option
+  private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public ExplicitAnalysisElement() {
     constantsMap = new HashMap<String, Long>();
@@ -63,6 +67,10 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     }
 
     if(pThreshold == 0){
+      return;
+    }
+    
+    if(nameOfVar.contains(noAutoInitPrefix)){
       return;
     }
 
@@ -147,7 +155,9 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     for (String key: constantsMap.keySet()){
       long val = constantsMap.get(key);
       int refCount = noOfReferences.get(key);
-      s = s  + " <" +key + " = " + val + " :: " + refCount + "> ";
+      s = s  + " <" +key + " = " + val +
+      " :: " + refCount + 
+      "> ";
     }
     return s + "] size->  " + constantsMap.size();
   }
