@@ -82,11 +82,8 @@ public class CompositeTransferRelation implements TransferRelation{
       Collection<CompositeElement> compositeSuccessors) throws CPATransferException {
     assert cfaEdge != null;
 
-    CompositePrecision lCompositePrecision = null;
-    if(precision != null){
-      assert(precision instanceof CompositePrecision);
-      lCompositePrecision = (CompositePrecision)precision;
-    }
+    assert(precision instanceof CompositePrecision);
+    CompositePrecision lCompositePrecision = (CompositePrecision)precision;
 
     CallStack updatedCallStack = compositeElement.getCallStack();
 
@@ -137,10 +134,7 @@ public class CompositeTransferRelation implements TransferRelation{
       TransferRelation transfer = transferRelations.get(idx);
       AbstractElement componentElement = componentElements.get(idx);
 
-      Precision lPrecision = null;
-      if (lCompositePrecision != null) {
-        lPrecision = lCompositePrecision.get(idx);
-      }
+      Precision lPrecision = lCompositePrecision.get(idx);
 
       Collection<? extends AbstractElement> componentSuccessors = transfer.getAbstractSuccessors(componentElement, lPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();

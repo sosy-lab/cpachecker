@@ -26,12 +26,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -41,7 +41,7 @@ public class CompositePrecision implements WrapperPrecision {
   private final List<Precision> precisions;
 
   public CompositePrecision (List<Precision> precisions) {
-    this.precisions = Collections.unmodifiableList(precisions);
+    this.precisions = ImmutableList.copyOf(precisions);
   }
 
   public List<Precision> getPrecisions() {
@@ -79,15 +79,13 @@ public class CompositePrecision implements WrapperPrecision {
       return pType.cast(this);
     }
     for (Precision precision : precisions) {
-      if (precision != null) {
-        if (pType.isAssignableFrom(precision.getClass())) {
-          return pType.cast(precision);
+      if (pType.isAssignableFrom(precision.getClass())) {
+        return pType.cast(precision);
 
-        } else if (precision instanceof WrapperPrecision) {
-          T result = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
-          if (result != null) {
-            return result;
-          }
+      } else if (precision instanceof WrapperPrecision) {
+        T result = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
+        if (result != null) {
+          return result;
         }
       }
     }
@@ -102,13 +100,10 @@ public class CompositePrecision implements WrapperPrecision {
       return newPrecision;
     }
 
-    List<Precision> newPrecisions = new ArrayList<Precision>(precisions.size());
+    ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
     boolean changed = false;
     for (Precision precision : precisions) {
-      if (precision == null) {
-        newPrecisions.add(null);
-
-      } else if (newPrecClass.equals(precision.getClass())) {
+      if (newPrecClass.equals(precision.getClass())) {
         newPrecisions.add(newPrecision);
         changed = true;
 
@@ -125,6 +120,6 @@ public class CompositePrecision implements WrapperPrecision {
         newPrecisions.add(precision);
       }
     }
-    return changed ? new CompositePrecision(newPrecisions) : null;
+    return changed ? new CompositePrecision(newPrecisions.build()) : null;
   }
 }

@@ -23,18 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.Pair;
-
 import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
 import org.sosy_lab.cpachecker.core.UnmodifiableReachedElementsView;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -103,8 +100,8 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     assert (comp.getElements().size() == prec.getPrecisions().size());
     int dim = comp.getElements().size();
 
-    List<AbstractElement> outElements = new ArrayList<AbstractElement>();
-    List<Precision> outPrecisions = new ArrayList<Precision>();
+    ImmutableList.Builder<AbstractElement> outElements = ImmutableList.builder();
+    ImmutableList.Builder<Precision> outPrecisions = ImmutableList.builder();
 
     boolean modified = false;
 
@@ -132,8 +129,8 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     if (modified) {
       // TODO for now we just take the input call stack, that may be wrong, but how to construct
       // a proper one in case this _is_ wrong?
-      return new Pair<AbstractElement, Precision>(new CompositeElement(outElements, comp.getCallStack()),
-          new CompositePrecision(outPrecisions));
+      return new Pair<AbstractElement, Precision>(new CompositeElement(outElements.build(), comp.getCallStack()),
+          new CompositePrecision(outPrecisions.build()));
     } else {
       return new Pair<AbstractElement, Precision>(pElement, pPrecision);
     }

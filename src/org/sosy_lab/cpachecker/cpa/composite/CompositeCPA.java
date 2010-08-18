@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -173,11 +172,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
     Preconditions.checkNotNull(node);
 
-    List<Precision> initialPrecisions = new ArrayList<Precision>(cpas.size());
+    ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
       initialPrecisions.add(sp.getInitialPrecision(node));
     }
-    return new CompositePrecision(initialPrecisions);
+    return new CompositePrecision(initialPrecisions.build());
   }
 
   @Override

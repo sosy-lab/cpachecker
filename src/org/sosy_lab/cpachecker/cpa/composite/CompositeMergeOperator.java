@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-
-import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.collect.ImmutableList;
 
 public class CompositeMergeOperator implements MergeOperator{
 
@@ -69,16 +67,16 @@ public class CompositeMergeOperator implements MergeOperator{
       return element2;
     }
 
-    List<AbstractElement> mergedElements = new ArrayList<AbstractElement> (comp1.getElements().size());
+    ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
     Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
     Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
-    Iterator<Precision> precIter = (prec == null) ? null : prec.getPrecisions().iterator();
+    Iterator<Precision> precIter = prec.getPrecisions().iterator();
 
     boolean identicElements = true;
     for (MergeOperator mergeOp : mergeOperators) {
       AbstractElement absElem1 = iter1.next();
       AbstractElement absElem2 = iter2.next();
-      AbstractElement merged = mergeOp.merge(absElem1, absElem2, (precIter == null) ? null : precIter.next());
+      AbstractElement merged = mergeOp.merge(absElem1, absElem2, precIter.next());
       // if the element is not location and it is not merged we do not need to merge
       if (merged != absElem2) {
         identicElements = false;
@@ -89,7 +87,7 @@ public class CompositeMergeOperator implements MergeOperator{
     if (identicElements) {
       return element2;
     } else {
-      return new CompositeElement(mergedElements, cs2);
+      return new CompositeElement(mergedElements.build(), cs2);
     }
   }
 }
