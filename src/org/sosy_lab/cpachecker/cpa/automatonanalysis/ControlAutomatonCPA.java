@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.EqualityPartialOrder;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -101,6 +100,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
   private final Automaton automaton;
   private final AutomatonTransferRelation transferRelation;
+  private final AutomatonPrecisionAdjustment precisionAdjustment = new AutomatonPrecisionAdjustment();
   private final Statistics stats = new AutomatonStatistics(this);
 
   private final AutomatonState topState = new AutomatonState.TOP(ControlAutomatonCPA.this);
@@ -226,7 +226,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return precisionAdjustment;
   }
 
   @Override
