@@ -39,7 +39,7 @@ public class AutomatonPrecisionAdjustment implements PrecisionAdjustment {
     if (((AutomatonState)pElement).isTarget()) {
       return new Pair<AbstractElement, Precision>(pElement, SingletonPrecision.getBreakInstance());
     } else {
-      return new Pair<AbstractElement, Precision>(pElement, pPrecision);
+      return new Pair<AbstractElement, Precision>(pElement, SingletonPrecision.getInstance());
     }
   }
 
