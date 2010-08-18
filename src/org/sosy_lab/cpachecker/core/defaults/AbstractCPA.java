@@ -71,7 +71,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
+    return SingletonPrecision.getInstance();
   }
 
   @Override

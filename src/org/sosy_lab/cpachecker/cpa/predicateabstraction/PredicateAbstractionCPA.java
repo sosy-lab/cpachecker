@@ -54,6 +54,7 @@ import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -195,7 +196,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
 
     @Override
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return null;
+      return SingletonPrecision.getInstance();
     }
 
     public AbstractFormulaManager getAbstractFormulaManager() {

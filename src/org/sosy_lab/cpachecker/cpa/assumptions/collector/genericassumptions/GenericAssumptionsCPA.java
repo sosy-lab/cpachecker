@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -98,7 +99,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
+    return SingletonPrecision.getInstance();
   }
 
   @Override

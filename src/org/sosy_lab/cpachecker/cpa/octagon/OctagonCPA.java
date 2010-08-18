@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -118,6 +119,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
+    return SingletonPrecision.getInstance();
   }
 }
