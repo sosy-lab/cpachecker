@@ -77,4 +77,8 @@ public class MustMayAnalysisPrecision implements Precision {
     return mMustPrecision.hashCode() + mMayPrecision.hashCode();
   }
 
+  @Override
+  public boolean isBreak() {
+    return mMustPrecision.isBreak() || mMayPrecision.isBreak();
+  }
 }

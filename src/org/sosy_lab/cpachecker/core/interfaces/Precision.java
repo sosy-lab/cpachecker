@@ -32,4 +32,11 @@ package org.sosy_lab.cpachecker.core.interfaces;
  */
 public interface Precision {
 
+  /**
+   * This method is for the CPAAlgorithm to determine whether it should break
+   * at the point after calling precision adjustment or not.
+   * 
+   * It is not used in any other situation.
+   */
+  public boolean isBreak();
 }

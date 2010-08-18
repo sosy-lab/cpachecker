@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  *
  */
 public class SingletonPrecision implements Precision {
+  
   private final static SingletonPrecision mInstance = new SingletonPrecision();
 
   public static SingletonPrecision getInstance() {
@@ -41,5 +42,24 @@ public class SingletonPrecision implements Precision {
 
   private SingletonPrecision() {
 
+  }
+  
+  @Override
+  public boolean isBreak() {
+    return false;
+  }
+  
+  private static class BreakPrecision implements Precision {
+    
+    private final static BreakPrecision mBreakInstance = new BreakPrecision(); 
+    
+    @Override
+    public boolean isBreak() {
+      return true;
+    }
+  }
+  
+  public static Precision getBreakInstance() {
+    return BreakPrecision.mBreakInstance;
   }
 }
