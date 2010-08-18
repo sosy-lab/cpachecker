@@ -110,7 +110,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
-    PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
+    final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (reachedElements.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
@@ -126,22 +126,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       long end = System.currentTimeMillis();
       stats.chooseTime += (end - start);
 
-      Pair<AbstractElement, Precision> tempPair;
-      start = System.currentTimeMillis();
-      tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements);
-      end = System.currentTimeMillis();
-      stats.precisionTime += (end - start);
-      if(tempPair != null){
-        e = tempPair;
-      }
-      AbstractElement element = e.getFirst();
-      Precision precision = e.getSecond();
+      final AbstractElement element = e.getFirst();
+      final Precision precision = e.getSecond();
 
       logger.log(Level.FINER, "Retrieved element from waitlist");
       logger.log(Level.ALL, "Current element is", element, "with precision", precision);
 
       start = System.currentTimeMillis();
-      Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors (element, precision, null);
+      Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(element, precision, null);
       end = System.currentTimeMillis();
       stats.transferTime += (end - start);
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
@@ -155,6 +147,20 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
+        start = System.currentTimeMillis();
+        Pair<AbstractElement, Precision> adjustedSuccessor = 
+          precisionAdjustment.prec(successor, precision, reachedElements);
+        end = System.currentTimeMillis();
+        stats.precisionTime += (end - start);
+
+        if (adjustedSuccessor == null) {
+          logger.log(Level.FINER, "Successor is not reachable (determined by precision adjustment)");
+          continue;
+        }
+        
+        successor = adjustedSuccessor.getFirst();
+        Precision successorPrecision = adjustedSuccessor.getSecond();
+        
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
         // AG as an optimization, we allow the mergeOperator to be null,
@@ -167,7 +173,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           logger.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
-            AbstractElement mergedElement = mergeOperator.merge( successor, reachedElement, precision);
+            AbstractElement mergedElement = mergeOperator.merge(successor, reachedElement, successorPrecision);
 
             if (!mergedElement.equals(reachedElement)) {
               logger.log(Level.FINER, "Successor was merged with element from reached set");
@@ -188,14 +194,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
         start = System.currentTimeMillis();
 
-        if (stopOperator.stop(successor, reached, precision)) {
+        if (stopOperator.stop(successor, reached, successorPrecision)) {
           logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
           stats.countStop++;
 
         } else {
           logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
-          reachedElements.add(successor, precision);
+          reachedElements.add(successor, successorPrecision);
 
           if(stopAfterError
               // TODO refactor this

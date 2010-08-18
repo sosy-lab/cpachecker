@@ -31,10 +31,28 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
 
 /**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
+ * Interface for the precision adjustment operator.
  */
 public interface PrecisionAdjustment {
-  public Pair<AbstractElement,Precision> prec (AbstractElement element, Precision precision,
-                                            UnmodifiableReachedElements elements);
+  
+  /**
+   * This method may adjust the current element and precision using information
+   * from the current set of reached states.
+   * 
+   * If this method doesn't change anything, it is strongly recommended to return
+   * the identical objects for element and precision. This makes it easier for
+   * wrapper CPAs.
+   * 
+   * If this method detects that the current element is a non-reachable element,
+   * it may return null to signal this. The element will then not be considered
+   * any further.
+   * 
+   * @param element The current abstract element.
+   * @param precision The current precision.
+   * @param elements The current reached set.
+   * @return The new element and precision, or null if the element is not reachable.
+   */
+  public Pair<AbstractElement,Precision> prec(AbstractElement element,
+                                              Precision precision,
+                                              UnmodifiableReachedElements elements);
 }

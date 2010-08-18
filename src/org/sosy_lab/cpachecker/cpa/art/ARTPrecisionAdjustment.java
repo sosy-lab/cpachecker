@@ -44,7 +44,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
-      Precision pPrecision, UnmodifiableReachedElements pElements) {
+      Precision oldPrecision, UnmodifiableReachedElements pElements) {
 
     Preconditions.checkArgument(pElement instanceof ARTElement);
     ARTElement element = (ARTElement)pElement;
@@ -52,30 +52,40 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedElements elements = new UnmodifiableReachedElementsView(
         pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
 
-    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision, elements);
+    AbstractElement oldElement = element.getWrappedElement();
+    
+    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    ARTElement resultElement;
-    if (element.getWrappedElement().equals(unwrappedResult.getFirst())) {
-      resultElement = element;
-    } else {
-      resultElement = new ARTElement(unwrappedResult.getFirst(), null);
-
-      for (ARTElement parent : element.getParents()) {
-        resultElement.addParent(parent);
-      }
-      for (ARTElement child : element.getChildren()) {
-        resultElement.addParent(child);
-      }
-
-      // first copy list of covered elements, then remove element from ART, then set elements covered by new element
-      ImmutableList<ARTElement> coveredElements = ImmutableList.copyOf(element.getCoveredByThis());
-      element.removeFromART();
-
-      for (ARTElement covered : coveredElements) {
-        covered.setCovered(resultElement);
-      }
+    if (unwrappedResult == null) {
+      // element is not reachable
+      return null;
     }
 
-    return new Pair<AbstractElement, Precision>(resultElement, unwrappedResult.getSecond());
+    AbstractElement newElement = unwrappedResult.getFirst();
+    Precision newPrecision = unwrappedResult.getSecond();
+
+    if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
+      // nothing has changed
+      return new Pair<AbstractElement, Precision>(pElement, oldPrecision);
+    }
+      
+    ARTElement resultElement = new ARTElement(newElement, null);
+
+    for (ARTElement parent : element.getParents()) {
+      resultElement.addParent(parent);
+    }
+    for (ARTElement child : element.getChildren()) {
+      resultElement.addParent(child);
+    }
+
+    // first copy list of covered elements, then remove element from ART, then set elements covered by new element
+    ImmutableList<ARTElement> coveredElements = ImmutableList.copyOf(element.getCoveredByThis());
+    element.removeFromART();
+
+    for (ARTElement covered : coveredElements) {
+      covered.setCovered(resultElement);
+    }
+
+    return new Pair<AbstractElement, Precision>(resultElement, newPrecision);
   }
 }

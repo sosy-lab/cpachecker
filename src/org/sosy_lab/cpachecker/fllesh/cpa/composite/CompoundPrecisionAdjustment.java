@@ -83,21 +83,29 @@ public class CompoundPrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedElements slice =
         new UnmodifiableReachedElementsView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
-      Pair<AbstractElement,Precision> out = precisionAdjustment.prec(lElement.getSubelement(i), lPrecision.get(i), slice);
-      if (out != null) {
-        lOutElements.add(out.getFirst());
-        lOutPrecisions.add(out.getSecond());
-        lModified = true;
-      } else {
-        lOutElements.add(lElement.getSubelement(i));
-        lOutPrecisions.add(lPrecision.get(i));
+      AbstractElement oldElement = lElement.getSubelement(i);
+      Precision oldPrecision = lPrecision.get(i);
+      Pair<AbstractElement,Precision> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      
+      if (out == null) {
+        // element is not reachable
+        return null;
       }
+      
+      AbstractElement newElement = out.getFirst();
+      Precision newPrecision = out.getSecond();
+      if ((newElement != oldElement) || (newPrecision != oldPrecision)) {
+        lModified = true;
+      }
+      
+      lOutElements.add(newElement);
+      lOutPrecisions.add(newPrecision);
     }
 
     if (lModified) {
       return new Pair<AbstractElement, Precision>(new CompoundElement(lOutElements), new CompositePrecision(lOutPrecisions));
     } else {
-      return null;
+      return new Pair<AbstractElement, Precision>(pElement, pPrecision);
     }
   }
 

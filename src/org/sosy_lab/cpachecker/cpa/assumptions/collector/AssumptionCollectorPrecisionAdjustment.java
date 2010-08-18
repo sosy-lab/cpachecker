@@ -56,22 +56,31 @@ public class AssumptionCollectorPrecisionAdjustment
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
-      Precision precision, UnmodifiableReachedElements reachedElements)
+      Precision oldPrecision, UnmodifiableReachedElements reachedElements)
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement)element;
-    AbstractElement unwrappedElement = assumptionElement.getWrappedElement();
+    AbstractElement oldElement = assumptionElement.getWrappedElement();
     UnmodifiableReachedElements unwrappedReached = new UnmodifiableReachedElementsView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
-    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
+    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(oldElement, oldPrecision, unwrappedReached);
 
-    AbstractElement resultElement;
-    if (unwrappedElement != unwrappedResult.getFirst()) {
-      AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
-      boolean stop = assumptionElement.isStop();
-      resultElement = new AssumptionCollectorElement(unwrappedResult.getFirst(), assumption, stop);
-    } else {
-      resultElement = element;
+    if (unwrappedResult == null) {
+      // element is not reachable
+      return null;
     }
-    return new Pair<AbstractElement, Precision>(resultElement, unwrappedResult.getSecond());
+    
+    AbstractElement newElement = unwrappedResult.getFirst();
+    Precision newPrecision = unwrappedResult.getSecond();
+    
+    if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
+      // nothing has changed
+      return new Pair<AbstractElement, Precision>(element, oldPrecision);
+    }
+    
+    AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
+    boolean stop = assumptionElement.isStop();
+    AbstractElement resultElement = new AssumptionCollectorElement(newElement, assumption, stop);
+    
+    return new Pair<AbstractElement, Precision>(resultElement, newPrecision);
   }
 
 }

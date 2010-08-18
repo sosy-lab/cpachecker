@@ -112,15 +112,21 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedElements slice =
         new UnmodifiableReachedElementsView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
-      Pair<AbstractElement,Precision> out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
-      if (out != null) {
-        outElements.add(out.getFirst());
-        outPrecisions.add(out.getSecond());
-        modified = true;
-      } else {
-        outElements.add(comp.get(i));
-        outPrecisions.add(prec.get(i));
+      AbstractElement oldElement = comp.get(i);
+      Precision oldPrecision = prec.get(i);
+      Pair<AbstractElement,Precision> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      if (out == null) {
+        // element is not reachable
+        return null;
       }
+      AbstractElement newElement = out.getFirst();
+      Precision newPrecision = out.getSecond();
+      if ((newElement != oldElement) || (newPrecision != oldPrecision)) {
+        // something has changed
+        modified = true;
+      }
+      outElements.add(newElement);
+      outPrecisions.add(newPrecision);
     }
 
     if (modified) {
@@ -129,7 +135,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       return new Pair<AbstractElement, Precision>(new CompositeElement(outElements, comp.getCallStack()),
           new CompositePrecision(outPrecisions));
     } else {
-      return null;
+      return new Pair<AbstractElement, Precision>(pElement, pPrecision);
     }
   }
 
