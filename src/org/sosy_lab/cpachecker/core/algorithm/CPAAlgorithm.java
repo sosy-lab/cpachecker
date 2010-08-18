@@ -122,12 +122,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.countWaitlistSize += reachedElements.getWaitlistSize();
 
       long start = System.currentTimeMillis();
-      Pair<AbstractElement,Precision> e = reachedElements.popFromWaitlist();
+      final AbstractElement element = reachedElements.popFromWaitlist();
+      final Precision precision = reachedElements.getPrecision(element);
       long end = System.currentTimeMillis();
       stats.chooseTime += (end - start);
-
-      final AbstractElement element = e.getFirst();
-      final Precision precision = e.getSecond();
 
       logger.log(Level.FINER, "Retrieved element from waitlist");
       logger.log(Level.ALL, "Current element is", element, "with precision", precision);

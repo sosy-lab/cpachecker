@@ -245,7 +245,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
     return Collections.unmodifiableList(waitlist);
   }
 
-  public Pair<AbstractElement, Precision> popFromWaitlist() {
+  public AbstractElement popFromWaitlist() {
     AbstractElement result = null;
 
     switch(traversal) {
@@ -278,7 +278,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
       break;
     }
 
-    return getPrecisionAsPair.apply(result);
+    return result;
   }
 
   @Override
