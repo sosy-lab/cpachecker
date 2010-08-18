@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -158,6 +157,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         
         successor = adjustedSuccessor.getFirst();
         Precision successorPrecision = adjustedSuccessor.getSecond();
+        boolean breakNow = successorPrecision.isBreak();
         
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
@@ -179,8 +179,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
                   "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
-              toRemove.add(reachedElement);
-              toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, precision));
+              
+              if (!(reachedElement == element && breakNow)) {
+                // if isBreak, we may not remove the element "element" from reached,
+                // because we need to re-add it to the waitlist later on
+                toRemove.add(reachedElement);
+              }
+              toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, successorPrecision));
             }
           }
           reachedElements.removeAll(toRemove);
@@ -191,8 +196,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         start = System.currentTimeMillis();
+        boolean stop = stopOperator.stop(successor, reached, successorPrecision);
+        end = System.currentTimeMillis();
+        stats.stopTime += (end - start);
 
-        if (stopOperator.stop(successor, reached, successorPrecision)) {
+        if (stop) {
           logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
           stats.countStop++;
 
@@ -200,18 +208,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
           reachedElements.add(successor, successorPrecision);
-
-          if(// TODO refactor this
-              (successor instanceof Targetable)
-              && ((Targetable)successor).isTarget()) {
-            end = System.currentTimeMillis();
-            stats.stopTime += (end - start);
-            stats.totalTime += (end - startTotalTime);
-            return;
-          }
         }
-        end = System.currentTimeMillis();
-        stats.stopTime += (end - start);
+
+        if (breakNow) {
+          // re-add the old element to the waitlist, there may be unhandled
+          // successors left that otherwise would be forgotten
+          reachedElements.reAddToWaitlist(element);
+          
+          stats.totalTime += (System.currentTimeMillis() - startTotalTime);
+          return;
+        }
       }
     }
     stats.totalTime += System.currentTimeMillis() - startTotalTime;

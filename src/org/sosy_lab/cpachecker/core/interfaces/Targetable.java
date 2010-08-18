@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 /**
- * This interface provides a method that signals if an abstract element will
- * lead to an interruption of the CPA algorithm.
- *
- * It is provided as a shortcut, so that other CPAs' strengthen operator can
- * check this condition without needing to know more about the current element
+ * This interface is provided as a shortcut, so that other CPAs' strengthen
+ * operator can check whether one abstract element represents some kind of
+ * "target" or "error" abstract state without needing to know more about the element
  * (especially without knowing its actual type).
  */
 public interface Targetable {
