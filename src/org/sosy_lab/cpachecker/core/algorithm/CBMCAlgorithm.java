@@ -63,9 +63,9 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
+  public void run(ReachedElements reached) throws CPAException {
 
-    algorithm.run(reached, true);
+    algorithm.run(reached);
 
     AbstractElement lastElement = reached.getLastElement();
     if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
@@ -81,7 +81,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
       
       if (cbmcResult) {
         logger.log(Level.INFO, "CBMC confirms the bug");
-        // TODO: if stopAfterError != true, continue analysis
 
       } else {
         logger.log(Level.INFO, "CBMC thinks this path contains no bug");

@@ -156,13 +156,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
+  public void run(ReachedElements reached) throws CPAException {
     long start = System.currentTimeMillis();
 
     boolean stopAnalysis = false;
     while (!stopAnalysis) {
       // run algorithm
-      algorithm.run(reached, true);
+      algorithm.run(reached);
 
       AbstractElement lastElement = reached.getLastElement();
 

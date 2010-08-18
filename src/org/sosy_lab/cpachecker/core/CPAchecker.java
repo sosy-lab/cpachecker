@@ -219,7 +219,12 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis...");
     stats.startAnalysisTimer();
 
-    algorithm.run(reached, options.stopAfterError);
+    do {
+      algorithm.run(reached);
+      
+      // either run only once (if stopAfterError == true)
+      // or until the waitlist is empty
+    } while (!options.stopAfterError && reached.hasWaitingElement());
 
     stats.stopAnalysisTimer();
     logger.log(Level.INFO, "Analysis finished.");

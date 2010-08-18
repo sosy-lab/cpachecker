@@ -179,7 +179,9 @@ public class StandardQuery extends AbstractQuery {
 
       // TODO we should be able to use the error feature as a way to enumerate and refine elements in a different way than it is done now
       try {
-        lAlgorithm.run(mReachedElements, false);
+        while (mReachedElements.hasWaitingElement()) {
+          lAlgorithm.run(mReachedElements);
+        }
       } catch (CPAException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();

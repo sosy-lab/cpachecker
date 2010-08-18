@@ -90,8 +90,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   }
 
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError)
-      throws CPAException {
+  public void run(ReachedElements reached) throws CPAException {
 
     AssumptionWithMultipleLocations resultAssumption = new AssumptionWithMultipleLocations();
     boolean restartCPA = false;
@@ -101,7 +100,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        innerAlgorithm.run(reached, stopAfterError);
+        innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to: " + failedRefinement.toString());
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);

@@ -246,7 +246,7 @@ public class FlleSh {
       lReachedElements.add(lInitialElement, lInitialPrecision);
 
       try {
-        lAlgorithm.run(lReachedElements, true);
+        lAlgorithm.run(lReachedElements);
       } catch (CPAException e) {
         throw new RuntimeException(e);
       }
@@ -664,7 +664,7 @@ public class FlleSh {
     lReachedElements.add(lInitialElement, lInitialPrecision);
 
     try {
-      pAlgorithm.run(lReachedElements, true);
+      pAlgorithm.run(lReachedElements);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }

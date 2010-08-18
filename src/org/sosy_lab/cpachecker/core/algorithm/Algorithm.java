@@ -29,8 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Algorithm {
 
-  public void run(ReachedElements reachedElements, boolean stopAfterError)
-                  throws CPAException;
+  public void run(ReachedElements reachedElements) throws CPAException;
 
   public ConfigurableProgramAnalysis getCPA();
 }

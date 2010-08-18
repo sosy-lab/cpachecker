@@ -105,7 +105,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException {
+  public void run(final ReachedElements reachedElements) throws CPAException {
     long startTotalTime = System.currentTimeMillis();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
@@ -201,9 +201,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           reachedElements.add(successor, successorPrecision);
 
-          if(stopAfterError
-              // TODO refactor this
-              && (successor instanceof Targetable)
+          if(// TODO refactor this
+              (successor instanceof Targetable)
               && ((Targetable)successor).isTarget()) {
             end = System.currentTimeMillis();
             stats.stopTime += (end - start);
