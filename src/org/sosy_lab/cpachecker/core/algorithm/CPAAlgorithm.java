@@ -140,6 +140,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
+      boolean elementWasMerged = false;
+      
       for (AbstractElement successor : successors) {
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
@@ -157,7 +159,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         
         successor = adjustedSuccessor.getFirst();
         Precision successorPrecision = adjustedSuccessor.getSecond();
-        boolean breakNow = successorPrecision.isBreak();
         
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
@@ -179,12 +180,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
                   "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
-              
-              if (!(reachedElement == element && breakNow)) {
-                // if isBreak, we may not remove the element "element" from reached,
-                // because we need to re-add it to the waitlist later on
-                toRemove.add(reachedElement);
+              if (reachedElement == element) {
+                elementWasMerged = true;
+                // The abstract state "element" was merged and will be removed
+                // from the reached set.
               }
+
+              toRemove.add(reachedElement);
               toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, successorPrecision));
             }
           }
@@ -210,10 +212,17 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           reachedElements.add(successor, successorPrecision);
         }
 
-        if (breakNow) {
+        if (successorPrecision.isBreak()) {
           // re-add the old element to the waitlist, there may be unhandled
           // successors left that otherwise would be forgotten
-          reachedElements.reAddToWaitlist(element);
+          if (!elementWasMerged) {
+            // Optimization:
+            // Only do this if the old element was not merged.
+            // Otherwise it is not longer in the reached set, but the result of
+            // the merge (which covers the abstract state "element") is in
+            // the reached set and the waitlist.
+            reachedElements.reAddToWaitlist(element);
+          }
           
           stats.totalTime += (System.currentTimeMillis() - startTotalTime);
           return;
