@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
+import org.sosy_lab.cpachecker.core.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -131,7 +132,7 @@ public class StandardQuery extends AbstractQuery {
     }
 
     // TODO what about other traversal types?
-    mReachedElements = new ReachedElements(TraversalMethod.DFS, true);
+    mReachedElements = new LocationMappedReachedSet(TraversalMethod.DFS);
   }
 
   public Waypoint getSource() {

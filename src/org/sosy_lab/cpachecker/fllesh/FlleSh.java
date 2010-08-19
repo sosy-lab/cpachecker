@@ -23,8 +23,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -242,7 +243,7 @@ public class FlleSh {
       AbstractElement lInitialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
 
-      ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
+      ReachedElements lReachedElements = new LocationMappedReachedSet(ReachedElements.TraversalMethod.TOPSORT);
       lReachedElements.add(lInitialElement, lInitialPrecision);
 
       try {
@@ -659,7 +660,7 @@ public class FlleSh {
 */    
     Precision lInitialPrecision = pAlgorithm.getCPA().getInitialPrecision(pEntry);
 
-    ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
+    ReachedElements lReachedElements = new LocationMappedReachedSet(ReachedElements.TraversalMethod.TOPSORT);
     //lReachedElements.add(lNewInitialCompositeElement, lInitialPrecision);
     lReachedElements.add(lInitialElement, lInitialPrecision);
 

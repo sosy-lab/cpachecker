@@ -283,7 +283,14 @@ public class CPAchecker {
 
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-    ReachedElements reached = new ReachedElements(options.traversalMethod, options.locationMappedReachedSet);
+    
+    ReachedElements reached;
+    if (options.locationMappedReachedSet) {
+      reached = new LocationMappedReachedSet(options.traversalMethod);
+    } else {
+      reached = new ReachedElements(options.traversalMethod);
+    }
+
     reached.add(initialElement, initialPrecision);
     return reached;
   }

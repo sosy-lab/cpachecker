@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.LinkedHashMultimap;
 import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -58,7 +57,6 @@ public class ReachedElements implements UnmodifiableReachedElements {
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
   private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
-  private final LinkedHashMultimap<CFANode, AbstractElement> locationMappedReached;
   private AbstractElement lastElement = null;
   private AbstractElement firstElement = null;
   private final LinkedList<AbstractElement> waitlist;
@@ -76,18 +74,12 @@ public class ReachedElements implements UnmodifiableReachedElements {
 
   };
 
-  public ReachedElements(TraversalMethod traversal, boolean locationMapped) {
+  public ReachedElements(TraversalMethod traversal) {
     Preconditions.checkNotNull(traversal);
 
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    if (locationMapped) {
-      locationMappedReached = LinkedHashMultimap.create();
-    } else {
-      locationMappedReached = null;
-    }
-
     waitlist = new LinkedList<AbstractElement>();
     this.traversal = traversal;
   }
@@ -97,32 +89,12 @@ public class ReachedElements implements UnmodifiableReachedElements {
     DFS, BFS, TOPSORT, RAND
   }
 
-  private CFANode getLocationFromElement(AbstractElement element) {
-    if (element instanceof AbstractWrapperElement) {
-      AbstractElementWithLocation locationElement =
-        ((AbstractWrapperElement)element).retrieveLocationElement();
-      assert locationElement != null;
-      return locationElement.getLocationNode();
-
-    } else if (element instanceof AbstractElementWithLocation) {
-      return ((AbstractElementWithLocation)element).getLocationNode();
-
-    } else {
-      return null;
-    }
-  }
-
   public void add(AbstractElement element, Precision precision) {
     if (reached.size() == 0) {
       firstElement = element;
     }
 
     reached.put(element, precision);
-    if (locationMappedReached != null) {
-      CFANode location = getLocationFromElement(element);
-      assert location != null : "Location information necessary for SpecializedReachedSet";
-      locationMappedReached.put(location, element);
-    }
     waitlist.add(element);
     lastElement = element;
   }
@@ -135,7 +107,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
   }
 
   /**
-   * Re-add an element to the waitlist which already is contained in the reached set.
+   * Re-add an element to the waitlist which is already contained in the reached set.
    */
   public void reAddToWaitlist(AbstractElement e) {
     Preconditions.checkArgument(reached.containsKey(e), "Element has to be in the reached set");
@@ -156,12 +128,6 @@ public class ReachedElements implements UnmodifiableReachedElements {
     }
     waitlist.remove(element);
     reached.remove(element);
-    if (locationMappedReached != null) {
-      CFANode location = getLocationFromElement(element);
-      if (location != null) {
-        locationMappedReached.remove(location, element);
-      }
-    }
   }
 
   public void removeAll(Collection<? extends AbstractElement> toRemove) {
@@ -176,9 +142,6 @@ public class ReachedElements implements UnmodifiableReachedElements {
     lastElement = null;
     waitlist.clear();
     reached.clear();
-    if (locationMappedReached != null) {
-      locationMappedReached.clear();
-    }
   }
 
   @Override
@@ -213,16 +176,12 @@ public class ReachedElements implements UnmodifiableReachedElements {
    */
   @Override
   public Set<AbstractElement> getReached(AbstractElement element) {
-    CFANode loc = getLocationFromElement(element);
-    return getReached(loc);
+    return getReached();
   }
 
   @Override
   public Set<AbstractElement> getReached(CFANode location) {
-    if (locationMappedReached != null)
-      return Collections.unmodifiableSet(locationMappedReached.get(location));
-    else
-      return unmodifiableReached;
+    return getReached();
   }
 
   @Override
@@ -312,5 +271,20 @@ public class ReachedElements implements UnmodifiableReachedElements {
   @Override
   public String toString() {
     return reached.keySet().toString();
+  }
+  
+  protected CFANode getLocationFromElement(AbstractElement element) {
+    if (element instanceof AbstractWrapperElement) {
+      AbstractElementWithLocation locationElement =
+        ((AbstractWrapperElement)element).retrieveLocationElement();
+      assert locationElement != null;
+      return locationElement.getLocationNode();
+
+    } else if (element instanceof AbstractElementWithLocation) {
+      return ((AbstractElementWithLocation)element).getLocationNode();
+
+    } else {
+      return null;
+    }
   }
 }
