@@ -74,9 +74,6 @@ public class CPAchecker {
     @Option(name="analysis.traversal")
     ReachedElements.TraversalMethod traversalMethod = ReachedElements.TraversalMethod.DFS;
 
-    @Option(name="cpa.useSpecializedReachedSet")
-    boolean locationMappedReachedSet = true;
-
     @Option(name="analysis.reachedSet")
     ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
     
