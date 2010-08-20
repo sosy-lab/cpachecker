@@ -123,9 +123,11 @@ cfa.file = cfa.dot
 # entry function
 analysis.entryFunction = main
 
-# use location mapped reached set
-# (faster, elements with different locations cannot be merged)
-cpa.useSpecializedReachedSet = true
+# which reached set implementation to use?
+# NORMAL: just a simple set
+# LOCATIONMAPPED: a different set per location (faster, elements with different locations cannot be merged)
+# PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
+analysis.reachedSet = PARTITIONED
 
 # use assumption collecting algorithm
 analysis.useAssumptionCollector = false

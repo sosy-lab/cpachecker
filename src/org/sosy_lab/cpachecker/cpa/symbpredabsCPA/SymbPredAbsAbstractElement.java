@@ -23,20 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 /**
  * AbstractElement for Symbolic Predicate Abstraction CPA
  *
  * @author Erkan
  */
-public class SymbPredAbsAbstractElement implements AbstractElement {
+public class SymbPredAbsAbstractElement implements AbstractElement, Partitionable {
 
   /** If the element is on an abstraction location */
   private final boolean isAbstractionNode;
@@ -164,5 +164,15 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public String toString() {
     return "Abstraction location: " + isAbstractionNode
         + " Abstraction id: " + abstractionId;
+  }
+  
+  @Override
+  public Object getPartitionKey() {
+    if (isAbstractionNode) {
+      // all abstraction nodes are in one block (for coverage checks)
+      return null;
+    } else {
+      return abstractionId;
+    }
   }
 }

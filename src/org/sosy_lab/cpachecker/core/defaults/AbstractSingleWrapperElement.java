@@ -28,6 +28,7 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.base.Function;
@@ -37,7 +38,7 @@ import com.google.common.base.Preconditions;
  * Base class for AbstractElements which wrap the abstract element of exactly
  * one CPA.
  */
-public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable {
+public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable, Partitionable {
 
   private static Function<AbstractElement, AbstractElement> unwrapFunction
       = new Function<AbstractElement, AbstractElement>() {
@@ -75,6 +76,15 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
     }
   }
 
+  @Override
+  public Object getPartitionKey() {
+    if (wrappedElement instanceof Partitionable) {
+      return ((Partitionable)wrappedElement).getPartitionKey();
+    } else {
+      return null;
+    }
+  }
+  
   @Override
   public String toString() {
     return wrappedElement.toString();

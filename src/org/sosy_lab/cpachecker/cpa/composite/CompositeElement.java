@@ -23,19 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.collect.ImmutableList;
 
-public class CompositeElement implements AbstractWrapperElement, Targetable {
+public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable {
   private final ImmutableList<AbstractElement> elements;
   private CallStack callStack;
+  private Object partitionKey; // lazily initialized
 
   public CompositeElement(List<AbstractElement> elements, CallStack stack)
   {
@@ -62,6 +65,27 @@ public class CompositeElement implements AbstractWrapperElement, Targetable {
     return false;
   }
 
+  @Override
+  public Object getPartitionKey() {
+    if (partitionKey == null) {
+      List<Object> keys = new ArrayList<Object>(elements.size());
+      
+      for (int i = 0; i < elements.size(); i++) {
+        AbstractElement element = elements.get(i);
+        if (element instanceof Partitionable) {
+          keys.add(((Partitionable)element).getPartitionKey());
+        } else {
+          keys.add(null);
+        }
+      }
+      
+      keys.add(callStack);
+      partitionKey = keys;
+    }
+    
+    return partitionKey;
+  }
+  
   @Override
   public boolean equals(Object other) {
     if (other == this) {

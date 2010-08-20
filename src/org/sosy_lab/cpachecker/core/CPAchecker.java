@@ -59,6 +59,10 @@ import com.google.common.base.Joiner;
 
 public class CPAchecker {
 
+  private static enum ReachedSetType {
+    NORMAL, LOCATIONMAPPED, PARTITIONED
+  }
+  
   @Options
   private static class CPAcheckerOptions {
 
@@ -73,6 +77,9 @@ public class CPAchecker {
     @Option(name="cpa.useSpecializedReachedSet")
     boolean locationMappedReachedSet = true;
 
+    @Option(name="analysis.reachedSet")
+    ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
+    
     @Option(name="analysis.useAssumptionCollector")
     boolean useAssumptionCollector = false;
 
@@ -285,9 +292,15 @@ public class CPAchecker {
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
     
     ReachedElements reached;
-    if (options.locationMappedReachedSet) {
+    switch (options.reachedSet) {
+    case PARTITIONED:
+      reached = new PartitionedReachedSet(options.traversalMethod);
+      break;
+    case LOCATIONMAPPED:
       reached = new LocationMappedReachedSet(options.traversalMethod);
-    } else {
+      break;
+    case NORMAL:
+    default:
       reached = new ReachedElements(options.traversalMethod);
     }
 

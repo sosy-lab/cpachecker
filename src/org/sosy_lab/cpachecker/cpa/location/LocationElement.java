@@ -26,9 +26,10 @@ package org.sosy_lab.cpachecker.cpa.location;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement
+public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
     private final CFANode locationNode;
 
@@ -113,5 +114,10 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     public Boolean evaluateProperty(
         String pProperty) throws InvalidQueryException {
       return Boolean.valueOf(checkProperty(pProperty));
+    }
+    
+    @Override
+    public Object getPartitionKey() {
+      return locationNode;
     }
 }
