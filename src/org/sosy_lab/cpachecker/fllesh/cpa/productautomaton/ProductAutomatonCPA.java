@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.fllesh.cpa.productautomaton;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -55,7 +54,7 @@ public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return ProductAutomatonPrecisionAdjustment.getInstance();
   }
 
   @Override
