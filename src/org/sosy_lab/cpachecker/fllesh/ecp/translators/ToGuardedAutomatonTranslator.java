@@ -34,6 +34,7 @@ public class ToGuardedAutomatonTranslator {
     
     lAutomaton3.createEdge(lAutomaton3.getInitialState(), lAutomaton3.getInitialState(), new InverseGuardedEdgeLabel(new GuardedEdgeLabel(lAlphaEdgeSet)));
     
+    // TODO do we need that?
     for (Automaton<GuardedEdgeLabel>.State lFinalState : lAutomaton3.getFinalStates()) {
       lAutomaton3.createEdge(lFinalState, lFinalState, AllCFAEdgesGuardedEdgeLabel.getInstance());
     }
@@ -57,6 +58,7 @@ public class ToGuardedAutomatonTranslator {
   
   public static Automaton<GuardedLabel> removeLambdaEdges(Automaton<GuardedLabel> pAutomaton, ECPEdgeSet pAlphaSet, ECPEdgeSet pOmegaSet) {
     /** first we augment the given automaton with the alpha and omega edge */  
+    // TODO move into separate (private) method
     Automaton<GuardedLabel>.State lNewInitialState = pAutomaton.createState();
     Automaton<GuardedLabel>.Edge lInitialEdge = pAutomaton.createEdge(lNewInitialState, pAutomaton.getInitialState(), new GuardedEdgeLabel(pAlphaSet));
     pAutomaton.setInitialState(lNewInitialState);
@@ -92,6 +94,7 @@ public class ToGuardedAutomatonTranslator {
       GuardedState lInitialGuardedState = new GuardedState(lCurrentEdge.getTarget(), lCurrentEdge.getLabel().getGuards());
       
       /** determine the lambda successors */
+      // TODO refactor into distinguished method
       List<GuardedState> lStatesWorklist = new LinkedList<GuardedState>();
       lStatesWorklist.add(lInitialGuardedState);
       
@@ -105,6 +108,7 @@ public class ToGuardedAutomatonTranslator {
         for (GuardedState lGuardedState : lReachedStates) {
           if (lGuardedState.covers(lCurrentState)) {
             lIsCovered = true;
+            // TODO add break
           }
         }
         
@@ -138,6 +142,8 @@ public class ToGuardedAutomatonTranslator {
       
       for (GuardedState lReachedState : lReachedStates) {
         boolean lHasNonLambdaEdge = false;
+        
+        // TODO create variable for lReachedState.getState()
         
         for (Automaton<GuardedLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lReachedState.getState())) {
           if (!(lOutgoingEdge.getLabel() instanceof GuardedLambdaLabel)) {
@@ -220,6 +226,7 @@ public class ToGuardedAutomatonTranslator {
         }
         
         if (lNodeSet != null) {
+          // TODO move this condition upwards
           if (!lNodeSet.isEmpty()) {
             assert(lLabel instanceof GuardedEdgeLabel);
             
