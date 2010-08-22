@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,8 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner;
@@ -62,16 +58,12 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
 
 public class FlleSh {
   
-  private static String INPUT_FUNCTION_NAME = "input";
-
   public static FlleShResult run(String pSourceFileName, String pFQLSpecification, String pEntryFunction, boolean pApplySubsumptionCheck) {
 
     File lPropertiesFile = FlleSh.createPropertiesFile(pEntryFunction);
@@ -81,6 +73,7 @@ public class FlleSh {
     ModifiedCPAchecker lCPAchecker;
     try {
       lLogManager = new LogManager(lConfiguration);
+      // TODO check whether we need ModifiedCPAchecker anymore
       lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -185,7 +178,7 @@ public class FlleSh {
         lCompoundCPAFactory.push(lPassingCPA, true);
       }
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), INPUT_FUNCTION_NAME, lWrapper.getReplacedEdges());
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), TestCase.INPUT_FUNCTION_NAME, lWrapper.getReplacedEdges());
       lCompoundCPAFactory.push(lAutomatonCPA, true);
       
       AssumeCPA lAssumeCPA = AssumeCPA.getCBMCAssume();
@@ -281,7 +274,9 @@ public class FlleSh {
         
         System.out.println(lCounterexample);
         
-        lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lCounterexample);
+        TestCase lTestCase = TestCase.toTestCase((MathsatModel)lCounterexample);
+        
+        lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
         
         
@@ -289,7 +284,7 @@ public class FlleSh {
           /** goal subsumption check */
           
 
-          String lInputFunctionSource = getInputFunction(lCounterexample);
+          String lInputFunctionSource = lTestCase.getInputFunction();
           
           TranslationUnit lTranslationUnit = TranslationUnit.parseString(lInputFunctionSource, lLogManager);
           
@@ -334,7 +329,7 @@ public class FlleSh {
               lSubsumedGoals.add(lOpenGoal);
               
               // II) log information
-              lResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), lCounterexample);
+              lResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), lTestCase);
               
               System.out.println("SUBSUMED");
             }
@@ -359,7 +354,7 @@ public class FlleSh {
 
   private static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
     Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(pPattern, pWrapper.getAlphaEdge(), pWrapper.getOmegaEdge());
-    GuardedEdgeAutomatonCPA lCPA = new GuardedEdgeAutomatonCPA(lAutomaton, INPUT_FUNCTION_NAME, pWrapper.getReplacedEdges());
+    GuardedEdgeAutomatonCPA lCPA = new GuardedEdgeAutomatonCPA(lAutomaton, TestCase.INPUT_FUNCTION_NAME, pWrapper.getReplacedEdges());
     
     return lCPA;
   }
@@ -673,85 +668,6 @@ public class FlleSh {
     System.out.println(lReachedElements.getReached());
     
     return lReachedElements.getReached(pEndNode);
-  }
-  
-  private static ExplicitAnalysisElement getInitialElement(Model pCounterexample) {
-    ExplicitAnalysisElement lElement = new ExplicitAnalysisElement();
-    
-    MathsatModel lCounterexample = (MathsatModel)pCounterexample;
-    
-    Set<MathsatAssignable> lAssignables = lCounterexample.getAssignables();
-    
-    for (MathsatAssignable lAssignable : lAssignables) {
-      
-      // TODO hier liegt wohl ein Problem vor!!! Muss behoben werden!!!
-      
-      //if (lAssignable.getName().endsWith("@1")) {
-      if (lAssignable.getName().endsWith("@2")) {
-        String lVariableName = lAssignable.getName().substring(0, lAssignable.getName().length() - 2);
-        
-        MathsatValue lValue = lCounterexample.getValue(lAssignable);
-        
-        double lDoubleValue = Double.parseDouble(lValue.toString());
-        
-        lElement.assignConstant(lVariableName, (long)lDoubleValue, Integer.MAX_VALUE);
-      }
-    }
-    
-    System.out.println("Initial element: " + lElement.toString());
-    
-    return lElement;
-  }
-  
-  private static String getInputFunction(Model pCounterexample) {
-    MathsatModel lCounterexample = (MathsatModel)pCounterexample;
-    
-    Set<MathsatAssignable> lAssignables = lCounterexample.getAssignables();
-    
-    StringWriter lInputFunction = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lInputFunction);
-
-    lWriter.println("int input()");
-    lWriter.println("{");
-    lWriter.println("  int value;");
-    
-    String lNondetPrefix = "__nondet__@";
-    
-    SortedMap<Integer, Double> lNondetMap = new TreeMap<Integer, Double>();
-    
-    for (MathsatAssignable lAssignable : lAssignables) {
-      String lName = lAssignable.getName();
-      
-      if (lName.startsWith(lNondetPrefix)) {
-        String lNumberString = lName.substring(lNondetPrefix.length());
-        
-        Integer lIndex = Integer.valueOf(lNumberString);
-        
-        MathsatValue lValue = lCounterexample.getValue(lAssignable);
-        
-        double lDoubleValue = Double.parseDouble(lValue.toString());
-        
-        lNondetMap.put(lIndex, lDoubleValue);
-      }
-    }
-    
-    int lIndex = 0;
-    
-    for (Map.Entry<Integer, Double> lEntry : lNondetMap.entrySet()) {
-      lWriter.println("  if (__FLLESH__input_index == " + lIndex + ")");
-      lWriter.println("  {");
-      lWriter.println("    value = " + lEntry.getValue().intValue() + ";");
-      lWriter.println("  }");
-      
-      lIndex++;
-    }
-    
-    lWriter.println("  __FLLESH__input_index = __FLLESH__input_index + 1;");
-    
-    lWriter.println("  return (value);");
-    lWriter.println("}");
-    
-    return lInputFunction.toString();
   }
   
 }

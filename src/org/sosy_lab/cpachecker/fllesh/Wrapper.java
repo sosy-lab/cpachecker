@@ -217,13 +217,18 @@ public class Wrapper {
     lWriter.println("void __FLLESH__main()");
     lWriter.println("{");
     
-    // this initialization is a workaround
-    // TODO correct in explicit analysis
-    lWriter.println("  __FLLESH__input_index = 0;");
-
     for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.getRawSignature() + ";");
     }
+    
+    for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+      // TODO do we need to handle lDeclaration more specifically?
+      lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = input();");
+    }
+    
+    // this initialization is a workaround
+    // TODO correct in explicit analysis
+    lWriter.println("  __FLLESH__input_index = 0;");
 
     lWriter.println();
     lWriter.print("  " + pMainFunction.getFunctionName() + "(");

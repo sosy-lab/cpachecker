@@ -108,12 +108,12 @@ public class MainTest {
 
   @Test
   public void testMain002() throws Exception {
-    String[] lArguments = new String[4];
-
-    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"";
-    lArguments[1] = "test/programs/simple/negate.c";
-    lArguments[2] = "negate";
-    lArguments[3] = "disablecilpreprocessing";
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+        "test/programs/simple/negate.c",
+        "negate",
+        true
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -131,12 +131,12 @@ public class MainTest {
 
   @Test
   public void testMain003() throws Exception {
-    String[] lArguments = new String[4];
-
-    lArguments[0] = "COVER \"EDGES(ID)*\".{x > 100}.EDGES(@LABEL(L)).\"EDGES(ID)*\"";
-    lArguments[1] = "test/programs/simple/negate.c";
-    lArguments[2] = "negate";
-    lArguments[3] = "disablecilpreprocessing";
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\".{x > 100}.EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+        "test/programs/simple/negate.c",
+        "negate",
+        true
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -154,12 +154,12 @@ public class MainTest {
 
   @Test
   public void testMain004() throws Exception {
-    String[] lArguments = new String[4];
-
-    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(ID).\"EDGES(ID)*\"";
-    lArguments[1] = "test/programs/fql/conditioncoverage.cil.c";
-    lArguments[2] = "foo";
-    lArguments[3] = "disablecilpreprocessing";
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\".EDGES(ID).\"EDGES(ID)*\"",
+        "test/programs/fql/conditioncoverage.cil.c",
+        "foo",
+        true
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -182,13 +182,12 @@ public class MainTest {
   
   @Test
   public void testMain005() throws Exception {
-    String[] lArguments = new String[4];
-
-    // This query should be equivalent to statement coverage
-    lArguments[0] = STATEMENT_COVERAGE;
-    lArguments[1] = "test/programs/fql/conditioncoverage.cil.c";
-    lArguments[2] = "foo";
-    lArguments[3] = "disablecilpreprocessing";
+    String[] lArguments = getParameters(
+        STATEMENT_COVERAGE,
+        "test/programs/fql/conditioncoverage.cil.c",
+        "foo",
+        true
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -206,12 +205,11 @@ public class MainTest {
   
   @Test
   public void testMain006() throws Exception {
-    String[] lArguments = new String[3];
-
-    // This query should be equivalent to statement coverage
-    lArguments[0] = STATEMENT_COVERAGE;
-    lArguments[1] = "test/programs/fql/conditioncoverage.c";
-    lArguments[2] = "foo";
+    String[] lArguments = getParameters(STATEMENT_COVERAGE,
+        "test/programs/fql/conditioncoverage.c",
+        "foo",
+        false
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -220,15 +218,21 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("006", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(18, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(18, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
   public void testMain007() throws Exception {
-    String[] lArguments = new String[3];
-
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(@CONDITIONEDGE).\"EDGES(ID)*\"";
-    lArguments[1] = "test/programs/fql/conditioncoverage.c";
-    lArguments[2] = "foo";
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\".NODES(@CONDITIONEDGE).\"EDGES(ID)*\"",
+        "test/programs/fql/conditioncoverage.c",
+        "foo",
+        false
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -237,15 +241,21 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("007", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(8, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(8, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
   public void testMain008() throws Exception {
-    String[] lArguments = new String[3];
-
-    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(@CONDITIONEDGE).\"EDGES(ID)*\"";
-    lArguments[1] = "test/programs/fql/using_random.c";
-    lArguments[2] = "foo";
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\".NODES(@CONDITIONEDGE).\"EDGES(ID)*\"",
+        "test/programs/fql/using_random.c",
+        "foo",
+        false
+    );
     
     long lStartTime = System.currentTimeMillis();
     
@@ -254,6 +264,11 @@ public class MainTest {
     long lEndTime = System.currentTimeMillis();
     
     mExperiment.addExperiment("008", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(5, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(5, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
   }
   
   @Test
