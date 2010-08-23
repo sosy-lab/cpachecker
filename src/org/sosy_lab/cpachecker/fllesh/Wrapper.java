@@ -203,7 +203,7 @@ public class Wrapper {
 
     // TODO simulator is not capable of handling initialization of global declarations
     //lWriter.println("int __FLLESH__input_index = 0;");
-    lWriter.println("int " + TestCase.INPUT_INDEX_VARIABLE + ";");
+    lWriter.println("int " + StringBasedTestCase.INPUT_INDEX_VARIABLE + ";");
     
     // we use the input function for providing input data
     // during test generation nondeterministically
@@ -228,7 +228,7 @@ public class Wrapper {
     
     // this initialization is a workaround
     // TODO correct in explicit analysis
-    lWriter.println("  " + TestCase.INPUT_INDEX_VARIABLE + " = 0;");
+    lWriter.println("  " + StringBasedTestCase.INPUT_INDEX_VARIABLE + " = 0;");
 
     lWriter.println();
     lWriter.print("  " + pMainFunction.getFunctionName() + "(");

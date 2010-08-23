@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -192,7 +193,7 @@ public class FlleSh {
         lCompoundCPAFactory.push(lPassingCPA, true);
       }
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), TestCase.INPUT_FUNCTION_NAME, lWrapper.getReplacedEdges());
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), StringBasedTestCase.INPUT_FUNCTION_NAME, lWrapper.getReplacedEdges());
       lCompoundCPAFactory.push(lAutomatonCPA, true);
       
       AssumeCPA lAssumeCPA = AssumeCPA.getCBMCAssume();
@@ -288,7 +289,13 @@ public class FlleSh {
         
         System.out.println(lCounterexample);
         
-        TestCase lTestCase = TestCase.toTestCase((MathsatModel)lCounterexample);
+        StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, lLogManager);
+        
+        try {
+          lTestCase.toFile("test/output/testcase-" + lCurrentGoalNumber + ".c");
+        } catch (FileNotFoundException e) {
+          throw new RuntimeException(e);
+        }
         
         lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
@@ -335,8 +342,8 @@ public class FlleSh {
             CFANode lPredecessor = lCFAEdge.getPredecessor();
             CFANode lSuccessor = lCFAEdge.getSuccessor();
             
-            if (!lSuccessor.getFunctionName().equals(TestCase.INPUT_FUNCTION_NAME)) {
-              if (lPredecessor.getFunctionName().equals(TestCase.INPUT_FUNCTION_NAME)) {
+            if (!lSuccessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
+              if (lPredecessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
                 if (!lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
                   throw new RuntimeException();
                 }
@@ -404,7 +411,7 @@ public class FlleSh {
 
   private static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
     Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(pPattern, pWrapper.getAlphaEdge(), pWrapper.getOmegaEdge());
-    GuardedEdgeAutomatonCPA lCPA = new GuardedEdgeAutomatonCPA(lAutomaton, TestCase.INPUT_FUNCTION_NAME, pWrapper.getReplacedEdges());
+    GuardedEdgeAutomatonCPA lCPA = new GuardedEdgeAutomatonCPA(lAutomaton, StringBasedTestCase.INPUT_FUNCTION_NAME, pWrapper.getReplacedEdges());
     
     return lCPA;
   }
