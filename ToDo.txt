@@ -9,19 +9,6 @@
 
 Conceptual suggestions:
 -----------------------
-- [PW] Currently for function calls the abstract element from the call site is stored
-  on the summary edge so that transfer relations processing the return edge can use
-  this information. IMHO this is ugly because state should not be stored in the CFA and
-  unwrapping the element is difficult. Think of a better way to provide this information.
-  I suggest adding a getAbstractSuccessorForFunctionReturn method in the transfer relation
-  interface.
-
-- [PW] Move CallStack tracking to separate CPA from compositeCPA.
-
-- [PW] Generalize LocationMappedReachedSet to PartitionedReachedSet allowing arbitrary
-  keys which can be provided by the AbstractElement with a getPartitionKey method. This
-  key could include location information, call stack.
-
 - [PW] Discuss if MultiStatement/MultiDeclaration edges and the CFASimplifier are
   still needed.
 
@@ -71,21 +58,6 @@ Conceptual suggestions:
 - [MT] Setting cpas.symbpredabs.shortestCexTrace to false causes some error I
   can't remember right now, easily reproducible with ExplicitCPA
 
-- [MT] Skipping BlankEdge in
-  src/cpa/symbpredabs/explicit/BDDMathsatExplicitAbstractManager.java is
-  dangerous; however, commenting out that piece of code breaks ExplicitCPA on
-  several examples, which must be due to some other bug in ExplicitCPA (other
-  CPAs relying on that piece of code don't break)
-
-- [MT] ExplicitCPA claims that ssh/s3_srvr_2_BUG.cil.c is safe, the filename and
-  other CPAs suggest that it should be UNSAFE instead
-
-- [MT] performRefinement in ExplicitCPA is most likely broken:
-  * the root must always be set to the first interpolant, otherwise we keep
-    reasoning about a subtree that is infeasible anyway
-  * Elements that were covered before and won't be after removing a subtree must
-    get added to the waitlist (see SummaryCPA)
-
 - [MT] The statistics classes should provide some simple support for adding
   timers, the current statistics interface is really too stupid
 
@@ -97,9 +69,6 @@ Conceptual suggestions:
   evaluated in each CPA again and again, this info must be built into the CFA
 
 - [Erkan] Get rid of obsolete packages and classes
-
-- [Erkan] cpa.common.CallElement and cpa.common.CallStack might move to their own
-  packages
 
 
 Architecture
@@ -114,6 +83,37 @@ Architecture
 
 Handled Jobs
 ================================
+- [PW] Currently for function calls the abstract element from the call site is stored
+  on the summary edge so that transfer relations processing the return edge can use
+  this information. IMHO this is ugly because state should not be stored in the CFA and
+  unwrapping the element is difficult. Think of a better way to provide this information.
+  I suggest adding a getAbstractSuccessorForFunctionReturn method in the transfer relation
+  interface.
+
+- [PW] Move CallStack tracking to separate CPA from compositeCPA.
+
+- [PW] Generalize LocationMappedReachedSet to PartitionedReachedSet allowing arbitrary
+  keys which can be provided by the AbstractElement with a getPartitionKey method. This
+  key could include location information, call stack.
+
+- [Erkan] cpa.common.CallElement and cpa.common.CallStack might move to their own
+  packages
+
+- [MT] Skipping BlankEdge in
+  src/cpa/symbpredabs/explicit/BDDMathsatExplicitAbstractManager.java is
+  dangerous; however, commenting out that piece of code breaks ExplicitCPA on
+  several examples, which must be due to some other bug in ExplicitCPA (other
+  CPAs relying on that piece of code don't break)
+
+- [MT] performRefinement in ExplicitCPA is most likely broken:
+  * the root must always be set to the first interpolant, otherwise we keep
+    reasoning about a subtree that is infeasible anyway
+  * Elements that were covered before and won't be after removing a subtree must
+    get added to the waitlist (see SummaryCPA)
+
+- [MT] ExplicitCPA claims that ssh/s3_srvr_2_BUG.cil.c is safe, the filename and
+  other CPAs suggest that it should be UNSAFE instead
+
 - [PW] find out which JARs from Eclipse and CDT are needed for running CPAchecker,
   add them to lib/eclipse and change cpa.sh and build.xml so that they use these
   libraries (no need to search for Eclipse directory on disk anymore)

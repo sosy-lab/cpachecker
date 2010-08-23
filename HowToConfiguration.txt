@@ -52,13 +52,13 @@ has to be prefixed with the identifier of the CPA as described above.
 
 A simple example (the first line could be ommitted as it's the default):
 cpa = cpa.composite.CompositeCPA
-CompositeCPA.cpas = cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA explicitCPA
+CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitAnalysisCPA explicitCPA
 explicitCPA.cpas.explicit.threshold = 10
 
 A more complex example:
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
-composite.cpas = cpa.location.LocationCPA, cpa.symbpredabs.SymbPredAbsCPA
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA cpa.symbpredabs.SymbPredAbsCPA
 
 
 Valid configuration options and default values
