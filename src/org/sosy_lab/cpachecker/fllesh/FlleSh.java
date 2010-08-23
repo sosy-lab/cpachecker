@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisCPA;
@@ -158,7 +159,17 @@ public class FlleSh {
       } catch (CPAException e) {
         throw new RuntimeException(e);
       }
-
+      
+      CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
+      ConfigurableProgramAnalysis lCallStackCPA;
+      try {
+        lCallStackCPA = lCallStackCPAFactory.createInstance();
+      } catch (InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      } catch (CPAException e) {
+        throw new RuntimeException(e);
+      }
+      
       CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
       lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
       lSymbPredAbsCPAFactory.setLogger(lLogManager);
@@ -173,6 +184,7 @@ public class FlleSh {
       
       CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
       
+      lCompoundCPAFactory.push(lCallStackCPA, true);
       lCompoundCPAFactory.push(lSymbPredAbsCPA);
       lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
       
@@ -247,7 +259,7 @@ public class FlleSh {
         throw new RuntimeException(e);
       }
 
-      //System.out.println(lReachedElements);
+      //System.out.println(lReachedSet);
       
       CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
       
@@ -581,6 +593,14 @@ public class FlleSh {
     AssumeCPA lAssumeCPA = AssumeCPA.getCBMCAssume();
     lCompoundCPAFactory.push(lAssumeCPA);
     
+    
+    // call stack CPA
+    CPAFactory lCallStackFactory = CallstackCPA.factory();
+    ConfigurableProgramAnalysis lCallStackCPA = lCallStackFactory.createInstance();
+    lCompoundCPAFactory.push(lCallStackCPA, true);
+
+    
+    
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(lLocationCPA);
     lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
@@ -638,6 +658,13 @@ public class FlleSh {
     
     AssumeCPA lAssumeCPA = AssumeCPA.getCBMCAssume();
     lCompoundCPAFactory.push(lAssumeCPA);
+    
+    
+    // call stack CPA
+    CPAFactory lCallStackFactory = CallstackCPA.factory();
+    ConfigurableProgramAnalysis lCallStackCPA = lCallStackFactory.createInstance();
+    lCompoundCPAFactory.push(lCallStackCPA, true);
+    
     
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(lLocationCPA);
