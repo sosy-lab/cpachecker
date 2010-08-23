@@ -42,7 +42,7 @@ import static org.sosy_lab.cpachecker.fllesh.fql2.parser.FQLSym.*;
 %final
 // %abstract
 
-%cupsym org.sosy_lab.cpachecker.fllesh.fql.frontend.parser.FQLSym
+%cupsym org.sosy_lab.cpachecker.fllesh.fql2.parser.FQLSym
 %cup
 // %cupdebug
 

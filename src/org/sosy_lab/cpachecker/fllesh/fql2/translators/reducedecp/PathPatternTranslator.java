@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.Annotations;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.FilterEvaluator;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.FilterEvaluator;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -58,7 +58,7 @@ public class PathPatternTranslator implements Annotations {
   private Visitor mVisitor;
   private FilterEvaluator mFilterEvaluator;
 
-  public PathPatternTranslator(TargetGraph pTargetGraph) {
+  public PathPatternTranslator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
     mTargetGraph = pTargetGraph;
     mIds = new HashMap<Set<CFAEdge>, String>();
     mAnnotations = new HashMap<CFAEdge, Set<String>>();
@@ -72,7 +72,7 @@ public class PathPatternTranslator implements Annotations {
 
     mVisitor = new Visitor();
     
-    mFilterEvaluator = new FilterEvaluator(pTargetGraph);
+    mFilterEvaluator = new FilterEvaluator(pTargetGraph, pBasicBlockEntries);
   }
 
   @Override

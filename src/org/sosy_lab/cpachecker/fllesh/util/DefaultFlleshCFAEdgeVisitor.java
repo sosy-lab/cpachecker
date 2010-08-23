@@ -33,14 +33,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.InternalSelfLoop;
 
-public class DefaultFlleshCFAEdgeVisitor<T> extends AbstractFlleshCFAEdgeVisitor<T> {
-
-  @Override
-  public T visit(InternalSelfLoop pEdge) {
-    throw new UnsupportedOperationException();
-  }
+public class DefaultFlleshCFAEdgeVisitor<T> extends AbstractCFAEdgeVisitor<T> {
 
   @Override
   public T visit(BlankEdge pEdge) {

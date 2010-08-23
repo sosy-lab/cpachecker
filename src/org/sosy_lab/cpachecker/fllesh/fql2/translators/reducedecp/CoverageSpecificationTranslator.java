@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.Annotations;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Atom;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraphUtil;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -54,11 +54,11 @@ public class CoverageSpecificationTranslator {
   private TargetGraph mTargetGraph;
   private PathPatternTranslator mPathPatternTranslator;
 
-  public CoverageSpecificationTranslator(CFAFunctionDefinitionNode pMainFunction) {
+  public CoverageSpecificationTranslator(CFAFunctionDefinitionNode pMainFunction, Set<CFAEdge> pBasicBlockEntries) {
     mVisitor = new Visitor();
 
     mTargetGraph = TargetGraphUtil.cfa(pMainFunction);
-    mPathPatternTranslator = new PathPatternTranslator(mTargetGraph);
+    mPathPatternTranslator = new PathPatternTranslator(mTargetGraph, pBasicBlockEntries);
   }
 
   public Annotations getAnnotations() {

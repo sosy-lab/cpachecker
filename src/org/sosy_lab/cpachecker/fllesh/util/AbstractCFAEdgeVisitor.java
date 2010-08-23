@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.InternalSelfLoop;
 
 public abstract class AbstractCFAEdgeVisitor<T> implements CFAEdgeVisitor<T> {
 
@@ -43,10 +42,6 @@ public abstract class AbstractCFAEdgeVisitor<T> implements CFAEdgeVisitor<T> {
     case AssumeEdge:
       return visit((AssumeEdge)pEdge);
     case BlankEdge:
-      if (pEdge instanceof InternalSelfLoop) {
-        return visit((InternalSelfLoop)pEdge);
-      }
-
       return visit((BlankEdge)pEdge);
     case CallToReturnEdge:
       return visit((CallToReturnEdge)pEdge);
