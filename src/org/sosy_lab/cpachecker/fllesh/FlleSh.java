@@ -17,8 +17,10 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
@@ -312,6 +314,42 @@ public class FlleSh {
               throw new RuntimeException(e);
             }
           }
+          
+          LinkedList<CFAEdge> lModifiedPath = new LinkedList<CFAEdge>();
+          
+          // replace cfa edges related to input function by original cfa edges
+          
+          for (CFAEdge lCFAEdge : lCFAPath) {
+            CFANode lPredecessor = lCFAEdge.getPredecessor();
+            CFANode lSuccessor = lCFAEdge.getSuccessor();
+            
+            if (!lSuccessor.getFunctionName().equals(TestCase.INPUT_FUNCTION_NAME)) {
+              if (lPredecessor.getFunctionName().equals(TestCase.INPUT_FUNCTION_NAME)) {
+                if (!lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
+                  throw new RuntimeException();
+                }
+                
+                CallToReturnEdge lSummaryEdge = lSuccessor.getEnteringSummaryEdge();
+                
+                if (lSummaryEdge == null) {
+                  throw new RuntimeException();
+                }
+                
+                CFAEdge lReplacedEdge = lWrapper.getReplacedEdges().get(lSummaryEdge);
+                
+                if (lReplacedEdge == null) {
+                  throw new RuntimeException();
+                }
+                
+                lModifiedPath.add(lReplacedEdge);
+              }
+              else {
+                lModifiedPath.add(lCFAEdge);
+              }
+            } 
+          }
+          
+          lCFAPath = lModifiedPath.toArray(new CFAEdge[lModifiedPath.size()]);
           
           lWrapper.replace(lNondetInputFunction);
           

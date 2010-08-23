@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Map;
@@ -11,14 +12,30 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 
+// TODO split into String based test case and file based test case
 public class TestCase {
 
   public static String INPUT_FUNCTION_NAME = "input";
+  public static String INPUT_INDEX_VARIABLE = "__FLLESH__input_index";
   
+  // TODO code or CFA ?
   private String mInputFunction;
   
   private TestCase(String pInputFunction) {
     mInputFunction = pInputFunction;
+  }
+  
+  public void toFile(String pFileName) {
+    toFile(new File(pFileName));
+  }
+  
+  public void toFile(File pFile) {
+    throw new UnsupportedOperationException();
+  }
+  
+  public static TestCase fromFile(String pFileName) {
+    // TODO implement
+    throw new UnsupportedOperationException();
   }
   
   public static TestCase toTestCase(MathsatModel pCounterexample) {
