@@ -35,9 +35,13 @@ import com.google.common.base.Preconditions;
 public class ExplicitAnalysisElement implements AbstractQueryableElement {
 
   // map that keeps the name of variables and their constant values
-  private Map<String, Long> constantsMap;
+  private final Map<String, Long> constantsMap;
 
-  private Map<String, Integer> noOfReferences;
+  private final Map<String, Integer> noOfReferences;
+
+  // element from the previous context
+  // used for return edges
+  private final ExplicitAnalysisElement previousElement;
   
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
@@ -45,12 +49,22 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   public ExplicitAnalysisElement() {
     constantsMap = new HashMap<String, Long>();
     noOfReferences = new HashMap<String, Integer>();
+    previousElement = null;
   }
 
+  public ExplicitAnalysisElement(ExplicitAnalysisElement previousElement) {
+    constantsMap = new HashMap<String, Long>();
+    noOfReferences = new HashMap<String, Integer>();
+    this.previousElement = previousElement;
+  }
+
+
   public ExplicitAnalysisElement(Map<String, Long> constantsMap,
-                                 Map<String, Integer> referencesMap) {
+                                 Map<String, Integer> referencesMap,
+                                 ExplicitAnalysisElement previousElement) {
     this.constantsMap = constantsMap;
     this.noOfReferences = referencesMap;
+    this.previousElement = previousElement;
   }
 
   /**
@@ -98,9 +112,13 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     return constantsMap.containsKey(variableName);
   }
 
+  public ExplicitAnalysisElement getPreviousElement() {
+    return previousElement;
+  }
+  
   @Override
   public ExplicitAnalysisElement clone() {
-    ExplicitAnalysisElement newElement = new ExplicitAnalysisElement();
+    ExplicitAnalysisElement newElement = new ExplicitAnalysisElement(previousElement);
     for (String s: constantsMap.keySet()){
       long val = constantsMap.get(s).longValue();
       newElement.constantsMap.put(s, val);

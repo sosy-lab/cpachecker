@@ -41,7 +41,6 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
@@ -2067,6 +2066,13 @@ public class OctTransferRelation implements TransferRelation{
   private void handleFunctionReturn(OctElement octElement,
                                     ReturnEdge functionReturnEdge) throws OctagonTransferException {
 
+
+    // TODO: The method summaryEdge.extractAbstractElement() has been removed.
+    // If OctagonCPA is to be used, store a reference to the previous element
+    // in the OctElement, just like ExplicitAnalysisCPA does.
+    throw new UnsupportedOperationException("NEEDS TO BE IMPLEMENTED");
+    
+/*
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTExpression exprOnSummary = summaryEdge.getExpression();
@@ -2214,6 +2220,7 @@ public class OctTransferRelation implements TransferRelation{
 
     octElement.update(newElement);
     //System.out.println(octElement);
+*/
   }
 
   @Override

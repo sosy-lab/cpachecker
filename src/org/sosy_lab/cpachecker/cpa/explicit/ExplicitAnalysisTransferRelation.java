@@ -180,7 +180,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTExpression exprOnSummary = summaryEdge.getExpression();
     // TODO get from stack
-    ExplicitAnalysisElement previousElem = summaryEdge.extractAbstractElement(ExplicitAnalysisElement.class);
+    ExplicitAnalysisElement previousElem = element.getPreviousElement();
     ExplicitAnalysisElement newElement = previousElem.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
@@ -315,7 +315,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
     assert (paramNames.size() == arguments.length);
 
-    ExplicitAnalysisElement newElement = new ExplicitAnalysisElement();
+    ExplicitAnalysisElement newElement = new ExplicitAnalysisElement(element);
 
     for(String globalVar:globalVars){
       if(element.contains(globalVar)){

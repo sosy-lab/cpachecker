@@ -168,7 +168,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
           newReferencesMap.put(key, referencesMap2.get(key));
         }
       }
-      return new ExplicitAnalysisElement(newConstantsMap, newReferencesMap);
+      return new ExplicitAnalysisElement(newConstantsMap, newReferencesMap, explicitAnalysisElement2.getPreviousElement());
     }
   }
 
