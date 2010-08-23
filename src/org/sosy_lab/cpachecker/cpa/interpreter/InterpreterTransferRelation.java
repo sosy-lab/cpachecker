@@ -231,7 +231,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     // CAUTION: This is not possible because of nested access!!!
     // TODO: query for ConcreteAnalysisDomainElement?
-    InterpreterElement lPreviousElement = lSummaryEdge.extractAbstractElement(InterpreterElement.class);
+    // InterpreterElement lPreviousElement = lSummaryEdge.extractAbstractElement(InterpreterElement.class);
+    InterpreterElement lPreviousElement = pCurrentElement.getPreviousElement();
 
     InterpreterElement newElement = new InterpreterElement(lPreviousElement);
 
@@ -333,7 +334,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     assert (paramNames.size() == arguments.length);
 
-    InterpreterElement newElement = new InterpreterElement();
+    InterpreterElement newElement = InterpreterElement.createForFunctionCall(pCurrentElement);
 
     for (String globalVar : globalVars) {
       if (pCurrentElement.contains(globalVar)) {

@@ -23,31 +23,53 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class InterpreterElement implements InterpreterDomainElement {
 
   // map that keeps the name of variables and their constant values
-  private Map<String, Long> mConstantsMap;
+  private final Map<String, Long> mConstantsMap;
 
+  private final InterpreterElement mPreviousElement;
+  
   public InterpreterElement() {
     mConstantsMap = new HashMap<String, Long>();
+    mPreviousElement = null;
   }
 
+  /**
+   * Just for testing.
+   */
   public InterpreterElement(Map<String, Long> pConstantsMap) {
-    assert(pConstantsMap != null);
-
-    this.mConstantsMap = pConstantsMap;
+    this(checkNotNull(pConstantsMap), null);
   }
 
+  /**
+   * Copy constructor.
+   */
   public InterpreterElement(InterpreterElement pElement) {
     assert(pElement != null);
     assert(pElement.mConstantsMap != null);
 
     this.mConstantsMap = new HashMap<String, Long>(pElement.mConstantsMap);
+    this.mPreviousElement = pElement.mPreviousElement;
   }
 
+  /**
+   * Factory method because there is another constructor with the same parameters.
+   */
+  public static InterpreterElement createForFunctionCall(InterpreterElement pPreviousElement) {
+    return new InterpreterElement(new HashMap<String, Long>(), pPreviousElement);
+  }
+  
+  private InterpreterElement(Map<String, Long> pConstantsMap, InterpreterElement pPreviousElement) {
+    this.mConstantsMap = pConstantsMap;
+    this.mPreviousElement = pPreviousElement;
+  }
+  
   /**
    * Assigns a value to the variable and puts it in the map
    * @param pNameOfVar name of the variable.
@@ -70,6 +92,10 @@ public class InterpreterElement implements InterpreterDomainElement {
     return mConstantsMap.containsKey(pVariableName);
   }
 
+  public InterpreterElement getPreviousElement() {
+    return mPreviousElement;
+  }
+  
   @Override
   public boolean equals (Object pOther) {
     if (this == pOther) {
