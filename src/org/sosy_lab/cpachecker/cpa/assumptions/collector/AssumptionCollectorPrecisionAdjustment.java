@@ -29,12 +29,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElementsView;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 
 /**
  * Precision adjustment operator, relying directly on the underlying
@@ -56,11 +56,11 @@ public class AssumptionCollectorPrecisionAdjustment
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
-      Precision oldPrecision, UnmodifiableReachedElements reachedElements)
+      Precision oldPrecision, UnmodifiableReachedSet reachedElements)
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement)element;
     AbstractElement oldElement = assumptionElement.getWrappedElement();
-    UnmodifiableReachedElements unwrappedReached = new UnmodifiableReachedElementsView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
+    UnmodifiableReachedSet unwrappedReached = new UnmodifiableReachedSetView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
     Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(oldElement, oldPrecision, unwrappedReached);
 
     if (unwrappedResult == null) {

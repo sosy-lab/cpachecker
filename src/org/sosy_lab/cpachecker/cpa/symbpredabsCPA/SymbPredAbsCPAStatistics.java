@@ -36,12 +36,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -70,7 +70,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
+    public void printStatistics(PrintWriter out, Result result, ReachedSet reached) {
       SymbPredAbsFormulaManagerImpl<?, ?> amgr = cpa.getFormulaManager();
 
       Multimap<CFANode, Predicate> predicates = HashMultimap.create();

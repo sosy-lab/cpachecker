@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElementsView;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -94,7 +94,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
                                                Precision pPrecision,
-                                               UnmodifiableReachedElements pElements) {
+                                               UnmodifiableReachedSet pElements) {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getElements().size() == prec.getPrecisions().size());
@@ -106,8 +106,8 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     boolean modified = false;
 
     for (int i = 0; i < dim; ++i) {
-      UnmodifiableReachedElements slice =
-        new UnmodifiableReachedElementsView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
+      UnmodifiableReachedSet slice =
+        new UnmodifiableReachedSetView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractElement oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);

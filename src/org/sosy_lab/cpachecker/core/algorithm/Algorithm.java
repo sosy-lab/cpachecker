@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Algorithm {
 
-  public void run(ReachedElements reachedElements) throws CPAException;
+  public void run(ReachedSet reachedSet) throws CPAException;
 
   public ConfigurableProgramAnalysis getCPA();
 }

@@ -47,12 +47,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
@@ -90,7 +90,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   }
 
   @Override
-  public void run(ReachedElements reached) throws CPAException {
+  public void run(ReachedSet reached) throws CPAException {
 
     AssumptionWithMultipleLocations resultAssumption = new AssumptionWithMultipleLocations();
     boolean restartCPA = false;

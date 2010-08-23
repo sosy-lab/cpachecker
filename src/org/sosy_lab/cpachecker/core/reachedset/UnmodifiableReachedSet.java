@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  *
  * @author g.theoduloz
  */
-public interface UnmodifiableReachedElements extends Iterable<AbstractElement> {
+public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
 
   public Collection<AbstractElement> getReached();
 

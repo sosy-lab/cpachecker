@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collections;
 import java.util.Set;
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 import com.google.common.collect.LinkedHashMultimap;
 
-public class LocationMappedReachedSet extends ReachedElements {
+public class LocationMappedReachedSet extends ReachedSet {
 
   private final LinkedHashMultimap<CFANode, AbstractElement> locationMappedReached = LinkedHashMultimap.create();
 

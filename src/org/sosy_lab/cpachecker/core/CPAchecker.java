@@ -49,6 +49,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
@@ -72,7 +75,7 @@ public class CPAchecker {
     // algorithm options
 
     @Option(name="analysis.traversal")
-    ReachedElements.TraversalMethod traversalMethod = ReachedElements.TraversalMethod.DFS;
+    ReachedSet.TraversalMethod traversalMethod = ReachedSet.TraversalMethod.DFS;
 
     @Option(name="analysis.reachedSet")
     ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
@@ -135,7 +138,7 @@ public class CPAchecker {
     logger.log(Level.FINE, "Analysis Started");
 
     MainCPAStatistics stats = null;
-    ReachedElements reached = null;
+    ReachedSet reached = null;
     Result result = Result.UNKNOWN;
 
     try {
@@ -217,7 +220,7 @@ public class CPAchecker {
   }
 
   private Result runAlgorithm(final Algorithm algorithm,
-          final ReachedElements reached,
+          final ReachedSet reached,
           final MainCPAStatistics stats) throws CPAException {
 
     logger.log(Level.INFO, "Starting analysis...");
@@ -280,7 +283,7 @@ public class CPAchecker {
   }
 
 
-  private ReachedElements createInitialReachedSet(
+  private ReachedSet createInitialReachedSet(
       final ConfigurableProgramAnalysis cpa,
       final CFAFunctionDefinitionNode mainFunction) {
     logger.log(Level.FINE, "Creating initial reached set");
@@ -288,7 +291,7 @@ public class CPAchecker {
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
     
-    ReachedElements reached;
+    ReachedSet reached;
     switch (options.reachedSet) {
     case PARTITIONED:
       reached = new PartitionedReachedSet(options.traversalMethod);
@@ -298,7 +301,7 @@ public class CPAchecker {
       break;
     case NORMAL:
     default:
-      reached = new ReachedElements(options.traversalMethod);
+      reached = new ReachedSet(options.traversalMethod);
     }
 
     reached.add(initialElement, initialPrecision);

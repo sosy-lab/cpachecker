@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * This class implements the PrecisionAdjustment operator for a CPA, where the
@@ -42,7 +42,7 @@ public class StaticPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
-        Precision precision, UnmodifiableReachedElements elements) {
+        Precision precision, UnmodifiableReachedSet elements) {
 
     return new Pair<AbstractElement, Precision>(element, precision);
   }

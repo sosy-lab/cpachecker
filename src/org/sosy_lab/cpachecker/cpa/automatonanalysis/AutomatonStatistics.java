@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.io.PrintWriter;
 
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 class AutomatonStatistics implements Statistics {
 
@@ -44,7 +44,7 @@ class AutomatonStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintWriter out, Result pResult,
-      ReachedElements pReached) {
+      ReachedSet pReached) {
 
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
     out.println("Total time for sucessor computation: " + toTime(trans.totalPostTime));

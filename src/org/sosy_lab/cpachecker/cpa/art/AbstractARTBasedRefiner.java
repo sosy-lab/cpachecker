@@ -41,10 +41,10 @@ import com.google.common.collect.Sets;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public abstract class AbstractARTBasedRefiner implements Refiner {
@@ -81,7 +81,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   };
 
   @Override
-  public final boolean performRefinement(ReachedElements pReached) throws CPAException {
+  public final boolean performRefinement(ReachedSet pReached) throws CPAException {
     logger.log(Level.FINEST, "Starting ART based refinement");
 
     assert checkART(pReached);
@@ -157,7 +157,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return path;
   }
 
-  private static boolean checkART(ReachedElements pReached) {
+  private static boolean checkART(ReachedSet pReached) {
     Set<? extends AbstractElement> reached = pReached.getReached();
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();

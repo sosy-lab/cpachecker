@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
-import org.sosy_lab.cpachecker.core.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.ReachedElements.TraversalMethod;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
@@ -91,7 +91,7 @@ public class StandardQuery extends AbstractQuery {
   private TargetPoint mTarget;
 
   private boolean mExplorationFinished;
-  private ReachedElements mReachedElements;
+  private ReachedSet mReachedSet;
 
   private ConfigurableProgramAnalysis mCPA;
 
@@ -132,7 +132,7 @@ public class StandardQuery extends AbstractQuery {
     }
 
     // TODO what about other traversal types?
-    mReachedElements = new LocationMappedReachedSet(TraversalMethod.DFS);
+    mReachedSet = new LocationMappedReachedSet(TraversalMethod.DFS);
   }
 
   public Waypoint getSource() {
@@ -146,7 +146,7 @@ public class StandardQuery extends AbstractQuery {
 
   private void explore() {
 
-    if (mReachedElements.isEmpty()) {
+    if (mReachedSet.isEmpty()) {
       // initialization
 
       // TODO we can just use the precision of the source as currently QueryCPA has no own precision
@@ -169,26 +169,26 @@ public class StandardQuery extends AbstractQuery {
 
           CompositeElement lCompositeElement = new CompositeElement(lContainedElements);
 
-          mReachedElements.add(lCompositeElement, mSource.getPrecision());
+          mReachedSet.add(lCompositeElement, mSource.getPrecision());
         }
       }
 
-      System.out.println("Initial elements: " + mReachedElements);
+      System.out.println("Initial elements: " + mReachedSet);
 
       // apply state space exploration
       CPAAlgorithm lAlgorithm = new CPAAlgorithm(mCPA, mLogManager);
 
       // TODO we should be able to use the error feature as a way to enumerate and refine elements in a different way than it is done now
       try {
-        while (mReachedElements.hasWaitingElement()) {
-          lAlgorithm.run(mReachedElements);
+        while (mReachedSet.hasWaitingElement()) {
+          lAlgorithm.run(mReachedSet);
         }
       } catch (CPAException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
 
-      System.out.println("Explored elements: " + mReachedElements);
+      System.out.println("Explored elements: " + mReachedSet);
     }
     else {
       // refinement necessary
@@ -208,9 +208,9 @@ public class StandardQuery extends AbstractQuery {
     // TODO derive from composite element in order to introduce a structure
 
 
-    //Set<AbstractElement> lPotentialTargets = mReachedElements.getReached(mTarget.getElement());
+    //Set<AbstractElement> lPotentialTargets = mReachedSet.getReached(mTarget.getElement());
     // TODO support for predicates is missing
-    Set<AbstractElement> lPotentialTargets = mReachedElements.getReached(mTarget.getCFANode());
+    Set<AbstractElement> lPotentialTargets = mReachedSet.getReached(mTarget.getCFANode());
 
     //CallStack lTargetCallStack = mTarget.getElement().getCallStack();
 

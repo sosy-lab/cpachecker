@@ -30,8 +30,8 @@ import com.google.common.collect.Collections2;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * View of the reached heuristics
@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  */
 public class ReachedHeuristicsDataSetView {
 
-  private final UnmodifiableReachedElements underlying;
+  private final UnmodifiableReachedSet underlying;
   private final Function<AbstractElement, StopHeuristicsData> mapFunction;
 
-  public ReachedHeuristicsDataSetView(UnmodifiableReachedElements pUnderlying, Function<AbstractElement, StopHeuristicsData> pMapFunction)
+  public ReachedHeuristicsDataSetView(UnmodifiableReachedSet pUnderlying, Function<AbstractElement, StopHeuristicsData> pMapFunction)
   {
     underlying = pUnderlying;
     mapFunction = pMapFunction;

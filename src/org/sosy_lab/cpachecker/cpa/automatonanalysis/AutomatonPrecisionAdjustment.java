@@ -24,17 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class AutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
-      Precision pPrecision, UnmodifiableReachedElements pElements) {
+      Precision pPrecision, UnmodifiableReachedSet pElements) {
     
     if (((AutomatonState)pElement).isTarget()) {
       return new Pair<AbstractElement, Precision>(pElement, SingletonPrecision.getBreakInstance());

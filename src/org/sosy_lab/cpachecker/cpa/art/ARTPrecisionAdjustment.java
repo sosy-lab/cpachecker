@@ -28,11 +28,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElementsView;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 
 public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -44,12 +44,12 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
-      Precision oldPrecision, UnmodifiableReachedElements pElements) {
+      Precision oldPrecision, UnmodifiableReachedSet pElements) {
 
     Preconditions.checkArgument(pElement instanceof ARTElement);
     ARTElement element = (ARTElement)pElement;
 
-    UnmodifiableReachedElements elements = new UnmodifiableReachedElementsView(
+    UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();

@@ -40,9 +40,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
 @Options
@@ -74,7 +74,7 @@ public class ARTStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintWriter pOut, Result pResult,
-      ReachedElements pReached) {
+      ReachedSet pReached) {
     if (exportART) {
       dumpARTToDotFile(pReached);
     }
@@ -93,7 +93,7 @@ public class ARTStatistics implements Statistics {
     }
   }
 
-  private void dumpARTToDotFile(ReachedElements pReached) {
+  private void dumpARTToDotFile(ReachedSet pReached) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();

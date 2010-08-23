@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -42,16 +42,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  * and precision are transformed by mapping functions.
  * @author g.theoduloz
  */
-public class UnmodifiableReachedElementsView
-  implements UnmodifiableReachedElements
+public class UnmodifiableReachedSetView
+  implements UnmodifiableReachedSet
 {
-  private final UnmodifiableReachedElements underlying;
+  private final UnmodifiableReachedSet underlying;
   private final Function<? super AbstractElement, AbstractElement> mapElementFunction;
   private final Function<? super Precision, Precision> mapPrecisionFunction;
   private final Function<Pair<AbstractElement, Precision>, Pair<AbstractElement, Precision>> mapElementAndPrecisionFunction;
 
-  public UnmodifiableReachedElementsView(
-      UnmodifiableReachedElements pUnderlyingSet,
+  public UnmodifiableReachedSetView(
+      UnmodifiableReachedSet pUnderlyingSet,
       Function<? super AbstractElement, AbstractElement> pMapElementFunction,
       Function<? super Precision, Precision> pMapPrecisionFunction) {
     assert pUnderlyingSet != null;
@@ -72,7 +72,7 @@ public class UnmodifiableReachedElementsView
       };
   }
 
-  public UnmodifiableReachedElementsView(UnmodifiableReachedElements pUnderlyingSet)
+  public UnmodifiableReachedSetView(UnmodifiableReachedSet pUnderlyingSet)
   {
     underlying = pUnderlyingSet;
     mapElementFunction = Functions.<AbstractElement>identity();

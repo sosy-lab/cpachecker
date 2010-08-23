@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collections;
 import java.util.Set;
@@ -43,7 +43,7 @@ import com.google.common.collect.SetMultimap;
  * reached elements. This subset contains exactly those elements, whose partition
  * key is equal to the key of the element given as a parameter.
  */
-public class PartitionedReachedSet extends ReachedElements {
+public class PartitionedReachedSet extends ReachedSet {
 
   private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
   

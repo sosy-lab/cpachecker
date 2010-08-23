@@ -33,7 +33,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -71,7 +71,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintWriter out, Result pResult,
-        ReachedElements pReached) {
+        ReachedSet pReached) {
       out.println("Number of iterations:           " + countIterations);
       out.println("Average size of waitlist:       " + countWaitlistSize/countIterations);
       out.println("Number of computed successors:  " + countSuccessors);
@@ -104,25 +104,25 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(final ReachedElements reachedElements) throws CPAException {
+  public void run(final ReachedSet reachedSet) throws CPAException {
     long startTotalTime = System.currentTimeMillis();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
-    while (reachedElements.hasWaitingElement()) {
+    while (reachedSet.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
 
       stats.countIterations++;
 
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
-      stats.countWaitlistSize += reachedElements.getWaitlistSize();
+      stats.countWaitlistSize += reachedSet.getWaitlistSize();
 
       long start = System.currentTimeMillis();
-      final AbstractElement element = reachedElements.popFromWaitlist();
-      final Precision precision = reachedElements.getPrecision(element);
+      final AbstractElement element = reachedSet.popFromWaitlist();
+      final Precision precision = reachedSet.getPrecision(element);
       long end = System.currentTimeMillis();
       stats.chooseTime += (end - start);
 
@@ -148,7 +148,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
         start = System.currentTimeMillis();
         Pair<AbstractElement, Precision> adjustedSuccessor = 
-          precisionAdjustment.prec(successor, precision, reachedElements);
+          precisionAdjustment.prec(successor, precision, reachedSet);
         end = System.currentTimeMillis();
         stats.precisionTime += (end - start);
 
@@ -160,7 +160,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         successor = adjustedSuccessor.getFirst();
         Precision successorPrecision = adjustedSuccessor.getSecond();
         
-        Collection<AbstractElement> reached = reachedElements.getReached(successor);
+        Collection<AbstractElement> reached = reachedSet.getReached(successor);
 
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
@@ -190,8 +190,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, successorPrecision));
             }
           }
-          reachedElements.removeAll(toRemove);
-          reachedElements.addAll(toAdd);
+          reachedSet.removeAll(toRemove);
+          reachedSet.addAll(toAdd);
 
           end = System.currentTimeMillis();
           stats.mergeTime += (end - start);
@@ -209,7 +209,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         } else {
           logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
-          reachedElements.add(successor, successorPrecision);
+          reachedSet.add(successor, successorPrecision);
         }
 
         if (successorPrecision.isBreak()) {
@@ -221,7 +221,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             // Otherwise it is not longer in the reached set, but the result of
             // the merge (which covers the abstract state "element") is in
             // the reached set and the waitlist.
-            reachedElements.reAddToWaitlist(element);
+            reachedSet.reAddToWaitlist(element);
           }
           
           stats.totalTime += (System.currentTimeMillis() - startTotalTime);

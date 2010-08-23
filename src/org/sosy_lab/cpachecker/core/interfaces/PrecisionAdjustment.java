@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Interface for the precision adjustment operator.
@@ -54,5 +54,5 @@ public interface PrecisionAdjustment {
    */
   public Pair<AbstractElement,Precision> prec(AbstractElement element,
                                               Precision precision,
-                                              UnmodifiableReachedElements elements);
+                                              UnmodifiableReachedSet elements);
 }

@@ -33,10 +33,10 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -46,10 +46,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class ARTReachedSet {
 
-  private final ReachedElements mReached;
+  private final ReachedSet mReached;
   private final ARTCPA mCpa;
 
-  public ARTReachedSet(ReachedElements pReached, ARTCPA pCpa) {
+  public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
     mReached = pReached;
     mCpa = pCpa;
   }

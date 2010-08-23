@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Joiner;
 
@@ -89,7 +90,7 @@ public class MainCPAStatistics implements Statistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
+    public void printStatistics(PrintWriter out, Result result, ReachedSet reached) {
         if (analysisEndingTime == 0) {
           stopAnalysisTimer();
         }

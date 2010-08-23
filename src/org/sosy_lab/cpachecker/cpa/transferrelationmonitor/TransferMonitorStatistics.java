@@ -4,9 +4,9 @@ import java.io.PrintWriter;
 import java.text.NumberFormat;
 import java.util.Locale;
 
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public class TransferMonitorStatistics implements Statistics{
 
@@ -17,7 +17,7 @@ public class TransferMonitorStatistics implements Statistics{
 
   @Override
   public void printStatistics(PrintWriter pOut, Result pResult,
-      ReachedElements pReached) {
+      ReachedSet pReached) {
 
     double averageTransferTime = ((new Long(TransferRelationMonitorElement.totalTimeOfTransfer)).doubleValue() /
         (new Long(TransferRelationMonitorElement.totalNumberOfTransfers)).doubleValue());

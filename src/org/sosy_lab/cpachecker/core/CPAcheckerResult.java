@@ -28,6 +28,8 @@ import java.io.PrintWriter;
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -44,11 +46,11 @@ public class CPAcheckerResult {
 
   private final Result result;
 
-  private final ReachedElements reached;
+  private final ReachedSet reached;
 
   private final Statistics stats;
 
-  CPAcheckerResult(Result result, ReachedElements reached, Statistics stats) {
+  CPAcheckerResult(Result result, ReachedSet reached, Statistics stats) {
     Preconditions.checkNotNull(result);
     this.result = result;
     this.reached = reached;
@@ -65,7 +67,7 @@ public class CPAcheckerResult {
   /**
    * Return the final reached set.
    */
-  public UnmodifiableReachedElements getReached() {
+  public UnmodifiableReachedSet getReached() {
     return reached;
   }
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  * In all its operations it preserves the order in which the elements were added.
  * All the collections returned from methods of this class ensure this ordering, too.
  */
-public class ReachedElements implements UnmodifiableReachedElements {
+public class ReachedSet implements UnmodifiableReachedSet {
 
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
@@ -74,7 +74,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
 
   };
 
-  public ReachedElements(TraversalMethod traversal) {
+  public ReachedSet(TraversalMethod traversal) {
     Preconditions.checkNotNull(traversal);
 
     reached = new LinkedHashMap<AbstractElement, Precision>();

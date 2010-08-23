@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -31,6 +29,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -236,11 +236,11 @@ public class FlleSh {
       AbstractElement lInitialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
 
-      ReachedElements lReachedElements = new LocationMappedReachedSet(ReachedElements.TraversalMethod.TOPSORT);
-      lReachedElements.add(lInitialElement, lInitialPrecision);
+      ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+      lReachedSet.add(lInitialElement, lInitialPrecision);
 
       try {
-        lAlgorithm.run(lReachedElements);
+        lAlgorithm.run(lReachedSet);
       } catch (CPAException e) {
         throw new RuntimeException(e);
       }
@@ -252,7 +252,7 @@ public class FlleSh {
       // TODO remove in future ... here for debugging purposes
       boolean lIsFeasible;
       try {
-        lIsFeasible = FlleSh.determineGoalFeasibility(lReachedElements, lARTStatistics);
+        lIsFeasible = FlleSh.determineGoalFeasibility(lReachedSet, lARTStatistics);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -376,10 +376,10 @@ public class FlleSh {
     return lARTCPAFactory.createInstance();
   }
   
-  private static boolean determineGoalFeasibility(ReachedElements pReachedElements, Statistics pStatistics) throws IOException {
+  private static boolean determineGoalFeasibility(ReachedSet pReachedSet, Statistics pStatistics) throws IOException {
     boolean lErrorReached = false;
     
-    for (AbstractElement lReachedElement : pReachedElements) {
+    for (AbstractElement lReachedElement : pReachedSet) {
       if ((lReachedElement instanceof Targetable) && ((Targetable)lReachedElement).isTarget()) {
         lErrorReached = true;
       }
@@ -390,12 +390,12 @@ public class FlleSh {
     PrintWriter lStatisticsWriter = new PrintWriter(System.out);
 
     if (lErrorReached) {
-      pStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, pReachedElements);
+      pStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, pReachedSet);
       
       return true;
     }
     else {
-      pStatistics.printStatistics(lStatisticsWriter, Result.SAFE, pReachedElements);
+      pStatistics.printStatistics(lStatisticsWriter, Result.SAFE, pReachedSet);
       
       return false;
     }
@@ -655,19 +655,19 @@ public class FlleSh {
 */    
     Precision lInitialPrecision = pAlgorithm.getCPA().getInitialPrecision(pEntry);
 
-    ReachedElements lReachedElements = new LocationMappedReachedSet(ReachedElements.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
     //lReachedElements.add(lNewInitialCompositeElement, lInitialPrecision);
-    lReachedElements.add(lInitialElement, lInitialPrecision);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      pAlgorithm.run(lReachedElements);
+      pAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
     
-    System.out.println(lReachedElements.getReached());
+    System.out.println(lReachedSet.getReached());
     
-    return lReachedElements.getReached(pEndNode);
+    return lReachedSet.getReached(pEndNode);
   }
   
 }

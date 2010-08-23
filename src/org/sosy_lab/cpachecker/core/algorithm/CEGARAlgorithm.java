@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cegar")
@@ -67,7 +67,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintWriter out, Result pResult,
-        ReachedElements pReached) {
+        ReachedSet pReached) {
 
       out.println("Number of refinements:          " + countRefinements + " (" + countSuccessfulRefinements + " successful)");
 
@@ -156,7 +156,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(ReachedElements reached) throws CPAException {
+  public void run(ReachedSet reached) throws CPAException {
     long start = System.currentTimeMillis();
 
     boolean stopAnalysis = false;

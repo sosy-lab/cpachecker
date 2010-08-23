@@ -32,10 +32,10 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.UnmodifiableReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * @author g.theoduloz
@@ -69,7 +69,7 @@ public class ProgressObserverPrecisionAdjustment implements
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement el,
-      Precision p, UnmodifiableReachedElements reached) {
+      Precision p, UnmodifiableReachedSet reached) {
     ProgressObserverElement element = (ProgressObserverElement) el;
 
     List<StopHeuristicsData> preData = element.getComponents();
