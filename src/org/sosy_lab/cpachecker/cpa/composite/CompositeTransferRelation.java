@@ -29,16 +29,11 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.sosy_lab.cpachecker.core.CallElement;
-import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -84,47 +79,6 @@ public class CompositeTransferRelation implements TransferRelation{
 
     assert(precision instanceof CompositePrecision);
     CompositePrecision lCompositePrecision = (CompositePrecision)precision;
-
-    CallStack updatedCallStack = compositeElement.getCallStack();
-
-    // TODO add some check here for unbounded recursive calls
-    if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge && !((FunctionCallEdge)cfaEdge).isExternalCall())
-    {
-      String functionName = cfaEdge.getSuccessor().getFunctionName();
-      CFANode callNode = cfaEdge.getPredecessor();
-      CallElement ce = new CallElement(functionName, callNode, compositeElement);
-      CallStack cs = compositeElement.getCallStack();
-      updatedCallStack = cs.clone();
-      updatedCallStack.push(ce);
-    }
-
-    // handling the return from a function
-    else if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnEdge)
-    {
-      CallElement topCallElement = compositeElement.getCallStack().peek();
-      assert(cfaEdge.getPredecessor().getFunctionName().
-          equals(topCallElement.getFunctionName()));
-      CallElement returnElement = compositeElement.getCallStack().getSecondTopElement();
-
-      if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
-          ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ) {
-        return;
-      }
-
-      // TODO we are saving the abstract state on summary edge, that works for
-      // now but this is a bad design practice. Add another method
-      // getAbstractSuccessorOnReturn(subElement, prevElement, cfaEdge)
-      // and implement it for all CPAs later.
-      else{
-        CallStack cs = compositeElement.getCallStack();
-        updatedCallStack = cs.clone();
-        CallElement ce = updatedCallStack.pop();
-        CompositeElement compElemBeforeCall = ce.getState();
-        // TODO use summary edge as a cache later
-        CallToReturnEdge summaryEdge = cfaEdge.getSuccessor().getEnteringSummaryEdge();
-        summaryEdge.setAbstractElement(compElemBeforeCall);
-      }
-    }
 
     int resultCount = 1;
     List<AbstractElement> componentElements = compositeElement.getElements();
@@ -193,7 +147,7 @@ public class CompositeTransferRelation implements TransferRelation{
         createCartesianProduct(lStrengthenedElements, lInitialPrefix, lResultingElements);
         
         for (List<AbstractElement> lList : lResultingElements) {
-          compositeSuccessors.add(new CompositeElement(lList, updatedCallStack));
+          compositeSuccessors.add(new CompositeElement(lList));
         }
       }
     }

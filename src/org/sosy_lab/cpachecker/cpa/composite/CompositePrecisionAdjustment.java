@@ -129,7 +129,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     if (modified) {
       // TODO for now we just take the input call stack, that may be wrong, but how to construct
       // a proper one in case this _is_ wrong?
-      return new Pair<AbstractElement, Precision>(new CompositeElement(outElements.build(), comp.getCallStack()),
+      return new Pair<AbstractElement, Precision>(new CompositeElement(outElements.build()),
           new CompositePrecision(outPrecisions.build()));
     } else {
       return new Pair<AbstractElement, Precision>(pElement, pPrecision);

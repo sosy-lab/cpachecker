@@ -167,7 +167,7 @@ public class StandardQuery extends AbstractQuery {
 
           lContainedElements.add(lNewElement);
 
-          CompositeElement lCompositeElement = new CompositeElement(lContainedElements, mSource.getElement().getCallStack());
+          CompositeElement lCompositeElement = new CompositeElement(lContainedElements);
 
           mReachedElements.add(lCompositeElement, mSource.getPrecision());
         }

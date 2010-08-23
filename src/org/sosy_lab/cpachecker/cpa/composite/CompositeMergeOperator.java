@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -58,14 +57,6 @@ public class CompositeMergeOperator implements MergeOperator{
     {
       return element2;
     }
-    // check for call stack
-    CallStack cs1 = comp1.getCallStack();
-    CallStack cs2 = comp2.getCallStack();
-
-    // do not merge if call stacks are not equal
-    if(!cs1.equals(cs2)){
-      return element2;
-    }
 
     ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
     Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
@@ -87,7 +78,7 @@ public class CompositeMergeOperator implements MergeOperator{
     if (identicElements) {
       return element2;
     } else {
-      return new CompositeElement(mergedElements.build(), cs2);
+      return new CompositeElement(mergedElements.build());
     }
   }
 }

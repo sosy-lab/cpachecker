@@ -58,8 +58,8 @@ public class CompositeDomain implements AbstractDomain
             partialOrders.add (domain.getPartialOrder ());
         }
 
-        this.bottomElement = new CompositeElement(bottoms.build(), null);
-        this.topElement = new CompositeElement(tops.build(), null);
+        this.bottomElement = new CompositeElement(bottoms.build());
+        this.topElement = new CompositeElement(tops.build());
         this.joinOperator = new CompositeJoinOperator(joinOperators.build());
         this.partialOrder = new CompositePartialOrder(partialOrders.build());
     }

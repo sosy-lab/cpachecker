@@ -65,7 +65,7 @@ public class CompositeJoinOperator implements JoinOperator
         }
 
         // TODO do we ever use this function?
-        return new CompositeElement (results, null);
+        return new CompositeElement(results);
     }
 
 }

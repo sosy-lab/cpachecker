@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.cpachecker.core.CallElement;
-import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -158,14 +156,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       initialElements.add(sp.getInitialElement(node));
     }
 
-    CompositeElement initialElement = new CompositeElement(initialElements.build(), null);
-    // set call stack
-    CallStack initialCallStack = new CallStack();
-    CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
-    initialCallStack.push(initialCallElement);
-    initialElement.setCallStack(initialCallStack);
-
-    return initialElement;
+    return new CompositeElement(initialElements.build());
   }
 
   @Override

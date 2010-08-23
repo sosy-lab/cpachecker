@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
@@ -37,13 +36,11 @@ import com.google.common.collect.ImmutableList;
 
 public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable {
   private final ImmutableList<AbstractElement> elements;
-  private CallStack callStack;
   private Object partitionKey; // lazily initialized
 
-  public CompositeElement(List<AbstractElement> elements, CallStack stack)
+  public CompositeElement(List<AbstractElement> elements)
   {
     this.elements = ImmutableList.copyOf(elements);
-    this.callStack = stack;
   }
 
   public List<AbstractElement> getElements()
@@ -79,7 +76,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
         }
       }
       
-      keys.add(callStack);
       partitionKey = keys;
     }
     
@@ -98,8 +94,7 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
 
     CompositeElement otherComposite = (CompositeElement) other;
 
-    return (otherComposite.elements.equals(this.elements))
-        && otherComposite.getCallStack().equals(this.getCallStack());
+    return otherComposite.elements.equals(this.elements);
   }
 
   @Override
@@ -125,14 +120,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
 
   public AbstractElement get(int idx) {
     return elements.get(idx);
-  }
-
-  public CallStack getCallStack() {
-    return callStack;
-  }
-
-  public void setCallStack(CallStack callStack) {
-    this.callStack = callStack;
   }
 
   @Override

@@ -39,8 +39,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopTopElement;
-import org.sosy_lab.cpachecker.core.CallElement;
-import org.sosy_lab.cpachecker.core.CallStack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
@@ -191,15 +189,7 @@ public class FeasibilityCheck {
 
     lComposites.addAll(pDataSpaceComposites);
 
-    CompositeElement lInitialCompositeElement = new CompositeElement(lComposites, null);
-
-    CallElement lInitialCallElement = new CallElement(pInitialCFANode.getFunctionName(), pInitialCFANode, lInitialCompositeElement);
-
-    CallStack lInitialCallStack = new CallStack();
-    lInitialCallStack.push(lInitialCallElement);
-    lInitialCompositeElement.setCallStack(lInitialCallStack);
-
-    return lInitialCompositeElement;
+    return new CompositeElement(lComposites);
   }
 
   public static CompositeElement createInitialElement(Node pInitialNode) {

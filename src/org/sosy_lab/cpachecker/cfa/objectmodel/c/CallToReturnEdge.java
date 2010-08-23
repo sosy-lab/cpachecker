@@ -28,13 +28,10 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
 	private final IASTExpression expression;
-	private AbstractElement abstractElement;
 
 	public CallToReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression exp) {
 		super(rawStatement, lineNumber, predecessor, successor);
@@ -56,18 +53,5 @@ public class CallToReturnEdge extends AbstractCFAEdge {
   public CFAEdgeType getEdgeType ()
 	{
 		return CFAEdgeType.CallToReturnEdge;
-	}
-
-	public AbstractElement getAbstractElement() {
-		return abstractElement;
-	}
-
-	public void setAbstractElement(AbstractElement abstractElement) {
-		this.abstractElement = abstractElement;
-	}
-
-	public <T extends AbstractElement> T extractAbstractElement(Class<T> pType){
-		AbstractWrapperElement wrappedElem = (AbstractWrapperElement) abstractElement;
-		return wrappedElem.retrieveWrappedElement(pType);
 	}
 }

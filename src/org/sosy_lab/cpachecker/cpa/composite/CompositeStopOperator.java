@@ -84,9 +84,6 @@ public class CompositeStopOperator implements StopOperator{
   throws CPAException {
     CompositeElement compositeElement1 = (CompositeElement) element;
     CompositeElement compositeElement2 = (CompositeElement) reachedElement;
-    if(!compositeElement1.getCallStack().equals(compositeElement2.getCallStack())){
-      return false;
-    }
 
     List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
     List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
