@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.Mat
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 
 // TODO split into String based test case and file based test case
-public class StringBasedTestCase {
+public class StringBasedTestCase implements TestCase {
 
   public static String INPUT_FUNCTION_NAME = "input";
   public static String INPUT_INDEX_VARIABLE = "__FLLESH__input_index";
@@ -42,6 +42,20 @@ public class StringBasedTestCase {
     lWriter.print(mInputFunction);
     
     lWriter.close();
+  }
+  
+  public String getInputFunction() {
+    return mInputFunction;
+  }
+  
+  @Override
+  public CFAFunctionDefinitionNode getInputFunctionEntry() {
+    return mInputFunctionEntry;
+  }
+  
+  @Override
+  public String toString() {
+    return getInputFunction();
   }
   
   public static StringBasedTestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {
@@ -95,19 +109,6 @@ public class StringBasedTestCase {
     TranslationUnit lTranslationUnit = TranslationUnit.parseString(lInputFunctionSource, pLogManager);
     
     return new StringBasedTestCase(lTranslationUnit.getFunction(StringBasedTestCase.INPUT_FUNCTION_NAME), lInputFunctionSource);
-  }
-  
-  public CFAFunctionDefinitionNode getInputFunctionEntry() {
-    return mInputFunctionEntry;
-  }
-  
-  public String getInputFunction() {
-    return mInputFunction;
-  }
-  
-  @Override
-  public String toString() {
-    return getInputFunction();
   }
   
 }

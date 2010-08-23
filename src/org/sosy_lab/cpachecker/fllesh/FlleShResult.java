@@ -14,13 +14,13 @@ public class FlleShResult {
     private Task mTask;
     private Set<ElementaryCoveragePattern> mFeasibleTestGoals;
     private Set<ElementaryCoveragePattern> mInfeasibleTestGoals;
-    private Map<StringBasedTestCase, Set<ElementaryCoveragePattern>> mTestSuite;
+    private Map<TestCase, Set<ElementaryCoveragePattern>> mTestSuite;
     
     private Factory(Task pTask) {
       mTask = pTask;
       mFeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
       mInfeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
-      mTestSuite = new HashMap<StringBasedTestCase, Set<ElementaryCoveragePattern>>();
+      mTestSuite = new HashMap<TestCase, Set<ElementaryCoveragePattern>>();
     }
     
     public void add(ElementaryCoveragePattern pECP, boolean pIsFeasible) {
@@ -32,7 +32,7 @@ public class FlleShResult {
       }
     }
     
-    public void addFeasibleTestCase(ElementaryCoveragePattern pECP, StringBasedTestCase pTestCase) {
+    public void addFeasibleTestCase(ElementaryCoveragePattern pECP, TestCase pTestCase) {
       mFeasibleTestGoals.add(pECP);
       Set<ElementaryCoveragePattern> lTestSuite = getTestSuite(pTestCase);
       lTestSuite.add(pECP);
@@ -42,7 +42,7 @@ public class FlleShResult {
       mInfeasibleTestGoals.add(pECP);
     }
     
-    private Set<ElementaryCoveragePattern> getTestSuite(StringBasedTestCase pTestCase) {
+    private Set<ElementaryCoveragePattern> getTestSuite(TestCase pTestCase) {
       if (mTestSuite.containsKey(pTestCase)) {
         return mTestSuite.get(pTestCase);
       }

@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.fllesh.cfa.TranslationUnit;
 import org.sosy_lab.cpachecker.fllesh.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathStandardElement;
@@ -99,30 +97,13 @@ public class FlleSh {
     
     FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
     
-    // TODO implement possibility to load existing test suites in an elegant way
-    //String lTestHarness = "void __FLLESH__main() { foo(10); }";
-    //Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager, lTestHarness);
-    
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
-    //lWrapper.addFunctions("/home/andreas/wrapper/test1.c");
-    //lWrapper.addFunctions("/home/andreas/wrapper/test2.c");
     
     try {
       lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    /*
-    TranslationUnit lTranslationUnit = TranslationUnit.parseFile("/home/andreas/wrapper/test2.c", lLogManager);
-    CFAFunctionDefinitionNode lEntry = lTranslationUnit.getFunction("input");
-    
-    lWrapper.replace(lEntry);
-    
-    try {
-      lWrapper.toDot("test/output/wrapper2.dot");
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }*/
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
     
@@ -291,12 +272,6 @@ public class FlleSh {
         
         StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, lLogManager);
         
-        try {
-          lTestCase.toFile("test/output/testcase-" + lCurrentGoalNumber + ".c");
-        } catch (FileNotFoundException e) {
-          throw new RuntimeException(e);
-        }
-        
         lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
         
@@ -304,12 +279,7 @@ public class FlleSh {
         if (pApplySubsumptionCheck) {
           /** goal subsumption check */
           
-
-          String lInputFunctionSource = lTestCase.getInputFunction();
-          
-          TranslationUnit lTranslationUnit = TranslationUnit.parseString(lInputFunctionSource, lLogManager);
-          
-          CFAFunctionDefinitionNode lInputFunction = lTranslationUnit.getFunction("input");
+          CFAFunctionDefinitionNode lInputFunction = lTestCase.getInputFunctionEntry();
           
           CFAFunctionDefinitionNode lNondetInputFunction = lWrapper.replace(lInputFunction);
           
