@@ -221,15 +221,15 @@ public class Wrapper {
       lWriter.println("  " + lDeclaration.getRawSignature() + ";");
     }
     
+    // this initialization is a workaround
+    // TODO correct in explicit analysis
+    lWriter.println("  " + StringBasedTestCase.INPUT_INDEX_VARIABLE + " = 0;");
+    
     for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
       lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = input();");
     }
     
-    // this initialization is a workaround
-    // TODO correct in explicit analysis
-    lWriter.println("  " + StringBasedTestCase.INPUT_INDEX_VARIABLE + " = 0;");
-
     lWriter.println();
     lWriter.print("  " + pMainFunction.getFunctionName() + "(");
 

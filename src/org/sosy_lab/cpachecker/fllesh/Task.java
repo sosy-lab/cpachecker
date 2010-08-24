@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -56,7 +56,7 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
     }
   }
   
-  public Queue<Goal> toGoals(Wrapper pWrapper) {
+  public Deque<Goal> toGoals(Wrapper pWrapper) {
     LinkedList<Goal> lGoals = new LinkedList<Goal>();
     
     for (ElementaryCoveragePattern lGoalPattern : this) {

@@ -6,12 +6,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -119,7 +119,7 @@ public class FlleSh {
     
     System.out.println("TEST GOALS:");
     
-    Queue<Goal> lGoals = lTask.toGoals(lWrapper);
+    Deque<Goal> lGoals = lTask.toGoals(lWrapper);
     
     System.out.println(lGoals.size());
     
