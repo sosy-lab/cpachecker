@@ -13,7 +13,7 @@ Requirements for executing CPAchecker:
 
 Building CPAchecker:
 --------------------
-1. Install Java 1.6 SDK or higher.
+1. Install Java 1.6 SDK or higher (OpenJDK 6 works, too).
    http://java.sun.com/
 2. Checkout CPAchecker from SVN repository.
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
@@ -31,13 +31,13 @@ Running CPAchecker:
 
 Running test cases:
 -------------------
-7. Install ant-junit.jar (on Debian/Ubuntu you need the package ant-optional).
+7. You need ant-junit.jar (on Debian/Ubuntu included in the package ant-optional).
 8. Run "ant tests" from the project root directory. The output (including the test
    results) will be in test/output/.
 
 Building and running CPAchecker from within Eclipse:
 ----------------------------------------------------
-1. Install Eclipse 3.5 with JDT.
+1. Install Eclipse 3.5 or 3.6 with JDT.
    http://www.eclipse.org/
 2. Install the C/C++ Development Kit version 6.0.
    You need to install only the "Eclipse C/C++ Development Tools SDK" package.
@@ -66,14 +66,17 @@ Sources of binaries provided with the distribution/SVN:
   APRON with different interfaces)
 - javabdd-1.0b2.jar, libcudd.so: See
   http://javabdd.sourceforge.net/compiling.html
-- Simplify: http://kind.ucd.ie/products/opensource/Simplify/
 - mathsat.jar: Source code provided with the archive
 - CSIsat: http://www.sosy-lab.org/~dbeyer/CSIsat/
+- Yices Java Lite API:
+  http://atlantis.seidenberg.pace.edu/wiki/lep/Yices%20Java%20API%20Lite
 - java-cup-11a.jar: http://www2.cs.tum.edu/projects/cup/
 - icu4j-4_2_1.jar: http://site.icu-project.org/
 - JFlex.jar: http://jflex.de/
 - Google Collections: http://code.google.com/p/google-collections/
-- others: Unknown (MT)
+- JGraphT: http://www.jgrapht.org/
+- Eclipse and Eclipse CDT: http://www.eclipse.org/ and http://www.eclipse.org/cdt/
+- JUnit: http://junit.sourceforge.net/
 
 Examples of working installation:
 db 2008-11-28:
