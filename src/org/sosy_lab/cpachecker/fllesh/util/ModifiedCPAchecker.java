@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
@@ -65,10 +64,10 @@ public class ModifiedCPAchecker extends CPAchecker {
     }
 
     CFACreator lCFACreator = new CFACreator(getConfiguration(), getLogger());
-    Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> lCFA = lCFACreator.createCFA(lAst);
+    lCFACreator.createCFA(lAst);
 
-    mCFAMap = lCFA.getFirst();
-    mMainFunction = lCFA.getSecond();
+    mCFAMap = lCFACreator.getFunctions();
+    mMainFunction = lCFACreator.getMainFunction();
   }
 
   public Map<String, CFAFunctionDefinitionNode> getCFAMap() {

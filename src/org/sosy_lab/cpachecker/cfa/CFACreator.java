@@ -32,7 +32,6 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,13 +76,24 @@ public class CFACreator {
 
   private final LogManager logger;
   
+  private Map<String, CFAFunctionDefinitionNode> functions;
+  private CFAFunctionDefinitionNode mainFunction;
+  
   public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     
     this.logger = logger;
   }
 
-  public Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
+  public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+    return functions;
+  }
+  
+  public CFAFunctionDefinitionNode getMainFunction() {
+    return mainFunction;
+  }
+  
+  public void createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
   
     // Build CFA
     final CFABuilder builder = new CFABuilder(logger);
@@ -138,7 +148,10 @@ public class CFACreator {
         logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
               + ", analysis not necessary. "
               + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
-        return null;
+        
+        this.functions = ImmutableMap.of();
+        this.mainFunction = null;
+        return;
       }
     }
   
@@ -160,8 +173,8 @@ public class CFACreator {
   
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
   
-    return new Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode>(
-        ImmutableMap.copyOf(cfas), mainFunction);
+    this.functions = ImmutableMap.copyOf(cfas);
+    this.mainFunction = mainFunction;
   }
 
 }

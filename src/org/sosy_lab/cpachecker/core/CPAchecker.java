@@ -31,7 +31,6 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -152,14 +151,14 @@ public class CPAchecker {
 
       // create CFA
       CFACreator cfaCreator = new CFACreator(getConfiguration(), logger);
-      Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = cfaCreator.createCFA(ast);
-      if (cfa == null) {
+      cfaCreator.createCFA(ast);
+      Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
+      CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
+
+      if (cfas.isEmpty()) {
         // empty program, do nothing
         return new CPAcheckerResult(Result.UNKNOWN, null, null);
       }
-
-      Map<String, CFAFunctionDefinitionNode> cfas = cfa.getFirst();
-      CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
 
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
