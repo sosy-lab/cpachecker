@@ -1,13 +1,12 @@
-
-extern int rand();
+int input();
 
 int foo() {
 	int x;
 	int y;
 	int z;
 
-	x = rand();
-	y = rand();
+	x = input();
+	y = input();
 
 	if (x != y) {
 		return 1;
@@ -16,3 +15,4 @@ int foo() {
 		return 0;
 	}
 }
+

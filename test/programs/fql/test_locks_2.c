@@ -1,9 +1,3 @@
-int get_exit_nondet()
-{
-    int retval;
-    return (retval);
-}
-
 int main()
 {
     int p1;  // condition variable
@@ -16,7 +10,7 @@ int main()
     int cond;
 
     while(1) {
-        cond = get_exit_nondet();
+        cond = input();
         if (cond == 0) {
             goto out;
         } else {}
