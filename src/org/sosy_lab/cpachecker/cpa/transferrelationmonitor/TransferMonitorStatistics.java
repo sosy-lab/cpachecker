@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.Locale;
 
@@ -16,7 +16,7 @@ public class TransferMonitorStatistics implements Statistics{
   }
 
   @Override
-  public void printStatistics(PrintWriter pOut, Result pResult,
+  public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
     double averageTransferTime = ((new Long(TransferRelationMonitorElement.totalTimeOfTransfer)).doubleValue() /

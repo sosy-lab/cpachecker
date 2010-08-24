@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
@@ -66,7 +66,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result pResult,
+    public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
 
       out.println("Number of refinements:          " + countRefinements + " (" + countSuccessfulRefinements + " successful)");

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import com.google.common.base.Joiner;
 
 @Options
-public class MainCPAStatistics implements Statistics {
+class MainCPAStatistics implements Statistics {
 
     @Option(name="reachedSet.export")
     private boolean exportReachedSet = true;
@@ -90,7 +90,7 @@ public class MainCPAStatistics implements Statistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
         if (analysisEndingTime == 0) {
           stopAnalysisTimer();
         }

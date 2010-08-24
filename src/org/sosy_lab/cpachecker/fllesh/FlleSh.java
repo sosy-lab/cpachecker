@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.fllesh;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
@@ -414,15 +415,15 @@ public class FlleSh {
       //System.out.println(reachedElement);
     }
 
-    PrintWriter lStatisticsWriter = new PrintWriter(System.out);
+    PrintStream lStatisticsOutput = System.out;
 
     if (lErrorReached) {
-      pStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, pReachedSet);
+      pStatistics.printStatistics(lStatisticsOutput, Result.UNSAFE, pReachedSet);
       
       return true;
     }
     else {
-      pStatistics.printStatistics(lStatisticsWriter, Result.SAFE, pReachedSet);
+      pStatistics.printStatistics(lStatisticsOutput, Result.SAFE, pReachedSet);
       
       return false;
     }

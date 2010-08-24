@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -70,7 +70,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result pResult,
+    public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println("Number of iterations:           " + countIterations);
       out.println("Average size of waitlist:       " + countWaitlistSize/countIterations);

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -43,7 +43,7 @@ class AutomatonStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintWriter out, Result pResult,
+  public void printStatistics(PrintStream out, Result pResult,
       ReachedSet pReached) {
 
     AutomatonTransferRelation trans = mCpa.getTransferRelation();

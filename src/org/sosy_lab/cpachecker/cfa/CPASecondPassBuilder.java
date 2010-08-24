@@ -55,7 +55,7 @@ public class CPASecondPassBuilder {
   private final Map<String, CFAFunctionDefinitionNode> cfas;
   private final boolean createCallEdgesForExternalCalls;
 
-  private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
+  private final Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
   
   /**
    * Class constructor.

@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.PrintWriter;
-
-import com.google.common.base.Preconditions;
+import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -75,7 +75,7 @@ public class CPAcheckerResult {
    * Write the statistics to a given PrintWriter. Additionally some output files
    * may be written here, if configuration says so.
    */
-  public void printStatistics(PrintWriter target) {
+  public void printStatistics(PrintStream target) {
     if (stats != null && reached != null) {
       stats.printStatistics(target, result, reached);
     }

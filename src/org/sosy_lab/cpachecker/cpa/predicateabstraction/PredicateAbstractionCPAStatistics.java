@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicateabstraction;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,7 +82,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       PredicateAbstractionTransferRelation trans =
             (PredicateAbstractionTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();

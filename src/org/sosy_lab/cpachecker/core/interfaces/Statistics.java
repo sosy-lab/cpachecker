@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -40,7 +40,7 @@ public interface Statistics {
      * @param result the result of the analysis
      * @param reached the final reached set
      */
-    public void printStatistics(PrintWriter out, Result result, ReachedSet reached);
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached);
 
     /**
      * @return The name for this group of statistics

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -97,7 +96,7 @@ public class CPAMain {
       System.out.flush();
       System.err.flush();
       if (mResult != null) {
-        mResult.printStatistics(new PrintWriter(System.out));
+        mResult.printStatistics(System.out);
       }
       logManager.flush();
     }

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -73,7 +73,7 @@ public class ARTStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintWriter pOut, Result pResult,
+  public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
     if (exportART) {
       dumpARTToDotFile(pReached);

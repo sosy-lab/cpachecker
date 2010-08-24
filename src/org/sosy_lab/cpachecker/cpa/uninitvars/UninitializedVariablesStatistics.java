@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -57,7 +57,7 @@ public class UninitializedVariablesStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintWriter pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
     if (printWarnings) {
 
