@@ -62,8 +62,7 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
-      StringBuffer buffer = new StringBuffer();
-
+      
       //find all UninitializedVariablesElements and get their warnings
       for (AbstractElement reachedElement : pReached) {
         if (reachedElement instanceof AbstractWrapperElement) {
@@ -78,15 +77,13 @@ public class UninitializedVariablesStatistics implements Statistics {
               warningIndex = new  Pair<Integer, String>(warning.getFirst(), warning.getSecond());
               if (!warningsDisplayed.contains(warningIndex)) {
                 warningsDisplayed.add(warningIndex);
-                buffer.append(warning.getThird() + "\n");
+                pOut.println(warning.getThird());
               }
             }
           }
         }
       }
-      if (buffer.length() > 1) {
-        pOut.println(buffer.substring(0, buffer.length() - 1));
-      } else {
+      if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");
       }
     } else {
