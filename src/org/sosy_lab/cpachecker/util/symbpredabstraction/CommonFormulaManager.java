@@ -264,6 +264,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
   // the rest of this class is related only to symbolic formulas
   
+  @Override
+  public PathFormula makeEmptyPathFormula() {
+    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+  }
+  
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
    * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},

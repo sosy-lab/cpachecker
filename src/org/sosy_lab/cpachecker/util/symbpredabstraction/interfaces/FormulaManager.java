@@ -64,6 +64,11 @@ public interface FormulaManager {
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
   /**
+   * Creates a new empty path formula.
+   */
+  public PathFormula makeEmptyPathFormula();
+  
+  /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
    */

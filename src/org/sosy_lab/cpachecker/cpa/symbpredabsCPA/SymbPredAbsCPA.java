@@ -50,13 +50,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
@@ -108,7 +106,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final StopOperator stop;
   private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
-  private final MathsatSymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
@@ -119,8 +116,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.logger = logger;
 
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
-    MathsatSymbolicFormulaManager mmgr = new MathsatSymbolicFormulaManager(config, logger);
-    symbolicFormulaManager = mmgr; 
+    MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
 
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
@@ -154,7 +150,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     
     Set<Predicate> predicates = null;
     if (predicatesFile != null) {
-      MathsatPredicateParser p = new MathsatPredicateParser(mmgr, formulaManager);
+      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
       try {
         InputStream file = new FileInputStream(predicatesFile);
         predicates = p.parsePredicates(file);
@@ -196,10 +192,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return formulaManager;
   }
 
-  protected SymbolicFormulaManager getSymbolicFormulaManager() {
-    return symbolicFormulaManager;
-  }
-
   protected Configuration getConfiguration() {
     return config;
   }
@@ -210,7 +202,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), SSAMap.emptySSAMap());
+    PathFormula pf = formulaManager.makeEmptyPathFormula();
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
     return new SymbPredAbsAbstractElement(node,

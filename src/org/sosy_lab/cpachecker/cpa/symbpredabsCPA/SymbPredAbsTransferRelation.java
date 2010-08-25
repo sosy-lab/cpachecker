@@ -51,12 +51,10 @@ import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutoma
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case
@@ -105,7 +103,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
-  private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
   // map from a node to path formula
@@ -120,7 +117,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
-    symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
 }
@@ -254,7 +250,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), SSAMap.emptySSAMap());
+    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula();
 
     numAbstractions++;
 
@@ -430,7 +426,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         return Collections.singleton(new SymbPredAbsAbstractElement(
             // set 'abstractionLocation' to edge.getSuccessor()
             // set 'pathFormula' to true
-            edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), SSAMap.emptySSAMap()),
+            edge.getSuccessor(), formulaManager.makeEmptyPathFormula(),
             // set 'initAbstractionFormula' to old pathFormula
             // set 'abstraction' to true (we don't know better)
             element.getPathFormula(), abstractFormulaManager.makeTrue()));
