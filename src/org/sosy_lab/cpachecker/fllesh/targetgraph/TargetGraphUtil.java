@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.targetgraph;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -27,10 +28,7 @@ public class TargetGraphUtil {
     
     LinkedList<CFAEdge> lWorklist = new LinkedList<CFAEdge>();
     
-    for (int lIndex = 0; lIndex < pInitialNode.getNumLeavingEdges(); lIndex++) {
-      CFAEdge lOutgoingEdge = pInitialNode.getLeavingEdge(lIndex);
-      lWorklist.add(lOutgoingEdge);
-    }
+    addLeavingEdgesToWorklist(pInitialNode, lWorklist);
     
     while (!lWorklist.isEmpty()) {
       CFAEdge lCurrentEdge = lWorklist.removeFirst();
@@ -89,15 +87,17 @@ public class TargetGraphUtil {
         }
       }
       
-      CFANode lSuccessor = lCurrentTraceEdge.getSuccessor();
-      
-      for (int lIndex = 0; lIndex < lSuccessor.getNumLeavingEdges(); lIndex++) {
-        CFAEdge lSuccessorEdge = lSuccessor.getLeavingEdge(lIndex);
-        lWorklist.add(lSuccessorEdge);
-      }
+      addLeavingEdgesToWorklist(lCurrentTraceEdge.getSuccessor(), lWorklist);
     }
     
     return lBasicBlockEntries;
+  }
+  
+  private static void addLeavingEdgesToWorklist(CFANode pCFANode, Collection<CFAEdge> pWorklist) {
+    for (int lIndex = 0; lIndex < pCFANode.getNumLeavingEdges(); lIndex++) {
+      CFAEdge lSuccessorEdge = pCFANode.getLeavingEdge(lIndex);
+      pWorklist.add(lSuccessorEdge);
+    }
   }
   
   private static boolean isLastEdge(CFAEdge pCFAEdge) {

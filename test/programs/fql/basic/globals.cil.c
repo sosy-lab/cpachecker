@@ -6,7 +6,7 @@ int x  ;
 #line 3 "globals.c"
 int main(void) 
 { 
-
+  
   {
 #line 4
   if (x > 0) {
