@@ -160,21 +160,6 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula parseInfix(String s) throws IllegalArgumentException;
 
     /**
-     * builds a formula that represents the necessary variable assignments
-     * to "merge" the two ssa maps. That is, for every variable X that has two
-     * different ssa indices i and j in the maps, creates a new formula
-     * (X_k = X_i) | (X_k = X_j), where k is a fresh ssa index.
-     * Returns the formula described above, plus a new SSAMap that is the merge
-     * of the two.
-     *
-     * @param ssa1 an SSAMap
-     * @param ssa2 an SSAMap
-     * @return A pair (SymbolicFormula, SSAMap)
-     */
-    public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-            SSAMap ssa1, SSAMap ssa2);
-
-    /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
      * This is used by AbstractFormulaManager.toConcrete()
