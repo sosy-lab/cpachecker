@@ -237,9 +237,6 @@ public interface SymbolicFormulaManager {
 
     boolean isNumber(SymbolicFormula pF);
 
-    SymbolicFormula makeIte(SymbolicFormula pF1, SymbolicFormula pF2,
-        SymbolicFormula pF3);
-
     SymbolicFormula makeNegate(SymbolicFormula pF);
 
     SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);

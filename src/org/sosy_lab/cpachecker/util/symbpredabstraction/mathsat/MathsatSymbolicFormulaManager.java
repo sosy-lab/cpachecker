@@ -281,12 +281,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula makeIfThenElse(SymbolicFormula atom, SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula mAtom = (MathsatSymbolicFormula)atom;
+  public SymbolicFormula makeIfThenElse(SymbolicFormula condition, SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula mCondition = (MathsatSymbolicFormula)condition;
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
 
-    long ite = mathsat.api.msat_make_ite(msatEnv, mAtom.getTerm(), m1.getTerm(), m2.getTerm());
+    long ite = mathsat.api.msat_make_ite(msatEnv, mCondition.getTerm(), m1.getTerm(), m2.getTerm());
 
     return new MathsatSymbolicFormula(ite);
   }
@@ -523,14 +523,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   public SymbolicFormula makeNegate(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
     return new MathsatSymbolicFormula(mathsat.api.msat_make_negate(msatEnv, m.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeIte(SymbolicFormula f1, SymbolicFormula f2, SymbolicFormula f3) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    MathsatSymbolicFormula m3 = (MathsatSymbolicFormula)f3;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_ite(msatEnv, m1.getTerm(), m2.getTerm(), m3.getTerm()));
   }
   
   @Override

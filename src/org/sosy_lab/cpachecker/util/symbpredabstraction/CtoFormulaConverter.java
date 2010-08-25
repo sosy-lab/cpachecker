@@ -831,7 +831,7 @@ public class CtoFormulaConverter {
           throw new UnrecognizedCCodeException("Don't know how to handle this here", null, exp);
         } else {
           //assert(false);
-          return smgr.makeIte(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
+          return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
         }
       }
       }
@@ -986,7 +986,7 @@ public class CtoFormulaConverter {
           // PW why this assertion? without it, everything seems to work nicely
           //System.out.println(exp.getRawSignature());
           //assert(false);
-          return smgr.makeIte(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
+          return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
         }
       }
     } else if (exp instanceof IASTFieldReference) {
