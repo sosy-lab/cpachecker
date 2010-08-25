@@ -2,7 +2,7 @@
 <feature
       id="org.sosy_lab.cpachecker.runtime.feature"
       label="CPAchecker Runtime Feature"
-      version="1.0.0.qualifier">
+      version="1.0.1.qualifier">
 
    <description url="http://www.sosy-lab.org/~dbeyer/CPAchecker/">
       CPAchecker: A Tool for Configurable Software Verification
