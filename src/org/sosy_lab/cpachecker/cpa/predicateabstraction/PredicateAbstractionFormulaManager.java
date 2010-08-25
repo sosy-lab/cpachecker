@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Formula Manager for Explicit-state predicate abstraction.
@@ -77,7 +77,7 @@ public interface PredicateAbstractionFormulaManager extends FormulaManager {
 
     public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
         Pair<ARTElement, CFAEdge>[] pathArray)
-                throws UnrecognizedCFAEdgeException;
+                throws CPATransferException;
 
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
             Vector<SymbolicFormula> trace,

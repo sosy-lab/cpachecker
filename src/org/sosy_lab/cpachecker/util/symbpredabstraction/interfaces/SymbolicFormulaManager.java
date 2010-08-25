@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
@@ -84,17 +82,6 @@ public interface SymbolicFormulaManager {
 
     public SymbolicFormula makeIfThenElse(SymbolicFormula atom,
         SymbolicFormula f1, SymbolicFormula f2);
-
-    /**
-     * Creates a formula representing an AND of the two argument.
-     * @param f1 a SymbolicFormula
-     * @param e a CFA edge
-     * @param ssa the SSA map for resolving variables
-     * @return The formula (f1 & e), and the new/updated SSAMap
-     */
-    public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e,
-                                                 SSAMap ssa)
-        throws UnrecognizedCFAEdgeException;
 
     /**
      * @return a SymbolicFormula representing logical truth
@@ -243,4 +230,52 @@ public interface SymbolicFormulaManager {
       public int getCount();
       public long getTotalTime();
   }
+
+    boolean isErrorTerm(SymbolicFormula pF);
+
+    boolean isBoolean(SymbolicFormula pF);
+
+    boolean isNumber(SymbolicFormula pF);
+
+    SymbolicFormula makeIte(SymbolicFormula pF1, SymbolicFormula pF2,
+        SymbolicFormula pF3);
+
+    SymbolicFormula makeNegate(SymbolicFormula pF);
+
+    SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeNumber(int pI);
+
+    SymbolicFormula makeString(int pI);
+
+    SymbolicFormula makeNumber(String pI);
+
+    SymbolicFormula makePlus(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeMinus(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeTimes(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeEqual(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeGt(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeGeq(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeLt(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeLeq(SymbolicFormula pF1, SymbolicFormula pF2);
+
+    SymbolicFormula makeVariable(String pVar, int pIdx);
+
+    SymbolicFormula makeBitwiseNot(SymbolicFormula pF);
+
+    SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs);
+
+    SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs, int pIdx);
+
+    SymbolicFormula buildMsatUFforOperator(int pOp, SymbolicFormula pF1,
+        SymbolicFormula pF2);
+
+    SymbolicFormula uninstantiate(SymbolicFormula pF);
 }

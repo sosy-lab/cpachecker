@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
  * Representation of an assumption formula talking about data
@@ -33,20 +34,20 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  */
 public class Assumption {
 
-  private final AssumptionSymbolicFormulaManager manager;
+  private final SymbolicFormulaManager manager;
   private final SymbolicFormula dischargeableAssumption;
   private final SymbolicFormula otherAssumption;
 
   public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
   {
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    manager = MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager();
     dischargeableAssumption = dischargeable;
     otherAssumption = rest;
   }
 
   public Assumption(SymbolicFormula assumption, boolean isDischargeable)
   {
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    manager = MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager();
     dischargeableAssumption = isDischargeable ? assumption : manager.makeTrue();
     otherAssumption = isDischargeable ? manager.makeTrue() : assumption;
   }
@@ -54,7 +55,7 @@ public class Assumption {
   /** Constructs an invariant corresponding to true */
   public Assumption()
   {
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    manager = MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager();
     dischargeableAssumption = manager.makeTrue();
     otherAssumption = manager.makeTrue();
   }
@@ -127,6 +128,6 @@ public class Assumption {
   }
 
   public static final Assumption TRUE = new Assumption();
-  public static final Assumption FALSE = new Assumption(MathsatInvariantSymbolicFormulaManager.getInstance().makeFalse(), false);
+  public static final Assumption FALSE = new Assumption(MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager().makeFalse(), false);
 
 }

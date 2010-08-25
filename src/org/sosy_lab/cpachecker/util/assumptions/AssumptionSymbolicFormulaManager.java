@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
@@ -35,14 +35,16 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  *
  * @author g.theoduloz
  */
-public interface AssumptionSymbolicFormulaManager extends SymbolicFormulaManager {
+public interface AssumptionSymbolicFormulaManager {
 
   /**
    * Creates a formula representing an AND of the two argument
    * @param f1 a SymbolicFormula
    * @param p an invariant predicate
    * @return The formula (f1 & e)
+   * @throws UnrecognizedCCodeException 
    */
-  public SymbolicFormula makeAnd(SymbolicFormula f1, IASTExpression p);
-
+  public SymbolicFormula makeAnd(SymbolicFormula f1, IASTExpression p) throws UnrecognizedCCodeException;
+  
+  public SymbolicFormulaManager getSymbolicFormulaManager();
 }

@@ -29,10 +29,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
@@ -55,7 +55,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   private final ConfigurableProgramAnalysis wrappedCPA;
   private final TransferRelation wrappedTransfer;
   private final AssumptionAndForceStopReportingVisitor reportingVisitor;
-  private final AssumptionSymbolicFormulaManager manager;
+  private final SymbolicFormulaManager manager;
   private final AbstractElement wrappedBottom;
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)

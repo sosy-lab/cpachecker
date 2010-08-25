@@ -27,8 +27,11 @@ import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
 import org.sosy_lab.common.LogManager;
@@ -43,7 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
  * @author g.theoduloz
  */
 public class MathsatInvariantSymbolicFormulaManager
-  extends MathsatSymbolicFormulaManager
+  extends CtoFormulaConverter
   implements AssumptionSymbolicFormulaManager
 {
 
@@ -73,13 +76,14 @@ public class MathsatInvariantSymbolicFormulaManager
     }
   }
 
-  private static MathsatInvariantSymbolicFormulaManager instance = null;
+  private static AssumptionSymbolicFormulaManager instance = null;
 
   // TODO Ugly, probably better to remove singleton pattern here.
-  public static MathsatInvariantSymbolicFormulaManager createInstance(
+  public static AssumptionSymbolicFormulaManager createInstance(
         Configuration config, LogManager logger) throws InvalidConfigurationException {
     if (instance == null) {
-      instance = new MathsatInvariantSymbolicFormulaManager(config, logger);
+      SymbolicFormulaManager smgr = new MathsatSymbolicFormulaManager(config, logger);
+      instance = new MathsatInvariantSymbolicFormulaManager(config, smgr, logger);
     }
     return instance;
   }
@@ -88,7 +92,7 @@ public class MathsatInvariantSymbolicFormulaManager
    * Return the singleton instance for this class.
    * {@link #createInstance()} has to be called before at least once.
    */
-  public static MathsatInvariantSymbolicFormulaManager getInstance() {
+  public static AssumptionSymbolicFormulaManager getInstance() {
     assert instance != null;
 
     return instance;
@@ -97,18 +101,18 @@ public class MathsatInvariantSymbolicFormulaManager
   /**
    * Private constructor. To get instance, call getInstance()
    */
-  private MathsatInvariantSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    super(config, logger);
+  private MathsatInvariantSymbolicFormulaManager(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
+    super(config, smgr, logger);
   }
 
   private final SSAMap dummySSAMap = new DummySSAMap();
 
-  public SymbolicFormula buildSymbolicFormula(IASTExpression p)
+  public SymbolicFormula buildSymbolicFormula(IASTExpression p) throws UnrecognizedCCodeException
   {
     return buildSymbolicFormula(p, true);
   }
 
-  private SymbolicFormula buildSymbolicFormula(IASTExpression p, boolean sign)
+  private SymbolicFormula buildSymbolicFormula(IASTExpression p, boolean sign) throws UnrecognizedCCodeException
   {
     // first, check whether we have &&, ||, or !
     if (p instanceof IASTBinaryExpression) {
@@ -116,20 +120,20 @@ public class MathsatInvariantSymbolicFormulaManager
       switch (binop.getOperator()) {
       case IASTBinaryExpression.op_logicalAnd:
         if (sign)
-          return makeAnd(
+          return smgr.makeAnd(
               buildSymbolicFormula(binop.getOperand1(), true),
               buildSymbolicFormula(binop.getOperand2(), true));
         else
-          return makeOr(
+          return smgr.makeOr(
               buildSymbolicFormula(binop.getOperand1(), false),
               buildSymbolicFormula(binop.getOperand2(), false));
       case IASTBinaryExpression.op_logicalOr:
         if (sign)
-          return makeOr(
+          return smgr.makeOr(
               buildSymbolicFormula(binop.getOperand1(), true),
               buildSymbolicFormula(binop.getOperand2(), true));
         else
-          return makeAnd(
+          return smgr.makeAnd(
               buildSymbolicFormula(binop.getOperand1(), false),
               buildSymbolicFormula(binop.getOperand2(), false));
       }
@@ -141,12 +145,16 @@ public class MathsatInvariantSymbolicFormulaManager
 
     // atomic formula
     SymbolicFormula ssaFormula = buildFormulaPredicate(p, sign, dummySSAMap);
-    return uninstantiate(ssaFormula);
+    return smgr.uninstantiate(ssaFormula);
   }
 
   @Override
-  public SymbolicFormula makeAnd(SymbolicFormula f, IASTExpression p) {
-    return makeAnd(f, buildSymbolicFormula(p));
+  public SymbolicFormula makeAnd(SymbolicFormula f, IASTExpression p) throws UnrecognizedCCodeException {
+    return smgr.makeAnd(f, buildSymbolicFormula(p));
   }
 
+  @Override
+  public SymbolicFormulaManager getSymbolicFormulaManager() {
+    return smgr;
+  }
 }

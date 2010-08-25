@@ -81,8 +81,8 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
     transferRelation = new GenericAssumptionsTransferRelation(this);
   }
-
-  public AssumptionSymbolicFormulaManager getSymbolicFormulaManager()
+  
+  public AssumptionSymbolicFormulaManager getAssumptionSymbolicFormulaManager()
   {
     return symbolicFormulaManager;
   }

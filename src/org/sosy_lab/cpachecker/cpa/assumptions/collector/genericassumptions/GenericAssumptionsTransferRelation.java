@@ -68,7 +68,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
    */
   public GenericAssumptionsTransferRelation(GenericAssumptionsCPA cpa)
   {
-    manager = cpa.getSymbolicFormulaManager();
+    manager = cpa.getAssumptionSymbolicFormulaManager();
     assumptionBuilders = new LinkedList<GenericAssumptionBuilder>();
     registerDefaultAssumptionBuilders();
   }
@@ -76,7 +76,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
-    SymbolicFormula assumptionFormula = manager.makeTrue();
+    SymbolicFormula assumptionFormula = manager.getSymbolicFormulaManager().makeTrue();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
       assumptionFormula = manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge));

@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 import java.io.File;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 public interface FormulaManager {
 
@@ -36,6 +39,17 @@ public interface FormulaManager {
    * particular "SSA step" (see SymbolicFormulaManager.instantiate()).
    */
   public SymbolicFormula toConcrete(AbstractFormula af);
+
+  /**
+   * Creates a formula representing an AND of the two argument.
+   * @param f1 a SymbolicFormula
+   * @param e a CFA edge
+   * @param ssa the SSA map for resolving variables
+   * @return The formula (f1 & e), and the new/updated SSAMap
+   * @throws CPATransferException 
+   */
+  public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e, SSAMap ssa)
+      throws CPATransferException;
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently

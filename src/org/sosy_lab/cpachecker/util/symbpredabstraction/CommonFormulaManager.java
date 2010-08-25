@@ -53,16 +53,17 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 
 
 /**
- * Abstract super class for classes implementing the FormulaManager interface,
+ * Class implementing the FormulaManager interface,
  * providing some commonly used stuff which is independent from specific libraries.
+ * 
+ * This class inherits from CtoFormulaConverter to import the stuff there.
+ * 
  * @author Philipp Wendler
  */
 @Options(prefix="cpas.symbpredabs.mathsat")
-public abstract class CommonFormulaManager implements FormulaManager {
+public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
 
   protected final AbstractFormulaManager amgr;
-  protected final SymbolicFormulaManager smgr;
-  protected final LogManager logger;
 
   // Here we keep the mapping abstract predicate ->
   // (symbolic formula representing the variable, symbolic formula representing the atom)
@@ -77,10 +78,9 @@ public abstract class CommonFormulaManager implements FormulaManager {
 
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    super(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
-    smgr = pSmgr;
-    logger = pLogger;
 
     predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
     symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();

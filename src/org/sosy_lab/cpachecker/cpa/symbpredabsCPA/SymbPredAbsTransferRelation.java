@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
 import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
@@ -126,7 +127,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
-      Precision pPrecision, CFAEdge edge) throws UnrecognizedCFAEdgeException {
+      Precision pPrecision, CFAEdge edge) throws CPATransferException {
 
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
@@ -169,7 +170,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    */
   private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
                 SymbPredAbsAbstractElement element, CFAEdge edge, boolean satCheck)
-                throws UnrecognizedCFAEdgeException {
+                throws CPATransferException {
     logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
 
@@ -216,7 +217,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
   private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, SymbPredAbsPrecision precision, CFAEdge edge)
-  throws UnrecognizedCFAEdgeException {
+  throws CPATransferException {
 
     logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
 
@@ -277,14 +278,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @throws UnrecognizedCFAEdgeException
    */
   private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge,
-                          int abstractionNodeId) throws UnrecognizedCFAEdgeException {
+                          int abstractionNodeId) throws CPATransferException {
     final long start = System.currentTimeMillis();
     PathFormula pf = null;
 
     if (!useCache || !absOnFunction || !absOnLoop || absBlockSize > 0) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
-      pf = symbolicFormulaManager.makeAnd(
+      pf = formulaManager.makeAnd(
           pathFormula.getSymbolicFormula(),
           edge, pathFormula.getSsa());
       pathFormulaComputationTime += System.currentTimeMillis() - startComp;
@@ -306,7 +307,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       if (pf == null) {
         long startComp = System.currentTimeMillis();
         // compute new pathFormula with the operation on the edge
-        pf = symbolicFormulaManager.makeAnd(
+        pf = formulaManager.makeAnd(
             pathFormula.getSymbolicFormula(),
             edge, pathFormula.getSsa());
         pathFormulaComputationTime += System.currentTimeMillis() - startComp;
@@ -356,7 +357,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         
         try {
           pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
-        } catch (UnrecognizedCFAEdgeException e) {
+        } catch (CPATransferException e) {
           throw new RuntimeException(e);
         }
       }
@@ -370,7 +371,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
-    } catch (UnrecognizedCFAEdgeException e) {
+    } catch (CPATransferException e) {
       throw new RuntimeException(e);
     }
     

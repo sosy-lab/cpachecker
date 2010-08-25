@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
@@ -394,8 +394,8 @@ implements PredicateAbstractionFormulaManager {
     }
     if (p == null) {
       try {
-        p = mgr.makeAnd(fabs, edge, ssa);
-      } catch (UnrecognizedCFAEdgeException e1) {
+        p = makeAnd(fabs, edge, ssa);
+      } catch (CPATransferException e1) {
         logger.logException(Level.SEVERE, e1, "");
         System.exit(1);
       }
@@ -801,7 +801,7 @@ implements PredicateAbstractionFormulaManager {
     ConcretePath concPath = null;
     try {
       concPath = buildConcretePath(smgr, pathArray);
-    } catch (UnrecognizedCFAEdgeException e1) {
+    } catch (CPATransferException e1) {
       logger.logException(Level.SEVERE, e1, "");
       System.exit(1);
     }
@@ -1293,14 +1293,14 @@ implements PredicateAbstractionFormulaManager {
   private Pair<SymbolicFormula, SSAMap> makeFormula(
       MathsatSymbolicFormulaManager mmgr,
       CFAEdge edge,
-      SSAMap ssa) throws UnrecognizedCFAEdgeException {
+      SSAMap ssa) throws CPATransferException {
     stats.makeFormulaCalls++;
     Pair<CFAEdge, SSAMap> key = new Pair<CFAEdge, SSAMap>(edge, ssa);
     if (useCache && makeFormulaCache.containsKey(key)) {
       stats.makeFormulaCacheHits++;
       return makeFormulaCache.get(key);
     }
-    Pair<SymbolicFormula, SSAMap> ret = mmgr.makeAnd(mmgr.makeTrue(), edge, ssa);
+    Pair<SymbolicFormula, SSAMap> ret = makeAnd(mmgr.makeTrue(), edge, ssa);
     if (useCache) {
       makeFormulaCache.put(key, ret);
     }
@@ -1442,7 +1442,7 @@ implements PredicateAbstractionFormulaManager {
   @Override
   public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
       Pair<ARTElement, CFAEdge>[] pathArray)
-  throws UnrecognizedCFAEdgeException {
+  throws CPATransferException {
     SSAMap ssa = new SSAMap();
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 

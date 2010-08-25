@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.MathsatInvariantSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
@@ -84,9 +85,9 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
     precisionAdjustment = new AssumptionCollectorPrecisionAdjustment(getWrappedCpa());
   }
 
-  public AssumptionSymbolicFormulaManager getSymbolicFormulaManager()
+  public SymbolicFormulaManager getSymbolicFormulaManager()
   {
-    return symbolicFormulaManager;
+    return symbolicFormulaManager.getSymbolicFormulaManager();
   }
 
   @Override
