@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
@@ -58,7 +59,7 @@ public class MathsatInvariantSymbolicFormulaManager
     extends SSAMap
   {
     @Override
-    public int getIndex(String pName, SymbolicFormula[] pArgs) {
+    public int getIndex(String pName, SymbolicFormulaList pArgs) {
       return 1;
     }
 
@@ -68,7 +69,7 @@ public class MathsatInvariantSymbolicFormulaManager
     }
 
     @Override
-    public void setIndex(String pName, SymbolicFormula[] pArgs, int pIdx) {
+    public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
     }
 
     @Override

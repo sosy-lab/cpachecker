@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager.AllSatCallback;
@@ -278,8 +279,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
         // check whether each of the predicate is implied in the next state...
         Set<String> predvars = new HashSet<String>();
-        Set<Pair<String, SymbolicFormula[]>> predlvals =
-          new HashSet<Pair<String, SymbolicFormula[]>>();
+        Set<Pair<String, SymbolicFormulaList>> predlvals =
+          new HashSet<Pair<String, SymbolicFormulaList>>();
         Map<SymbolicFormula, SymbolicFormula> predLvalsCache =
           new HashMap<SymbolicFormula, SymbolicFormula>();
 
@@ -314,8 +315,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
                 ssa.setIndex(var, 1);
               }
             }
-            for (Pair<String, SymbolicFormula[]> pp : predlvals) {
-              SymbolicFormula[] args =
+            for (Pair<String, SymbolicFormulaList> pp : predlvals) {
+              SymbolicFormulaList args =
                 smgr.getInstantiatedAt(pp.getSecond(), ssa,
                     predLvalsCache);
               if (ssa.getIndex(pp.getFirst(), args) < 0) {

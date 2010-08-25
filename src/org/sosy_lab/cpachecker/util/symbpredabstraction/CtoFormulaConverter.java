@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
@@ -216,7 +217,7 @@ public class CtoFormulaConverter {
     return idx;
   }
 
-  private int getIndex(String name, SymbolicFormula[] args, SSAMap ssa, boolean autoInstantiate) {
+  private int getIndex(String name, SymbolicFormulaList args, SSAMap ssa, boolean autoInstantiate) {
     int idx = ssa.getIndex(name, args);
     if (idx <= 0) {
       if (!autoInstantiate) {
@@ -235,7 +236,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, SymbolicFormula[] args, SSAMap ssa) {
+  private int makeLvalIndex(String name, SymbolicFormulaList args, SSAMap ssa) {
     int idx = ssa.getIndex(name, args);
     if (idx > 0) {
       idx = idx+1;
@@ -790,7 +791,7 @@ public class CtoFormulaConverter {
           //    opname, term, ssa, absoluteSSAIndices);
 
           // build the  function corresponding to this operation.
-          return smgr.makeUIF(opname, new SymbolicFormula[]{term}, idx);
+          return smgr.makeUIF(opname, smgr.makeList(term), idx);
 
         } else {
           warnUnsafeVar(exp);
@@ -969,7 +970,7 @@ public class CtoFormulaConverter {
         String ufname =
           (fexp.isPointerDereference() ? "->{" : ".{") +
           tpname + "," + field + "}";
-        SymbolicFormula[] aterm = {term};
+        SymbolicFormulaList aterm = smgr.makeList(term);
         int idx = getIndex(ufname, aterm, ssa, true);
 
         // see above for the case of &x and *x
@@ -992,7 +993,7 @@ public class CtoFormulaConverter {
         if (smgr.isErrorTerm(sterm)) return sterm;
 
         String ufname = OP_ARRAY_SUBSCRIPT;
-        SymbolicFormula[] args = {aterm, sterm};
+        SymbolicFormulaList args = smgr.makeList(aterm, sterm);
         int idx = getIndex(ufname, args, ssa, true);
 
         return smgr.makeUIF(ufname, args, idx);
@@ -1059,7 +1060,7 @@ public class CtoFormulaConverter {
       // *x = 1       |     <ptr_*>::2(x) = 1
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return smgr.makeUIF(opname, new SymbolicFormula[]{term}, idx);
+      return smgr.makeUIF(opname, smgr.makeList(term), idx);
       
     } else if (exp instanceof IASTFieldReference) {
       IASTFieldReference fexp = (IASTFieldReference)exp;
@@ -1073,7 +1074,7 @@ public class CtoFormulaConverter {
       String ufname =
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
-      SymbolicFormula[] args = {term};
+      SymbolicFormulaList args = smgr.makeList(term);
       int idx = makeLvalIndex(ufname, args, ssa);
 
       // see above for the case of &x and *x
@@ -1091,7 +1092,7 @@ public class CtoFormulaConverter {
       if (smgr.isErrorTerm(sterm)) return sterm;
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      SymbolicFormula[] args = {aterm, sterm};
+      SymbolicFormulaList args = smgr.makeList(aterm, sterm);
       int idx = makeLvalIndex(ufname, args, ssa);
 
       return smgr.makeUIF(ufname, args, idx);
@@ -1134,7 +1135,7 @@ public class CtoFormulaConverter {
         }
       }
 
-      return smgr.makeUIF(func, mArgs);
+      return smgr.makeUIF(func, smgr.makeList(mArgs));
     }
   }
 

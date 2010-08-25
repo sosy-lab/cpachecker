@@ -144,9 +144,9 @@ public interface SymbolicFormulaManager {
 
   // ----------------- Uninterpreted functions -----------------
   
-  public SymbolicFormula makeUIF(String pName, SymbolicFormula[] pArgs);
+  public SymbolicFormula makeUIF(String pName, SymbolicFormulaList pArgs);
 
-  public SymbolicFormula makeUIF(String pName, SymbolicFormula[] pArgs, int pIdx);
+  public SymbolicFormula makeUIF(String pName, SymbolicFormulaList pArgs, int pIdx);
 
   // ----------------- Other formulas -----------------
   
@@ -158,7 +158,15 @@ public interface SymbolicFormulaManager {
   
   public SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);
 
+  // ----------------- Convert to list -----------------
   
+  public SymbolicFormulaList makeList(SymbolicFormula pF);
+  
+  public SymbolicFormulaList makeList(SymbolicFormula pF1, SymbolicFormula pF2);
+  
+  public SymbolicFormulaList makeList(SymbolicFormula... pF);
+
+
   // ----------------- Complex formula manipulation -----------------
   
     /**
@@ -183,7 +191,7 @@ public interface SymbolicFormulaManager {
     /**
      * TODO: document this method and probably clean up the signature
      */
-    public SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
+    public SymbolicFormulaList getInstantiatedAt(SymbolicFormulaList args,
         SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache);
     
     public SymbolicFormula uninstantiate(SymbolicFormula pF);
@@ -236,7 +244,7 @@ public interface SymbolicFormulaManager {
      * @param lvals the set where all lValue UIFs and their arguments are stored
      */
     public void collectVarNames(SymbolicFormula term, Set<String> vars,
-                                Set<Pair<String, SymbolicFormula[]>> lvals);
+                                Set<Pair<String, SymbolicFormulaList>> lvals);
     
     /**
      * Create string representation of a formula in a format which may be dumped

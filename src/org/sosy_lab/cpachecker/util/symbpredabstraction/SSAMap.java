@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,7 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -53,7 +52,7 @@ public class SSAMap {
     }
     
     @Override
-    public void setIndex(String pName, SymbolicFormula[] pArgs, int pIdx) {
+    public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
       throw new UnsupportedOperationException();
     }
     
@@ -84,19 +83,19 @@ public class SSAMap {
   
   private static class FuncKey {
     private final String name;
-    private final SymbolicFormula[] args;
+    private final SymbolicFormulaList args;
 
-    public FuncKey(String n, SymbolicFormula[] a) {
+    public FuncKey(String n, SymbolicFormulaList a) {
         name = n;
         args = a;
     }
 
     public String getName() { return name; }
-    public SymbolicFormula[] getArgs() { return args; }
+    public SymbolicFormulaList getArgs() { return args; }
 
     @Override
     public int hashCode() {
-        return 31 * name.hashCode() + Arrays.hashCode(args);
+        return 31 * name.hashCode() + args.hashCode();
     }
 
     @Override
@@ -105,7 +104,7 @@ public class SSAMap {
         return true;
       } else if (o instanceof FuncKey) {
           FuncKey f = (FuncKey)o;
-          return name.equals(f.name) && Arrays.deepEquals(args, f.args);
+          return name.equals(f.name) && args.equals(f.args);
       } else {
         return false;
       }
@@ -113,7 +112,7 @@ public class SSAMap {
 
     @Override
     public String toString() {
-      return name + "(" + Joiner.on(",").join(args) + ")";
+      return name + "(" + args + ")";
     }
   }
 
@@ -153,7 +152,7 @@ public class SSAMap {
     vars.put(variable, idx);
   }
 
-  public int getIndex(String name, SymbolicFormula[] args) {
+  public int getIndex(String name, SymbolicFormulaList args) {
     Integer i = funcs.get(new FuncKey(name, args));
     if (i != null) {
       return i;
@@ -163,7 +162,7 @@ public class SSAMap {
     }
   }
 
-  public void setIndex(String name, SymbolicFormula[] args, int idx) {
+  public void setIndex(String name, SymbolicFormulaList args, int idx) {
     funcs.put(new FuncKey(name, args), idx);
   }
 
@@ -171,11 +170,11 @@ public class SSAMap {
     return Collections.unmodifiableSet(vars.keySet());
   }
 
-  public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
-    List<Pair<String, SymbolicFormula[]>> ret = Lists.newArrayList();
+  public Collection<Pair<String, SymbolicFormulaList>> allFunctions() {
+    List<Pair<String, SymbolicFormulaList>> ret = Lists.newArrayList();
 
     for (FuncKey k : funcs.keySet()) {
-      ret.add(new Pair<String, SymbolicFormula[]>(k.getName(), k.getArgs()));
+      ret.add(new Pair<String, SymbolicFormulaList>(k.getName(), k.getArgs()));
     }
     return ret;
   }

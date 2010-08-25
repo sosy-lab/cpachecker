@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 
@@ -161,7 +162,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     ssa = new SSAMap(ssa); // clone ssa map because we need to change it
     
     Set<String> allvars = new HashSet<String>();
-    Set<Pair<String, SymbolicFormula[]>> allfuncs = new HashSet<Pair<String, SymbolicFormula[]>>();
+    Set<Pair<String, SymbolicFormulaList>> allfuncs = new HashSet<Pair<String, SymbolicFormulaList>>();
     SymbolicFormula preddef = smgr.makeTrue();
 
     for (Predicate p : predicates) {
@@ -185,8 +186,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     Map<SymbolicFormula, SymbolicFormula> cache =
       new HashMap<SymbolicFormula, SymbolicFormula>();
-    for (Pair<String, SymbolicFormula[]> p : allfuncs) {
-      SymbolicFormula[] args =
+    for (Pair<String, SymbolicFormulaList> p : allfuncs) {
+      SymbolicFormulaList args =
         smgr.getInstantiatedAt(p.getSecond(), ssa, cache);
       if (ssa.getIndex(p.getFirst(), args) < 0) {
         ssa.setIndex(p.getFirst(), args, 1);
@@ -360,7 +361,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       }
     }
 
-    for (Pair<String, SymbolicFormula[]> f : ssa1.allFunctions()) {
+    for (Pair<String, SymbolicFormulaList> f : ssa1.allFunctions()) {
       int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
       int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
       assert(i1 > 0);
@@ -385,7 +386,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         result.setIndex(f.getFirst(), f.getSecond(), i1);
       }
     }
-    for (Pair<String, SymbolicFormula[]> f : ssa2.allFunctions()) {
+    for (Pair<String, SymbolicFormulaList> f : ssa2.allFunctions()) {
       int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
       int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
       assert(i2 > 0);
@@ -440,7 +441,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
 
   private Pair<SymbolicFormula, SymbolicFormula> makeSSAMerger(String name,
-        SymbolicFormula[] args, int i1, int i2) {
+      SymbolicFormulaList args, int i1, int i2) {
     // retrieve the mathsat terms corresponding to the two variables
     SymbolicFormula v1 = smgr.makeUIF(name, args, i1);
     SymbolicFormula v2 = smgr.makeUIF(name, args, i2);

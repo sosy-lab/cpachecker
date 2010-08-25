@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
@@ -188,13 +189,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return env;
   }
   
-  private long[] getTerm(SymbolicFormula[] f) {
-    int length = f.length;
-    long[] result = new long[length];
-    for (int i = 0; i < length; i++) {
-      result[i] = ((MathsatSymbolicFormula)f[i]).getTerm();
-    }
-    return result;
+  private long getTerm(SymbolicFormula f) {
+    return ((MathsatSymbolicFormula)f).getTerm();
+  }
+  
+  private long[] getTerm(SymbolicFormulaList f) {
+    return ((MathsatSymbolicFormulaList)f).getTerms();
   }
    
   
@@ -434,7 +434,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
-  public SymbolicFormula makeUIF(String name, SymbolicFormula[] args) {
+  public SymbolicFormula makeUIF(String name, SymbolicFormulaList args) {
     return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args)));
   }
 
@@ -450,7 +450,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula makeUIF(String name, SymbolicFormula[] args, int idx) {
+  public SymbolicFormula makeUIF(String name, SymbolicFormulaList args, int idx) {
     return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args), idx));
   }
   
@@ -512,6 +512,27 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   
+  // ----------------- Convert to list -----------------
+  
+  @Override
+  public SymbolicFormulaList makeList(SymbolicFormula pF) {
+    return new MathsatSymbolicFormulaList(getTerm(pF));
+  }
+  
+  @Override
+  public SymbolicFormulaList makeList(SymbolicFormula pF1, SymbolicFormula pF2) {
+    return new MathsatSymbolicFormulaList(getTerm(pF1), getTerm(pF2));
+  }
+  
+  @Override
+  public SymbolicFormulaList makeList(SymbolicFormula... pF) {
+    long[] t = new long[pF.length];
+    for (int i = 0; i < pF.length; i++) {
+      t[i] = getTerm(pF[i]);
+    }
+    return new MathsatSymbolicFormulaList(t);
+  }
+  
   // ----------------- Complex formula manipulation -----------------
   
   @Override
@@ -553,14 +574,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     Preconditions.checkArgument(!mathsat.api.MSAT_ERROR_TERM(f), "Could not parse formula as Mathsat formula.");
 
     return new MathsatSymbolicFormula(f);
-  }
-
-  private SymbolicFormula[] encapsulate(long[] args) {
-    SymbolicFormula[] a = new SymbolicFormula[args.length];
-    for (int i = 0; i < a.length; ++i) {
-      a[i] = new MathsatSymbolicFormula(args[i]);
-    }
-    return a;
   }
 
   // ssa can be null. In this case, all the variables are instantiated
@@ -618,7 +631,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
               name = mathsat.api.msat_decl_get_name(d);
             }
             if (name != null && ufCanBeLvalue(name)) {
-              int idx = (ssa != null ? ssa.getIndex(name, encapsulate(newargs)) : 1);
+              int idx = (ssa != null ?
+                  ssa.getIndex(name, new MathsatSymbolicFormulaList(newargs)) : 1);
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA,
                 // replace it
@@ -780,12 +794,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
               if (idx > 0) {
                 // ok, the UF is instantiated in the formula
                 // retrieve the index in the SSA, and shift
-                SymbolicFormula[] a =
-                  new SymbolicFormula[newargs.length];
-                for (int i = 0; i < a.length; ++i) {
-                  a[i] = new MathsatSymbolicFormula(
-                      newargs[i]);
-                }
+                SymbolicFormulaList a = new MathsatSymbolicFormulaList(newargs);
 
                 int ssaidx = ssa.getIndex(name, a);
                 if (ssaidx > 0) {
@@ -988,12 +997,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
+  public SymbolicFormulaList getInstantiatedAt(SymbolicFormulaList a,
       SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache) {
     Stack<Long> toProcess = new Stack<Long>();
-    SymbolicFormula[] ret = new SymbolicFormula[args.length];
-    for (SymbolicFormula f : args) {
-        toProcess.push(((MathsatSymbolicFormula)f).getTerm());
+    long[] args = getTerm(a);
+    long[] ret = new long[args.length];
+    for (long l : args) {
+        toProcess.push(l);
     }
   
     while (!toProcess.empty()) {
@@ -1013,14 +1023,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
             long d = mathsat.api.msat_term_get_decl(t);
             String name = mathsat.api.msat_decl_get_name(d);
             if (ufCanBeLvalue(name)) {
-                SymbolicFormula[] cc =
-                    new SymbolicFormula[mathsat.api.msat_term_arity(t)];
+                long[] cc = new long[mathsat.api.msat_term_arity(t)];
                 boolean childrenDone = true;
                 for (int i = 0; i < cc.length; ++i) {
                     long c = mathsat.api.msat_term_get_arg(t, i);
                     SymbolicFormula f = new MathsatSymbolicFormula(c);
                     if (cache.containsKey(f)) {
-                        cc[i] = cache.get(f);
+                        cc[i] = ((MathsatSymbolicFormula)cache.get(f)).getTerm();
                     } else {
                         toProcess.push(c);
                         childrenDone = false;
@@ -1028,8 +1037,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
                 }
                 if (childrenDone) {
                     toProcess.pop();
-                    if (ssa.getIndex(name, cc) < 0) {
-                        ssa.setIndex(name, cc, 1);
+                    SymbolicFormulaList ccc = new MathsatSymbolicFormulaList(cc);
+                    if (ssa.getIndex(name, ccc) < 0) {
+                        ssa.setIndex(name, ccc, 1);
                     }
                     cache.put(tt, instantiate(tt, ssa));
                 }
@@ -1044,9 +1054,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     }
     for (int i = 0; i < ret.length; ++i) {
         assert(cache.containsKey(args[i]));
-        ret[i] = cache.get(args[i]);
+        ret[i] = ((MathsatSymbolicFormula)cache.get(args[i])).getTerm();
     }
-    return ret;
+    return new MathsatSymbolicFormulaList(ret);
   }
 
   @Override
@@ -1220,7 +1230,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   @Override
   public void collectVarNames(SymbolicFormula term, Set<String> vars,
-                              Set<Pair<String, SymbolicFormula[]>> lvals) {
+                              Set<Pair<String, SymbolicFormulaList>> lvals) {
 
     Deque<Long> toProcess = new ArrayDeque<Long>();
     toProcess.push(((MathsatSymbolicFormula)term).getTerm());
@@ -1238,12 +1248,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
                 String name = mathsat.api.msat_decl_get_name(d);
                 if (ufCanBeLvalue(name)) {
                     int n = mathsat.api.msat_term_arity(t);
-                    SymbolicFormula[] a = new SymbolicFormula[n];
+                    long[] a = new long[n];
                     for (int i = 0; i < n; ++i) {
-                        a[i] = new MathsatSymbolicFormula(
-                                mathsat.api.msat_term_get_arg(t, i));
+                        a[i] = mathsat.api.msat_term_get_arg(t, i);
                     }
-                    lvals.add(new Pair<String, SymbolicFormula[]>(name, a));
+                    SymbolicFormulaList aa = new MathsatSymbolicFormulaList(a);
+                    lvals.add(new Pair<String, SymbolicFormulaList>(name, aa));
                 }
             }
         }
