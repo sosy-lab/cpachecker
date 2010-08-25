@@ -2,7 +2,7 @@
 <feature
       id="org.sosy_lab.cpachecker.plugin.eclipse.cpaclipse.feature"
       label="CPAclipse feature"
-      version="1.0.1.qualifier">
+      version="1.0.3.qualifier">
 
    <description>
       CPAclipse
