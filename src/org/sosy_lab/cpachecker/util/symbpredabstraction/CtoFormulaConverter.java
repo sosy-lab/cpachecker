@@ -868,40 +868,28 @@ public class CtoFormulaConverter {
             me2 = smgr.makeMinus(oldvar, me2);
             break;
           case IASTBinaryExpression.op_multiplyAssign:
-            if (smgr.isNumber(me2)) {
-              me2 = smgr.makeTimes(me2, oldvar);
-            } else {
-              me2 = smgr.makeUIFforOperator(op, oldvar, me2);
-            }
+            me2 = smgr.makeMultiply(oldvar, me2);
             break;
           case IASTBinaryExpression.op_divideAssign:
-            if (smgr.isNumber(me2)) {
-              String n = me2.toString();
-              if (n.startsWith("(")) {
-                n = n.substring(1, n.length()-1);
-              }
-              String[] frac = n.split("/");
-              if (frac.length == 1) {
-                n = "1/" + n;
-              } else {
-                assert(frac.length == 2);
-                n = frac[1] + "/" + frac[0];
-              }
-              me2 = smgr.makeNumber(n);
-              if (!smgr.isErrorTerm(me2)) {
-                me2 = smgr.makeTimes(me2, oldvar);
-              }
-            } else {
-              me2 = smgr.makeUIFforOperator(op, oldvar, me2);
-            }
+            me2 = smgr.makeDivide(oldvar, me2);
             break;
           case IASTBinaryExpression.op_moduloAssign:
+            me2 = smgr.makeModulo(oldvar, me2);
+            break;
           case IASTBinaryExpression.op_binaryAndAssign:
+            me2 = smgr.makeBitwiseAnd(oldvar, me2);
+            break;
           case IASTBinaryExpression.op_binaryOrAssign:
+            me2 = smgr.makeBitwiseOr(oldvar, me2);
+            break;
           case IASTBinaryExpression.op_binaryXorAssign:
+            me2 = smgr.makeBitwiseXor(oldvar, me2);
+            break;
           case IASTBinaryExpression.op_shiftLeftAssign:
+            me2 = smgr.makeShiftLeft(oldvar, me2);
+            break;
           case IASTBinaryExpression.op_shiftRightAssign:
-            me2 = smgr.makeUIFforOperator(op, oldvar, me2);
+            me2 = smgr.makeShiftRight(oldvar, me2);
             break;
           default:
             throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
@@ -916,7 +904,13 @@ public class CtoFormulaConverter {
       case IASTBinaryExpression.op_plus:
       case IASTBinaryExpression.op_minus:
       case IASTBinaryExpression.op_multiply:
-      case IASTBinaryExpression.op_divide: {
+      case IASTBinaryExpression.op_divide:
+      case IASTBinaryExpression.op_modulo:
+      case IASTBinaryExpression.op_binaryAnd:
+      case IASTBinaryExpression.op_binaryOr:
+      case IASTBinaryExpression.op_binaryXor:
+      case IASTBinaryExpression.op_shiftLeft:
+      case IASTBinaryExpression.op_shiftRight: {
         SymbolicFormula me1 = buildTerm(e1, ssa);
         if (smgr.isErrorTerm(me1)) return me1;
         SymbolicFormula me2 = buildTerm(e2, ssa);
@@ -928,50 +922,23 @@ public class CtoFormulaConverter {
         case IASTBinaryExpression.op_minus:
           return smgr.makeMinus(me1, me2);
         case IASTBinaryExpression.op_multiply:
-          if (smgr.isNumber(me1)) {
-            return smgr.makeTimes(me1, me2);
-          } else if (smgr.isNumber(me2)) {
-            return smgr.makeTimes(me2, me1);
-          } else {
-            return smgr.makeUIFforOperator(op, me1, me2);
-          }
+          return smgr.makeMultiply(me1, me2);
         case IASTBinaryExpression.op_divide:
-          if (smgr.isNumber(me2)) {
-            String n = me2.toString();
-            if (n.startsWith("(")) {
-              n = n.substring(1, n.length()-1);
-            }
-            String[] frac = n.split("/");
-            if (frac.length == 1) {
-              n = "1/" + n;
-            } else {
-              assert(frac.length == 2);
-              n = frac[1] + "/" + frac[0];
-            }
-            me2 = smgr.makeNumber(n);
-            if (!smgr.isErrorTerm(me2)) {
-              me2 = smgr.makeTimes(me2, me1);
-            }
-          } else {
-            me2 = smgr.makeUIFforOperator(op, me1, me2);
-          }
-          return me2;
+          return smgr.makeDivide(me1, me2);
+        case IASTBinaryExpression.op_modulo:
+          return smgr.makeModulo(me1, me2);
+        case IASTBinaryExpression.op_binaryAnd:
+          return smgr.makeBitwiseAnd(me1, me2);
+        case IASTBinaryExpression.op_binaryOr:
+          return smgr.makeBitwiseOr(me1, me2);
+        case IASTBinaryExpression.op_binaryXor:
+          return smgr.makeBitwiseXor(me1, me2);
+        case IASTBinaryExpression.op_shiftLeft:
+          return smgr.makeShiftLeft(me1, me2);
+        case IASTBinaryExpression.op_shiftRight:
+          return smgr.makeShiftRight(me1, me2);
         }
         break;
-      }
-
-      case IASTBinaryExpression.op_modulo:
-      case IASTBinaryExpression.op_binaryAnd:
-      case IASTBinaryExpression.op_binaryOr:
-      case IASTBinaryExpression.op_binaryXor:
-      case IASTBinaryExpression.op_shiftLeft:
-      case IASTBinaryExpression.op_shiftRight:
-      {
-        SymbolicFormula me1 = buildTerm(e1, ssa);
-        if (smgr.isErrorTerm(me1)) return me1;
-        SymbolicFormula me2 = buildTerm(e2, ssa);
-        if (smgr.isErrorTerm(me2)) return me2;
-        return smgr.makeUIFforOperator(op, me1, me2);
       }
 
       default:

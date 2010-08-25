@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -266,13 +265,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
   
   // ----------------- Numeric formulas -----------------
-  
-  @Override
-  public boolean isNumber(SymbolicFormula f) {
-    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
-    return mathsat.api.msat_term_is_number(m.getTerm()) != 0;
-  }
-  
+
   @Override
   public SymbolicFormula makeNegate(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
@@ -304,12 +297,57 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
-  public SymbolicFormula makeTimes(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_times(msatEnv, m1.getTerm(), m2.getTerm()));
+  public SymbolicFormula makeDivide(SymbolicFormula f1, SymbolicFormula f2) {
+    long t1 = ((MathsatSymbolicFormula)f1).getTerm();
+    long t2 = ((MathsatSymbolicFormula)f2).getTerm();
+    
+    long result;
+    if (mathsat.api.msat_term_is_number(t2) != 0) {
+      // invert t2 and multiply with it
+      String n = mathsat.api.msat_term_repr(t2);
+      if (n.startsWith("(")) {
+        n = n.substring(1, n.length()-1);
+      }
+      String[] frac = n.split("/");
+      if (frac.length == 1) {
+        n = "1/" + n;
+      } else {
+        assert(frac.length == 2);
+        n = frac[1] + "/" + frac[0];
+      }
+      t2 = mathsat.api.msat_make_number(msatEnv, n);
+      if (mathsat.api.MSAT_ERROR_TERM(t2)) {
+        result = t2;
+      } else {
+        result = mathsat.api.msat_make_times(msatEnv, t2, t1);
+      }
+    } else {
+      result = mathsat.api.msat_make_uif(msatEnv, divUfDecl, new long[]{t1, t2});
+    }
+    return new MathsatSymbolicFormula(result);
   }
   
+  @Override
+  public SymbolicFormula makeModulo(SymbolicFormula f1, SymbolicFormula f2) {
+    return makeUIFforBinaryOperator(f1, f2, modUfDecl);
+  }
+  
+  @Override
+  public SymbolicFormula makeMultiply(SymbolicFormula f1, SymbolicFormula f2) {
+    long t1 = ((MathsatSymbolicFormula)f1).getTerm();
+    long t2 = ((MathsatSymbolicFormula)f2).getTerm();
+    
+    long result;
+    if (mathsat.api.msat_term_is_number(t1) != 0) {
+      result = mathsat.api.msat_make_times(msatEnv, t1, t2);
+    } else if (mathsat.api.msat_term_is_number(t2) != 0) {
+      result = mathsat.api.msat_make_times(msatEnv, t2, t1);
+    } else {
+      result = mathsat.api.msat_make_uif(msatEnv, multUfDecl, new long[]{t1, t2});
+    }
+    
+    return new MathsatSymbolicFormula(result);
+  }
   
   // ----------------- Numeric relations -----------------
   
@@ -348,6 +386,40 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_leq(msatEnv, m1.getTerm(), m2.getTerm()));
   }
   
+  // ----------------- Bit-manipulation functions -----------------
+
+  @Override
+  public SymbolicFormula makeBitwiseNot(SymbolicFormula f) {
+    long t = ((MathsatSymbolicFormula)f).getTerm();
+    long[] args = {t};
+    
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl, args));
+  }
+
+  @Override
+  public SymbolicFormula makeBitwiseAnd(SymbolicFormula f1, SymbolicFormula f2) {
+    return makeUIFforBinaryOperator(f1, f2, bitwiseAndUfDecl);
+  }
+  
+  @Override
+  public SymbolicFormula makeBitwiseOr(SymbolicFormula f1, SymbolicFormula f2) {
+    return makeUIFforBinaryOperator(f1, f2, bitwiseOrUfDecl);
+  }
+  
+  @Override
+  public SymbolicFormula makeBitwiseXor(SymbolicFormula f1, SymbolicFormula f2) {
+    return makeUIFforBinaryOperator(f1, f2, bitwiseXorUfDecl);
+  }
+  
+  @Override
+  public SymbolicFormula makeShiftLeft(SymbolicFormula f1, SymbolicFormula f2) {
+    return makeUIFforBinaryOperator(f1, f2, leftShiftUfDecl);
+  }
+  
+  @Override
+  public SymbolicFormula makeShiftRight(SymbolicFormula f1, SymbolicFormula f2) {
+    return makeUIFforBinaryOperator(f1, f2, rightShiftUfDecl);
+  }
   
   // ----------------- Uninterpreted functions -----------------
  
@@ -382,59 +454,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args), idx));
   }
   
-  // create a binary uninterpreted function for the unsupported operation "op"
-  @Override
-  public SymbolicFormula makeUIFforOperator(int op, SymbolicFormula f1, SymbolicFormula f2) {
-    long decl = 0;
-    switch (op) {
-    case IASTBinaryExpression.op_binaryAnd:
-    case IASTBinaryExpression.op_binaryAndAssign:
-      decl = bitwiseAndUfDecl;
-      break;
-    case IASTBinaryExpression.op_binaryOr:
-    case IASTBinaryExpression.op_binaryOrAssign:
-      decl = bitwiseOrUfDecl;
-      break;
-    case IASTBinaryExpression.op_binaryXor:
-    case IASTBinaryExpression.op_binaryXorAssign:
-      decl = bitwiseXorUfDecl;
-      break;
-    case IASTBinaryExpression.op_shiftLeft:
-    case IASTBinaryExpression.op_shiftLeftAssign:
-      decl = leftShiftUfDecl;
-      break;
-    case IASTBinaryExpression.op_shiftRight:
-    case IASTBinaryExpression.op_shiftRightAssign:
-      decl = rightShiftUfDecl;
-      break;
-    case IASTBinaryExpression.op_multiply:
-    case IASTBinaryExpression.op_multiplyAssign:
-      decl = multUfDecl;
-      break;
-    case IASTBinaryExpression.op_divide:
-    case IASTBinaryExpression.op_divideAssign:
-      decl = divUfDecl;
-      break;
-    case IASTBinaryExpression.op_modulo:
-    case IASTBinaryExpression.op_moduloAssign:
-      decl = modUfDecl;
-      break;
-    default:
-      return new MathsatSymbolicFormula(mathsat.api.MSAT_MAKE_ERROR_TERM());
-    }
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    long[] args = {m1.getTerm(), m2.getTerm()};
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, decl, args));
+  private SymbolicFormula makeUIFforBinaryOperator(SymbolicFormula f1, SymbolicFormula f2, long uifDecl) {
+    long t1 = ((MathsatSymbolicFormula)f1).getTerm();
+    long t2 = ((MathsatSymbolicFormula)f2).getTerm();
+    long[] args = {t1, t2};
+    
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, uifDecl, args));
+  
   }
 
-  @Override
-  public SymbolicFormula makeBitwiseNot(SymbolicFormula f) {
-    long t = ((MathsatSymbolicFormula)f).getTerm();
-    
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl, new long[]{t}));
-  }
-  
 
   // ----------------- Other formulas -----------------
   

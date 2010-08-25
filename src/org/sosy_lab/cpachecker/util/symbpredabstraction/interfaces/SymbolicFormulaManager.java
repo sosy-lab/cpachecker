@@ -100,8 +100,6 @@ public interface SymbolicFormulaManager {
   
   // ----------------- Numeric formulas -----------------
 
-  public boolean isNumber(SymbolicFormula pF);
-
   public SymbolicFormula makeNumber(int pI);
   
   public SymbolicFormula makeNumber(String pI);
@@ -112,9 +110,12 @@ public interface SymbolicFormulaManager {
 
   public SymbolicFormula makeMinus(SymbolicFormula pF1, SymbolicFormula pF2);
 
-  public SymbolicFormula makeTimes(SymbolicFormula pF1, SymbolicFormula pF2);
+  public SymbolicFormula makeDivide(SymbolicFormula pF1, SymbolicFormula pF2);
 
+  public SymbolicFormula makeModulo(SymbolicFormula pF1, SymbolicFormula pF2);
 
+  public SymbolicFormula makeMultiply(SymbolicFormula pF1, SymbolicFormula pF2);
+  
   // ----------------- Numeric relations -----------------
   
   public SymbolicFormula makeEqual(SymbolicFormula pF1, SymbolicFormula pF2);
@@ -126,18 +127,26 @@ public interface SymbolicFormulaManager {
   public SymbolicFormula makeLt(SymbolicFormula pF1, SymbolicFormula pF2);
 
   public SymbolicFormula makeLeq(SymbolicFormula pF1, SymbolicFormula pF2);
+ 
+  // ----------------- Bit-manipulation functions -----------------
 
+  public SymbolicFormula makeBitwiseNot(SymbolicFormula pF);
+
+  public SymbolicFormula makeBitwiseAnd(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeBitwiseOr(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeBitwiseXor(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeShiftLeft(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeShiftRight(SymbolicFormula pF1, SymbolicFormula pF2);
 
   // ----------------- Uninterpreted functions -----------------
   
   public SymbolicFormula makeUIF(String pName, SymbolicFormula[] pArgs);
 
   public SymbolicFormula makeUIF(String pName, SymbolicFormula[] pArgs, int pIdx);
-
-  public SymbolicFormula makeUIFforOperator(int pOp, SymbolicFormula pF1,
-                                                SymbolicFormula pF2);
-  
-  public SymbolicFormula makeBitwiseNot(SymbolicFormula pF);
 
   // ----------------- Other formulas -----------------
   
@@ -275,5 +284,5 @@ public interface SymbolicFormulaManager {
       public AbstractFormula getResult();
       public int getCount();
       public long getTotalTime();
-  }
+    }
 }
