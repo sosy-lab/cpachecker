@@ -105,7 +105,7 @@ public class CtoFormulaConverter {
 
   // a namespace to have a unique name for each variable in the program.
   // Whenever we enter a function, we push its name as namespace. Each
-  // variable will be instantiated inside mathsat as namespace::variable
+  // variable will be instantiated as namespace::variable
   //private Stack<String> namespaces;
   private String namespace = "";
   
@@ -250,7 +250,7 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  private SymbolicFormula buildMsatTermVar(String var, SSAMap ssa) {
+  private SymbolicFormula makeVariable(String var, SSAMap ssa) {
     int idx;
     if (isNondetVariable(var)) {
       // on every read access to special non-determininism variable, increase index
@@ -299,7 +299,7 @@ public class CtoFormulaConverter {
         if (statementEdge.getSuccessor().getFunctionName().equals(
             "main")) {
           logger.log(Level.ALL, "DEBUG_3",
-              "MathsatSymbolicFormulaManager, IGNORING return ",
+              "CtoFormulaConverter, IGNORING return ",
               "from main: ", edge.getRawStatement());
           f = m;
         } else {
@@ -372,7 +372,7 @@ public class CtoFormulaConverter {
         logger.log(Level.ALL, "DEBUG_3",
             "Declared enum field: ", var, ", index: ", idx);
 
-        SymbolicFormula minit = buildMsatTerm(exp, ssa);
+        SymbolicFormula minit = buildTerm(exp, ssa);
         SymbolicFormula mvar = smgr.makeVariable(var, idx);
         SymbolicFormula t = smgr.makeAssignment(mvar, minit);
         m1 = smgr.makeAnd(m1, t);
@@ -441,7 +441,7 @@ public class CtoFormulaConverter {
         }
         IASTExpression exp =
           ((IASTInitializerExpression)init).getExpression();
-        SymbolicFormula minit = buildMsatTerm(exp, ssa);
+        SymbolicFormula minit = buildTerm(exp, ssa);
         SymbolicFormula mvar = smgr.makeVariable(var, idx);
         SymbolicFormula t = smgr.makeAssignment(mvar, minit);
         m1 = smgr.makeAnd(m1, t);
@@ -482,8 +482,8 @@ public class CtoFormulaConverter {
     for (IASTParameterDeclaration param : params) {
       String paramName = scoped(FUNCTION_PARAM_NAME + (i++));
       int idx = getIndex(paramName, ssa);
-      SymbolicFormula msatParam = smgr.makeVariable(paramName, idx);
-      if (smgr.isErrorTerm(msatParam)) {
+      SymbolicFormula paramFormula = smgr.makeVariable(paramName, idx);
+      if (smgr.isErrorTerm(paramFormula)) {
         throw new UnrecognizedCFAEdgeException(
             "ERROR ENTERING FUNCTION: " +
             fn.getFunctionDefinition().getRawSignature());
@@ -501,13 +501,13 @@ public class CtoFormulaConverter {
       assert(!pn.isEmpty());
       String formalParamName = scoped(pn);
       idx = makeLvalIndex(formalParamName, ssa);
-      SymbolicFormula msatFormalParam = smgr.makeVariable(formalParamName, idx);
-      if (smgr.isErrorTerm(msatParam)) {
+      SymbolicFormula formalParam = smgr.makeVariable(formalParamName, idx);
+      if (smgr.isErrorTerm(paramFormula)) {
         throw new UnrecognizedCFAEdgeException(
             "ERROR HANDLING FUNCTION CALL: " +
             fn.getFunctionDefinition().getRawSignature());
       }
-      SymbolicFormula eq = smgr.makeAssignment(msatFormalParam, msatParam);
+      SymbolicFormula eq = smgr.makeAssignment(formalParam, paramFormula);
       term = smgr.makeAnd(term, eq);
     }
     return smgr.makeAnd(m1, term);
@@ -527,11 +527,11 @@ public class CtoFormulaConverter {
       String retvar = scoped(VAR_RETURN_NAME);
 
       int retidx = getIndex(retvar, ssa);
-      SymbolicFormula msatretvar = smgr.makeVariable(retvar, retidx);
+      SymbolicFormula retvarFormula = smgr.makeVariable(retvar, retidx);
       IASTExpression e = exp.getOperand1();
       setNamespace(ce.getSuccessor().getFunctionName());
-      SymbolicFormula msatoutvar = buildMsatLvalueTerm(e, ssa);
-      SymbolicFormula term = smgr.makeAssignment(msatoutvar, msatretvar);
+      SymbolicFormula outvarFormula = buildsatLvalueTerm(e, ssa);
+      SymbolicFormula term = smgr.makeAssignment(outvarFormula, retvarFormula);
       return smgr.makeAnd(m1, term);
     } else {
       throw new UnrecognizedCFAEdgeException(
@@ -549,15 +549,15 @@ public class CtoFormulaConverter {
     } else {
 
       // build the actual parameters in the caller's context
-      SymbolicFormula[] msatActualParams;
+      SymbolicFormula[] actualParamsFormulas;
       if (edge.getArguments() == null) {
-        msatActualParams = new SymbolicFormula[0];
+        actualParamsFormulas = new SymbolicFormula[0];
       } else {
-        msatActualParams = new SymbolicFormula[edge.getArguments().length];
+        actualParamsFormulas = new SymbolicFormula[edge.getArguments().length];
         IASTExpression[] actualParams = edge.getArguments();
-        for (int i = 0; i < msatActualParams.length; ++i) {
-          msatActualParams[i] = buildMsatTerm(actualParams[i], ssa);
-          if (smgr.isErrorTerm(msatActualParams[i])) {
+        for (int i = 0; i < actualParamsFormulas.length; ++i) {
+          actualParamsFormulas[i] = buildTerm(actualParams[i], ssa);
+          if (smgr.isErrorTerm(actualParamsFormulas[i])) {
             throw new UnrecognizedCFAEdgeException(
                 "ERROR CONVERTING: " + edge.getRawStatement());
           }
@@ -570,25 +570,25 @@ public class CtoFormulaConverter {
       // create the symbolic vars for the formal parameters
       List<IASTParameterDeclaration> formalParams =
         fn.getFunctionParameters();
-      assert(formalParams.size() == msatActualParams.length);
+      assert(formalParams.size() == actualParamsFormulas.length);
 
       int i = 0;
       SymbolicFormula term = smgr.makeTrue();
       for (IASTParameterDeclaration param : formalParams) {
-        SymbolicFormula arg = msatActualParams[i++];
+        SymbolicFormula arg = actualParamsFormulas[i++];
         if (param.getDeclarator().getPointerOperators().length != 0) {
           log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
               + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
         }
         String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
         int idx = makeLvalIndex(paramName, ssa);
-        SymbolicFormula msatParam = smgr.makeVariable(paramName, idx);
-        if (smgr.isErrorTerm(msatParam)) {
+        SymbolicFormula paramFormula = smgr.makeVariable(paramName, idx);
+        if (smgr.isErrorTerm(paramFormula)) {
           throw new UnrecognizedCFAEdgeException(
               "ERROR HANDLING FUNCTION CALL: " +
               edge.getRawStatement());
         }
-        SymbolicFormula eq = smgr.makeAssignment(msatParam, arg);
+        SymbolicFormula eq = smgr.makeAssignment(paramFormula, arg);
         term = smgr.makeAnd(term, eq);
       }
       assert(!smgr.isErrorTerm(term));
@@ -613,7 +613,7 @@ public class CtoFormulaConverter {
       int idx = makeLvalIndex(retvalname, ssa);
 
       SymbolicFormula retvar = smgr.makeVariable(retvalname, idx);
-      SymbolicFormula retval = buildMsatTerm(exp, ssa);
+      SymbolicFormula retval = buildTerm(exp, ssa);
       if (!smgr.isErrorTerm(retval)) {
         SymbolicFormula term = smgr.makeAssignment(retvar, retval);
         return smgr.makeAnd(m1, term);
@@ -628,7 +628,7 @@ public class CtoFormulaConverter {
       throws CPATransferException {
     IASTExpression expr = stmt.getExpression();
 
-    SymbolicFormula f2 = buildMsatTerm(expr, ssa);
+    SymbolicFormula f2 = buildTerm(expr, ssa);
 
     if (!smgr.isErrorTerm(f2)) {
       //SymbolicFormula d = mathsat.api.msat_term_get_decl(f2);
@@ -661,11 +661,11 @@ public class CtoFormulaConverter {
     }
   }
 
-  private SymbolicFormula buildMsatTerm(IASTExpression exp, SSAMap ssa) throws UnrecognizedCCodeException {
+  private SymbolicFormula buildTerm(IASTExpression exp, SSAMap ssa) throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression) {
       // this is a variable: get the right index for the SSA
       String var = ((IASTIdExpression)exp).getName().getRawSignature();
-      return buildMsatTermVar(var, ssa);
+      return makeVariable(var, ssa);
     } else if (exp instanceof IASTLiteralExpression) {
       // this should be a number...
       IASTLiteralExpression lexp = (IASTLiteralExpression)exp;
@@ -739,19 +739,19 @@ public class CtoFormulaConverter {
       // we completely ignore type casts
       logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
           exp.getRawSignature());
-      return buildMsatTerm(((IASTCastExpression)exp).getOperand(), ssa);
+      return buildTerm(((IASTCastExpression)exp).getOperand(), ssa);
     } else if (exp instanceof IASTUnaryExpression) {
       IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
       int op = ((IASTUnaryExpression)exp).getOperator();
       switch (op) {
       case IASTUnaryExpression.op_bracketedPrimary:
-        return buildMsatTerm(operand, ssa);
+        return buildTerm(operand, ssa);
       case IASTUnaryExpression.op_postFixIncr:
       case IASTUnaryExpression.op_prefixIncr:
       case IASTUnaryExpression.op_postFixDecr:
       case IASTUnaryExpression.op_prefixDecr: {
-        SymbolicFormula mvar = buildMsatTerm(operand, ssa);
-        SymbolicFormula newvar = buildMsatLvalueTerm(operand, ssa);
+        SymbolicFormula mvar = buildTerm(operand, ssa);
+        SymbolicFormula newvar = buildsatLvalueTerm(operand, ssa);
         if (smgr.isErrorTerm(mvar)) return mvar;
         if (smgr.isErrorTerm(newvar)) return newvar;
         SymbolicFormula me;
@@ -767,7 +767,7 @@ public class CtoFormulaConverter {
       }
 
       case IASTUnaryExpression.op_minus: {
-        SymbolicFormula mop = buildMsatTerm(operand, ssa);
+        SymbolicFormula mop = buildTerm(operand, ssa);
         if (smgr.isErrorTerm(mop)) return mop;
         return smgr.makeNegate(mop);
       }
@@ -781,7 +781,7 @@ public class CtoFormulaConverter {
           } else {
             opname = OP_STAR_NAME;
           }
-          SymbolicFormula term = buildMsatTerm(operand, ssa);
+          SymbolicFormula term = buildTerm(operand, ssa);
           if (smgr.isErrorTerm(term)) return term;
 
           // PW make SSA index of * independent from argument
@@ -790,15 +790,15 @@ public class CtoFormulaConverter {
           //    opname, term, ssa, absoluteSSAIndices);
 
           // build the  function corresponding to this operation.
-          return smgr.buildMsatUF(opname, new SymbolicFormula[]{term}, idx);
+          return smgr.makeUIF(opname, new SymbolicFormula[]{term}, idx);
 
         } else {
           warnUnsafeVar(exp);
-          return buildMsatTermVar(exprToVarName(exp), ssa);
+          return makeVariable(exprToVarName(exp), ssa);
         }
 
       case IASTUnaryExpression.op_tilde: {
-        SymbolicFormula term = buildMsatTerm(operand, ssa);
+        SymbolicFormula term = buildTerm(operand, ssa);
         if (smgr.isErrorTerm(term)) {
           return term;
         }
@@ -820,7 +820,7 @@ public class CtoFormulaConverter {
         // TODO
         //return mathsat.api.MSAT_MAKE_ERROR_TERM();
         warnUnsafeVar(exp);
-        return buildMsatTermVar(exprToVarName(exp), ssa);
+        return makeVariable(exprToVarName(exp), ssa);
       }
 
       default: {
@@ -852,13 +852,13 @@ public class CtoFormulaConverter {
       case IASTBinaryExpression.op_binaryXorAssign:
       case IASTBinaryExpression.op_shiftLeftAssign:
       case IASTBinaryExpression.op_shiftRightAssign: {
-        SymbolicFormula me2 = buildMsatTerm(e2, ssa);
+        SymbolicFormula me2 = buildTerm(e2, ssa);
         if (smgr.isErrorTerm(me2)) return me2;
         if (op != IASTBinaryExpression.op_assign) {
           // in this case, we have to get the old SSA instance for
           // reading the value of the variable, and build the
           // corresponding expression
-          SymbolicFormula oldvar = buildMsatTerm(e1, ssa);
+          SymbolicFormula oldvar = buildTerm(e1, ssa);
           if (smgr.isErrorTerm(oldvar)) return oldvar;
           switch (op) {
           case IASTBinaryExpression.op_plusAssign:
@@ -871,7 +871,7 @@ public class CtoFormulaConverter {
             if (smgr.isNumber(me2)) {
               me2 = smgr.makeTimes(me2, oldvar);
             } else {
-              me2 = smgr.buildMsatUFforOperator(op, oldvar, me2);
+              me2 = smgr.makeUIFforOperator(op, oldvar, me2);
             }
             break;
           case IASTBinaryExpression.op_divideAssign:
@@ -892,7 +892,7 @@ public class CtoFormulaConverter {
                 me2 = smgr.makeTimes(me2, oldvar);
               }
             } else {
-              me2 = smgr.buildMsatUFforOperator(op, oldvar, me2);
+              me2 = smgr.makeUIFforOperator(op, oldvar, me2);
             }
             break;
           case IASTBinaryExpression.op_moduloAssign:
@@ -901,14 +901,14 @@ public class CtoFormulaConverter {
           case IASTBinaryExpression.op_binaryXorAssign:
           case IASTBinaryExpression.op_shiftLeftAssign:
           case IASTBinaryExpression.op_shiftRightAssign:
-            me2 = smgr.buildMsatUFforOperator(op, oldvar, me2);
+            me2 = smgr.makeUIFforOperator(op, oldvar, me2);
             break;
           default:
             throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
           }
           if (smgr.isErrorTerm(me2)) return me2;
         }
-        SymbolicFormula mvar = buildMsatLvalueTerm(e1, ssa);
+        SymbolicFormula mvar = buildsatLvalueTerm(e1, ssa);
         if (smgr.isErrorTerm(mvar)) return mvar;
         return smgr.makeAssignment(mvar, me2);
       }
@@ -917,9 +917,9 @@ public class CtoFormulaConverter {
       case IASTBinaryExpression.op_minus:
       case IASTBinaryExpression.op_multiply:
       case IASTBinaryExpression.op_divide: {
-        SymbolicFormula me1 = buildMsatTerm(e1, ssa);
+        SymbolicFormula me1 = buildTerm(e1, ssa);
         if (smgr.isErrorTerm(me1)) return me1;
-        SymbolicFormula me2 = buildMsatTerm(e2, ssa);
+        SymbolicFormula me2 = buildTerm(e2, ssa);
         if (smgr.isErrorTerm(me2)) return me2;
 
         switch (op) {
@@ -933,7 +933,7 @@ public class CtoFormulaConverter {
           } else if (smgr.isNumber(me2)) {
             return smgr.makeTimes(me2, me1);
           } else {
-            return smgr.buildMsatUFforOperator(op, me1, me2);
+            return smgr.makeUIFforOperator(op, me1, me2);
           }
         case IASTBinaryExpression.op_divide:
           if (smgr.isNumber(me2)) {
@@ -953,7 +953,7 @@ public class CtoFormulaConverter {
               me2 = smgr.makeTimes(me2, me1);
             }
           } else {
-            me2 = smgr.buildMsatUFforOperator(op, me1, me2);
+            me2 = smgr.makeUIFforOperator(op, me1, me2);
           }
           return me2;
         }
@@ -967,11 +967,11 @@ public class CtoFormulaConverter {
       case IASTBinaryExpression.op_shiftLeft:
       case IASTBinaryExpression.op_shiftRight:
       {
-        SymbolicFormula me1 = buildMsatTerm(e1, ssa);
+        SymbolicFormula me1 = buildTerm(e1, ssa);
         if (smgr.isErrorTerm(me1)) return me1;
-        SymbolicFormula me2 = buildMsatTerm(e2, ssa);
+        SymbolicFormula me2 = buildTerm(e2, ssa);
         if (smgr.isErrorTerm(me2)) return me2;
-        return smgr.buildMsatUFforOperator(op, me1, me2);
+        return smgr.makeUIFforOperator(op, me1, me2);
       }
 
       default:
@@ -994,7 +994,7 @@ public class CtoFormulaConverter {
         IASTFieldReference fexp = (IASTFieldReference)exp;
         String field = fexp.getFieldName().getRawSignature();
         IASTExpression owner = fexp.getFieldOwner();
-        SymbolicFormula term = buildMsatTerm(owner, ssa);
+        SymbolicFormula term = buildTerm(owner, ssa);
 
         if (smgr.isErrorTerm(term)) return term;
 
@@ -1006,10 +1006,10 @@ public class CtoFormulaConverter {
         int idx = getIndex(ufname, aterm, ssa, true);
 
         // see above for the case of &x and *x
-        return smgr.buildMsatUF(ufname, aterm, idx);
+        return smgr.makeUIF(ufname, aterm, idx);
       } else {
         warnUnsafeVar(exp);
-        return buildMsatTermVar(exprToVarName(exp), ssa);
+        return makeVariable(exprToVarName(exp), ssa);
 
       }
     } else if (exp instanceof IASTArraySubscriptExpression) {
@@ -1018,8 +1018,8 @@ public class CtoFormulaConverter {
           (IASTArraySubscriptExpression)exp;
         IASTExpression arrexp = aexp.getArrayExpression();
         IASTExpression subexp = aexp.getSubscriptExpression();
-        SymbolicFormula aterm = buildMsatTerm(arrexp, ssa);
-        SymbolicFormula sterm = buildMsatTerm(subexp, ssa);
+        SymbolicFormula aterm = buildTerm(arrexp, ssa);
+        SymbolicFormula sterm = buildTerm(subexp, ssa);
 
         if (smgr.isErrorTerm(aterm)) return aterm;
         if (smgr.isErrorTerm(sterm)) return sterm;
@@ -1028,27 +1028,27 @@ public class CtoFormulaConverter {
         SymbolicFormula[] args = {aterm, sterm};
         int idx = getIndex(ufname, args, ssa, true);
 
-        return smgr.buildMsatUF(ufname, args, idx);
+        return smgr.makeUIF(ufname, args, idx);
 
       } else {
         warnUnsafeVar(exp);
-        return buildMsatTermVar(exprToVarName(exp), ssa);
+        return makeVariable(exprToVarName(exp), ssa);
       }
     } else if (exp instanceof IASTFunctionCallExpression) {
       // this is an external call. We have to create an UIF.
       IASTFunctionCallExpression fexp = (IASTFunctionCallExpression)exp;
-      return buildMsatTermExternalFunctionCall(fexp, ssa);
+      return makeExternalFunctionCall(fexp, ssa);
     } else if (exp instanceof IASTTypeIdExpression) {
       assert(((IASTTypeIdExpression)exp).getOperator() ==
         IASTTypeIdExpression.op_sizeof);
       warnUnsafeVar(exp);
-      return buildMsatTermVar(exprToVarName(exp), ssa);
+      return makeVariable(exprToVarName(exp), ssa);
     }
     
     throw new UnrecognizedCCodeException("Unknown expression", null, exp);
   }
 
-  private SymbolicFormula buildMsatLvalueTerm(IASTExpression exp, SSAMap ssa) throws UnrecognizedCCodeException {
+  private SymbolicFormula buildsatLvalueTerm(IASTExpression exp, SSAMap ssa) throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression || !lvalsAsUif) {
       String var = null;
       if (exp instanceof IASTIdExpression) {
@@ -1079,7 +1079,7 @@ public class CtoFormulaConverter {
       default:
         throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, exp);
       }
-      SymbolicFormula term = buildMsatTerm(operand, ssa);
+      SymbolicFormula term = buildTerm(operand, ssa);
       if (smgr.isErrorTerm(term)) return term;
 
       // PW make SSA index of * independent from argument
@@ -1092,13 +1092,13 @@ public class CtoFormulaConverter {
       // *x = 1       |     <ptr_*>::2(x) = 1
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return smgr.buildMsatUF(opname, new SymbolicFormula[]{term}, idx);
+      return smgr.makeUIF(opname, new SymbolicFormula[]{term}, idx);
       
     } else if (exp instanceof IASTFieldReference) {
       IASTFieldReference fexp = (IASTFieldReference)exp;
       String field = fexp.getFieldName().getRawSignature();
       IASTExpression owner = fexp.getFieldOwner();
-      SymbolicFormula term = buildMsatTerm(owner, ssa);
+      SymbolicFormula term = buildTerm(owner, ssa);
 
       if (smgr.isErrorTerm(term)) return term;
 
@@ -1110,15 +1110,15 @@ public class CtoFormulaConverter {
       int idx = makeLvalIndex(ufname, args, ssa);
 
       // see above for the case of &x and *x
-      return smgr.buildMsatUF(ufname, args, idx);
+      return smgr.makeUIF(ufname, args, idx);
 
     } else if (exp instanceof IASTArraySubscriptExpression) {
       IASTArraySubscriptExpression aexp =
         (IASTArraySubscriptExpression)exp;
       IASTExpression arrexp = aexp.getArrayExpression();
       IASTExpression subexp = aexp.getSubscriptExpression();
-      SymbolicFormula aterm = buildMsatTerm(arrexp, ssa);
-      SymbolicFormula sterm = buildMsatTerm(subexp, ssa);
+      SymbolicFormula aterm = buildTerm(arrexp, ssa);
+      SymbolicFormula sterm = buildTerm(subexp, ssa);
 
       if (smgr.isErrorTerm(aterm)) return aterm;
       if (smgr.isErrorTerm(sterm)) return sterm;
@@ -1127,12 +1127,12 @@ public class CtoFormulaConverter {
       SymbolicFormula[] args = {aterm, sterm};
       int idx = makeLvalIndex(ufname, args, ssa);
 
-      return smgr.buildMsatUF(ufname, args, idx);
+      return smgr.makeUIF(ufname, args, idx);
     }
     throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
   }
 
-  private SymbolicFormula buildMsatTermExternalFunctionCall(
+  private SymbolicFormula makeExternalFunctionCall(
       IASTFunctionCallExpression fexp, SSAMap ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
     String func;
@@ -1161,13 +1161,13 @@ public class CtoFormulaConverter {
       func += "{" + args.length + "}"; // add #arguments to function name to cope with varargs functions
       SymbolicFormula[] mArgs = new SymbolicFormula[args.length];
       for (int i = 0; i < args.length; ++i) {
-        mArgs[i] = buildMsatTerm(args[i], ssa);
+        mArgs[i] = buildTerm(args[i], ssa);
         if (smgr.isErrorTerm(mArgs[i])) {
           return mArgs[i];
         }
       }
 
-      return smgr.buildMsatUF(func, mArgs);
+      return smgr.makeUIF(func, mArgs);
     }
   }
 
@@ -1179,8 +1179,8 @@ public class CtoFormulaConverter {
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
 
-      SymbolicFormula t1 = buildMsatTerm(op1, ssa);
-      SymbolicFormula t2 = buildMsatTerm(op2, ssa);
+      SymbolicFormula t1 = buildTerm(op1, ssa);
+      SymbolicFormula t2 = buildTerm(op2, ssa);
 
       if (smgr.isErrorTerm(t1) ||
           smgr.isErrorTerm(t2)) {
@@ -1215,7 +1215,7 @@ public class CtoFormulaConverter {
 
       default: {
         // check whether this is an implict cast to bool
-        SymbolicFormula t = buildMsatTerm(exp, ssa);
+        SymbolicFormula t = buildTerm(exp, ssa);
         if (smgr.isErrorTerm(t)) {
           return null;
         } else if (!smgr.isBoolean(t)) {
@@ -1243,9 +1243,9 @@ public class CtoFormulaConverter {
         IASTUnaryExpression.op_bracketedPrimary) {
         return buildFormulaPredicate(unaryExp.getOperand(), isTrue, ssa);
       } else {
-        // build the mathsat term. If this is not a predicate, make
+        // build the term. If this is not a predicate, make
         // it a predicate by adding a "!= 0"
-        SymbolicFormula t = buildMsatTerm(exp, ssa);
+        SymbolicFormula t = buildTerm(exp, ssa);
         if (smgr.isErrorTerm(t)) {
           return null;
         }
@@ -1263,9 +1263,9 @@ public class CtoFormulaConverter {
         return t;
       }
     } else {
-      // build the mathsat term. If this is not a predicate, make
+      // build the term. If this is not a predicate, make
       // it a predicate by adding a "!= 0"
-      SymbolicFormula t = buildMsatTerm(exp, ssa);
+      SymbolicFormula t = buildTerm(exp, ssa);
       if (smgr.isErrorTerm(t)) {
         return null;
       }

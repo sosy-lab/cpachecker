@@ -130,11 +130,11 @@ public interface SymbolicFormulaManager {
 
   // ----------------- Uninterpreted functions -----------------
   
-  public SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs);
+  public SymbolicFormula makeUIF(String pName, SymbolicFormula[] pArgs);
 
-  public SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs, int pIdx);
+  public SymbolicFormula makeUIF(String pName, SymbolicFormula[] pArgs, int pIdx);
 
-  public SymbolicFormula buildMsatUFforOperator(int pOp, SymbolicFormula pF1,
+  public SymbolicFormula makeUIFforOperator(int pOp, SymbolicFormula pF1,
                                                 SymbolicFormula pF2);
   
   public SymbolicFormula makeBitwiseNot(SymbolicFormula pF);

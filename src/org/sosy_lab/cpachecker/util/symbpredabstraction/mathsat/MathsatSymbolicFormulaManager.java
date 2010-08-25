@@ -362,7 +362,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
-  public SymbolicFormula buildMsatUF(String name, SymbolicFormula[] args) {
+  public SymbolicFormula makeUIF(String name, SymbolicFormula[] args) {
     return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args)));
   }
 
@@ -378,13 +378,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula buildMsatUF(String name, SymbolicFormula[] args, int idx) {
+  public SymbolicFormula makeUIF(String name, SymbolicFormula[] args, int idx) {
     return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args), idx));
   }
   
   // create a binary uninterpreted function for the unsupported operation "op"
   @Override
-  public SymbolicFormula buildMsatUFforOperator(int op, SymbolicFormula f1, SymbolicFormula f2) {
+  public SymbolicFormula makeUIFforOperator(int op, SymbolicFormula f1, SymbolicFormula f2) {
     long decl = 0;
     switch (op) {
     case IASTBinaryExpression.op_binaryAnd:
