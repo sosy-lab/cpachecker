@@ -363,11 +363,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
   @Override
   public SymbolicFormula buildMsatUF(String name, SymbolicFormula[] args) {
-    long[] a = new long[args.length];
-    for (int i = 0; i < args.length; i++) {
-      a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
-    }
-    return new MathsatSymbolicFormula(buildMsatUF(name, a));
+    return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args)));
   }
 
   private long buildMsatUF(String name, long[] args, int idx) {
@@ -383,11 +379,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   @Override
   public SymbolicFormula buildMsatUF(String name, SymbolicFormula[] args, int idx) {
-    long[] a = new long[args.length];
-    for (int i = 0; i < args.length; i++) {
-      a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
-    }
-    return new MathsatSymbolicFormula(buildMsatUF(name, a, idx));
+    return new MathsatSymbolicFormula(buildMsatUF(name, getTerm(args), idx));
   }
   
   // create a binary uninterpreted function for the unsupported operation "op"
