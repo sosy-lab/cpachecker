@@ -197,38 +197,25 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     }
     return result;
   }
+   
+  
+  // ----------------- Boolean formulas -----------------
   
   @Override
-  public SymbolicFormula createPredicateVariable(SymbolicFormula atom) {
-    long tt = ((MathsatSymbolicFormula)atom).getTerm();
-    assert(!mathsat.api.MSAT_ERROR_TERM(tt));
-
-    String repr = mathsat.api.msat_term_is_atom(tt) != 0 ?
-                    mathsat.api.msat_term_repr(tt) :
-                      ("#" + mathsat.api.msat_term_id(tt));
-    long d = mathsat.api.msat_declare_variable(msatEnv,
-        "\"PRED" + repr + "\"",
-        mathsat.api.MSAT_BOOL);
-    long var = mathsat.api.msat_make_variable(msatEnv, d);
-    assert(!mathsat.api.MSAT_ERROR_TERM(var));
-
-    return new MathsatSymbolicFormula(var);
-  }
-
-  @Override
-  public String dumpFormula(SymbolicFormula f) {
-    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
-
-    return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
-  }
-
-  @Override
-  public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
-      SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
+  public boolean isBoolean(SymbolicFormula f) {
+    long t = ((MathsatSymbolicFormula)f).getTerm();
     
-    absPrinter.printMsatFormat(curState, edgeFormula, predDef, importantPreds);
-    absPrinter.printNusmvFormat(curState, edgeFormula, predDef, importantPreds);
-    absPrinter.nextNum();
+    return mathsat.api.msat_term_get_type(t) == mathsat.api.MSAT_BOOL;
+  }
+  
+  @Override
+  public SymbolicFormula makeTrue() {
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
+  }
+  
+  @Override
+  public SymbolicFormula makeFalse() {
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_false(msatEnv));
   }
 
   @Override
@@ -238,7 +225,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     long a = mathsat.api.msat_make_not(msatEnv, m.getTerm());
     return new MathsatSymbolicFormula(a);
   }
-
 
   @Override
   public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {
@@ -268,19 +254,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula makeTrue() {
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
-  }
-
-  @Override
-  public SymbolicFormula parseInfix(String s) {
-    long f = mathsat.api.msat_from_string(msatEnv, s);
-    Preconditions.checkArgument(!mathsat.api.MSAT_ERROR_TERM(f), "Could not parse formula as Mathsat formula.");
-
-    return new MathsatSymbolicFormula(f);
-  }
-
-  @Override
   public SymbolicFormula makeIfThenElse(SymbolicFormula condition, SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula mCondition = (MathsatSymbolicFormula)condition;
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
@@ -290,16 +263,111 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
     return new MathsatSymbolicFormula(ite);
   }
-
-  private long buildMsatVariable(String var, int idx) {
-    long decl = mathsat.api.msat_declare_variable(
-        msatEnv, var + INDEX_SEPARATOR + idx, msatVarType);
-    return mathsat.api.msat_make_variable(msatEnv, decl);
+  
+  
+  // ----------------- Numeric formulas -----------------
+  
+  @Override
+  public boolean isNumber(SymbolicFormula f) {
+    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
+    return mathsat.api.msat_term_is_number(m.getTerm()) != 0;
+  }
+  
+  @Override
+  public SymbolicFormula makeNegate(SymbolicFormula f) {
+    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_negate(msatEnv, m.getTerm()));
   }
 
   @Override
-  public SymbolicFormula makeVariable(String var, int idx) {
-    return new MathsatSymbolicFormula(buildMsatVariable(var, idx));
+  public SymbolicFormula makeNumber(int i) {
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_number(msatEnv, Integer.valueOf(i).toString()));
+  }
+  
+  @Override
+  public SymbolicFormula makeNumber(String i) {
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_number(msatEnv, i));
+  }
+  
+  @Override
+  public SymbolicFormula makePlus(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_plus(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  @Override
+  public SymbolicFormula makeMinus(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_minus(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  @Override
+  public SymbolicFormula makeTimes(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_times(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  
+  // ----------------- Numeric relations -----------------
+  
+  @Override
+  public SymbolicFormula makeEqual(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_equal(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  @Override
+  public SymbolicFormula makeGt(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_gt(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  @Override
+  public SymbolicFormula makeGeq(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_geq(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  @Override
+  public SymbolicFormula makeLt(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_lt(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  @Override
+  public SymbolicFormula makeLeq(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_leq(msatEnv, m1.getTerm(), m2.getTerm()));
+  }
+  
+  
+  // ----------------- Uninterpreted functions -----------------
+ 
+  private long buildMsatUF(String name, long[] args) {
+    int[] tp = new int[args.length];
+    for (int i = 0; i < tp.length; ++i) tp[i] = msatVarType;
+    long decl = mathsat.api.msat_declare_uif(msatEnv, name, msatVarType, tp.length, tp);
+    if (mathsat.api.MSAT_ERROR_DECL(decl)) {
+      return mathsat.api.MSAT_MAKE_ERROR_TERM();
+    }
+    return mathsat.api.msat_make_uif(msatEnv, decl, args);
+  }
+  
+  @Override
+  public SymbolicFormula buildMsatUF(String name, SymbolicFormula[] args) {
+    long[] a = new long[args.length];
+    for (int i = 0; i < args.length; i++) {
+      a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
+    }
+    return new MathsatSymbolicFormula(buildMsatUF(name, a));
   }
 
   private long buildMsatUF(String name, long[] args, int idx) {
@@ -320,61 +388,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
     }
     return new MathsatSymbolicFormula(buildMsatUF(name, a, idx));
-  }
-  
-  private long buildMsatUF(String name, long[] args) {
-    int[] tp = new int[args.length];
-    for (int i = 0; i < tp.length; ++i) tp[i] = msatVarType;
-    long decl = mathsat.api.msat_declare_uif(msatEnv, name, msatVarType, tp.length, tp);
-    if (mathsat.api.MSAT_ERROR_DECL(decl)) {
-      return mathsat.api.MSAT_MAKE_ERROR_TERM();
-    }
-    return mathsat.api.msat_make_uif(msatEnv, decl, args);
-  }
-  
-  @Override
-  public SymbolicFormula buildMsatUF(String name, SymbolicFormula[] args) {
-    long[] a = new long[args.length];
-    for (int i = 0; i < args.length; i++) {
-      a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
-    }
-    return new MathsatSymbolicFormula(buildMsatUF(name, a));
-  }
-  
-  private Pair<String, Integer> parseVariable(String var) {
-    String[] s = var.split(INDEX_SEPARATOR);
-    if (s.length != 2) {
-      throw new IllegalArgumentException("Not an instantiated variable: " + var);
-    }
-    
-    return new Pair<String, Integer>(s[0], Integer.parseInt(s[1]));
-  }
-  
-
-  private int getIndex(String name, long[] args, SSAMap ssa, boolean autoInstantiate) {
-    SymbolicFormula[] a = new SymbolicFormula[args.length];
-    for (int i = 0; i < a.length; ++i) {
-      a[i] = new MathsatSymbolicFormula(args[i]);
-    }
-    int idx = ssa.getIndex(name, a);
-    if (idx <= 0) {
-      if (!autoInstantiate) {
-        return -1;
-      } else {
-        logger.log(Level.ALL, "DEBUG_3",
-            "WARNING: Auto-instantiating lval: ", name, "(", a, ")");
-        idx = 1;
-        ssa.setIndex(name, a, idx);
-      }
-    }
-    return idx;
-  }
-
-  @Override
-  public SymbolicFormula makeBitwiseNot(SymbolicFormula f) {
-    long t = ((MathsatSymbolicFormula)f).getTerm();
-    
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl, new long[]{t}));
   }
   
   // create a binary uninterpreted function for the unsupported operation "op"
@@ -423,31 +436,20 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, decl, args));
   }
 
-  /*
-    private long buildMsatUF(int op, long t) {
-        if (op == IASTUnaryExpression.op_tilde) {
-            return mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl,
-                    new long[]{t});
-        } else {
-            return mathsat.api.MSAT_MAKE_ERROR_TERM();
-        }
-    }
-   */
-
-  private boolean isAssignment(long term) {
-    return mathsat.api.msat_term_get_decl(term) == assignUfDecl;
-  }
-
   @Override
-  public SymbolicFormula makeAssignment(SymbolicFormula f1, SymbolicFormula f2) {
-    long t1 = ((MathsatSymbolicFormula)f1).getTerm();
-    long t2 = ((MathsatSymbolicFormula)f2).getTerm();
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, assignUfDecl, new long[]{t1, t2}));
+  public SymbolicFormula makeBitwiseNot(SymbolicFormula f) {
+    long t = ((MathsatSymbolicFormula)f).getTerm();
+    
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl, new long[]{t}));
   }
   
+
+  // ----------------- Other formulas -----------------
+  
   @Override
-  public SymbolicFormula makeNumber(int i) {
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_number(msatEnv, Integer.valueOf(i).toString()));
+  public boolean isErrorTerm(SymbolicFormula f) {
+    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
+    return mathsat.api.MSAT_ERROR_TERM(m.getTerm());
   }
   
   @Override
@@ -457,91 +459,99 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv,
         stringLitUfDecl, new long[]{n}));
   }
-  
-  @Override
-  public SymbolicFormula makeNumber(String i) {
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_number(msatEnv, i));
+
+  private long buildMsatVariable(String var, int idx) {
+    long decl = mathsat.api.msat_declare_variable(
+        msatEnv, var + INDEX_SEPARATOR + idx, msatVarType);
+    return mathsat.api.msat_make_variable(msatEnv, decl);
   }
-  
+
   @Override
-  public SymbolicFormula makePlus(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_plus(msatEnv, m1.getTerm(), m2.getTerm()));
+  public SymbolicFormula makeVariable(String var, int idx) {
+    return new MathsatSymbolicFormula(buildMsatVariable(var, idx));
   }
-  
-  @Override
-  public SymbolicFormula makeMinus(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_minus(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeTimes(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_times(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeEqual(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_equal(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeGt(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_gt(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeGeq(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_geq(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeLt(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_lt(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeLeq(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_leq(msatEnv, m1.getTerm(), m2.getTerm()));
-  }
-  
-  @Override
-  public SymbolicFormula makeNegate(SymbolicFormula f) {
-    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_negate(msatEnv, m.getTerm()));
-  }
-  
-  @Override
-  public boolean isNumber(SymbolicFormula f) {
-    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
-    return mathsat.api.msat_term_is_number(m.getTerm()) != 0;
-  }
-  
-  @Override
-  public boolean isBoolean(SymbolicFormula f) {
-    long t = ((MathsatSymbolicFormula)f).getTerm();
+
+  private Pair<String, Integer> parseVariable(String var) {
+    String[] s = var.split(INDEX_SEPARATOR);
+    if (s.length != 2) {
+      throw new IllegalArgumentException("Not an instantiated variable: " + var);
+    }
     
-    return mathsat.api.msat_term_get_type(t) == mathsat.api.MSAT_BOOL;
+    return new Pair<String, Integer>(s[0], Integer.parseInt(s[1]));
   }
   
   @Override
-  public boolean isErrorTerm(SymbolicFormula f) {
+  public SymbolicFormula makeAssignment(SymbolicFormula f1, SymbolicFormula f2) {
+    long t1 = ((MathsatSymbolicFormula)f1).getTerm();
+    long t2 = ((MathsatSymbolicFormula)f2).getTerm();
+    return new MathsatSymbolicFormula(mathsat.api.msat_make_uif(msatEnv, assignUfDecl, new long[]{t1, t2}));
+  }
+
+  private boolean isAssignment(long term) {
+    return mathsat.api.msat_term_get_decl(term) == assignUfDecl;
+  }
+
+  
+  // ----------------- Complex formula manipulation -----------------
+  
+  @Override
+  public SymbolicFormula createPredicateVariable(SymbolicFormula atom) {
+    long tt = ((MathsatSymbolicFormula)atom).getTerm();
+    assert(!mathsat.api.MSAT_ERROR_TERM(tt));
+
+    String repr = mathsat.api.msat_term_is_atom(tt) != 0 ?
+                    mathsat.api.msat_term_repr(tt) :
+                      ("#" + mathsat.api.msat_term_id(tt));
+    long d = mathsat.api.msat_declare_variable(msatEnv,
+        "\"PRED" + repr + "\"",
+        mathsat.api.MSAT_BOOL);
+    long var = mathsat.api.msat_make_variable(msatEnv, d);
+    assert(!mathsat.api.MSAT_ERROR_TERM(var));
+
+    return new MathsatSymbolicFormula(var);
+  }
+
+  @Override
+  public String dumpFormula(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
-    return mathsat.api.MSAT_ERROR_TERM(m.getTerm());
+
+    return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
+  }
+
+  @Override
+  public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
+      SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
+    
+    absPrinter.printMsatFormat(curState, edgeFormula, predDef, importantPreds);
+    absPrinter.printNusmvFormat(curState, edgeFormula, predDef, importantPreds);
+    absPrinter.nextNum();
+  }
+
+  @Override
+  public SymbolicFormula parseInfix(String s) {
+    long f = mathsat.api.msat_from_string(msatEnv, s);
+    Preconditions.checkArgument(!mathsat.api.MSAT_ERROR_TERM(f), "Could not parse formula as Mathsat formula.");
+
+    return new MathsatSymbolicFormula(f);
+  }
+
+  private int getIndex(String name, long[] args, SSAMap ssa, boolean autoInstantiate) {
+    SymbolicFormula[] a = new SymbolicFormula[args.length];
+    for (int i = 0; i < a.length; ++i) {
+      a[i] = new MathsatSymbolicFormula(args[i]);
+    }
+    int idx = ssa.getIndex(name, a);
+    if (idx <= 0) {
+      if (!autoInstantiate) {
+        return -1;
+      } else {
+        logger.log(Level.ALL, "DEBUG_3",
+            "WARNING: Auto-instantiating lval: ", name, "(", a, ")");
+        idx = 1;
+        ssa.setIndex(name, a, idx);
+      }
+    }
+    return idx;
   }
   
   // creates the two mathsat terms
@@ -790,13 +800,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   private boolean ufCanBeLvalue(String name) {
     return name.startsWith(".{") || name.startsWith("->{");
   }
-
-
-  @Override
-  public SymbolicFormula makeFalse() {
-    return new MathsatSymbolicFormula(mathsat.api.msat_make_false(msatEnv));
-  }
-
 
   /**
    * As a side effect, this method does the same thing as {@link #replaceAssignments(SymbolicFormula)}

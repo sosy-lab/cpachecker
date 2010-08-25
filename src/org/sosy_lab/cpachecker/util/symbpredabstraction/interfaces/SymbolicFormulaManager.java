@@ -41,58 +41,117 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
  */
 public interface SymbolicFormulaManager {
 
-    /**
-     * Creates a formula representing a negation of the argument.
-     * @param f a SymbolicFormula
-     * @return (!f1)
-     */
-    public SymbolicFormula makeNot(SymbolicFormula f);
+  // ----------------- Boolean formulas -----------------
 
-    /**
-     * Creates a formula representing an AND of the two arguments.
-     * @param f1 a SymbolicFormula
-     * @param f2 a SymbolicFormula
-     * @return (f1 & f2)
-     */
-    public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2);
+  public boolean isBoolean(SymbolicFormula pF);
 
-    /**
-     * Creates a formula representing an OR of the two arguments.
-     * @param f1 a SymbolicFormula
-     * @param f2 a SymbolicFormula
-     * @return (f1 | f2)
-     */
-    public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2);
+  /**
+   * @return a SymbolicFormula representing logical truth
+   */
+  public SymbolicFormula makeTrue();
 
-    /**
-     * Creates a formula representing an equivalence of the two arguments.
-     * @param f1 a SymbolicFormula
-     * @param f2 a SymbolicFormula
-     * @return (f1 <-> f2)
-     */
-    public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2);
+  /**
+   * @return a SymbolicFormula representing logical falsity
+   */
+  public SymbolicFormula makeFalse();
+  
+  /**
+   * Creates a formula representing a negation of the argument.
+   * @param f a SymbolicFormula
+   * @return (!f1)
+   */
+  public SymbolicFormula makeNot(SymbolicFormula f);
 
-    /**
-     * Creates a formula representing "IF atom THEN f1 ELSE f2"
-     * @param atom a SymbolicFormula
-     * @param f1 a SymbolicFormula
-     * @param f2 a SymbolicFormula
-     * @return (IF atom THEN f1 ELSE f2)
-     */
+  /**
+   * Creates a formula representing an AND of the two arguments.
+   * @param f1 a SymbolicFormula
+   * @param f2 a SymbolicFormula
+   * @return (f1 & f2)
+   */
+  public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2);
 
-    public SymbolicFormula makeIfThenElse(SymbolicFormula atom,
-        SymbolicFormula f1, SymbolicFormula f2);
+  /**
+   * Creates a formula representing an OR of the two arguments.
+   * @param f1 a SymbolicFormula
+   * @param f2 a SymbolicFormula
+   * @return (f1 | f2)
+   */
+  public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2);
 
-    /**
-     * @return a SymbolicFormula representing logical truth
-     */
-    public SymbolicFormula makeTrue();
+  /**
+   * Creates a formula representing an equivalence of the two arguments.
+   * @param f1 a SymbolicFormula
+   * @param f2 a SymbolicFormula
+   * @return (f1 <-> f2)
+   */
+  public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2);
 
-    /**
-     * @return a SymbolicFormula representing logical falsity
-     */
-    public SymbolicFormula makeFalse();
+  /**
+   * Creates a formula representing "IF cond THEN f1 ELSE f2"
+   * @param cond a SymbolicFormula
+   * @param f1 a SymbolicFormula
+   * @param f2 a SymbolicFormula
+   * @return (IF atom THEN f1 ELSE f2)
+   */
 
+  public SymbolicFormula makeIfThenElse(SymbolicFormula cond,
+      SymbolicFormula f1, SymbolicFormula f2);
+
+  
+  // ----------------- Numeric formulas -----------------
+
+  public boolean isNumber(SymbolicFormula pF);
+
+  public SymbolicFormula makeNumber(int pI);
+  
+  public SymbolicFormula makeNumber(String pI);
+
+  public SymbolicFormula makeNegate(SymbolicFormula pF);
+
+  public SymbolicFormula makePlus(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeMinus(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeTimes(SymbolicFormula pF1, SymbolicFormula pF2);
+
+
+  // ----------------- Numeric relations -----------------
+  
+  public SymbolicFormula makeEqual(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeGt(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeGeq(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeLt(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  public SymbolicFormula makeLeq(SymbolicFormula pF1, SymbolicFormula pF2);
+
+
+  // ----------------- Uninterpreted functions -----------------
+  
+  public SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs);
+
+  public SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs, int pIdx);
+
+  public SymbolicFormula buildMsatUFforOperator(int pOp, SymbolicFormula pF1,
+                                                SymbolicFormula pF2);
+  
+  public SymbolicFormula makeBitwiseNot(SymbolicFormula pF);
+
+  // ----------------- Other formulas -----------------
+  
+  public boolean isErrorTerm(SymbolicFormula pF);
+
+  public SymbolicFormula makeString(int pI);
+
+  public SymbolicFormula makeVariable(String pVar, int pIdx);
+  
+  public SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);
+
+  
+  // ----------------- Complex formula manipulation -----------------
+  
     /**
      * Parse a formula given as a String in the common infix notation.
      * @return The same formula in the internal representation.
@@ -133,6 +192,8 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
         SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache);
     
+    public SymbolicFormula uninstantiate(SymbolicFormula pF);
+
     /**
      * "shifts" forward all the variables in the formula f, of the amount
      * given by the input ssa. That is, variables x with index 1 in f will be
@@ -230,49 +291,4 @@ public interface SymbolicFormulaManager {
       public int getCount();
       public long getTotalTime();
   }
-
-    boolean isErrorTerm(SymbolicFormula pF);
-
-    boolean isBoolean(SymbolicFormula pF);
-
-    boolean isNumber(SymbolicFormula pF);
-
-    SymbolicFormula makeNegate(SymbolicFormula pF);
-
-    SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeNumber(int pI);
-
-    SymbolicFormula makeString(int pI);
-
-    SymbolicFormula makeNumber(String pI);
-
-    SymbolicFormula makePlus(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeMinus(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeTimes(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeEqual(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeGt(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeGeq(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeLt(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeLeq(SymbolicFormula pF1, SymbolicFormula pF2);
-
-    SymbolicFormula makeVariable(String pVar, int pIdx);
-
-    SymbolicFormula makeBitwiseNot(SymbolicFormula pF);
-
-    SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs);
-
-    SymbolicFormula buildMsatUF(String pName, SymbolicFormula[] pArgs, int pIdx);
-
-    SymbolicFormula buildMsatUFforOperator(int pOp, SymbolicFormula pF1,
-        SymbolicFormula pF2);
-
-    SymbolicFormula uninstantiate(SymbolicFormula pF);
 }
