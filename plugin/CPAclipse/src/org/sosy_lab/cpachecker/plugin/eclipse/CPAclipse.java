@@ -75,6 +75,10 @@ public class CPAclipse extends AbstractUIPlugin {
 			public void tasksChanged() {
 				System.out.println("tasks Changed");
 			}
+			@Override
+			public void selectTask(Task toSelect) {
+				System.out.println("task selected: " + toSelect.toString());
+			}
 		});
 	}
 
@@ -247,6 +251,22 @@ public class CPAclipse extends AbstractUIPlugin {
 			SafeRunner.run(runnable);
 		}
 	}
+	public void fireSelectTask(final Task toSelect) {
+		for (final Iterator<ITaskListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITaskListener current = iter.next();
+			ISafeRunnable runnable = new ISafeRunnable() {
+				@Override
+				public void run() throws Exception {
+					current.selectTask(toSelect);
+				}		
+				@Override
+				public void handleException(Throwable exception) {
+					iter.remove(); // listener is likely in some error-state, ignore it
+				}
+			};
+			SafeRunner.run(runnable);
+		}
+	}
 	public List<Task> getTasks() {
 		return tasks;
 	}
@@ -258,6 +278,7 @@ public class CPAclipse extends AbstractUIPlugin {
 	public void addTask(Task t) {
 		this.tasks.add(t);
 		fireTasksChanged();
+		fireSelectTask(t);
 	}
 
 	public static IWorkspace getWorkspace() {
@@ -282,7 +303,6 @@ public class CPAclipse extends AbstractUIPlugin {
 	}
 	public static ITranslationUnit askForSourceFile(Shell shell, ITranslationUnit initial) {
 		String[] extension = {"*.c"};
-		// TODO: should we accept other extensions than .c?
         FileDialog dialog = new FileDialog(shell, SWT.OPEN | SWT.SHEET);
         
         if (initial != null) {

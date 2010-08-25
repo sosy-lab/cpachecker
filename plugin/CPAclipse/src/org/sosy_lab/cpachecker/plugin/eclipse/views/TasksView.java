@@ -11,7 +11,6 @@ import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
-import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.window.IShellProvider;
 import org.eclipse.swt.SWT;
@@ -29,7 +28,6 @@ import org.eclipse.ui.actions.NewWizardMenu;
 import org.eclipse.ui.actions.OpenSystemEditorAction;
 import org.eclipse.ui.actions.OpenWithMenu;
 import org.eclipse.ui.actions.RefreshAction;
-import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
@@ -47,7 +45,7 @@ import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
-public class TasksView extends ViewPart implements ISetSelectionTarget, IShellProvider {
+public class TasksView extends ViewPart implements IShellProvider {
 	private ITaskListener listener = null;
 	private Label progress;
 	
@@ -112,7 +110,6 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 			public void tasksChanged() {
 				TasksView.this.refresh();
 			}
-			// TODO: find a more fine-granular update method
 			@Override
 			public void taskStarted(Task id) {
 				myTreeViewer.refresh();	
@@ -141,6 +138,14 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 					myTreeViewer.refresh(t);
 				}*/
 				TasksView.this.refresh();
+			}
+			@Override
+			public void selectTask(Task toSelect) {
+				TasksView.this.getSite().getPage().activate(TasksView.this);
+				TasksView.this.myTreeViewer.getTree().setFocus();
+				if (toSelect instanceof Task) {
+					TasksView.this.myTreeViewer.selectTask((Task)toSelect);
+				}
 			}
 		};
 		CPAclipse plugin = CPAclipse.getPlugin();
@@ -285,13 +290,6 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS + "-end")); //$NON-NLS-1$
-	}
-	
-
-	@Override
-	public void selectReveal(ISelection selection) {
-		System.out.println("TasksView.selectReveal:" + selection.getClass());
-		//TODO: Test & implement, should be called somehow by wizard to show the view with the new element
 	}
 	
 	@Override

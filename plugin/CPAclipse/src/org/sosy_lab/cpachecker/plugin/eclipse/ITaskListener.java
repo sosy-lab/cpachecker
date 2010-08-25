@@ -6,6 +6,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
 public interface ITaskListener {
 	void tasksStarted(int taskCount);
+	void selectTask(Task toSelect);
 	void tasksChanged(List<Task> changed);
 	void tasksFinished();
 	void taskStarted(Task id);
@@ -33,6 +34,8 @@ public interface ITaskListener {
 		public void tasksStarted(int taskCount) {}
 		@Override
 		public void tasksChanged() {}
+		@Override
+		public void selectTask(Task toSelect) {}
 	}
 
 	

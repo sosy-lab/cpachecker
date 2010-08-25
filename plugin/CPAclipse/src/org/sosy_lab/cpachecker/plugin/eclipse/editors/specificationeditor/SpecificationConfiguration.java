@@ -135,7 +135,8 @@ public class SpecificationConfiguration extends TextSourceViewerConfiguration {
 	        TextAttribute textAttribute = new TextAttribute(colorManager.getColor(ColorManager.INCLUDE));
 	        IToken token = new Token(textAttribute);
 	        IRule[] rules = new IRule[1];
-	        // TODO: Use WordPatternRule to color #include and filename differently
+	        // Might use WordPatternRule to color #include and filename differently
+	        // i think using the same color is good
 	        rules[0] = new EndOfLineRule("#include ", token);
 	        setRules(rules);
 	    }

@@ -19,6 +19,7 @@ import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
@@ -285,5 +286,18 @@ public class TaskTreeViewer extends TreeViewer {
 		public String getName() { return name; }
 		public TaskNode getParent() {return parent; }
 		public Node[] getChildren() { return new Node[0]; }
+	}
+	public void selectTask(Task task) {
+		this.setExpandedState(topNode, true);
+		TreeItem[] tasks = this.getTree().getTopItem().getItems();
+		for (int i = 0; i < tasks.length; i++) {
+			if (tasks[i].getData() instanceof TaskNode) {
+				TaskNode current = (TaskNode) tasks[i].getData();
+				if (current.getTask().equals(task)) {
+					this.getTree().setSelection(tasks[i]);
+					return;
+				}
+			}
+		}
 	}
 }

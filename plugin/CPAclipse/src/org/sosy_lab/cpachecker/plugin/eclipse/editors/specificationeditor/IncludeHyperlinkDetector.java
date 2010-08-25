@@ -46,7 +46,6 @@ public class IncludeHyperlinkDetector extends AbstractHyperlinkDetector {
 			}
 			
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

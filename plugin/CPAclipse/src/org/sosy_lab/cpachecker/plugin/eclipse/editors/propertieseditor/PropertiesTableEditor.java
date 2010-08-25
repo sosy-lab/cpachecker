@@ -345,7 +345,9 @@ public class PropertiesTableEditor extends EditorPart {
 					if (nextline != null) line = line + nextline;
 				}
 				// line holds one "locical" line now
-				//TODO: do something with unicode normalization here (use java.text.Normalizer ?)
+				//do something with unicode normalization here (use java.text.Normalizer ?)
+				// not necessary, the symbols we use here should be entered in normal form
+				
 				if (line.equals("")) {
 					data.add(new Property("", ""));
 				} else if (line.startsWith("!")) {

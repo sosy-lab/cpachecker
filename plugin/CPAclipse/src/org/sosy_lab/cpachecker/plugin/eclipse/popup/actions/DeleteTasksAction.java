@@ -32,10 +32,6 @@ public class DeleteTasksAction extends Action {
 				} catch (CoreException e) {
 					CPAclipse.log(e.getStatus());
 				}
-				/*if (!deleteDir(t.getOutputDirectory())) {
-					// TODO: Proper Error handling
-					System.out.println("Could not delete the Output Directory for Task " + t.getName());
-				}*/
 			}
 			TasksIO.saveTasks(CPAclipse.getPlugin().getTasks());
 			CPAclipse.getPlugin().fireTasksChanged();

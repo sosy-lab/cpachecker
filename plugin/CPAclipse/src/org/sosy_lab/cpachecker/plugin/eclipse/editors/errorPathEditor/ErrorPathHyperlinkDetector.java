@@ -49,7 +49,6 @@ public class ErrorPathHyperlinkDetector extends AbstractHyperlinkDetector {
 			return new IHyperlink[] {new ErrorPathToSourceFileHyperlink(hyperlinkRegion, sourceLineNo, inputFile)};
 			
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

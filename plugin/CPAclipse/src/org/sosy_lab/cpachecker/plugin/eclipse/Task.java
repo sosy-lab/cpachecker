@@ -200,6 +200,7 @@ public class Task {
 		IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(
 				this.configFile.getProject().getFullPath().append(projectRelativePath));
 		assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
+		// we assume that the taskname uses only characters that can occur in directory names
 		outDir = outDir.getFolder(this.getName());
 		if (create && !outDir.exists()) {
 			try {
@@ -209,15 +210,7 @@ public class Task {
 						+ outDir.getFullPath().toPortableString(), e);
 			}
 		}
-		// TODO: as this will be a directory we should escape characters that can not occur in directory paths
-		
 		return outDir;
-		/*
-		File file = new File(ResourcesPlugin.getWorkspace().getRoot().getLocation().toPortableString() + "/.metadata/.plugins/" 
-				+ CPAcheckerPlugin.PLUGIN_ID + "/results/" + this.getName() + "/");
-		file.mkdirs();
-		return file;
-		*/
 	}
 
 	public void setSpecificationFile(IFile file) {
