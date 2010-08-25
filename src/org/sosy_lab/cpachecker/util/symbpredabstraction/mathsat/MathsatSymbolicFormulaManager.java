@@ -555,23 +555,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return new MathsatSymbolicFormula(f);
   }
 
-  private int getIndex(String name, long[] args, SSAMap ssa, boolean autoInstantiate) {
+  private SymbolicFormula[] encapsulate(long[] args) {
     SymbolicFormula[] a = new SymbolicFormula[args.length];
     for (int i = 0; i < a.length; ++i) {
       a[i] = new MathsatSymbolicFormula(args[i]);
     }
-    int idx = ssa.getIndex(name, a);
-    if (idx <= 0) {
-      if (!autoInstantiate) {
-        return -1;
-      } else {
-        logger.log(Level.ALL, "DEBUG_3",
-            "WARNING: Auto-instantiating lval: ", name, "(", a, ")");
-        idx = 1;
-        ssa.setIndex(name, a, idx);
-      }
-    }
-    return idx;
+    return a;
   }
 
   // ssa can be null. In this case, all the variables are instantiated
@@ -629,8 +618,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
               name = mathsat.api.msat_decl_get_name(d);
             }
             if (name != null && ufCanBeLvalue(name)) {
-              int idx = (ssa != null ?
-                  getIndex(name, newargs, ssa, false) : 1);
+              int idx = (ssa != null ? ssa.getIndex(name, encapsulate(newargs)) : 1);
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA,
                 // replace it
