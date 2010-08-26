@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager.AllSatCallback;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -478,28 +478,23 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       logger.log(Level.ALL, "Abstraction was cached, result is", result);
 
     } else {
-      AllSatCallback allSatCallback = smgr.getAllSatCallback(this, amgr);
       long solveStartTime = System.currentTimeMillis();
-      final int numModels = thmProver.allSat(fm, predVars, allSatCallback);
+      AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, amgr);
       long solveEndTime = System.currentTimeMillis();
 
-      assert(numModels != -1);  // msat_all_sat returns -1 on error
-
-      if (numModels == -2) {
-        // formula has infinite number of models
-        result = amgr.makeTrue();
-      } else {
-        result = allSatCallback.getResult();
-      }
+      result = allSatResult.getResult();
 
       if (useCache) {
         abstractionCache.put(absKey, result);
       }
 
       // update statistics
-      stats.maxAllSatCount = Math.max(allSatCallback.getCount(), stats.maxAllSatCount);
-      stats.allSatCount += allSatCallback.getCount();
-      long bddTime   = allSatCallback.getTotalTime();
+      int numModels = allSatResult.getCount();
+      if (numModels < Integer.MAX_VALUE) {
+        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+        stats.allSatCount += numModels;
+      }
+      long bddTime   = allSatResult.getTotalTime();
       long solveTime = (solveEndTime - solveStartTime) - bddTime;
 
       stats.abstractionSolveTime += solveTime;

@@ -45,13 +45,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
@@ -176,7 +172,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return env;
   }
   
-  private static long getTerm(SymbolicFormula f) {
+  static long getTerm(SymbolicFormula f) {
     return ((MathsatSymbolicFormula)f).getTerm();
   }
   
@@ -184,7 +180,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return ((MathsatSymbolicFormulaList)f).getTerms();
   }
   
-  private static MathsatSymbolicFormula encapsulate(long t) {
+  static MathsatSymbolicFormula encapsulate(long t) {
     return new MathsatSymbolicFormula(t);
   }
 
@@ -1108,100 +1104,5 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           }
         }
     }
-  }
-  
-  @Override
-  public SymbolicFormulaManager.AllSatCallback getAllSatCallback(FormulaManager mgr, AbstractFormulaManager amgr) {
-    return new AllSatCallback(mgr, amgr);
-  }
-  
-  /**
-   * callback used to build the predicate abstraction of a formula
-   * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
-   */
-  private static class AllSatCallback implements TheoremProver.AllSatCallback, SymbolicFormulaManager.AllSatCallback {
-      private final FormulaManager mgr;
-      private final AbstractFormulaManager amgr;
-      
-      private long totalTime = 0;
-      private int count = 0;
-
-      private AbstractFormula formula;
-      private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
-
-      private AllSatCallback(FormulaManager mgr, AbstractFormulaManager amgr) {
-          this.mgr = mgr;
-          this.amgr = amgr;
-          this.formula = amgr.makeFalse();
-      }
-
-      @Override
-      public long getTotalTime() {
-          return totalTime;
-      }
-
-      @Override
-      public int getCount() {
-        return count;
-      }
-
-      @Override
-      public AbstractFormula getResult() {
-          if (cubes.size() > 0) {
-              buildBalancedOr();
-          }
-          return formula;
-      }
-
-      private void buildBalancedOr() {
-          cubes.add(formula);
-          while (cubes.size() > 1) {
-              AbstractFormula b1 = cubes.remove();
-              AbstractFormula b2 = cubes.remove();
-              cubes.add(amgr.makeOr(b1, b2));
-          }
-          assert(cubes.size() == 1);
-          formula = cubes.remove();
-      }
-
-      @Override
-      public void modelFound(List<SymbolicFormula> model) {
-          long start = System.currentTimeMillis();
-
-          // the abstraction is created simply by taking the disjunction
-          // of all the models found by msat_all_sat, and storing them
-          // in a BDD
-          // first, let's create the BDD corresponding to the model
-          Deque<AbstractFormula> curCube = new ArrayDeque<AbstractFormula>(model.size() + 1);
-          AbstractFormula m = amgr.makeTrue();
-          for (SymbolicFormula f : model) {
-              long t = getTerm(f);
-
-              AbstractFormula v;
-              if (msat_term_is_not(t) != 0) {
-                  t = msat_term_get_arg(t, 0);
-                  v = mgr.getPredicate(encapsulate(t)).getFormula();
-                  v = amgr.makeNot(v);
-              } else {
-                v = mgr.getPredicate(f).getFormula();
-              }
-              curCube.add(v);
-          }
-          // now, add the model to the bdd
-          curCube.add(m);
-          while (curCube.size() > 1) {
-              AbstractFormula v1 = curCube.remove();
-              AbstractFormula v2 = curCube.remove();
-              curCube.add(amgr.makeAnd(v1, v2));
-          }
-          assert(curCube.size() == 1);
-          m = curCube.remove();
-          cubes.add(m);
-
-          count++;
-
-          long end = System.currentTimeMillis();
-          totalTime += (end - start);
-      }
   }
 }

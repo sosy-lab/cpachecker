@@ -286,16 +286,4 @@ public interface SymbolicFormulaManager {
      * if it is not done by the caller of this method.
      */
     public SymbolicFormula createPredicateVariable(SymbolicFormula pAtom);
-    
-    /**
-     * Returns an instance of a class that knows how parse the AllSat result
-     * and create an abstract formula from it.
-     */
-    public AllSatCallback getAllSatCallback(FormulaManager mgr, AbstractFormulaManager amgr);
-    
-    public interface AllSatCallback extends TheoremProver.AllSatCallback {
-      public AbstractFormula getResult();
-      public int getCount();
-      public long getTotalTime();
-    }
 }

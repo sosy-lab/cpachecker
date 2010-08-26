@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager.AllSatCallback;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
@@ -521,32 +521,25 @@ implements PredicateAbstractionFormulaManager {
 
     ++stats.abstractionNumMathsatQueries;
 
-    AllSatCallback func = smgr.getAllSatCallback(this, amgr);
     long libmsatStartTime = System.currentTimeMillis();
-    int numModels = thmProver.allSat(formula, important, func);
-    assert(numModels != -1);
+    AllSatResult allsatResult = thmProver.allSat(formula, important, this, amgr);
     long libmsatEndTime = System.currentTimeMillis();
 
     // update statistics
     long endTime = System.currentTimeMillis();
-    long libmsatTime = (libmsatEndTime - libmsatStartTime) - func.getTotalTime();
-    long msatTime = (endTime - startTime) - func.getTotalTime();
+    long libmsatTime = (libmsatEndTime - libmsatStartTime) - allsatResult.getTotalTime();
+    long msatTime = (endTime - startTime) - allsatResult.getTotalTime();
     stats.abstractionMaxMathsatTime =
       Math.max(msatTime, stats.abstractionMaxMathsatTime);
     stats.abstractionMaxBddTime =
-      Math.max(func.getTotalTime(), stats.abstractionMaxBddTime);
+      Math.max(allsatResult.getTotalTime(), stats.abstractionMaxBddTime);
     stats.abstractionMathsatTime += msatTime;
-    stats.abstractionBddTime += func.getTotalTime();
+    stats.abstractionBddTime += allsatResult.getTotalTime();
     stats.abstractionMathsatSolveTime += libmsatTime;
     stats.abstractionMaxMathsatSolveTime =
       Math.max(libmsatTime, stats.abstractionMaxMathsatSolveTime);
 
-    AbstractFormula ret = null;
-    if (numModels == -2) {
-      ret = amgr.makeTrue();
-    } else {
-      ret = func.getResult();
-    }
+    AbstractFormula ret = allsatResult.getResult();
     if (useCache) {
       booleanAbstractionCache.put(key, ret);
     }

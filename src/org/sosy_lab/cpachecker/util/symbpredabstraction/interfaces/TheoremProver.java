@@ -23,21 +23,35 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
-import java.util.List;
-
-
+import java.util.Collection;
 
 public interface TheoremProver {
 
-    void init();
-    void push(SymbolicFormula f);
-    void pop();
-    boolean isUnsat(SymbolicFormula f);
-    void reset();
+  void init();
+  void push(SymbolicFormula f);
+  void pop();
+  boolean isUnsat(SymbolicFormula f);
+  void reset();
 
-    public interface AllSatCallback {
-        public void modelFound(List<SymbolicFormula> model);
-    }
-    public int allSat(SymbolicFormula f,
-            List<SymbolicFormula> important, AllSatCallback callback);
+  AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
+                      FormulaManager mgr, AbstractFormulaManager amgr);
+    
+  interface AllSatResult {
+      
+    /**
+     * The result of an allSat call as an abstract formula.
+     */
+    public AbstractFormula getResult();
+    
+    /**
+     * The number of satisfying assignments contained in the result, of
+     * {@link Integer#MAX_VALUE} if this number is infinite.
+     */
+    public int getCount();
+    
+    /**
+     * The time spent for creating the abstract formula.
+     */
+    public long getTotalTime();
+  }
 }
