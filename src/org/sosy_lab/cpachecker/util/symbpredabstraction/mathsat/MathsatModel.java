@@ -1,9 +1,11 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
+
+import com.google.common.collect.ImmutableMap;
 
 public class MathsatModel implements Model {
 
@@ -14,7 +16,7 @@ public class MathsatModel implements Model {
     Real,
     Bitvector;
     
-    public static MathsatType toMathsatType(int pTypeId) {
+    private static MathsatType toMathsatType(int pTypeId) {
       
       switch (pTypeId) {
       case mathsat.api.MSAT_BOOL:
@@ -43,10 +45,10 @@ public class MathsatModel implements Model {
   
   public static class MathsatVariable implements MathsatAssignable {
     
-    private String mName;
-    private MathsatType mType;
+    private final String mName;
+    private final MathsatType mType;
     
-    public MathsatVariable(String pName, MathsatType pType) {
+    private MathsatVariable(String pName, MathsatType pType) {
       mName = pName;
       mType = pType;
     }
@@ -66,9 +68,9 @@ public class MathsatModel implements Model {
       return mName + " : " + mType;
     }
     
-    public static MathsatVariable toVariable(long pVariableId) {
+    private static MathsatVariable toVariable(long pVariableId) {
       if (mathsat.api.msat_term_is_variable(pVariableId) == 0) {
-        throw new IllegalArgumentException("Given mathsat id corresponds not to a variable! (" + mathsat.api.msat_term_repr(pVariableId) + ")");
+        throw new IllegalArgumentException("Given mathsat id doesn't correspond to a variable! (" + mathsat.api.msat_term_repr(pVariableId) + ")");
       }
       
       long lDeclarationId = mathsat.api.msat_term_get_decl(pVariableId);
@@ -106,13 +108,13 @@ public class MathsatModel implements Model {
   
   public static class MathsatFunction implements MathsatAssignable {
     
-    private String mName;
-    private MathsatType mReturnType;
-    private MathsatValue[] mArguments;
+    private final String mName;
+    private final MathsatType mReturnType;
+    private final MathsatValue[] mArguments;
     
     private int mHashCode;
     
-    public MathsatFunction(String pName, MathsatType pReturnType, MathsatValue[] pArguments) {
+    private MathsatFunction(String pName, MathsatType pReturnType, MathsatValue[] pArguments) {
       mName = pName;
       mReturnType = pReturnType;
       mArguments = pArguments;
@@ -197,7 +199,7 @@ public class MathsatModel implements Model {
       }
     }
     
-    public static MathsatFunction toFunction(long pFunctionId) {
+    private static MathsatFunction toFunction(long pFunctionId) {
       if (mathsat.api.msat_term_is_variable(pFunctionId) != 0) {
         throw new IllegalArgumentException("Given mathsat id is a variable! (" + mathsat.api.msat_term_repr(pFunctionId) + ")");
       }
@@ -249,9 +251,9 @@ public class MathsatModel implements Model {
   
   public static class MathsatBooleanValue implements MathsatValue {
     
-    private boolean mValue;
+    private final boolean mValue;
     
-    public MathsatBooleanValue(boolean pValue) {
+    private MathsatBooleanValue(boolean pValue) {
       mValue = pValue;
     }
     
@@ -292,9 +294,9 @@ public class MathsatModel implements Model {
   
   public static class MathsatRealValue implements MathsatValue {
     
-    private double mValue;
+    private final double mValue;
     
-    public MathsatRealValue(double pValue) {
+    private MathsatRealValue(double pValue) {
       mValue = pValue;
     }
     
@@ -331,9 +333,9 @@ public class MathsatModel implements Model {
   
   public static class MathsatIntegerValue implements MathsatValue {
     
-    private long mValue;
+    private final long mValue;
     
-    public MathsatIntegerValue(long pValue) {
+    private MathsatIntegerValue(long pValue) {
       mValue = pValue;
     }
     
@@ -383,10 +385,11 @@ public class MathsatModel implements Model {
     }
   }
   
-  private HashMap<MathsatAssignable, MathsatValue> mModel;
+  private final Map<MathsatAssignable, MathsatValue> mModel;
   
-  public MathsatModel(long lMathsatEnvironmentID) {
-    mModel = new HashMap<MathsatAssignable, MathsatValue>();
+  MathsatModel(long lMathsatEnvironmentID) {
+    ImmutableMap.Builder<MathsatAssignable, MathsatValue> model
+        = ImmutableMap.builder();
     
     long lModelIterator = mathsat.api.msat_create_model_iterator(lMathsatEnvironmentID);
       
@@ -441,10 +444,11 @@ public class MathsatModel implements Model {
         throw new RuntimeException("I don't understand this!");
       }
       
-      mModel.put(lAssignable, lValue);
+      model.put(lAssignable, lValue);
     }
     
     mathsat.api.msat_destroy_model_iterator(lModelIterator);
+    mModel = model.build();
   }
   
   public Set<MathsatAssignable> getAssignables() {
