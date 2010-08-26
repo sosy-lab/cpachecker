@@ -194,6 +194,11 @@ public interface SymbolicFormulaManager {
      */
     public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
     
+    /**
+     * Given an "instantiated" formula, returns the corresponding formula in
+     * which all the variables are "generic" ones. This is the inverse of the
+     * instantiate() method above
+     */
     public SymbolicFormula uninstantiate(SymbolicFormula pF);
 
     /**
