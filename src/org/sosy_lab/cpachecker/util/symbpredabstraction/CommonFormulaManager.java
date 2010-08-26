@@ -188,7 +188,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       new HashMap<SymbolicFormula, SymbolicFormula>();
     for (Pair<String, SymbolicFormulaList> p : allfuncs) {
       SymbolicFormulaList args =
-        smgr.getInstantiatedAt(p.getSecond(), ssa, cache);
+        smgr.instantiate(p.getSecond(), ssa, cache);
       if (ssa.getIndex(p.getFirst(), args) < 0) {
         ssa.setIndex(p.getFirst(), args, 1);
       }

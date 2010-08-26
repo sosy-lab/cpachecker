@@ -317,7 +317,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             }
             for (Pair<String, SymbolicFormulaList> pp : predlvals) {
               SymbolicFormulaList args =
-                smgr.getInstantiatedAt(pp.getSecond(), ssa,
+                smgr.instantiate(pp.getSecond(), ssa,
                     predLvalsCache);
               if (ssa.getIndex(pp.getFirst(), args) < 0) {
                 ssa.setIndex(pp.getFirst(), args, 1);

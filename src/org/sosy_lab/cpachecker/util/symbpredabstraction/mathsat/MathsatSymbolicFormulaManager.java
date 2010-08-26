@@ -530,18 +530,31 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return encapsulate(f);
   }
 
-  // ssa can be null. In this case, all the variables are instantiated
-  // at index 1
   @Override
   public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
-    Deque<Long> toProcess = new ArrayDeque<Long>();
-    Map<Long, Long> cache = new HashMap<Long, Long>();
+    return instantiate(f, ssa, new HashMap<SymbolicFormula, SymbolicFormula>());
+  }
 
-    Long term = getTerm(f);
-    toProcess.push(term);
+  @Override
+  public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa,
+                                         Map<SymbolicFormula, SymbolicFormula> cache) {
+    long[] args = getTerm(f);
+    long[] result = new long[args.length];
+    
+    for (int i = 0; i < args.length; i++) {
+      result[i] = getTerm(instantiate(encapsulate(args[i]), ssa, cache));
+    }
+    return encapsulate(result);
+  }
+
+  private SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa,
+                                      Map<SymbolicFormula, SymbolicFormula> cache) {
+    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+
+    toProcess.push(f);
     while (!toProcess.isEmpty()) {
-      final Long tt = toProcess.peek();
-      final long t = tt;
+      final SymbolicFormula tt = toProcess.peek();
+      final long t = getTerm(tt);
       if (cache.containsKey(tt)) {
         toProcess.pop();
         continue;
@@ -555,7 +568,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           // ok, the variable has an instance in the SSA, replace it
           long newt = buildMsatVariable(name, idx);
           assert(!MSAT_ERROR_TERM(newt));
-          cache.put(tt, newt);
+          cache.put(tt, encapsulate(newt));
         } else {
           // the variable is not used in the SSA, keep it as is
           cache.put(tt, tt);
@@ -565,10 +578,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          Long c = msat_term_get_arg(t, i);
-          Long newC = cache.get(c);
+          SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
+          SymbolicFormula newC = cache.get(c);
           if (newC != null) {
-            newargs[i] = newC;
+            newargs[i] = getTerm(newC);
           } else {
             toProcess.push(c);
             childrenDone = false;
@@ -602,86 +615,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           }
           
           assert(!MSAT_ERROR_TERM(newt));
-          cache.put(tt, newt);
+          cache.put(tt, encapsulate(newt));
         }
       }
     }
 
-    Long result = cache.get(term);
+    SymbolicFormula result = cache.get(f);
     assert result != null;
-    return encapsulate(result);
-  }
-
-  @Override
-  public SymbolicFormulaList getInstantiatedAt(SymbolicFormulaList a,
-      SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache) {
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-    long[] args = getTerm(a);
-    for (long l : args) {
-      toProcess.push(encapsulate(l));
-    }
-  
-    while (!toProcess.isEmpty()) {
-      final SymbolicFormula tt = toProcess.peek();
-      final long t = getTerm(tt);
-      if (cache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
-      }
-
-      if (msat_term_is_variable(t) != 0) {
-        toProcess.pop();
-        String name = msat_term_repr(t);
-        int idx = ssa.getIndex(name);
-        assert idx > 0;
-        long newt = buildMsatVariable(name, idx);
-        assert(!MSAT_ERROR_TERM(newt));
-        cache.put(tt, encapsulate(newt));
-
-      } else if (msat_term_is_uif(t) != 0) {
-        String name = msat_decl_get_name(msat_term_get_decl(t));
-        if (ufCanBeLvalue(name)) {
-          long[] newargs = new long[msat_term_arity(t)];
-          boolean childrenDone = true;
-          for (int i = 0; i < newargs.length; ++i) {
-            SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
-            SymbolicFormula newC = cache.get(c);
-            if (newC != null) {
-              newargs[i] = getTerm(newC);
-            } else {
-              toProcess.push(c);
-              childrenDone = false;
-            }
-          }
-          if (childrenDone) {
-            toProcess.pop();
-//            SymbolicFormulaList ccc = encapsulate(newargs);
-//            if (ssa.getIndex(name, ccc) < 0) {
-//              ssa.setIndex(name, ccc, 1);
-//            }
-            int idx = ssa.getIndex(name, encapsulate(newargs));
-            assert idx > 0;
-            long newt = buildMsatUF(name, newargs, idx);
-            
-            cache.put(tt, encapsulate(newt));
-          }
-        } else {
-          toProcess.pop();
-          cache.put(tt, tt);
-        }
-      } else {
-        toProcess.pop();
-        cache.put(tt, tt);
-      }
-    }
-    
-    long[] result = new long[args.length];
-    for (int i = 0; i < result.length; ++i) {
-      SymbolicFormula res = cache.get(args[i]);
-      assert res != null;
-      result[i] = getTerm(res);
-    }
-    return encapsulate(result);
+    return result;
   }
 
   private boolean ufCanBeLvalue(String name) {
