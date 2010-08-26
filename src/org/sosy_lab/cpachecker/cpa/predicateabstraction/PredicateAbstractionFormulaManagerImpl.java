@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 /**
@@ -365,7 +364,7 @@ implements PredicateAbstractionFormulaManager {
   // to the given edge, starting from the data region encoded by the
   // abstraction at "e"
   protected Pair<SymbolicFormula, SSAMap> buildConcreteFormula(
-      MathsatSymbolicFormulaManager mgr,
+      SymbolicFormulaManager mgr,
       PredicateAbstractionAbstractElement e, PredicateAbstractionAbstractElement succ,
       CFAEdge edge, boolean replaceAssignments) {
 
@@ -435,18 +434,17 @@ implements PredicateAbstractionFormulaManager {
 //  }
 
     if (cartesianAbstraction) {
-      return buildCartesianAbstraction(smgr, e, succ, edge, predicates);
+      return buildCartesianAbstraction(e, succ, edge, predicates);
     } else {
-      return buildBooleanAbstraction(smgr, e, succ, edge, predicates);
+      return buildBooleanAbstraction(e, succ, edge, predicates);
     }
   }
 
   // precise predicate abstraction, using All-SMT algorithm
-  protected AbstractFormula buildBooleanAbstraction(
-      SymbolicFormulaManager mgr, PredicateAbstractionAbstractElement e,
+  private AbstractFormula buildBooleanAbstraction(
+      PredicateAbstractionAbstractElement e,
       PredicateAbstractionAbstractElement succ, CFAEdge edge,
       Collection<Predicate> predicates) {
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     long startTime = System.currentTimeMillis();
 
@@ -475,11 +473,11 @@ implements PredicateAbstractionFormulaManager {
 //    }
 
     Pair<SymbolicFormula, SSAMap> pc =
-      buildConcreteFormula(mmgr, e, succ, edge, false);
+      buildConcreteFormula(smgr, e, succ, edge, false);
     SymbolicFormula f = pc.getFirst();
     SSAMap ssa = pc.getSecond();
 
-    f = mmgr.replaceAssignments(pc.getFirst());
+    f = smgr.replaceAssignments(pc.getFirst());
 
     BooleanAbstractionCacheKey key = null;
     if (useCache) {
@@ -491,8 +489,8 @@ implements PredicateAbstractionFormulaManager {
     }
 
     if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(f);
-      f = mgr.makeAnd(f, bitwiseAxioms);
+      SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(f);
+      f = smgr.makeAnd(f, bitwiseAxioms);
 
       logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
     }
@@ -547,13 +545,11 @@ implements PredicateAbstractionFormulaManager {
   }
 
   // cartesian abstraction
-  protected AbstractFormula buildCartesianAbstraction(
-      SymbolicFormulaManager mgr, PredicateAbstractionAbstractElement e,
+  private AbstractFormula buildCartesianAbstraction(
+      PredicateAbstractionAbstractElement e,
       PredicateAbstractionAbstractElement succ, CFAEdge edge,
       Collection<Predicate> predicates) {
     long startTime = System.currentTimeMillis();
-
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     thmProver.init();
 
@@ -582,11 +578,11 @@ implements PredicateAbstractionFormulaManager {
 //    }
 
     Pair<SymbolicFormula, SSAMap> pc =
-      buildConcreteFormula(mmgr, e, succ, edge, false);
+      buildConcreteFormula(smgr, e, succ, edge, false);
     SymbolicFormula f = pc.getFirst();
     SSAMap ssa = pc.getSecond();
 
-    f = mmgr.replaceAssignments(pc.getFirst());
+    f = smgr.replaceAssignments(pc.getFirst());
     SymbolicFormula fkey = f;
 
     byte[] predVals = null;
@@ -620,8 +616,8 @@ implements PredicateAbstractionFormulaManager {
     }
 
     if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(f);
-      f = mmgr.makeAnd(f, bitwiseAxioms);
+      SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(f);
+      f = smgr.makeAnd(f, bitwiseAxioms);
 
       logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
     }
@@ -688,7 +684,7 @@ implements PredicateAbstractionFormulaManager {
         // (at index 1)
         predvars.clear();
         predlvals.clear();
-        mmgr.collectVarNames(pi.getSecond(), predvars, predlvals);
+        smgr.collectVarNames(pi.getSecond(), predvars, predlvals);
 
         for (String var : predvars) {
           if (ssa.getIndex(var) < 0) {
@@ -708,7 +704,7 @@ implements PredicateAbstractionFormulaManager {
             "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
         // instantiate the definition of the predicate
-        SymbolicFormula predTrue =  mmgr.instantiate(pi.getSecond(), ssa);
+        SymbolicFormula predTrue =  smgr.instantiate(pi.getSecond(), ssa);
         SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
         boolean isTrue = false, isFalse = false;
@@ -1282,7 +1278,7 @@ implements PredicateAbstractionFormulaManager {
 //  }
 
   private Pair<SymbolicFormula, SSAMap> makeFormula(
-      MathsatSymbolicFormulaManager mmgr,
+      SymbolicFormulaManager mmgr,
       CFAEdge edge,
       SSAMap ssa) throws CPATransferException {
     stats.makeFormulaCalls++;
@@ -1435,7 +1431,6 @@ implements PredicateAbstractionFormulaManager {
       Pair<ARTElement, CFAEdge>[] pathArray)
   throws CPATransferException {
     SSAMap ssa = new SSAMap();
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
 
@@ -1458,13 +1453,13 @@ implements PredicateAbstractionFormulaManager {
 //      assert(found != null);
       CFAEdge edge = pathArray[i].getSecond();
       long startTime = System.currentTimeMillis();
-      Pair<SymbolicFormula, SSAMap> p = makeFormula(mmgr, edge, ssa);
+      Pair<SymbolicFormula, SSAMap> p = makeFormula(smgr, edge, ssa);
       long endTime = System.currentTimeMillis();
       stats.extraTime += endTime - startTime;
 
       SSAMap newssa = null;
       SymbolicFormula fm = null;
-      fm = mmgr.replaceAssignments(p.getFirst());
+      fm = smgr.replaceAssignments(p.getFirst());
       logger.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
           " SSA: ", p.getSecond());
       newssa = p.getSecond();

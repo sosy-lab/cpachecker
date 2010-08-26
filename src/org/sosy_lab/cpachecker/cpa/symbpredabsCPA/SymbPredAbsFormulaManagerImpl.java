@@ -150,6 +150,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
 
+  @Option
+  private boolean useBitwiseAxioms = false;
+  
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -410,8 +413,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     
     symbFormula = smgr.replaceAssignments(symbFormula);
 
-    symbFormula = smgr.prepareFormula(symbFormula);
+    if (useBitwiseAxioms) {
+      SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
+      if (!bitwiseAxioms.isTrue()) {
+        symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
 
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+      }
+    }
+    
     return smgr.makeAnd(absFormula, symbFormula);
   }
 
@@ -560,7 +570,24 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     List<SymbolicFormula> f = getFormulasForTrace(pAbstractTrace);
 
-    smgr.prepareFormulas(f);
+    if (useBitwiseAxioms) {
+      SymbolicFormula bitwiseAxioms = smgr.makeTrue();
+  
+      for (SymbolicFormula fm : f) {
+        SymbolicFormula a = smgr.getBitwiseAxioms(fm);
+        if (!a.isTrue()) {
+          bitwiseAxioms = smgr.makeAnd(bitwiseAxioms, a);  
+        }
+      }
+  
+      if (!bitwiseAxioms.isTrue()) {
+        logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+            "LAST GROUP: ", bitwiseAxioms);
+        int lastIndex = f.size()-1;
+        f.set(lastIndex, smgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
+      }
+    }
+
     f = Collections.unmodifiableList(f);
 
     logger.log(Level.ALL, "Counterexample trace formulas:", f);

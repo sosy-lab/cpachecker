@@ -258,22 +258,11 @@ public interface SymbolicFormulaManager {
     public String dumpFormula(SymbolicFormula pT);
 
     /**
-     * Prepare formula for solving problems. For example, this method can add
-     * some extra terms to the formula that help the solver.
-     * 
-     * This method returns either the argument or a new formula. The caller should
-     * use the result when asking the solver.
+     * Looks for uninterpreted functions in the formula and adds bitwise
+     * axioms for them.
      */
-    public SymbolicFormula prepareFormula(SymbolicFormula f);
-    
-    /**
-     * Prepare formulas for solving problems. For example, this method can add
-     * some extra terms to the formulas that help the solver.
-     *
-     * This method may change the supplied list.
-     */
-    public void prepareFormulas(List<SymbolicFormula> f);
-    
+    public SymbolicFormula getBitwiseAxioms(SymbolicFormula f);
+
     /**
      * Dump an abstraction problem to a file so that the user can look at this problem later.
      */

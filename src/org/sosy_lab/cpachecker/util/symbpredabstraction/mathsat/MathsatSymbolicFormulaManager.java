@@ -35,7 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -51,17 +50,14 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 
 import com.google.common.base.Preconditions;
 
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
-  @Option(name="mathsat.useIntegers")
+  @Option
   private boolean useIntegers = false;
 
-  @Option(name="mathsat.useDtc")
-  private boolean useDtc = false;
-
   @Option
-  private boolean useBitwiseAxioms = false;
+  private boolean useDtc = false;
   
   // the MathSAT environment in which all terms are created
   private final long msatEnv;
@@ -111,12 +107,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // cache for replacing assignments
   private final Map<SymbolicFormula, SymbolicFormula> replaceAssignmentsCache = new HashMap<SymbolicFormula, SymbolicFormula>();
 
-  protected final LogManager logger;
   private final MathsatAbstractionPrinter absPrinter;  
   
-  public MathsatSymbolicFormulaManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatSymbolicFormulaManager.class);
-    logger = pLogger;
     msatEnv = msat_create_env();
     msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
 
@@ -180,11 +174,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return ((MathsatSymbolicFormulaList)f).getTerms();
   }
   
-  static MathsatSymbolicFormula encapsulate(long t) {
+  static SymbolicFormula encapsulate(long t) {
     return new MathsatSymbolicFormula(t);
   }
 
-  private static MathsatSymbolicFormulaList encapsulate(long[] t) {
+  private static SymbolicFormulaList encapsulate(long[] t) {
     return new MathsatSymbolicFormulaList(t);
   }
   
@@ -798,55 +792,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     assert result != null;
     return new PathFormula(result, newssa);
   }
-
-  /**
-   * Looks for uninterpreted functions in the formula and adds bitwise
-   * axioms for them.
-   */
-  @Override
-  public SymbolicFormula prepareFormula(SymbolicFormula f) {
-    if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = getBitwiseAxioms(f);
-      if (!bitwiseAxioms.isTrue()) {
-        f = makeAnd(f, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-    return f;
-  }
-  
-  /**
-   * Looks for uninterpreted functions in the formulas and adds bitwise
-   * axioms for them to the last formula.
-   */
-  @Override
-  public void prepareFormulas(List<SymbolicFormula> formulas) {
-    if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = makeTrue();
-  
-      for (SymbolicFormula fm : formulas) {
-        SymbolicFormula a = getBitwiseAxioms(fm);
-        if (!a.isTrue()) {
-          bitwiseAxioms = makeAnd(bitwiseAxioms, a);  
-        }
-      }
-  
-      if (!bitwiseAxioms.isTrue()) {
-        logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-            "LAST GROUP: ", bitwiseAxioms);
-        formulas.set(formulas.size()-1, makeAnd(formulas.get(formulas.size()-1), bitwiseAxioms));
-      }
-    }
-  }
   
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
   // Currently it add's the following formulas for each number literal n that
   // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
   // But only if an bitwise "and" occurs in the formula.
-  @Deprecated
-  public MathsatSymbolicFormula getBitwiseAxioms(SymbolicFormula f) {
+  @Override
+  public SymbolicFormula getBitwiseAxioms(SymbolicFormula f) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Set<SymbolicFormula> seen = new HashSet<SymbolicFormula>();
     Set<SymbolicFormula> allLiterals = new HashSet<SymbolicFormula>();
