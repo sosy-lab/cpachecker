@@ -184,11 +184,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         ssa.setIndex(var, 1);
       }
     }
-    Map<SymbolicFormula, SymbolicFormula> cache =
-      new HashMap<SymbolicFormula, SymbolicFormula>();
+
     for (Pair<String, SymbolicFormulaList> p : allfuncs) {
-      SymbolicFormulaList args =
-        smgr.instantiate(p.getSecond(), ssa, cache);
+      SymbolicFormulaList args = smgr.instantiate(p.getSecond(), ssa);
       if (ssa.getIndex(p.getFirst(), args) < 0) {
         ssa.setIndex(p.getFirst(), args, 1);
       }

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -193,8 +192,7 @@ public interface SymbolicFormulaManager {
     /**
      * @see #instantiate(SymbolicFormula, SSAMap)
      */
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa,
-                            Map<SymbolicFormula, SymbolicFormula> cache);
+    public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
     
     public SymbolicFormula uninstantiate(SymbolicFormula pF);
 

@@ -536,10 +536,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa,
-                                         Map<SymbolicFormula, SymbolicFormula> cache) {
+  public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa) {
     long[] args = getTerm(f);
     long[] result = new long[args.length];
+    Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
     
     for (int i = 0; i < args.length; i++) {
       result[i] = getTerm(instantiate(encapsulate(args[i]), ssa, cache));

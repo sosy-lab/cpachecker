@@ -281,8 +281,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         Set<String> predvars = new HashSet<String>();
         Set<Pair<String, SymbolicFormulaList>> predlvals =
           new HashSet<Pair<String, SymbolicFormulaList>>();
-        Map<SymbolicFormula, SymbolicFormula> predLvalsCache =
-          new HashMap<SymbolicFormula, SymbolicFormula>();
 
         int predIndex = -1;
         for (Predicate p : predicates) {
@@ -308,17 +306,16 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             // (at index 1)
             predvars.clear();
             predlvals.clear();
-            smgr.collectVarNames(pi.getSecond(),
-                predvars, predlvals);
+            smgr.collectVarNames(pi.getSecond(), predvars, predlvals);
+            
             for (String var : predvars) {
               if (ssa.getIndex(var) < 0) {
                 ssa.setIndex(var, 1);
               }
             }
+            
             for (Pair<String, SymbolicFormulaList> pp : predlvals) {
-              SymbolicFormulaList args =
-                smgr.instantiate(pp.getSecond(), ssa,
-                    predLvalsCache);
+              SymbolicFormulaList args = smgr.instantiate(pp.getSecond(), ssa);
               if (ssa.getIndex(pp.getFirst(), args) < 0) {
                 ssa.setIndex(pp.getFirst(), args, 1);
               }
