@@ -653,13 +653,9 @@ public class CtoFormulaConverter {
 
   private SymbolicFormula makeAndAssume(SymbolicFormula f1,
       AssumeEdge assume, SSAMap ssa) throws CPATransferException {
-    SymbolicFormula f2 = buildFormulaPredicate(
-        assume.getExpression(), assume.getTruthAssumption(), ssa);
-    if (f2 == null) {
-      throw new UnrecognizedCFAEdgeException("ASSUME: " + assume.getRawStatement());
-    } else {
-      return smgr.makeAnd(f1, f2);
-    }
+    SymbolicFormula f2 = buildFormulaPredicate(assume.getExpression(), assume.getTruthAssumption(), ssa);
+
+    return smgr.makeAnd(f1, f2);
   }
 
   private SymbolicFormula buildTerm(IASTExpression exp, SSAMap ssa) throws UnrecognizedCCodeException {
@@ -828,12 +824,7 @@ public class CtoFormulaConverter {
         // this might be a predicate implicitly cast to an int. Let's
         // see if this is indeed the case...
         SymbolicFormula ftmp = buildFormulaPredicate(exp, true, ssa);
-        if (ftmp == null) {
-          throw new UnrecognizedCCodeException("Don't know how to handle this here", null, exp);
-        } else {
-          //assert(false);
-          return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
-        }
+        return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
       }
       }
     } else if (exp instanceof IASTBinaryExpression) {
@@ -946,16 +937,8 @@ public class CtoFormulaConverter {
         // this might be a predicate implicitly cast to an int, like this:
         // int tmp = (a == b)
         // Let's see if this is indeed the case...
-        SymbolicFormula ftmp = buildFormulaPredicate(
-            exp, true, ssa);
-        if (ftmp == null) {
-          throw new UnrecognizedCCodeException("Don't know how to handle this here", null, exp);
-        } else {
-          // PW why this assertion? without it, everything seems to work nicely
-          //System.out.println(exp.getRawSignature());
-          //assert(false);
-          return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
-        }
+        SymbolicFormula ftmp = buildFormulaPredicate(exp, true, ssa);
+        return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
       }
     } else if (exp instanceof IASTFieldReference) {
       if (lvalsAsUif) {
@@ -1139,8 +1122,8 @@ public class CtoFormulaConverter {
     }
   }
 
-  protected SymbolicFormula buildFormulaPredicate(
-      IASTExpression exp, boolean isTrue, SSAMap ssa) throws UnrecognizedCCodeException {
+  protected SymbolicFormula buildFormulaPredicate(IASTExpression exp, boolean isTrue, SSAMap ssa)
+        throws UnrecognizedCCodeException {
     if (exp instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)exp);
       int opType = binExp.getOperator();
@@ -1150,9 +1133,8 @@ public class CtoFormulaConverter {
       SymbolicFormula t1 = buildTerm(op1, ssa);
       SymbolicFormula t2 = buildTerm(op2, ssa);
 
-      if (smgr.isErrorTerm(t1) ||
-          smgr.isErrorTerm(t2)) {
-        return null;
+      if (smgr.isErrorTerm(t1) || smgr.isErrorTerm(t2)) {
+        throw new UnrecognizedCCodeException(null, exp);
       }
       SymbolicFormula result;
 
@@ -1185,7 +1167,8 @@ public class CtoFormulaConverter {
         // check whether this is an implict cast to bool
         SymbolicFormula t = buildTerm(exp, ssa);
         if (smgr.isErrorTerm(t)) {
-          return null;
+          throw new UnrecognizedCCodeException(null, exp);
+
         } else if (!smgr.isBoolean(t)) {
           SymbolicFormula z = smgr.makeNumber(0);
           result = smgr.makeNot(smgr.makeEqual(t, z));
@@ -1205,17 +1188,15 @@ public class CtoFormulaConverter {
       // ! exp
       if (unaryExp.getOperator() == IASTUnaryExpression.op_not) {
         IASTExpression exp1 = unaryExp.getOperand();
-        SymbolicFormula r = buildFormulaPredicate(exp1, !isTrue, ssa);
-        return r;
-      } else if (unaryExp.getOperator() ==
-        IASTUnaryExpression.op_bracketedPrimary) {
+        return buildFormulaPredicate(exp1, !isTrue, ssa);
+     } else if (unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
         return buildFormulaPredicate(unaryExp.getOperand(), isTrue, ssa);
       } else {
         // build the term. If this is not a predicate, make
         // it a predicate by adding a "!= 0"
         SymbolicFormula t = buildTerm(exp, ssa);
         if (smgr.isErrorTerm(t)) {
-          return null;
+          throw new UnrecognizedCCodeException(null, exp);
         }
         if (!smgr.isBoolean(t)){
           SymbolicFormula z = smgr.makeNumber(0);
@@ -1225,7 +1206,7 @@ public class CtoFormulaConverter {
             t = smgr.makeEqual(t, z);
           }
           if (smgr.isErrorTerm(t)) {
-            return null;
+            throw new UnrecognizedCCodeException(null, exp);
           }
         }
         return t;
@@ -1235,7 +1216,7 @@ public class CtoFormulaConverter {
       // it a predicate by adding a "!= 0"
       SymbolicFormula t = buildTerm(exp, ssa);
       if (smgr.isErrorTerm(t)) {
-        return null;
+        throw new UnrecognizedCCodeException(null, exp);
       }
       if (!smgr.isBoolean(t)){
         SymbolicFormula z = smgr.makeNumber(0);
@@ -1245,7 +1226,7 @@ public class CtoFormulaConverter {
           t = smgr.makeEqual(t, z);
         }
         if (smgr.isErrorTerm(t)) {
-          return null;
+          throw new UnrecognizedCCodeException(null, exp);
         }
       }
       return t;
