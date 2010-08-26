@@ -108,7 +108,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms
-  private final Map<Long, Boolean> arithCache = new HashMap<Long, Boolean>();
+  private final Map<SymbolicFormula, Boolean> arithCache = new HashMap<SymbolicFormula, Boolean>();
 
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<SymbolicFormula, SymbolicFormula> uninstantiateCache = new HashMap<SymbolicFormula, SymbolicFormula>();
@@ -546,11 +546,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
       final SymbolicFormula tt = toProcess.peek();
-      final long t = getTerm(tt);
       if (cache.containsKey(tt)) {
         toProcess.pop();
         continue;
       }
+      final long t = getTerm(tt);
 
       if (msat_term_is_variable(t) != 0) {
         toProcess.pop();
@@ -630,11 +630,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
       final SymbolicFormula tt = toProcess.peek();
-      final long t = getTerm(tt);
       if (cache.containsKey(tt)) {
         toProcess.pop();
         continue;
       }
+      final long t = getTerm(tt);
 
       if (msat_term_is_variable(t) != 0) {
         String name = parseName(msat_term_repr(t)).getFirst();
@@ -951,56 +951,54 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   @Override
   public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
       boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Set<Long> cache = new HashSet<Long>();
+    Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();
     List<SymbolicFormula> atoms = new ArrayList<SymbolicFormula>();
 
-    Stack<Long> toProcess = new Stack<Long>();
-    toProcess.push(getTerm(f));
+    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+    toProcess.push(f);
 
-    while (!toProcess.empty()) {
-      long term = toProcess.pop();
-      assert(!cache.contains(term));
-      cache.add(term);
+    while (!toProcess.isEmpty()) {
+      SymbolicFormula tt = toProcess.pop();
+      long t = getTerm(tt);
+      assert !cache.contains(tt);
+      cache.add(tt);
 
-      if (msat_term_is_true(term) != 0 ||
-          msat_term_is_false(term) != 0) {
+      if (msat_term_is_true(t) != 0 || msat_term_is_false(t) != 0) {
         continue;
       }
 
-      if (msat_term_is_atom(term) != 0) {
-        term = getTerm(uninstantiate(encapsulate(term)));
-        if (splitArithEqualities &&
-            msat_term_is_equal(term) != 0 &&
-            isPurelyArithmetic(term, arithCache)) {
-          long a1 = msat_term_get_arg(term, 0);
-          long a2 = msat_term_get_arg(term, 1);
+      if (msat_term_is_atom(t) != 0) {
+        tt = uninstantiate(tt);
+        t = getTerm(tt);
+
+        if (   splitArithEqualities
+            && (msat_term_is_equal(t) != 0)
+            && isPurelyArithmetic(tt)) {
+          long a1 = msat_term_get_arg(t, 0);
+          long a2 = msat_term_get_arg(t, 1);
           long t1 = msat_make_leq(msatEnv, a1, a2);
           //long t2 = msat_make_leq(msatEnv, a2, a1);
-          cache.add(t1);
-          //cache.add(t2);
-          atoms.add(encapsulate(t1));
-          //atoms.add(t2);
-          atoms.add(encapsulate(term));
+          SymbolicFormula tt1 = encapsulate(t1);
+          //SymbolicFormula tt2 = encapsulate(t2);
+          cache.add(tt1);
+          //cache.add(tt2);
+          atoms.add(tt1);
+          //atoms.add(tt2);
+          atoms.add(tt);
         } else {
-          atoms.add(encapsulate(term));
+          atoms.add(tt);
         }
-      } else if (conjunctionsOnly) {
-        if (msat_term_is_not(term) != 0 ||
-            msat_term_is_and(term) != 0) {
-          // ok, go into this formula
-          for (int i = 0; i < msat_term_arity(term); ++i){
-            long c = msat_term_get_arg(term, i);
-            if (!cache.contains(c)) {
-              toProcess.push(c);
-            }
-          }
-        } else {
-          // otherwise, treat this as atomic
-          atoms.add(uninstantiate(encapsulate(term)));
-        }
+
+      } else if (conjunctionsOnly
+            && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
+        // conjunctions only, but formula is neither "not" nor "and"
+        // treat this as atomic
+        atoms.add(uninstantiate(tt));
+
       } else {
-        for (int i = 0; i < msat_term_arity(term); ++i){
-          long c = msat_term_get_arg(term, i);
+        // ok, go into this formula
+        for (int i = 0; i < msat_term_arity(t); ++i){
+          SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
           if (!cache.contains(c)) {
             toProcess.push(c);
           }
@@ -1012,23 +1010,29 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   // returns true if the given term is a pure arithmetic term
-  private boolean isPurelyArithmetic(long term,
-      Map<Long, Boolean> arithCache) {
-    if (arithCache.containsKey(term)) {
-      return arithCache.get(term);
-    } else if (msat_term_is_uif(term) != 0) {
-      arithCache.put(term, false);
-      return false;
-    } else {
-      int a = msat_term_arity(term);
-      boolean yes = true;
-      for (int i = 0; i < a; ++i) {
-        yes |= isPurelyArithmetic(
-            msat_term_get_arg(term, i), arithCache);
-      }
-      arithCache.put(term, yes);
-      return yes;
+  private boolean isPurelyArithmetic(SymbolicFormula f) {
+    Boolean result = arithCache.get(f);
+    if (result != null) {
+      return result;
     }
+    
+    long t = getTerm(f);
+
+    boolean res = true;
+    if (msat_term_is_uif(t) != 0) {
+      res = false;
+
+    } else {
+      int arity = msat_term_arity(t);
+      for (int i = 0; i < arity; ++i) {
+        res |= isPurelyArithmetic(encapsulate(msat_term_get_arg(t, i)));
+        if (!res) {
+          break;
+        }
+      }
+    }
+    arithCache.put(f, res);
+    return res;
   }
 
   /**
@@ -1089,16 +1093,18 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   @Override
   public SSAMap extractSSA(SymbolicFormula f) {
     SSAMap ssa = new SSAMap();
-    Stack<Long> toProcess = new Stack<Long>();
-    Set<Long> cache = new HashSet<Long>();
+    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+    Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();
 
-    toProcess.push(getTerm(f));
-    while (!toProcess.empty()) {
-      long t = toProcess.pop();
-      if (cache.contains(t)) {
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final SymbolicFormula tt = toProcess.pop();
+      if (cache.contains(tt)) {
         continue;
       }
-      cache.add(t);
+      cache.add(tt);
+      final long t = getTerm(tt);
+
       if (msat_term_is_variable(t) != 0) {
         Pair<String, Integer> var = parseName(msat_term_repr(t));
         String name = var.getFirst();
@@ -1107,8 +1113,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           ssa.setIndex(name, idx);
         }
       } else {
-        for (int i = 0; i < msat_term_arity(t); ++i) {
-          toProcess.push(msat_term_get_arg(t, i));
+        int arity = msat_term_arity(t);
+        for (int i = 0; i < arity; ++i) {
+          toProcess.push(encapsulate(msat_term_get_arg(t, i)));
         }
       }
     }
@@ -1117,33 +1124,35 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public void collectVarNames(SymbolicFormula term, Set<String> vars,
+  public void collectVarNames(SymbolicFormula f, Set<String> vars,
                               Set<Pair<String, SymbolicFormulaList>> lvals) {
+    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
 
-    Deque<Long> toProcess = new ArrayDeque<Long>();
-    toProcess.push(getTerm(term));
+    toProcess.push(f);
     // TODO - this assumes the term is small! There is no memoizing yet!!
     while (!toProcess.isEmpty()) {
-        long t = toProcess.pop();
+        final long t = getTerm(toProcess.pop());
+
         if (msat_term_is_variable(t) != 0) {
-            vars.add(msat_term_repr(t));
+          vars.add(msat_term_repr(t));
+        
         } else {
-            for (int i = 0; i < msat_term_arity(t); ++i) {
-                toProcess.push(msat_term_get_arg(t, i));
+          final int arity = msat_term_arity(t);
+          for (int i = 0; i < arity; ++i) {
+            toProcess.push(encapsulate(msat_term_get_arg(t, i)));
+          }
+          
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            if (ufCanBeLvalue(name)) {
+              long[] a = new long[arity];
+              for (int i = 0; i < arity; ++i) {
+                a[i] = msat_term_get_arg(t, i);
+              }
+              SymbolicFormulaList aa = encapsulate(a);
+              lvals.add(new Pair<String, SymbolicFormulaList>(name, aa));
             }
-            if (msat_term_is_uif(t) != 0) {
-                long d = msat_term_get_decl(t);
-                String name = msat_decl_get_name(d);
-                if (ufCanBeLvalue(name)) {
-                    int n = msat_term_arity(t);
-                    long[] a = new long[n];
-                    for (int i = 0; i < n; ++i) {
-                        a[i] = msat_term_get_arg(t, i);
-                    }
-                    SymbolicFormulaList aa = encapsulate(a);
-                    lvals.add(new Pair<String, SymbolicFormulaList>(name, aa));
-                }
-            }
+          }
         }
     }
   }
