@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.assumptions.MathsatInvariantSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
@@ -66,25 +67,17 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  // Symbolic Formula Manager used to represent build invariant formulas
-  private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
-
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
-
     abstractDomain = new GenericAssumptionsDomain(this);
 
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = StopNeverOperator.getInstance();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-    transferRelation = new GenericAssumptionsTransferRelation(this);
-  }
-  
-  public AssumptionSymbolicFormulaManager getAssumptionSymbolicFormulaManager()
-  {
-    return symbolicFormulaManager;
+    SymbolicFormulaManager symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
+    AssumptionSymbolicFormulaManager manager = new AssumptionSymbolicFormulaManagerImpl();
+    transferRelation = new GenericAssumptionsTransferRelation(manager, symbolicFormulaManager);
   }
 
   @Override

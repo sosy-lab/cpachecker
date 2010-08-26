@@ -34,20 +34,26 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  */
 public class Assumption {
 
-  private final SymbolicFormulaManager manager;
+  private static SymbolicFormulaManager manager = AssumptionSymbolicFormulaManagerImpl.getSymbolicFormulaManager();
+  {
+    // hopefully we have an instance already
+    assert manager != null;
+  }
+
+  public static final Assumption TRUE = new Assumption();
+  public static final Assumption FALSE = new Assumption(manager.makeFalse(), false);
+
   private final SymbolicFormula dischargeableAssumption;
   private final SymbolicFormula otherAssumption;
 
   public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
   {
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager();
     dischargeableAssumption = dischargeable;
     otherAssumption = rest;
   }
 
   public Assumption(SymbolicFormula assumption, boolean isDischargeable)
   {
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager();
     dischargeableAssumption = isDischargeable ? assumption : manager.makeTrue();
     otherAssumption = isDischargeable ? manager.makeTrue() : assumption;
   }
@@ -55,7 +61,6 @@ public class Assumption {
   /** Constructs an invariant corresponding to true */
   public Assumption()
   {
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager();
     dischargeableAssumption = manager.makeTrue();
     otherAssumption = manager.makeTrue();
   }
@@ -126,8 +131,4 @@ public class Assumption {
     else
       return new AssumptionWithSingleLocation(node, this);
   }
-
-  public static final Assumption TRUE = new Assumption();
-  public static final Assumption FALSE = new Assumption(MathsatInvariantSymbolicFormulaManager.getInstance().getSymbolicFormulaManager().makeFalse(), false);
-
 }

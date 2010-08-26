@@ -32,10 +32,9 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
-import org.sosy_lab.cpachecker.util.assumptions.MathsatInvariantSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -83,8 +82,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     this.logger = logger;
     innerAlgorithm = algo;
-    AssumptionSymbolicFormulaManager a = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
-    symbolicManager = a.getSymbolicFormulaManager();
+    symbolicManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
   }
 
   @Override

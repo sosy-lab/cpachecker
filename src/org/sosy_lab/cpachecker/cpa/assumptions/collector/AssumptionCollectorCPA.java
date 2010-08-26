@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.assumptions.MathsatInvariantSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
@@ -70,14 +69,14 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
+  private final SymbolicFormulaManager symbolicFormulaManager;
   private final PrecisionAdjustment precisionAdjustment;
 
   private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa,
             Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     super(cpa);
-    symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
+    symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
     abstractDomain = new AssumptionCollectorDomain(getWrappedCpa().getAbstractDomain());
     mergeOperator = new AssumptionCollectorMerge(getWrappedCpa());
     stopOperator = new AssumptionCollectorStop(getWrappedCpa());
@@ -87,7 +86,7 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
 
   public SymbolicFormulaManager getSymbolicFormulaManager()
   {
-    return symbolicFormulaManager.getSymbolicFormulaManager();
+    return symbolicFormulaManager;
   }
 
   @Override

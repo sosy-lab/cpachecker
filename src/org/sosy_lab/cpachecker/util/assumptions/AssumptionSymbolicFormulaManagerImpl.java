@@ -41,12 +41,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 
 /**
- * Implementation of InvariantSymbolicFormulaManager based on
- * MathsatSymbolicFormulaManager. This is a singleton class.
- *
+ * Implementation of AssumptionSymbolicFormulaManager based on
+ * 
  * @author g.theoduloz
  */
-public class MathsatInvariantSymbolicFormulaManager
+public class AssumptionSymbolicFormulaManagerImpl
   extends CtoFormulaConverter
   implements AssumptionSymbolicFormulaManager
 {
@@ -77,33 +76,36 @@ public class MathsatInvariantSymbolicFormulaManager
     }
   }
 
-  private static AssumptionSymbolicFormulaManager instance = null;
-
+  private static SymbolicFormulaManager smgr = null;
+  private static Configuration config = null;
+  private static LogManager logger = null;
+  
   // TODO Ugly, probably better to remove singleton pattern here.
-  public static AssumptionSymbolicFormulaManager createInstance(
-        Configuration config, LogManager logger) throws InvalidConfigurationException {
-    if (instance == null) {
-      SymbolicFormulaManager smgr = new MathsatSymbolicFormulaManager(config, logger);
-      instance = new MathsatInvariantSymbolicFormulaManager(config, smgr, logger);
+  public static SymbolicFormulaManager createSymbolicFormulaManager(Configuration pConfig, LogManager pLogger)
+        throws InvalidConfigurationException {
+    if (smgr == null) {
+      smgr = new MathsatSymbolicFormulaManager(pConfig, pLogger);
+      config = pConfig;
+      logger = pLogger;
+    } else {
+      assert config == pConfig;
+      assert logger == pLogger;
     }
-    return instance;
+    return smgr;
   }
 
   /**
    * Return the singleton instance for this class.
    * {@link #createInstance()} has to be called before at least once.
    */
-  public static AssumptionSymbolicFormulaManager getInstance() {
-    assert instance != null;
+  public static SymbolicFormulaManager getSymbolicFormulaManager() {
+    assert smgr != null;
 
-    return instance;
+    return smgr;
   }
 
-  /**
-   * Private constructor. To get instance, call getInstance()
-   */
-  private MathsatInvariantSymbolicFormulaManager(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
-    super(config, smgr, logger);
+  public AssumptionSymbolicFormulaManagerImpl() throws InvalidConfigurationException {
+    super(config, getSymbolicFormulaManager(), logger);
   }
 
   private final SSAMap dummySSAMap = new DummySSAMap();
@@ -152,10 +154,5 @@ public class MathsatInvariantSymbolicFormulaManager
   @Override
   public SymbolicFormula makeAnd(SymbolicFormula f, IASTExpression p) throws UnrecognizedCCodeException {
     return smgr.makeAnd(f, buildSymbolicFormula(p));
-  }
-
-  @Override
-  public SymbolicFormulaManager getSymbolicFormulaManager() {
-    return smgr;
   }
 }

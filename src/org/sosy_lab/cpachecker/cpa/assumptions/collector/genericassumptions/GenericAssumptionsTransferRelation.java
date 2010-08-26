@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -62,13 +63,15 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   }
 
   private final AssumptionSymbolicFormulaManager manager;
+  private final SymbolicFormulaManager smgr;
 
   /**
    * Constructor
    */
-  public GenericAssumptionsTransferRelation(GenericAssumptionsCPA cpa)
+  public GenericAssumptionsTransferRelation(AssumptionSymbolicFormulaManager manager, SymbolicFormulaManager smgr)
   {
-    manager = cpa.getAssumptionSymbolicFormulaManager();
+    this.manager = manager;
+    this.smgr = smgr;
     assumptionBuilders = new LinkedList<GenericAssumptionBuilder>();
     registerDefaultAssumptionBuilders();
   }
@@ -76,7 +79,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
-    SymbolicFormula assumptionFormula = manager.getSymbolicFormulaManager().makeTrue();
+    SymbolicFormula assumptionFormula = smgr.makeTrue();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
       assumptionFormula = manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge));
