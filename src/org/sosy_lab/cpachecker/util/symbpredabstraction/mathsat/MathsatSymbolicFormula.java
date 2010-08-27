@@ -35,7 +35,10 @@ class MathsatSymbolicFormula implements SymbolicFormula {
 
     private final long msatTerm;
 
-    public MathsatSymbolicFormula(long t) {
+    MathsatSymbolicFormula(long t) {
+        if (mathsat.api.MSAT_ERROR_TERM(t)) {
+          throw new IllegalArgumentException("Error term is not a valid formula");
+        }
         msatTerm = t;
     }
 

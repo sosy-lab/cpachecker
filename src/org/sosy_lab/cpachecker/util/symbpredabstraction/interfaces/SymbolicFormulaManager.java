@@ -148,8 +148,6 @@ public interface SymbolicFormulaManager {
   public SymbolicFormula makeUIF(String pName, SymbolicFormulaList pArgs, int pIdx);
 
   // ----------------- Other formulas -----------------
-  
-  public boolean isErrorTerm(SymbolicFormula pF);
 
   public SymbolicFormula makeString(int pI);
 

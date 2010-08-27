@@ -285,11 +285,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         n = frac[1] + "/" + frac[0];
       }
       t2 = msat_make_number(msatEnv, n);
-      if (MSAT_ERROR_TERM(t2)) {
-        result = t2;
-      } else {
-        result = msat_make_times(msatEnv, t2, t1);
-      }
+      result = msat_make_times(msatEnv, t2, t1);
     } else {
       result = msat_make_uif(msatEnv, divUfDecl, new long[]{t1, t2});
     }
@@ -409,12 +405,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
 
   // ----------------- Other formulas -----------------
-  
-  @Override
-  public boolean isErrorTerm(SymbolicFormula f) {
-    return MSAT_ERROR_TERM(getTerm(f));
-  }
-  
+
   @Override
   public SymbolicFormula makeString(int i) {
     long n = msat_make_number(msatEnv, Integer.valueOf(i).toString());
@@ -474,17 +465,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
   @Override
   public SymbolicFormula createPredicateVariable(SymbolicFormula atom) {
-    long tt = getTerm(atom);
-    assert(!MSAT_ERROR_TERM(tt));
+    long t = getTerm(atom);
 
-    String repr = msat_term_is_atom(tt) != 0 ?
-                    msat_term_repr(tt) :
-                      ("#" + msat_term_id(tt));
-    long d = msat_declare_variable(msatEnv,
-        "\"PRED" + repr + "\"",
-        MSAT_BOOL);
+    String repr = (msat_term_is_atom(t) != 0)
+                    ? msat_term_repr(t) : ("#" + msat_term_id(t));
+    long d = msat_declare_variable(msatEnv, "\"PRED" + repr + "\"", MSAT_BOOL);
     long var = msat_make_variable(msatEnv, d);
-    assert(!MSAT_ERROR_TERM(var));
 
     return encapsulate(var);
   }
@@ -506,7 +492,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   @Override
   public SymbolicFormula parseInfix(String s) {
     long f = msat_from_string(msatEnv, s);
-    Preconditions.checkArgument(!MSAT_ERROR_TERM(f), "Could not parse formula as Mathsat formula.");
+    Preconditions.checkArgument(!MSAT_ERROR_TERM(f),
+        "Could not parse formula %s as Mathsat formula.", s);
 
     return encapsulate(f);
   }
@@ -548,7 +535,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
           long newt = buildMsatVariable(name, idx);
-          assert(!MSAT_ERROR_TERM(newt));
           cache.put(tt, encapsulate(newt));
         } else {
           // the variable is not used in the SSA, keep it as is
@@ -596,7 +582,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
             newt = msat_replace_args(msatEnv, t, newargs);
           }
           
-          assert(!MSAT_ERROR_TERM(newt));
           cache.put(tt, encapsulate(newt));
         }
       }
@@ -629,7 +614,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         String name = parseName(msat_term_repr(t)).getFirst();
         
         long newt = buildMsatVariable(name);
-        assert(!MSAT_ERROR_TERM(newt));
         cache.put(tt, encapsulate(newt));
 
       } else {
@@ -664,7 +648,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
             newt = msat_replace_args(msatEnv, t, newargs);
           }
           
-          assert(!MSAT_ERROR_TERM(newt));
           cache.put(tt, encapsulate(newt));
         }
       }
@@ -709,7 +692,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           if (ssaidx > 0) {
             idx = ssaidx + idx-1; // calculate new index
             long newt = buildMsatVariable(name, idx);
-            assert(!MSAT_ERROR_TERM(newt));
             cache.put(tt, encapsulate(newt));
           } else {
             cache.put(tt, tt);
@@ -782,7 +764,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
             }
           }
           
-          assert(!MSAT_ERROR_TERM(newt));
           cache.put(tt, encapsulate(newt));
         }
       }
@@ -978,7 +959,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           } else {
             newt = msat_replace_args(msatEnv, t, newargs);
           }
-          assert(!MSAT_ERROR_TERM(newt));
           cache.put(tt, encapsulate(newt));
         }
       }
