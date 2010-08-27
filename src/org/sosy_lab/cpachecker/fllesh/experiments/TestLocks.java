@@ -97,8 +97,8 @@ public class TestLocks {
     
     mExperiment.addExperiment("test_locks_5.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(81, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(75, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(83, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(77, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
