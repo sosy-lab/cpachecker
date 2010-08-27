@@ -24,10 +24,12 @@ public class StringBasedTestCase implements TestCase {
   
   private String mInputFunction;
   private CFAFunctionDefinitionNode mInputFunctionEntry;
+  private boolean mIsPrecise;
   
-  private StringBasedTestCase(CFAFunctionDefinitionNode pInputFunctionEntry, String pInputFunction) {
+  private StringBasedTestCase(CFAFunctionDefinitionNode pInputFunctionEntry, String pInputFunction, boolean pIsPrecise) {
     mInputFunctionEntry = pInputFunctionEntry;
     mInputFunction = pInputFunction;
+    mIsPrecise = pIsPrecise;
   }
   
   public void toFile(String pFileName) throws FileNotFoundException {
@@ -61,6 +63,8 @@ public class StringBasedTestCase implements TestCase {
   public static StringBasedTestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {
     Set<MathsatAssignable> lAssignables = pCounterexample.getAssignables();
     
+    boolean lIsPrecise = true;
+    
     StringWriter lInputFunction = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lInputFunction);
 
@@ -93,7 +97,17 @@ public class StringBasedTestCase implements TestCase {
     for (Map.Entry<Integer, Double> lEntry : lNondetMap.entrySet()) {
       lWriter.println("  if (__FLLESH__input_index == " + lIndex + ")");
       lWriter.println("  {");
-      lWriter.println("    value = " + lEntry.getValue().intValue() + ";");
+      
+      Double lValue = lEntry.getValue();
+      
+      int lIntValue = lEntry.getValue().intValue();
+      
+      if (lValue.doubleValue() != lIntValue) {
+        lIsPrecise = false;
+        lWriter.println("    /* precise value: " + lValue.doubleValue() + " */");
+      }
+      
+      lWriter.println("    value = " + lIntValue + ";");
       lWriter.println("  }");
       
       lIndex++;
@@ -108,7 +122,12 @@ public class StringBasedTestCase implements TestCase {
     
     TranslationUnit lTranslationUnit = TranslationUnit.parseString(lInputFunctionSource, pLogManager);
     
-    return new StringBasedTestCase(lTranslationUnit.getFunction(StringBasedTestCase.INPUT_FUNCTION_NAME), lInputFunctionSource);
+    return new StringBasedTestCase(lTranslationUnit.getFunction(StringBasedTestCase.INPUT_FUNCTION_NAME), lInputFunctionSource, lIsPrecise);
+  }
+
+  @Override
+  public boolean isPrecise() {
+    return mIsPrecise;
   }
   
 }

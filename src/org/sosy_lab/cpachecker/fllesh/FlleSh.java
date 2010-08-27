@@ -273,105 +273,112 @@ public class FlleSh {
         
         StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, lLogManager);
         
-        lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
-        System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
-        
-        
-        if (pApplySubsumptionCheck) {
-          /** goal subsumption check */
+        if (lTestCase.isPrecise()) {
+          lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+          System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
           
-          CFAFunctionDefinitionNode lInputFunction = lTestCase.getInputFunctionEntry();
           
-          CFAFunctionDefinitionNode lNondetInputFunction = lWrapper.replace(lInputFunction);
-          
-          // a) determine cfa path
-          CFAEdge[] lCFAPath;
-          if (lTask.hasPassingClause()) {
-            try {
-              lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lPassingCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
-            } catch (InvalidConfigurationException e) {
-              throw new RuntimeException(e);
-            } catch (CPAException e) {
-              throw new RuntimeException(e);
-            }
-          }
-          else {
-            try {
-              lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
-            } catch (InvalidConfigurationException e) {
-              throw new RuntimeException(e);
-            } catch (CPAException e) {
-              throw new RuntimeException(e);
-            }
-          }
-          
-          LinkedList<CFAEdge> lModifiedPath = new LinkedList<CFAEdge>();
-          
-          // replace cfa edges related to input function by original cfa edges
-          
-          for (CFAEdge lCFAEdge : lCFAPath) {
-            CFANode lPredecessor = lCFAEdge.getPredecessor();
-            CFANode lSuccessor = lCFAEdge.getSuccessor();
+          if (pApplySubsumptionCheck) {
+            /** goal subsumption check */
             
-            if (!lSuccessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
-              if (lPredecessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
-                if (!lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
-                  throw new RuntimeException();
-                }
-                
-                CallToReturnEdge lSummaryEdge = lSuccessor.getEnteringSummaryEdge();
-                
-                if (lSummaryEdge == null) {
-                  throw new RuntimeException();
-                }
-                
-                CFAEdge lReplacedEdge = lWrapper.getReplacedEdges().get(lSummaryEdge);
-                
-                if (lReplacedEdge == null) {
-                  throw new RuntimeException();
-                }
-                
-                lModifiedPath.add(lReplacedEdge);
-              }
-              else {
-                lModifiedPath.add(lCFAEdge);
-              }
-            } 
-          }
-          
-          lCFAPath = lModifiedPath.toArray(new CFAEdge[lModifiedPath.size()]);
-          
-          lWrapper.replace(lNondetInputFunction);
-          
-          HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
-          
-          // check whether remaining goals are subsumed by current counter example
-          for (Goal lOpenGoal : lGoals) {
-            // is goal subsumed by structural path?
-            ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
+            CFAFunctionDefinitionNode lInputFunction = lTestCase.getInputFunctionEntry();
             
-            if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
-              // test case satisfies goal 
-              
-              // I) remove goal from task list
-              lSubsumedGoals.add(lOpenGoal);
-              
-              // II) log information
-              lResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), lTestCase);
-              
-              System.out.println("SUBSUMED");
+            CFAFunctionDefinitionNode lNondetInputFunction = lWrapper.replace(lInputFunction);
+            
+            // a) determine cfa path
+            CFAEdge[] lCFAPath;
+            if (lTask.hasPassingClause()) {
+              try {
+                lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lPassingCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
+              } catch (InvalidConfigurationException e) {
+                throw new RuntimeException(e);
+              } catch (CPAException e) {
+                throw new RuntimeException(e);
+              }
             }
-            else if (lAcceptanceAnswer == ThreeValuedAnswer.UNKNOWN) {
-              // we need a more expensive subsumption analysis
-              // c) check predicate goals for subsumption
-              // TODO implement
-              
-              throw new RuntimeException();
+            else {
+              try {
+                lCFAPath = reconstructPath(lCounterexample, lWrapper.getEntry(), lAutomatonCPA, lConfiguration, lLogManager, lWrapper.getOmegaEdge().getSuccessor());
+              } catch (InvalidConfigurationException e) {
+                throw new RuntimeException(e);
+              } catch (CPAException e) {
+                throw new RuntimeException(e);
+              }
             }
+            
+            LinkedList<CFAEdge> lModifiedPath = new LinkedList<CFAEdge>();
+            
+            // replace cfa edges related to input function by original cfa edges
+            
+            for (CFAEdge lCFAEdge : lCFAPath) {
+              CFANode lPredecessor = lCFAEdge.getPredecessor();
+              CFANode lSuccessor = lCFAEdge.getSuccessor();
+              
+              if (!lSuccessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
+                if (lPredecessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
+                  if (!lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
+                    throw new RuntimeException();
+                  }
+                  
+                  CallToReturnEdge lSummaryEdge = lSuccessor.getEnteringSummaryEdge();
+                  
+                  if (lSummaryEdge == null) {
+                    throw new RuntimeException();
+                  }
+                  
+                  CFAEdge lReplacedEdge = lWrapper.getReplacedEdges().get(lSummaryEdge);
+                  
+                  if (lReplacedEdge == null) {
+                    throw new RuntimeException();
+                  }
+                  
+                  lModifiedPath.add(lReplacedEdge);
+                }
+                else {
+                  lModifiedPath.add(lCFAEdge);
+                }
+              } 
+            }
+            
+            lCFAPath = lModifiedPath.toArray(new CFAEdge[lModifiedPath.size()]);
+            
+            lWrapper.replace(lNondetInputFunction);
+            
+            HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
+            
+            // check whether remaining goals are subsumed by current counter example
+            for (Goal lOpenGoal : lGoals) {
+              // is goal subsumed by structural path?
+              ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
+              
+              if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
+                // test case satisfies goal 
+                
+                // I) remove goal from task list
+                lSubsumedGoals.add(lOpenGoal);
+                
+                // II) log information
+                lResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), lTestCase);
+                
+                System.out.println("SUBSUMED");
+              }
+              else if (lAcceptanceAnswer == ThreeValuedAnswer.UNKNOWN) {
+                // we need a more expensive subsumption analysis
+                // c) check predicate goals for subsumption
+                // TODO implement
+                
+                throw new RuntimeException();
+              }
+            }
+            
+            // remove all subsumed goals
+            lGoals.removeAll(lSubsumedGoals);
           }
+        }
+        else {
+          System.out.println(lTestCase.getInputFunction());
           
-          // remove all subsumed goals
-          lGoals.removeAll(lSubsumedGoals);
+          lResultFactory.addImpreciseTestCase(lTestCase);
         }
       }
     }
@@ -479,9 +486,10 @@ public class FlleSh {
       lWriter.println("cpas.symbpredabs.initAllVars = false");
       //lWriter.println("cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET");
       lWriter.println("cpas.symbpredabs.blk.useCache = false");
-      lWriter.println("cpas.symbpredabs.mathsat.lvalsAsUIFs = true");
+      //lWriter.println("cpas.symbpredabs.mathsat.lvalsAsUIFs = true");
       // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
-      lWriter.println("cpas.symbpredabs.mathsat.useDtc = true");
+      // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
+      //lWriter.println("cpas.symbpredabs.mathsat.useDtc = true");
       
       lWriter.println("cpas.explicit.threshold = " + Integer.MAX_VALUE);
       

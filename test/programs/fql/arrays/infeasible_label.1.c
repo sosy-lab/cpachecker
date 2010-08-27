@@ -1,4 +1,5 @@
 int __CPROVER_assume(int condition);
+int input();
 
 int main(int argc, char* argv[]) 
 {
@@ -7,6 +8,10 @@ int main(int argc, char* argv[])
   int tmp3;
   int tmp4;
   int a[3];
+
+  a[0] = input();
+  a[1] = input();
+  a[2] = input();
 
   tmp1 = a[0];
   tmp2 = a[1];

@@ -96,12 +96,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -119,12 +120,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -142,12 +144,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -165,12 +168,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -188,12 +192,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -211,12 +216,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -234,12 +240,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -257,12 +264,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -280,12 +288,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -303,12 +312,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -326,12 +336,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -349,12 +360,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -372,12 +384,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -395,12 +408,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -418,12 +432,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -441,12 +456,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -464,12 +480,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -487,12 +504,13 @@ public class SSHSimplified {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment(lCFile + " (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
 }

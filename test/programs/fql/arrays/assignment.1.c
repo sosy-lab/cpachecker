@@ -1,4 +1,4 @@
-void foo(int a[]) 
+void init(int a[]) 
 {
   a[0] = 0;
   a[1] = 10;
@@ -14,7 +14,7 @@ int main(int argc, char * argv[])
   int tmp2;
   int tmp3;
 
-  foo(A);
+  init(A);
 
   tmp1 = A[0];
   tmp2 = A[1];

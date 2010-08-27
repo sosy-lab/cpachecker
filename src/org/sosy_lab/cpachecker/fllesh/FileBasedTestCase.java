@@ -43,4 +43,9 @@ public class FileBasedTestCase implements TestCase {
     return lTestCase;
   }
 
+  @Override
+  public boolean isPrecise() {
+    return true;
+  }
+
 }

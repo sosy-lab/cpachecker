@@ -7,6 +7,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 
+import com.google.common.base.Preconditions;
+
 public class FlleShResult {
 
   public static class Factory {
@@ -15,12 +17,14 @@ public class FlleShResult {
     private Set<ElementaryCoveragePattern> mFeasibleTestGoals;
     private Set<ElementaryCoveragePattern> mInfeasibleTestGoals;
     private Map<TestCase, Set<ElementaryCoveragePattern>> mTestSuite;
+    private Set<TestCase> mImpreciseTestCases;
     
     private Factory(Task pTask) {
       mTask = pTask;
       mFeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
       mInfeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
       mTestSuite = new HashMap<TestCase, Set<ElementaryCoveragePattern>>();
+      mImpreciseTestCases = new HashSet<TestCase>();
     }
     
     public void add(ElementaryCoveragePattern pECP, boolean pIsFeasible) {
@@ -42,6 +46,13 @@ public class FlleShResult {
       mInfeasibleTestGoals.add(pECP);
     }
     
+    public void addImpreciseTestCase(TestCase pTestCase) {
+      Preconditions.checkNotNull(pTestCase);
+      Preconditions.checkArgument(!pTestCase.isPrecise());
+      
+      mImpreciseTestCases.add(pTestCase);
+    }
+    
     private Set<ElementaryCoveragePattern> getTestSuite(TestCase pTestCase) {
       if (mTestSuite.containsKey(pTestCase)) {
         return mTestSuite.get(pTestCase);
@@ -56,7 +67,7 @@ public class FlleShResult {
     }
     
     public FlleShResult create() {
-      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size());
+      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size());
     }
     
   }
@@ -69,12 +80,14 @@ public class FlleShResult {
   private int mNumberOfFeasibleTestGoals;
   private int mNumberOfInfeasibleTestGoals;
   private int mNumberOfTestCases;
+  private int mNumberOfImpreciseTestCases;
   
-  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases) {
+  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases) {
     mTask = pTask;
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
     mNumberOfTestCases = pNumberOfTestCases;
+    mNumberOfImpreciseTestCases = pNumberOfImpreciseTestCases;
   }
   
   public Task getTask() {
@@ -91,6 +104,10 @@ public class FlleShResult {
   
   public int getNumberOfTestCases() {
     return mNumberOfTestCases;
+  }
+  
+  public int getNumberOfImpreciseTestCases() {
+    return mNumberOfImpreciseTestCases;
   }
   
 }

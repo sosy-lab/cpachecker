@@ -98,12 +98,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("001", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("001", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());    
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());   
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
 
   @Test
@@ -121,12 +122,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("002", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("002", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
 
   @Test
@@ -144,12 +146,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("003", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("003", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
 
   @Test
@@ -167,12 +170,14 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("004", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("004", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(20, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(20, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(5, Main.mResult.getNumberOfImpreciseTestCases());
     
     /*
      * Discussion: Creates a real valued assignment (3.5) to integer variable x!
@@ -195,17 +200,20 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("005", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("005", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(18, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(18, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(3, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
   public void testMain006() throws Exception {
-    String[] lArguments = getParameters(STATEMENT_COVERAGE,
+    String[] lArguments = getParameters(
+        STATEMENT_COVERAGE,
         "test/programs/fql/conditioncoverage.c",
         "foo",
         false
@@ -217,12 +225,14 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("006", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("006", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(18, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(18, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(3, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -240,12 +250,14 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("007", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("007", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(8, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(8, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(6, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(2, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -263,12 +275,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("008", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("008", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(5, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(5, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -286,12 +299,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("009", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("009", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(3, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(3, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   /** beginning FShell test cases (but cil preprocessed) */
@@ -311,12 +325,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("010", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("010", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(5, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(5, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: ok.
@@ -338,12 +353,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("011", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("011", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(6, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: ok.
@@ -365,12 +381,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("012", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("012", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(9, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(7, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: ok.
@@ -392,17 +409,18 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("013", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("013", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(18, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(18, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(3, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -420,17 +438,18 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("014", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("014", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(9, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(9, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(8, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(1, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -447,19 +466,18 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("015", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("015", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
-    Assert.assertEquals(21, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(21, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(26, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(24, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
-    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(4, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      * TODO: This is a problem when replaying the test input!
      */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -477,13 +495,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("016", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("016", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(7, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Pointer argv is not initialized correctly (and, argv is used in the program)
@@ -507,12 +525,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("017", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("017", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(15, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -530,17 +549,18 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("018", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("018", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(17, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(17, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(2, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -558,17 +578,18 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("019", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("019", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(17, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(17, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(15, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(2, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -584,12 +605,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("020", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("020", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(42, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(39, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(3, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -605,13 +627,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("021", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("021", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
@@ -634,12 +656,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("022", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("022", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(6, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(4, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -656,12 +679,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("023", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("023", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(4, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(3, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: ok. We get one more test goal than FShell 2 does.
@@ -683,12 +707,14 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("024", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("024", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(9, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(9, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(7, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(3, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    // TODO resolve imprecise test cases
+    Assert.assertEquals(2, Main.mResult.getNumberOfImpreciseTestCases());
     
     /*
      * Discussion: Creates a real valued assignment (3.5) to integer variable x!
@@ -709,13 +735,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("025", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("025", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
@@ -738,13 +764,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("026", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("026", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
@@ -765,13 +791,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("027", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("027", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     Assert.assertTrue(false);
   }
@@ -789,12 +815,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("028", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("028", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -810,12 +837,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("029", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("029", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: This unit test fails because assignment to arrays are not handled correctly.
@@ -835,44 +863,13 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("030", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("030", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
     Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
-    
-    Assert.assertTrue(false);
-  }
-  
-  @Test
-  public void testMain031() throws Exception {
-    String[] lArguments = getParameters(//STATEMENT_COVERAGE,
-                                        //CONDITION_COVERAGE,
-                                        "COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
-                                        //BASIC_BLOCK_COVERAGE, 
-                                        //"/home/andreas/ase-experimente/sort1.c", 
-                                        //"/home/andreas/ase-experimente/list2.i",
-                                        //"/home/andreas/ase-experimente/adapted/list2.c",
-                                        "/home/andreas/ase-experimente/modeling/test.c",
-                                        "main",
-                                        //false);
-                                        true);
-    
-    long lStartTime = System.currentTimeMillis();
-    
-    Main.main(lArguments);
-    
-    long lEndTime = System.currentTimeMillis();
-    
-    mExperiment.addExperiment("031", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
-    
-    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    // TODO this is a dummy test case
-    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     Assert.assertTrue(false);
   }

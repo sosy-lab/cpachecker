@@ -95,12 +95,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_5.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_5.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(80, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(74, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -116,12 +117,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_6.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_6.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(93, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(86, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(7, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(20, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -137,12 +139,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_7.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_7.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(106, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(98, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(8, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -158,12 +161,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_8.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_8.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(119, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(110, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(9, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(34, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -179,12 +183,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_9.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_9.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(132, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(122, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(10, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -200,12 +205,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_10.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_10.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(145, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(134, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -221,12 +227,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_11.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_11.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(158, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(146, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(33, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -242,12 +249,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_12.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_12.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(171, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(158, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(13, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(47, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -263,12 +271,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_13.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_13.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(184, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(170, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(14, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(55, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -284,12 +293,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_14.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_14.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(197, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(182, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(51, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -305,12 +315,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_15.c (stmtcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_15.c (stmtcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(210, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(194, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(16, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(63, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -326,12 +337,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_5.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_5.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(32, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(26, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -347,12 +359,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_6.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_6.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(37, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(30, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(7, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(20, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -368,12 +381,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_7.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_7.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(42, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(34, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(8, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -389,12 +403,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_8.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_8.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(47, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(38, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(9, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(34, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -410,12 +425,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_9.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_9.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(52, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(42, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(10, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -431,12 +447,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_10.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_10.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(57, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(46, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(28, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -452,12 +469,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_11.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_11.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(62, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(50, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(33, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -473,12 +491,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_12.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_12.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(67, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(54, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(13, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(47, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -494,12 +513,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_13.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_13.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(72, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(58, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(14, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(55, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -515,12 +535,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_14.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_14.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(77, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(62, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(51, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
@@ -536,12 +557,13 @@ public class TestLocks {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("test_locks_15.c (bbcov)", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("test_locks_15.c (bbcov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(82, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(66, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(16, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(63, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
 }
