@@ -110,12 +110,7 @@ public class AssumptionSymbolicFormulaManagerImpl
 
   private final SSAMap dummySSAMap = new DummySSAMap();
 
-  public SymbolicFormula buildSymbolicFormula(IASTExpression p) throws UnrecognizedCCodeException
-  {
-    return buildSymbolicFormula(p, true);
-  }
-
-  private SymbolicFormula buildSymbolicFormula(IASTExpression p, boolean sign) throws UnrecognizedCCodeException
+  private SymbolicFormula buildSymbolicFormula(IASTExpression p, boolean sign, String function) throws UnrecognizedCCodeException
   {
     // first, check whether we have &&, ||, or !
     if (p instanceof IASTBinaryExpression) {
@@ -124,35 +119,35 @@ public class AssumptionSymbolicFormulaManagerImpl
       case IASTBinaryExpression.op_logicalAnd:
         if (sign)
           return smgr.makeAnd(
-              buildSymbolicFormula(binop.getOperand1(), true),
-              buildSymbolicFormula(binop.getOperand2(), true));
+              buildSymbolicFormula(binop.getOperand1(), true, function),
+              buildSymbolicFormula(binop.getOperand2(), true, function));
         else
           return smgr.makeOr(
-              buildSymbolicFormula(binop.getOperand1(), false),
-              buildSymbolicFormula(binop.getOperand2(), false));
+              buildSymbolicFormula(binop.getOperand1(), false, function),
+              buildSymbolicFormula(binop.getOperand2(), false, function));
       case IASTBinaryExpression.op_logicalOr:
         if (sign)
           return smgr.makeOr(
-              buildSymbolicFormula(binop.getOperand1(), true),
-              buildSymbolicFormula(binop.getOperand2(), true));
+              buildSymbolicFormula(binop.getOperand1(), true, function),
+              buildSymbolicFormula(binop.getOperand2(), true, function));
         else
           return smgr.makeAnd(
-              buildSymbolicFormula(binop.getOperand1(), false),
-              buildSymbolicFormula(binop.getOperand2(), false));
+              buildSymbolicFormula(binop.getOperand1(), false, function),
+              buildSymbolicFormula(binop.getOperand2(), false, function));
       }
     } else if (p instanceof IASTUnaryExpression) {
       IASTUnaryExpression unop = (IASTUnaryExpression) p;
       if (unop.getOperator() == IASTUnaryExpression.op_not)
-        return buildSymbolicFormula(unop.getOperand(), !sign);
+        return buildSymbolicFormula(unop.getOperand(), !sign, function);
     }
 
     // atomic formula
-    SymbolicFormula ssaFormula = makePredicate(p, sign, dummySSAMap);
+    SymbolicFormula ssaFormula = makePredicate(p, sign, function, dummySSAMap);
     return smgr.uninstantiate(ssaFormula);
   }
 
   @Override
-  public SymbolicFormula makeAnd(SymbolicFormula f, IASTExpression p) throws UnrecognizedCCodeException {
-    return smgr.makeAnd(f, buildSymbolicFormula(p));
+  public SymbolicFormula makeAnd(SymbolicFormula f, IASTExpression p, String function) throws UnrecognizedCCodeException {
+    return smgr.makeAnd(f, buildSymbolicFormula(p, true, function));
   }
 }

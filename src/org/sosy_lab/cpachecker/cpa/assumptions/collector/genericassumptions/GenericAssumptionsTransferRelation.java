@@ -79,10 +79,13 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
+    String function = (edge.getPredecessor() != null) 
+          ? edge.getPredecessor().getFunctionName() : null;
+
     SymbolicFormula assumptionFormula = smgr.makeTrue();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
-      assumptionFormula = manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge));
+      assumptionFormula = manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
     }
     return new GenericAssumptionsElement((new Assumption(assumptionFormula, true)).atLocation(edge.getPredecessor()));
   }

@@ -40,8 +40,10 @@ public interface AssumptionSymbolicFormulaManager {
    * Creates a formula representing an AND of the two argument
    * @param f1 a SymbolicFormula
    * @param p an invariant predicate
+   * @param function the current function
    * @return The formula (f1 & e)
    * @throws UnrecognizedCCodeException 
    */
-  public SymbolicFormula makeAnd(SymbolicFormula f1, IASTExpression p) throws UnrecognizedCCodeException;
+  public SymbolicFormula makeAnd(SymbolicFormula f1, IASTExpression p, String function)
+            throws UnrecognizedCCodeException;
 }
