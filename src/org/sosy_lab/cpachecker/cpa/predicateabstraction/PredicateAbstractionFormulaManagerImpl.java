@@ -580,7 +580,9 @@ implements PredicateAbstractionFormulaManager {
     Pair<SymbolicFormula, SSAMap> pc =
       buildConcreteFormula(smgr, e, succ, edge, false);
     SymbolicFormula f = pc.getFirst();
-    SSAMap ssa = pc.getSecond();
+
+    // clone ssa map because we might change it
+    final SSAMap ssa = new SSAMap(pc.getSecond());
 
     f = smgr.replaceAssignments(pc.getFirst());
     SymbolicFormula fkey = f;
