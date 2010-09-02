@@ -276,6 +276,13 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     }
   }
 
+  /** 
+   * Tracks pointer values that are stored in non pointer variables. For the 
+   * time of the tracking, the variable is treated like a regular pointer. 
+   * 
+   * @param var The variable name temporarily storing a pointer.
+   * @param content The pointer value being stored in the variable.
+   */
   public void addTemporaryTracking(String var, Pointer content) {
     PointerLocation loc = lookupVariable(var);
 

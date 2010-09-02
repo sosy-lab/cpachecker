@@ -51,8 +51,10 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -61,10 +63,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -319,18 +317,69 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private void handleDeclaration(PointerAnalysisElement element, CFAEdge edge,
       IASTDeclarator[] declarators, IASTDeclSpecifier specifier) throws CPATransferException {
 
+    if (specifier instanceof IASTCompositeTypeSpecifier
+        || specifier instanceof IASTElaboratedTypeSpecifier
+        || specifier instanceof IASTEnumerationSpecifier) {
+      
+      if (specifier instanceof IASTCompositeTypeSpecifier) {
+        // struct definition: no action -- let TypeCPA do the work
+      }
+      
+      if (specifier instanceof IASTElaboratedTypeSpecifier) {
+        // declaration of pointer to struct
+        
+        if (declarators.length == 0) {
+          // ignore struct prototypes
+          return;
+        }
+        
+        String varName = declarators[0].getName().toString();
+        IASTPointerOperator[] operators = declarators[0].getPointerOperators();
+        
+        if (operators != null && operators.length > 0) {
+          // pointer
+
+          Pointer ptr = new Pointer(operators.length);
+          
+          if (edge instanceof GlobalDeclarationEdge) {
+            element.addNewGlobalPointer(varName, ptr);
+            element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
+                ptr);
+            
+          } else {
+            // edge is instance of LocalDeclarationEdge
+            
+            element.addNewLocalPointer(varName, ptr);
+            
+            if (entryFunctionProcessed) {
+              element.pointerOp(
+                  new Pointer.Assign(Memory.UNINITIALIZED_POINTER), ptr);
+            } else {
+              // ptr is a function parameter
+              element.pointerOp(
+                  new Pointer.Assign(Memory.UNKNOWN_POINTER), ptr);
+            }
+          }
+        
+          missing = new MissingInformation();
+          missing.typeInformationPointer = ptr;
+          missing.typeInformationEdge = edge;
+          missing.typeInformationDeclarator = declarators[0];
+          
+        } else {
+          // variable on stack: ignore, because cil resolves fields to variables
+        }
+      }
+      
+      // TODO handle enums
+      return;
+    }
+
     if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
-
-    if (specifier instanceof IASTCompositeTypeSpecifier
-        || specifier instanceof IASTElaboratedTypeSpecifier
-        || specifier instanceof IASTEnumerationSpecifier) {
-      // TODO handle fields & enums
-      return;
-    }
-
+    
     if (declarators == null || declarators.length != 1) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge,
                                     specifier.getParent());
@@ -872,9 +921,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // free only if there is exactly one target and it is the beginning
       // of a memory region or the pointer has two targets and one of them
       // is the NULL-pointer (because malloc leaves us with at least one NULL-pointer. if the malloc result is unchecked)
-      if ((p.getNumberOfTargets() == 1 || (p.getNumberOfTargets() == 2 && p
-          .contains(Memory.NULL_POINTER)))
-
+      if ((p.getNumberOfTargets() == 1 
+            || (p.getNumberOfTargets() == 2 && p.contains(Memory.NULL_POINTER)))
           && (freeMem != null)) {
 
         try {
@@ -1121,9 +1169,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             assert leftPointer != null;
           }
 
-          if (!(typeOfOperator == IASTBinaryExpression.op_plus || typeOfOperator == IASTBinaryExpression.op_minus)) {
-
-          throw new UnrecognizedCCodeException(cfaEdge, binExpression); }
+          if (!(typeOfOperator == IASTBinaryExpression.op_plus 
+              || typeOfOperator == IASTBinaryExpression.op_minus)) {
+            throw new UnrecognizedCCodeException(cfaEdge, binExpression); 
+          }
 
           if (op2 instanceof IASTLiteralExpression) {
             long offset = parseIntegerLiteral((IASTLiteralExpression)op2);
@@ -1350,6 +1399,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   /**
    * Does a malloc and allocates the result to the given pointer.
+   * 
    * @param element the abstract element
    * @param pointer the pointer for the result (may be null)
    * @param parameter the parameter to the malloc call in the AST
@@ -1445,6 +1495,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     return null;
   }
 
+  /**
+   * strengthen called for explicitAnalysisCPA
+   */
   private void strengthen(PointerAnalysisElement pointerElement,
       ExplicitAnalysisElement explicitElement, CFAEdge cfaEdge,
       Precision precision) throws InvalidPointerException,
@@ -1515,6 +1568,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * strengthen called for TypesCPA
+   */
   private void strengthen(PointerAnalysisElement pointerElement,
       TypesElement typesElement, CFAEdge cfaEdge, Precision precision)
       throws UnrecognizedCCodeException {
@@ -1541,11 +1597,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
 
     } else {
-
+      
       if (missing.typeInformationPointer == null) {
         return;
       }
-
+      
       // pointer variable declaration
       String functionName = cfaEdge.getSuccessor().getFunctionName();
       if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
@@ -1611,11 +1667,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   /**
    * TODO call
-   * checks wether a given expression is a field reference;
+   * checks whether a given expression is a field reference;
    * if yes, find the type of the referenced field, if no, try to determine the type of the variable
    */
   @SuppressWarnings("unused")
-  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, CFAEdge cfaEdge) {
+  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, 
+                                          CFAEdge cfaEdge) {
 
     String name = exp.getRawSignature();
     Type t = null;
@@ -1654,10 +1711,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     //check all members
     for (String member : members) {
       Type t = structType.getMemberType(member);
+      
       //for a field that is itself a struct, repeat the whole process
       if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
         checkFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member,
                          recursiveLeftName + "." + member, recursiveRightName + "." + member);
+        
       //else, check the assigned variable and set the assignee accordingly
       } else {
         //TODO handle copying of pointers
@@ -1670,7 +1729,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     switch (type.getTypeClass()) {
 
     case POINTER:
-      pointer.setSizeOfTarget(((PointerType)type).getTargetType().sizeOf());
+      Type targetType = ((PointerType)type).getTargetType();
+      if (targetType.getTypeClass() == TypeClass.STRUCT) {
+        pointer.setSizeOfTarget(1);
+      } else {
+        pointer.setSizeOfTarget(targetType.sizeOf());
+      }
       break;
 
     case ARRAY:
