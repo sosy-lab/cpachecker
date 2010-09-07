@@ -101,6 +101,9 @@ class MainCPAStatistics implements Statistics {
           } catch (IOException e) {
             logger.log(Level.WARNING,
                 "Could not write reached set to file (", e.getMessage(), ")");
+          } catch (OutOfMemoryError e) {
+            logger.log(Level.WARNING,
+                "Could not write reached set to file due to memory problems (", e.getMessage(), ")");
           }
         }
 
