@@ -61,8 +61,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int countWaitlistSize = 0;
     private int countSuccessors = 0;
     private int maxSuccessors = 0;
+    private int countPrecUnreachable = 0;
     private int countMerge = 0;
     private int countStop = 0;
+    private int countBreak = 0;
 
     @Override
     public String getName() {
@@ -72,12 +74,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
-      out.println("Number of iterations:           " + countIterations);
-      out.println("Average size of waitlist:       " + countWaitlistSize/countIterations);
-      out.println("Number of computed successors:  " + countSuccessors);
-      out.println("Max successors for one element: " + maxSuccessors);
-      out.println("Number of times merged:         " + countMerge);
-      out.println("Number of times stopped:        " + countStop);
+      out.println("Number of iterations:            " + countIterations);
+      out.println("Average size of waitlist:        " + countWaitlistSize/countIterations);
+      out.println("Number of computed successors:   " + countSuccessors);
+      out.println("Max successors for one element:  " + maxSuccessors);
+      out.println("Unreachable elements after prec: " + countPrecUnreachable);
+      out.println("Number of times merged:          " + countMerge);
+      out.println("Number of times stopped:         " + countStop);
+      out.println("Number of times breaked:         " + countBreak);
       out.println();
       out.println("Total time for CPA algorithm:   " + toTime(totalTime));
       out.println("Time for choose from waitlist:  " + toTime(chooseTime));
@@ -154,6 +158,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
         if (adjustedSuccessor == null) {
           logger.log(Level.FINER, "Successor is not reachable (determined by precision adjustment)");
+          stats.countPrecUnreachable++;
           continue;
         }
         
@@ -176,8 +181,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
             if (!mergedElement.equals(reachedElement)) {
               logger.log(Level.FINER, "Successor was merged with element from reached set");
-              logger.log(Level.ALL,
-                  "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
+              logger.log(Level.ALL, "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
               if (reachedElement == element) {
@@ -213,6 +217,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         if (successorPrecision.isBreak()) {
+          stats.countBreak++;
           // re-add the old element to the waitlist, there may be unhandled
           // successors left that otherwise would be forgotten
           if (!elementWasMerged) {
