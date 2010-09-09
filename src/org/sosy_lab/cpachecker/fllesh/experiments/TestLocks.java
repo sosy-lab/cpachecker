@@ -100,7 +100,7 @@ public class TestLocks {
     Assert.assertEquals(83, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(77, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(6, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(7, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -122,7 +122,7 @@ public class TestLocks {
     Assert.assertEquals(97, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(90, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(7, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(5, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(8, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -144,7 +144,7 @@ public class TestLocks {
     Assert.assertEquals(111, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(103, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(8, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(8, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -166,7 +166,7 @@ public class TestLocks {
     Assert.assertEquals(125, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(116, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(9, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(7, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -188,7 +188,7 @@ public class TestLocks {
     Assert.assertEquals(139, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(129, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(10, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(6, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -210,7 +210,7 @@ public class TestLocks {
     Assert.assertEquals(153, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(142, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -232,7 +232,7 @@ public class TestLocks {
     Assert.assertEquals(167, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(155, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(11, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -254,7 +254,7 @@ public class TestLocks {
     Assert.assertEquals(181, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(168, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(13, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(11, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(13, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -276,7 +276,7 @@ public class TestLocks {
     Assert.assertEquals(195, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(181, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(14, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(13, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -298,7 +298,7 @@ public class TestLocks {
     Assert.assertEquals(209, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(194, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(13, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -320,7 +320,7 @@ public class TestLocks {
     Assert.assertEquals(223, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(207, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(16, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(14, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -342,7 +342,7 @@ public class TestLocks {
     Assert.assertEquals(32, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(26, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(6, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(7, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -364,7 +364,7 @@ public class TestLocks {
     Assert.assertEquals(37, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(30, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(7, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(5, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(8, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -408,7 +408,7 @@ public class TestLocks {
     Assert.assertEquals(47, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(38, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(9, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(8, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -430,7 +430,7 @@ public class TestLocks {
     Assert.assertEquals(52, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(42, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(10, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(7, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -452,7 +452,7 @@ public class TestLocks {
     Assert.assertEquals(57, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(46, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(9, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -474,7 +474,7 @@ public class TestLocks {
     Assert.assertEquals(62, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(50, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(12, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(12, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -496,7 +496,7 @@ public class TestLocks {
     Assert.assertEquals(67, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(54, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(13, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(13, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -540,7 +540,7 @@ public class TestLocks {
     Assert.assertEquals(77, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(62, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(13, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
@@ -562,7 +562,7 @@ public class TestLocks {
     Assert.assertEquals(82, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(66, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(16, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(15, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   

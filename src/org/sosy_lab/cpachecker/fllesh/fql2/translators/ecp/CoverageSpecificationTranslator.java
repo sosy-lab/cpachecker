@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -59,7 +60,7 @@ public class CoverageSpecificationTranslator {
       Set<ElementaryCoveragePattern> lPrefixSet = pConcatenation.getFirstSubspecification().accept(this);
       Set<ElementaryCoveragePattern> lSuffixSet = pConcatenation.getSecondSubspecification().accept(this);
       
-      HashSet<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
+      HashSet<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
       
       for (ElementaryCoveragePattern lPrefix : lPrefixSet) {
         for (ElementaryCoveragePattern lSuffix : lSuffixSet) {
@@ -79,7 +80,7 @@ public class CoverageSpecificationTranslator {
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Union pUnion) {
-      Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
       
       lResultSet.addAll(pUnion.getFirstSubspecification().accept(this));
       lResultSet.addAll(pUnion.getSecondSubspecification().accept(this));
@@ -91,7 +92,7 @@ public class CoverageSpecificationTranslator {
     public Set<ElementaryCoveragePattern> visit(Edges pEdges) {
       TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pEdges.getFilter());
 
-      Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
 
       for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
         lResultSet.add(mPathPatternTranslator.translate(lEdge));
@@ -104,7 +105,7 @@ public class CoverageSpecificationTranslator {
     public Set<ElementaryCoveragePattern> visit(Nodes pNodes) {
       TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pNodes.getFilter());
 
-      Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
 
       for (Node lNode : lFilteredTargetGraph.getNodes()) {
         lResultSet.add(mPathPatternTranslator.translate(lNode));
@@ -117,7 +118,7 @@ public class CoverageSpecificationTranslator {
     public Set<ElementaryCoveragePattern> visit(Paths pPaths) {
       TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pPaths.getFilter());
       
-      Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
       
       for (Path lPath : lFilteredTargetGraph.getBoundedPaths(pPaths.getBound())) {
         lResultSet.add(mPathPatternTranslator.translate(lPath));

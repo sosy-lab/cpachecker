@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionNameMaskFunctor;
 public class TargetGraphUtil {
 
   public static Set<CFAEdge> getBasicBlockEntries(CFANode pInitialNode) {
-    HashSet<CFAEdge> lBasicBlockEntries = new HashSet<CFAEdge>();
+    LinkedHashSet<CFAEdge> lBasicBlockEntries = new LinkedHashSet<CFAEdge>();
     
     HashSet<CFAEdge> lVisitedEdges = new HashSet<CFAEdge>();
     

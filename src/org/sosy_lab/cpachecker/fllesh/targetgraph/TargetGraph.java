@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
@@ -64,8 +65,8 @@ public class TargetGraph {
   public TargetGraph(TargetGraph pTargetGraph) {
     assert(pTargetGraph != null);
 
-    mInitialNodes = new HashSet<Node>(pTargetGraph.mInitialNodes);
-    mFinalNodes = new HashSet<Node>(pTargetGraph.mFinalNodes);
+    mInitialNodes = new LinkedHashSet<Node>(pTargetGraph.mInitialNodes);
+    mFinalNodes = new LinkedHashSet<Node>(pTargetGraph.mFinalNodes);
     mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
 
     for (Node lNode : pTargetGraph.mGraph.vertexSet()) {
@@ -263,7 +264,7 @@ public class TargetGraph {
     
     public Builder(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
       DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, pMaskFunctor);
-      mTargetGraph = new TargetGraph(new HashSet<Node>(), new HashSet<Node>(), lMaskedGraph);
+      mTargetGraph = new TargetGraph(new LinkedHashSet<Node>(), new LinkedHashSet<Node>(), lMaskedGraph);
     }
     
     public Set<Edge> edges() {

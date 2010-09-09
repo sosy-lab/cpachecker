@@ -469,44 +469,15 @@ public class MainTest {
     mExperiment.addExperiment("015", Main.mResult, (lEndTime - lStartTime)/1000.0);
     
     Assert.assertEquals(26, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(24, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(23, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, Main.mResult.getNumberOfTestCases());
-    Assert.assertEquals(2, Main.mResult.getNumberOfImpreciseTestCases());
+    Assert.assertEquals(3, Main.mResult.getNumberOfImpreciseTestCases());
     
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      * TODO: This is a problem when replaying the test input!
      */
-  }
-  
-  @Test
-  public void testMain016() throws Exception {
-    String[] lArguments = getParameters(
-        STATEMENT_COVERAGE,
-        "test/programs/fql/basic/undefined-func.cil.c",
-        "main",
-        true
-        );
-    
-    long lStartTime = System.currentTimeMillis();
-    
-    Main.main(lArguments);
-    
-    long lEndTime = System.currentTimeMillis();
-    
-    mExperiment.addExperiment("016", Main.mResult, (lEndTime - lStartTime)/1000.0);
-    
-    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(7, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(2, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
-    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
-    
-    /**
-     * Discussion: Pointer argv is not initialized correctly (and, argv is used in the program)
-     */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -610,35 +581,8 @@ public class MainTest {
     Assert.assertEquals(42, Main.mResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(39, Main.mResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(3, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(2, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(6, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
-  }
-  
-  @Test
-  public void testMain021() throws Exception {
-    String[] lArguments = getParameters(STATEMENT_COVERAGE, 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
-                                        false);
-    
-    long lStartTime = System.currentTimeMillis();
-    
-    Main.main(lArguments);
-    
-    long lEndTime = System.currentTimeMillis();
-    
-    mExperiment.addExperiment("021", Main.mResult, (lEndTime - lStartTime)/1000.0);
-    
-    Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
-    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
-    
-    /**
-     * Discussion: get_exit_nondet() in its original implementation is faulty
-     */
-    Assert.assertTrue(false);
   }
   
   @Test
@@ -723,6 +667,108 @@ public class MainTest {
   }
   
   @Test
+  public void testMain028() throws Exception {
+    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+                                        "test/programs/fql/arrays/infeasible_label.1.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("028", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void testMain031() throws Exception {
+    String[] lArguments = getParameters(
+        "COVER \"EDGES(ID)*\"",
+        "test/programs/simple/functionCall.c",
+        "main",
+        true
+    );
+
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("031", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());   
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void testMain016() throws Exception {
+    String[] lArguments = getParameters(
+        STATEMENT_COVERAGE,
+        "test/programs/fql/basic/undefined-func.cil.c",
+        "main",
+        true
+        );
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("016", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(-1, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(7, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(2, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+    
+    /**
+     * Discussion: Pointer argv is not initialized correctly (and, argv is used in the program)
+     */
+    Assert.assertTrue(false);
+  }
+  
+  @Test
+  public void testMain021() throws Exception {
+    String[] lArguments = getParameters(STATEMENT_COVERAGE, 
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
+                                        "main", 
+                                        false);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("021", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(690, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+    
+    /**
+     * Discussion: get_exit_nondet() in its original implementation is faulty
+     */
+    Assert.assertTrue(false);
+  }
+  
+  @Test
   public void testMain025() throws Exception {
     String[] lArguments = getParameters(BASIC_BLOCK_COVERAGE, 
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
@@ -800,28 +846,6 @@ public class MainTest {
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
     
     Assert.assertTrue(false);
-  }
-  
-  @Test
-  public void testMain028() throws Exception {
-    String[] lArguments = getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
-                                        "test/programs/fql/arrays/infeasible_label.1.c",
-                                        "main",
-                                        true);
-    
-    long lStartTime = System.currentTimeMillis();
-    
-    Main.main(lArguments);
-    
-    long lEndTime = System.currentTimeMillis();
-    
-    mExperiment.addExperiment("028", Main.mResult, (lEndTime - lStartTime)/1000.0);
-    
-    Assert.assertEquals(1, Main.mResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(1, Main.mResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(0, Main.mResult.getNumberOfTestCases());
-    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
