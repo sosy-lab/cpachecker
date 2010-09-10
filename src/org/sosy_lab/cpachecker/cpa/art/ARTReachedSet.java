@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -83,8 +84,8 @@ public class ARTReachedSet {
 
   /**
    * Like {@link #removeSubtree(ARTElement)}, but when re-adding elements to the
-   * waitlist use the supplied precision p, no matter what precision those
-   * elements previously had.
+   * waitlist adapts precisions with respect to the supplied precision p (see 
+   * {@link #adaptPrecision(ARTElement, Precision)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
@@ -92,7 +93,27 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = removeSubtree0(e);
 
     for (ARTElement ae : toWaitlist) {
-      mReached.add(ae, p);
+      mReached.add(ae, adaptPrecision(ae, p));
+    }
+  }
+  
+  /**
+   * Adapts the precision stored in the reached set for lARTElement.
+   * If the stored precision is a wrapper precision, pNewPrecision replaces the 
+   * component of the wrapper precision that corresponds to pNewPrecision.
+   * Otherwise, pNewPrecision replaces the stored precision.
+   * @param pARTElement Reached element for which the precision has to be adapted.
+   * @param pNewPrecision New precision.
+   * @return The adapted precision.
+   */
+  private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
+    Precision lOldPrecision = getPrecision(pARTElement);
+    
+    if (lOldPrecision instanceof WrapperPrecision) {
+      return ((WrapperPrecision)lOldPrecision).replaceWrappedPrecision(pNewPrecision);
+    }
+    else {
+      return pNewPrecision;
     }
   }
 

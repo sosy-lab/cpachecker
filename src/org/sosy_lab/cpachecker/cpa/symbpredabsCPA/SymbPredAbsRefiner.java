@@ -128,13 +128,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
               performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
 
-      Precision newPrecision = refinementResult.getSecond();
-      if (oldPrecision instanceof WrapperPrecision) {
-        newPrecision = ((WrapperPrecision)oldPrecision).replaceWrappedPrecision(newPrecision);
-      }
-      assert newPrecision != null;
-
-      pReached.removeSubtree(refinementResult.getFirst(), newPrecision);
+      pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
     } else {
       // we have a real error
