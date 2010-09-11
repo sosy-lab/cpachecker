@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.fllesh.FlleShResult;
 import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.experiments.ExperimentalSeries;
 
-public class BasicBlock2 extends ExperimentalSeries {
+public class BasicBlock2Coverage extends ExperimentalSeries {
   
   @Test
   public void test_locks_201() throws Exception {
