@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.experiments;
+package org.sosy_lab.cpachecker.fllesh.experiments.ssh;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -35,6 +35,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fllesh.Main;
+import org.sosy_lab.cpachecker.fllesh.experiments.Experiment;
 
 public class SSHSimplified {
 
