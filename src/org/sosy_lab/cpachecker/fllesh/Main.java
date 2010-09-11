@@ -25,10 +25,17 @@ package org.sosy_lab.cpachecker.fllesh;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 
 public class Main {
+  
+  public static final String STATEMENT_COVERAGE = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+  public static final String BASIC_BLOCK_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  public static final String BASIC_BLOCK_2_COVERAGE = BASIC_BLOCK_COVERAGE + ".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  public static final String CONDITION_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"";
   
   public static FlleShResult mResult = null;
   
@@ -65,6 +72,26 @@ public class Main {
     mResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, true);
     
     System.out.println("#Goals: " + mResult.getTask().getNumberOfTestGoals() + ", #Feas: " + mResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + mResult.getNumberOfInfeasibleTestGoals() + ", #Inprecise: " + mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  public static String[] getParameters(String pQuery, String pSource, String pEntryFunction, boolean pDisablePreprocessing) {
+    List<String> lArguments = new LinkedList<String>();
+    lArguments.add(pQuery);
+    lArguments.add(pSource);
+    lArguments.add(pEntryFunction);
+    
+    String[] lResult;
+    
+    if (pDisablePreprocessing) {
+      lArguments.add("disablecilpreprocessing");
+      
+      lResult = new String[4];
+    }
+    else {
+      lResult = new String[3];
+    }
+    
+    return lArguments.toArray(lResult);
   }
   
 }

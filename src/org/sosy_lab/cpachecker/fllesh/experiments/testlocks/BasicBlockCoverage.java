@@ -30,182 +30,182 @@ import org.sosy_lab.cpachecker.fllesh.FlleShResult;
 import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.experiments.ExperimentalSeries;
 
-public class TestLocks extends ExperimentalSeries {
+public class BasicBlockCoverage extends ExperimentalSeries {
   
   @Test
-  public void test_locks_001() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_101() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_5.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(83, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(77, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(32, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(26, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_002() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_102() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_6.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(97, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(90, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(37, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(30, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_003() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_103() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_7.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(111, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(103, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(42, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(34, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_004() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_104() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_8.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(125, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(116, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(47, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(38, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_005() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_105() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_9.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(139, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(129, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(52, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(42, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_006() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_106() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_10.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(153, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(142, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(57, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(46, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_007() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_107() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_11.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(167, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(155, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(62, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(50, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_008() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_108() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_12.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(181, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(168, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(67, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(54, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(13, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(13, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_009() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_109() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_13.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(195, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(181, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(72, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(58, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(14, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(13, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_010() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_110() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_14.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(209, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(194, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(77, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(62, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(16, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
   @Test
-  public void test_locks_011() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+  public void test_locks_111() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_15.c",
                                         "main",
                                         true);
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(223, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(207, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(82, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(66, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(16, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(16, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
 }
