@@ -66,8 +66,8 @@ public class FlleShResult {
       }
     }
     
-    public FlleShResult create() {
-      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size());
+    public FlleShResult create(double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
+      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
     }
     
   }
@@ -81,13 +81,17 @@ public class FlleShResult {
   private int mNumberOfInfeasibleTestGoals;
   private int mNumberOfTestCases;
   private int mNumberOfImpreciseTestCases;
+  private double mTimeForFeasibleTestGoals; // seconds
+  private double mTimeForInfeasibleTestGoals; // seconds
   
-  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases) {
+  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
     mTask = pTask;
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
     mNumberOfTestCases = pNumberOfTestCases;
     mNumberOfImpreciseTestCases = pNumberOfImpreciseTestCases;
+    mTimeForFeasibleTestGoals = pTimeForFeasibleTestGoals;
+    mTimeForInfeasibleTestGoals = pTimeForInfeasibleTestGoals;
   }
   
   public Task getTask() {
@@ -108,6 +112,14 @@ public class FlleShResult {
   
   public int getNumberOfImpreciseTestCases() {
     return mNumberOfImpreciseTestCases;
+  }
+  
+  public double getTimeForFeasibleTestGoals() {
+    return mTimeForFeasibleTestGoals;
+  }
+  
+  public double getTimeForInfeasibleTestGoals() {
+    return mTimeForInfeasibleTestGoals;
   }
   
 }

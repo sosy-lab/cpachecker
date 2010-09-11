@@ -83,12 +83,12 @@ public class SSHSimplified {
   
   @Test
   public void ssh_001() throws Exception {
-    String lCFile = "s3_clnt_1_BUG.cil.c";
+    String lCFile = "s3_clnt_1_BUG.2.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
-                                        true);
+                                        false);
     
     long lStartTime = System.currentTimeMillis();
     
@@ -110,7 +110,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_1.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -134,7 +134,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_2_BUG.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -158,7 +158,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_2.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -182,7 +182,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_3_BUG.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -206,7 +206,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_3.cil_org.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -230,7 +230,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_3.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -254,7 +254,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_4_BUG.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -278,7 +278,7 @@ public class SSHSimplified {
     String lCFile = "s3_clnt_4.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -302,7 +302,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_1_BUG.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -326,7 +326,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_1.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -350,7 +350,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_2_BUG.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -374,7 +374,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_2.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -398,7 +398,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_3.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -422,7 +422,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_4.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -446,7 +446,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_6.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -470,7 +470,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_7.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     
@@ -494,7 +494,7 @@ public class SSHSimplified {
     String lCFile = "s3_srvr_8.cil.c";
     
     String[] lArguments = getParameters(STATEMENT_COVERAGE,
-                                        "test/programs/ssh-simplified/" + lCFile,
+                                        "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
     

@@ -62,6 +62,9 @@ public class TestLocks {
   
   private static String STATEMENT_COVERAGE = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
   private static String BASIC_BLOCK_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  private static String BASIC_BLOCK_2_COVERAGE = BASIC_BLOCK_COVERAGE + ".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  //private static String BASIC_BLOCK_3_COVERAGE = BASIC_BLOCK_2_COVERAGE + ".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  //private static String BASIC_BLOCK_4_COVERAGE = BASIC_BLOCK_3_COVERAGE + ".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   
   @BeforeClass
   public static void createLogFile() {
@@ -565,5 +568,247 @@ public class TestLocks {
     Assert.assertEquals(16, Main.mResult.getNumberOfTestCases());
     Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
   }
+
+  @Test
+  public void test_locks_201() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_5.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_5.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1024, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(601, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(423, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(32, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
   
+  @Test
+  public void test_locks_202() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_6.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_6.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1369, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(813, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(556, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(39, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_203() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_7.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_7.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(1764, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1057, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(707, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(52, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_204() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_8.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_8.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(2209, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1333, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(876, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(68, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_205() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_9.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_9.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(2704, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1641, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1063, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(66, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_206() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_10.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_10.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(3249, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1981, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1268, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(84, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_207() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_11.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_11.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(3844, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(2353, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1491, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(84, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_208() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_12.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_12.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(4489, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(2757, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1732, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(139, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_209() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_13.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_13.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(5184, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(3193, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1991, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(156, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_210() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_14.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_14.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(5929, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(3661, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(2268, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(171, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_211() throws Exception {
+    String[] lArguments = getParameters(BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_15.c",
+                                        "main",
+                                        true);
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("test_locks_15.c (bb2cov)", Main.mResult, (lEndTime - lStartTime)/1000.0);
+    
+    Assert.assertEquals(6724, Main.mResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(4161, Main.mResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(2563, Main.mResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(213, Main.mResult.getNumberOfTestCases());
+    Assert.assertEquals(0, Main.mResult.getNumberOfImpreciseTestCases());
+  }
+
 }
