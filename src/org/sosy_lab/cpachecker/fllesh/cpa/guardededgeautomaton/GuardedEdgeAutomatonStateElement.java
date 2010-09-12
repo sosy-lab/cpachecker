@@ -12,12 +12,10 @@ public abstract class GuardedEdgeAutomatonStateElement implements
 
   private final Automaton<GuardedEdgeLabel>.State mAutomatonState;
   private final boolean mIsFinalState;
-  protected final String mStringRepresentation;
   
-  public GuardedEdgeAutomatonStateElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState, String pStringRepresentation) {
+  public GuardedEdgeAutomatonStateElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState) {
     mAutomatonState = pState;
     mIsFinalState = pIsFinalState;
-    mStringRepresentation = pStringRepresentation;
   }
   
   public boolean isFinalState() {
@@ -28,7 +26,7 @@ public abstract class GuardedEdgeAutomatonStateElement implements
     return mAutomatonState;
   }
   
-  public static GuardedEdgeAutomatonStateElement create(Automaton<GuardedEdgeLabel>.Edge pEdge, Automaton<GuardedEdgeLabel> pAutomaton, String pStringRepresentation) {
+  public static GuardedEdgeAutomatonStateElement create(Automaton<GuardedEdgeLabel>.Edge pEdge, Automaton<GuardedEdgeLabel> pAutomaton) {
     Automaton<GuardedEdgeLabel>.State lAutomatonState = pEdge.getTarget();
     
     GuardedEdgeLabel lLabel = pEdge.getLabel();
@@ -44,16 +42,16 @@ public abstract class GuardedEdgeAutomatonStateElement implements
         lPredicates.add((ECPPredicate)lGuard);
       }
       
-      return new GuardedEdgeAutomatonPredicateElement(lAutomatonState, lPredicates, lIsFinalState, pStringRepresentation);
+      return new GuardedEdgeAutomatonPredicateElement(lAutomatonState, lPredicates, lIsFinalState);
     }
     else {
-      return new GuardedEdgeAutomatonStandardElement(lAutomatonState, lIsFinalState, pStringRepresentation);
+      return new GuardedEdgeAutomatonStandardElement(lAutomatonState, lIsFinalState);
     }
   }
   
   @Override
   public String toString() {
-    return mStringRepresentation;
+    return mAutomatonState.toString();
   }
 
 }

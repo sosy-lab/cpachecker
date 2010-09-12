@@ -5,12 +5,12 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class GuardedEdgeAutomatonStandardElement extends GuardedEdgeAutomatonStateElement {
 
-  public GuardedEdgeAutomatonStandardElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState, String pStringRepresentation) {
-    super(pState, pIsFinalState, pStringRepresentation);
+  public GuardedEdgeAutomatonStandardElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState) {
+    super(pState, pIsFinalState);
   }
   
   public GuardedEdgeAutomatonStandardElement(GuardedEdgeAutomatonPredicateElement pElement) {
-    super(pElement.getAutomatonState(), pElement.isFinalState(), pElement.mStringRepresentation);
+    super(pElement.getAutomatonState(), pElement.isFinalState());
   }
   
   @Override

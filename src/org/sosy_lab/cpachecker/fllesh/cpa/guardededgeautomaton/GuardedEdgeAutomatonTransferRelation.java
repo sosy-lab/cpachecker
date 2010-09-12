@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.AutomatonPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
@@ -24,7 +23,6 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   private final AbstractElement mTopElement;
   private final AbstractElement mBottomElement;
   private final Automaton<GuardedEdgeLabel> mAutomaton;
-  protected final AutomatonPrettyPrinter mPrettyPrinter;
   
   private String mInputFunctionName;
   private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
@@ -33,18 +31,12 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     mTopElement = pDomain.getTopElement();
     mBottomElement = pDomain.getBottomElement();
     mAutomaton = pAutomaton;
-    
-    mPrettyPrinter = new AutomatonPrettyPrinter();
-    //System.out.println(mPrettyPrinter.printPretty(mAutomaton));
   }
   
   public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
     mTopElement = pDomain.getTopElement();
     mBottomElement = pDomain.getBottomElement();
     mAutomaton = pAutomaton;
-    
-    mPrettyPrinter = new AutomatonPrettyPrinter();
-    System.out.println(mPrettyPrinter.printPretty(mAutomaton));
     
     if (pInputFunctionName == null) {
       throw new IllegalArgumentException();
@@ -119,7 +111,7 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
       if (lLabel.contains(pCfaEdge)) {
-        lSuccessors.add(GuardedEdgeAutomatonStateElement.create(lOutgoingEdge, mAutomaton, mPrettyPrinter.printPretty(lOutgoingEdge)));
+        lSuccessors.add(GuardedEdgeAutomatonStateElement.create(lOutgoingEdge, mAutomaton));
       }
     }
     

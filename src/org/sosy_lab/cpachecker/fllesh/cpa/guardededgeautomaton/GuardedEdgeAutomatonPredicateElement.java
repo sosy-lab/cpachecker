@@ -12,8 +12,8 @@ public class GuardedEdgeAutomatonPredicateElement extends GuardedEdgeAutomatonSt
   private final List<ECPPredicate> mPredicates;
   private final GuardedEdgeAutomatonStandardElement mStandardElement;
   
-  public GuardedEdgeAutomatonPredicateElement(Automaton<GuardedEdgeLabel>.State pState, List<ECPPredicate> pPredicates, boolean pIsFinalState, String pStringRepresentation) {
-    super(pState, pIsFinalState, pStringRepresentation);
+  public GuardedEdgeAutomatonPredicateElement(Automaton<GuardedEdgeLabel>.State pState, List<ECPPredicate> pPredicates, boolean pIsFinalState) {
+    super(pState, pIsFinalState);
     mStandardElement = new GuardedEdgeAutomatonStandardElement(this);
     mPredicates = pPredicates;
   }

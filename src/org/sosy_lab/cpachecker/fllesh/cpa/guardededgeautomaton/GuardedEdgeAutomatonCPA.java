@@ -33,7 +33,7 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
     
     Automaton<GuardedEdgeLabel>.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);
-    mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal, mTransferRelation.mPrettyPrinter.printPretty(lInitialState));
+    mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal);
   }
   
   public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
