@@ -6,15 +6,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge> {
 
-  private static CFAPathStandardElement sEmptyPath = new CFAPathStandardElement();
+  private static final CFAPathStandardElement sEmptyPath = new CFAPathStandardElement();
   
   public static CFAPathStandardElement getEmptyPath() {
     return sEmptyPath;
   }
   
-  private CFAPathStandardElement mPredecessor;
-  private CFAEdge mCFAEdge;
-  private int mLength;
+  private final CFAPathStandardElement mPredecessor;
+  private final CFAEdge mCFAEdge;
+  private final int mLength;
   
   private class CFAEdgeIterator implements Iterator<CFAEdge> {
 

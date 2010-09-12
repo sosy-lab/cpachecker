@@ -13,6 +13,16 @@ import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutoma
 
 public class ProductAutomatonTransferRelation implements TransferRelation {
   
+  private static final ProductAutomatonTransferRelation sInstance = new ProductAutomatonTransferRelation();
+  
+  public static ProductAutomatonTransferRelation getInstance() {
+    return sInstance;
+  }
+  
+  private ProductAutomatonTransferRelation() {
+    
+  }
+  
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)

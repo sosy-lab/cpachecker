@@ -7,25 +7,21 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
 
-  private static ProductAutomatonCPA mInstance = new ProductAutomatonCPA();
+  private static final ProductAutomatonCPA sInstance = new ProductAutomatonCPA();
   
   public static ProductAutomatonCPA getInstance() {
-    return mInstance;
+    return sInstance;
   }
   
-  private ProductAutomatonDomain mDomain;
-  private ProductAutomatonTransferRelation mTransferRelation;
-  private StopSepOperator mStopOperator;
+  private final ProductAutomatonDomain mDomain;
+  private final StopSepOperator mStopOperator;
   
-  public ProductAutomatonCPA() {
-    mDomain = new ProductAutomatonDomain();
-    mTransferRelation = new ProductAutomatonTransferRelation();
+  private ProductAutomatonCPA() {
+    mDomain = ProductAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
   }
   
@@ -53,7 +49,7 @@ public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public ProductAutomatonPrecisionAdjustment getPrecisionAdjustment() {
     return ProductAutomatonPrecisionAdjustment.getInstance();
   }
 
@@ -63,8 +59,8 @@ public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return mTransferRelation;
+  public ProductAutomatonTransferRelation getTransferRelation() {
+    return ProductAutomatonTransferRelation.getInstance();
   }
 
 }

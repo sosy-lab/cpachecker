@@ -6,6 +6,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ProductAutomatonPartialOrder implements PartialOrder {
 
+  private static final ProductAutomatonPartialOrder sInstance = new ProductAutomatonPartialOrder();
+  
+  public static ProductAutomatonPartialOrder getInstance() {
+    return sInstance;
+  }
+  
+  private ProductAutomatonPartialOrder() {
+    
+  }
+  
   @Override
   public boolean satisfiesPartialOrder(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {

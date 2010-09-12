@@ -4,7 +4,7 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 
 public class CFAPathDomain extends FlatLatticeDomain {
   
-  private static CFAPathDomain sDomainInstance = new CFAPathDomain();
+  private static final CFAPathDomain sDomainInstance = new CFAPathDomain();
   
   public static CFAPathDomain getInstance() {
     return sDomainInstance;

@@ -37,13 +37,13 @@ public class Main {
   public static final String BASIC_BLOCK_2_COVERAGE = BASIC_BLOCK_COVERAGE + ".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   public static final String CONDITION_COVERAGE = "COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"";
   
-  public static FlleShResult mResult = null;
-  
   public static void main(String[] pArguments) throws IOException {
+    run(pArguments);
+  }
+  
+  public static FlleShResult run(String[] pArguments) throws IOException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
-    
-    mResult = null;
     
     String lFQLSpecificationString = pArguments[0];
     String lSourceFileName = pArguments[1];
@@ -69,9 +69,11 @@ public class Main {
       }
     }
 
-    mResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, true);
+    FlleShResult lResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, true);
     
-    System.out.println("#Goals: " + mResult.getTask().getNumberOfTestGoals() + ", #Feas: " + mResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + mResult.getNumberOfInfeasibleTestGoals() + ", #Inprecise: " + mResult.getNumberOfImpreciseTestCases());
+    System.out.println("#Goals: " + lResult.getTask().getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Inprecise: " + lResult.getNumberOfImpreciseTestCases());
+    
+    return lResult;
   }
   
   public static String[] getParameters(String pQuery, String pSource, String pEntryFunction, boolean pDisablePreprocessing) {

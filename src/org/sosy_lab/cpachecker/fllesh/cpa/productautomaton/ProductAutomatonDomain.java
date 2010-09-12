@@ -5,12 +5,14 @@ import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 
 public class ProductAutomatonDomain implements AbstractDomain {
   
-  private ProductAutomatonPartialOrder mPartialOrder;
-  private ProductAutomatonJoinOperator mJoinOperator;
+  private static final ProductAutomatonDomain sInstance = new ProductAutomatonDomain();
   
-  public ProductAutomatonDomain() {
-    mPartialOrder = new ProductAutomatonPartialOrder();
-    mJoinOperator = new ProductAutomatonJoinOperator();
+  public static ProductAutomatonDomain getInstance() {
+    return sInstance;
+  }
+  
+  private ProductAutomatonDomain() {
+    
   }
 
   @Override
@@ -20,12 +22,12 @@ public class ProductAutomatonDomain implements AbstractDomain {
 
   @Override
   public JoinOperator getJoinOperator() {
-    return mJoinOperator;
+    return ProductAutomatonJoinOperator.getInstance();
   }
 
   @Override
   public ProductAutomatonPartialOrder getPartialOrder() {
-    return mPartialOrder;
+    return ProductAutomatonPartialOrder.getInstance();
   }
 
   @Override

@@ -15,15 +15,15 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class CFAPathCPA implements ConfigurableProgramAnalysis {
 
-  private CFAPathDomain mDomain;
-  private CFAPathTransferRelation mTransferRelation;
-  private PrecisionAdjustment mPrecisionAdjustment;
-  private Precision mPrecision;
-  private CFAPathStandardElement mInitialElement;
-  private StopOperator mStopOperator;
-  private MergeOperator mMergeOperator;
+  private final CFAPathDomain mDomain;
+  private final CFAPathTransferRelation mTransferRelation;
+  private final PrecisionAdjustment mPrecisionAdjustment;
+  private final Precision mPrecision;
+  private final CFAPathStandardElement mInitialElement;
+  private final StopOperator mStopOperator;
+  private final MergeOperator mMergeOperator;
   
-  private static CFAPathCPA sInstance = new CFAPathCPA();
+  private static final CFAPathCPA sInstance = new CFAPathCPA();
   
   public static CFAPathCPA getInstance() {
     return sInstance;

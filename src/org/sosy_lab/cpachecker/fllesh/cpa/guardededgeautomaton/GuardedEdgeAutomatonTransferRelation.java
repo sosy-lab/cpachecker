@@ -21,10 +21,10 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
 
-  private AbstractElement mTopElement;
-  private AbstractElement mBottomElement;
-  private Automaton<GuardedEdgeLabel> mAutomaton;
-  protected AutomatonPrettyPrinter mPrettyPrinter;
+  private final AbstractElement mTopElement;
+  private final AbstractElement mBottomElement;
+  private final Automaton<GuardedEdgeLabel> mAutomaton;
+  protected final AutomatonPrettyPrinter mPrettyPrinter;
   
   private String mInputFunctionName;
   private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
@@ -35,7 +35,7 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     mAutomaton = pAutomaton;
     
     mPrettyPrinter = new AutomatonPrettyPrinter();
-    System.out.println(mPrettyPrinter.printPretty(mAutomaton));
+    //System.out.println(mPrettyPrinter.printPretty(mAutomaton));
   }
   
   public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {

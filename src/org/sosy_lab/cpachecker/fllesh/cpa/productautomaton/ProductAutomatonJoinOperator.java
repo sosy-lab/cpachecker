@@ -6,6 +6,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ProductAutomatonJoinOperator implements JoinOperator {
 
+  private static final ProductAutomatonJoinOperator sInstance = new ProductAutomatonJoinOperator();
+  
+  public static ProductAutomatonJoinOperator getInstance() {
+    return sInstance;
+  }
+  
+  private ProductAutomatonJoinOperator() {
+    
+  }
+  
   @Override
   public AbstractElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {

@@ -10,9 +10,9 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 public abstract class GuardedEdgeAutomatonStateElement implements
     GuardedEdgeAutomatonElement {
 
-  private Automaton<GuardedEdgeLabel>.State mAutomatonState;
-  private boolean mIsFinalState;
-  protected String mStringRepresentation;
+  private final Automaton<GuardedEdgeLabel>.State mAutomatonState;
+  private final boolean mIsFinalState;
+  protected final String mStringRepresentation;
   
   public GuardedEdgeAutomatonStateElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState, String pStringRepresentation) {
     mAutomatonState = pState;

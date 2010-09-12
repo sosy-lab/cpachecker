@@ -21,13 +21,13 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
 
-  private GuardedEdgeAutomatonDomain mDomain;
-  private GuardedEdgeAutomatonStandardElement mInitialElement;
-  private StopSepOperator mStopOperator;
-  private GuardedEdgeAutomatonTransferRelation mTransferRelation;
+  private final GuardedEdgeAutomatonDomain mDomain;
+  private final GuardedEdgeAutomatonStandardElement mInitialElement;
+  private final StopSepOperator mStopOperator;
+  private final GuardedEdgeAutomatonTransferRelation mTransferRelation;
   
   public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton) {
-    mDomain = new GuardedEdgeAutomatonDomain();
+    mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
     mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton);
     

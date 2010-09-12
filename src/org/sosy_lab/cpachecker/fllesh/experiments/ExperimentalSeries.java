@@ -9,6 +9,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.sosy_lab.cpachecker.fllesh.FlleShResult;
 import org.sosy_lab.cpachecker.fllesh.Main;
+import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 
 import com.google.common.base.Preconditions;
 
@@ -39,15 +40,17 @@ public abstract class ExperimentalSeries {
     Preconditions.checkNotNull(lArguments);
     Preconditions.checkArgument(lArguments.length == 3 || lArguments.length == 4);
     
-    long lStartTime = System.currentTimeMillis();
+    TimeAccumulator lTime = new TimeAccumulator();
     
-    Main.main(lArguments);
+    lTime.proceed();
     
-    long lEndTime = System.currentTimeMillis();
+    FlleShResult lResult = Main.run(lArguments);
     
-    mExperiment.addExperiment(lArguments[0], lArguments[1], lArguments[2], (lArguments.length == 4), Main.mResult, (lEndTime - lStartTime)/1000.0);
+    lTime.pause();
     
-    return Main.mResult;
+    mExperiment.addExperiment(lArguments[0], lArguments[1], lArguments[2], (lArguments.length == 4), lResult, lTime.getSeconds());
+    
+    return lResult;
   }
   
 }

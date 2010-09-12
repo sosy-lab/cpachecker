@@ -9,8 +9,8 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class GuardedEdgeAutomatonPredicateElement extends GuardedEdgeAutomatonStateElement implements Iterable<ECPPredicate> {
 
-  private List<ECPPredicate> mPredicates;
-  private GuardedEdgeAutomatonStandardElement mStandardElement;
+  private final List<ECPPredicate> mPredicates;
+  private final GuardedEdgeAutomatonStandardElement mStandardElement;
   
   public GuardedEdgeAutomatonPredicateElement(Automaton<GuardedEdgeLabel>.State pState, List<ECPPredicate> pPredicates, boolean pIsFinalState, String pStringRepresentation) {
     super(pState, pIsFinalState, pStringRepresentation);

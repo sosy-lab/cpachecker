@@ -16,11 +16,10 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 
-// TODO split into String based test case and file based test case
 public class StringBasedTestCase implements TestCase {
 
-  public static String INPUT_FUNCTION_NAME = "input";
-  public static String INPUT_INDEX_VARIABLE = "__FLLESH__input_index";
+  public static final String INPUT_FUNCTION_NAME = "input";
+  public static final String INPUT_INDEX_VARIABLE = "__FLLESH__input_index";
   
   private String mInputFunction;
   private CFAFunctionDefinitionNode mInputFunctionEntry;

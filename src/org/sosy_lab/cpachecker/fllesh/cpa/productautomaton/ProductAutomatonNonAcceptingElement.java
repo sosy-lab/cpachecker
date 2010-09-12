@@ -3,7 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.productautomaton;
 public class ProductAutomatonNonAcceptingElement implements
     ProductAutomatonElement {
 
-  private static ProductAutomatonNonAcceptingElement mInstance = new ProductAutomatonNonAcceptingElement();
+  private static final ProductAutomatonNonAcceptingElement mInstance = new ProductAutomatonNonAcceptingElement();
   
   public static ProductAutomatonNonAcceptingElement getInstance() {
     return mInstance;

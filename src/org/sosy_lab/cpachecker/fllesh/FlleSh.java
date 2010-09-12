@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslat
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
+import org.sosy_lab.cpachecker.fllesh.util.profiling.MemoryInfo;
+import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -120,21 +122,32 @@ public class FlleSh {
     
     int lIndex = 0;
     
-    long lTimeForFeasibleTestGoals = 0;
-    long lTimeForInfeasibleTestGoals = 0;
+    int lFeasibleTestGoalsTimeSlot = 0;
+    int lInfeasibleTestGoalsTimeSlot = 1;
+    
+    TimeAccumulator lTimeAccu = new TimeAccumulator(2);
+    
+    TimeAccumulator lTimeReach = new TimeAccumulator();
+    TimeAccumulator lTimeCover = new TimeAccumulator();
     
     while (!lGoals.isEmpty()) {
-      long lStartTime = System.currentTimeMillis();
+      lTimeAccu.proceed();
       
       Goal lGoal = lGoals.poll();
       
       int lCurrentGoalNumber = ++lIndex;
       System.out.println("Goal #" + lCurrentGoalNumber);
-      System.out.println(lPrettyPrinter.printPretty(lGoal.getPattern()));
+      //System.out.println(lPrettyPrinter.printPretty(lGoal.getPattern()));
+      
+      System.out.println("Memory used: " + MemoryInfo.getUsedMemory());
       
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), StringBasedTestCase.INPUT_FUNCTION_NAME, lWrapper.getReplacedEdges());
       
+      lTimeReach.proceed();
+      
       CounterexampleTraceInfo lCounterexampleTraceInfo = reach(lAutomatonCPA, lWrapper.getEntry(), lPassingCPA, lConfiguration, lLogManager);
+      
+      lTimeReach.pause();
       
       boolean lIsFeasible;
       
@@ -145,19 +158,19 @@ public class FlleSh {
         System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
       }
       else {
+        lTimeCover.proceed();
+        
         lIsFeasible = true;
         
         Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
-        System.out.println(lCounterexample);
-        
         StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, lLogManager);
+        //System.out.println(lCounterexample);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
           System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
           
           if (pApplySubsumptionCheck) {
-            /** goal subsumption check */
             removeCoveredGoals(lGoals, lResultFactory, lTestCase, lWrapper, lAutomatonCPA, lPassingCPA, lConfiguration, lLogManager);
           }
         }
@@ -166,21 +179,21 @@ public class FlleSh {
           
           lResultFactory.addImpreciseTestCase(lTestCase);
         }
+        
+        lTimeCover.pause();
       }
-      
-      long lEndTime = System.currentTimeMillis();
-      
-      long lTime = lEndTime - lStartTime;
       
       if (lIsFeasible) {
-        lTimeForFeasibleTestGoals += lTime;
+        lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
       }
       else {
-        lTimeForInfeasibleTestGoals += lTime;
+        lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
       }
+      
+      System.out.println("Memory used (end): " + MemoryInfo.getUsedMemory());
     }
     
-    return lResultFactory.create(lTimeForFeasibleTestGoals/1000.0, lTimeForInfeasibleTestGoals/1000.0);
+    return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
   
   private static CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, ConfigurableProgramAnalysis pPassingCPA, Configuration pConfiguration, LogManager pLogManager) {

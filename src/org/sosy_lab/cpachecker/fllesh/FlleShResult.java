@@ -66,8 +66,8 @@ public class FlleShResult {
       }
     }
     
-    public FlleShResult create(double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
-      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
+    public FlleShResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
+      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
     }
     
   }
@@ -83,8 +83,10 @@ public class FlleShResult {
   private int mNumberOfImpreciseTestCases;
   private double mTimeForFeasibleTestGoals; // seconds
   private double mTimeForInfeasibleTestGoals; // seconds
+  private double mTimeInReach; // seconds
+  private double mTimeInCover; // seconds
   
-  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
+  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
     mTask = pTask;
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
@@ -92,6 +94,8 @@ public class FlleShResult {
     mNumberOfImpreciseTestCases = pNumberOfImpreciseTestCases;
     mTimeForFeasibleTestGoals = pTimeForFeasibleTestGoals;
     mTimeForInfeasibleTestGoals = pTimeForInfeasibleTestGoals;
+    mTimeInReach = pTimeInReach;
+    mTimeInCover = pTimeInCover;
   }
   
   public Task getTask() {
@@ -120,6 +124,14 @@ public class FlleShResult {
   
   public double getTimeForInfeasibleTestGoals() {
     return mTimeForInfeasibleTestGoals;
+  }
+  
+  public double getTimeInReach() {
+    return mTimeInReach;
+  }
+  
+  public double getTimeInCover() {
+    return mTimeInCover;
   }
   
 }
