@@ -66,6 +66,18 @@ public class FlleSh {
   
   public static FlleShResult run(String pSourceFileName, String pFQLSpecification, String pEntryFunction, boolean pApplySubsumptionCheck) {
 
+    // Parse FQL Specification
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    
+    System.out.println("FQL query: " + lFQLSpecification);
+    System.out.println("File: " + pSourceFileName);
+    
+    
     Configuration lConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
 
     LogManager lLogManager;
@@ -79,16 +91,6 @@ public class FlleSh {
     }
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
-    FQLSpecification lFQLSpecification;
-    try {
-      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    
-    System.out.println("FQL query: " + lFQLSpecification);
-    System.out.println("File: " + pSourceFileName);
     
     Task lTask = Task.create(lFQLSpecification, lMainFunction);
     
@@ -127,7 +129,6 @@ public class FlleSh {
       Goal lGoal = lGoals.poll();
       
       int lCurrentGoalNumber = ++lIndex;
-      
       System.out.println("Goal #" + lCurrentGoalNumber);
       System.out.println(lPrettyPrinter.printPretty(lGoal.getPattern()));
       
@@ -568,7 +569,19 @@ public class FlleSh {
     
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, pLogManager);
 
-    Set<AbstractElement> lEndNodes = getFinalStates(lAlgorithm, pEntry, pEndNode);
+    AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
+    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
+
+    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
     
     if (lEndNodes.size() != 1) {
       throw new RuntimeException();
@@ -585,25 +598,6 @@ public class FlleSh {
     CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(1);
     
     return lPathElement.toArray();
-  }
-  
-  private static Set<AbstractElement> getFinalStates(CPAAlgorithm pAlgorithm, CFAFunctionDefinitionNode pEntry, CFANode pEndNode) {
-    CompositeElement lInitialElement = (CompositeElement)pAlgorithm.getCPA().getInitialElement(pEntry);
-    
-    Precision lInitialPrecision = pAlgorithm.getCPA().getInitialPrecision(pEntry);
-
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
-    lReachedSet.add(lInitialElement, lInitialPrecision);
-
-    try {
-      pAlgorithm.run(lReachedSet);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    }
-    
-    System.out.println(lReachedSet.getReached());
-    
-    return lReachedSet.getReached(pEndNode);
   }
   
 }
