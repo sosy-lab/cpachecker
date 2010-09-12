@@ -63,8 +63,7 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = FlleSh.createPropertiesFile("main");
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
@@ -118,8 +117,7 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = FlleSh.createPropertiesFile("main");
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
@@ -173,8 +171,7 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = FlleSh.createPropertiesFile("main");
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
@@ -228,8 +225,7 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = FlleSh.createPropertiesFile("main");
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
