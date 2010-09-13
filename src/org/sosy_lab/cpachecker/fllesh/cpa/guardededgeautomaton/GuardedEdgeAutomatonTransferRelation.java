@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +28,14 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   private String mInputFunctionName;
   private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
   
+  private HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
+  
   public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton) {
     mTopElement = pDomain.getTopElement();
     mBottomElement = pDomain.getBottomElement();
     mAutomaton = pAutomaton;
+    
+    createCache(pAutomaton);
   }
   
   public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
@@ -44,6 +49,16 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     
     mInputFunctionName = pInputFunctionName;
     mReplacedEdges = pReplacedEdges;
+    
+    createCache(pAutomaton);
+  }
+  
+  private void createCache(Automaton<GuardedEdgeLabel> pAutomaton) {
+    mCache = new HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement>();
+    
+    for (Automaton<GuardedEdgeLabel>.Edge lAutomatonEdge : pAutomaton.getEdges()) {
+      mCache.put(lAutomatonEdge, GuardedEdgeAutomatonStateElement.create(lAutomatonEdge, pAutomaton));
+    }
   }
   
   public void setInputFunctionName(String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
@@ -111,7 +126,7 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
       if (lLabel.contains(pCfaEdge)) {
-        lSuccessors.add(GuardedEdgeAutomatonStateElement.create(lOutgoingEdge, mAutomaton));
+        lSuccessors.add(mCache.get(lOutgoingEdge));
       }
     }
     

@@ -98,8 +98,8 @@ public class Automaton<T> {
   private State mInitialState;
   private HashSet<State> mFinalStates;
   
-  private Map<State, Set<Edge>> mOutgoingEdges;
-  private Map<State, Set<Edge>> mIncomingEdges;
+  private final Map<State, Set<Edge>> mOutgoingEdges;
+  private final Map<State, Set<Edge>> mIncomingEdges;
   
   public Automaton() {
     mFinalStates = new HashSet<State>();
