@@ -78,6 +78,9 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
       throw new IllegalArgumentException();
     }
     
+
+    GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
+    
     CFANode lPredecessor = pCfaEdge.getPredecessor();
     CFANode lSuccessor = pCfaEdge.getSuccessor();
     
@@ -96,12 +99,10 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     }
     else if (lPredecessor.getFunctionName().equals(mInputFunctionName) 
         || lSuccessor.getFunctionName().equals(mInputFunctionName)) {
-      return Collections.singleton(pElement);
+      return lCurrentElement.singleton();
     }
         
     Set<GuardedEdgeAutomatonStateElement> lSuccessors = new HashSet<GuardedEdgeAutomatonStateElement>();
-    
-    GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
     
     for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();

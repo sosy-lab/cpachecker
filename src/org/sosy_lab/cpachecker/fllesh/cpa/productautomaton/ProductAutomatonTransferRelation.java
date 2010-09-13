@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.productautomaton;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -19,6 +20,13 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
     return sInstance;
   }
   
+  private static final ProductAutomatonUndeterminedElement sUndeterminedElement = ProductAutomatonUndeterminedElement.getInstance();
+  private static final Set<ProductAutomatonTopElement> sTopElementSingleton = Collections.singleton(ProductAutomatonTopElement.getInstance());
+  private static final Set<ProductAutomatonUndeterminedElement> sUndeterminedElementSingleton = Collections.singleton(sUndeterminedElement);
+  private static final Set<ProductAutomatonAcceptingElement> sAcceptingElementSingleton = Collections.singleton(ProductAutomatonAcceptingElement.getInstance());
+  private static final Set<ProductAutomatonNonAcceptingElement> sNonAcceptingElementSingleton = Collections.singleton(ProductAutomatonNonAcceptingElement.getInstance());
+  private static final Set<AbstractElement> sEmptySet = Collections.emptySet();
+  
   private ProductAutomatonTransferRelation() {
     
   }
@@ -29,14 +37,14 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
       throws CPATransferException {
     
     if (pElement.equals(ProductAutomatonTopElement.getInstance())) {
-      return Collections.singleton(ProductAutomatonTopElement.getInstance());
+      return sTopElementSingleton;
     }
     
     if (pElement.equals(ProductAutomatonBottomElement.getInstance())) {
-      return Collections.emptySet();
+      return sEmptySet;
     }
     
-    return Collections.singleton(ProductAutomatonUndeterminedElement.getInstance());
+    return sUndeterminedElementSingleton;
   }
 
   @Override
@@ -44,26 +52,18 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
       AbstractElement pElement, List<AbstractElement> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     
-    if (pElement.equals(ProductAutomatonUndeterminedElement.getInstance())) {
-      boolean lAccept = true;
-      
+    if (pElement.equals(sUndeterminedElement)) {
       for (AbstractElement lOtherElement : pOtherElements) {
         if (lOtherElement instanceof GuardedEdgeAutomatonStateElement) {
           GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lOtherElement;
           
           if (!lStateElement.isFinalState()) {
-            lAccept = false;
-            break;
+            return sNonAcceptingElementSingleton;
           }
         }
       }
       
-      if (lAccept) {
-        return Collections.singleton(ProductAutomatonAcceptingElement.getInstance());
-      }
-      else {
-        return Collections.singleton(ProductAutomatonNonAcceptingElement.getInstance());
-      }
+      return sAcceptingElementSingleton;
     }
     else {
       return null;
