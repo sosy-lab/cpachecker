@@ -26,19 +26,14 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   private final StopSepOperator mStopOperator;
   private final GuardedEdgeAutomatonTransferRelation mTransferRelation;
   
-  public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton) {
+  public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
-    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton);
+    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton, pInputFunctionName, pReplacedEdges);
     
     Automaton<GuardedEdgeLabel>.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);
     mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal);
-  }
-  
-  public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
-    this(pAutomaton);
-    mTransferRelation.setInputFunctionName(pInputFunctionName, pReplacedEdges);
   }
   
   @Override
