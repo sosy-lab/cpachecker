@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -29,6 +28,8 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   private final Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
   
   private final HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
+  
+  private final HashSet<GuardedEdgeAutomatonStateElement> mSuccessors;
   
   public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
     mTopElement = pDomain.getTopElement();
@@ -59,6 +60,8 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
       
       mCache.put(lAutomatonEdge, lElement);
     }
+    
+    mSuccessors = new HashSet<GuardedEdgeAutomatonStateElement>();
   }
   
   @Override
@@ -102,16 +105,16 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
       return lCurrentElement.singleton();
     }
         
-    Set<GuardedEdgeAutomatonStateElement> lSuccessors = new HashSet<GuardedEdgeAutomatonStateElement>();
+    mSuccessors.clear();
     
     for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
       if (lLabel.contains(pCfaEdge)) {
-        lSuccessors.add(mCache.get(lOutgoingEdge));
+        mSuccessors.add(mCache.get(lOutgoingEdge));
       }
     }
     
-    return lSuccessors;
+    return mSuccessors;
   }
 
   @Override

@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.cfapath;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -12,16 +13,19 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CFAPathTransferRelation implements TransferRelation {
   
+  private static final Set<CFAPathTopElement> sTopElementSingleton = CFAPathTopElement.getSingleton();
+  private static final Set<? extends AbstractElement> sEmptySet = Collections.emptySet();
+  
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     if (pElement.equals(CFAPathBottomElement.getInstance())) {
-      return Collections.emptySet();
+      return sEmptySet;
     }
     
     if (pElement.equals(CFAPathTopElement.getInstance())) {
-      return Collections.singleton(CFAPathTopElement.getInstance());
+      return sTopElementSingleton;
     }
     
     if (!(pElement instanceof CFAPathStandardElement)) {

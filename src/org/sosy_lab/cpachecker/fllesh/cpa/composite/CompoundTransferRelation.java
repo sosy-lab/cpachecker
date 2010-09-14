@@ -16,21 +16,45 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CompoundTransferRelation implements TransferRelation {
 
-  private TransferRelation[] mTransferRelations;
-  private AbstractDomain[] mDomains;
+  private final TransferRelation[] mTransferRelations;
+  private final AbstractDomain[] mDomains;
+  private final AbstractElement[] mBottomElements;
   
+  private final List<Collection<? extends AbstractElement>> mSuccessorElements;
+  private final ArrayList<AbstractElement> mPrefix;
+  private final HashSet<List<AbstractElement>> mAllSuccessors;
+  private final List<Collection<? extends AbstractElement>> mStrengthenedElements;
+  private final AbstractElement[] mInitialPrefix;
+  
+  private final int mNumberOfCPAs;
+  
+  private final HashSet<CompoundElement> lSuccessors;
+    
   public CompoundTransferRelation(List<TransferRelation> pTransferRelations, List<AbstractDomain> pDomains) {
     
     mTransferRelations = new TransferRelation[pTransferRelations.size()];
-    for (int lIndex = 0; lIndex < mTransferRelations.length; lIndex++) {
+    mNumberOfCPAs = mTransferRelations.length;
+    mDomains = new AbstractDomain[mNumberOfCPAs];
+    mBottomElements = new AbstractElement[mNumberOfCPAs];
+    
+    for (int lIndex = 0; lIndex < mNumberOfCPAs; lIndex++) {
       mTransferRelations[lIndex] = pTransferRelations.get(lIndex);
-    }
-    
-    mDomains = new AbstractDomain[mTransferRelations.length];
-    for (int lIndex = 0; lIndex < mTransferRelations.length; lIndex++) {
       mDomains[lIndex] = pDomains.get(lIndex);
+      mBottomElements[lIndex] = mDomains[lIndex].getBottomElement();
     }
     
+    mSuccessorElements = new ArrayList<Collection<? extends AbstractElement>>(mNumberOfCPAs);
+    mPrefix = new ArrayList<AbstractElement>(mNumberOfCPAs);
+    for (int lIndex = 0; lIndex < mNumberOfCPAs; lIndex++) {
+      mPrefix.add(null);
+    }
+    
+    mAllSuccessors = new HashSet<List<AbstractElement>>();
+    mStrengthenedElements = new ArrayList<Collection<? extends AbstractElement>>(mNumberOfCPAs);
+    
+    mInitialPrefix = new AbstractElement[mNumberOfCPAs];
+    
+    lSuccessors = new HashSet<CompoundElement>();
   }
   
   @Override
@@ -39,16 +63,16 @@ public class CompoundTransferRelation implements TransferRelation {
       throws CPATransferException {
     
     /** 1) Determine successors */
-    List<Collection<? extends AbstractElement>> lSuccessorElements = new ArrayList<Collection<? extends AbstractElement>>();
+    mSuccessorElements.clear();
     
     CompoundElement lCompositeElement = (CompoundElement)pElement;
     CompositePrecision lCompositePrecision = (CompositePrecision)pPrecision;
     
     int lNumberOfSuccessors = 1;
     
-    for (int lIndex = 0; lIndex < mTransferRelations.length; lIndex++) {
+    for (int lIndex = 0; lIndex < mNumberOfCPAs; lIndex++) {
       Collection<? extends AbstractElement> lSuccessors = mTransferRelations[lIndex].getAbstractSuccessors(lCompositeElement.getSubelement(lIndex), lCompositePrecision.get(lIndex), pCfaEdge); 
-      lSuccessorElements.add(lSuccessors);
+      mSuccessorElements.add(lSuccessors);
       lNumberOfSuccessors *= lSuccessors.size();
       
       if (lNumberOfSuccessors == 0) {
@@ -57,20 +81,18 @@ public class CompoundTransferRelation implements TransferRelation {
     }
     
     /** 2) Cartesian product */
-    List<AbstractElement> lPrefix = new ArrayList<AbstractElement>(mTransferRelations.length);
-    HashSet<List<AbstractElement>> lAllSuccessors = new HashSet<List<AbstractElement>>(lNumberOfSuccessors);
-    createCartesianProduct(lSuccessorElements, lPrefix, lAllSuccessors);
+    mAllSuccessors.clear();
+    createCartesianProduct(0, mSuccessorElements, mPrefix, mAllSuccessors);
     
     /** 3) Strengthening */
-    HashSet<CompoundElement> lSuccessors = new HashSet<CompoundElement>();
+    lSuccessors.clear();
     
-    for (List<AbstractElement> lReachedElement : lAllSuccessors) {
-      
-      List<Collection<? extends AbstractElement>> lStrengthenedElements = new ArrayList<Collection<? extends AbstractElement>>(mTransferRelations.length);
+    for (List<AbstractElement> lReachedElement : mAllSuccessors) {
+      mStrengthenedElements.clear();
       
       int lNumberOfResultingElements = 1;
       
-      for (int lIndex = 0; lIndex < mTransferRelations.length && lNumberOfResultingElements > 0; lIndex++) {
+      for (int lIndex = 0; lIndex < mNumberOfCPAs && lNumberOfResultingElements > 0; lIndex++) {
         
         AbstractElement lCurrentElement = lReachedElement.get(lIndex);
         TransferRelation lCurrentTransferRelation = mTransferRelations[lIndex];
@@ -78,49 +100,60 @@ public class CompoundTransferRelation implements TransferRelation {
         Collection<? extends AbstractElement> lResultsList = lCurrentTransferRelation.strengthen(lCurrentElement, lReachedElement, pCfaEdge, (lCompositePrecision == null) ? null : lCompositePrecision.get(lIndex));
 
         if (lResultsList == null) {
-          lStrengthenedElements.add(Collections.singleton(lCurrentElement));
+          mStrengthenedElements.add(Collections.singleton(lCurrentElement));
         }
         else {
           lNumberOfResultingElements *= lResultsList.size();
-          lStrengthenedElements.add(lResultsList);
+          mStrengthenedElements.add(lResultsList);
         }
       }
       
       if (lNumberOfResultingElements > 0) {
-        Collection<List<AbstractElement>> lResultingElements = new ArrayList<List<AbstractElement>>(lNumberOfResultingElements);
-        List<AbstractElement> lInitialPrefix = Collections.emptyList();
-        createCartesianProduct(lStrengthenedElements, lInitialPrefix, lResultingElements);
-        
-        for (List<AbstractElement> lList : lResultingElements) {
-          lSuccessors.add(new CompoundElement(lList));
-        }
+        createCartesianProduct2(0, mStrengthenedElements, mInitialPrefix, lSuccessors);
       }
     }
     
     return lSuccessors;
   }
 
-  private void createCartesianProduct(List<Collection<? extends AbstractElement>> allComponentsSuccessors,
-      List<AbstractElement> prefix, Collection<List<AbstractElement>> allResultingElements) {
+  private void createCartesianProduct(int depth, List<Collection<? extends AbstractElement>> allComponentsSuccessors,
+      ArrayList<AbstractElement> prefix, Collection<List<AbstractElement>> allResultingElements) {
 
-    if (prefix.size() == allComponentsSuccessors.size()) {
-      allResultingElements.add(prefix);
-
+    if (depth == mNumberOfCPAs) {
+      allResultingElements.add(new ArrayList<AbstractElement>(prefix));
     } else {
-      int depth = prefix.size();
       Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
 
       for (AbstractElement currentComponent : myComponentsSuccessors) {
         // we do not generate compound bottom elements
-        if (mDomains[depth].getBottomElement().equals(currentComponent)) {
+        if (mBottomElements[depth].equals(currentComponent)) {
           continue;
         }
         
-        List<AbstractElement> newPrefix = new ArrayList<AbstractElement>(prefix);
+        prefix.set(depth, currentComponent);
         
-        newPrefix.add(currentComponent);
+        createCartesianProduct(depth + 1, allComponentsSuccessors, prefix, allResultingElements);
+      }
+    }
+  }
+  
+  private void createCartesianProduct2(int depth, List<Collection<? extends AbstractElement>> allComponentsSuccessors,
+      AbstractElement[] lComponents, Collection<CompoundElement> allResultingElements) {
 
-        createCartesianProduct(allComponentsSuccessors, newPrefix, allResultingElements);
+    if (depth == mNumberOfCPAs) {
+      allResultingElements.add(new CompoundElement(lComponents));
+    } else {
+      Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
+
+      for (AbstractElement currentComponent : myComponentsSuccessors) {
+        // we do not generate compound bottom elements
+        if (mBottomElements[depth].equals(currentComponent)) {
+          continue;
+        }
+        
+        lComponents[depth] = currentComponent;
+        
+        createCartesianProduct2(depth + 1, allComponentsSuccessors, lComponents, allResultingElements);
       }
     }
   }
