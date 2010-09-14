@@ -35,13 +35,17 @@ public class CompoundCPA implements ConfigurableProgramAnalysis, WrapperCPA {
       mIndicesMap = new HashMap<ConfigurableProgramAnalysis, Boolean>();
     }
     
-    public void push(ConfigurableProgramAnalysis pCPA) {
-      push(pCPA, false);
+    public int push(ConfigurableProgramAnalysis pCPA) {
+      return push(pCPA, false);
     }
     
-    public void push(ConfigurableProgramAnalysis pCPA, boolean pEnforceEquality) {
+    /*
+     * Returns the index of the added CPA.
+     */
+    public int push(ConfigurableProgramAnalysis pCPA, boolean pEnforceEquality) {
       mCPAs.addLast(pCPA);
       mIndicesMap.put(pCPA, pEnforceEquality);
+      return (mCPAs.size() - 1);
     }
     
     public void pop() {
@@ -50,7 +54,7 @@ public class CompoundCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     }
     
     @Override
-    public ConfigurableProgramAnalysis createInstance()
+    public CompoundCPA createInstance()
         throws InvalidConfigurationException, CPAException {
       LinkedList<Integer> lIndices = new LinkedList<Integer>();
       

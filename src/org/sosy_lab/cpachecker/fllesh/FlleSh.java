@@ -232,14 +232,15 @@ public class FlleSh {
     CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
     
     lCompoundCPAFactory.push(lCallStackCPA, true);
-    lCompoundCPAFactory.push(lSymbPredAbsCPA);
-    lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
     
     if (pPassingCPA != null) {
       lCompoundCPAFactory.push(pPassingCPA, true);
     }
     
     lCompoundCPAFactory.push(pAutomatonCPA, true);
+    
+    lCompoundCPAFactory.push(lSymbPredAbsCPA);
+    lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
     
     AssumeCPA lAssumeCPA = AssumeCPA.getCBMCAssume();
     lCompoundCPAFactory.push(lAssumeCPA);
@@ -544,30 +545,41 @@ public class FlleSh {
 
     CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
     
-    // explicit cpa
+    
+    // test goal automata CPAs
+    if (pPassingAutomatonCPA != null) {
+      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+    }
+    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    
+
+    // call stack CPA
+    CPAFactory lCallStackFactory = CallstackCPA.factory();
+    ConfigurableProgramAnalysis lCallStackCPA = lCallStackFactory.createInstance();
+    lCompoundCPAFactory.push(lCallStackCPA, true);
+    
+    
+    // explicit CPA
     CPAFactory lExplicitCPAFactory = ExplicitAnalysisCPA.factory();
     lExplicitCPAFactory.setConfiguration(pConfiguration);
     lExplicitCPAFactory.setLogger(pLogManager);
     ConfigurableProgramAnalysis lExplicitCPA = lExplicitCPAFactory.createInstance();
     lCompoundCPAFactory.push(lExplicitCPA);
     
-    lCompoundCPAFactory.push(CFAPathCPA.getInstance());
     
-    // automaton cpas
-    lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
-    if (pPassingAutomatonCPA != null) {
-      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
-    }
-    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    // CFA path CPA
+    int lCFAPathCPAIndex = lCompoundCPAFactory.push(CFAPathCPA.getInstance());
     
+    
+    // product automaton CPA
+    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
+    
+    
+    // assume CPA
     AssumeCPA lAssumeCPA = AssumeCPA.getCBMCAssume();
     lCompoundCPAFactory.push(lAssumeCPA);
     
     
-    // call stack CPA
-    CPAFactory lCallStackFactory = CallstackCPA.factory();
-    ConfigurableProgramAnalysis lCallStackCPA = lCallStackFactory.createInstance();
-    lCompoundCPAFactory.push(lCallStackCPA, true);
     
     
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
@@ -604,11 +616,11 @@ public class FlleSh {
     
     CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
     
-    if (!lDataElement.getSubelement(2).equals(ProductAutomatonAcceptingElement.getInstance())) {
+    if (!lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
       throw new RuntimeException();
     }
     
-    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(1);
+    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(lCFAPathCPAIndex);
     
     return lPathElement.toArray();
   }

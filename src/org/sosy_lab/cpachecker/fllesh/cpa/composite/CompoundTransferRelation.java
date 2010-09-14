@@ -50,6 +50,10 @@ public class CompoundTransferRelation implements TransferRelation {
       Collection<? extends AbstractElement> lSuccessors = mTransferRelations[lIndex].getAbstractSuccessors(lCompositeElement.getSubelement(lIndex), lCompositePrecision.get(lIndex), pCfaEdge); 
       lSuccessorElements.add(lSuccessors);
       lNumberOfSuccessors *= lSuccessors.size();
+      
+      if (lNumberOfSuccessors == 0) {
+        return Collections.emptySet();
+      }
     }
     
     /** 2) Cartesian product */
