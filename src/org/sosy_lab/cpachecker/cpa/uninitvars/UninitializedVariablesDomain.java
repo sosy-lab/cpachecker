@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 
@@ -104,14 +104,14 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       }
 
       // need to check all function contexts
-      Iterator<Pair<String, Set<String>>> it1 = uninitVarsElement1.getallLocalVariables().iterator();
-      Iterator<Pair<String, Set<String>>> it2 = uninitVarsElement2.getallLocalVariables().iterator();
+      Iterator<Pair<String, Collection<String>>> it1 = uninitVarsElement1.getallLocalVariables().iterator();
+      Iterator<Pair<String, Collection<String>>> it2 = uninitVarsElement2.getallLocalVariables().iterator();
 
       while (it1.hasNext()) {
         assert it2.hasNext();
 
-        Pair<String, Set<String>> stackframe1 = it1.next();
-        Pair<String, Set<String>> stackframe2   = it2.next();
+        Pair<String, Collection<String>> stackframe1 = it1.next();
+        Pair<String, Collection<String>> stackframe2   = it2.next();
 
         assert stackframe1.getFirst().equals(stackframe1.getFirst());
 
