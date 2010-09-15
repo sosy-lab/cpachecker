@@ -95,7 +95,8 @@ public class CoverageSpecificationTranslator {
       Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
 
       for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
-        lResultSet.add(mPathPatternTranslator.translate(lEdge));
+        ElementaryCoveragePattern lPattern = mPathPatternTranslator.translate(lEdge);
+        lResultSet.add(lPattern);
       }
       
       return lResultSet;

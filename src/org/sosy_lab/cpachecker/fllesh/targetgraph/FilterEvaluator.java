@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.LineNumberMaskFunctor;
 
 public class FilterEvaluator {
   
-  private static FilterEvaluationCache mCache = new FilterEvaluationCache();
-  private Visitor mVisitor;
-  private BasicBlockEntryMaskFunctor mBasicBlockEntryMaskFunctor;
+  private final FilterEvaluationCache mCache = new FilterEvaluationCache();
+  private final Visitor mVisitor;
+  private final BasicBlockEntryMaskFunctor mBasicBlockEntryMaskFunctor;
   
   public FilterEvaluator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
     mVisitor = new Visitor(pTargetGraph);

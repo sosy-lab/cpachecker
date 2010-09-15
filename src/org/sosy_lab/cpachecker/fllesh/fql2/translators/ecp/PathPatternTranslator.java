@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Union;
 
 public class PathPatternTranslator {
 
-  private TargetGraph mTargetGraph;
-  private Visitor mVisitor;
-  private FilterEvaluator mFilterEvaluator;
+  private final TargetGraph mTargetGraph;
+  private final Visitor mVisitor;
+  private final FilterEvaluator mFilterEvaluator;
   
   public PathPatternTranslator(CFANode pInitialNode) {
     this(TargetGraphUtil.cfa(pInitialNode), TargetGraphUtil.getBasicBlockEntries(pInitialNode));
