@@ -69,7 +69,11 @@ public class Main {
       }
     }
 
-    FlleShResult lResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, true);
+    //FlleShResult lResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, true);
+    
+    FlleSh lFlleSh = new FlleSh(lSourceFileName, lEntryFunction);
+    
+    FlleShResult lResult = lFlleSh.run(lFQLSpecificationString);
     
     System.out.println("#Goals: " + lResult.getTask().getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Inprecise: " + lResult.getNumberOfImpreciseTestCases());
     

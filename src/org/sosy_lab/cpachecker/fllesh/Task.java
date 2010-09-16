@@ -43,11 +43,14 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
   }
   
   public static Task create(FQLSpecification pSpecification, CFANode pInitialNode) {
-    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(pInitialNode);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
-    
+    return create(pSpecification, new CoverageSpecificationTranslator(pInitialNode));
+  }
+  
+  public static Task create(FQLSpecification pSpecification, CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
+    Set<ElementaryCoveragePattern> lGoals = pCoverageSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
+
     if (pSpecification.hasPassingClause()) {
-      ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(pSpecification.getPathPattern());
+      ElementaryCoveragePattern lPassing = pCoverageSpecificationTranslator.translate(pSpecification.getPathPattern());
       
       return new Task(lGoals, lPassing);
     }

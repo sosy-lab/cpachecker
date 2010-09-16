@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.MemoryInfo;
@@ -65,6 +66,141 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTrac
 import com.google.common.base.Joiner;
 
 public class FlleSh {
+  
+  private final Configuration mConfiguration;
+  private final LogManager mLogManager;
+  private final ModifiedCPAchecker mCPAchecker;
+  private final Wrapper mWrapper;
+  private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
+  
+  public FlleSh(String pSourceFileName, String pEntryFunction) {
+    mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
+    
+    try {
+      mLogManager = new LogManager(mConfiguration);
+      mCPAchecker = new ModifiedCPAchecker(mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    
+    CFAFunctionDefinitionNode lMainFunction = mCPAchecker.getMainFunction();
+    
+    /*
+     * We have to instantiate mCoverageSpecificationTranslator before the wrapper
+     * changes the underlying CFA. FQL specifications are evaluated against the 
+     * target graph generated during initialization of mCoverageSpecificationTranslator.
+     */
+    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
+
+    mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, mCPAchecker.getCFAMap(), mLogManager);
+    
+    try {
+      mWrapper.toDot("test/output/wrapper.dot");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
+  public FlleShResult run(String pFQLSpecification) {
+    return run(pFQLSpecification, true);
+  }
+  
+  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck) {
+    // Parse FQL Specification
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    
+    Task lTask = Task.create(lFQLSpecification, mCoverageSpecificationTranslator);
+    
+    System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
+    
+    FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
+    
+    GuardedEdgeAutomatonCPA lPassingCPA = null;
+    
+    if (lTask.hasPassingClause()) {
+      lPassingCPA = getAutomatonCPA(lTask.getPassingClause(), mWrapper);
+    }
+    
+    Deque<Goal> lGoals = lTask.toGoals(mWrapper);
+    
+    int lIndex = 0;
+    
+    int lFeasibleTestGoalsTimeSlot = 0;
+    int lInfeasibleTestGoalsTimeSlot = 1;
+    
+    TimeAccumulator lTimeAccu = new TimeAccumulator(2);
+    
+    TimeAccumulator lTimeReach = new TimeAccumulator();
+    TimeAccumulator lTimeCover = new TimeAccumulator();
+    
+    while (!lGoals.isEmpty()) {
+      lTimeAccu.proceed();
+      
+      Goal lGoal = lGoals.poll();
+      
+      int lCurrentGoalNumber = ++lIndex;
+      System.out.println("Goal #" + lCurrentGoalNumber);
+      
+      System.out.println("Memory used: " + MemoryInfo.getUsedMemory());
+      
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), StringBasedTestCase.INPUT_FUNCTION_NAME, mWrapper.getReplacedEdges());
+      
+      lTimeReach.proceed();
+      
+      CounterexampleTraceInfo lCounterexampleTraceInfo = reach(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA, mConfiguration, mLogManager);
+      
+      lTimeReach.pause();
+      
+      boolean lIsFeasible;
+      
+      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
+        lIsFeasible = false;
+        
+        lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
+        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+      }
+      else {
+        lTimeCover.proceed();
+        
+        lIsFeasible = true;
+        
+        Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
+        StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
+        
+        if (lTestCase.isPrecise()) {
+          lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+          System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
+          
+          if (pApplySubsumptionCheck) {
+            removeCoveredGoals(lGoals, lResultFactory, lTestCase, mWrapper, lAutomatonCPA, lPassingCPA, mConfiguration, mLogManager);
+          }
+        }
+        else {
+          System.out.println(lTestCase.getInputFunction());
+          
+          lResultFactory.addImpreciseTestCase(lTestCase);
+        }
+        
+        lTimeCover.pause();
+      }
+      
+      if (lIsFeasible) {
+        lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+      }
+      else {
+        lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
+      }
+      
+      System.out.println("Memory used (end): " + MemoryInfo.getUsedMemory());
+    }
+    
+    return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+  }
   
   public static FlleShResult run(String pSourceFileName, String pFQLSpecification, String pEntryFunction, boolean pApplySubsumptionCheck) {
 
@@ -197,6 +333,14 @@ public class FlleSh {
   }
   
   private static CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, ConfigurableProgramAnalysis pPassingCPA, Configuration pConfiguration, LogManager pLogManager) {
+    /*
+     * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,
+     * CPAs that are not able to produce successors, are treated first such that
+     * the compound CPA stops applying further transfer relations early. Here, we
+     * have to choose between the number of times a CPA produces no successors and
+     * the computational effort necessary to determine that there are no successors.
+     */
+    
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA;
     try {
