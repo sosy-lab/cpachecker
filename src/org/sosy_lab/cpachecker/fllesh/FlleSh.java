@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -47,6 +46,8 @@ import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
@@ -109,14 +110,7 @@ public class FlleSh {
      * Initialize shared CPAs.
      */
     // location CPA
-    CPAFactory lLocationCPAFactory = LocationCPA.factory();
-    try {
-      mLocationCPA = lLocationCPAFactory.createInstance();
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    }
+    mLocationCPA = new LocationCPA();
     
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
@@ -167,6 +161,8 @@ public class FlleSh {
   }
   
   public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck) {
+    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
+    
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -260,6 +256,8 @@ public class FlleSh {
       
       System.out.println("Memory used (end): " + MemoryInfo.getUsedMemory());
     }
+    
+    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
