@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 
 import com.google.common.base.Preconditions;
 
@@ -54,7 +54,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * to build the formula to the error location */
   private final PathFormula initAbstractionFormula;
   /** The abstraction which is updated only on abstraction locations */
-  private AbstractFormula abstraction;
+  private Abstraction abstraction;
 
   /** The unique id for the abstraction */
   private final int abstractionId;
@@ -87,7 +87,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * @param a The abstraction.
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a){
+      PathFormula pf, PathFormula initFormula, Abstraction a){
     // set 'isAbstractionLocation' to true
     this.isAbstractionNode = true;
     this.abstractionLocation = abstLoc;
@@ -108,7 +108,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * @param sizeSinceAbstraction
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a, int abstractionId,
+      PathFormula pf, PathFormula initFormula, Abstraction a, int abstractionId,
       int sizeSinceAbstraction){
     this.isAbstractionNode = false;
     this.abstractionLocation = abstLoc;
@@ -119,7 +119,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.sizeSinceAbstraction = sizeSinceAbstraction;
   }
   
-  public AbstractFormula getAbstraction() {
+  public Abstraction getAbstraction() {
     return abstraction;
   }
 
@@ -151,7 +151,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     return isAbstractionNode;
   }
 
-  public void setAbstraction(AbstractFormula pAbstraction) {
+  public void setAbstraction(Abstraction pAbstraction) {
     abstraction = pAbstraction;
   }
 

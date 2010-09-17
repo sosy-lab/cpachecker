@@ -28,6 +28,7 @@ import java.io.File;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
@@ -63,6 +64,11 @@ public interface FormulaManager {
    */
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
+  /**
+   * Creates a new Abstraction object that represents the formula "true".
+   */
+  public Abstraction makeTrueAbstraction();
+  
   /**
    * Creates a new empty path formula.
    */

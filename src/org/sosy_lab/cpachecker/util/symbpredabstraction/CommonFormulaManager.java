@@ -263,6 +263,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       return result;
   }
 
+  @Override
+  public Abstraction makeTrueAbstraction() {
+    return new Abstraction(amgr.makeTrue(), smgr.makeTrue());
+  }
+  
   // the rest of this class is related only to symbolic formulas
   
   @Override

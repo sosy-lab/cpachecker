@@ -50,9 +50,8 @@ import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutoma
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -103,7 +102,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final LogManager logger;
 
   // formula managers
-  private final AbstractFormulaManager abstractFormulaManager;
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
@@ -119,7 +117,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
-    abstractFormulaManager = pCpa.getAbstractFormulaManager();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     formulaManager = pCpa.getFormulaManager();
 }
@@ -240,14 +237,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     long time1 = System.currentTimeMillis();
 
     // compute new abstraction
-    AbstractFormula newAbstraction = formulaManager.buildAbstraction(
+    Abstraction newAbstraction = formulaManager.buildAbstraction(
         element.getAbstraction(), pathFormula, preds);
 
     long time2 = System.currentTimeMillis();
     computingAbstractionTime += time2 - time1;
 
     // if the abstraction is false, return bottom (represented by empty set)
-    if (abstractFormulaManager.isFalse(newAbstraction)) {
+    if (newAbstraction.isFalse()) {
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Collections.emptySet();
     }
@@ -432,7 +429,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
             edge.getSuccessor(), formulaManager.makeEmptyPathFormula(),
             // set 'initAbstractionFormula' to old pathFormula
             // set 'abstraction' to true (we don't know better)
-            element.getPathFormula(), abstractFormulaManager.makeTrue()));
+            element.getPathFormula(), formulaManager.makeTrueAbstraction()));
       }
     } else {
       if (element != pElement) {

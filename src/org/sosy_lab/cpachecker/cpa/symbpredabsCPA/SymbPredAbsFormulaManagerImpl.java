@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
@@ -202,8 +203,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * Abstract post operation.
    */
   @Override
-  public AbstractFormula buildAbstraction(
-      AbstractFormula abs, PathFormula pathFormula,
+  public Abstraction buildAbstraction(
+      Abstraction abs, PathFormula pathFormula,
       Collection<Predicate> predicates) {
     stats.numCallsAbstraction++;
     if (cartesianAbstraction) {
@@ -213,8 +214,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
   }
 
-  private AbstractFormula buildCartesianAbstraction(
-      AbstractFormula abs,
+  private Abstraction buildCartesianAbstraction(
+      Abstraction abs,
       PathFormula pathFormula,
       Collection<Predicate> predicates) {
 
@@ -249,7 +250,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         skipFeasibilityCheck = true;
         if (!feasibilityCache.get(key)) {
           // abstract post leads to false, we can return immediately
-          return amgr.makeFalse();
+          return new Abstraction(amgr.makeFalse(), smgr.makeFalse());
         }
       }
     }
@@ -267,7 +268,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           feasibilityCache.put(key, !unsat);
         }
         if (unsat) {
-          return amgr.makeFalse();
+          return new Abstraction(amgr.makeFalse(), smgr.makeFalse());
         }
       } else {
         //++stats.abstractionNumCachedQueries;
@@ -386,7 +387,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         stats.abstractionMaxSolveTime =
           Math.max(solveTime, stats.abstractionMaxSolveTime);
 
-        return absbdd;
+        return new Abstraction(absbdd, smgr.instantiate(toConcrete(absbdd), pathFormula.getSsa()));
 
       } finally {
         thmProver.pop();
@@ -397,7 +398,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
   }
 
-  private SymbolicFormula buildSymbolicFormula(AbstractFormula abstractionFormula,
+  private SymbolicFormula buildSymbolicFormula(Abstraction abstractionFormula,
       SymbolicFormula symbFormula) {
 
     // build the concrete representation of the abstract formula of e
@@ -405,10 +406,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // which is basically an integer which represents it
     // create the concrete form of the abstract formula
     // (abstract formula is the bdd representation)
-    SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
+    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
 
-    // the indices of all variables in absFormula are now 1
-    // this fits exactly to the indices of symbFormula
+    // the indices of all variables in absFormula fit exactly to the indices of symbFormula
     
     symbFormula = smgr.replaceAssignments(symbFormula);
 
@@ -428,10 +428,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * Checks if (a1 & p1) => a2
    */
   @Override
-  public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
+  public boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2) {
     SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
 
-    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSsa());
+    SymbolicFormula b = smgr.instantiate(a2.asSymbolicFormula(), p1.getSsa());
 
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
@@ -442,8 +442,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     return ret;
   }
 
-  private AbstractFormula buildBooleanAbstraction(
-      AbstractFormula abstractionFormula, PathFormula pathFormula,
+  private Abstraction buildBooleanAbstraction(
+      Abstraction abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
@@ -530,7 +530,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     stats.abstractionMaxTime =
       Math.max(abstractionSolverTime, stats.abstractionMaxTime);
 
-    return result;
+    return new Abstraction(result, smgr.instantiate(toConcrete(result), pathFormula.getSsa()));
   }
 
   /**
@@ -540,7 +540,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   @Override
-  public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
+  public boolean unsat(Abstraction abstractionFormula, PathFormula pathFormula) {
 
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
     logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
