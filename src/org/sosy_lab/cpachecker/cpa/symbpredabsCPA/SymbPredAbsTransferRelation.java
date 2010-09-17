@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -110,8 +110,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // the first integer in the key is parent element's node id
   // the second integer is current element's node id
   // the third is the sucessor element's node id
-  private final Map<Triple<Integer, Integer, Integer>, PathFormula> pathFormulaMapHash =
-    new HashMap<Triple<Integer,Integer,Integer>, PathFormula>();
+  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaMapHash =
+    new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
 
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
@@ -276,7 +276,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge,
                           int abstractionNodeId) throws CPATransferException {
     final long start = System.currentTimeMillis();
-    PathFormula pf = null;
+    PathFormula pf;
 
     if (!useCache || !absOnFunction || !absOnLoop || absBlockSize > 0) {
       long startComp = System.currentTimeMillis();
@@ -287,18 +287,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       pathFormulaComputationTime += System.currentTimeMillis() - startComp;
 
     } else {
-      // caching possible because we don't visit edges twice between two abstractions
-      // TODO add condition that loop unrolling is off when this is implemented
-      // TODO or replace caching key by (oldPathFormula, edge), but SSAMap should be immutable for this
-      // TODO move caching to SymbolicFormulaManager?
-
-      // id of element's node
-      final int currentNodeId = edge.getPredecessor().getNodeNumber();
-      // id of sucessor element's node
-      final int successorNodeId = edge.getSuccessor().getNodeNumber();
-
-      final Triple<Integer, Integer, Integer> formulaCacheKey =
-        new Triple<Integer, Integer, Integer>(abstractionNodeId, currentNodeId, successorNodeId);
+      final Pair<PathFormula, CFAEdge> formulaCacheKey =
+        new Pair<PathFormula, CFAEdge>(pathFormula, edge);
       pf = pathFormulaMapHash.get(formulaCacheKey);
       if (pf == null) {
         long startComp = System.currentTimeMillis();
