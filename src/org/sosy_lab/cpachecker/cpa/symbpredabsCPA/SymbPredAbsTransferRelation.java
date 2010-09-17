@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case
@@ -103,6 +104,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
+  private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
   // map from a node to path formula
@@ -118,6 +120,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     logger = pCpa.getLogger();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
+    symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     formulaManager = pCpa.getFormulaManager();
 }
 
@@ -250,7 +253,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula();
+    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), pathFormula.getSsa());
 
     numAbstractions++;
 

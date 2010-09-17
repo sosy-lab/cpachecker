@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
@@ -106,6 +107,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final StopOperator stop;
   private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
+  private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
@@ -117,6 +119,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
+    this.symbolicFormulaManager = symbolicFormulaManager;
 
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
@@ -188,6 +191,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return abstractFormulaManager;
   }
 
+  protected SymbolicFormulaManager getSymbolicFormulaManager() {
+    return symbolicFormulaManager;
+  }
+  
   protected SymbPredAbsFormulaManagerImpl<?, ?> getFormulaManager() {
     return formulaManager;
   }
