@@ -230,14 +230,14 @@ public class MainTest extends ExperimentalSeries {
     String[] lArguments = Main.getParameters(
         Main.STATEMENT_COVERAGE,
         "test/programs/fql/basic/variables.cil.c",
-        "main",
+        "foo",
         true
         );
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(6, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(6, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(9, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(9, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
@@ -411,10 +411,10 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(42, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(39, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(43, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(40, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(6, lResult.getNumberOfTestCases());
+    Assert.assertEquals(4, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   

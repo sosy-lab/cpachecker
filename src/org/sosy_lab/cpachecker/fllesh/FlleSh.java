@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -73,7 +73,7 @@ public class FlleSh {
   private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private final ConfigurableProgramAnalysis mLocationCPA;
   private final ConfigurableProgramAnalysis mCallStackCPA;
-  private final ConfigurableProgramAnalysis mExplicitCPA;
+  //private final ConfigurableProgramAnalysis mExplicitCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
   private final ProductAutomatonCPA mProductAutomatonCPA;
@@ -123,7 +123,7 @@ public class FlleSh {
     }
     
     // explicit CPA
-    CPAFactory lExplicitCPAFactory = ExplicitAnalysisCPA.factory();
+    /*CPAFactory lExplicitCPAFactory = InterpreterCPA.factory();//ExplicitAnalysisCPA.factory();
     lExplicitCPAFactory.setConfiguration(mConfiguration);
     lExplicitCPAFactory.setLogger(mLogManager);
     try {
@@ -132,7 +132,7 @@ public class FlleSh {
       throw new RuntimeException(e);
     } catch (CPAException e) {
       throw new RuntimeException(e);
-    }
+    }*/
     
     // assume CPA
     mAssumeCPA = AssumeCPA.getCBMCAssume();
@@ -228,7 +228,9 @@ public class FlleSh {
         lIsFeasible = true;
         
         Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
-        StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
+        //System.out.println(lCounterexample);
+        //StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
+        SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
@@ -239,7 +241,7 @@ public class FlleSh {
           }
         }
         else {
-          System.out.println(lTestCase.getInputFunction());
+          //System.out.println(lTestCase.getInputFunction());
           
           lResultFactory.addImpreciseTestCase(lTestCase);
         }
@@ -481,7 +483,8 @@ public class FlleSh {
     }
   }
   
-  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, StringBasedTestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+  //private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, StringBasedTestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, SimpleTestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
     // a) determine cfa path
     CFAEdge[] lCFAPath = getTakenCFAPath(pTestCase, pAutomatonCPA, pPassingCPA);
     
@@ -516,15 +519,19 @@ public class FlleSh {
     pGoals.removeAll(lSubsumedGoals);
   }
   
-  private CFAEdge[] getTakenCFAPath(StringBasedTestCase pTestCase, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
-    CFAFunctionDefinitionNode lInputFunction = pTestCase.getInputFunctionEntry();
+  //private CFAEdge[] getTakenCFAPath(StringBasedTestCase pTestCase, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CFAEdge[] getTakenCFAPath(SimpleTestCase pTestCase, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+    // TODO changed
+    //CFAFunctionDefinitionNode lInputFunction = pTestCase.getInputFunctionEntry();
     
-    CFAFunctionDefinitionNode lNondetInputFunction = mWrapper.replace(lInputFunction);
+    // TODO changed
+    //CFAFunctionDefinitionNode lNondetInputFunction = mWrapper.replace(lInputFunction);
+    //break;
     
     // a) determine cfa path
     CFAEdge[] lCFAPath;
     try {
-      lCFAPath = reconstructPath(mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
+      lCFAPath = reconstructPath(pTestCase, mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -563,12 +570,14 @@ public class FlleSh {
       } 
     }
     
-    mWrapper.replace(lNondetInputFunction);
+    // TODO changed
+    //mWrapper.replace(lNondetInputFunction);
     
     return lModifiedPath.toArray(new CFAEdge[lModifiedPath.size()]);
   }
   
-  private CFAEdge[] reconstructPath(CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
+  //private CFAEdge[] reconstructPath(CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
+  private CFAEdge[] reconstructPath(SimpleTestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
     CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
     
     // test goal automata CPAs
@@ -581,7 +590,9 @@ public class FlleSh {
     lCompoundCPAFactory.push(mCallStackCPA, true);
     
     // explicit CPA
-    lCompoundCPAFactory.push(mExplicitCPA);
+    InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.mInputs);
+    //lCompoundCPAFactory.push(mExplicitCPA);
+    lCompoundCPAFactory.push(lInterpreterCPA);
     
     // CFA path CPA
     int lCFAPathCPAIndex = lCompoundCPAFactory.push(mCFAPathCPA);
@@ -617,9 +628,14 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
+    /*for (AbstractElement lReachedElement : lReachedSet) {
+      System.out.println(lReachedElement);
+    }*/
+    
     Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
     
     if (lEndNodes.size() != 1) {
+      //System.out.println("SIZE: " + lEndNodes.size());
       throw new RuntimeException();
     }
     

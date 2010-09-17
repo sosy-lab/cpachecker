@@ -203,31 +203,33 @@ public class Wrapper {
 
     // TODO simulator is not capable of handling initialization of global declarations
     //lWriter.println("int __FLLESH__input_index = 0;");
-    lWriter.println("int " + StringBasedTestCase.INPUT_INDEX_VARIABLE + ";");
+    //lWriter.println("int " + StringBasedTestCase.INPUT_INDEX_VARIABLE + ";");
     
     // we use the input function for providing input data
     // during test generation nondeterministically
     // during test simulation via specific generated input function
-    lWriter.println("int input()");
+    /*lWriter.println("int input()");
     lWriter.println("{");
     lWriter.println("  int __BLAST_NONDET;");
     lWriter.println("  return (__BLAST_NONDET);");
-    lWriter.println("}");
+    lWriter.println("}");*/
     
     lWriter.println("void __FLLESH__main()");
     lWriter.println("{");
+    lWriter.println("  int __BLAST_NONDET;");
     
     for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.getRawSignature() + ";");
     }
-    
+        
     // this initialization is a workaround
     // TODO correct in explicit analysis
-    lWriter.println("  " + StringBasedTestCase.INPUT_INDEX_VARIABLE + " = 0;");
+    //lWriter.println("  " + StringBasedTestCase.INPUT_INDEX_VARIABLE + " = 0;");
     
     for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = input();");
+      //lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = input();");
+      lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = __BLAST_NONDET;");
     }
     
     lWriter.println();

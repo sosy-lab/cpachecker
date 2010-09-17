@@ -48,7 +48,7 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
   
   public static Task create(FQLSpecification pSpecification, CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
     Set<ElementaryCoveragePattern> lGoals = pCoverageSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
-
+    
     if (pSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassing = pCoverageSpecificationTranslator.translate(pSpecification.getPathPattern());
       

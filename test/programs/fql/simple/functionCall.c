@@ -1,8 +1,7 @@
 int f() 
 {
-	int x;
-	x = input();
-	return (x);
+	int __BLAST_NONDET;
+	return (__BLAST_NONDET);
 }
 
 int main() 

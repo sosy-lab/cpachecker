@@ -1,5 +1,3 @@
-int input();
-
 int main()
 {
     int p1;  // condition variable
@@ -20,11 +18,13 @@ int main()
     int p6;  // condition variable
     int lk6; // lock variable
 
+    int __BLAST_NONDET;
+
 
     int cond;
 
     while(1) {
-        cond = input();
+        cond = __BLAST_NONDET;
         if (cond == 0) {
             goto out;
         } else {}
@@ -41,12 +41,12 @@ int main()
         lk6 = 0; // initially lock is open
 
 
-	p1 = input();
-	p2 = input();
-	p3 = input();
-	p4 = input();
-	p5 = input();
-	p6 = input();
+	p1 = __BLAST_NONDET;
+	p2 = __BLAST_NONDET;
+	p3 = __BLAST_NONDET;
+	p4 = __BLAST_NONDET;
+	p5 = __BLAST_NONDET;
+	p6 = __BLAST_NONDET;
 
     // lock phase
         if (p1 != 0) {

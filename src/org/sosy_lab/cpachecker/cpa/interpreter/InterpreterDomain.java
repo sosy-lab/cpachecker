@@ -23,26 +23,117 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import java.util.HashMap;
+import java.util.Map;
 
-public class InterpreterDomain extends FlatLatticeDomain {
-  private static InterpreterDomain mInstance = new InterpreterDomain();
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
-  private InterpreterDomain() {
-    super(InterpreterTopElement.getInstance(), InterpreterBottomElement.getInstance());
+public class InterpreterDomain implements AbstractDomain {
+
+  private static class InterpreterPartialOrder implements PartialOrder
+  {
+    // returns true if element1 < element2 on lattice
+    @Override
+    public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
+    {
+      InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
+      InterpreterElement explicitAnalysisElementReached = (InterpreterElement) reachedElement;
+
+      if (newElement == sBottomElement) {
+        return true;
+      } else if (reachedElement == sTopElement) {
+        return true;
+      } else if (reachedElement == sBottomElement) {
+        // we should not put this in the reached set
+        assert(false);
+        return false;
+      } else if (newElement == sTopElement) {
+        return false;
+      }
+
+      Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
+      Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
+
+      if(constantsMapNew.size() < constantsMapReached.size()){
+        return false;
+      }
+
+      for(String key:constantsMapReached.keySet()){
+        if(!constantsMapNew.containsKey(key)){
+          return false;
+        }
+        long val1 = constantsMapNew.get(key).longValue();
+        long val2 = constantsMapReached.get(key).longValue();
+        if(val1 != val2){
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private static class InterpreterJoinOperator implements JoinOperator
+  {
+    @Override
+    public AbstractElement join(AbstractElement element1, AbstractElement element2)
+    {
+      /*InterpreterElement explicitAnalysisElement1 = (InterpreterElement) element1;
+      InterpreterElement explicitAnalysisElement2 = (InterpreterElement) element2;
+
+      Map<String, Long> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
+      Map<String, Long> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
+
+      Map<String, Long> newConstantsMap = new HashMap<String, Long>();
+
+      for(String key:constantsMap2.keySet()){
+        // if there is the same variable
+        if(constantsMap1.containsKey(key)){
+          // if they have same values, set the value to it
+          if(constantsMap1.get(key) == constantsMap2.get(key)){
+            newConstantsMap.put(key, constantsMap1.get(key));
+          }
+        }
+      }
+      return new InterpreterElement(newConstantsMap, explicitAnalysisElement2.getPreviousElement());*/
+      
+      throw new RuntimeException();
+    }
+  }
+
+  private final static InterpreterBottomElement sBottomElement = InterpreterBottomElement.INSTANCE;
+  private final static InterpreterTopElement sTopElement = InterpreterTopElement.INSTANCE;
+  private final static PartialOrder sPartialOrder = new InterpreterPartialOrder ();
+  private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
+
+  public InterpreterDomain()
+  {
+
   }
 
   @Override
-  public InterpreterTopElement getTopElement() {
-    return InterpreterTopElement.getInstance();
+  public InterpreterBottomElement getBottomElement ()
+  {
+    return sBottomElement;
   }
 
   @Override
-  public InterpreterBottomElement getBottomElement() {
-    return InterpreterBottomElement.getInstance();
+  public InterpreterTopElement getTopElement ()
+  {
+    return sTopElement;
   }
 
-  public static InterpreterDomain getInstance() {
-    return mInstance;
+  @Override
+  public JoinOperator getJoinOperator ()
+  {
+    return sJoinOperator;
+  }
+
+  @Override
+  public PartialOrder getPartialOrder ()
+  {
+    return sPartialOrder;
   }
 }
