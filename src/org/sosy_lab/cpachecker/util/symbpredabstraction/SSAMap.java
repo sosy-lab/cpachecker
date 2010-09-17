@@ -202,4 +202,21 @@ public class SSAMap {
       }
     }
   }
+  
+  @Override
+  public int hashCode() {
+    return (31 + funcs.hashCode()) * 31 + vars.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    } else if (!(obj instanceof SSAMap)) {
+      return false;
+    } else {
+      SSAMap other = (SSAMap)obj;
+      return vars.equals(other.vars) && funcs.equals(other.funcs);
+    }
+  }
 }

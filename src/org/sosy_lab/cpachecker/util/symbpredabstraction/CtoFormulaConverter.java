@@ -269,6 +269,7 @@ public class CtoFormulaConverter {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
+    SSAMap oldssa = ssa;
     ssa = new SSAMap(ssa);
     
     if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
@@ -329,7 +330,11 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa));
+    if (ssa.equals(oldssa)) {
+      return new PathFormula(f, oldssa);
+    } else {
+      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa));
+    }
   }
 
   private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,
