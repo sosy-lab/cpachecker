@@ -25,15 +25,16 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -210,13 +211,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       } else {
           cache = new HashMap<AbstractFormula, SymbolicFormula>();
       }
-      Stack<AbstractFormula> toProcess = new Stack<AbstractFormula>();
+      Deque<AbstractFormula> toProcess = new ArrayDeque<AbstractFormula>();
 
       cache.put(amgr.makeTrue(), smgr.makeTrue());
       cache.put(amgr.makeFalse(), smgr.makeFalse());
 
       toProcess.push(af);
-      while (!toProcess.empty()) {
+      while (!toProcess.isEmpty()) {
           AbstractFormula n = toProcess.peek();
           if (cache.containsKey(n)) {
               toProcess.pop();
@@ -256,9 +257,10 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           }
       }
 
-      assert(cache.containsKey(af));
+      SymbolicFormula result = cache.get(af);
+      assert result != null;
 
-      return cache.get(af);
+      return result;
   }
 
   // the rest of this class is related only to symbolic formulas
