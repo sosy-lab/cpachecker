@@ -221,7 +221,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     long startTime = System.currentTimeMillis();
 
-    final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
+    SymbolicFormula absFormula = abs.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
+    final SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
     
     // clone ssa map because we might change it
     SSAMap ssa = new SSAMap(pathFormula.getSsa());
@@ -398,17 +400,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
   }
 
-  private SymbolicFormula buildSymbolicFormula(Abstraction abstractionFormula,
-      SymbolicFormula symbFormula) {
-
-    // build the concrete representation of the abstract formula of e
-    // this is an abstract formula - specifically it is a bddabstractformula
-    // which is basically an integer which represents it
-    // create the concrete form of the abstract formula
-    // (abstract formula is the bdd representation)
-    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
-
-    // the indices of all variables in absFormula fit exactly to the indices of symbFormula
+  private SymbolicFormula buildSymbolicFormula(SymbolicFormula symbFormula) {
 
     if (useBitwiseAxioms) {
       SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
@@ -419,7 +411,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       }
     }
     
-    return smgr.makeAnd(absFormula, symbFormula);
+    return symbFormula;
   }
 
   /**
@@ -427,7 +419,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2) {
-    SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
+    SymbolicFormula absFormula = a1.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(p1.getSymbolicFormula()); 
+    SymbolicFormula a = smgr.makeAnd(absFormula, symbFormula);
 
     SymbolicFormula b = smgr.instantiate(a2.asSymbolicFormula(), p1.getSsa());
 
@@ -457,13 +451,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
 
-    SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
+    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
 
     // build the definition of the predicates, and instantiate them
     SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSecond());
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
+    SymbolicFormula fm = smgr.makeAnd(smgr.makeAnd(absFormula, symbFormula), predDef);
     
     // collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
@@ -539,12 +534,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public boolean unsat(Abstraction abstractionFormula, PathFormula pathFormula) {
-
-    SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
-    logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
+    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
+    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     thmProver.init();
-    boolean result = thmProver.isUnsat(symbFormula);
+    boolean result = thmProver.isUnsat(f);
     thmProver.reset();
 
     return result;
