@@ -477,8 +477,6 @@ implements PredicateAbstractionFormulaManager {
     SymbolicFormula f = pc.getFirst();
     SSAMap ssa = pc.getSecond();
 
-    f = smgr.replaceAssignments(pc.getFirst());
-
     BooleanAbstractionCacheKey key = null;
     if (useCache) {
       key = new BooleanAbstractionCacheKey(f, predicates);
@@ -584,7 +582,6 @@ implements PredicateAbstractionFormulaManager {
     // clone ssa map because we might change it
     final SSAMap ssa = new SSAMap(pc.getSecond());
 
-    f = smgr.replaceAssignments(pc.getFirst());
     SymbolicFormula fkey = f;
 
     byte[] predVals = null;
@@ -1460,8 +1457,7 @@ implements PredicateAbstractionFormulaManager {
       stats.extraTime += endTime - startTime;
 
       SSAMap newssa = null;
-      SymbolicFormula fm = null;
-      fm = smgr.replaceAssignments(p.getFirst());
+      SymbolicFormula fm = p.getFirst();
       logger.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
           " SSA: ", p.getSecond());
       newssa = p.getSecond();

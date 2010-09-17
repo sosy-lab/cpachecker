@@ -430,9 +430,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
   @Override
   public SymbolicFormula makeAssignment(SymbolicFormula f1, SymbolicFormula f2) {
-    long[] args = {getTerm(f1), getTerm(f2)};
-
-    return encapsulate(msat_make_uif(msatEnv, assignUfDecl, args));
+    return makeEqual(f1, f2);
   }
 
   private boolean isAssignment(long term) {

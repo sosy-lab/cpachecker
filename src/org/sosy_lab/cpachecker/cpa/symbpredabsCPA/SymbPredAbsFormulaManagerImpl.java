@@ -409,8 +409,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
 
     // the indices of all variables in absFormula fit exactly to the indices of symbFormula
-    
-    symbFormula = smgr.replaceAssignments(symbFormula);
 
     if (useBitwiseAxioms) {
       SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
@@ -820,7 +818,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
     for (SymbPredAbsAbstractElement e : abstractTrace) {
-      result.add(smgr.replaceAssignments(e.getInitAbstractionFormula().getSymbolicFormula()));
+      result.add(e.getInitAbstractionFormula().getSymbolicFormula());
     }
     return result;
   }
