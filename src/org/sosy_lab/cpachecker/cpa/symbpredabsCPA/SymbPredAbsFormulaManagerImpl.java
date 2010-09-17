@@ -204,29 +204,35 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public Abstraction buildAbstraction(
-      Abstraction abs, PathFormula pathFormula,
+      Abstraction abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
+
     stats.numCallsAbstraction++;
+
+    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    logger.log(Level.ALL, "Path formula:", pathFormula);
+    logger.log(Level.ALL, "Predicates:", predicates);
+    
+    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
+    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    
+    AbstractFormula abs;
     if (cartesianAbstraction) {
-      return buildCartesianAbstraction(abs, pathFormula, predicates);
+      abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
     } else {
-      return buildBooleanAbstraction(abs, pathFormula, predicates);
+      abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
+    return new Abstraction(abs, smgr.instantiate(toConcrete(abs), pathFormula.getSsa()));
   }
 
-  private Abstraction buildCartesianAbstraction(
-      Abstraction abs,
-      PathFormula pathFormula,
+  private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<Predicate> predicates) {
 
     long startTime = System.currentTimeMillis();
-
-    SymbolicFormula absFormula = abs.asSymbolicFormula();
-    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
-    final SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
     
     // clone ssa map because we might change it
-    SSAMap ssa = new SSAMap(pathFormula.getSsa());
+    ssa = new SSAMap(ssa);
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -252,7 +258,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         skipFeasibilityCheck = true;
         if (!feasibilityCache.get(key)) {
           // abstract post leads to false, we can return immediately
-          return new Abstraction(amgr.makeFalse(), smgr.makeFalse());
+          return amgr.makeFalse();
         }
       }
     }
@@ -270,7 +276,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           feasibilityCache.put(key, !unsat);
         }
         if (unsat) {
-          return new Abstraction(amgr.makeFalse(), smgr.makeFalse());
+          return amgr.makeFalse();
         }
       } else {
         //++stats.abstractionNumCachedQueries;
@@ -389,7 +395,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         stats.abstractionMaxSolveTime =
           Math.max(solveTime, stats.abstractionMaxSolveTime);
 
-        return new Abstraction(absbdd, smgr.instantiate(toConcrete(absbdd), pathFormula.getSsa()));
+        return absbdd;
 
       } finally {
         thmProver.pop();
@@ -434,13 +440,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     return ret;
   }
 
-  private Abstraction buildBooleanAbstraction(
-      Abstraction abstractionFormula, PathFormula pathFormula,
+  private AbstractFormula buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<Predicate> predicates) {
-
-    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
-    logger.log(Level.ALL, "Path formula:", pathFormula);
-    logger.log(Level.ALL, "Predicates:", predicates);
 
     long startTime = System.currentTimeMillis();
 
@@ -451,14 +452,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
 
-    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
-    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
-
     // build the definition of the predicates, and instantiate them
-    SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSecond());
+    SymbolicFormula predDef = buildPredicateFormula(predicates, ssa);
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    SymbolicFormula fm = smgr.makeAnd(smgr.makeAnd(absFormula, symbFormula), predDef);
+    SymbolicFormula fm = smgr.makeAnd(f, predDef);
     
     // collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
@@ -511,7 +509,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // TODO dump hard abst
       if (solveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, predVars);
+        smgr.dumpAbstraction(smgr.makeTrue(), f, predDef, predVars);
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
@@ -523,7 +521,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     stats.abstractionMaxTime =
       Math.max(abstractionSolverTime, stats.abstractionMaxTime);
 
-    return new Abstraction(result, smgr.instantiate(toConcrete(result), pathFormula.getSsa()));
+    return result;
   }
 
   /**
