@@ -1,8 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
@@ -14,16 +12,10 @@ public abstract class GuardedEdgeAutomatonStateElement implements
 
   private final Automaton<GuardedEdgeLabel>.State mAutomatonState;
   private final boolean mIsFinalState;
-  private final Set<GuardedEdgeAutomatonStateElement> mSingleton;
   
   public GuardedEdgeAutomatonStateElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState) {
     mAutomatonState = pState;
     mIsFinalState = pIsFinalState;
-    mSingleton = Collections.singleton(this);
-  }
-  
-  public final Set<GuardedEdgeAutomatonStateElement> singleton() {
-    return mSingleton;
   }
   
   public final boolean isFinalState() {
