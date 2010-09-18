@@ -1,10 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -26,10 +22,10 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   private final StopSepOperator mStopOperator;
   private final GuardedEdgeAutomatonTransferRelation mTransferRelation;
   
-  public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
+  public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
-    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton, pInputFunctionName, pReplacedEdges);
+    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton);
     
     Automaton<GuardedEdgeLabel>.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);

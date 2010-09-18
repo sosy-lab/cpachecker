@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.fllesh;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
@@ -9,15 +7,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.fllesh.cfa.TranslationUnit;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 
 public class SimpleTestCase implements TestCase {
 
-  public int[] mInputs;
+  private int[] mInputs;
   private boolean mIsPrecise;
   
   private SimpleTestCase(LinkedList<Integer> pInputs, boolean pIsPrecise) {
@@ -31,16 +27,15 @@ public class SimpleTestCase implements TestCase {
     
     mIsPrecise = pIsPrecise;
   }
-  
-  @Override
-  public CFAFunctionDefinitionNode getInputFunctionEntry() {
-    // TODO Auto-generated method stub
-    return null;
-  }
 
   @Override
   public boolean isPrecise() {
     return mIsPrecise;
+  }
+  
+  @Override
+  public int[] getInputs() {
+    return mInputs;
   }
   
   public static SimpleTestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {
@@ -84,6 +79,5 @@ public class SimpleTestCase implements TestCase {
     
     return new SimpleTestCase(lInput, lIsPrecise);
   }
-
 
 }

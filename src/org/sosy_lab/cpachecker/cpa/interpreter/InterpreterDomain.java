@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;

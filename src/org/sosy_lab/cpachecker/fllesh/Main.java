@@ -68,8 +68,6 @@ public class Main {
         System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
       }
     }
-
-    //FlleShResult lResult = FlleSh.run(lSourceFileName, lFQLSpecificationString, lEntryFunction, true);
     
     FlleSh lFlleSh = new FlleSh(lSourceFileName, lEntryFunction);
     

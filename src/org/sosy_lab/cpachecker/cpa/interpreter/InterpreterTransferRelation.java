@@ -1293,24 +1293,6 @@ public class InterpreterTransferRelation implements TransferRelation {
       return handleAssignmentOfBinaryExp(element, lParam, binExp.getOperand1(),
                             binExp.getOperand2(), binExp.getOperator(), cfaEdge);
     }
-    // a = extCall();  or  a = b->c;
-    else if (rightExp instanceof IASTFunctionCallExpression) {
-      IASTFunctionCallExpression lExpression = (IASTFunctionCallExpression)rightExp;
-      
-      System.out.println(lExpression.getFunctionNameExpression().getRawSignature());
-      
-      if (true) {
-        throw new RuntimeException();
-      }
-      
-      // if input ... assign a value from the array according to the index of the element
-      // else return bottom element
-      
-      InterpreterElement newElement = element.clone();
-      String lvarName = getvarName(lParam, functionName);
-      newElement.forget(lvarName);
-      return newElement;
-    }
     else{
       throw new UnrecognizedCCodeException(cfaEdge, rightExp);
     }
