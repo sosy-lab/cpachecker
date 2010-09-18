@@ -437,6 +437,24 @@ public class MainTest extends ExperimentalSeries {
   }
   
   @Test
+  public void testMain022b() throws Exception {
+    String[] lArguments = Main.getParameters(
+        Main.BASIC_BLOCK_COVERAGE,
+        "test/programs/fql/simple/functionCall2.c",
+        "main",
+        true
+        );
+
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(4, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
   public void testMain023() throws Exception {
     String[] lArguments = Main.getParameters(
         Main.BASIC_BLOCK_COVERAGE, 
