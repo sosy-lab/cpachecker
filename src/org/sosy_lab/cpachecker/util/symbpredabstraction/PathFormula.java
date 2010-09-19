@@ -49,19 +49,14 @@ public class PathFormula {
   }
 
   @Override
-  public boolean equals(Object pObj) {
-    if (pObj == this) {
-      return true;
-    } else if (!(pObj instanceof PathFormula)) {
-      return false;
-    } else {
-      PathFormula other = (PathFormula)pObj;
-      return this.formula.equals(other.formula) && this.equals(other.ssa);
-    }
+  public boolean equals(Object other) {
+    return (other instanceof PathFormula)
+      && formula.equals(((PathFormula)other).formula)
+      && ssa.equals(((PathFormula)other).ssa);
   }
   
   @Override
   public int hashCode() {
-    return (31 + formula.hashCode()) * 31 + ssa.hashCode();
+    return formula.hashCode() * 17 + ssa.hashCode();
   }
 }
