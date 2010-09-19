@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 public interface FormulaManager {
 
@@ -43,14 +42,12 @@ public interface FormulaManager {
 
   /**
    * Creates a formula representing an AND of the two argument.
-   * @param f1 a SymbolicFormula
+   * @param pf a PathFormula
    * @param e a CFA edge
-   * @param ssa the SSA map for resolving variables
-   * @return The formula (f1 & e), and the new/updated SSAMap
+   * @return The formula (pf & e), and the new/updated SSAMap
    * @throws CPATransferException 
    */
-  public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e, SSAMap ssa)
-      throws CPATransferException;
+  public PathFormula makeAnd(PathFormula pf, CFAEdge e) throws CPATransferException;
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently

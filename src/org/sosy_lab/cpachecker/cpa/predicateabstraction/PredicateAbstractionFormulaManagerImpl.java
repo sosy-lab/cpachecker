@@ -390,7 +390,7 @@ implements PredicateAbstractionFormulaManager {
     }
     if (p == null) {
       try {
-        p = makeAnd(fabs, edge, ssa);
+        p = makeAnd(new PathFormula(fabs, ssa), edge);
       } catch (CPATransferException e1) {
         logger.logException(Level.SEVERE, e1, "");
         System.exit(1);
@@ -1280,7 +1280,7 @@ implements PredicateAbstractionFormulaManager {
       stats.makeFormulaCacheHits++;
       return makeFormulaCache.get(key);
     }
-    PathFormula ret = makeAnd(mmgr.makeTrue(), edge, ssa);
+    PathFormula ret = makeAnd(new PathFormula(mmgr.makeTrue(), ssa), edge);
     if (useCache) {
       makeFormulaCache.put(key, ret);
     }

@@ -280,9 +280,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     if (!useCache || !absOnFunction || !absOnLoop || absBlockSize > 0) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
-      pf = formulaManager.makeAnd(
-          pathFormula.getSymbolicFormula(),
-          edge, pathFormula.getSsa());
+      pf = formulaManager.makeAnd(pathFormula, edge);
       pathFormulaComputationTime += System.currentTimeMillis() - startComp;
 
     } else {
@@ -292,9 +290,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       if (pf == null) {
         long startComp = System.currentTimeMillis();
         // compute new pathFormula with the operation on the edge
-        pf = formulaManager.makeAnd(
-            pathFormula.getSymbolicFormula(),
-            edge, pathFormula.getSsa());
+        pf = formulaManager.makeAnd(pathFormula, edge);
         pathFormulaComputationTime += System.currentTimeMillis() - startComp;
         pathFormulaMapHash.put(formulaCacheKey, pf);
       }
