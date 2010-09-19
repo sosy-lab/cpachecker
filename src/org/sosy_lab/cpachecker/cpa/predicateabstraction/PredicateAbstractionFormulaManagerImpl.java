@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
@@ -312,12 +313,10 @@ implements PredicateAbstractionFormulaManager {
   protected TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
   protected TimeStampCache<BooleanAbstractionCacheKey, AbstractFormula>
   booleanAbstractionCache;
-  protected Map<Pair<CFAEdge, SSAMap>, Pair<SymbolicFormula, SSAMap>>
-  makeFormulaCache;
+  protected Map<Pair<CFAEdge, SSAMap>, PathFormula> makeFormulaCache;
   protected Map<SymbolicFormula, SymbolicFormula> instantiateCache;
   protected Map<SymbolicFormula, SSAMap> extractSSACache;
-  protected Map<Pair<SymbolicFormula, CFAEdge>,
-  Pair<SymbolicFormula, SSAMap>> buildConcreteFormulaCache;
+  protected Map<Pair<SymbolicFormula, CFAEdge>, PathFormula> buildConcreteFormulaCache;
 
   private TheoremProver thmProver;
   private InterpolatingTheoremProver<T> itpProver;
@@ -343,15 +342,12 @@ implements PredicateAbstractionFormulaManager {
       booleanAbstractionCache =
         new TimeStampCache<BooleanAbstractionCacheKey,
         AbstractFormula>(MAX_CACHE_SIZE);
-      makeFormulaCache =
-        new HashMap<Pair<CFAEdge, SSAMap>,
-        Pair<SymbolicFormula, SSAMap>>();
+      makeFormulaCache = new HashMap<Pair<CFAEdge, SSAMap>, PathFormula>();
       instantiateCache =
         new HashMap<SymbolicFormula, SymbolicFormula>();
       extractSSACache = new HashMap<SymbolicFormula, SSAMap>();
       buildConcreteFormulaCache =
-        new HashMap<Pair<SymbolicFormula, CFAEdge>,
-        Pair<SymbolicFormula, SSAMap>>();
+        new HashMap<Pair<SymbolicFormula, CFAEdge>, PathFormula>();
     }
 
     thmProver = prover;
@@ -363,7 +359,7 @@ implements PredicateAbstractionFormulaManager {
   // computes the formula corresponding to executing the operation attached
   // to the given edge, starting from the data region encoded by the
   // abstraction at "e"
-  protected Pair<SymbolicFormula, SSAMap> buildConcreteFormula(
+  protected PathFormula buildConcreteFormula(
       SymbolicFormulaManager mgr,
       PredicateAbstractionAbstractElement e, PredicateAbstractionAbstractElement succ,
       CFAEdge edge, boolean replaceAssignments) {
@@ -384,7 +380,7 @@ implements PredicateAbstractionFormulaManager {
       ssa = mgr.extractSSA(fabs);
       extractSSACache.put(fabs, ssa);
     }
-    Pair<SymbolicFormula, SSAMap> p = null;
+    PathFormula p = null;
     Pair<SymbolicFormula, CFAEdge> key = null;
     if (useCache) {
       key = new Pair<SymbolicFormula, CFAEdge>(fabs, edge);
@@ -472,10 +468,9 @@ implements PredicateAbstractionFormulaManager {
       //            }
 //    }
 
-    Pair<SymbolicFormula, SSAMap> pc =
-      buildConcreteFormula(smgr, e, succ, edge, false);
-    SymbolicFormula f = pc.getFirst();
-    SSAMap ssa = pc.getSecond();
+    PathFormula pc = buildConcreteFormula(smgr, e, succ, edge, false);
+    SymbolicFormula f = pc.getSymbolicFormula();
+    SSAMap ssa = pc.getSsa();
 
     BooleanAbstractionCacheKey key = null;
     if (useCache) {
@@ -575,12 +570,11 @@ implements PredicateAbstractionFormulaManager {
 //    }
 //    }
 
-    Pair<SymbolicFormula, SSAMap> pc =
-      buildConcreteFormula(smgr, e, succ, edge, false);
-    SymbolicFormula f = pc.getFirst();
+    PathFormula pc = buildConcreteFormula(smgr, e, succ, edge, false);
+    SymbolicFormula f = pc.getSymbolicFormula();
 
     // clone ssa map because we might change it
-    final SSAMap ssa = new SSAMap(pc.getSecond());
+    final SSAMap ssa = new SSAMap(pc.getSsa());
 
     SymbolicFormula fkey = f;
 
@@ -1276,7 +1270,7 @@ implements PredicateAbstractionFormulaManager {
 ////  FunctionDefinitionNode);
 //  }
 
-  private Pair<SymbolicFormula, SSAMap> makeFormula(
+  private PathFormula makeFormula(
       SymbolicFormulaManager mmgr,
       CFAEdge edge,
       SSAMap ssa) throws CPATransferException {
@@ -1286,7 +1280,7 @@ implements PredicateAbstractionFormulaManager {
       stats.makeFormulaCacheHits++;
       return makeFormulaCache.get(key);
     }
-    Pair<SymbolicFormula, SSAMap> ret = makeAnd(mmgr.makeTrue(), edge, ssa);
+    PathFormula ret = makeAnd(mmgr.makeTrue(), edge, ssa);
     if (useCache) {
       makeFormulaCache.put(key, ret);
     }
@@ -1452,15 +1446,15 @@ implements PredicateAbstractionFormulaManager {
 //      assert(found != null);
       CFAEdge edge = pathArray[i].getSecond();
       long startTime = System.currentTimeMillis();
-      Pair<SymbolicFormula, SSAMap> p = makeFormula(smgr, edge, ssa);
+      PathFormula p = makeFormula(smgr, edge, ssa);
       long endTime = System.currentTimeMillis();
       stats.extraTime += endTime - startTime;
 
       SSAMap newssa = null;
-      SymbolicFormula fm = p.getFirst();
+      SymbolicFormula fm = p.getSymbolicFormula();
       logger.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
-          " SSA: ", p.getSecond());
-      newssa = p.getSecond();
+          " SSA: ", p.getSsa());
+      newssa = p.getSsa();
       f.add(fm);
       ssa = newssa;
 //      cur = e;

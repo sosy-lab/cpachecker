@@ -23,23 +23,24 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import org.sosy_lab.common.Pair;
-
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
+public class PathFormula {
 
-public class PathFormula extends Pair<SymbolicFormula, SSAMap> {
-
-  public PathFormula(SymbolicFormula pf, SSAMap newssa) {
-    super(pf, newssa);
+  private final SymbolicFormula formula;
+  private final SSAMap ssa;
+  
+  public PathFormula(SymbolicFormula pf, SSAMap ssa) {
+    this.formula = pf;
+    this.ssa = ssa;    
   }
 
   public SymbolicFormula getSymbolicFormula() {
-    return getFirst();
+    return formula;
   }
 
   public SSAMap getSsa() {
-    return getSecond();
+    return ssa;
   }
 
   @Override
@@ -47,4 +48,20 @@ public class PathFormula extends Pair<SymbolicFormula, SSAMap> {
     return getSymbolicFormula().toString();
   }
 
+  @Override
+  public boolean equals(Object pObj) {
+    if (pObj == this) {
+      return true;
+    } else if (!(pObj instanceof PathFormula)) {
+      return false;
+    } else {
+      PathFormula other = (PathFormula)pObj;
+      return this.formula.equals(other.formula) && this.equals(other.ssa);
+    }
+  }
+  
+  @Override
+  public int hashCode() {
+    return (31 + formula.hashCode()) * 31 + ssa.hashCode();
+  }
 }
