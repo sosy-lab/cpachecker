@@ -87,9 +87,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
                 
-        merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
-            pathFormula, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
-            Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
+        merged = new SymbPredAbsAbstractElement(false, elem1.getAbstractionLocation(), 
+            pathFormula, elem1.getInitAbstractionFormula(), elem1.getAbstraction());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

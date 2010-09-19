@@ -56,59 +56,34 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   /** The abstraction which is updated only on abstraction locations */
   private Abstraction abstraction;
   
-  private final int sizeSinceAbstraction;
-
   /**
    * The abstract element this element was merged into.
    * Used for fast coverage checks.
    */
   private SymbPredAbsAbstractElement mergedInto = null;
   
-  public SymbPredAbsAbstractElement() {
+  SymbPredAbsAbstractElement() {
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
     this.pathFormula = null;
     this.initAbstractionFormula = null;
     this.abstraction = null;
-    this.sizeSinceAbstraction = 0;
-  }
-
-  /**
-   * Constructor for abstraction element.
-   * @param abstLoc The CFANode where the abstraction took place.
-   * @param pf  The new path formula.
-   * @param initFormula The path formula before the abstraction.
-   * @param a The abstraction.
-   */
-  public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, Abstraction a){
-    // set 'isAbstractionLocation' to true
-    this.isAbstractionNode = true;
-    this.abstractionLocation = abstLoc;
-    this.pathFormula = pf;
-    this.initAbstractionFormula = initFormula;
-    this.abstraction = a;
-    this.sizeSinceAbstraction = 0;
   }
   
   /**
-   * Constructor for non-abstraction location.
+   * Constructor for element.
    * @param abstLoc
    * @param pf
-   * @param pfParentsList
    * @param initFormula
    * @param a
-   * @param sizeSinceAbstraction
    */
-  public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, Abstraction a,
-      int sizeSinceAbstraction){
-    this.isAbstractionNode = false;
+  public SymbPredAbsAbstractElement(boolean isAbstractionNode, CFANode abstLoc,
+      PathFormula pf, PathFormula initFormula, Abstraction a) {
+    this.isAbstractionNode = isAbstractionNode;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-    this.sizeSinceAbstraction = sizeSinceAbstraction;
   }
   
   public Abstraction getAbstraction() {
@@ -129,10 +104,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   
   public PathFormula getPathFormula() {
     return pathFormula;
-  }
-
-  public int getSizeSinceAbstraction() {
-    return sizeSinceAbstraction;
   }
 
   public boolean isAbstractionNode(){

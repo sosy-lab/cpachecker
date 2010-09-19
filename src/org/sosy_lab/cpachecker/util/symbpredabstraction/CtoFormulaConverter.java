@@ -330,10 +330,11 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
+    int newLength = oldFormula.getLength() + 1;
     if (ssa.equals(oldssa)) {
-      return new PathFormula(f, oldssa);
+      return new PathFormula(f, oldssa, newLength);
     } else {
-      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa));
+      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength);
     }
   }
 

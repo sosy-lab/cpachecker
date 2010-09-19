@@ -129,10 +129,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
   
-    boolean thresholdReached = (absBlockSize > 0) && (element.getSizeSinceAbstraction() >= absBlockSize-1);
+    int sizeSinceAbstraction = element.getPathFormula().getLength();
+    boolean thresholdReached = (absBlockSize > 0) && (sizeSinceAbstraction >= absBlockSize-1);
     boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor(), thresholdReached);
 
-    boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= satCheckBlockSize-1);
+    boolean satCheck = (satCheckBlockSize > 0) && (sizeSinceAbstraction >= satCheckBlockSize-1);
     
     try {
       if (abstractionLocation) {
@@ -186,14 +187,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create the new abstract element for non-abstraction location
-    return Collections.singleton(new SymbPredAbsAbstractElement(
+    return Collections.singleton(new SymbPredAbsAbstractElement(false,
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
         element.getAbstractionLocation(), pf,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
-        element.getInitAbstractionFormula(), element.getAbstraction(),
-        // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
-        element.getSizeSinceAbstraction() + 1));
+        element.getInitAbstractionFormula(), element.getAbstraction()));
   }
 
   /**
@@ -222,7 +221,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
     Collection<Predicate> preds = precision.getPredicates(edge.getSuccessor());
 
-    maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction()+1);
+    maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
 
     // TODO handle returning from functions
@@ -249,11 +248,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), pathFormula.getSsa());
+    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), pathFormula.getSsa(), 0);
 
     numAbstractions++;
 
-    return Collections.singleton(new SymbPredAbsAbstractElement(
+    return Collections.singleton(new SymbPredAbsAbstractElement(true,
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to newPathFormula computed above
         edge.getSuccessor(), newPathFormula,
@@ -406,9 +405,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // because refinement code expect it to be like this
         logger.log(Level.FINEST, "Last part of the path is not infeasible.");
 
-        maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction());
+        maxBlockSize = Math.max(maxBlockSize, element.getPathFormula().getLength());
 
-        return Collections.singleton(new SymbPredAbsAbstractElement(
+        return Collections.singleton(new SymbPredAbsAbstractElement(true,
             // set 'abstractionLocation' to edge.getSuccessor()
             // set 'pathFormula' to true
             edge.getSuccessor(), formulaManager.makeEmptyPathFormula(),

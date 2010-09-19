@@ -29,10 +29,16 @@ public class PathFormula {
 
   private final SymbolicFormula formula;
   private final SSAMap ssa;
+  private final int length;
   
   public PathFormula(SymbolicFormula pf, SSAMap ssa) {
+    this(pf, ssa, 0);
+  }
+  
+  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
     this.ssa = ssa;    
+    this.length = pLength;
   }
 
   public SymbolicFormula getSymbolicFormula() {
@@ -41,6 +47,10 @@ public class PathFormula {
 
   public SSAMap getSsa() {
     return ssa;
+  }
+  
+  public int getLength() {
+    return length;
   }
 
   @Override
