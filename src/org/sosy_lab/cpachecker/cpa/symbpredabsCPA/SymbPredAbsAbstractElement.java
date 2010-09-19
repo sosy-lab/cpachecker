@@ -55,11 +55,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   private final PathFormula initAbstractionFormula;
   /** The abstraction which is updated only on abstraction locations */
   private Abstraction abstraction;
-
-  /** The unique id for the abstraction */
-  private final int abstractionId;
-  
-  private static int nextAbstractionId = 0;
   
   private final int sizeSinceAbstraction;
 
@@ -75,7 +70,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.pathFormula = null;
     this.initAbstractionFormula = null;
     this.abstraction = null;
-    this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
   }
 
@@ -94,7 +88,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.pathFormula = pf;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-    this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
   }
   
@@ -108,23 +101,18 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * @param sizeSinceAbstraction
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, Abstraction a, int abstractionId,
+      PathFormula pf, PathFormula initFormula, Abstraction a,
       int sizeSinceAbstraction){
     this.isAbstractionNode = false;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-    this.abstractionId = abstractionId;
     this.sizeSinceAbstraction = sizeSinceAbstraction;
   }
   
   public Abstraction getAbstraction() {
     return abstraction;
-  }
-
-  public int getAbstractionId() {
-    return abstractionId;
   }
 
   public CFANode getAbstractionLocation() {
@@ -163,7 +151,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   @Override
   public String toString() {
     return "Abstraction location: " + isAbstractionNode
-        + " Abstraction id: " + abstractionId;
+        + " Abstraction: " + abstraction;
   }
   
   @Override
@@ -172,7 +160,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
       // all abstraction nodes are in one block (for coverage checks)
       return null;
     } else {
-      return abstractionId;
+      return abstraction;
     }
   }
 }

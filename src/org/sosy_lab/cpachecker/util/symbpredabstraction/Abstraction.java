@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -32,11 +31,20 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * as an AbstractFormula and as a SymbolicFormula
  * 
  * The former one has no SSA indices, while the latter DOES have SSA indices added.
+ * 
+ * Abstractions are not considered equal even if they have the same formula. 
  */
-public class Abstraction extends Pair<AbstractFormula, SymbolicFormula> {
+public class Abstraction {
 
+  private final AbstractFormula abstractFormula;
+  private final SymbolicFormula symbolicFormula;
+  
+  private static int nextId = 0;
+  private final int id = nextId++;
+  
   public Abstraction(AbstractFormula pFirst, SymbolicFormula pSecond) {
-    super(pFirst, pSecond);
+    this.abstractFormula = pFirst;
+    this.symbolicFormula = pSecond;
   }
 
   public boolean isTrue() {
@@ -48,10 +56,19 @@ public class Abstraction extends Pair<AbstractFormula, SymbolicFormula> {
   }
   
   public AbstractFormula asAbstractFormula() {
-    return getFirst();
+    return abstractFormula;
   }
   
   public SymbolicFormula asSymbolicFormula() {
-    return getSecond();
+    return symbolicFormula;
+  }
+  
+  public int getId() {
+    return id;
+  }
+  
+  @Override
+  public String toString() {
+    return "ABS" + id + ": " + symbolicFormula;
   }
 }

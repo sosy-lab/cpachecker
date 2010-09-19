@@ -192,7 +192,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         element.getAbstractionLocation(), pf,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
-        element.getAbstractionId(),
         // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
         element.getSizeSinceAbstraction() + 1));
   }
