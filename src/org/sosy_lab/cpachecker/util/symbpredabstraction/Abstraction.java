@@ -38,13 +38,21 @@ public class Abstraction {
 
   private final AbstractFormula abstractFormula;
   private final SymbolicFormula symbolicFormula;
+
+  /**
+   * The formula of the block directly before this abstraction.
+   * (This formula was used to create this abstraction).
+   */
+  private final SymbolicFormula blockFormula;
   
   private static int nextId = 0;
   private final int id = nextId++;
   
-  public Abstraction(AbstractFormula pFirst, SymbolicFormula pSecond) {
+  public Abstraction(AbstractFormula pFirst, SymbolicFormula pSecond,
+      SymbolicFormula pBlockFormula) {
     this.abstractFormula = pFirst;
     this.symbolicFormula = pSecond;
+    this.blockFormula = pBlockFormula;
   }
 
   public boolean isTrue() {
@@ -61,6 +69,10 @@ public class Abstraction {
   
   public SymbolicFormula asSymbolicFormula() {
     return symbolicFormula;
+  }
+  
+  public SymbolicFormula getBlockFormula() {
+    return blockFormula;
   }
   
   public int getId() {

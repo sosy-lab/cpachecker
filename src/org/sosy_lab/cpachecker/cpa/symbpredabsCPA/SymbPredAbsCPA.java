@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -208,10 +207,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    PathFormula pf = formulaManager.makeEmptyPathFormula();
-
     return new SymbPredAbsAbstractElement(true, node,
-        pf, pf, formulaManager.makeTrueAbstraction());
+        formulaManager.makeEmptyPathFormula(),
+        formulaManager.makeTrueAbstraction(null));
   }
 
   @Override

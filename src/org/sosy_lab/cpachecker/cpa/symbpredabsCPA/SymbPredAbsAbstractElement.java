@@ -48,11 +48,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
   private final PathFormula pathFormula;
-  /** If this node is not and abstraction node, then this is invalid;
-   * otherwise this is the {@link PathFormula} of the last element before the
-   * abstraction is computed. This formula is used by the refinement procedure
-   * to build the formula to the error location */
-  private final PathFormula initAbstractionFormula;
+
   /** The abstraction which is updated only on abstraction locations */
   private Abstraction abstraction;
   
@@ -66,7 +62,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
     this.pathFormula = null;
-    this.initAbstractionFormula = null;
     this.abstraction = null;
   }
   
@@ -78,11 +73,10 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * @param a
    */
   public SymbPredAbsAbstractElement(boolean isAbstractionNode, CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, Abstraction a) {
+      PathFormula pf, Abstraction a) {
     this.isAbstractionNode = isAbstractionNode;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
-    this.initAbstractionFormula = initFormula;
     this.abstraction = a;
   }
   
@@ -92,10 +86,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
 
   public CFANode getAbstractionLocation() {
     return abstractionLocation;
-  }
-
-  public PathFormula getInitAbstractionFormula() {
-    return initAbstractionFormula;
   }
 
   SymbPredAbsAbstractElement getMergedInto() {

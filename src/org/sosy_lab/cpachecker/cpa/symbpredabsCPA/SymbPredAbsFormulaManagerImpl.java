@@ -223,7 +223,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     } else {
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
-    return new Abstraction(abs, smgr.instantiate(toConcrete(abs), pathFormula.getSsa()));
+    
+    SymbolicFormula symbolicAbs = smgr.instantiate(toConcrete(abs),pathFormula.getSsa()); 
+    return new Abstraction(abs, symbolicAbs, pathFormula.getSymbolicFormula());
   }
 
   private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
@@ -812,7 +814,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
     for (SymbPredAbsAbstractElement e : abstractTrace) {
-      result.add(e.getInitAbstractionFormula().getSymbolicFormula());
+      result.add(e.getAbstraction().getBlockFormula());
     }
     return result;
   }

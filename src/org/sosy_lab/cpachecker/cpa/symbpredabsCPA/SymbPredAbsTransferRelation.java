@@ -191,8 +191,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
         element.getAbstractionLocation(), pf,
-        // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
-        element.getInitAbstractionFormula(), element.getAbstraction()));
+        // set 'abstraction' to last element's value, it doesn't change
+        element.getAbstraction()));
   }
 
   /**
@@ -256,9 +256,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to newPathFormula computed above
         edge.getSuccessor(), newPathFormula,
-        // set 'initAbstractionFormula' to  pathFormula computed above
         // set 'abstraction' to newly computed abstraction
-        pathFormula, newAbstraction));
+        newAbstraction));
   }
 
   /**
@@ -407,13 +406,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
         maxBlockSize = Math.max(maxBlockSize, element.getPathFormula().getLength());
 
+        // set abstraction to true (we don't know better)
+        Abstraction abs = formulaManager.makeTrueAbstraction(element.getPathFormula().getSymbolicFormula());
+
         return Collections.singleton(new SymbPredAbsAbstractElement(true,
-            // set 'abstractionLocation' to edge.getSuccessor()
-            // set 'pathFormula' to true
-            edge.getSuccessor(), formulaManager.makeEmptyPathFormula(),
-            // set 'initAbstractionFormula' to old pathFormula
-            // set 'abstraction' to true (we don't know better)
-            element.getPathFormula(), formulaManager.makeTrueAbstraction()));
+            edge.getSuccessor(), formulaManager.makeEmptyPathFormula(), abs));
       }
     } else {
       if (element != pElement) {
