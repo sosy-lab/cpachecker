@@ -171,10 +171,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
 
-    // id of parent
-    int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
-
-    PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
+    PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge);
 
     logger.log(Level.ALL, "New path formula is", pf);
 
@@ -187,12 +184,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create the new abstract element for non-abstraction location
-    return Collections.singleton(new SymbPredAbsAbstractElement(false,
-        // set 'abstractionLocation' to last element's abstractionLocation since they are same
-        // set 'pathFormula' to pf - the updated pathFormula -
-        element.getAbstractionLocation(), pf,
-        // set 'abstraction' to last element's value, it doesn't change
-        element.getAbstraction()));
+    return Collections.singleton(
+        new SymbPredAbsAbstractElement(false, pf, element.getAbstraction()));
   }
 
   /**
@@ -216,9 +209,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
 
     // compute the pathFormula for the current edge
-    int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
+    PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
 
-    PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
     Collection<Predicate> preds = precision.getPredicates(edge.getSuccessor());
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
@@ -252,12 +244,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     numAbstractions++;
 
-    return Collections.singleton(new SymbPredAbsAbstractElement(true,
-        // set 'abstractionLocation' to edge.getSuccessor()
-        // set 'pathFormula' to newPathFormula computed above
-        edge.getSuccessor(), newPathFormula,
-        // set 'abstraction' to newly computed abstraction
-        newAbstraction));
+    return Collections.singleton(
+        new SymbPredAbsAbstractElement(true, newPathFormula, newAbstraction));
   }
 
   /**
@@ -270,8 +258,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
-  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge,
-                          int abstractionNodeId) throws CPATransferException {
+  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     final long start = System.currentTimeMillis();
     PathFormula pf;
 
@@ -410,7 +397,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         Abstraction abs = formulaManager.makeTrueAbstraction(element.getPathFormula().getSymbolicFormula());
 
         return Collections.singleton(new SymbPredAbsAbstractElement(true,
-            edge.getSuccessor(), formulaManager.makeEmptyPathFormula(), abs));
+            formulaManager.makeEmptyPathFormula(), abs));
       }
     } else {
       if (element != pElement) {

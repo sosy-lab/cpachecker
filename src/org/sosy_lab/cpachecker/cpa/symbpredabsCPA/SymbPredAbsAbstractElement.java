@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
@@ -40,10 +39,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
 
   /** If the element is on an abstraction location */
   private final boolean isAbstractionNode;
-  /** This is a pointer to the last abstraction node, when the computed abstract element
-   * is an abstraction node, this node is set to the new abstraction node, otherwise it is
-   * the same node with the last element's abstraction node  */
-  private final CFANode abstractionLocation;
+
   /** The path formula for the path from the last abstraction node to this node.
    * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
@@ -60,32 +56,18 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   
   SymbPredAbsAbstractElement() {
     this.isAbstractionNode = false;
-    this.abstractionLocation = null;
     this.pathFormula = null;
     this.abstraction = null;
   }
-  
-  /**
-   * Constructor for element.
-   * @param abstLoc
-   * @param pf
-   * @param initFormula
-   * @param a
-   */
-  public SymbPredAbsAbstractElement(boolean isAbstractionNode, CFANode abstLoc,
-      PathFormula pf, Abstraction a) {
+
+  public SymbPredAbsAbstractElement(boolean isAbstractionNode, PathFormula pf, Abstraction a) {
     this.isAbstractionNode = isAbstractionNode;
-    this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
     this.abstraction = a;
   }
   
   public Abstraction getAbstraction() {
     return abstraction;
-  }
-
-  public CFANode getAbstractionLocation() {
-    return abstractionLocation;
   }
 
   SymbPredAbsAbstractElement getMergedInto() {

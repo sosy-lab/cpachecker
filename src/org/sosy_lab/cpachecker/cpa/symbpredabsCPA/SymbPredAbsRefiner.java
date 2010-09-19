@@ -29,7 +29,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -94,13 +96,17 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // the last element is the element corresponding to the error location
     // (which is twice in pPath)
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
+    Map<SymbPredAbsAbstractElement, CFANode> locations 
+        = new HashMap<SymbPredAbsAbstractElement, CFANode>();
     SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
+      ARTElement ae = artPair.getFirst();
       SymbPredAbsAbstractElement symbElement =
-        artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+        ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
       if (symbElement.isAbstractionNode() && symbElement != lastElement) {
         path.add(symbElement);
+        locations.put(symbElement, ae.retrieveLocationElement().getLocationNode());
       }
       lastElement = symbElement;
     }
@@ -126,7 +132,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
-              performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
+              performRefinement(oldSymbPredAbsPrecision, path, pPath, locations, info);
 
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
@@ -147,7 +153,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
-      ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
+      ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath,
+      Map<SymbPredAbsAbstractElement, CFANode> locations,
+      CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<Predicate> globalPredicates = oldPrecision.getGlobalPredicates();
@@ -160,7 +168,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
-      CFANode loc = e.getAbstractionLocation();
+      CFANode loc = locations.get(e);
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
       }
@@ -200,7 +208,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
 
     } else {
-      CFANode loc = firstInterpolationElement.getAbstractionLocation();
+      CFANode loc = locations.get(firstInterpolationElement);
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", loc, "from ART.");
