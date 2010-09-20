@@ -286,6 +286,12 @@ public class Automaton<T> {
     
     StringBuffer lBuffer = new StringBuffer();
     
+    for (State lState : getStates()) {
+      lBuffer.append(lState.toString() + " : " + lIdMap.get(lState));
+      lBuffer.append("\n");
+    }
+    lBuffer.append("\n");
+    
     lBuffer.append("Initial State: " + lIdMap.get(getInitialState()));
     lBuffer.append("\n");
     

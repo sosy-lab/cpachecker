@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -52,15 +54,17 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fllesh.heuristics.GoalReordering;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
-import org.sosy_lab.cpachecker.fllesh.util.profiling.MemoryInfo;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 public class FlleSh {
   
@@ -75,6 +79,8 @@ public class FlleSh {
   private final CFAPathCPA mCFAPathCPA;
   private final ProductAutomatonCPA mProductAutomatonCPA;
   private final ConfigurableProgramAnalysis mSymbPredAbsCPA;
+  private final TimeAccumulator mTimeInReach;
+  private int mTimesInReach;
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
     mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
@@ -139,6 +145,9 @@ public class FlleSh {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
+    
+    mTimeInReach = new TimeAccumulator();
+    mTimesInReach = 0;
   }
   
   public FlleShResult run(String pFQLSpecification) {
@@ -166,7 +175,7 @@ public class FlleSh {
     
     if (lTask.hasPassingClause()) {
       Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mWrapper.getAlphaEdge(), mWrapper.getOmegaEdge());
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
     Deque<Goal> lGoals = lTask.toGoals(mWrapper);
@@ -181,6 +190,8 @@ public class FlleSh {
     TimeAccumulator lTimeReach = new TimeAccumulator();
     TimeAccumulator lTimeCover = new TimeAccumulator();
     
+    //lGoals = GoalReordering.reorder(lGoals);
+    
     while (!lGoals.isEmpty()) {
       lTimeAccu.proceed();
       
@@ -189,9 +200,9 @@ public class FlleSh {
       int lCurrentGoalNumber = ++lIndex;
       System.out.println("Goal #" + lCurrentGoalNumber);
       
-      System.out.println("Memory used: " + MemoryInfo.getUsedMemory());
+      HashSet<Automaton<GuardedEdgeLabel>.State> mReachedAutomatonStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
       
       lTimeReach.proceed();
       
@@ -206,6 +217,9 @@ public class FlleSh {
         
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+        
+        // propagate infeasibility information
+        //removeTransitiveInfeasibleGoals(lGoal.getAutomaton(), lGoals, mReachedAutomatonStates);
       }
       else {
         lTimeCover.proceed();
@@ -236,16 +250,19 @@ public class FlleSh {
       else {
         lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
       }
-      
-      System.out.println("Memory used (end): " + MemoryInfo.getUsedMemory());
     }
     
     System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
+    System.out.println("Time in reach: " + mTimeInReach.getSeconds());
+    System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
-  
+
   private CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, ConfigurableProgramAnalysis pPassingCPA) {
+    mTimeInReach.proceed();
+    mTimesInReach++;
+    
     /*
      * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,
      * CPAs that are not able to produce successors, are treated first such that
@@ -342,6 +359,8 @@ public class FlleSh {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
+    
+    mTimeInReach.pause();
     
     return lRefiner.getCounterexampleTraceInfo();
   }
@@ -571,6 +590,137 @@ public class FlleSh {
     }
 
     return lPropertiesFile;
+  }
+  
+  private boolean isTransitivelyInfeasible(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton, Collection<Automaton<GuardedEdgeLabel>.State> pReachedAutomatonStates) {
+    // When all reached states are contained in the similar states than pOtherAutomaton has to be infeasible, too.
+    return getSimilarStates(pInfeasibleAutomaton, pOtherAutomaton).containsAll(pReachedAutomatonStates);
+  }
+  
+  private Collection<Automaton<GuardedEdgeLabel>.State> getSimilarStates(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton) {
+    Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lInitialPair = new Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
+    
+    LinkedList<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>> lWorklist = new LinkedList<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>>();
+    lWorklist.add(lInitialPair);
+    
+    Multimap<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lCore = HashMultimap.create();
+    Multimap<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lFrontier = HashMultimap.create();
+    
+    while (!lWorklist.isEmpty()) {
+      Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lCurrentPair = lWorklist.removeFirst();
+      
+      if (lCore.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())
+          || lFrontier.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())) {
+        continue;
+      }
+      
+      boolean lSimilar = true;
+      
+      HashSet<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>> lPotentialWork = new HashSet<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>>();
+      
+      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+        boolean lOneDirectionSimilar = false;
+        
+        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+          if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
+            lPotentialWork.add(new Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
+            lOneDirectionSimilar = true;
+          }
+        }
+        
+        if (!lOneDirectionSimilar) {
+          lSimilar = false;
+        }
+      }
+      
+      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+        boolean lOneDirectionSimilar = false;
+        
+        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+          if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
+            lPotentialWork.add(new Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
+            lOneDirectionSimilar = true;
+          }
+        }
+        
+        if (!lOneDirectionSimilar) {
+          lSimilar = false;
+        }
+      }
+      
+      if (lSimilar) {
+        lCore.put(lCurrentPair.getFirst(), lCurrentPair.getSecond());
+        lWorklist.addAll(lPotentialWork);
+      }
+      else {
+        lFrontier.put(lCurrentPair.getFirst(), lCurrentPair.getSecond());
+      }
+    }
+    
+    /*if (lCore.keySet().size() >= 4) {
+      System.out.println(pInfeasibleAutomaton.toString());
+      System.out.println("---");
+      System.out.println(pOtherAutomaton.toString());
+      throw new RuntimeException();
+    }*/
+    
+    return lCore.keySet();
+    
+    /*HashSet<Automaton<GuardedEdgeLabel>.State> lSimilarStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
+    
+    if (lCore.size() > 1) {
+      System.out.println(lCore);
+      System.out.println(lFrontier);
+      throw new RuntimeException();
+    }
+    
+    for (Automaton<GuardedEdgeLabel>.State lState : lCore.keySet()) {
+      if (!lFrontier.containsKey(lState)) {
+        lSimilarStates.add(lState);
+      }
+    }
+    
+    return lSimilarStates;*/
+  }
+  
+  private void removeTransitiveInfeasibleGoals(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<Automaton<GuardedEdgeLabel>.State> pReachedAutomatonStates) {
+    HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
+    
+    //System.out.println(pAutomaton.toString());
+    //System.out.println("---");
+    //System.out.println(pReachedAutomatonStates);
+    //System.out.println("---");
+    
+    /*if (pGoals.size() == 100) {
+      System.out.println(pAutomaton.toString());
+      System.out.println("---");
+      System.out.println(pReachedAutomatonStates);
+      System.out.println("---");
+    }*/
+    
+    if (pReachedAutomatonStates.size() <= 3) {
+      System.out.println(pInfeasibleAutomaton.toString());
+      System.out.println("---");
+      System.out.println(pReachedAutomatonStates);
+      System.out.println("---");
+      throw new RuntimeException();
+    }
+    
+    // check whether remaining goals are subsumed by current counter example
+    for (Goal lOpenGoal : pGoals) {
+      if (isTransitivelyInfeasible(pInfeasibleAutomaton, lOpenGoal.getAutomaton(), pReachedAutomatonStates)) {
+        lSubsumedGoals.add(lOpenGoal);
+      }
+    }
+    
+    if (lSubsumedGoals.size() > 0) {
+      throw new RuntimeException();
+    }
+    else {
+      System.out.println("Removing " + lSubsumedGoals.size() + " many infeasible test goals!");
+    }
+    
+    pGoals.removeAll(lSubsumedGoals);
   }
   
 }
