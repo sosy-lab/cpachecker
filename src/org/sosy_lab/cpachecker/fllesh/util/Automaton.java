@@ -184,6 +184,14 @@ public class Automaton<T> {
     return mIncomingEdges.get(pState);
   }
   
+  public void remove(Edge pEdge) {
+    Set<Edge> lOutgoingEdges = getOutgoingEdges(pEdge.getSource());
+    lOutgoingEdges.remove(pEdge);
+    
+    Set<Edge> lIncomingEdges = getIncomingEdges(pEdge.getTarget());
+    lIncomingEdges.remove(pEdge);
+  }
+  
   public Automaton<T> getLambdaFreeAutomaton() {
     Automaton<T> lLambdaFreeAutomaton = new Automaton<T>();
     

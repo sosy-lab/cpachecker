@@ -202,6 +202,12 @@ public class FlleSh {
       
       HashSet<Automaton<GuardedEdgeLabel>.State> mReachedAutomatonStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
       
+      //System.out.println(lGoal.getAutomaton());
+      
+      //removeInfeasibleTransitions(lGoal.getAutomaton());
+      
+      //System.out.println(lGoal.getAutomaton());
+      
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
       
       lTimeReach.proceed();
@@ -721,6 +727,52 @@ public class FlleSh {
     }
     
     pGoals.removeAll(lSubsumedGoals);
+  }
+  
+  public void removeInfeasibleTransitions(Automaton<GuardedEdgeLabel> pAutomaton) {
+    HashSet<Automaton<GuardedEdgeLabel>.Edge> lEdgesToBeRemoved = new HashSet<Automaton<GuardedEdgeLabel>.Edge>();
+    
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.getEdges()) {
+      GuardedEdgeLabel lLabel = lEdge.getLabel();
+      
+      if (lLabel.getClass().equals(GuardedEdgeLabel.class)) {
+        if (lLabel.getEdgeSet().size() == 1) {
+          // currently we only simplify singleton edge sets
+          CFAEdge lCFAEdge = lLabel.getEdgeSet().iterator().next();
+          
+          boolean lKeep = false; // falsch
+          
+          int lRelevantEdgesCounter = 0;
+          
+          for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lEdge.getTarget())) {
+            GuardedEdgeLabel lOutgoingLabel = lOutgoingEdge.getLabel();
+            
+            if (lOutgoingLabel.getClass().equals(GuardedEdgeLabel.class)) {
+              lRelevantEdgesCounter++;
+              
+              for (CFAEdge lOutgoingCFAEdge : lOutgoingLabel.getEdgeSet()) {
+                if (lCFAEdge.getSuccessor().equals(lOutgoingCFAEdge.getPredecessor())) {
+                  lKeep = true;
+                  break;
+                }
+              }
+            }
+            
+            if (lKeep) {
+              break;
+            }
+          }
+          
+          if (!lKeep && lRelevantEdgesCounter > 0) {
+            lEdgesToBeRemoved.add(lEdge);
+          }
+        }
+      }
+    }
+    
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : lEdgesToBeRemoved) {
+      pAutomaton.remove(lEdge);
+    }
   }
   
 }
