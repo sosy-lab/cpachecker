@@ -103,6 +103,7 @@ public class CtoFormulaConverter {
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
   private static final String NONDET_VARIABLE = "__nondet__";
+  private static final String ASSUME_EDGE_PREDICATE = "__assume__";
 
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
@@ -614,12 +615,23 @@ public class CtoFormulaConverter {
     return smgr.makeAnd(f1, f2);
   }
 
-  private SymbolicFormula makeAndAssume(SymbolicFormula f1,
+  private SymbolicFormula makeAndAssume(SymbolicFormula previousFormula,
       AssumeEdge assume, String function, SSAMap ssa) throws CPATransferException {
-    SymbolicFormula f2 = makePredicate(assume.getExpression(),
+
+    SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
 
-    return smgr.makeAnd(f1, f2);
+    // add a unique predicate for each assume edge
+    String var = ASSUME_EDGE_PREDICATE + assume.getEdgeNumber();
+    int idx = makeLvalIndex(var, ssa);
+    SymbolicFormula predFormula = smgr.makePredicateVariable(var, idx);
+    if (assume.getTruthAssumption() == false) {
+      predFormula = smgr.makeNot(predFormula);
+    }
+    
+    SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
+    
+    return smgr.makeAnd(previousFormula, smgr.makeAnd(edgeFormula, equivalence));
   }
 
   private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMap ssa)
