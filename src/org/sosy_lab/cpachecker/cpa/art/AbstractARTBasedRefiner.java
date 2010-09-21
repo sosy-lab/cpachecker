@@ -103,6 +103,21 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
     assert checkART(pReached);
 
+    if (!result) {
+      Path targetPath = getTargetPath();
+      
+      if (targetPath == null) {
+        targetPath = path;
+      
+      } else {
+        // new targetPath must contain root and error node
+        assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
+        assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
+      }
+      
+      mArtCpa.setTargetPath(targetPath);
+    }
+    
     logger.log(Level.FINEST, "ART based refinement finished, result is", result);
 
     return result;
@@ -119,11 +134,27 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
             throws CPAException;
 
   /**
+   * This method is intended to be overwritten if the implementation is able to
+   * provide a better target path than ARTCPA. This is probably the case when the
+   * ART is a DAG and not a tree.
+   * 
+   * This method is called after {@link #performRefinement(ARTReachedSet, Path)}
+   * and only if the former method returned false. This method should then return
+   * the error path belonging to the latest call to performRefinement, or null
+   * if it doesn't know better.
+   * 
+   * @return Null or a path from the root node to the error node.
+   */
+  protected Path getTargetPath() {
+    return null;
+  }
+  
+  /**
    * Create a path in the ART from root to the given element.
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  static Path buildPath(ARTElement pLastElement) {
+  private static Path buildPath(ARTElement pLastElement) {
     Path path = new Path();
     Set<ARTElement> seenElements = new HashSet<ARTElement>();
 

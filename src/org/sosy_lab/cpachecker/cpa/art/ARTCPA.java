@@ -75,6 +75,8 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats;
 
+  private Path targetPath = null;
+  
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
@@ -91,7 +93,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
       throw new InternalError("Update list of allowed merge operators!");
     }
     stopOperator = new ARTStopSep(getWrappedCpa());
-    stats = new ARTStatistics(config, logger);
+    stats = new ARTStatistics(config, this);
   }
 
   @Override
@@ -137,5 +139,13 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     super.collectStatistics(pStatsCollection);
+  }
+
+  Path getTargetPath() {
+    return targetPath;
+  }
+
+  void setTargetPath(Path pTargetPath) {
+    targetPath = pTargetPath;
   }
 }

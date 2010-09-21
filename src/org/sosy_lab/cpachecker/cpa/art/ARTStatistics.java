@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -60,11 +59,11 @@ public class ARTStatistics implements Statistics {
   @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
 
-  private final LogManager logger;
+  private final ARTCPA cpa;
 
-  public ARTStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
-    this.logger = logger;
+    this.cpa = cpa;
   }
 
   @Override
@@ -82,11 +81,15 @@ public class ARTStatistics implements Statistics {
     if (exportErrorPath) {
       ARTElement lastElement = (ARTElement)pReached.getLastElement();
       if (lastElement != null && lastElement.isTarget()) {
+        Path targetPath = cpa.getTargetPath();
+        assert targetPath != null;
+        // target path has to be the path to the current target element
+        assert targetPath.getLast().getFirst() == lastElement;
+        
         try {
-          Files.writeFile(errorPathFile,
-              AbstractARTBasedRefiner.buildPath(lastElement), false);
+          Files.writeFile(errorPathFile, targetPath, false);
         } catch (IOException e) {
-          logger.log(Level.WARNING,
+          cpa.getLogger().log(Level.WARNING,
               "Could not write error path to file (", e.getMessage(), ")");
         }
       }
@@ -161,7 +164,7 @@ public class ARTStatistics implements Statistics {
     try {
       Files.writeFile(artFile, sb, false);
     } catch (IOException e) {
-      logger.log(Level.WARNING,
+      cpa.getLogger().log(Level.WARNING,
           "Could not write ART to file (", e.getMessage(), ")");
     }
   }
