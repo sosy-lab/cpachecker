@@ -291,11 +291,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     Path result = new Path();
     ARTElement currentElement = pPath.getFirst().getFirst();
     Integer currentIdx = 0;
-OUTER: while (!currentElement.isTarget()) {
+    while (!currentElement.isTarget()) {
       Set<ARTElement> children = currentElement.getChildren();
-      if (children.isEmpty()) {
-        break;
-      }
+      assert !children.isEmpty() : "Path ended to early";
       
       if (children.size() == 1) {
         // only one successor, easy
@@ -315,7 +313,7 @@ OUTER: while (!currentElement.isTarget()) {
         // just take any successor and hope this will work
         ARTElement child = Iterables.get(children, 0);
         CFAEdge edge = Iterables.getOnlyElement(outgoingEdges);
-        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
         currentElement = child;
         continue;
       }
@@ -323,7 +321,7 @@ OUTER: while (!currentElement.isTarget()) {
       // several outgoing edges
       Set<Integer> edgeIds = new HashSet<Integer>();
       for (CFAEdge currentEdge : outgoingEdges) {
-        assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
+        assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge : "Several outgoing edges but no AssumeEdge";
         edgeIds.add(currentEdge.getEdgeNumber());
       }
       
@@ -331,15 +329,7 @@ OUTER: while (!currentElement.isTarget()) {
       Map<Integer, Boolean> currentPreds;
       do {
         Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
-        
-        if (nextEntry == null) {
-          // choose any child
-          ARTElement child = Iterables.get(children, 0);
-          CFAEdge edge = currentElement.getEdgeToChild(child);
-          result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
-          currentElement = child;
-          continue OUTER;
-        }
+        assert nextEntry != null : "Set of predicates ended before path ended";
         
         currentIdx = nextEntry.getKey();
         currentPreds = nextEntry.getValue();
@@ -348,21 +338,13 @@ OUTER: while (!currentElement.isTarget()) {
       CFAEdge edge = null;
       for (CFAEdge currentEdge : outgoingEdges) {
         Boolean value = currentPreds.get(currentEdge.getEdgeNumber());
+        // TODO find out why there is sometimes no value or more than one value
         if (value == Boolean.TRUE) {
-          assert edge == null || edge == currentEdge;
+          assert edge == null || edge == currentEdge : "At least two outgoing edges are possible";
           edge = currentEdge;
         }
       }
-      //assert edge != null;
-      if (edge == null) {
-        for (CFAEdge currentEdge : outgoingEdges) {
-          Boolean value = currentPreds.get(currentEdge.getEdgeNumber());
-          if (value == null) {
-            assert edge == null || edge == currentEdge;
-            edge = currentEdge;
-          }
-        }
-      }
+      assert edge != null : "No outgoing edge is possible";
       
       CFANode childLocation = edge.getSuccessor();
       
@@ -373,7 +355,7 @@ OUTER: while (!currentElement.isTarget()) {
           break;
         }
       }
-      assert child != null;
+      assert child != null : "Set of children and set of edges don't match";
       
       result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
       currentElement = child;
