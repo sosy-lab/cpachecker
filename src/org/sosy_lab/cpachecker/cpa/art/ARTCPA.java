@@ -23,14 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpas.art")
 public class ARTCPA extends AbstractSingleWrapperCPA {
@@ -138,41 +132,6 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   protected LogManager getLogger() {
     return logger;
   }
-
-  public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) throws CPAException {
-    ARTElement tempRetVal = null;
-
-    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
-    Set<ARTElement> handled = new HashSet<ARTElement>();
-
-    workList.add(pLastElem);
-
-    while (!workList.isEmpty()) {
-      ARTElement currentElement = workList.removeFirst();
-      if (!handled.add(currentElement)) {
-        // currentElement was already handled
-        continue;
-      }
-      // TODO check - bottom element
-      CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
-      if(loc == null) {
-        assert false;
-        continue;
-      } else{
-        if (loc.equals(pLoc)) {
-          tempRetVal = currentElement;
-        }
-        workList.addAll(currentElement.getParents());
-      }
-    }
-
-    if (tempRetVal == null) {
-      throw new CPAException("Inconsistent ART, did not find element for " + pLoc);
-    }
-    return tempRetVal;
-
-  }
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
