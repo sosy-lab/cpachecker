@@ -152,6 +152,8 @@ public interface SymbolicFormulaManager {
 
   public SymbolicFormula makeVariable(String pVar, int pIdx);
   
+  public SymbolicFormula makePredicateVariable(String pVar, int pIdx);
+  
   public SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);
 
   // ----------------- Convert to list -----------------

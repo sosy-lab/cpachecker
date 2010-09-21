@@ -415,6 +415,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
+  public SymbolicFormula makePredicateVariable(String var, int idx) {
+    String name = makeName("PRED" + var, idx);
+    long decl = msat_declare_variable(msatEnv, name, MSAT_BOOL);
+    return encapsulate(msat_make_variable(msatEnv, decl));
+  }
+
+  @Override
   public SymbolicFormula makeAssignment(SymbolicFormula f1, SymbolicFormula f2) {
     return makeEqual(f1, f2);
   }
@@ -586,6 +593,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       final long t = getTerm(tt);
 
       if (msat_term_is_variable(t) != 0) {
+        assert msat_term_get_type(t) == msatVarType : "Invalid type for variable " + tt;
         String name = parseName(msat_term_repr(t)).getFirst();
         
         long newt = buildMsatVariable(name);
