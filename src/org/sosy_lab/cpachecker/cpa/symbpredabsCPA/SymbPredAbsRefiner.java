@@ -87,24 +87,20 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
 
-    // create path with all abstraction location elements (excluding the initial
-    // element, which is not in pPath)
+    // create path with all abstraction location elements (including the initial element)
     // the last element is the element corresponding to the error location
-    // (which is twice in pPath)
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     List<ARTElement> artPath = new ArrayList<ARTElement>();
     
-    SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
       ARTElement ae = artPair.getFirst();
       SymbPredAbsAbstractElement symbElement =
         ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-      if (symbElement.isAbstractionNode() && symbElement != lastElement) {
+      if (symbElement.isAbstractionNode()) {
         path.add(symbElement);
         artPath.add(ae);
       }
-      lastElement = symbElement;
     }
 
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());

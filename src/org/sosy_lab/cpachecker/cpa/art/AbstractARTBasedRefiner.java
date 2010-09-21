@@ -89,6 +89,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
+    assert pReached.getFirstElement() == path.getFirst().getFirst();
 
     if (logger.wouldBeLogged(Level.ALL)) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -126,10 +127,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     Path path = new Path();
     Set<ARTElement> seenElements = new HashSet<ARTElement>();
 
-    // each element of the path consists of the abstract element and the incoming
-    // edge from its predecessor
-    // an exception is the last element: it is contained two times in the path,
-    // first with the incoming edge and second with the outgoing edge
+    // each element of the path consists of the abstract element and the outgoing
+    // edge to its successor
 
     ARTElement currentARTElement = pLastElement;
     assert pLastElement.isTarget();
@@ -150,7 +149,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
 
       CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
-      path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, edge));
+      path.addFirst(new Pair<ARTElement, CFAEdge>(parentElement, edge));
 
       currentARTElement = parentElement;
     }
