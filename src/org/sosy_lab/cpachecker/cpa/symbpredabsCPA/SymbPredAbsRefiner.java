@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -87,13 +88,15 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
 
-    // create path with all abstraction location elements (including the initial element)
+    // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     List<ARTElement> artPath = new ArrayList<ARTElement>();
     
-    for (Pair<ARTElement,CFAEdge> artPair : pPath) {
-      ARTElement ae = artPair.getFirst();
+    Iterator<Pair<ARTElement,CFAEdge>> it = pPath.iterator();
+    it.next(); // skip initial element
+    while (it.hasNext()) {
+      ARTElement ae = it.next().getFirst();
       SymbPredAbsAbstractElement symbElement =
         ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
