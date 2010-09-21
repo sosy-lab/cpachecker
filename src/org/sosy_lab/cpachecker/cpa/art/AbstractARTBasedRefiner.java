@@ -104,16 +104,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert checkART(pReached);
 
     if (!result) {
-      Path targetPath = getTargetPath();
+      Path targetPath = getTargetPath(path);
       
-      if (targetPath == null) {
-        targetPath = path;
-      
-      } else {
-        // new targetPath must contain root and error node
-        assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
-        assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
-      }
+      // new targetPath must contain root and error node
+      assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
+      assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
       
       mArtCpa.setTargetPath(targetPath);
     }
@@ -140,13 +135,13 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * 
    * This method is called after {@link #performRefinement(ARTReachedSet, Path)}
    * and only if the former method returned false. This method should then return
-   * the error path belonging to the latest call to performRefinement, or null
-   * if it doesn't know better.
+   * the error path belonging to the latest call to performRefinement.
    * 
-   * @return Null or a path from the root node to the error node.
+   * @param pPath The target path.
+   * @return A path from the root node to the target node.
    */
-  protected Path getTargetPath() {
-    return null;
+  protected Path getTargetPath(Path pPath) {
+    return pPath;
   }
   
   /**

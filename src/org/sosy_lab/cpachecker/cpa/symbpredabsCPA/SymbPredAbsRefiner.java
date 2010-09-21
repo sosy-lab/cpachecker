@@ -27,10 +27,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -39,6 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,11 +56,20 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatBooleanValue;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatType;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatVariable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
@@ -231,6 +248,142 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
     }
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
+  }
+  
+  private static Pattern PRED_NAME = Pattern.compile("^.*__assume__(?=\\d+@\\d+$)");
+  
+  @Override
+  protected Path getTargetPath(Path pPath) {
+    Model m = mCounterexampleTraceInfo.getCounterexample();
+    if (!(m instanceof MathsatModel)) {
+      logger.log(Level.WARNING, "Error path analysis is currently only supported for Mathsat. Error path output may be incorrect.");
+      return null;
+    }
+    MathsatModel model = (MathsatModel)m; 
+    
+    NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
+    for (MathsatAssignable a : model.getAssignables()) {
+      if (a instanceof MathsatVariable
+          && a.getType() == MathsatType.Boolean) {
+        
+        Matcher matcher = PRED_NAME.matcher(a.getName());
+        String name = matcher.replaceFirst("");
+        if (!name.equals(a.getName())) {
+          // pattern matched, so it's a variable with __assume__ in it
+          
+          String[] parts = name.split("@");
+          assert parts.length == 2;
+          Integer edgeId = Integer.parseInt(parts[0]);
+          Integer idx = Integer.parseInt(parts[1]);          
+          
+          Map<Integer, Boolean> p = preds.get(idx);
+          if (p == null) {
+            p = new HashMap<Integer, Boolean>(2);
+            preds.put(idx, p);
+          }
+          
+          Boolean value = ((MathsatBooleanValue)model.getValue(a)).isTrue();
+          p.put(edgeId, value);
+        }             
+      }
+    }
+    
+    Path result = new Path();
+    ARTElement currentElement = pPath.getFirst().getFirst();
+    Integer currentIdx = 0;
+OUTER: while (!currentElement.isTarget()) {
+      Set<ARTElement> children = currentElement.getChildren();
+      if (children.isEmpty()) {
+        break;
+      }
+      
+      if (children.size() == 1) {
+        // only one successor, easy
+        ARTElement child = Iterables.getOnlyElement(children);
+        CFAEdge edge = currentElement.getEdgeToChild(child);
+        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+        currentElement = child;
+        continue;
+      }
+      
+      Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
+      for (ARTElement child : children) {
+        outgoingEdges.add(currentElement.getEdgeToChild(child));
+      }
+      if (outgoingEdges.size() == 1) {
+        // several successors, but only one edge
+        // just take any successor and hope this will work
+        ARTElement child = Iterables.get(children, 0);
+        CFAEdge edge = Iterables.getOnlyElement(outgoingEdges);
+        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+        currentElement = child;
+        continue;
+      }
+      
+      // several outgoing edges
+      Set<Integer> edgeIds = new HashSet<Integer>();
+      for (CFAEdge currentEdge : outgoingEdges) {
+        assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
+        edgeIds.add(currentEdge.getEdgeNumber());
+      }
+      
+      // search first idx where we have a value for any of the outgoing edges 
+      Map<Integer, Boolean> currentPreds;
+      do {
+        Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
+        
+        if (nextEntry == null) {
+          // choose any child
+          ARTElement child = Iterables.get(children, 0);
+          CFAEdge edge = currentElement.getEdgeToChild(child);
+          result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+          currentElement = child;
+          continue OUTER;
+        }
+        
+        currentIdx = nextEntry.getKey();
+        currentPreds = nextEntry.getValue();
+      } while (Sets.intersection(edgeIds, currentPreds.keySet()).isEmpty());
+      
+      CFAEdge edge = null;
+      for (CFAEdge currentEdge : outgoingEdges) {
+        Boolean value = currentPreds.get(currentEdge.getEdgeNumber());
+        if (value == Boolean.TRUE) {
+          assert edge == null || edge == currentEdge;
+          edge = currentEdge;
+        }
+      }
+      //assert edge != null;
+      if (edge == null) {
+        for (CFAEdge currentEdge : outgoingEdges) {
+          Boolean value = currentPreds.get(currentEdge.getEdgeNumber());
+          if (value == null) {
+            assert edge == null || edge == currentEdge;
+            edge = currentEdge;
+          }
+        }
+      }
+      
+      CFANode childLocation = edge.getSuccessor();
+      
+      ARTElement child = null;
+      for (ARTElement currentChild : children) {
+        if (childLocation.equals(currentChild.retrieveLocationElement().getLocationNode())) {
+          child = currentChild;
+          break;
+        }
+      }
+      assert child != null;
+      
+      result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+      currentElement = child;
+    }
+    
+    Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
+    assert currentElement == lastPair.getFirst() : "Target path did not lead to target element";
+    result.add(lastPair);
+    
+    return result;
   }
   
   public CounterexampleTraceInfo getCounterexampleTraceInfo() {
