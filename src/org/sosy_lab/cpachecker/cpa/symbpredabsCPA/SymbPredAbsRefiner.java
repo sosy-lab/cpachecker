@@ -25,13 +25,9 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -96,8 +92,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // the last element is the element corresponding to the error location
     // (which is twice in pPath)
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
-    Map<SymbPredAbsAbstractElement, CFANode> locations 
-        = new HashMap<SymbPredAbsAbstractElement, CFANode>();
+    List<ARTElement> artPath = new ArrayList<ARTElement>();
+    
     SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
       ARTElement ae = artPair.getFirst();
@@ -106,7 +102,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
       if (symbElement.isAbstractionNode() && symbElement != lastElement) {
         path.add(symbElement);
-        locations.put(symbElement, ae.retrieveLocationElement().getLocationNode());
+        artPath.add(ae);
       }
       lastElement = symbElement;
     }
@@ -132,7 +128,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
-              performRefinement(oldSymbPredAbsPrecision, path, pPath, locations, info);
+              performRefinement(oldSymbPredAbsPrecision, path, artPath, info);
 
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
@@ -152,34 +148,47 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
   }
 
+  /**
+   * pPath and pArtPath need to fit together such that
+   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(SymbPredAbsAbstractElement) 
+   */
   private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
-      ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath,
-      Map<SymbPredAbsAbstractElement, CFANode> locations,
+      ArrayList<SymbPredAbsAbstractElement> pPath, List<ARTElement> pArtPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<Predicate> globalPredicates = oldPrecision.getGlobalPredicates();
-    SymbPredAbsAbstractElement symbPredRootElement = null;
+    
     SymbPredAbsAbstractElement firstInterpolationElement = null;
-
+    ARTElement firstInterpolationARTElement = null;
+    boolean newPredicatesFound = false;
+    
     ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
-    for (SymbPredAbsAbstractElement e : pPath) {
+    // iterate synchronously through pArtPath and pPath
+    int i = -1;
+    for (ARTElement ae : pArtPath) {
+      i++;
+      SymbPredAbsAbstractElement e = pPath.get(i);
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
-      CFANode loc = locations.get(e);
+      CFANode loc = ae.retrieveLocationElement().getLocationNode();
+      
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
+        firstInterpolationARTElement = ae;
       }
-      if ((symbPredRootElement == null) && !oldPredicateMap.get(loc).containsAll(newpreds)) {
+      if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(newpreds)) {
         // new predicates for this location
-        symbPredRootElement = e;
+        newPredicatesFound = true;
       }
+
       pmapBuilder.putAll(loc, newpreds);
       pmapBuilder.putAll(loc, globalPredicates);
     }
-    assert(firstInterpolationElement != null);
+    assert firstInterpolationElement != null;
+    assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
     SymbPredAbsPrecision newPrecision;
@@ -191,59 +200,38 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
-    // symbPredRootElement might be null here, but firstInterpolationElement
-    // might be not. TODO investigate why this happens
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationElement or set it to highest location in the ART
     // where the same CFANode appears.
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
-    // best to use strategy one iff symbPredRootElement is not null.
+    // best to use strategy one iff newPredicatesFound.
 
-    ARTElement root;
-    if (symbPredRootElement != null) {
+    ARTElement root = null;
+    if (newPredicatesFound) {
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 1: remove everything below", firstInterpolationElement, "from ART.");
 
-      root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
+      root = firstInterpolationARTElement;
 
     } else {
-      CFANode loc = locations.get(firstInterpolationElement);
+      CFANode loc = firstInterpolationARTElement.retrieveLocationElement().getLocationNode();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", loc, "from ART.");
 
-      root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
+      // find first element in path with location == loc
+      for (ARTElement e : pArtPath) {
+        if (e.retrieveLocationElement().getLocationNode().equals(loc)) {
+          root = e;
+          break;
+        }
+      }
+      if (root == null) {
+        throw new CPAException("Inconsistent ART, did not find element for " + loc);
+      }
     }
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
-  }
-
-  private ARTElement findARTElementof(SymbPredAbsAbstractElement pSymbPredRootElement,
-      Pair<ARTElement, CFAEdge> pLastElement) throws CPAException {
-
-    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
-    Set<ARTElement> handled = new HashSet<ARTElement>();
-
-    // get the error element
-    workList.add(pLastElement.getFirst());
-
-    // go backwards
-    while (!workList.isEmpty()) {
-      ARTElement currentElement = workList.removeFirst();
-      if (!handled.add(currentElement)) {
-        // currentElement was already handled
-        continue;
-      }
-
-      SymbPredAbsAbstractElement currentSymbPredElement =
-                currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-      if (currentSymbPredElement == pSymbPredRootElement){
-        return currentElement;
-      }
-      workList.addAll(currentElement.getParents());
-    }
-
-    throw new CPAException("Inconsistent ART");
   }
   
   public CounterexampleTraceInfo getCounterexampleTraceInfo() {
