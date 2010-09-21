@@ -622,8 +622,9 @@ public class CtoFormulaConverter {
         assume.getTruthAssumption(), function, ssa);
 
     // add a unique predicate for each assume edge
+    int idx = makeLvalIndex(ASSUME_EDGE_PREDICATE, ssa);
     String var = ASSUME_EDGE_PREDICATE + assume.getEdgeNumber();
-    int idx = makeLvalIndex(var, ssa);
+
     SymbolicFormula predFormula = smgr.makePredicateVariable(var, idx);
     if (assume.getTruthAssumption() == false) {
       predFormula = smgr.makeNot(predFormula);
