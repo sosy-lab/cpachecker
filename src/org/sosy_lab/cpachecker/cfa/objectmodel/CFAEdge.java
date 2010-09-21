@@ -38,6 +38,8 @@ public interface CFAEdge
     public IASTNode getRawAST();
 
     public int getLineNumber();
+    
+    public int getEdgeNumber();
 
     /**
      * Gives information whether this information represents a jump to a
