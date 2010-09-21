@@ -626,10 +626,6 @@ public class CtoFormulaConverter {
     String var = ASSUME_EDGE_PREDICATE + assume.getEdgeNumber();
 
     SymbolicFormula predFormula = smgr.makePredicateVariable(var, idx);
-    if (assume.getTruthAssumption() == false) {
-      predFormula = smgr.makeNot(predFormula);
-    }
-    
     SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
     
     return smgr.makeAnd(previousFormula, smgr.makeAnd(edgeFormula, equivalence));
