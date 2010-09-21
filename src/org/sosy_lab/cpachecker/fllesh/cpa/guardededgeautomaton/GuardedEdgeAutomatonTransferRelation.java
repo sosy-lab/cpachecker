@@ -24,9 +24,9 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   
   private final HashSet<GuardedEdgeAutomatonStateElement> mSuccessors;
   
-  private final Collection<Automaton<GuardedEdgeLabel>.State> mReachedAutomatonStates; 
+  private final Collection<Automaton.State> mReachedAutomatonStates; 
   
-  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton<GuardedEdgeLabel>.State> pReachedAutomatonStates) {
+  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
     mTopElement = pDomain.getTopElement();
     mBottomElement = pDomain.getBottomElement();
     mAutomaton = pAutomaton;

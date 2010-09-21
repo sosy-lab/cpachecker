@@ -50,11 +50,12 @@ import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.fllesh.heuristics.GoalReordering;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
@@ -81,6 +82,9 @@ public class FlleSh {
   private final ConfigurableProgramAnalysis mSymbPredAbsCPA;
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
+  private final GuardedEdgeLabel mAlphaLabel;
+  private final GuardedEdgeLabel mOmegaLabel;
+  private final GuardedEdgeLabel mInverseAlphaLabel;
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
     mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
@@ -108,6 +112,11 @@ public class FlleSh {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    
+    mAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getAlphaEdge()));
+    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
+    mOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getOmegaEdge()));
+    
     
     /*
      * Initialize shared CPAs.
@@ -165,7 +174,13 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
+    System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+    
     Task lTask = Task.create(lFQLSpecification, mCoverageSpecificationTranslator);
+    
+    System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
     
     System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
     
@@ -174,12 +189,17 @@ public class FlleSh {
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lTask.hasPassingClause()) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mWrapper.getAlphaEdge(), mWrapper.getOmegaEdge());
+      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
-    Deque<Goal> lGoals = lTask.toGoals(mWrapper);
+    // TODO
+    // reorganize test goal enumeration ?
+    // create test goal automaton when goal is processed
+    // check for coverage at this point of time
     
+    Deque<Goal> lGoals = lTask.toGoals(mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+        
     int lIndex = 0;
     
     int lFeasibleTestGoalsTimeSlot = 0;
@@ -200,7 +220,7 @@ public class FlleSh {
       int lCurrentGoalNumber = ++lIndex;
       System.out.println("Goal #" + lCurrentGoalNumber);
       
-      HashSet<Automaton<GuardedEdgeLabel>.State> mReachedAutomatonStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
+      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
       
       //System.out.println(lGoal.getAutomaton());
       
@@ -372,15 +392,15 @@ public class FlleSh {
   }
   
   private static ThreeValuedAnswer accepts(Automaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
-    Set<Automaton<GuardedEdgeLabel>.State> lCurrentStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
-    Set<Automaton<GuardedEdgeLabel>.State> lNextStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
+    Set<Automaton.State> lCurrentStates = new HashSet<Automaton.State>();
+    Set<Automaton.State> lNextStates = new HashSet<Automaton.State>();
     
     lCurrentStates.add(pAutomaton.getInitialState());
     
     boolean lHasPredicates = false;
     
     for (CFAEdge lCFAEdge : pCFAPath) {
-      for (Automaton<GuardedEdgeLabel>.State lCurrentState : lCurrentStates) {
+      for (Automaton.State lCurrentState : lCurrentStates) {
         // Automaton accepts as soon as it sees a final state (implicit self-loop)
         if (pAutomaton.getFinalStates().contains(lCurrentState)) {
           return ThreeValuedAnswer.ACCEPT;
@@ -402,12 +422,12 @@ public class FlleSh {
       
       lCurrentStates.clear();
       
-      Set<Automaton<GuardedEdgeLabel>.State> lTmp = lCurrentStates;
+      Set<Automaton.State> lTmp = lCurrentStates;
       lCurrentStates = lNextStates;
       lNextStates = lTmp;
     }
     
-    for (Automaton<GuardedEdgeLabel>.State lCurrentState : lCurrentStates) {
+    for (Automaton.State lCurrentState : lCurrentStates) {
       // Automaton accepts as soon as it sees a final state (implicit self-loop)
       if (pAutomaton.getFinalStates().contains(lCurrentState)) {
         return ThreeValuedAnswer.ACCEPT;
@@ -598,22 +618,22 @@ public class FlleSh {
     return lPropertiesFile;
   }
   
-  private boolean isTransitivelyInfeasible(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton, Collection<Automaton<GuardedEdgeLabel>.State> pReachedAutomatonStates) {
+  private boolean isTransitivelyInfeasible(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
     // When all reached states are contained in the similar states than pOtherAutomaton has to be infeasible, too.
     return getSimilarStates(pInfeasibleAutomaton, pOtherAutomaton).containsAll(pReachedAutomatonStates);
   }
   
-  private Collection<Automaton<GuardedEdgeLabel>.State> getSimilarStates(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton) {
-    Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lInitialPair = new Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
+  private Collection<Automaton.State> getSimilarStates(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton) {
+    Pair<Automaton.State, Automaton.State> lInitialPair = new Pair<Automaton.State, Automaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
     
-    LinkedList<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>> lWorklist = new LinkedList<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>>();
+    LinkedList<Pair<Automaton.State, Automaton.State>> lWorklist = new LinkedList<Pair<Automaton.State, Automaton.State>>();
     lWorklist.add(lInitialPair);
     
-    Multimap<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lCore = HashMultimap.create();
-    Multimap<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lFrontier = HashMultimap.create();
+    Multimap<Automaton.State, Automaton.State> lCore = HashMultimap.create();
+    Multimap<Automaton.State, Automaton.State> lFrontier = HashMultimap.create();
     
     while (!lWorklist.isEmpty()) {
-      Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State> lCurrentPair = lWorklist.removeFirst();
+      Pair<Automaton.State, Automaton.State> lCurrentPair = lWorklist.removeFirst();
       
       if (lCore.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())
           || lFrontier.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())) {
@@ -622,14 +642,14 @@ public class FlleSh {
       
       boolean lSimilar = true;
       
-      HashSet<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>> lPotentialWork = new HashSet<Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>>();
+      HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
       
       for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
         boolean lOneDirectionSimilar = false;
         
         for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
+            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -644,7 +664,7 @@ public class FlleSh {
         
         for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<Automaton<GuardedEdgeLabel>.State, Automaton<GuardedEdgeLabel>.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
+            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -689,7 +709,7 @@ public class FlleSh {
     return lSimilarStates;*/
   }
   
-  private void removeTransitiveInfeasibleGoals(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<Automaton<GuardedEdgeLabel>.State> pReachedAutomatonStates) {
+  private void removeTransitiveInfeasibleGoals(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<Automaton.State> pReachedAutomatonStates) {
     HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
     
     //System.out.println(pAutomaton.toString());
@@ -729,10 +749,13 @@ public class FlleSh {
     pGoals.removeAll(lSubsumedGoals);
   }
   
+  // TODO reimplement without modifying the old automaton
+  /*
   public void removeInfeasibleTransitions(Automaton<GuardedEdgeLabel> pAutomaton) {
     HashSet<Automaton<GuardedEdgeLabel>.Edge> lEdgesToBeRemoved = new HashSet<Automaton<GuardedEdgeLabel>.Edge>();
     
-    for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.getEdges()) {
+    //for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.getEdges()) {
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.edges()) {
       GuardedEdgeLabel lLabel = lEdge.getLabel();
       
       if (lLabel.getClass().equals(GuardedEdgeLabel.class)) {
@@ -773,6 +796,6 @@ public class FlleSh {
     for (Automaton<GuardedEdgeLabel>.Edge lEdge : lEdgesToBeRemoved) {
       pAutomaton.remove(lEdge);
     }
-  }
+  }*/
   
 }

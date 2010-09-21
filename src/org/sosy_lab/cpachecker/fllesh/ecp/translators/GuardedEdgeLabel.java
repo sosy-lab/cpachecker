@@ -12,7 +12,7 @@ public class GuardedEdgeLabel extends GuardedLabel {
 
   private static Map<ECPEdgeSet, Integer> mIds = new HashMap<ECPEdgeSet, Integer>();
   
-  private ECPEdgeSet mEdgeSet;
+  private final ECPEdgeSet mEdgeSet;
   
   public GuardedEdgeLabel(ECPEdgeSet pEdgeSet) {
     super();

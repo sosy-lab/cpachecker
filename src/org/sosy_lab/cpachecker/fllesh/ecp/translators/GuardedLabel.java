@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.ecp.translators;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -8,23 +9,24 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 
 public abstract class GuardedLabel implements Iterable<ECPGuard> {
 
-  private Set<ECPGuard> mGuards = new HashSet<ECPGuard>();
+  private final Set<ECPGuard> mGuards;
   
   public GuardedLabel() {
-    
+    mGuards = Collections.emptySet();
   }
   
   public GuardedLabel(Set<ECPGuard> pGuards) {
-    mGuards.addAll(pGuards);
+    if (pGuards.size() == 0) {
+      mGuards = Collections.emptySet();
+    }
+    else {
+      mGuards = new HashSet<ECPGuard>(pGuards);
+    }
   }
   
   public GuardedLabel(ECPGuard pGuard) {
+    mGuards = new HashSet<ECPGuard>();
     mGuards.add(pGuard);
-  }
-  
-  /** copy constructor */
-  public GuardedLabel(GuardedLabel pEdge) {
-    this(pEdge.mGuards);
   }
   
   @Override

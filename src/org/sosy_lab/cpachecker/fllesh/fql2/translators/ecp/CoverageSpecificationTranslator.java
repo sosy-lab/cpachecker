@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -28,21 +28,30 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 
 public class CoverageSpecificationTranslator {
 
-  private Visitor mVisitor;
-  private PathPatternTranslator mPathPatternTranslator;
+  private final Visitor mVisitor;
+  private final PathPatternTranslator mPathPatternTranslator;
+  private final HashMap<CoverageSpecification, Set<ElementaryCoveragePattern>> mResultCache;
   
   public CoverageSpecificationTranslator(CFANode pInitialNode) {
     this(TargetGraphUtil.cfa(pInitialNode), TargetGraphUtil.getBasicBlockEntries(pInitialNode));
   }
   
   public CoverageSpecificationTranslator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
-    mVisitor = new Visitor();
-    mPathPatternTranslator = new PathPatternTranslator(pTargetGraph, pBasicBlockEntries);
+    this (new PathPatternTranslator(pTargetGraph, pBasicBlockEntries));
   }
   
   public CoverageSpecificationTranslator(PathPatternTranslator pPatternTranslator) {
     mVisitor = new Visitor();
     mPathPatternTranslator = pPatternTranslator;
+    mResultCache = new HashMap<CoverageSpecification, Set<ElementaryCoveragePattern>>();
+  }
+  
+  public int getOverallCacheHits() {
+    return mVisitor.mCacheHits + mPathPatternTranslator.getCacheHits(); 
+  }
+  
+  public int getOverallCacheMisses() {
+    return mVisitor.mCacheMisses + mPathPatternTranslator.getCacheMisses();
   }
   
   public Set<ElementaryCoveragePattern> translate(CoverageSpecification pCoverageSpecification) {
@@ -55,17 +64,30 @@ public class CoverageSpecificationTranslator {
   
   private class Visitor implements CoverageSpecificationVisitor<Set<ElementaryCoveragePattern>> {
 
+    public int mCacheHits = 0;
+    public int mCacheMisses = 0;
+    
     @Override
     public Set<ElementaryCoveragePattern> visit(Concatenation pConcatenation) {
-      Set<ElementaryCoveragePattern> lPrefixSet = pConcatenation.getFirstSubspecification().accept(this);
-      Set<ElementaryCoveragePattern> lSuffixSet = pConcatenation.getSecondSubspecification().accept(this);
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pConcatenation);
       
-      HashSet<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
-      
-      for (ElementaryCoveragePattern lPrefix : lPrefixSet) {
-        for (ElementaryCoveragePattern lSuffix : lSuffixSet) {
-          lResultSet.add(new ECPConcatenation(lPrefix, lSuffix));
+      if (lResultSet == null) {
+        Set<ElementaryCoveragePattern> lPrefixSet = pConcatenation.getFirstSubspecification().accept(this);
+        Set<ElementaryCoveragePattern> lSuffixSet = pConcatenation.getSecondSubspecification().accept(this);
+        
+        lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+        
+        for (ElementaryCoveragePattern lPrefix : lPrefixSet) {
+          for (ElementaryCoveragePattern lSuffix : lSuffixSet) {
+            lResultSet.add(new ECPConcatenation(lPrefix, lSuffix));
+          }
         }
+        
+        mResultCache.put(pConcatenation, lResultSet);
+        mCacheMisses++;
+      }
+      else {
+        mCacheHits++;
       }
       
       return lResultSet;
@@ -73,17 +95,39 @@ public class CoverageSpecificationTranslator {
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Quotation pQuotation) {
-      ElementaryCoveragePattern lPattern = mPathPatternTranslator.translate(pQuotation.getPathPattern());
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pQuotation);
       
-      return Collections.singleton(lPattern);
+      if (lResultSet == null) {
+        ElementaryCoveragePattern lPattern = mPathPatternTranslator.translate(pQuotation.getPathPattern());
+        
+        lResultSet = Collections.singleton(lPattern);
+        
+        mResultCache.put(pQuotation, lResultSet);
+        mCacheMisses++;
+      }
+      else {
+        mCacheHits++;
+      }
+      
+      return lResultSet;
     }
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Union pUnion) {
-      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pUnion);
       
-      lResultSet.addAll(pUnion.getFirstSubspecification().accept(this));
-      lResultSet.addAll(pUnion.getSecondSubspecification().accept(this));
+      if (lResultSet == null) {
+        lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+
+        lResultSet.addAll(pUnion.getFirstSubspecification().accept(this));
+        lResultSet.addAll(pUnion.getSecondSubspecification().accept(this));
+        
+        mResultCache.put(pUnion, lResultSet);
+        mCacheMisses++;
+      }
+      else {
+        mCacheHits++;
+      }
       
       return lResultSet;
     }
@@ -92,13 +136,23 @@ public class CoverageSpecificationTranslator {
     public Set<ElementaryCoveragePattern> visit(Edges pEdges) {
       TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pEdges.getFilter());
 
-      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
-
-      for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
-        ElementaryCoveragePattern lPattern = mPathPatternTranslator.translate(lEdge);
-        lResultSet.add(lPattern);
-      }
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pEdges);
       
+      if (lResultSet == null) {
+        lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+
+        for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
+          ElementaryCoveragePattern lPattern = mPathPatternTranslator.translate(lEdge);
+          lResultSet.add(lPattern);
+        }
+        
+        mResultCache.put(pEdges, lResultSet);
+        mCacheMisses++;
+      }
+      else {
+        mCacheHits++;
+      }
+            
       return lResultSet;
     }
 
@@ -106,12 +160,22 @@ public class CoverageSpecificationTranslator {
     public Set<ElementaryCoveragePattern> visit(Nodes pNodes) {
       TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pNodes.getFilter());
 
-      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pNodes);
+      
+      if (lResultSet == null) {
+        lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
 
-      for (Node lNode : lFilteredTargetGraph.getNodes()) {
-        lResultSet.add(mPathPatternTranslator.translate(lNode));
+        for (Node lNode : lFilteredTargetGraph.getNodes()) {
+          lResultSet.add(mPathPatternTranslator.translate(lNode));
+        }
+
+        mResultCache.put(pNodes, lResultSet);
+        mCacheMisses++;
       }
-
+      else {
+        mCacheHits++;
+      }
+      
       return lResultSet;
     }
 
@@ -119,10 +183,20 @@ public class CoverageSpecificationTranslator {
     public Set<ElementaryCoveragePattern> visit(Paths pPaths) {
       TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pPaths.getFilter());
       
-      Set<ElementaryCoveragePattern> lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pPaths);
       
-      for (Path lPath : lFilteredTargetGraph.getBoundedPaths(pPaths.getBound())) {
-        lResultSet.add(mPathPatternTranslator.translate(lPath));
+      if (lResultSet == null) {
+        lResultSet = new LinkedHashSet<ElementaryCoveragePattern>();
+        
+        for (Path lPath : lFilteredTargetGraph.getBoundedPaths(pPaths.getBound())) {
+          lResultSet.add(mPathPatternTranslator.translate(lPath));
+        }
+       
+        mResultCache.put(pPaths, lResultSet);
+        mCacheMisses++;
+      }
+      else {
+        mCacheHits++;
       }
       
       return lResultSet;
@@ -130,9 +204,19 @@ public class CoverageSpecificationTranslator {
     
     @Override
     public Set<ElementaryCoveragePattern> visit(Predicate pPredicate) {
-      ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate);
+      Set<ElementaryCoveragePattern> lResultSet = mResultCache.get(pPredicate);
       
-      return Collections.singleton(lPattern);
+      if (lResultSet == null) {
+        ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate);
+        lResultSet = Collections.singleton(lPattern);
+        mResultCache.put(pPredicate, lResultSet);
+        mCacheMisses++;
+      }
+      else {
+        mCacheHits++;
+      }
+      
+      return lResultSet;
     }
     
   }

@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 
@@ -59,12 +60,20 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
     }
   }
   
-  public Deque<Goal> toGoals(Wrapper pWrapper) {
+  public Deque<Goal> toGoals(GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
     LinkedList<Goal> lGoals = new LinkedList<Goal>();
     
+    int lCounter = 0;
+    
     for (ElementaryCoveragePattern lGoalPattern : this) {
-      Goal lGoal = new Goal(lGoalPattern, pWrapper);
+      Goal lGoal = new Goal(lGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
       lGoals.add(lGoal);
+      
+      lCounter++;
+      
+      if (lCounter % 500 == 0) {
+        System.out.println(lCounter);
+      }
     }
     
     return lGoals;
