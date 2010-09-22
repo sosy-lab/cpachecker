@@ -310,7 +310,7 @@ public class CtoFormulaConverter {
       Pair<SymbolicFormula, SymbolicFormula> pair
           = makeAndAssume(m, (AssumeEdge)edge, function, ssa);
       f = pair.getFirst();
-      branchFormula = pair.getSecond();
+      branchFormula = smgr.makeAnd(branchFormula, pair.getSecond());
       break;
     }
 
