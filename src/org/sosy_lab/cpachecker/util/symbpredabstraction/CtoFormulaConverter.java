@@ -108,6 +108,8 @@ public class CtoFormulaConverter {
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
 
+  private int nextAssumeEdgeId = 0;
+  
   private int nondetCounter = 0;
 
   private final Set<String> printedWarnings = new HashSet<String>();
@@ -278,6 +280,7 @@ public class CtoFormulaConverter {
       m = makeAndEnterFunction(m, (FunctionDefinitionNode)edge.getPredecessor(), function, ssa);
     }
 
+    int currentAssumeEdgeId = -1;
     SymbolicFormula f;
     switch (edge.getEdgeType()) {
     case StatementEdge: {
@@ -305,7 +308,8 @@ public class CtoFormulaConverter {
     }
 
     case AssumeEdge: {
-      f = makeAndAssume(m, (AssumeEdge)edge, function, ssa);
+      currentAssumeEdgeId = nextAssumeEdgeId++;
+      f = makeAndAssume(m, (AssumeEdge)edge, function, ssa, currentAssumeEdgeId);
       break;
     }
 
@@ -333,9 +337,9 @@ public class CtoFormulaConverter {
 
     int newLength = oldFormula.getLength() + 1;
     if (ssa.equals(oldssa)) {
-      return new PathFormula(f, oldssa, newLength);
+      return new PathFormula(f, oldssa, newLength, currentAssumeEdgeId);
     } else {
-      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength);
+      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength, currentAssumeEdgeId);
     }
   }
 
@@ -616,16 +620,14 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula makeAndAssume(SymbolicFormula previousFormula,
-      AssumeEdge assume, String function, SSAMap ssa) throws CPATransferException {
+      AssumeEdge assume, String function, SSAMap ssa, int currentAssumeEdgeId) throws CPATransferException {
 
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
 
     // add a unique predicate for each assume edge
-    int idx = makeLvalIndex(ASSUME_EDGE_PREDICATE, ssa);
     String var = ASSUME_EDGE_PREDICATE + assume.getEdgeNumber();
-
-    SymbolicFormula predFormula = smgr.makePredicateVariable(var, idx);
+    SymbolicFormula predFormula = smgr.makePredicateVariable(var, currentAssumeEdgeId);
     SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
     
     return smgr.makeAnd(previousFormula, smgr.makeAnd(edgeFormula, equivalence));
