@@ -58,6 +58,7 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -306,7 +307,10 @@ public class CtoFormulaConverter {
     }
 
     case AssumeEdge: {
-      f = makeAndAssume(m, (AssumeEdge)edge, function, ssa);
+      Pair<SymbolicFormula, SymbolicFormula> pair
+          = makeAndAssume(m, (AssumeEdge)edge, function, ssa);
+      f = pair.getFirst();
+      branchFormula = pair.getSecond();
       break;
     }
 
@@ -616,15 +620,16 @@ public class CtoFormulaConverter {
     return smgr.makeAnd(f1, f2);
   }
 
-  private SymbolicFormula makeAndAssume(SymbolicFormula previousFormula,
+  private Pair<SymbolicFormula, SymbolicFormula> makeAndAssume(SymbolicFormula previousFormula,
       AssumeEdge assume, String function, SSAMap ssa) throws CPATransferException {
 
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
-
+    SymbolicFormula f = smgr.makeAnd(edgeFormula, previousFormula);
+    
     // add a unique predicate for each assume edge
     int idx = makeLvalIndex(ASSUME_EDGE_PREDICATE, ssa);
-    String var = ASSUME_EDGE_PREDICATE + assume.getEdgeNumber();
+    String var = ASSUME_EDGE_PREDICATE + assume.getAssumeEdgeId();
 
     SymbolicFormula predFormula = smgr.makePredicateVariable(var, idx);
     if (assume.getTruthAssumption() == false) {
@@ -633,7 +638,7 @@ public class CtoFormulaConverter {
     
     SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
     
-    return smgr.makeAnd(previousFormula, smgr.makeAnd(edgeFormula, equivalence));
+    return new Pair<SymbolicFormula, SymbolicFormula>(f, equivalence);
   }
 
   private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMap ssa)
