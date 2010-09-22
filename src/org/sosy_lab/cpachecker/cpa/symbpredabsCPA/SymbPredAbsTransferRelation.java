@@ -240,7 +240,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), pathFormula.getSsa(), 0);
+    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(),
+                          pathFormula.getSsa(), 0, pathFormula.getBranchFormula());
 
     numAbstractions++;
 
@@ -382,22 +383,25 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     if (errorFound) {
       logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
       numSatChecks++;
+      PathFormula pathFormula = element.getPathFormula();
 
-      if (formulaManager.unsat(element.getAbstraction(), element.getPathFormula())) {
+      if (formulaManager.unsat(element.getAbstraction(), pathFormula)) {
         logger.log(Level.FINEST, "Path is infeasible.");
         return Collections.emptySet();
       } else {
         // although this is not an abstraction location, we fake an abstraction
         // because refinement code expect it to be like this
         logger.log(Level.FINEST, "Last part of the path is not infeasible.");
-
-        maxBlockSize = Math.max(maxBlockSize, element.getPathFormula().getLength());
+        
+        maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
         // set abstraction to true (we don't know better)
-        Abstraction abs = formulaManager.makeTrueAbstraction(element.getPathFormula().getSymbolicFormula());
+        Abstraction abs = formulaManager.makeTrueAbstraction(pathFormula.getSymbolicFormula());
 
+        PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(),
+            pathFormula.getSsa(), 0, pathFormula.getBranchFormula());
         return Collections.singleton(new SymbPredAbsAbstractElement(true,
-            formulaManager.makeEmptyPathFormula(), abs));
+            newPathFormula, abs));
       }
     } else {
       if (element != pElement) {

@@ -30,15 +30,18 @@ public class PathFormula {
   private final SymbolicFormula formula;
   private final SSAMap ssa;
   private final int length;
+  private final SymbolicFormula branchFormula;
   
+  @Deprecated
   public PathFormula(SymbolicFormula pf, SSAMap ssa) {
-    this(pf, ssa, 0);
+    this(pf, ssa, 0, null);
   }
   
-  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength) {
+  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength, SymbolicFormula pBranchFormula) {
     this.formula = pf;
     this.ssa = ssa;    
     this.length = pLength;
+    this.branchFormula = pBranchFormula;
   }
 
   public SymbolicFormula getSymbolicFormula() {
@@ -53,6 +56,10 @@ public class PathFormula {
     return length;
   }
 
+  public SymbolicFormula getBranchFormula() {
+    return branchFormula;
+  }
+  
   @Override
   public String toString(){
     return getSymbolicFormula().toString();

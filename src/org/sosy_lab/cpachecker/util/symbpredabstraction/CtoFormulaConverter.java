@@ -265,7 +265,8 @@ public class CtoFormulaConverter {
     }
     
     SymbolicFormula m = oldFormula.getSymbolicFormula();
-
+    SymbolicFormula branchFormula = oldFormula.getBranchFormula();
+    
     String function = (edge.getPredecessor() != null) 
                           ? edge.getPredecessor().getFunctionName() : null;
 
@@ -333,9 +334,9 @@ public class CtoFormulaConverter {
 
     int newLength = oldFormula.getLength() + 1;
     if (ssa.equals(oldssa)) {
-      return new PathFormula(f, oldssa, newLength);
+      return new PathFormula(f, oldssa, newLength, branchFormula);
     } else {
-      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength);
+      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength, branchFormula);
     }
   }
 
