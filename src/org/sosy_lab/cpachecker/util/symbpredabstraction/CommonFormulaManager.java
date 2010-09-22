@@ -53,8 +53,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
-import com.google.common.collect.Sets;
-
 
 /**
  * Class implementing the FormulaManager interface,
@@ -266,9 +264,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
 
   @Override
-  public Abstraction makeTrueAbstraction(PathFormula previousBlockFormula) {
+  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula) {
     if (previousBlockFormula == null) {
-      previousBlockFormula = makeEmptyPathFormula();
+      previousBlockFormula = smgr.makeTrue();
     }
     return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
   }
@@ -306,9 +304,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    Set<Integer> assumeEdgeIds = Sets.union(pF1.getAssumeEdgeIds(), pF2.getAssumeEdgeIds());
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength, assumeEdgeIds);
+    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength);
   }
 
   /**

@@ -277,7 +277,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           Integer idx = Integer.parseInt(parts[1]);          
           
           Map<Integer, Boolean> p = preds.get(idx);
-          assert p == null;
           if (p == null) {
             p = new HashMap<Integer, Boolean>(2);
             preds.put(idx, p);
@@ -291,7 +290,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     
     Path result = new Path();
     ARTElement currentElement = pPath.getFirst().getFirst();
-//    Integer currentIdx = 0;
+    Integer currentIdx = 0;
     while (!currentElement.isTarget()) {
       Set<ARTElement> children = currentElement.getChildren();
       assert !children.isEmpty() : "Path ended to early";
@@ -314,64 +313,35 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         // just take any successor and hope this will work
         ARTElement child = Iterables.get(children, 0);
         CFAEdge edge = Iterables.getOnlyElement(outgoingEdges);
-        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
         currentElement = child;
         continue;
       }
       
       // several outgoing edges
-      Set<Integer> assumeEdgeIds = new HashSet<Integer>();
-      for (ARTElement child : children) {
-        SymbPredAbsAbstractElement symbChild = child.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-        Set<Integer> currentAssumeEdgeIds;
-        if (symbChild.isAbstractionNode()) {
-          currentAssumeEdgeIds = symbChild.getAbstraction().getBlockFormula().getAssumeEdgeIds();
-        } else {
-          currentAssumeEdgeIds = symbChild.getPathFormula().getAssumeEdgeIds();
-        }
-        assert !currentAssumeEdgeIds.isEmpty();
-        //assert Sets.intersection(assumeEdgeIds, currentAssumeEdgeIds).isEmpty();
-        assumeEdgeIds.addAll(currentAssumeEdgeIds);
+      Set<Integer> edgeIds = new HashSet<Integer>();
+      for (CFAEdge currentEdge : outgoingEdges) {
+        assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge : "Several outgoing edges but no AssumeEdge";
+        edgeIds.add(currentEdge.getEdgeNumber());
       }
-      assumeEdgeIds.remove(-1);
-      assert !assumeEdgeIds.isEmpty();
-      
-      Map<Integer, Boolean> currentPreds = new HashMap<Integer, Boolean>();
-      for (Integer i : assumeEdgeIds) {
-        Map<Integer, Boolean> iPreds = preds.get(i);
-        if (iPreds != null) {
-          currentPreds.putAll(iPreds);
-        }
-      }
-      assert !currentPreds.isEmpty();
-      
-//      Set<Integer> edgeIds = new HashSet<Integer>();
-//      for (CFAEdge currentEdge : outgoingEdges) {
-//        assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge : "Several outgoing edges but no AssumeEdge";
-//        edgeIds.add(currentEdge.getEdgeNumber());
-//      }
       
       // search first idx where we have a value for any of the outgoing edges 
-//      Map<Integer, Boolean> currentPreds;
-//      do {
-//        Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
-//        assert nextEntry != null : "Set of predicates ended before path ended";
-//        
-//        currentIdx = nextEntry.getKey();
-//        currentPreds = nextEntry.getValue();
-//      } while (Sets.intersection(edgeIds, currentPreds.keySet()).isEmpty());
+      Map<Integer, Boolean> currentPreds;
+      do {
+        Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
+        assert nextEntry != null : "Set of predicates ended before path ended";
+        
+        currentIdx = nextEntry.getKey();
+        currentPreds = nextEntry.getValue();
+      } while (Sets.intersection(edgeIds, currentPreds.keySet()).isEmpty());
       
       CFAEdge edge = null;
       for (CFAEdge currentEdge : outgoingEdges) {
         Boolean value = currentPreds.get(currentEdge.getEdgeNumber());
         // TODO find out why there is sometimes no value or more than one value
         if (value == Boolean.TRUE) {
-          //assert edge == null || edge == currentEdge : "At least two outgoing edges are possible";
-          if (edge != null && edge != currentEdge) {
-            return pPath;
-          }
+          assert edge == null || edge == currentEdge : "At least two outgoing edges are possible";
           edge = currentEdge;
-          //break;
         }
       }
       assert edge != null : "No outgoing edge is possible";

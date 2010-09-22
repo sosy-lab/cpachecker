@@ -43,13 +43,13 @@ public class Abstraction {
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  private final PathFormula blockFormula;
+  private final SymbolicFormula blockFormula;
   
   private static int nextId = 0;
   private final int id = nextId++;
   
   public Abstraction(AbstractFormula pFirst, SymbolicFormula pSecond,
-      PathFormula pBlockFormula) {
+      SymbolicFormula pBlockFormula) {
     this.abstractFormula = pFirst;
     this.symbolicFormula = pSecond;
     this.blockFormula = pBlockFormula;
@@ -71,7 +71,7 @@ public class Abstraction {
     return symbolicFormula;
   }
   
-  public PathFormula getBlockFormula() {
+  public SymbolicFormula getBlockFormula() {
     return blockFormula;
   }
   

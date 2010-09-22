@@ -23,43 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-
-import com.google.common.collect.ImmutableSet;
 
 public class PathFormula {
 
   private final SymbolicFormula formula;
   private final SSAMap ssa;
   private final int length;
-  private final ImmutableSet<Integer> assumeEdgeIds;
   
   public PathFormula(SymbolicFormula pf, SSAMap ssa) {
     this(pf, ssa, 0);
   }
   
   public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength) {
-    this(pf, ssa, pLength, null);
-  }
-  
-  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength, int pAssumeEdgeId) {
     this.formula = pf;
     this.ssa = ssa;    
     this.length = pLength;
-    this.assumeEdgeIds = ImmutableSet.of(pAssumeEdgeId);
-  }
-  
-  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength, Collection<Integer> pAssumeEdgeIds) {
-    this.formula = pf;
-    this.ssa = ssa;    
-    this.length = pLength;
-    if (pAssumeEdgeIds == null) {
-      this.assumeEdgeIds = ImmutableSet.of();
-    } else {
-      this.assumeEdgeIds = ImmutableSet.copyOf(pAssumeEdgeIds);
-    }
   }
 
   public SymbolicFormula getSymbolicFormula() {
@@ -74,10 +53,6 @@ public class PathFormula {
     return length;
   }
 
-  public ImmutableSet<Integer> getAssumeEdgeIds() {
-    return assumeEdgeIds;
-  }
-  
   @Override
   public String toString(){
     return getSymbolicFormula().toString();

@@ -394,7 +394,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         maxBlockSize = Math.max(maxBlockSize, element.getPathFormula().getLength());
 
         // set abstraction to true (we don't know better)
-        Abstraction abs = formulaManager.makeTrueAbstraction(element.getPathFormula());
+        Abstraction abs = formulaManager.makeTrueAbstraction(element.getPathFormula().getSymbolicFormula());
 
         return Collections.singleton(new SymbPredAbsAbstractElement(true,
             formulaManager.makeEmptyPathFormula(), abs));

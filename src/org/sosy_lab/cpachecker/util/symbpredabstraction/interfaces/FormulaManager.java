@@ -64,7 +64,7 @@ public interface FormulaManager {
   /**
    * Creates a new Abstraction object that represents the formula "true".
    */
-  public Abstraction makeTrueAbstraction(PathFormula previousBlockFormula);
+  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula);
   
   /**
    * Creates a new empty path formula.
