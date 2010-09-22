@@ -48,6 +48,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
@@ -69,7 +70,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
@@ -313,35 +313,40 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         // just take any successor and hope this will work
         ARTElement child = Iterables.get(children, 0);
         CFAEdge edge = Iterables.getOnlyElement(outgoingEdges);
-result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
         currentElement = child;
         continue;
       }
       
       // several outgoing edges
-      Set<Integer> edgeIds = new HashSet<Integer>();
+      Integer edgeId = null;
       for (CFAEdge currentEdge : outgoingEdges) {
         assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge : "Several outgoing edges but no AssumeEdge";
-        edgeIds.add(currentEdge.getEdgeNumber());
+        Integer currentEdgeId = ((AssumeEdge)currentEdge).getAssumeEdgeId();
+        
+        assert edgeId == null || edgeId.equals(currentEdgeId);
+        edgeId = currentEdgeId;
       }
+      assert edgeId != null;
       
-      // search first idx where we have a value for any of the outgoing edges 
-      Map<Integer, Boolean> currentPreds;
+      // search first idx where we have a value for the edgeId
+      Boolean predValue;
       do {
         Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
         assert nextEntry != null : "Set of predicates ended before path ended";
         
         currentIdx = nextEntry.getKey();
-        currentPreds = nextEntry.getValue();
-      } while (Sets.intersection(edgeIds, currentPreds.keySet()).isEmpty());
+        Map<Integer, Boolean> currentPreds = nextEntry.getValue();
+        predValue = currentPreds.get(edgeId);
+      } while (predValue == null);
+      
+      boolean value = predValue;
       
       CFAEdge edge = null;
       for (CFAEdge currentEdge : outgoingEdges) {
-        Boolean value = currentPreds.get(currentEdge.getEdgeNumber());
-        // TODO find out why there is sometimes no value or more than one value
-        if (value == Boolean.TRUE) {
-          assert edge == null || edge == currentEdge : "At least two outgoing edges are possible";
+        if (value == ((AssumeEdge)currentEdge).getTruthAssumption()) {
           edge = currentEdge;
+          break;
         }
       }
       assert edge != null : "No outgoing edge is possible";
