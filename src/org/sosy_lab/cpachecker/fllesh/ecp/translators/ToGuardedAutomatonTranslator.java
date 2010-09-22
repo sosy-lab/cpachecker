@@ -33,9 +33,10 @@ public class ToGuardedAutomatonTranslator {
     lAutomaton3.createEdge(lAutomaton3.getInitialState(), lAutomaton3.getInitialState(), pInverseAlphaLabel);
     
     // TODO do we need that?
-    for (Automaton.State lFinalState : lAutomaton3.getFinalStates()) {
+    // not really --- analysis stops as soon as an omega edge is passed
+    /*for (Automaton.State lFinalState : lAutomaton3.getFinalStates()) {
       lAutomaton3.createEdge(lFinalState, lFinalState, AllCFAEdgesGuardedEdgeLabel.getInstance());
-    }
+    }*/
     
     return lAutomaton3;
   }

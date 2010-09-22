@@ -266,7 +266,12 @@ public class Automaton<T> {
             
             for (State lTargetClosureElement : getLambdaClosure(lTarget)) {
               // again, we use the same states in lLambdaFreeAutomaton
-              lLambdaFreeAutomaton.createEdge(lState, lTargetClosureElement, lOutgoingEdge.getLabel());
+              if (lOutgoingEdge.getSource().equals(lState) && lOutgoingEdge.getTarget().equals(lTargetClosureElement)) {
+                lLambdaFreeAutomaton.addEdge(lState, lTargetClosureElement, lOutgoingEdge);
+              }
+              else {
+                lLambdaFreeAutomaton.createEdge(lState, lTargetClosureElement, lOutgoingEdge.getLabel());
+              }
             }
           }
         }

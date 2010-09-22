@@ -198,7 +198,14 @@ public class FlleSh {
     // create test goal automaton when goal is processed
     // check for coverage at this point of time
     
+    TimeAccumulator lToGoalsTime = new TimeAccumulator();
+    lToGoalsTime.proceed();
+    
     Deque<Goal> lGoals = lTask.toGoals(mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    
+    lToGoalsTime.pause();
+    
+    System.out.println("Time for creating goals: " + lToGoalsTime.getSeconds() + " s");
         
     int lIndex = 0;
     
