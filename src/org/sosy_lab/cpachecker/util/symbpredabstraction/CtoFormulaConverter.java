@@ -637,6 +637,7 @@ public class CtoFormulaConverter {
     }
     
     SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
+    equivalence = smgr.makeAnd(equivalence, predFormula);
     
     return new Pair<SymbolicFormula, SymbolicFormula>(f, equivalence);
   }
