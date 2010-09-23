@@ -275,7 +275,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue());
+    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue(), 0);
   }
   
   /**
@@ -304,9 +304,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    SymbolicFormula newReachingPathsFormula = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength, newReachingPathsFormula);
+    SymbolicFormula newReachingPathsFormula
+        = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
+    int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
+    
+    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength,
+                           newReachingPathsFormula, newBranchingCounter);
   }
 
   /**
@@ -333,13 +337,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       if (i2 > 0 && i2 != i1) {
         // we have to merge this variable assignment
         result.setIndex(var, Math.max(i1, i2));
-        if (!var.equals("__assume__")) {
-          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
-          mt1 = smgr.makeAnd(mt1, t.getFirst());
-          mt2 = smgr.makeAnd(mt2, t.getSecond());
-        }
+        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
+        mt1 = smgr.makeAnd(mt1, t.getFirst());
+        mt2 = smgr.makeAnd(mt2, t.getSecond());
       } else {
-        if (i2 <= 0 && !var.equals("__assume__")) {
+        if (i2 <= 0) {
           // it's not enough to set the SSA index. We *must* also
           // generate a formula saying that the var does not change
           // in this branch!
@@ -361,13 +363,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         // it's not enough to set the SSA index. We *must* also
         // generate a formula saying that the var does not change
         // in this branch!
-        if (!var.equals("__assume__")) {
-          SymbolicFormula v1 = smgr.makeVariable(var, 1);
-          for (int i = 2; i <= i2; ++i) {
-            SymbolicFormula v = smgr.makeVariable(var, i);
-            SymbolicFormula e = smgr.makeEqual(v, v1);
-            mt1 = smgr.makeAnd(mt1, e);
-          }
+        SymbolicFormula v1 = smgr.makeVariable(var, 1);
+        for (int i = 2; i <= i2; ++i) {
+          SymbolicFormula v = smgr.makeVariable(var, i);
+          SymbolicFormula e = smgr.makeEqual(v, v1);
+          mt1 = smgr.makeAnd(mt1, e);
         }
         result.setIndex(var, i2);
       } else {

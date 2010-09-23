@@ -241,7 +241,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // create new empty path formula
     PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(),
-                          pathFormula.getSsa(), 0, pathFormula.getBranchFormula());
+                          pathFormula.getSsa(), 0, pathFormula.getReachingPathsFormula(),
+                          pathFormula.getBranchingCounter());
 
     numAbstractions++;
 
@@ -399,7 +400,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         Abstraction abs = formulaManager.makeTrueAbstraction(pathFormula.getSymbolicFormula());
 
         PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(),
-            pathFormula.getSsa(), 0, pathFormula.getBranchFormula());
+            pathFormula.getSsa(), 0, pathFormula.getReachingPathsFormula(), pathFormula.getBranchingCounter());
         return Collections.singleton(new SymbPredAbsAbstractElement(true,
             newPathFormula, abs));
       }

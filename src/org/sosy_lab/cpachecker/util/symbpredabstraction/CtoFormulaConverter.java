@@ -267,6 +267,7 @@ public class CtoFormulaConverter {
     
     SymbolicFormula m = oldFormula.getSymbolicFormula();
     SymbolicFormula reachingPathsFormula = oldFormula.getReachingPathsFormula();
+    int branchingCounter = oldFormula.getBranchingCounter();
     
     String function = (edge.getPredecessor() != null) 
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -307,8 +308,9 @@ public class CtoFormulaConverter {
     }
 
     case AssumeEdge: {
+      branchingCounter++;
       Pair<SymbolicFormula, SymbolicFormula> pair
-          = makeAndAssume(m, (AssumeEdge)edge, function, ssa);
+          = makeAndAssume(m, (AssumeEdge)edge, function, ssa, branchingCounter);
       f = pair.getFirst();
       reachingPathsFormula = smgr.makeAnd(reachingPathsFormula, pair.getSecond());
       break;
@@ -336,12 +338,13 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    int newLength = oldFormula.getLength() + 1;
     if (ssa.equals(oldssa)) {
-      return new PathFormula(f, oldssa, newLength, reachingPathsFormula);
+      ssa = oldssa;
     } else {
-      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength, reachingPathsFormula);
+      ssa = SSAMap.unmodifiableSSAMap(ssa);
     }
+    int newLength = oldFormula.getLength() + 1;
+    return new PathFormula(f, ssa, newLength, reachingPathsFormula, branchingCounter);
   }
 
   private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,
@@ -621,17 +624,16 @@ public class CtoFormulaConverter {
   }
 
   private Pair<SymbolicFormula, SymbolicFormula> makeAndAssume(SymbolicFormula previousFormula,
-      AssumeEdge assume, String function, SSAMap ssa) throws CPATransferException {
+      AssumeEdge assume, String function, SSAMap ssa, int branchingIdx) throws CPATransferException {
 
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
     SymbolicFormula f = smgr.makeAnd(edgeFormula, previousFormula);
     
     // add a unique predicate for each assume edge
-    int idx = makeLvalIndex(ASSUME_EDGE_PREDICATE, ssa);
     String var = ASSUME_EDGE_PREDICATE + assume.getAssumeEdgeId();
 
-    SymbolicFormula predFormula = smgr.makePredicateVariable(var, idx);
+    SymbolicFormula predFormula = smgr.makePredicateVariable(var, branchingIdx);
     if (assume.getTruthAssumption() == false) {
       predFormula = smgr.makeNot(predFormula);
     }
