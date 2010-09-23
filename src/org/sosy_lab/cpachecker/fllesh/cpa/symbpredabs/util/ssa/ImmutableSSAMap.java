@@ -6,14 +6,14 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-public class ImmutableSSAMap implements SSAMap {
+public class ImmutableSSAMap implements ReadableSSAMap {
 
-  public static class Builder implements SSAMap {
+  public static class Builder implements ReadableSSAMap {
 
     private ImmutableSSAMap mSSAMap;
     
@@ -73,7 +73,6 @@ public class ImmutableSSAMap implements SSAMap {
       return lIndex;
     }
 
-    @Override
     public void setIndex(String pVariable, int pIdx) {
       mVars.put(pVariable, pIdx);
     }
@@ -91,7 +90,6 @@ public class ImmutableSSAMap implements SSAMap {
       return lIndex;
     }
 
-    @Override
     public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
       FuncKey lFuncKey = new FuncKey(pName, pArgs);
       
@@ -137,8 +135,7 @@ public class ImmutableSSAMap implements SSAMap {
       return lFunctions;
     }
 
-    @Override
-    public void update(SSAMap pOther) {
+    public void update(ImmutableSSAMap pOther) {
       for (String lVariable : pOther.allVariables()) {
         if (!(mVars.containsKey(lVariable) || mSSAMap.mVars.containsKey(lVariable))) {
           mVars.put(lVariable, pOther.getIndex(lVariable));
@@ -187,11 +184,6 @@ public class ImmutableSSAMap implements SSAMap {
   }
 
   @Override
-  public void setIndex(String pVariable, int pIdx) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public int getIndex(String pName, SymbolicFormulaList pArgs) {
     Integer i = mFuncs.get(new FuncKey(pName, pArgs));
     if (i != null) {
@@ -200,11 +192,6 @@ public class ImmutableSSAMap implements SSAMap {
       // no index found, return -1
       return -1;
     }
-  }
-
-  @Override
-  public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
-    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -221,11 +208,6 @@ public class ImmutableSSAMap implements SSAMap {
     }
     
     return ret;
-  }
-
-  @Override
-  public void update(SSAMap pOther) {
-    throw new UnsupportedOperationException();
   }
   
   @Override

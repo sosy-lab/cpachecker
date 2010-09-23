@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs;
+package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,13 +44,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.fllesh.cpa.art.AbstractARTBasedRefiner;
+import org.sosy_lab.cpachecker.fllesh.cpa.art.Path;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;

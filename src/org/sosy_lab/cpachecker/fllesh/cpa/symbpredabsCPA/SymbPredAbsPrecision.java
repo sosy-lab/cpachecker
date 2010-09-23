@@ -21,14 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs;
+package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;

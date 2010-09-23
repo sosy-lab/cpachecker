@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.util.ssa;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 class FuncKey {
   private final String name;

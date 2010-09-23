@@ -21,18 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs;
+package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 
 /**

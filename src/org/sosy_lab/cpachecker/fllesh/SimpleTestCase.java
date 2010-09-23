@@ -7,9 +7,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 public class SimpleTestCase implements TestCase {
 
@@ -36,6 +37,50 @@ public class SimpleTestCase implements TestCase {
   @Override
   public int[] getInputs() {
     return mInputs;
+  }
+  
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (getClass().equals(pOther.getClass())) {
+      SimpleTestCase lTestCase = (SimpleTestCase)pOther;
+      
+      if (mInputs.length == lTestCase.mInputs.length) {
+        if (mIsPrecise == lTestCase.mIsPrecise) {
+          for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+            if (mInputs[lIndex] != lTestCase.mInputs[lIndex]) {
+              return false;
+            }
+          }
+          
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuffer lBuffer = new StringBuffer();
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      lBuffer.append(mInputs[lIndex] + ", ");
+    }
+    
+    return lBuffer.toString();
+  }
+  
+  public static SimpleTestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
+    return fromCounterexample((MathsatModel)pTraceInfo.getCounterexample(), pLogManager);
   }
   
   public static SimpleTestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {

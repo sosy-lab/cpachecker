@@ -31,15 +31,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.SymbPredAbsCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.fllesh.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathStandardElement;
@@ -50,6 +48,9 @@ import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsRefiner;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.InverseGuardedEdgeLabel;
@@ -59,13 +60,21 @@ import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecification
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+
+/*
+ * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time 
+ * measurements when invoking FlleSh several times in a unit test.
+ * 
+ * TODO Passing predicates from one reachability analysis to the next.
+ * 
+ * TODO Incremental test goal automaton creation: extending automata (can we reuse
+ * parts of the reached set? This requires a change in the coverage check. 
+ * 
+ */
 
 public class FlleSh {
   
@@ -160,10 +169,10 @@ public class FlleSh {
   }
   
   public FlleShResult run(String pFQLSpecification) {
-    return run(pFQLSpecification, true);
+    return run(pFQLSpecification, true, false);
   }
   
-  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck) {
+  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
     System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     
     // Parse FQL Specification
@@ -251,16 +260,17 @@ public class FlleSh {
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
         
-        // propagate infeasibility information
-        //removeTransitiveInfeasibleGoals(lGoal.getAutomaton(), lGoals, mReachedAutomatonStates);
+        if (pApplyInfeasibilityPropagation) {
+          // propagate infeasibility information
+          removeTransitiveInfeasibleGoals(lGoal.getAutomaton(), lGoals, mReachedAutomatonStates);
+        }
       }
       else {
         lTimeCover.proceed();
         
         lIsFeasible = true;
         
-        Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
-        SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
+        SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
@@ -329,7 +339,7 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
 
-    ConfigurableProgramAnalysis lARTCPA;
+    ARTCPA lARTCPA;
     try {
       // create composite CPA
       CPAFactory lCPAFactory = CompositeCPA.factory();
@@ -344,7 +354,7 @@ public class FlleSh {
       lARTCPAFactory.setConfiguration(mConfiguration);
       lARTCPAFactory.setLogger(mLogManager);
       
-      lARTCPA =  lARTCPAFactory.createInstance();
+      lARTCPA = (ARTCPA)lARTCPAFactory.createInstance();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -544,6 +554,8 @@ public class FlleSh {
     Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
     
     if (lEndNodes.size() != 1) {
+      System.out.println(pTestCase);
+      System.out.println(lEndNodes);
       throw new RuntimeException();
     }
     
@@ -746,12 +758,7 @@ public class FlleSh {
       }
     }
     
-    if (lSubsumedGoals.size() > 0) {
-      throw new RuntimeException();
-    }
-    else {
-      System.out.println("Removing " + lSubsumedGoals.size() + " many infeasible test goals!");
-    }
+    System.out.println("Removing " + lSubsumedGoals.size() + " many infeasible test goals!");
     
     pGoals.removeAll(lSubsumedGoals);
   }
