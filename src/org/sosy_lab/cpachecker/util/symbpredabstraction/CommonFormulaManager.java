@@ -304,9 +304,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    SymbolicFormula newBranchFormula = smgr.makeOr(pF1.getBranchFormula(), pF2.getBranchFormula());
+    SymbolicFormula newReachingPathsFormula = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength, newBranchFormula);
+    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength, newReachingPathsFormula);
   }
 
   /**

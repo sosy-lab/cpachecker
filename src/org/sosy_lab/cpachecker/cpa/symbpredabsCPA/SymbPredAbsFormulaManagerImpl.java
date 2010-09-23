@@ -727,11 +727,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     } else {
       // this is a real bug, notify the user
       
-      // get the branch formula and add it to the solver environment
+      // get the reachingPathsFormula and add it to the solver environment
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
       SymbPredAbsAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
-      pItpProver.addFormula(lastElement.getPathFormula().getBranchFormula());
+      pItpProver.addFormula(lastElement.getPathFormula().getReachingPathsFormula());
       
       // need to ask solver for satisfiability again,
       // otherwise model doesn't contain new predicates

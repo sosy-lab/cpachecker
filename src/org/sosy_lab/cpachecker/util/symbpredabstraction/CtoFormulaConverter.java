@@ -266,7 +266,7 @@ public class CtoFormulaConverter {
     }
     
     SymbolicFormula m = oldFormula.getSymbolicFormula();
-    SymbolicFormula branchFormula = oldFormula.getBranchFormula();
+    SymbolicFormula reachingPathsFormula = oldFormula.getReachingPathsFormula();
     
     String function = (edge.getPredecessor() != null) 
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -310,7 +310,7 @@ public class CtoFormulaConverter {
       Pair<SymbolicFormula, SymbolicFormula> pair
           = makeAndAssume(m, (AssumeEdge)edge, function, ssa);
       f = pair.getFirst();
-      branchFormula = smgr.makeAnd(branchFormula, pair.getSecond());
+      reachingPathsFormula = smgr.makeAnd(reachingPathsFormula, pair.getSecond());
       break;
     }
 
@@ -338,9 +338,9 @@ public class CtoFormulaConverter {
 
     int newLength = oldFormula.getLength() + 1;
     if (ssa.equals(oldssa)) {
-      return new PathFormula(f, oldssa, newLength, branchFormula);
+      return new PathFormula(f, oldssa, newLength, reachingPathsFormula);
     } else {
-      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength, branchFormula);
+      return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa), newLength, reachingPathsFormula);
     }
   }
 
