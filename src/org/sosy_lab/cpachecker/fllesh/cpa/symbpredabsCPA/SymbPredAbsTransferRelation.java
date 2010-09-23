@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -80,9 +77,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   @Option(name="blk.requireThresholdAndLBE")
   private boolean absOnlyIfBoth = false;
   
-  @Option(name="blk.useCache")
-  private boolean useCache = true;
-  
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
 
@@ -104,14 +98,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
-
-  // map from a node to path formula
-  // used to not compute the formula again
-  // the first integer in the key is parent element's node id
-  // the second integer is current element's node id
-  // the third is the sucessor element's node id
-  private final Map<Triple<Integer, Integer, Integer>, PathFormula> pathFormulaMapHash =
-    new HashMap<Triple<Integer,Integer,Integer>, PathFormula>();
 
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
@@ -278,40 +264,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     final long start = System.currentTimeMillis();
     PathFormula pf = null;
 
-    if (!useCache || !absOnFunction || !absOnLoop || absBlockSize > 0) {
-      long startComp = System.currentTimeMillis();
-      // compute new pathFormula with the operation on the edge
-      pf = formulaManager.makeAnd(
-          pathFormula.getSymbolicFormula(),
-          edge, pathFormula.getSsa());
-      pathFormulaComputationTime += System.currentTimeMillis() - startComp;
+    long startComp = System.currentTimeMillis();
+    // compute new pathFormula with the operation on the edge
+    pf = formulaManager.makeAnd(pathFormula.getSymbolicFormula(), edge, pathFormula.getSSAMap());
+    pathFormulaComputationTime += System.currentTimeMillis() - startComp;
 
-    } else {
-      // caching possible because we don't visit edges twice between two abstractions
-      // TODO add condition that loop unrolling is off when this is implemented
-      // TODO or replace caching key by (oldPathFormula, edge), but SSAMap should be immutable for this
-      // TODO move caching to SymbolicFormulaManager?
-
-      // id of element's node
-      final int currentNodeId = edge.getPredecessor().getNodeNumber();
-      // id of sucessor element's node
-      final int successorNodeId = edge.getSuccessor().getNodeNumber();
-
-      final Triple<Integer, Integer, Integer> formulaCacheKey =
-        new Triple<Integer, Integer, Integer>(abstractionNodeId, currentNodeId, successorNodeId);
-      pf = pathFormulaMapHash.get(formulaCacheKey);
-      if (pf == null) {
-        long startComp = System.currentTimeMillis();
-        // compute new pathFormula with the operation on the edge
-        pf = formulaManager.makeAnd(
-            pathFormula.getSymbolicFormula(),
-            edge, pathFormula.getSsa());
-        pathFormulaComputationTime += System.currentTimeMillis() - startComp;
-        pathFormulaMapHash.put(formulaCacheKey, pf);
-      }
-    }
     assert pf != null;
     pathFormulaTime += System.currentTimeMillis() - start;
+    
     return pf;
   }
 

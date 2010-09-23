@@ -23,28 +23,55 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction;
 
-import org.sosy_lab.common.Pair;
-
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
 
-public class PathFormula extends Pair<SymbolicFormula, SSAMap> {
+public class PathFormula {
 
-  public PathFormula(SymbolicFormula pf, SSAMap newssa) {
-    super(pf, newssa);
+  private final SymbolicFormula mPathFormula;
+  private final SSAMap mSSAMap;
+  
+  public PathFormula(SymbolicFormula pPathFormula, SSAMap pSSAMap) {
+    mPathFormula = pPathFormula;
+    mSSAMap = pSSAMap;
   }
 
   public SymbolicFormula getSymbolicFormula() {
-    return getFirst();
+    return mPathFormula;
   }
 
-  public SSAMap getSsa() {
-    return getSecond();
+  public SSAMap getSSAMap() {
+    return mSSAMap;
   }
 
   @Override
   public String toString(){
     return getSymbolicFormula().toString();
+  }
+  
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (getClass().equals(pOther.getClass())) {
+      PathFormula lPathFormula = (PathFormula)pOther;
+      
+      return mPathFormula.equals(lPathFormula.mPathFormula) && mSSAMap.equals(lPathFormula.mSSAMap);
+    }
+    
+    return false;
+  }
+  
+  @Override
+  public int hashCode() {
+    return 31 * mPathFormula.hashCode() + mSSAMap.hashCode() + 321;
   }
 
 }

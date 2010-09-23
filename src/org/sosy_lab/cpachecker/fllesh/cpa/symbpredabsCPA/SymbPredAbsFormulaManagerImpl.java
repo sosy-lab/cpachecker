@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.Cache.FeasibilityCacheKey;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.Cache.TimeStampCache;
@@ -73,6 +72,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -224,7 +224,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
     
     // clone ssa map because we might change it
-    SSAMap ssa = new SSAMap(pathFormula.getSsa());
+    SSAMap ssa = new SSAMap(pathFormula.getSSAMap());
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -432,7 +432,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
     SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
 
-    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSsa());
+    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSSAMap());
 
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
@@ -463,7 +463,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
 
     // build the definition of the predicates, and instantiate them
-    SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSecond());
+    SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSSAMap());
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
@@ -825,7 +825,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     
     // handle first formula separately because we don't need to shift
     PathFormula p = it.next().getInitAbstractionFormula();
-    SSAMap ssa = p.getSsa();
+    SSAMap ssa = p.getSSAMap();
     result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
     
     while (it.hasNext()) {
@@ -838,7 +838,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       
       // shift returns a new ssa map,
       // we need to add those variables that were not used by shift()
-      SSAMap newSsa = p.getSsa();
+      SSAMap newSsa = p.getSSAMap();
       newSsa.update(ssa);
       ssa = newSsa;
     }
