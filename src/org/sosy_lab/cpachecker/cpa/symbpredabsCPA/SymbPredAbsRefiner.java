@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,6 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
@@ -46,7 +44,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -73,6 +70,10 @@ import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
+
+  private static final String IMPRECISE_ERROR_PATH_WARNING = "The produced error path is imprecise!";
+
+  private static Pattern PREDICATE_NAME_PATTERN = Pattern.compile("^.*__assume__(?=\\d+@\\d+$)");
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -249,30 +250,35 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
-  
-  private static Pattern PRED_NAME = Pattern.compile("^.*__assume__(?=\\d+@\\d+$)");
-  
+
   @Override
   protected Path getTargetPath(Path pPath) {
-    Model m = mCounterexampleTraceInfo.getCounterexample();
-    if (!(m instanceof MathsatModel)) {
-      logger.log(Level.WARNING, "Error path analysis is currently only supported for Mathsat. Error path output may be incorrect.");
-      return null;
+    Model model = mCounterexampleTraceInfo.getCounterexample();
+    if (!(model instanceof MathsatModel)) {
+      logger.log(Level.WARNING, "Target path analysis is currently only supported for Mathsat!");
+      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+      return pPath;
     }
-    MathsatModel model = (MathsatModel)m; 
     
+    NavigableMap<Integer, Map<Integer, Boolean>> preds =
+                                getPredicateValuesFromModel((MathsatModel)model);
+    
+    return createPathFromPredicateValues(pPath, preds);
+  }
+
+  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(MathsatModel model) {
+
     NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
     for (MathsatAssignable a : model.getAssignables()) {
-      if (a instanceof MathsatVariable
-          && a.getType() == MathsatType.Boolean) {
+      if (a instanceof MathsatVariable && a.getType() == MathsatType.Boolean) {
         
-        Matcher matcher = PRED_NAME.matcher(a.getName());
-        String name = matcher.replaceFirst("");
+        String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
         if (!name.equals(a.getName())) {
           // pattern matched, so it's a variable with __assume__ in it
           
           String[] parts = name.split("@");
           assert parts.length == 2;
+          // no NumberFormatException because of RegExp match earlier
           Integer edgeId = Integer.parseInt(parts[0]);
           Integer idx = Integer.parseInt(parts[1]);          
           
@@ -287,87 +293,115 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         }             
       }
     }
-    
+    return preds;
+  }
+
+  private Path createPathFromPredicateValues(Path pPath,
+                          NavigableMap<Integer, Map<Integer, Boolean>> preds) {
     Path result = new Path();
     ARTElement currentElement = pPath.getFirst().getFirst();
-    Integer currentIdx = 0;
+    Integer currentIdx = -1;
     while (!currentElement.isTarget()) {
       Set<ARTElement> children = currentElement.getChildren();
-      assert !children.isEmpty() : "Path ended to early";
       
-      if (children.size() == 1) {
-        // only one successor, easy
-        ARTElement child = Iterables.getOnlyElement(children);
-        CFAEdge edge = currentElement.getEdgeToChild(child);
-        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
-        currentElement = child;
-        continue;
-      }
+      ARTElement child;
+      CFAEdge edge;
+      switch (children.size()) {
       
-      Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
-      for (ARTElement child : children) {
-        outgoingEdges.add(currentElement.getEdgeToChild(child));
-      }
-      if (outgoingEdges.size() == 1) {
-        // several successors, but only one edge
-        // just take any successor and hope this will work
-        ARTElement child = Iterables.get(children, 0);
-        CFAEdge edge = Iterables.getOnlyElement(outgoingEdges);
-        result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
-        currentElement = child;
-        continue;
-      }
-      
-      // several outgoing edges
-      Integer edgeId = null;
-      for (CFAEdge currentEdge : outgoingEdges) {
-        assert currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge : "Several outgoing edges but no AssumeEdge";
-        Integer currentEdgeId = ((AssumeEdge)currentEdge).getAssumeEdgeId();
+      case 0:
+        logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
+        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+        return pPath;
         
-        assert edgeId == null || edgeId.equals(currentEdgeId);
-        edgeId = currentEdgeId;
-      }
-      assert edgeId != null;
-      
-      // search first idx where we have a value for the edgeId
-      Boolean predValue;
-      do {
-        Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
-        assert nextEntry != null : "Set of predicates ended before path ended";
+      case 1: // only one successor, easy
+        child = Iterables.getOnlyElement(children);
+        edge = currentElement.getEdgeToChild(child);
+        break;
         
-        currentIdx = nextEntry.getKey();
-        Map<Integer, Boolean> currentPreds = nextEntry.getValue();
-        predValue = currentPreds.get(edgeId);
-      } while (predValue == null);
-      
-      boolean value = predValue;
-      
-      CFAEdge edge = null;
-      for (CFAEdge currentEdge : outgoingEdges) {
-        if (value == ((AssumeEdge)currentEdge).getTruthAssumption()) {
-          edge = currentEdge;
-          break;
+      case 2: // branch
+        // first, find out the edges and the children
+        Integer edgeId = null;
+        CFAEdge trueEdge = null;
+        CFAEdge falseEdge = null;
+        ARTElement trueChild = null;
+        ARTElement falseChild = null;
+
+        for (ARTElement currentChild : children) {
+          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+          if (!(currentEdge instanceof AssumeEdge)) {
+            logger.log(Level.WARNING, "ART branches where there is no AssumeEdge!");
+            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+            return pPath;
+          }
+
+          AssumeEdge assumeEdge = ((AssumeEdge)currentEdge);
+          Integer currentEdgeId = assumeEdge.getAssumeEdgeId();
+          if (edgeId == null) {
+            edgeId = currentEdgeId;
+          } else if (!edgeId.equals(currentEdgeId)) {
+            logger.log(Level.WARNING, "ART branches with different AssumeEdges!");
+            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+            return pPath;
+          }
+          
+          if (assumeEdge.getTruthAssumption()) {
+            trueEdge = assumeEdge;
+            trueChild = currentChild;
+          } else {
+            falseEdge = assumeEdge;
+            falseChild = currentChild;
+          }
         }
-      }
-      assert edge != null : "No outgoing edge is possible";
-      
-      CFANode childLocation = edge.getSuccessor();
-      
-      ARTElement child = null;
-      for (ARTElement currentChild : children) {
-        if (childLocation.equals(currentChild.retrieveLocationElement().getLocationNode())) {
-          child = currentChild;
-          break;
+        assert edgeId != null;
+        if (trueEdge == null || falseEdge == null) {
+          logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
+          logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+          return pPath;
         }
+        assert trueChild != null;
+        assert falseChild != null;
+        
+        // search first idx where we have a predicate for the edgeId
+        Boolean predValue;
+        do {
+          Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
+          if (nextEntry == null) {
+            logger.log(Level.WARNING, "ART branches without direction information from solver!");
+            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+            return pPath;
+          }
+          
+          currentIdx = nextEntry.getKey();
+          predValue = nextEntry.getValue().get(edgeId);
+        } while (predValue == null);
+        
+        // now select the right edge
+        if (predValue) {
+          edge = trueEdge;
+          child = trueChild;
+        } else {
+          edge = falseEdge;
+          child = falseChild;
+        }
+        break;
+        
+      default:
+        logger.log(Level.WARNING, "ART splits with more than two branches!");
+        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+        return pPath;
       }
-      assert child != null : "Set of children and set of edges don't match";
-      
+
       result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
       currentElement = child;
     }
     
+    // need to add another pair with target element and outgoing edge
     Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
-    assert currentElement == lastPair.getFirst() : "Target path did not lead to target element";
+    if (currentElement != lastPair.getFirst()) {
+      logger.log(Level.WARNING, "ART target path reached the wrong target element!");
+      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+      return pPath;
+    }
     result.add(lastPair);
     
     return result;
