@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case
@@ -102,7 +101,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final LogManager logger;
 
   // formula managers
-  private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
   // map from a node to path formula
@@ -117,7 +115,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
-    symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     formulaManager = pCpa.getFormulaManager();
 }
 
@@ -240,9 +237,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(),
-                          pathFormula.getSsa(), 0, pathFormula.getReachingPathsFormula(),
-                          pathFormula.getBranchingCounter());
+    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 
     numAbstractions++;
 
@@ -399,8 +394,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set abstraction to true (we don't know better)
         Abstraction abs = formulaManager.makeTrueAbstraction(pathFormula.getSymbolicFormula());
 
-        PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(),
-            pathFormula.getSsa(), 0, pathFormula.getReachingPathsFormula(), pathFormula.getBranchingCounter());
+        PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
+
         return Collections.singleton(new SymbPredAbsAbstractElement(true,
             newPathFormula, abs));
       }

@@ -72,6 +72,12 @@ public interface FormulaManager {
   public PathFormula makeEmptyPathFormula();
   
   /**
+   * Creates a new empty path formula, but copies SSAMap, reachingPathsFormula
+   * and branchingCounter from oldFormula.
+   */
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula);
+  
+  /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
    */

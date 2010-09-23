@@ -278,6 +278,12 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue(), 0);
   }
   
+  @Override
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
+    return new PathFormula(smgr.makeTrue(), oldFormula.getSsa(), 0,
+        oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
+  }
+  
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
    * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},

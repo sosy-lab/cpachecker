@@ -43,7 +43,7 @@ public class PathFormula {
     this(pf, ssa, 0, null, 0);
   }
   
-  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength,
+  protected PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength,
         SymbolicFormula pReachingPathsFormula, int pBranchingCounter) {
     this.formula = pf;
     this.ssa = ssa;    
@@ -68,7 +68,7 @@ public class PathFormula {
     return reachingPathsFormula;
   }
   
-  public int getBranchingCounter() {
+  protected int getBranchingCounter() {
     return branchingCounter;
   }
   
