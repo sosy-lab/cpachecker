@@ -81,11 +81,13 @@ public class PathFormula {
   public boolean equals(Object other) {
     return (other instanceof PathFormula)
       && formula.equals(((PathFormula)other).formula)
-      && ssa.equals(((PathFormula)other).ssa);
+      && ssa.equals(((PathFormula)other).ssa)
+      && reachingPathsFormula.equals(((PathFormula)other).reachingPathsFormula)
+      && branchingCounter == ((PathFormula)other).branchingCounter;
   }
   
   @Override
   public int hashCode() {
-    return formula.hashCode() * 17 + ssa.hashCode();
+    return (formula.hashCode() * 17 + ssa.hashCode()) * 17 + branchingCounter;
   }
 }
