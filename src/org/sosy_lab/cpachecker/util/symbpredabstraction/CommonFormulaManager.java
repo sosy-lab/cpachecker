@@ -263,11 +263,25 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       return result;
   }
 
+  @Override
+  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula) {
+    if (previousBlockFormula == null) {
+      previousBlockFormula = smgr.makeTrue();
+    }
+    return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
+  }
+  
   // the rest of this class is related only to symbolic formulas
   
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue(), 0);
+  }
+  
+  @Override
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
+    return new PathFormula(smgr.makeTrue(), oldFormula.getSsa(), 0,
+        oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
   
   /**
@@ -296,7 +310,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa));
+    int newLength = Math.max(pF1.getLength(), pF2.getLength());
+    SymbolicFormula newReachingPathsFormula
+        = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
+    int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
+    
+    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength,
+                           newReachingPathsFormula, newBranchingCounter);
   }
 
   /**

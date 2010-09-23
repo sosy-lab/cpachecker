@@ -103,7 +103,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
       if (e1.isAbstractionNode() && e2.isAbstractionNode()) {
         // if e1's predicate abstraction entails e2's pred. abst.
-        return mAbstractFormulaManager.entails(e1.getAbstraction(), e2.getAbstraction());
+        return mAbstractFormulaManager.entails(e1.getAbstraction().asAbstractFormula(), e2.getAbstraction().asAbstractFormula());
 
       } else if (e2.isAbstractionNode()) {
         if (symbolicCoverageCheck) {

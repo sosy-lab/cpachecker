@@ -23,28 +23,71 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import org.sosy_lab.common.Pair;
-
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
+public class PathFormula {
 
-public class PathFormula extends Pair<SymbolicFormula, SSAMap> {
-
-  public PathFormula(SymbolicFormula pf, SSAMap newssa) {
-    super(pf, newssa);
+  private final SymbolicFormula formula;
+  private final SSAMap ssa;
+  private final int length;
+  
+  // this formula contains information about the branches we took so we can
+  // single out feasible paths
+  private final SymbolicFormula reachingPathsFormula;
+  
+  // number of branching locations we saw on the paths (used for reachingPathsFormula)
+  private final int branchingCounter; 
+  
+  @Deprecated
+  public PathFormula(SymbolicFormula pf, SSAMap ssa) {
+    this(pf, ssa, 0, null, 0);
+  }
+  
+  protected PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength,
+        SymbolicFormula pReachingPathsFormula, int pBranchingCounter) {
+    this.formula = pf;
+    this.ssa = ssa;    
+    this.length = pLength;
+    this.reachingPathsFormula = pReachingPathsFormula;
+    this.branchingCounter = pBranchingCounter;
   }
 
   public SymbolicFormula getSymbolicFormula() {
-    return getFirst();
+    return formula;
   }
 
   public SSAMap getSsa() {
-    return getSecond();
+    return ssa;
+  }
+  
+  public int getLength() {
+    return length;
   }
 
+  public SymbolicFormula getReachingPathsFormula() {
+    return reachingPathsFormula;
+  }
+  
+  protected int getBranchingCounter() {
+    return branchingCounter;
+  }
+  
   @Override
   public String toString(){
     return getSymbolicFormula().toString();
   }
 
+  @Override
+  public boolean equals(Object other) {
+    return (other instanceof PathFormula)
+      && formula.equals(((PathFormula)other).formula)
+      && ssa.equals(((PathFormula)other).ssa)
+      && reachingPathsFormula.equals(((PathFormula)other).reachingPathsFormula)
+      && branchingCounter == ((PathFormula)other).branchingCounter;
+  }
+  
+  @Override
+  public int hashCode() {
+    return (formula.hashCode() * 17 + ssa.hashCode()) * 17 + branchingCounter;
+  }
 }

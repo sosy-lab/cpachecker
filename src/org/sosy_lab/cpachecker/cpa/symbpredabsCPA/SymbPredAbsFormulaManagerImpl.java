@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,12 +51,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
@@ -132,9 +131,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="shortestCexTraceZigZag")
   private boolean useZigZag = false;
 
-  @Option
-  private boolean inlineFunctions = false;
-
   @Option(name="refinement.addWellScopedPredicates")
   private boolean wellScopedPredicates = false;
 
@@ -176,10 +172,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     firstItpProver = pItpProver;
     secondItpProver = pAltItpProver;
 
-    if (inlineFunctions && wellScopedPredicates) {
-      logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
-      wellScopedPredicates = false;
+    if (wellScopedPredicates) {
+      throw new InvalidConfigurationException("wellScopePredicates are currently disabled");
     }
+//    if (inlineFunctions && wellScopedPredicates) {
+//      logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
+//      wellScopedPredicates = false;
+//    }
 
     if (useCache) {
       if (cartesianAbstraction) {
@@ -203,28 +202,38 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * Abstract post operation.
    */
   @Override
-  public AbstractFormula buildAbstraction(
-      AbstractFormula abs, PathFormula pathFormula,
+  public Abstraction buildAbstraction(
+      Abstraction abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
+
     stats.numCallsAbstraction++;
+
+    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    logger.log(Level.ALL, "Path formula:", pathFormula);
+    logger.log(Level.ALL, "Predicates:", predicates);
+    
+    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
+    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    
+    AbstractFormula abs;
     if (cartesianAbstraction) {
-      return buildCartesianAbstraction(abs, pathFormula, predicates);
+      abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
     } else {
-      return buildBooleanAbstraction(abs, pathFormula, predicates);
+      abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
+    
+    SymbolicFormula symbolicAbs = smgr.instantiate(toConcrete(abs),pathFormula.getSsa()); 
+    return new Abstraction(abs, symbolicAbs, pathFormula.getSymbolicFormula());
   }
 
-  private AbstractFormula buildCartesianAbstraction(
-      AbstractFormula abs,
-      PathFormula pathFormula,
+  private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<Predicate> predicates) {
 
     long startTime = System.currentTimeMillis();
-
-    final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
     
     // clone ssa map because we might change it
-    SSAMap ssa = new SSAMap(pathFormula.getSsa());
+    ssa = new SSAMap(ssa);
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -398,20 +407,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
   }
 
-  private SymbolicFormula buildSymbolicFormula(AbstractFormula abstractionFormula,
-      SymbolicFormula symbFormula) {
-
-    // build the concrete representation of the abstract formula of e
-    // this is an abstract formula - specifically it is a bddabstractformula
-    // which is basically an integer which represents it
-    // create the concrete form of the abstract formula
-    // (abstract formula is the bdd representation)
-    SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
-
-    // the indices of all variables in absFormula are now 1
-    // this fits exactly to the indices of symbFormula
-    
-    symbFormula = smgr.replaceAssignments(symbFormula);
+  private SymbolicFormula buildSymbolicFormula(SymbolicFormula symbFormula) {
 
     if (useBitwiseAxioms) {
       SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
@@ -422,17 +418,19 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       }
     }
     
-    return smgr.makeAnd(absFormula, symbFormula);
+    return symbFormula;
   }
 
   /**
    * Checks if (a1 & p1) => a2
    */
   @Override
-  public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
-    SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
+  public boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2) {
+    SymbolicFormula absFormula = a1.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(p1.getSymbolicFormula()); 
+    SymbolicFormula a = smgr.makeAnd(absFormula, symbFormula);
 
-    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSsa());
+    SymbolicFormula b = smgr.instantiate(a2.asSymbolicFormula(), p1.getSsa());
 
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
@@ -443,13 +441,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     return ret;
   }
 
-  private AbstractFormula buildBooleanAbstraction(
-      AbstractFormula abstractionFormula, PathFormula pathFormula,
+  private AbstractFormula buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<Predicate> predicates) {
-
-    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
-    logger.log(Level.ALL, "Path formula:", pathFormula);
-    logger.log(Level.ALL, "Predicates:", predicates);
 
     long startTime = System.currentTimeMillis();
 
@@ -460,13 +453,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
 
-    SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
-
     // build the definition of the predicates, and instantiate them
-    SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSecond());
+    SymbolicFormula predDef = buildPredicateFormula(predicates, ssa);
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
+    SymbolicFormula fm = smgr.makeAnd(f, predDef);
     
     // collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
@@ -519,7 +510,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // TODO dump hard abst
       if (solveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, predVars);
+        smgr.dumpAbstraction(smgr.makeTrue(), f, predDef, predVars);
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
@@ -541,13 +532,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   @Override
-  public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
-
-    SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
-    logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
+  public boolean unsat(Abstraction abstractionFormula, PathFormula pathFormula) {
+    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
+    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
+    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     thmProver.init();
-    boolean result = thmProver.isUnsat(symbFormula);
+    boolean result = thmProver.isUnsat(f);
     thmProver.reset();
 
     return result;
@@ -685,7 +677,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         }
 
         if (itp.isTrue() || itp.isFalse()) {
-          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
+          logger.log(Level.ALL, "For step", i, "got no interpolant.");
 
         } else {
           foundPredicates = true;
@@ -695,7 +687,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           Collection<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
-          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
+          logger.log(Level.ALL, "For step", i, "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
@@ -712,18 +704,20 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           
         }
 
+        // TODO wellScopedPredicates have been disabled
+        
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
 
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
-        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
-          entryPoints.push(i);
-        }
-        // TODO check we are returning from a function
-        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-          entryPoints.pop();
-        }
+//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+//          entryPoints.push(i);
+//        }
+          // TODO check we are returning from a function
+//        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+//          entryPoints.pop();
+//        }
       }
 
       if (!foundPredicates) {
@@ -732,6 +726,18 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     } else {
       // this is a real bug, notify the user
+      
+      // get the reachingPathsFormula and add it to the solver environment
+      // this formula contains predicates for all branches we took
+      // this way we can figure out which branches make a feasible path
+      SymbPredAbsAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
+      pItpProver.addFormula(lastElement.getPathFormula().getReachingPathsFormula());
+      
+      // need to ask solver for satisfiability again,
+      // otherwise model doesn't contain new predicates
+      boolean stillSatisfiable = !pItpProver.isUnsat();
+      assert stillSatisfiable;
+      
       info = new CounterexampleTraceInfo(pItpProver.getModel());
 
       // TODO - reconstruct counterexample
@@ -820,27 +826,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // n formulas, one per interpolation group
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
-    Iterator<SymbPredAbsAbstractElement> it = abstractTrace.iterator();
-    assert it.hasNext();
-    
-    // handle first formula separately because we don't need to shift
-    PathFormula p = it.next().getInitAbstractionFormula();
-    SSAMap ssa = p.getSsa();
-    result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
-    
-    while (it.hasNext()) {
-      p = it.next().getInitAbstractionFormula();
-
-      // don't need to call replaceAssignments because shift does the same trick
-      p = smgr.shift(p.getSymbolicFormula(), ssa);
-      
-      result.add(p.getSymbolicFormula());
-      
-      // shift returns a new ssa map,
-      // we need to add those variables that were not used by shift()
-      SSAMap newSsa = p.getSsa();
-      newSsa.update(ssa);
-      ssa = newSsa;
+    for (SymbPredAbsAbstractElement e : abstractTrace) {
+      result.add(e.getAbstraction().getBlockFormula());
     }
     return result;
   }

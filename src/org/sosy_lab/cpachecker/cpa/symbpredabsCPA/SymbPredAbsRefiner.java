@@ -25,13 +25,17 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -41,6 +45,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
@@ -49,14 +54,26 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatBooleanValue;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatType;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatVariable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
+
+  private static final String IMPRECISE_ERROR_PATH_WARNING = "The produced error path is imprecise!";
+
+  private static Pattern PREDICATE_NAME_PATTERN = Pattern.compile("^.*__assume__(?=\\d+@\\d+$)");
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -89,20 +106,22 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
 
-    // create path with all abstraction location elements (excluding the initial
-    // element, which is not in pPath)
+    // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    // (which is twice in pPath)
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
-    SymbPredAbsAbstractElement lastElement = null;
-    for (Pair<ARTElement,CFAEdge> artPair : pPath) {
+    List<ARTElement> artPath = new ArrayList<ARTElement>();
+    
+    Iterator<Pair<ARTElement,CFAEdge>> it = pPath.iterator();
+    it.next(); // skip initial element
+    while (it.hasNext()) {
+      ARTElement ae = it.next().getFirst();
       SymbPredAbsAbstractElement symbElement =
-        artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+        ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-      if (symbElement.isAbstractionNode() && symbElement != lastElement) {
+      if (symbElement.isAbstractionNode()) {
         path.add(symbElement);
+        artPath.add(ae);
       }
-      lastElement = symbElement;
     }
 
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
@@ -126,7 +145,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
-              performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
+              performRefinement(oldSymbPredAbsPrecision, path, artPath, info);
 
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
@@ -146,32 +165,47 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
   }
 
+  /**
+   * pPath and pArtPath need to fit together such that
+   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(SymbPredAbsAbstractElement) 
+   */
   private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
-      ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
+      ArrayList<SymbPredAbsAbstractElement> pPath, List<ARTElement> pArtPath,
+      CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<Predicate> globalPredicates = oldPrecision.getGlobalPredicates();
-    SymbPredAbsAbstractElement symbPredRootElement = null;
+    
     SymbPredAbsAbstractElement firstInterpolationElement = null;
-
+    ARTElement firstInterpolationARTElement = null;
+    boolean newPredicatesFound = false;
+    
     ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
-    for (SymbPredAbsAbstractElement e : pPath) {
+    // iterate synchronously through pArtPath and pPath
+    int i = -1;
+    for (ARTElement ae : pArtPath) {
+      i++;
+      SymbPredAbsAbstractElement e = pPath.get(i);
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
-      CFANode loc = e.getAbstractionLocation();
+      CFANode loc = ae.retrieveLocationElement().getLocationNode();
+      
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
+        firstInterpolationARTElement = ae;
       }
-      if ((symbPredRootElement == null) && !oldPredicateMap.get(loc).containsAll(newpreds)) {
+      if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(newpreds)) {
         // new predicates for this location
-        symbPredRootElement = e;
+        newPredicatesFound = true;
       }
+
       pmapBuilder.putAll(loc, newpreds);
       pmapBuilder.putAll(loc, globalPredicates);
     }
-    assert(firstInterpolationElement != null);
+    assert firstInterpolationElement != null;
+    assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
     SymbPredAbsPrecision newPrecision;
@@ -183,59 +217,194 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
-    // symbPredRootElement might be null here, but firstInterpolationElement
-    // might be not. TODO investigate why this happens
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationElement or set it to highest location in the ART
     // where the same CFANode appears.
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
-    // best to use strategy one iff symbPredRootElement is not null.
+    // best to use strategy one iff newPredicatesFound.
 
-    ARTElement root;
-    if (symbPredRootElement != null) {
+    ARTElement root = null;
+    if (newPredicatesFound) {
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 1: remove everything below", firstInterpolationElement, "from ART.");
 
-      root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
+      root = firstInterpolationARTElement;
 
     } else {
-      CFANode loc = firstInterpolationElement.getAbstractionLocation();
+      CFANode loc = firstInterpolationARTElement.retrieveLocationElement().getLocationNode();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", loc, "from ART.");
 
-      root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
+      // find first element in path with location == loc
+      for (ARTElement e : pArtPath) {
+        if (e.retrieveLocationElement().getLocationNode().equals(loc)) {
+          root = e;
+          break;
+        }
+      }
+      if (root == null) {
+        throw new CPAException("Inconsistent ART, did not find element for " + loc);
+      }
     }
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
 
-  private ARTElement findARTElementof(SymbPredAbsAbstractElement pSymbPredRootElement,
-      Pair<ARTElement, CFAEdge> pLastElement) throws CPAException {
-
-    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
-    Set<ARTElement> handled = new HashSet<ARTElement>();
-
-    // get the error element
-    workList.add(pLastElement.getFirst());
-
-    // go backwards
-    while (!workList.isEmpty()) {
-      ARTElement currentElement = workList.removeFirst();
-      if (!handled.add(currentElement)) {
-        // currentElement was already handled
-        continue;
-      }
-
-      SymbPredAbsAbstractElement currentSymbPredElement =
-                currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-      if (currentSymbPredElement == pSymbPredRootElement){
-        return currentElement;
-      }
-      workList.addAll(currentElement.getParents());
+  @Override
+  protected Path getTargetPath(Path pPath) {
+    Model model = mCounterexampleTraceInfo.getCounterexample();
+    if (!(model instanceof MathsatModel)) {
+      logger.log(Level.WARNING, "Target path analysis is currently only supported for Mathsat!");
+      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+      return pPath;
     }
+    
+    NavigableMap<Integer, Map<Integer, Boolean>> preds =
+                                getPredicateValuesFromModel((MathsatModel)model);
+    
+    return createPathFromPredicateValues(pPath, preds);
+  }
 
-    throw new CPAException("Inconsistent ART");
+  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(MathsatModel model) {
+
+    NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
+    for (MathsatAssignable a : model.getAssignables()) {
+      if (a instanceof MathsatVariable && a.getType() == MathsatType.Boolean) {
+        
+        String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
+        if (!name.equals(a.getName())) {
+          // pattern matched, so it's a variable with __assume__ in it
+          
+          String[] parts = name.split("@");
+          assert parts.length == 2;
+          // no NumberFormatException because of RegExp match earlier
+          Integer edgeId = Integer.parseInt(parts[0]);
+          Integer idx = Integer.parseInt(parts[1]);          
+          
+          Map<Integer, Boolean> p = preds.get(idx);
+          if (p == null) {
+            p = new HashMap<Integer, Boolean>(2);
+            preds.put(idx, p);
+          }
+          
+          Boolean value = ((MathsatBooleanValue)model.getValue(a)).isTrue();
+          p.put(edgeId, value);
+        }             
+      }
+    }
+    return preds;
+  }
+
+  private Path createPathFromPredicateValues(Path pPath,
+                          NavigableMap<Integer, Map<Integer, Boolean>> preds) {
+    Path result = new Path();
+    ARTElement currentElement = pPath.getFirst().getFirst();
+    Integer currentIdx = -1;
+    while (!currentElement.isTarget()) {
+      Set<ARTElement> children = currentElement.getChildren();
+      
+      ARTElement child;
+      CFAEdge edge;
+      switch (children.size()) {
+      
+      case 0:
+        logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
+        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+        return pPath;
+        
+      case 1: // only one successor, easy
+        child = Iterables.getOnlyElement(children);
+        edge = currentElement.getEdgeToChild(child);
+        break;
+        
+      case 2: // branch
+        // first, find out the edges and the children
+        Integer edgeId = null;
+        CFAEdge trueEdge = null;
+        CFAEdge falseEdge = null;
+        ARTElement trueChild = null;
+        ARTElement falseChild = null;
+
+        for (ARTElement currentChild : children) {
+          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+          if (!(currentEdge instanceof AssumeEdge)) {
+            logger.log(Level.WARNING, "ART branches where there is no AssumeEdge!");
+            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+            return pPath;
+          }
+
+          AssumeEdge assumeEdge = ((AssumeEdge)currentEdge);
+          Integer currentEdgeId = assumeEdge.getAssumeEdgeId();
+          if (edgeId == null) {
+            edgeId = currentEdgeId;
+          } else if (!edgeId.equals(currentEdgeId)) {
+            logger.log(Level.WARNING, "ART branches with different AssumeEdges!");
+            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+            return pPath;
+          }
+          
+          if (assumeEdge.getTruthAssumption()) {
+            trueEdge = assumeEdge;
+            trueChild = currentChild;
+          } else {
+            falseEdge = assumeEdge;
+            falseChild = currentChild;
+          }
+        }
+        assert edgeId != null;
+        if (trueEdge == null || falseEdge == null) {
+          logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
+          logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+          return pPath;
+        }
+        assert trueChild != null;
+        assert falseChild != null;
+        
+        // search first idx where we have a predicate for the edgeId
+        Boolean predValue;
+        do {
+          Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
+          if (nextEntry == null) {
+            logger.log(Level.WARNING, "ART branches without direction information from solver!");
+            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+            return pPath;
+          }
+          
+          currentIdx = nextEntry.getKey();
+          predValue = nextEntry.getValue().get(edgeId);
+        } while (predValue == null);
+        
+        // now select the right edge
+        if (predValue) {
+          edge = trueEdge;
+          child = trueChild;
+        } else {
+          edge = falseEdge;
+          child = falseChild;
+        }
+        break;
+        
+      default:
+        logger.log(Level.WARNING, "ART splits with more than two branches!");
+        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+        return pPath;
+      }
+
+      result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+      currentElement = child;
+    }
+    
+    // need to add another pair with target element and outgoing edge
+    Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
+    if (currentElement != lastPair.getFirst()) {
+      logger.log(Level.WARNING, "ART target path reached the wrong target element!");
+      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+      return pPath;
+    }
+    result.add(lastPair);
+    
+    return result;
   }
   
   public CounterexampleTraceInfo getCounterexampleTraceInfo() {

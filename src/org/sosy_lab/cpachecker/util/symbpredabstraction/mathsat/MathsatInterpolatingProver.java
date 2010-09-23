@@ -36,8 +36,6 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     private long env;
     
     private final boolean useSharedEnv;
-    
-    private MathsatModel mModel = null;
 
     public MathsatInterpolatingProver(MathsatSymbolicFormulaManager pMgr, boolean shared) {
         mgr = pMgr;
@@ -76,13 +74,6 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         int res = mathsat.api.msat_solve(env);
         assert(res != mathsat.api.MSAT_UNKNOWN);
         
-        if (res == mathsat.api.MSAT_SAT) {
-          mModel = new MathsatModel(env);
-        }
-        else {
-          mModel = null;
-        }
-        
         return res == mathsat.api.MSAT_UNSAT;
     }
 
@@ -113,7 +104,9 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
     @Override
     public MathsatModel getModel() {
-      return mModel;
+      Preconditions.checkState(env != 0);
+      
+      return new MathsatModel(env);
     }
     
 }

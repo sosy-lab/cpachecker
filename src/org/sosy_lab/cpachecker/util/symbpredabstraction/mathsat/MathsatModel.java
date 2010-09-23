@@ -5,6 +5,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ImmutableMap;
 
 public class MathsatModel implements Model {
@@ -461,9 +463,11 @@ public class MathsatModel implements Model {
     return mModel.get(pAssignable);
   }
   
+  private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
+  
   @Override
   public String toString() {
-    return mModel.toString();
+    return joiner.join(mModel);
   }
   
   @Override

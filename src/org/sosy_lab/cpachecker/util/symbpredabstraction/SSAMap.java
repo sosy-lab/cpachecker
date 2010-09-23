@@ -26,22 +26,21 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
-import com.google.common.collect.Lists;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  *
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable
+ * 
+ * TODO: think about memory efficient copying
  */
 public class SSAMap {
 
@@ -60,11 +59,6 @@ public class SSAMap {
     public void setIndex(String pVariable, int pIdx) {
       throw new UnsupportedOperationException();
     }
-    
-    @Override
-    public void update(SSAMap pOther) {
-      throw new UnsupportedOperationException();
-    }
   }
   
   public static SSAMap unmodifiableSSAMap(SSAMap ssa) {
@@ -80,57 +74,23 @@ public class SSAMap {
   public static SSAMap emptySSAMap() {
     return EMPTY_SSA_MAP;
   }
-  
-  private static class FuncKey {
-    private final String name;
-    private final SymbolicFormulaList args;
-
-    public FuncKey(String n, SymbolicFormulaList a) {
-        name = n;
-        args = a;
-    }
-
-    public String getName() { return name; }
-    public SymbolicFormulaList getArgs() { return args; }
-
-    @Override
-    public int hashCode() {
-        return 31 * name.hashCode() + args.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      } else if (o instanceof FuncKey) {
-          FuncKey f = (FuncKey)o;
-          return name.equals(f.name) && args.equals(f.args);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return name + "(" + args + ")";
-    }
-  }
 
   private final Map<String, Integer> vars;
-  private final Map<FuncKey, Integer> funcs;
+  private final Map<Pair<String, SymbolicFormulaList>, Integer> funcs;
 
   public SSAMap() {
-    vars = new HashMap<String, Integer>();
-    funcs = new HashMap<FuncKey, Integer>();
+    vars = new HashMap<String, Integer>(0);
+    funcs = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(0);
   }
   
   public SSAMap(SSAMap old) {
-    this();
+    vars = new HashMap<String, Integer>(old.vars.size() + 1);
+    funcs = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(old.funcs.size() + 1);
     vars.putAll(old.vars);
     funcs.putAll(old.funcs);
   }
   
-  private SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
+  private SSAMap(Map<String, Integer> vars, Map<Pair<String, SymbolicFormulaList>, Integer> funcs) {
     this.vars = vars;
     this.funcs = funcs;
   }
@@ -153,7 +113,7 @@ public class SSAMap {
   }
 
   public int getIndex(String name, SymbolicFormulaList args) {
-    Integer i = funcs.get(new FuncKey(name, args));
+    Integer i = funcs.get(new Pair<String, SymbolicFormulaList>(name, args));
     if (i != null) {
       return i;
     } else {
@@ -163,7 +123,7 @@ public class SSAMap {
   }
 
   public void setIndex(String name, SymbolicFormulaList args, int idx) {
-    funcs.put(new FuncKey(name, args), idx);
+    funcs.put(new Pair<String, SymbolicFormulaList>(name, args), idx);
   }
 
   public Collection<String> allVariables() {
@@ -171,12 +131,7 @@ public class SSAMap {
   }
 
   public Collection<Pair<String, SymbolicFormulaList>> allFunctions() {
-    List<Pair<String, SymbolicFormulaList>> ret = Lists.newArrayList();
-
-    for (FuncKey k : funcs.keySet()) {
-      ret.add(new Pair<String, SymbolicFormulaList>(k.getName(), k.getArgs()));
-    }
-    return ret;
+    return Collections.unmodifiableSet(funcs.keySet());
   }
 
   private static final MapJoiner joiner = Joiner.on(" ").withKeyValueSeparator("@");
@@ -185,21 +140,21 @@ public class SSAMap {
   public String toString() {
     return joiner.join(vars) + " " + joiner.join(funcs);
   }
+  
+  @Override
+  public int hashCode() {
+    return (31 + funcs.hashCode()) * 31 + vars.hashCode();
+  }
 
-  /**
-   * updates this map with the contents of other. That is, adds to this map
-   * all the variables present in other but not in this
-   */
-  public void update(SSAMap other) {
-    for (Entry<String, Integer> k : other.vars.entrySet()) {
-      if (!vars.containsKey(k.getKey())) {
-        vars.put(k.getKey(), k.getValue());
-      }
-    }
-    for (Entry<FuncKey, Integer> k : other.funcs.entrySet()) {
-      if (!funcs.containsKey(k.getKey())) {
-        funcs.put(k.getKey(), k.getValue());
-      }
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    } else if (!(obj instanceof SSAMap)) {
+      return false;
+    } else {
+      SSAMap other = (SSAMap)obj;
+      return vars.equals(other.vars) && funcs.equals(other.funcs);
     }
   }
 }
