@@ -23,73 +23,90 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.HashMap;
 import java.util.Map;
 
-public class InterpreterElement implements InterpreterDomainElement {
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+
+public class InterpreterElement implements AbstractElement {
 
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> mConstantsMap;
 
+  // element from the previous context
+  // used for return edges
   private final InterpreterElement mPreviousElement;
   
+  // TODO make final
+  private int mInputIndex;
+  
+  @Option
+  private String noAutoInitPrefix = "__BLAST_NONDET";
+
   public InterpreterElement() {
     mConstantsMap = new HashMap<String, Long>();
     mPreviousElement = null;
+    mInputIndex = 0;
   }
 
-  /**
-   * Just for testing.
-   */
-  public InterpreterElement(Map<String, Long> pConstantsMap) {
-    this(checkNotNull(pConstantsMap), null);
+  public InterpreterElement(InterpreterElement previousElement, int lInputIndex) {
+    this(new HashMap<String, Long>(), previousElement, lInputIndex);
   }
 
-  /**
-   * Copy constructor.
-   */
-  public InterpreterElement(InterpreterElement pElement) {
-    assert(pElement != null);
-    assert(pElement.mConstantsMap != null);
 
-    this.mConstantsMap = new HashMap<String, Long>(pElement.mConstantsMap);
-    this.mPreviousElement = pElement.mPreviousElement;
-  }
-
-  /**
-   * Factory method because there is another constructor with the same parameters.
-   */
-  public static InterpreterElement createForFunctionCall(InterpreterElement pPreviousElement) {
-    return new InterpreterElement(new HashMap<String, Long>(), pPreviousElement);
+  public InterpreterElement(Map<String, Long> constantsMap, InterpreterElement previousElement, int lInputIndex) {
+    mConstantsMap = constantsMap;
+    mPreviousElement = previousElement;
+    mInputIndex = lInputIndex;
   }
   
-  private InterpreterElement(Map<String, Long> pConstantsMap, InterpreterElement pPreviousElement) {
-    this.mConstantsMap = pConstantsMap;
-    this.mPreviousElement = pPreviousElement;
+  public int getInputIndex() {
+    if (mInputIndex == -1) {
+      throw new RuntimeException();
+    }
+    
+    return mInputIndex;
+  }
+
+  // TODO change
+  public void incIndex() {
+    mInputIndex = mInputIndex + 1;
   }
   
   /**
    * Assigns a value to the variable and puts it in the map
-   * @param pNameOfVar name of the variable.
-   * @param pValue value to be assigned.
+   * @param nameOfVar name of the variable.
+   * @param value value to be assigned.
    */
-  public void assignConstant(String pNameOfVar, long pValue){
-    if (mConstantsMap.containsKey(pNameOfVar) &&
-        mConstantsMap.get(pNameOfVar).longValue() == pValue) {
+  public void assignConstant(String nameOfVar, long value) {
+
+    if(mConstantsMap.containsKey(nameOfVar) &&
+        mConstantsMap.get(nameOfVar).intValue() == value) {
       return;
     }
+    
+    if(nameOfVar.contains(noAutoInitPrefix)){
+      throw new RuntimeException();
+    }
 
-    mConstantsMap.put(pNameOfVar, pValue);
+    mConstantsMap.put(nameOfVar, value);
   }
 
   public long getValueFor(String pVariableName){
+    if (pVariableName.endsWith("::__BLAST_NONDET")) {
+      throw new RuntimeException();
+    }
+    
+    if (!mConstantsMap.containsKey(pVariableName)) {
+      throw new RuntimeException("Unassigned variable: " + pVariableName);
+    }
+    
     return mConstantsMap.get(pVariableName).longValue();
   }
 
-  public boolean contains(String pVariableName){
-    return mConstantsMap.containsKey(pVariableName);
+  public boolean contains(String variableName){
+    return mConstantsMap.containsKey(variableName);
   }
 
   public InterpreterElement getPreviousElement() {
@@ -97,30 +114,55 @@ public class InterpreterElement implements InterpreterDomainElement {
   }
   
   @Override
-  public boolean equals (Object pOther) {
-    if (this == pOther) {
-      return true;
+  public InterpreterElement clone() {
+    // TODO change this
+    
+    InterpreterElement newElement = new InterpreterElement(mPreviousElement, mInputIndex);
+    
+    for (String s: mConstantsMap.keySet()){
+      long val = mConstantsMap.get(s).longValue();
+      newElement.mConstantsMap.put(s, val);
     }
+    
+    return newElement;
+  }
 
-    if (pOther == null) {
+  @Override
+  public boolean equals (Object other) {
+    if (this == other)
+      return true;
+
+    //assert (other instanceof ExplicitAnalysisElement);
+    
+    if (other == null) {
+      return false;
+    }
+    
+    if (!getClass().equals(other.getClass())) {
       return false;
     }
 
-    if (pOther.getClass() == getClass()) {
-      InterpreterElement lOtherElement = (InterpreterElement) pOther;
-
-      return lOtherElement.mConstantsMap.equals(mConstantsMap);
+    InterpreterElement otherElement = (InterpreterElement) other;
+    if (otherElement.mConstantsMap.size() != mConstantsMap.size()){
+      return false;
+    }
+    
+    if (mInputIndex != otherElement.mInputIndex) {
+      return false;
     }
 
-    return false;
+    for (String s: mConstantsMap.keySet()){
+      if(!otherElement.mConstantsMap.containsKey(s)){
+        return false;
+      }
+      if(otherElement.mConstantsMap.get(s).longValue() !=
+        mConstantsMap.get(s)){
+        return false;
+      }
+    }
+    return true;
   }
 
-  /*
-   * CAUTION: The hash code of an object can change during its lifetime.
-   *
-   * (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return mConstantsMap.hashCode();
@@ -128,24 +170,22 @@ public class InterpreterElement implements InterpreterDomainElement {
 
   @Override
   public String toString() {
-    StringBuffer lBuffer = new StringBuffer();
-
-    lBuffer.append("[");
-
+    String s = "idx: " + mInputIndex + " [";
     for (String key: mConstantsMap.keySet()){
       long val = mConstantsMap.get(key);
-
-      lBuffer.append(" <");
-      lBuffer.append(key);
-      lBuffer.append(" = ");
-      lBuffer.append(val);
-      lBuffer.append("> ");
+      s = s  + " <" +key + " = " + val + "> ";
     }
-
-    lBuffer.append("] size->  ");
-    lBuffer.append(mConstantsMap.size());
-
-    return lBuffer.toString();
+    return s + "] size->  " + mConstantsMap.size();
   }
 
+  public Map<String, Long> getConstantsMap(){
+    return mConstantsMap;
+  }
+
+  public void forget(String assignedVar) {
+    if(mConstantsMap.containsKey(assignedVar)){
+      mConstantsMap.remove(assignedVar);
+    }
+  }
+ 
 }

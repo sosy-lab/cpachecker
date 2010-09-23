@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -14,13 +15,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabs.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -50,19 +50,22 @@ import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
-import org.sosy_lab.cpachecker.fllesh.util.profiling.MemoryInfo;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 public class FlleSh {
   
@@ -73,11 +76,15 @@ public class FlleSh {
   private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private final ConfigurableProgramAnalysis mLocationCPA;
   private final ConfigurableProgramAnalysis mCallStackCPA;
-  private final ConfigurableProgramAnalysis mExplicitCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
   private final ProductAutomatonCPA mProductAutomatonCPA;
   private final ConfigurableProgramAnalysis mSymbPredAbsCPA;
+  private final TimeAccumulator mTimeInReach;
+  private int mTimesInReach;
+  private final GuardedEdgeLabel mAlphaLabel;
+  private final GuardedEdgeLabel mOmegaLabel;
+  private final GuardedEdgeLabel mInverseAlphaLabel;
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
     mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
@@ -106,6 +113,11 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
+    mAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getAlphaEdge()));
+    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
+    mOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getOmegaEdge()));
+    
+    
     /*
      * Initialize shared CPAs.
      */
@@ -116,18 +128,6 @@ public class FlleSh {
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
       mCallStackCPA = lCallStackCPAFactory.createInstance();
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    }
-    
-    // explicit CPA
-    CPAFactory lExplicitCPAFactory = ExplicitAnalysisCPA.factory();
-    lExplicitCPAFactory.setConfiguration(mConfiguration);
-    lExplicitCPAFactory.setLogger(mLogManager);
-    try {
-      mExplicitCPA = lExplicitCPAFactory.createInstance();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -154,6 +154,9 @@ public class FlleSh {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
+    
+    mTimeInReach = new TimeAccumulator();
+    mTimesInReach = 0;
   }
   
   public FlleShResult run(String pFQLSpecification) {
@@ -171,7 +174,13 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
+    System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+    
     Task lTask = Task.create(lFQLSpecification, mCoverageSpecificationTranslator);
+    
+    System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
     
     System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
     
@@ -180,12 +189,24 @@ public class FlleSh {
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lTask.hasPassingClause()) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mWrapper.getAlphaEdge(), mWrapper.getOmegaEdge());
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, StringBasedTestCase.INPUT_FUNCTION_NAME, mWrapper.getReplacedEdges());
+      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
-    Deque<Goal> lGoals = lTask.toGoals(mWrapper);
+    // TODO
+    // reorganize test goal enumeration ?
+    // create test goal automaton when goal is processed
+    // check for coverage at this point of time
     
+    TimeAccumulator lToGoalsTime = new TimeAccumulator();
+    lToGoalsTime.proceed();
+    
+    Deque<Goal> lGoals = lTask.toGoals(mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    
+    lToGoalsTime.pause();
+    
+    System.out.println("Time for creating goals: " + lToGoalsTime.getSeconds() + " s");
+        
     int lIndex = 0;
     
     int lFeasibleTestGoalsTimeSlot = 0;
@@ -196,6 +217,8 @@ public class FlleSh {
     TimeAccumulator lTimeReach = new TimeAccumulator();
     TimeAccumulator lTimeCover = new TimeAccumulator();
     
+    //lGoals = GoalReordering.reorder(lGoals);
+    
     while (!lGoals.isEmpty()) {
       lTimeAccu.proceed();
       
@@ -204,9 +227,15 @@ public class FlleSh {
       int lCurrentGoalNumber = ++lIndex;
       System.out.println("Goal #" + lCurrentGoalNumber);
       
-      System.out.println("Memory used: " + MemoryInfo.getUsedMemory());
+      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), StringBasedTestCase.INPUT_FUNCTION_NAME, mWrapper.getReplacedEdges());
+      //System.out.println(lGoal.getAutomaton());
+      
+      //removeInfeasibleTransitions(lGoal.getAutomaton());
+      
+      //System.out.println(lGoal.getAutomaton());
+      
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
       
       lTimeReach.proceed();
       
@@ -221,6 +250,9 @@ public class FlleSh {
         
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+        
+        // propagate infeasibility information
+        //removeTransitiveInfeasibleGoals(lGoal.getAutomaton(), lGoals, mReachedAutomatonStates);
       }
       else {
         lTimeCover.proceed();
@@ -228,7 +260,7 @@ public class FlleSh {
         lIsFeasible = true;
         
         Model lCounterexample = lCounterexampleTraceInfo.getCounterexample();
-        StringBasedTestCase lTestCase = StringBasedTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
+        SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample((MathsatModel)lCounterexample, mLogManager);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
@@ -239,8 +271,6 @@ public class FlleSh {
           }
         }
         else {
-          System.out.println(lTestCase.getInputFunction());
-          
           lResultFactory.addImpreciseTestCase(lTestCase);
         }
         
@@ -253,16 +283,19 @@ public class FlleSh {
       else {
         lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
       }
-      
-      System.out.println("Memory used (end): " + MemoryInfo.getUsedMemory());
     }
     
     System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
+    System.out.println("Time in reach: " + mTimeInReach.getSeconds());
+    System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
-  
+
   private CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, ConfigurableProgramAnalysis pPassingCPA) {
+    mTimeInReach.proceed();
+    mTimesInReach++;
+    
     /*
      * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,
      * CPAs that are not able to produce successors, are treated first such that
@@ -360,7 +393,171 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
+    mTimeInReach.pause();
+    
     return lRefiner.getCounterexampleTraceInfo();
+  }
+  
+  private static ThreeValuedAnswer accepts(Automaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
+    Set<Automaton.State> lCurrentStates = new HashSet<Automaton.State>();
+    Set<Automaton.State> lNextStates = new HashSet<Automaton.State>();
+    
+    lCurrentStates.add(pAutomaton.getInitialState());
+    
+    boolean lHasPredicates = false;
+    
+    for (CFAEdge lCFAEdge : pCFAPath) {
+      for (Automaton.State lCurrentState : lCurrentStates) {
+        // Automaton accepts as soon as it sees a final state (implicit self-loop)
+        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+          return ThreeValuedAnswer.ACCEPT;
+        }
+        
+        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
+          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+          
+          if (lLabel.hasGuards()) {
+            lHasPredicates = true;
+          }
+          else {
+            if (lLabel.contains(lCFAEdge)) {
+              lNextStates.add(lOutgoingEdge.getTarget());
+            }
+          }
+        }
+      }
+      
+      lCurrentStates.clear();
+      
+      Set<Automaton.State> lTmp = lCurrentStates;
+      lCurrentStates = lNextStates;
+      lNextStates = lTmp;
+    }
+    
+    for (Automaton.State lCurrentState : lCurrentStates) {
+      // Automaton accepts as soon as it sees a final state (implicit self-loop)
+      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+        return ThreeValuedAnswer.ACCEPT;
+      }
+    }
+    
+    if (lHasPredicates) {
+      return ThreeValuedAnswer.UNKNOWN;
+    }
+    else {
+      return ThreeValuedAnswer.REJECT;
+    }
+  }
+  
+  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, SimpleTestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+    // a) determine cfa path
+    CFAEdge[] lCFAPath;
+    try {
+      lCFAPath = reconstructPath(pTestCase, mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
+    
+    // check whether remaining goals are subsumed by current counter example
+    for (Goal lOpenGoal : pGoals) {
+      // is goal subsumed by structural path?
+      ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
+      
+      if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
+        // test case satisfies goal 
+        
+        // I) remove goal from task list
+        lSubsumedGoals.add(lOpenGoal);
+        
+        // II) log information
+        pResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), pTestCase);
+      }
+      else if (lAcceptanceAnswer == ThreeValuedAnswer.UNKNOWN) {
+        // we need a more expensive subsumption analysis
+        // c) check predicate goals for subsumption
+        // TODO implement
+        
+        throw new RuntimeException();
+      }
+    }
+    
+    System.out.println("#COVERED GOALS: " + lSubsumedGoals.size());
+    
+    // remove all subsumed goals
+    pGoals.removeAll(lSubsumedGoals);
+  }
+  
+  private CFAEdge[] reconstructPath(SimpleTestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
+    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+    
+    // test goal automata CPAs
+    if (pPassingAutomatonCPA != null) {
+      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+    }
+    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    
+    // call stack CPA
+    lCompoundCPAFactory.push(mCallStackCPA, true);
+    
+    // explicit CPA
+    InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
+    lCompoundCPAFactory.push(lInterpreterCPA);
+    
+    // CFA path CPA
+    int lCFAPathCPAIndex = lCompoundCPAFactory.push(mCFAPathCPA);
+    
+    // product automaton CPA
+    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
+    
+    // assume CPA
+    lCompoundCPAFactory.push(mAssumeCPA);
+    
+    
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
+    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
+    
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    lCPAFactory.setChildren(lComponentAnalyses);
+    lCPAFactory.setConfiguration(mConfiguration);
+    lCPAFactory.setLogger(mLogManager);
+    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+    
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+
+    AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
+    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
+
+    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
+    
+    if (lEndNodes.size() != 1) {
+      throw new RuntimeException();
+    }
+    
+    CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
+    
+    CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
+    
+    if (!lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
+      throw new RuntimeException();
+    }
+    
+    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(lCFAPathCPAIndex);
+    
+    return lPathElement.toArray();
   }
   
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) {
@@ -419,8 +616,6 @@ public class FlleSh {
       // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
       //lWriter.println("cpas.symbpredabs.mathsat.useDtc = true");
       
-      lWriter.println("cpas.explicit.threshold = " + Integer.MAX_VALUE);
-      
       lWriter.close();
 
     } catch (IOException e) {
@@ -430,210 +625,184 @@ public class FlleSh {
     return lPropertiesFile;
   }
   
-  private static ThreeValuedAnswer accepts(Automaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
-    Set<Automaton<GuardedEdgeLabel>.State> lCurrentStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
-    Set<Automaton<GuardedEdgeLabel>.State> lNextStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
-    
-    lCurrentStates.add(pAutomaton.getInitialState());
-    
-    boolean lHasPredicates = false;
-    
-    for (CFAEdge lCFAEdge : pCFAPath) {
-      for (Automaton<GuardedEdgeLabel>.State lCurrentState : lCurrentStates) {
-        // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
-          return ThreeValuedAnswer.ACCEPT;
-        }
-        
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
-          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-          
-          if (lLabel.hasGuards()) {
-            lHasPredicates = true;
-          }
-          else {
-            if (lLabel.contains(lCFAEdge)) {
-              lNextStates.add(lOutgoingEdge.getTarget());
-            }
-          }
-        }
-      }
-      
-      lCurrentStates.clear();
-      
-      Set<Automaton<GuardedEdgeLabel>.State> lTmp = lCurrentStates;
-      lCurrentStates = lNextStates;
-      lNextStates = lTmp;
-    }
-    
-    for (Automaton<GuardedEdgeLabel>.State lCurrentState : lCurrentStates) {
-      // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
-        return ThreeValuedAnswer.ACCEPT;
-      }
-    }
-    
-    if (lHasPredicates) {
-      return ThreeValuedAnswer.UNKNOWN;
-    }
-    else {
-      return ThreeValuedAnswer.REJECT;
-    }
+  private boolean isTransitivelyInfeasible(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
+    // When all reached states are contained in the similar states than pOtherAutomaton has to be infeasible, too.
+    return getSimilarStates(pInfeasibleAutomaton, pOtherAutomaton).containsAll(pReachedAutomatonStates);
   }
   
-  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, StringBasedTestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
-    // a) determine cfa path
-    CFAEdge[] lCFAPath = getTakenCFAPath(pTestCase, pAutomatonCPA, pPassingCPA);
+  private Collection<Automaton.State> getSimilarStates(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton) {
+    Pair<Automaton.State, Automaton.State> lInitialPair = new Pair<Automaton.State, Automaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
     
+    LinkedList<Pair<Automaton.State, Automaton.State>> lWorklist = new LinkedList<Pair<Automaton.State, Automaton.State>>();
+    lWorklist.add(lInitialPair);
+    
+    Multimap<Automaton.State, Automaton.State> lCore = HashMultimap.create();
+    Multimap<Automaton.State, Automaton.State> lFrontier = HashMultimap.create();
+    
+    while (!lWorklist.isEmpty()) {
+      Pair<Automaton.State, Automaton.State> lCurrentPair = lWorklist.removeFirst();
+      
+      if (lCore.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())
+          || lFrontier.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())) {
+        continue;
+      }
+      
+      boolean lSimilar = true;
+      
+      HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
+      
+      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+        boolean lOneDirectionSimilar = false;
+        
+        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+          if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
+            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
+            lOneDirectionSimilar = true;
+          }
+        }
+        
+        if (!lOneDirectionSimilar) {
+          lSimilar = false;
+        }
+      }
+      
+      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+        boolean lOneDirectionSimilar = false;
+        
+        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+          if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
+            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
+            lOneDirectionSimilar = true;
+          }
+        }
+        
+        if (!lOneDirectionSimilar) {
+          lSimilar = false;
+        }
+      }
+      
+      if (lSimilar) {
+        lCore.put(lCurrentPair.getFirst(), lCurrentPair.getSecond());
+        lWorklist.addAll(lPotentialWork);
+      }
+      else {
+        lFrontier.put(lCurrentPair.getFirst(), lCurrentPair.getSecond());
+      }
+    }
+    
+    /*if (lCore.keySet().size() >= 4) {
+      System.out.println(pInfeasibleAutomaton.toString());
+      System.out.println("---");
+      System.out.println(pOtherAutomaton.toString());
+      throw new RuntimeException();
+    }*/
+    
+    return lCore.keySet();
+    
+    /*HashSet<Automaton<GuardedEdgeLabel>.State> lSimilarStates = new HashSet<Automaton<GuardedEdgeLabel>.State>();
+    
+    if (lCore.size() > 1) {
+      System.out.println(lCore);
+      System.out.println(lFrontier);
+      throw new RuntimeException();
+    }
+    
+    for (Automaton<GuardedEdgeLabel>.State lState : lCore.keySet()) {
+      if (!lFrontier.containsKey(lState)) {
+        lSimilarStates.add(lState);
+      }
+    }
+    
+    return lSimilarStates;*/
+  }
+  
+  private void removeTransitiveInfeasibleGoals(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<Automaton.State> pReachedAutomatonStates) {
     HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
+    
+    //System.out.println(pAutomaton.toString());
+    //System.out.println("---");
+    //System.out.println(pReachedAutomatonStates);
+    //System.out.println("---");
+    
+    /*if (pGoals.size() == 100) {
+      System.out.println(pAutomaton.toString());
+      System.out.println("---");
+      System.out.println(pReachedAutomatonStates);
+      System.out.println("---");
+    }*/
+    
+    if (pReachedAutomatonStates.size() <= 3) {
+      System.out.println(pInfeasibleAutomaton.toString());
+      System.out.println("---");
+      System.out.println(pReachedAutomatonStates);
+      System.out.println("---");
+      throw new RuntimeException();
+    }
     
     // check whether remaining goals are subsumed by current counter example
     for (Goal lOpenGoal : pGoals) {
-      // is goal subsumed by structural path?
-      ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
-      
-      if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
-        // test case satisfies goal 
-        
-        // I) remove goal from task list
+      if (isTransitivelyInfeasible(pInfeasibleAutomaton, lOpenGoal.getAutomaton(), pReachedAutomatonStates)) {
         lSubsumedGoals.add(lOpenGoal);
-        
-        // II) log information
-        pResultFactory.addFeasibleTestCase(lOpenGoal.getPattern(), pTestCase);
-      }
-      else if (lAcceptanceAnswer == ThreeValuedAnswer.UNKNOWN) {
-        // we need a more expensive subsumption analysis
-        // c) check predicate goals for subsumption
-        // TODO implement
-        
-        throw new RuntimeException();
       }
     }
     
-    System.out.println("#COVERED GOALS: " + lSubsumedGoals.size());
+    if (lSubsumedGoals.size() > 0) {
+      throw new RuntimeException();
+    }
+    else {
+      System.out.println("Removing " + lSubsumedGoals.size() + " many infeasible test goals!");
+    }
     
-    // remove all subsumed goals
     pGoals.removeAll(lSubsumedGoals);
   }
   
-  private CFAEdge[] getTakenCFAPath(StringBasedTestCase pTestCase, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
-    CFAFunctionDefinitionNode lInputFunction = pTestCase.getInputFunctionEntry();
+  // TODO reimplement without modifying the old automaton
+  /*
+  public void removeInfeasibleTransitions(Automaton<GuardedEdgeLabel> pAutomaton) {
+    HashSet<Automaton<GuardedEdgeLabel>.Edge> lEdgesToBeRemoved = new HashSet<Automaton<GuardedEdgeLabel>.Edge>();
     
-    CFAFunctionDefinitionNode lNondetInputFunction = mWrapper.replace(lInputFunction);
-    
-    // a) determine cfa path
-    CFAEdge[] lCFAPath;
-    try {
-      lCFAPath = reconstructPath(mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    
-    LinkedList<CFAEdge> lModifiedPath = new LinkedList<CFAEdge>();
-    
-    // replace cfa edges related to input function by original cfa edges
-    
-    for (CFAEdge lCFAEdge : lCFAPath) {
-      CFANode lPredecessor = lCFAEdge.getPredecessor();
-      CFANode lSuccessor = lCFAEdge.getSuccessor();
+    //for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.getEdges()) {
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.edges()) {
+      GuardedEdgeLabel lLabel = lEdge.getLabel();
       
-      if (!lSuccessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
-        if (lPredecessor.getFunctionName().equals(StringBasedTestCase.INPUT_FUNCTION_NAME)) {
-          if (!lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
-            throw new RuntimeException();
+      if (lLabel.getClass().equals(GuardedEdgeLabel.class)) {
+        if (lLabel.getEdgeSet().size() == 1) {
+          // currently we only simplify singleton edge sets
+          CFAEdge lCFAEdge = lLabel.getEdgeSet().iterator().next();
+          
+          boolean lKeep = false; // falsch
+          
+          int lRelevantEdgesCounter = 0;
+          
+          for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lEdge.getTarget())) {
+            GuardedEdgeLabel lOutgoingLabel = lOutgoingEdge.getLabel();
+            
+            if (lOutgoingLabel.getClass().equals(GuardedEdgeLabel.class)) {
+              lRelevantEdgesCounter++;
+              
+              for (CFAEdge lOutgoingCFAEdge : lOutgoingLabel.getEdgeSet()) {
+                if (lCFAEdge.getSuccessor().equals(lOutgoingCFAEdge.getPredecessor())) {
+                  lKeep = true;
+                  break;
+                }
+              }
+            }
+            
+            if (lKeep) {
+              break;
+            }
           }
           
-          CallToReturnEdge lSummaryEdge = lSuccessor.getEnteringSummaryEdge();
-          
-          if (lSummaryEdge == null) {
-            throw new RuntimeException();
+          if (!lKeep && lRelevantEdgesCounter > 0) {
+            lEdgesToBeRemoved.add(lEdge);
           }
-          
-          CFAEdge lReplacedEdge = mWrapper.getReplacedEdges().get(lSummaryEdge);
-          
-          if (lReplacedEdge == null) {
-            throw new RuntimeException();
-          }
-          
-          lModifiedPath.add(lReplacedEdge);
         }
-        else {
-          lModifiedPath.add(lCFAEdge);
-        }
-      } 
+      }
     }
     
-    mWrapper.replace(lNondetInputFunction);
-    
-    return lModifiedPath.toArray(new CFAEdge[lModifiedPath.size()]);
-  }
-  
-  private CFAEdge[] reconstructPath(CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
-    
-    // test goal automata CPAs
-    if (pPassingAutomatonCPA != null) {
-      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : lEdgesToBeRemoved) {
+      pAutomaton.remove(lEdge);
     }
-    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
-    
-    // call stack CPA
-    lCompoundCPAFactory.push(mCallStackCPA, true);
-    
-    // explicit CPA
-    lCompoundCPAFactory.push(mExplicitCPA);
-    
-    // CFA path CPA
-    int lCFAPathCPAIndex = lCompoundCPAFactory.push(mCFAPathCPA);
-    
-    // product automaton CPA
-    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
-    
-    // assume CPA
-    lCompoundCPAFactory.push(mAssumeCPA);
-    
-    
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-    lComponentAnalyses.add(mLocationCPA);
-    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
-    
-    CPAFactory lCPAFactory = CompositeCPA.factory();
-    lCPAFactory.setChildren(lComponentAnalyses);
-    lCPAFactory.setConfiguration(mConfiguration);
-    lCPAFactory.setLogger(mLogManager);
-    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
-
-    AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
-    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
-
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
-    lReachedSet.add(lInitialElement, lInitialPrecision);
-
-    try {
-      lAlgorithm.run(lReachedSet);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    }
-    
-    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
-    
-    if (lEndNodes.size() != 1) {
-      throw new RuntimeException();
-    }
-    
-    CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
-    
-    CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
-    
-    if (!lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
-      throw new RuntimeException();
-    }
-    
-    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(lCFAPathCPAIndex);
-    
-    return lPathElement.toArray();
-  }
+  }*/
   
 }

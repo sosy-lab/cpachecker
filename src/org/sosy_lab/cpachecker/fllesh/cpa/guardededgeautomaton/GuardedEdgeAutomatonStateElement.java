@@ -1,8 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
@@ -12,30 +10,24 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 public abstract class GuardedEdgeAutomatonStateElement implements
     GuardedEdgeAutomatonElement {
 
-  private final Automaton<GuardedEdgeLabel>.State mAutomatonState;
+  private final Automaton.State mAutomatonState;
   private final boolean mIsFinalState;
-  private final Set<GuardedEdgeAutomatonStateElement> mSingleton;
   
-  public GuardedEdgeAutomatonStateElement(Automaton<GuardedEdgeLabel>.State pState, boolean pIsFinalState) {
+  public GuardedEdgeAutomatonStateElement(Automaton.State pState, boolean pIsFinalState) {
     mAutomatonState = pState;
     mIsFinalState = pIsFinalState;
-    mSingleton = Collections.singleton(this);
-  }
-  
-  public final Set<GuardedEdgeAutomatonStateElement> singleton() {
-    return mSingleton;
   }
   
   public final boolean isFinalState() {
     return mIsFinalState;
   }
   
-  public final Automaton<GuardedEdgeLabel>.State getAutomatonState() {
+  public final Automaton.State getAutomatonState() {
     return mAutomatonState;
   }
   
   public static GuardedEdgeAutomatonStateElement create(Automaton<GuardedEdgeLabel>.Edge pEdge, Automaton<GuardedEdgeLabel> pAutomaton) {
-    Automaton<GuardedEdgeLabel>.State lAutomatonState = pEdge.getTarget();
+    Automaton.State lAutomatonState = pEdge.getTarget();
     
     GuardedEdgeLabel lLabel = pEdge.getLabel();
     

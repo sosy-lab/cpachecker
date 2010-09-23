@@ -52,7 +52,8 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   public SimpleMustMayAnalysisCPA(LogManager pLogManager) {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    InterpreterCPA lMustCPA = new InterpreterCPA(pLogManager);
+    //InterpreterCPA lMustCPA = new InterpreterCPA(pLogManager);
+    InterpreterCPA lMustCPA = new InterpreterCPA(null);
 
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
   }

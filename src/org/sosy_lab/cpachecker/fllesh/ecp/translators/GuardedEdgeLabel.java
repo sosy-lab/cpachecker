@@ -12,7 +12,7 @@ public class GuardedEdgeLabel extends GuardedLabel {
 
   private static Map<ECPEdgeSet, Integer> mIds = new HashMap<ECPEdgeSet, Integer>();
   
-  private ECPEdgeSet mEdgeSet;
+  private final ECPEdgeSet mEdgeSet;
   
   public GuardedEdgeLabel(ECPEdgeSet pEdgeSet) {
     super();
@@ -37,7 +37,7 @@ public class GuardedEdgeLabel extends GuardedLabel {
     this(pGuard.mEdgeSet, pGuard.getGuards());
   }
   
-  protected ECPEdgeSet getEdgeSet() {
+  public ECPEdgeSet getEdgeSet() {
     return mEdgeSet;
   }
   
@@ -80,7 +80,16 @@ public class GuardedEdgeLabel extends GuardedLabel {
       mIds.put(mEdgeSet, mIds.size());
     }
     
-    return "E" + mIds.get(mEdgeSet) + " " + getGuards().toString();
+    String lIdString = null;
+    
+    if (mEdgeSet.size() == 1) {
+      lIdString = mEdgeSet.toString();
+    }
+    else {
+      lIdString = "E" + mIds.get(mEdgeSet);
+    }
+    
+    return lIdString + " " + getGuards().toString();
   }
 
 }

@@ -18,7 +18,7 @@ public class AllCFAEdgesGuardedEdgeLabel extends GuardedEdgeLabel {
   }
   
   @Override
-  protected ECPEdgeSet getEdgeSet() {
+  public ECPEdgeSet getEdgeSet() {
     throw new UnsupportedOperationException();
   }
 

@@ -9,6 +9,11 @@ public class InverseGuardedEdgeLabel extends GuardedEdgeLabel {
   
   public InverseGuardedEdgeLabel(GuardedEdgeLabel pGuard) {
     super(pGuard);
+    
+    if (!pGuard.getGuards().isEmpty()) {
+      throw new IllegalArgumentException();
+    }
+    
     mInvertedLabel = pGuard;
   }
   
@@ -37,7 +42,7 @@ public class InverseGuardedEdgeLabel extends GuardedEdgeLabel {
     
     InverseGuardedEdgeLabel lOther = (InverseGuardedEdgeLabel)pOther;
     
-    return getGuards().equals(lOther.getGuards()) && getEdgeSet().equals(lOther.getEdgeSet());
+    return mInvertedLabel.equals(lOther.mInvertedLabel);
   }
   
   @Override

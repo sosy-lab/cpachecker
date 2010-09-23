@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 
@@ -48,7 +49,7 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
   
   public static Task create(FQLSpecification pSpecification, CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
     Set<ElementaryCoveragePattern> lGoals = pCoverageSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
-
+    
     if (pSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassing = pCoverageSpecificationTranslator.translate(pSpecification.getPathPattern());
       
@@ -59,11 +60,11 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
     }
   }
   
-  public Deque<Goal> toGoals(Wrapper pWrapper) {
+  public Deque<Goal> toGoals(GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
     LinkedList<Goal> lGoals = new LinkedList<Goal>();
     
     for (ElementaryCoveragePattern lGoalPattern : this) {
-      Goal lGoal = new Goal(lGoalPattern, pWrapper);
+      Goal lGoal = new Goal(lGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
       lGoals.add(lGoal);
     }
     

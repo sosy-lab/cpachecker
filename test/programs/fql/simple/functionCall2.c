@@ -1,7 +1,6 @@
 int f() 
 {
-	int __BLAST_NONDET;
-	return (__BLAST_NONDET);
+  return (0);
 }
 
 int main() 
@@ -10,10 +9,7 @@ int main()
 	y = f();
 	if (y != 0) 
 	{
-		while (1) 
-		{
-ERROR: ;
-		}
+		y = 10;
 	}
 	return (y);
 }

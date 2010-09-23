@@ -4,11 +4,17 @@
 #line 1 "variables.c"
 int global  ;
 #line 5 "variables.c"
-int main(int argc , char **argv ) 
-{ int local ;
+int foo() 
+{ 
+  int local;
+  int result;
+
+  local = __BLAST_NONDET;
+
+  result = (local + global);
 
   {
 #line 12
-  return (local + global);
-}
+    return (result);
+  }
 }

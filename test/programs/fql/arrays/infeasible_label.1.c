@@ -1,5 +1,4 @@
 int __CPROVER_assume(int condition);
-int input();
 
 int main(int argc, char* argv[]) 
 {
@@ -7,11 +6,12 @@ int main(int argc, char* argv[])
   int tmp2;
   int tmp3;
   int tmp4;
+  int __BLAST_NONDET;
   int a[3];
 
-  a[0] = input();
-  a[1] = input();
-  a[2] = input();
+  a[0] = __BLAST_NONDET;
+  a[1] = __BLAST_NONDET;
+  a[2] = __BLAST_NONDET;
 
   tmp1 = a[0];
   tmp2 = a[1];
