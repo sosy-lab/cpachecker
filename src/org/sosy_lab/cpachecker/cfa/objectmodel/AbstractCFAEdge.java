@@ -39,9 +39,6 @@ public abstract class AbstractCFAEdge implements CFAEdge
     private final String rawStatement;
 
     private final int lineNumber;
-    
-    private static int nextNumber = 0;
-    private int number = nextNumber++;
 
     public AbstractCFAEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor) {
       Preconditions.checkNotNull(rawStatement);
@@ -129,11 +126,6 @@ public abstract class AbstractCFAEdge implements CFAEdge
       return lineNumber;
     }
 
-    @Override
-    public int getEdgeNumber() {
-      return number;
-    }
-    
     @Override
     public int hashCode() {
       return 31 * predecessor.hashCode() + successor.hashCode();
