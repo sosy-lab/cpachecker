@@ -55,12 +55,15 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -92,6 +95,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
+  
+  @Option
+  private boolean checkBlockFeasibility = false;
   
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
@@ -157,6 +163,16 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       } catch (IOException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");
+      }
+    }
+    
+    if (checkBlockFeasibility) {
+      SymbolicFormula trueFormula = symbolicFormulaManager.makeTrue();
+      Predicate truePredicate = formulaManager.makePredicate(symbolicFormulaManager.createPredicateVariable(trueFormula), trueFormula);
+      if (predicates == null) {
+        predicates = ImmutableSet.of(truePredicate);
+      } else {
+        predicates.add(truePredicate);
       }
     }
     initialPrecision = new SymbPredAbsPrecision(predicates);

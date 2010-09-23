@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -206,6 +207,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   public AbstractFormula buildAbstraction(
       AbstractFormula abs, PathFormula pathFormula,
       Collection<Predicate> predicates) {
+    if (predicates.isEmpty()) {
+      return amgr.makeTrue();
+    }
+
     stats.numCallsAbstraction++;
     if (cartesianAbstraction) {
       return buildCartesianAbstraction(abs, pathFormula, predicates);
@@ -684,9 +689,20 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
               new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".itp" + i));
         }
 
-        if (itp.isTrue() || itp.isFalse()) {
+        if (itp.isTrue()) {
           logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
 
+        } else if (itp.isFalse()) {
+          // path is not feasible here but we have no interpolant, force satisfiability check
+          foundPredicates = true;
+
+          SymbolicFormula trueFormula = smgr.makeTrue();
+          Set<Predicate> preds = ImmutableSet.of(makePredicate(smgr.createPredicateVariable(trueFormula), trueFormula));
+          info.addPredicatesForRefinement(e, preds);
+          
+          logger.log(Level.ALL, "For location", e.getAbstractionLocation(),
+              "got: interpolant false, predicates [true]");
+          
         } else {
           foundPredicates = true;
 

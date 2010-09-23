@@ -145,7 +145,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   public Predicate getPredicate(SymbolicFormula var) {
     Predicate result = symbVarToPredicate.get(var);
     if (result == null) {
-      throw new IllegalArgumentException(var + "seems not to be a formula corresponding to a single predicate variable.");
+      throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
   }
@@ -168,6 +168,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     for (Predicate p : predicates) {
         SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
         SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
+        if (def.isTrue()) {
+          continue;
+        }
         smgr.collectVarNames(def, allvars, allfuncs);
         
         // build the formula (var <-> def)
