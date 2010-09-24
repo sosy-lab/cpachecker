@@ -80,6 +80,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Class containing all the code that converts C code into a formula.
  */
@@ -96,6 +98,10 @@ public class CtoFormulaConverter {
   // use variables
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
+  
+  // list of functions that are pure (no side-effects)
+  private static final Set<String> PURE_EXTERNAL_FUNCTIONS
+      = ImmutableSet.of("printf", "puts");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -608,16 +614,19 @@ public class CtoFormulaConverter {
 
     SymbolicFormula f2 = buildTerm(expr, function, ssa);
 
-    //SymbolicFormula d = mathsat.api.msat_term_get_decl(f2);
-    //if (mathsat.api.msat_decl_get_return_type(d) != mathsat.api.MSAT_BOOL) {
     if (!smgr.isBoolean(f2)) {
       // in this case, we have something like:
         // f(x);
       // i.e. an expression that gets assigned to nothing. Since
       // we don't handle side-effects, this means that the
       // expression has no effect, and we can just drop it
-      log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
-          stmt.getExpression());
+      
+      // if it is a (external) function call, it was already logged if needed
+      // don't log here to avoid warning about cases like printf() 
+      if (!(expr instanceof IASTFunctionCallExpression)) {
+        log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
+                        stmt.getExpression());
+      }
       return f1;
     }
     return smgr.makeAnd(f1, f2);
@@ -1047,8 +1056,10 @@ public class CtoFormulaConverter {
     IASTExpression fn = fexp.getFunctionNameExpression();
     String func;
     if (fn instanceof IASTIdExpression) {
-      log(Level.INFO, "Assuming external function to be a pure function", fn);
       func = ((IASTIdExpression)fn).getName().getRawSignature();
+      if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
+        log(Level.INFO, "Assuming external function to be a pure function", fn);
+      }
     } else {
       log(Level.WARNING, "Ignoring function call through function pointer", fexp);
       func = "<func>{" + fn.getRawSignature() + "}";
