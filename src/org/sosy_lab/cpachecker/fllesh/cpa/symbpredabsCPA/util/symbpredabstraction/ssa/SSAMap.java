@@ -43,7 +43,7 @@ import com.google.common.collect.Lists;
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable
  */
-public class SSAMap {
+public class SSAMap implements ReadableSSAMap {
 
   private static class UnmodifiableSSAMap extends SSAMap {
     
@@ -65,6 +65,7 @@ public class SSAMap {
     public void update(SSAMap pOther) {
       throw new UnsupportedOperationException();
     }
+    
   }
   
   public static SSAMap unmodifiableSSAMap(SSAMap ssa) {
@@ -124,20 +125,33 @@ public class SSAMap {
     funcs = new HashMap<FuncKey, Integer>();
   }
   
-  public SSAMap(SSAMap old) {
+  public SSAMap(ReadableSSAMap pSSAMap) {
     this();
-    vars.putAll(old.vars);
-    funcs.putAll(old.funcs);
+    
+    if (pSSAMap instanceof SSAMap) {
+      SSAMap lSSAMap = (SSAMap)pSSAMap;
+      vars.putAll(lSSAMap.vars);
+      funcs.putAll(lSSAMap.funcs);
+    }
+    else {
+      for (String lVariable : pSSAMap.allVariables()) {
+        setIndex(lVariable, pSSAMap.getIndex(lVariable));
+      }
+      
+      for (Pair<String, SymbolicFormulaList> lFunc : pSSAMap.allFunctions()) {
+        String lName = lFunc.getFirst();
+        SymbolicFormulaList lFormula = lFunc.getSecond();
+        setIndex(lName, lFormula, pSSAMap.getIndex(lName, lFormula));
+      }
+    }
   }
   
   private SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
     this.vars = vars;
     this.funcs = funcs;
   }
-  
-  /**
-   * returns the index of the variable in the map
-   */
+
+  @Override
   public int getIndex(String variable) {
     Integer i = vars.get(variable);
     if (i != null) {
@@ -152,6 +166,7 @@ public class SSAMap {
     vars.put(variable, idx);
   }
 
+  @Override
   public int getIndex(String name, SymbolicFormulaList args) {
     Integer i = funcs.get(new FuncKey(name, args));
     if (i != null) {
@@ -166,10 +181,12 @@ public class SSAMap {
     funcs.put(new FuncKey(name, args), idx);
   }
 
+  @Override
   public Collection<String> allVariables() {
     return Collections.unmodifiableSet(vars.keySet());
   }
 
+  @Override
   public Collection<Pair<String, SymbolicFormulaList>> allFunctions() {
     List<Pair<String, SymbolicFormulaList>> ret = Lists.newArrayList();
 

@@ -53,7 +53,11 @@ public class MathsatTheoremProver implements TheoremProver {
     push(f);
     int res = msat_solve(curEnv);
     pop();
-    assert(res != MSAT_UNKNOWN);
+    
+    if (res == MSAT_UNKNOWN) {
+      throw new RuntimeException();
+    }
+    
     return res == MSAT_UNSAT;
   }
 

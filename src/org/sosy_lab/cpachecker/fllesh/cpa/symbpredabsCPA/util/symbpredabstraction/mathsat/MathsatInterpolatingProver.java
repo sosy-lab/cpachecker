@@ -74,7 +74,10 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         Preconditions.checkState(env != 0);
 
         int res = mathsat.api.msat_solve(env);
-        assert(res != mathsat.api.MSAT_UNKNOWN);
+        
+        if (res == mathsat.api.MSAT_UNKNOWN) {
+          throw new RuntimeException();
+        }
         
         if (res == mathsat.api.MSAT_SAT) {
           mModel = new MathsatModel(env);

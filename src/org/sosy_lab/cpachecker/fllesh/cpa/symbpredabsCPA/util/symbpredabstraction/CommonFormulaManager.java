@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
 
@@ -161,8 +162,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return The above formula.
    */
   protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
-                                                  SSAMap ssa) {
-    ssa = new SSAMap(ssa); // clone ssa map because we need to change it
+                                                  ReadableSSAMap pSSAMap) {
+    SSAMap ssa = new SSAMap(pSSAMap); // clone ssa map because we need to change it
     
     Set<String> allvars = new HashSet<String>();
     Set<Pair<String, SymbolicFormulaList>> allfuncs = new HashSet<Pair<String, SymbolicFormulaList>>();
@@ -286,8 +287,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    SSAMap ssa1 = pF1.getSSAMap();
-    SSAMap ssa2 = pF2.getSSAMap();
+    ReadableSSAMap ssa1 = pF1.getSSAMap();
+    ReadableSSAMap ssa2 = pF2.getSSAMap();
 
     Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
@@ -314,7 +315,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return A pair (SymbolicFormula, SSAMap)
    */
   private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-      SSAMap ssa1, SSAMap ssa2) {
+      ReadableSSAMap ssa1, ReadableSSAMap ssa2) {
     SSAMap result = new SSAMap();
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();

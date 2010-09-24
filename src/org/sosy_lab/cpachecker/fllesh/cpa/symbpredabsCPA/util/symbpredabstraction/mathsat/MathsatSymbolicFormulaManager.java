@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
 import com.google.common.base.Preconditions;
@@ -499,12 +500,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
+  public SymbolicFormula instantiate(SymbolicFormula f, ReadableSSAMap ssa) {
     return instantiate(f, ssa, new HashMap<SymbolicFormula, SymbolicFormula>());
   }
 
   @Override
-  public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa) {
+  public SymbolicFormulaList instantiate(SymbolicFormulaList f, ReadableSSAMap ssa) {
     long[] args = getTerm(f);
     long[] result = new long[args.length];
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
@@ -515,7 +516,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return encapsulate(result);
   }
 
-  private SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa,
+  private SymbolicFormula instantiate(SymbolicFormula f, ReadableSSAMap ssa,
                                       Map<SymbolicFormula, SymbolicFormula> cache) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
 

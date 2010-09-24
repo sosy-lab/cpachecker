@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;

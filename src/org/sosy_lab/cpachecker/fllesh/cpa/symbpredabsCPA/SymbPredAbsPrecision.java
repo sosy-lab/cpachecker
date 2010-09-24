@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 import java.util.Collection;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
@@ -36,6 +37,11 @@ import com.google.common.collect.SetMultimap;
 
 public class SymbPredAbsPrecision implements Precision {
 
+  // TODO change
+  private static final boolean absOnFunction = true;
+  private static final boolean absOnLoop = true;
+  private static final boolean absOnlyIfBoth = false;
+  
   private final SetMultimap<CFANode, Predicate> predicateMap;
   private final Set<Predicate> globalPredicates;
 
@@ -91,6 +97,35 @@ public class SymbPredAbsPrecision implements Precision {
   public boolean isBreak() {
     return false;
   }
+  
+  /**
+   * @param succLoc successor CFA location.
+   * @param thresholdReached if the maximum block size has been reached
+   * @return true if succLoc is an abstraction location. For now a location is 
+   * an abstraction location if it has an incoming loop-back edge, if it is
+   * the start node of a function or if it is the call site from a function call.
+   */
+  public boolean isAbstractionLocation(CFANode succLoc, boolean thresholdReached) {
+    boolean result = false;
+    
+    if (absOnLoop) {
+      result = succLoc.isLoopStart();
+    }
+    if (absOnFunction) {
+      result = result
+            || (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
+            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+    }
+    
+    if (absOnlyIfBoth) {
+      result = result && thresholdReached;
+    } else {
+      result = result || thresholdReached;
+    }
+
+    return result;
+  }
+  
 }
 
 

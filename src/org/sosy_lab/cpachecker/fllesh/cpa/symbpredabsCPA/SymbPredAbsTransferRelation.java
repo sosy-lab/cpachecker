@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -68,15 +67,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   @Option(name="blk.threshold")
   private int absBlockSize = 0;
 
-  @Option(name="blk.functions")
-  private boolean absOnFunction = true;
-
-  @Option(name="blk.loops")
-  private boolean absOnLoop = true;
-
-  @Option(name="blk.requireThresholdAndLBE")
-  private boolean absOnlyIfBoth = false;
-  
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
 
@@ -116,7 +106,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
   
     boolean thresholdReached = (absBlockSize > 0) && (element.getSizeSinceAbstraction() >= absBlockSize-1);
-    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor(), thresholdReached);
+    boolean abstractionLocation = precision.isAbstractionLocation(edge.getSuccessor(), thresholdReached);
 
     boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= satCheckBlockSize-1);
     
@@ -266,41 +256,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     long startComp = System.currentTimeMillis();
     // compute new pathFormula with the operation on the edge
-    pf = formulaManager.makeAnd(pathFormula.getSymbolicFormula(), edge, pathFormula.getSSAMap());
+    pf = formulaManager.makeAnd(pathFormula, edge);
     pathFormulaComputationTime += System.currentTimeMillis() - startComp;
 
     assert pf != null;
     pathFormulaTime += System.currentTimeMillis() - start;
     
     return pf;
-  }
-
-  /**
-   * @param succLoc successor CFA location.
-   * @param thresholdReached if the maximum block size has been reached
-   * @return true if succLoc is an abstraction location. For now a location is 
-   * an abstraction location if it has an incoming loop-back edge, if it is
-   * the start node of a function or if it is the call site from a function call.
-   */
-  private boolean isAbstractionLocation(CFANode succLoc, boolean thresholdReached) {
-    boolean result = false;
-    
-    if (absOnLoop) {
-      result = succLoc.isLoopStart();
-    }
-    if (absOnFunction) {
-      result = result
-            || (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
-            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
-    }
-    
-    if (absOnlyIfBoth) {
-      result = result && thresholdReached;
-    } else {
-      result = result || thresholdReached;
-    }
-
-    return result;
   }
 
   public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonElement pAutomatonElement) {

@@ -253,25 +253,25 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public PathFormula makeAnd(SymbolicFormula oldFormula, CFAEdge edge, SSAMap ssa)
+  public PathFormula makeAnd(PathFormula pCurrentPathFormula, CFAEdge edge)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
 
     if (!(edge.getPredecessor() instanceof FunctionDefinitionNode)
         && (edge.getEdgeType() == CFAEdgeType.BlankEdge)) {
-      
+
       // in this case there's absolutely nothing to do, so take a shortcut
-      return new PathFormula(oldFormula, ssa);
+      return pCurrentPathFormula;
     }
     
-    SymbolicFormula m = oldFormula;
+    SymbolicFormula m = pCurrentPathFormula.getSymbolicFormula();
 
     String function = (edge.getPredecessor() != null) 
                           ? edge.getPredecessor().getFunctionName() : null;
 
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
-    ssa = new SSAMap(ssa);
+    SSAMap ssa = new SSAMap(pCurrentPathFormula.getSSAMap());
     
     if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
       // function start

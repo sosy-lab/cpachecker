@@ -29,7 +29,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
 public interface FormulaManager {
 
@@ -48,7 +47,7 @@ public interface FormulaManager {
    * @return The formula (f1 & e), and the new/updated SSAMap
    * @throws CPATransferException 
    */
-  public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e, SSAMap ssa)
+  public PathFormula makeAnd(PathFormula pCurrentPathFormula, CFAEdge e)
       throws CPATransferException;
 
   /**
