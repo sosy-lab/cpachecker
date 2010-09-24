@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.trace;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 
 import com.google.common.base.Preconditions;

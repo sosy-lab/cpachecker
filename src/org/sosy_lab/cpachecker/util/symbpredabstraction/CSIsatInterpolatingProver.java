@@ -171,8 +171,8 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   }
 
   @Override
-  public CSIsatModel getModel() {
-    return new CSIsatModel();
+  public Model getModel() {
+    return new Model();
   }
   
 }

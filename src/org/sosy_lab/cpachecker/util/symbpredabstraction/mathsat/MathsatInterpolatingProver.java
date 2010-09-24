@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -103,10 +104,10 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     }
 
     @Override
-    public MathsatModel getModel() {
+    public Model getModel() {
       Preconditions.checkState(env != 0);
       
-      return new MathsatModel(env);
+      return MathsatModel.createMathsatModel(env);
     }
     
 }

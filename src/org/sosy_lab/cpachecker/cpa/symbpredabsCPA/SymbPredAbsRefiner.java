@@ -54,12 +54,11 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatType;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatVariable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
@@ -253,23 +252,23 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   @Override
   protected Path getTargetPath(Path pPath) {
     Model model = mCounterexampleTraceInfo.getCounterexample();
-    if (!(model instanceof MathsatModel)) {
-      logger.log(Level.WARNING, "Target path analysis is currently only supported for Mathsat!");
+    if (model.isEmpty()) {
+      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
       return pPath;
     }
     
     NavigableMap<Integer, Map<Integer, Boolean>> preds =
-                                getPredicateValuesFromModel((MathsatModel)model);
+                                getPredicateValuesFromModel(model);
     
     return createPathFromPredicateValues(pPath, preds);
   }
 
-  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(MathsatModel model) {
+  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(Model model) {
 
     NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
-    for (MathsatAssignable a : model.getAssignables()) {
-      if (a instanceof MathsatVariable && a.getType() == MathsatType.Boolean) {
+    for (AssignableTerm a : model.keySet()) {
+      if (a instanceof Variable && a.getType() == TermType.Boolean) {
         
         String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
         if (!name.equals(a.getName())) {
@@ -287,7 +286,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
             preds.put(idx, p);
           }
           
-          Boolean value = (Boolean)model.getValue(a);
+          Boolean value = (Boolean)model.get(a);
           p.put(edgeId, value);
         }             
       }

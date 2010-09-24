@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
+
 
 /**
  * @param <T> The type of the objects which can be used to select formulas for
