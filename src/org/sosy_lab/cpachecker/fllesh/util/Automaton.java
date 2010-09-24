@@ -1,18 +1,95 @@
 package org.sosy_lab.cpachecker.fllesh.util;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Iterator;
 import java.util.Set;
 
 public class Automaton<T> {
   
-  public class State {
+  public static class State {
     
-    private State() {
+    public final int ID;
+    
+    private State(int pId) {
+      ID = pId;
+    }
+    
+  }
+  
+  private static class StatePool {
+    
+    private static class StateIterable implements Iterable<State> {
+
+      private final Automaton<?> mAutomaton;
+      
+      public StateIterable(Automaton<?> pAutomaton) {
+        mAutomaton = pAutomaton;
+      }
+      
+      @Override
+      public Iterator<State> iterator() {
+        return new StateSetIterator(mAutomaton.mStatesCounter);
+      }
       
     }
     
+    private static class StateSetIterator implements Iterator<State> {
+
+      private final int mSize;
+      private int mCounter;
+      
+      public StateSetIterator(int pSize) {
+        mSize = pSize;
+        mCounter = 0;
+      }
+      
+      @Override
+      public boolean hasNext() {
+        return (mCounter < mSize);
+      }
+
+      @Override
+      public State next() {
+        return STATE_POOL.mPool.get(mCounter);
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+      
+    }
+    
+    private static final StatePool STATE_POOL = new StatePool(); 
+    
+    private ArrayList<State> mPool;
+    private int mNextStateId;
+    
+    private StatePool() {
+      mNextStateId = 0;
+      mPool = new ArrayList<State>();
+    }
+    
+    public State get(Automaton<?> pAutomaton) {
+      State lState;
+      
+      if (pAutomaton.mStatesCounter == mPool.size()) {
+        // we have to create a new state
+        lState = new State(mNextStateId++);
+        mPool.add(lState);
+      }
+      else {
+        // the pool contains more states than the automaton
+        // so return the next state not used in the automaton
+        lState = mPool.get(pAutomaton.mStatesCounter);
+      }
+      
+      // we add the state to the set of states of the automaton
+      pAutomaton.mStatesCounter++;
+      return lState;
+    }
   }
   
   public class Edge {
@@ -40,7 +117,7 @@ public class Automaton<T> {
     
     @Override
     public int hashCode() {
-      return mSource.hashCode() + mTarget.hashCode();
+      return 31 * mSource.ID + mTarget.ID;
     }
     
     @Override
@@ -58,56 +135,41 @@ public class Automaton<T> {
       }
       
       Edge lEdge = getClass().cast(pOther);
-        
-      return lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget) && lEdge.getLabel().equals(mLabel);
-    }
-  }
-  
-  private class LambdaEdge extends Edge {
-    
-    private LambdaEdge(State pSource, State pTarget) {
-      super(pSource, pTarget, null);
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
+      
+      if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
+        if (mLabel == null) {
+          return (lEdge.mLabel == null);
+        }
+        else {
+          return mLabel.equals(lEdge.mLabel);
+        }
       }
       
-      if (pOther == null) {
-        return false;
-      }
-      
-      if (!pOther.getClass().equals(getClass())) {
-        return false;
-      }
-      
-      LambdaEdge lEdge = getClass().cast(pOther);
-        
-      return lEdge.getSource().equals(getSource()) && lEdge.getTarget().equals(getTarget());
+      return false;
     }
-    
-    @Override
-    public String toString() {
-      return "Lambda";
-    }
-    
   }
   
   private State mInitialState;
   private HashSet<State> mFinalStates;
+
+  private final ArrayList<Set<Edge>> mOutgoingEdges;
+  private final ArrayList<Set<Edge>> mIncomingEdges;
+  private final ArrayList<Edge> mEdges;
   
-  private final Map<State, Set<Edge>> mOutgoingEdges;
-  private final Map<State, Set<Edge>> mIncomingEdges;
+  private int mStatesCounter;
+  private final StatePool.StateIterable mStateIterable;
   
   public Automaton() {
+    mStateIterable = new StatePool.StateIterable(this);
+    
     mFinalStates = new HashSet<State>();
     
-    mOutgoingEdges = new HashMap<State, Set<Edge>>();
-    mIncomingEdges = new HashMap<State, Set<Edge>>();
+    mOutgoingEdges = new ArrayList<Set<Edge>>();
+    mIncomingEdges = new ArrayList<Set<Edge>>();
     
-    setInitialState(this.createState());
+    mEdges = new ArrayList<Edge>();
+    
+    setInitialState(createState());
   }
   
   public State getInitialState() {
@@ -123,7 +185,7 @@ public class Automaton<T> {
   }
   
   public void setFinalStates(Set<State> pFinalStates) {
-    mFinalStates = new HashSet<State>();
+    mFinalStates.clear();
     mFinalStates.addAll(pFinalStates);
   }
   
@@ -131,101 +193,85 @@ public class Automaton<T> {
     mFinalStates.add(pFinalStates);
   }
   
-  public Set<State> getStates() {
-    return mOutgoingEdges.keySet();
+  public Iterable<State> getStates() {
+    return mStateIterable;
   }
   
   public State createState() {
-    State lState = new State();
+    State lState = StatePool.STATE_POOL.get(this);
     
-    mOutgoingEdges.put(lState, new HashSet<Edge>());
-    mIncomingEdges.put(lState, new HashSet<Edge>());
-
+    mOutgoingEdges.add(new HashSet<Edge>());
+    mIncomingEdges.add(new HashSet<Edge>());
+    
     return lState;
-  }
-
-  public LambdaEdge createLambdaEdge(State pState1, State pState2) {
-    LambdaEdge lEdge = new LambdaEdge(pState1, pState2);
-      
-    mOutgoingEdges.get(pState1).add(lEdge);
-    mIncomingEdges.get(pState2).add(lEdge);
-    
-    return lEdge;
   }
   
   /*
    * if pLabel is null it is treated as lambda.
    * 
    */
-  public Edge createEdge(State pState1, State pState2, T pLabel) {
-    Edge lEdge = new Edge(pState1, pState2, pLabel);
+  public Edge createEdge(State pSource, State pTarget, T pLabel) {
+    Edge lEdge = new Edge(pSource, pTarget, pLabel);
+    addEdge(pSource, pTarget, lEdge);
     
-    mOutgoingEdges.get(pState1).add(lEdge);
-    mIncomingEdges.get(pState2).add(lEdge);
-
     return lEdge;
   }
   
-  public Set<Edge> getEdges() {
-    Set<Edge> lEdges = new HashSet<Edge>();
-    
-    for (Set<Edge> lOutgoingEdges : mOutgoingEdges.values()) {
-      lEdges.addAll(lOutgoingEdges);
-    }
-    
-    return lEdges;
+  private void addEdge(State pSource, State pTarget, Edge pEdge) {
+    mOutgoingEdges.get(pSource.ID).add(pEdge);
+    mIncomingEdges.get(pTarget.ID).add(pEdge);
+    mEdges.add(pEdge);
+  }
+  
+  public Iterable<Edge> getEdges() {
+    return mEdges;
   }
 
-  public Set<Edge> getOutgoingEdges(State pState) {
-    return mOutgoingEdges.get(pState);
+  public Collection<Edge> getOutgoingEdges(State pState) {
+    return mOutgoingEdges.get(pState.ID);
   }
 
-  public Set<Edge> getIncomingEdges(State pState) {
-    return mIncomingEdges.get(pState);
+  public Collection<Edge> getIncomingEdges(State pState) {
+    return mIncomingEdges.get(pState.ID);
   }
   
   public Automaton<T> getLambdaFreeAutomaton() {
     Automaton<T> lLambdaFreeAutomaton = new Automaton<T>();
     
-    Map<State, State> lStateMapping = new HashMap<State, State>();
+    // mStatesCounter - 1 because the initial state of lLambdaFreeAutomaton
+    // exists already
+    for (int lIndex = 0; lIndex < mStatesCounter - 1; lIndex++) {
+      lLambdaFreeAutomaton.createState();
+    }
+    
+    // we use the same states for lLambdaFreeAutomaton so we can use our
+    // final states as its final states
+    Set<State> lFinalStates = getFinalStates();
+    lLambdaFreeAutomaton.setFinalStates(getFinalStates());
     
     State lInitialState = getInitialState();
     
-    lStateMapping.put(lInitialState, lLambdaFreeAutomaton.getInitialState());
-    
-    for (State lState : getStates()) {
-      if (!lState.equals(lInitialState)) {
-        lStateMapping.put(lState, lLambdaFreeAutomaton.createState());
-      }
-    }
-    
-    Set<State> lFinalStates = getFinalStates();
-    
-    for (State lFinalState : lFinalStates) {
-      lLambdaFreeAutomaton.addToFinalStates(lStateMapping.get(lFinalState));
-    }
-    
-    Set<State> lInitialClosure = getLambdaClosure(lInitialState);
-    
-    for (State lState : lInitialClosure) {
+    for (State lState : getLambdaClosure(lInitialState)) {
       if (lFinalStates.contains(lState)) {
         lLambdaFreeAutomaton.addToFinalStates(lInitialState);
       }
     }
     
     for (State lState : getStates()) {
-      Set<State> lClosure = this.getLambdaClosure(lState);
-      
-      for (State lClosureElement : lClosure) {
+      for (State lClosureElement : getLambdaClosure(lState)) {
         for (Edge lOutgoingEdge : getOutgoingEdges(lClosureElement)) {
           if (lOutgoingEdge.getLabel() != null) {
             // not a lambda edge
             State lTarget = lOutgoingEdge.getTarget();
             
-            Set<State> lTargetClosure = this.getLambdaClosure(lTarget);
-            
-            for (State lTargetClosureElement : lTargetClosure) {
-              lLambdaFreeAutomaton.createEdge(lStateMapping.get(lState), lStateMapping.get(lTargetClosureElement), lOutgoingEdge.getLabel());
+            for (State lTargetClosureElement : getLambdaClosure(lTarget)) {
+              // again, we use the same states in lLambdaFreeAutomaton
+              if (lOutgoingEdge.getSource().equals(lState) && lOutgoingEdge.getTarget().equals(lTargetClosureElement)) {
+                lLambdaFreeAutomaton.addEdge(lState, lTargetClosureElement, lOutgoingEdge);
+              }
+              else {
+                lLambdaFreeAutomaton.createEdge(lState, lTargetClosureElement, lOutgoingEdge.getLabel());
+              }
             }
           }
         }
@@ -234,16 +280,6 @@ public class Automaton<T> {
     
     return lLambdaFreeAutomaton;
   }
-  
-  /*private Set<State> getLambdaClosure(Set<State> pStates) {
-    Set<State> lClosure = new HashSet<State>();
-    
-    for (State lState : pStates) {
-      lClosure.addAll(getLambdaClosure(lState));
-    }
-    
-    return lClosure;
-  }*/
   
   private Set<State> getLambdaClosure(State pState) {
     Set<State> lClosure = new HashSet<State>();
@@ -261,10 +297,9 @@ public class Automaton<T> {
       
       lClosure.add(lCurrentState);
       
-      for (Edge lOutgoingEdge : this.getOutgoingEdges(lCurrentState)) {
+      for (Edge lOutgoingEdge : getOutgoingEdges(lCurrentState)) {
         if (lOutgoingEdge.getLabel() == null) {
           // lambda edge
-          // TODO make this nicer (use of LambdaEdge)
           State lTarget = lOutgoingEdge.getTarget();
           
           lWorkset.add(lTarget);
@@ -278,16 +313,9 @@ public class Automaton<T> {
   
   @Override
   public String toString() {
-    Map<State, Integer> lIdMap = new HashMap<State, Integer>();
-    
-    for (State lState : getStates()) {
-      lIdMap.put(lState, lIdMap.size());
-    }
-    
     StringBuffer lBuffer = new StringBuffer();
     
-    lBuffer.append("Initial State: " + lIdMap.get(getInitialState()));
-    lBuffer.append("\n");
+    lBuffer.append("Initial State: " + getInitialState().ID + "\n");
     
     lBuffer.append("Final States: { ");
     
@@ -301,9 +329,7 @@ public class Automaton<T> {
         lBuffer.append(", ");
       }
       
-      System.out.println(lFinalState);
-      
-      lBuffer.append(lIdMap.get(lFinalState).toString());
+      lBuffer.append(lFinalState.ID);
     }
     
     lBuffer.append(" }\n");
@@ -317,11 +343,10 @@ public class Automaton<T> {
         lLabelString = lLabel.toString();          
       }
       else {
-        // TODO beautify
         lLabelString = "Lambda";
       }
       
-      lBuffer.append(lIdMap.get(lEdge.getSource()) + " -[" + lLabelString + "]> " + lIdMap.get(lEdge.getTarget()));
+      lBuffer.append(lEdge.getSource().ID + " -[" + lLabelString + "]> " + lEdge.getTarget().ID);
       lBuffer.append("\n");
     }
     

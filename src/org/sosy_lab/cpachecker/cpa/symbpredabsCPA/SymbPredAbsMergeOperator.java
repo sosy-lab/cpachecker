@@ -68,8 +68,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
-      // don't merge if the elements are in different blocks (they have different abstraction ids)
-      if (elem1.getAbstractionId() != elem2.getAbstractionId()) {
+      // don't merge if the elements are in different blocks (they have different abstractions)
+      if (!elem1.getAbstraction().equals(elem2.getAbstraction())) {
         merged = elem2;
       
       } else {
@@ -78,8 +78,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         // abstraction locations, artParents are same because they have the same
         // abstraction path
         assert (elem1.getAbstraction().equals(elem2.getAbstraction()));
-        assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
-        assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
@@ -87,10 +85,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
                 
-        merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
-            pathFormula, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
-            elem1.getAbstractionId(),
-            Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
+        merged = new SymbPredAbsAbstractElement(false, pathFormula, elem1.getAbstraction());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

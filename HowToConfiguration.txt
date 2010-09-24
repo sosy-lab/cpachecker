@@ -321,6 +321,7 @@ cpas.symbpredabs.refinement.useBlastWay = false
 # refinement will try to build "well-scoped" predicates, by cutting spurious
 # traces as explained in Section 5.2 of the paper "Abstractions From Proofs"
 # (this does not work with function inlining)
+# THIS FEATURE IS CURRENTLY NOT AVAILABLE. 
 cpas.symbpredabs.refinement.addWellScopedPredicates = false
 
 # refinement will add all discovered predicates to all the locations in the abstract trace

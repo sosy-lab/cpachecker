@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 
@@ -153,6 +152,8 @@ public interface SymbolicFormulaManager {
 
   public SymbolicFormula makeVariable(String pVar, int pIdx);
   
+  public SymbolicFormula makePredicateVariable(String pVar, int pIdx);
+  
   public SymbolicFormula makeAssignment(SymbolicFormula pF1, SymbolicFormula pF2);
 
   // ----------------- Convert to list -----------------
@@ -199,27 +200,6 @@ public interface SymbolicFormulaManager {
      */
     public SymbolicFormula uninstantiate(SymbolicFormula pF);
 
-    /**
-     * "shifts" forward all the variables in the formula f, of the amount
-     * given by the input ssa. That is, variables x with index 1 in f will be
-     * replaced by variables with index ssa.getIndex(x), vars with index 2 by
-     * vars with index ssa.getIndex(x)+1, and so on.
-     * Returns the new formula and the ssa map with the final index for each
-     * variable
-     * @param f the SymbolicFormula to shift
-     * @param ssa the SSAMap to use for shifting
-     * @return the shifted formula and the new SSA map
-     */
-    public PathFormula shift(SymbolicFormula f, SSAMap ssa);
-
-    /**
-     * The path formulas have an uninterpreted function :=
-     * where an assignment should be. This method replaces all those appearances
-     * by equalities (which is a valid representation of an assignment for a SSA
-     * formula).
-     */
-    public SymbolicFormula replaceAssignments(SymbolicFormula f);
-      
     /**
      * Extracts the atoms from the given formula. Any SSA indices are removed
      * from the symbols in the atoms.

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -69,7 +70,7 @@ public class UninitializedVariablesStatistics implements Statistics {
           UninitializedVariablesElement uninitElement =
             ((AbstractWrapperElement)reachedElement).retrieveWrappedElement(UninitializedVariablesElement.class);
           if (uninitElement != null) {
-            Set<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
+            Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
             //warnings are identified by line number and variable name
             Pair<Integer, String> warningIndex;
             for(Triple<Integer, String, String> warning : warnings) {

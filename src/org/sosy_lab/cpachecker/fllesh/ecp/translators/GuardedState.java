@@ -9,27 +9,27 @@ import java.util.Set;
 
 public class GuardedState {
 
-  private Automaton<GuardedLabel>.State mState;
+  private Automaton.State mState;
   private Set<ECPGuard> mGuards;
   
-  public GuardedState(Automaton<GuardedLabel>.State pCurrentState) {
+  public GuardedState(Automaton.State pCurrentState) {
     mState = pCurrentState;
     mGuards = Collections.emptySet();
   }
   
-  public GuardedState(Automaton<GuardedLabel>.State pState, Set<ECPGuard> pGuards) {
+  public GuardedState(Automaton.State pState, Set<ECPGuard> pGuards) {
     mState = pState;
     mGuards = pGuards;
   }
   
-  public GuardedState(Automaton<GuardedLabel>.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
+  public GuardedState(Automaton.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
     mState = pState;
     mGuards = new HashSet<ECPGuard>();
     mGuards.addAll(pPreceedingState.mGuards);
     mGuards.addAll(pGuards);
   }
   
-  public Automaton<GuardedLabel>.State getState() {
+  public Automaton.State getState() {
     return mState;
   }
   

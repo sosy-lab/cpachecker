@@ -17,19 +17,19 @@ public class AutomatonPrettyPrinter {
     return lPrettyPrinter.printPretty(pAutomaton);
   }
   
-  private Map<Automaton<? extends GuardedLabel>.State, String> mStateIds;
+  private Map<Automaton.State, String> mStateIds;
   private Map<ECPEdgeSet, String> mEdgeSetIds;
   private Map<ECPNodeSet, String> mNodeSetIds;
   private Visitor mVisitor;
   
   public AutomatonPrettyPrinter() {
-    mStateIds = new HashMap<Automaton<? extends GuardedLabel>.State, String>();
+    mStateIds = new HashMap<Automaton.State, String>();
     mEdgeSetIds = new HashMap<ECPEdgeSet, String>();
     mNodeSetIds = new HashMap<ECPNodeSet, String>();
     mVisitor = new Visitor();
   }
   
-  private String getId(Automaton<? extends GuardedLabel>.State pState) {
+  private String getId(Automaton.State pState) {
     if (!mStateIds.containsKey(pState)) {
       mStateIds.put(pState, "S" + mStateIds.size());
     }
@@ -57,7 +57,7 @@ public class AutomatonPrettyPrinter {
     return printPretty(pEdge.getSource()) + " -[" + pEdge.getLabel().accept(mVisitor) + "]> " + printPretty(pEdge.getTarget());
   }
   
-  public String printPretty(Automaton<? extends GuardedLabel>.State pState) {
+  public String printPretty(Automaton.State pState) {
     return getId(pState);
   }
   
@@ -67,7 +67,7 @@ public class AutomatonPrettyPrinter {
     boolean lIsFirst = true;
     
     lBuffer.append("States: {");
-    for (Automaton<? extends GuardedLabel>.State lState : pAutomaton.getStates()) {
+    for (Automaton.State lState : pAutomaton.getStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -86,7 +86,7 @@ public class AutomatonPrettyPrinter {
     
     lIsFirst = true;
     
-    for (Automaton<? extends GuardedLabel>.State lFinalState : pAutomaton.getFinalStates()) {
+    for (Automaton.State lFinalState : pAutomaton.getFinalStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }

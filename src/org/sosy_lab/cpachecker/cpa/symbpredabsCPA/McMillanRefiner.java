@@ -135,7 +135,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
         foundInterpolant = true;
       }
 
-      AbstractFormula abs = e.getAbstraction();
+      AbstractFormula abs = e.getAbstraction().asAbstractFormula();
 
       boolean newPred = false;
 
@@ -159,7 +159,8 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       }
 
       if (newPred) {
-        e.setAbstraction(abs);
+        throw new UnsupportedOperationException("TODO");
+/*        e.setAbstraction(abs);
         pReached.removeCoverage(ae);
 //        strengthened.add(ae);
 
@@ -169,6 +170,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
           return;
         }
+*/
       }
     }
     assert root != null : "Infeasible path without interpolant false at some time cannot exist";

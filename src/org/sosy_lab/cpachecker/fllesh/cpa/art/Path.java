@@ -21,10 +21,32 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.interpreter;
+package org.sosy_lab.cpachecker.fllesh.cpa.art;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import java.util.LinkedList;
 
-public interface InterpreterDomainElement extends AbstractElement {
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+
+import org.sosy_lab.common.Pair;
+
+
+public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
+
+  private static final long serialVersionUID = -3223480082103314555L;
+
+  @Override
+  public String toString() {
+    StringBuffer sb = new StringBuffer();
+
+    for (Pair<ARTElement, CFAEdge> pair : this) {
+      sb.append("Line ");
+      sb.append(pair.getSecond().getLineNumber());
+      sb.append(": ");
+      sb.append(pair.getSecond());
+      sb.append("\n");
+    }
+
+    return sb.toString();
+  }
 
 }

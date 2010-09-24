@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
@@ -39,59 +40,63 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  */
 public class UninitializedVariablesElement implements AbstractQueryableElement {
 
-  private final Set<String> globalVars;
-  private final Deque<Pair<String, Set<String>>> localVars;
+  private final Collection<String> globalVars;
+  private final Deque<Pair<String, Collection<String>>> localVars;
 
-  private final Set<Triple<Integer, String, String>> warnings;
+  private final Collection<Triple<Integer, String, String>> warnings;
 
   static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
   public UninitializedVariablesElement(String entryFunction) {
-    globalVars = new HashSet<String>();
-    localVars = new LinkedList<Pair<String, Set<String>>>();
-    warnings = new HashSet<Triple<Integer, String, String>>();
+    globalVars = new ArrayList<String>();
+    localVars = new LinkedList<Pair<String, Collection<String>>>();
+    warnings = new ArrayList<Triple<Integer, String, String>>();
     // create context of the entry function
     callFunction(entryFunction);
   }
 
-  public UninitializedVariablesElement(Set<String> globalVars,
-                                       Deque<Pair<String, Set<String>>> localVars,
-                                       Set<Triple<Integer, String, String>> warnings) {
+  public UninitializedVariablesElement(Collection<String> globalVars,
+                                       Deque<Pair<String, Collection<String>>> localVars,
+                                       Collection<Triple<Integer, String, String>> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
   }
 
   public void addGlobalVariable(String name) {
-    globalVars.add(name);
+    if (!globalVars.contains(name)) {
+      globalVars.add(name);
+    }
   }
 
   public void removeGlobalVariable(String name) {
     globalVars.remove(name);
   }
 
-  public Set<String> getGlobalVariables() {
+  public Collection<String> getGlobalVariables() {
     return globalVars;
   }
 
   public void addLocalVariable(String name) {
-    localVars.peekLast().getSecond().add(name);
+    if (!localVars.peekLast().getSecond().contains(name)) {
+      localVars.peekLast().getSecond().add(name);
+    }
   }
 
   public void removeLocalVariable(String name) {
     localVars.peekLast().getSecond().remove(name);
   }
 
-  public Set<String> getLocalVariables() {
+  public Collection<String> getLocalVariables() {
     return localVars.peekLast().getSecond();
   }
 
-  public Deque<Pair<String, Set<String>>> getallLocalVariables() {
+  public Deque<Pair<String, Collection<String>>> getallLocalVariables() {
     return localVars;
   }
 
-  public Set<Triple<Integer, String, String>> getWarnings() {
+  public Collection<Triple<Integer, String, String>> getWarnings() {
     return warnings;
   }
 
@@ -101,7 +106,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(new Pair<String, Set<String>>(functionName, new HashSet<String>()));
+    localVars.addLast(new Pair<String, Collection<String>>(functionName, new ArrayList<String>()));
   }
 
   public void returnFromFunction() {
@@ -137,15 +142,16 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   @Override
   protected UninitializedVariablesElement clone() {
-    LinkedList<Pair<String, Set<String>>> newLocalVars = new LinkedList<Pair<String, Set<String>>>();
+    LinkedList<Pair<String, Collection<String>>> newLocalVars = 
+                                    new LinkedList<Pair<String, Collection<String>>>();
 
-    for (Pair<String, Set<String>> localSet : localVars) {
-      newLocalVars.addLast(new Pair<String, Set<String>>(localSet.getFirst(),
-                                                     new HashSet<String>(localSet.getSecond())));
+    for (Pair<String, Collection<String>> localContext : localVars) {
+      newLocalVars.addLast(new Pair<String, Collection<String>>(localContext.getFirst(),
+                                                     new ArrayList<String>(localContext.getSecond())));
     }
 
-    return new UninitializedVariablesElement(new HashSet<String>(globalVars), newLocalVars,
-                                             new HashSet<Triple<Integer, String, String>>(warnings));
+    return new UninitializedVariablesElement(new ArrayList<String>(globalVars), newLocalVars,
+                                             new ArrayList<Triple<Integer, String, String>>(warnings));
   }
 
   @Override
@@ -155,7 +161,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     for (String var : globalVars) {
       sb.append(" " + var + " ");
     }
-    for (Pair<String, Set<String>> stackframe: localVars) {
+    for (Pair<String, Collection<String>> stackframe: localVars) {
       sb.append("> <" + stackframe.getFirst() + ":");
       for (String var : stackframe.getSecond()) {
         sb.append(" " + var + " ");

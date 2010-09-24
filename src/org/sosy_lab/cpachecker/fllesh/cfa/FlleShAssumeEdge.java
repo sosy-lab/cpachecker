@@ -7,7 +7,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 public class FlleShAssumeEdge extends AssumeEdge {
 
   public FlleShAssumeEdge(CFANode pNode, IASTExpression pExpression) {
-    super(pExpression.getRawSignature(), FlleShCFANode.FlleShLineNumber, new FlleShCFANode(pNode), new FlleShCFANode(pNode), pExpression, true);
+    // TODO how to handle the assume edge id?
+    super(pExpression.getRawSignature(), FlleShCFANode.FlleShLineNumber, new FlleShCFANode(pNode), new FlleShCFANode(pNode), pExpression, true, -1);
   }
 
 }

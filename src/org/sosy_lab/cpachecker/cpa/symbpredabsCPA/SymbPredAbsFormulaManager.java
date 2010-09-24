@@ -28,8 +28,8 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -45,8 +45,8 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
     /**
      * Abstract post operation.
      */
-    public AbstractFormula buildAbstraction(
-            AbstractFormula abs, PathFormula pathFormula,
+    public Abstraction buildAbstraction(
+            Abstraction abs, PathFormula pathFormula,
             Collection<Predicate> predicates);
 
     /**
@@ -62,10 +62,10 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * @param pPathFormula the path formula
      * @return unsat(pAbstractionFormula & pPathFormula)
      */
-    boolean unsat(AbstractFormula pAbstractionFormula, PathFormula pPathFormula);
+    boolean unsat(Abstraction pAbstractionFormula, PathFormula pPathFormula);
     
     /**
      * Checks if (a1 & p1) => a2
      */
-    boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2);
+    boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2);
 }

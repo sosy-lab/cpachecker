@@ -23,88 +23,82 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class InterpreterCPA implements org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis {
+public class InterpreterCPA implements ConfigurableProgramAnalysis {
 
-  private static class ConcreteAnalysisCPAFactory extends AbstractCPAFactory {
+  private AbstractDomain abstractDomain;
+  private MergeOperator mergeOperator;
+  private StopOperator stopOperator;
+  private TransferRelation transferRelation;
+  private PrecisionAdjustment precisionAdjustment;
 
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new InterpreterCPA(getLogger());
-    }
-  }
+  public InterpreterCPA(int[] pValuesForNondeterministicAssignments) {
+    InterpreterDomain explicitAnalysisDomain = new InterpreterDomain ();
+    MergeOperator explicitAnalysisMergeOp = MergeSepOperator.getInstance();
+    
+    StopOperator explicitAnalysisStopOp = StopNeverOperator.getInstance();
 
-  public static CPAFactory factory() {
-    return new ConcreteAnalysisCPAFactory();
-  }
+    TransferRelation explicitAnalysisTransferRelation = new InterpreterTransferRelation(pValuesForNondeterministicAssignments);
 
-  private InterpreterDomain mAbstractDomain;
-  private MergeOperator mMergeOperator;
-  private StopOperator mStopOperator;
-  private InterpreterTransferRelation mTransferRelation;
-  private PrecisionAdjustment mPrecisionAdjustment;
-
-  public InterpreterCPA(LogManager logger) {
-
-    this.mAbstractDomain = InterpreterDomain.getInstance();
-
-    this.mTransferRelation = new InterpreterTransferRelation(this.mAbstractDomain, logger);
-
-    this.mMergeOperator = MergeSepOperator.getInstance();
-    this.mStopOperator = new StopSepOperator(this.mAbstractDomain.getPartialOrder());
-    this.mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.abstractDomain = explicitAnalysisDomain;
+    this.mergeOperator = explicitAnalysisMergeOp;
+    this.stopOperator = explicitAnalysisStopOp;
+    this.transferRelation = explicitAnalysisTransferRelation;
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
-  public InterpreterDomain getAbstractDomain()
+  public AbstractDomain getAbstractDomain ()
   {
-    return mAbstractDomain;
+    return abstractDomain;
   }
 
   @Override
-  public MergeOperator getMergeOperator()
+  public MergeOperator getMergeOperator ()
   {
-    return this.mMergeOperator;
+    return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator()
+  public StopOperator getStopOperator ()
   {
-    return mStopOperator;
+    return stopOperator;
   }
 
   @Override
-  public InterpreterTransferRelation getTransferRelation()
+  public TransferRelation getTransferRelation ()
   {
-    return mTransferRelation;
+    return transferRelation;
   }
 
   @Override
-  public InterpreterElement getInitialElement(CFAFunctionDefinitionNode node)
+  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
   {
     return new InterpreterElement();
   }
 
   @Override
-  public SingletonPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return SingletonPrecision.getInstance();
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return mPrecisionAdjustment;
+    return precisionAdjustment;
   }
 
 }

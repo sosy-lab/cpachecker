@@ -29,7 +29,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import org.sosy_lab.common.Pair;
 
-
+/**
+ * Path contains a path throught the ART that starts at the root node.
+ * It is implemented as a list of pairs of an ARTElement and a CFAEdge,
+ * where the edge of a pair is the outgoing edge of the element.
+ * The first pair contains the root node of the ART.
+ */
 public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
   private static final long serialVersionUID = -3223480082103314555L;

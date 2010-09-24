@@ -6,22 +6,20 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslat
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class Goal {
-
+  
   private ElementaryCoveragePattern mPattern;
   private Automaton<GuardedEdgeLabel> mAutomaton;
   private boolean mContainsPredicates;
   
-  public Goal(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
+  public Goal(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
     mPattern = pPattern;
-    mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pWrapper.getAlphaEdge(), pWrapper.getOmegaEdge());
+    mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     
     mContainsPredicates = false;
     
     for (Automaton<GuardedEdgeLabel>.Edge lEdge : mAutomaton.getEdges()) {
-      GuardedEdgeLabel lLabel = lEdge.getLabel();
-
       // pAutomaton only contains predicates as guards anymore (by construction)
-      if (lLabel.hasGuards()) {
+      if (lEdge.getLabel().hasGuards()) {
         mContainsPredicates = true;
       }
     }

@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 
 import com.google.common.base.Preconditions;
 
@@ -40,99 +39,35 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
 
   /** If the element is on an abstraction location */
   private final boolean isAbstractionNode;
-  /** This is a pointer to the last abstraction node, when the computed abstract element
-   * is an abstraction node, this node is set to the new abstraction node, otherwise it is
-   * the same node with the last element's abstraction node  */
-  private final CFANode abstractionLocation;
+
   /** The path formula for the path from the last abstraction node to this node.
    * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
   private final PathFormula pathFormula;
-  /** If this node is not and abstraction node, then this is invalid;
-   * otherwise this is the {@link PathFormula} of the last element before the
-   * abstraction is computed. This formula is used by the refinement procedure
-   * to build the formula to the error location */
-  private final PathFormula initAbstractionFormula;
+
   /** The abstraction which is updated only on abstraction locations */
-  private AbstractFormula abstraction;
-
-  /** The unique id for the abstraction */
-  private final int abstractionId;
+  private Abstraction abstraction;
   
-  private static int nextAbstractionId = 0;
-  
-  private final int sizeSinceAbstraction;
-
   /**
    * The abstract element this element was merged into.
    * Used for fast coverage checks.
    */
   private SymbPredAbsAbstractElement mergedInto = null;
   
-  public SymbPredAbsAbstractElement() {
+  SymbPredAbsAbstractElement() {
     this.isAbstractionNode = false;
-    this.abstractionLocation = null;
     this.pathFormula = null;
-    this.initAbstractionFormula = null;
     this.abstraction = null;
-    this.abstractionId = nextAbstractionId++;
-    this.sizeSinceAbstraction = 0;
   }
 
-  /**
-   * Constructor for abstraction element.
-   * @param abstLoc The CFANode where the abstraction took place.
-   * @param pf  The new path formula.
-   * @param initFormula The path formula before the abstraction.
-   * @param a The abstraction.
-   */
-  public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a){
-    // set 'isAbstractionLocation' to true
-    this.isAbstractionNode = true;
-    this.abstractionLocation = abstLoc;
+  public SymbPredAbsAbstractElement(boolean isAbstractionNode, PathFormula pf, Abstraction a) {
+    this.isAbstractionNode = isAbstractionNode;
     this.pathFormula = pf;
-    this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-    this.abstractionId = nextAbstractionId++;
-    this.sizeSinceAbstraction = 0;
   }
   
-  /**
-   * Constructor for non-abstraction location.
-   * @param abstLoc
-   * @param pf
-   * @param pfParentsList
-   * @param initFormula
-   * @param a
-   * @param sizeSinceAbstraction
-   */
-  public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a, int abstractionId,
-      int sizeSinceAbstraction){
-    this.isAbstractionNode = false;
-    this.abstractionLocation = abstLoc;
-    this.pathFormula = pf;
-    this.initAbstractionFormula = initFormula;
-    this.abstraction = a;
-    this.abstractionId = abstractionId;
-    this.sizeSinceAbstraction = sizeSinceAbstraction;
-  }
-  
-  public AbstractFormula getAbstraction() {
+  public Abstraction getAbstraction() {
     return abstraction;
-  }
-
-  public int getAbstractionId() {
-    return abstractionId;
-  }
-
-  public CFANode getAbstractionLocation() {
-    return abstractionLocation;
-  }
-
-  public PathFormula getInitAbstractionFormula() {
-    return initAbstractionFormula;
   }
 
   SymbPredAbsAbstractElement getMergedInto() {
@@ -143,15 +78,11 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     return pathFormula;
   }
 
-  public int getSizeSinceAbstraction() {
-    return sizeSinceAbstraction;
-  }
-
   public boolean isAbstractionNode(){
     return isAbstractionNode;
   }
 
-  public void setAbstraction(AbstractFormula pAbstraction) {
+  public void setAbstraction(Abstraction pAbstraction) {
     abstraction = pAbstraction;
   }
 
@@ -163,7 +94,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   @Override
   public String toString() {
     return "Abstraction location: " + isAbstractionNode
-        + " Abstraction id: " + abstractionId;
+        + " Abstraction: " + abstraction;
   }
   
   @Override
@@ -172,7 +103,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
       // all abstraction nodes are in one block (for coverage checks)
       return null;
     } else {
-      return abstractionId;
+      return abstraction;
     }
   }
 }

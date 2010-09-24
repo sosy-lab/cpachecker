@@ -4,7 +4,9 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 
 public class GuardedLambdaLabel extends GuardedLabel {
 
-  public GuardedLambdaLabel() {
+  public static final GuardedLambdaLabel UNGUARDED_LAMBDA_LABEL = new GuardedLambdaLabel();
+  
+  private GuardedLambdaLabel() {
     super();
   }
   

@@ -5,13 +5,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -25,59 +20,39 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   private final AbstractElement mBottomElement;
   private final Automaton<GuardedEdgeLabel> mAutomaton;
   
-  private String mInputFunctionName;
-  private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
+  private final HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
   
-  private HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
+  private final HashSet<GuardedEdgeAutomatonStateElement> mSuccessors;
   
-  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton) {
+  private final Collection<Automaton.State> mReachedAutomatonStates; 
+  
+  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
     mTopElement = pDomain.getTopElement();
     mBottomElement = pDomain.getBottomElement();
     mAutomaton = pAutomaton;
     
-    createCache(pAutomaton);
-  }
-  
-  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
-    mTopElement = pDomain.getTopElement();
-    mBottomElement = pDomain.getBottomElement();
-    mAutomaton = pAutomaton;
-    
-    if (pInputFunctionName == null) {
-      throw new IllegalArgumentException();
-    }
-    
-    mInputFunctionName = pInputFunctionName;
-    mReplacedEdges = pReplacedEdges;
-    
-    createCache(pAutomaton);
-  }
-  
-  private void createCache(Automaton<GuardedEdgeLabel> pAutomaton) {
+    // create cache
     mCache = new HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement>();
     
+    HashMap<GuardedEdgeAutomatonStateElement, Automaton<GuardedEdgeLabel>.Edge> lTmpCache = new HashMap<GuardedEdgeAutomatonStateElement, Automaton<GuardedEdgeLabel>.Edge>(); 
+    
     for (Automaton<GuardedEdgeLabel>.Edge lAutomatonEdge : pAutomaton.getEdges()) {
-      mCache.put(lAutomatonEdge, GuardedEdgeAutomatonStateElement.create(lAutomatonEdge, pAutomaton));
+      GuardedEdgeAutomatonStateElement lElement = GuardedEdgeAutomatonStateElement.create(lAutomatonEdge, pAutomaton);
+      
+      if (lTmpCache.containsKey(lElement)) {
+        lElement = mCache.get(lTmpCache.get(lElement));
+      }
+      else {
+        lTmpCache.put(lElement, lAutomatonEdge);
+      }
+      
+      mCache.put(lAutomatonEdge, lElement);
     }
+    
+    mSuccessors = new HashSet<GuardedEdgeAutomatonStateElement>();
+    
+    mReachedAutomatonStates = pReachedAutomatonStates;
   }
-  
-  public void setInputFunctionName(String pInputFunctionName, Map<CallToReturnEdge, CFAEdge> pReplacedEdges) {
-    if (pInputFunctionName == null) {
-      throw new IllegalArgumentException();
-    }
-    
-    if (pReplacedEdges == null) {
-      throw new IllegalArgumentException();
-    }
-    
-    if (mInputFunctionName != null) {
-      throw new UnsupportedOperationException();
-    }
-    
-    mInputFunctionName = pInputFunctionName;
-    mReplacedEdges = pReplacedEdges;
-  }
-  
   
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
@@ -96,41 +71,22 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
       throw new IllegalArgumentException();
     }
     
-    if (mInputFunctionName != null) {
-      CFANode lPredecessor = pCfaEdge.getPredecessor();
-      CFANode lSuccessor = pCfaEdge.getSuccessor();
-      
-      if (lPredecessor.getFunctionName().equals(mInputFunctionName)
-          && !lSuccessor.getFunctionName().equals(mInputFunctionName)) {
-        if (!pCfaEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
-          throw new RuntimeException();
-        }
-        
-        // now we have to simulate one step in the automaton
-        pCfaEdge = mReplacedEdges.get(lSuccessor.getEnteringSummaryEdge());
-        
-        if (pCfaEdge == null) {
-          throw new RuntimeException();
-        }
-      }
-      else if (lPredecessor.getFunctionName().equals(mInputFunctionName) 
-          || lSuccessor.getFunctionName().equals(mInputFunctionName)) {
-        return Collections.singleton(pElement);
-      }
+    GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
+    
+    if (mReachedAutomatonStates != null) {
+      mReachedAutomatonStates.add(lCurrentElement.getAutomatonState());
     }
     
-    Set<GuardedEdgeAutomatonStateElement> lSuccessors = new HashSet<GuardedEdgeAutomatonStateElement>();
-    
-    GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
+    mSuccessors.clear();
     
     for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
       if (lLabel.contains(pCfaEdge)) {
-        lSuccessors.add(mCache.get(lOutgoingEdge));
+        mSuccessors.add(mCache.get(lOutgoingEdge));
       }
     }
     
-    return lSuccessors;
+    return mSuccessors;
   }
 
   @Override

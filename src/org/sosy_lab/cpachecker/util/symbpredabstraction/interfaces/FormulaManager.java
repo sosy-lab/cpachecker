@@ -28,8 +28,8 @@ import java.io.File;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 public interface FormulaManager {
 
@@ -42,14 +42,12 @@ public interface FormulaManager {
 
   /**
    * Creates a formula representing an AND of the two argument.
-   * @param f1 a SymbolicFormula
+   * @param pf a PathFormula
    * @param e a CFA edge
-   * @param ssa the SSA map for resolving variables
-   * @return The formula (f1 & e), and the new/updated SSAMap
+   * @return The formula (pf & e), and the new/updated SSAMap
    * @throws CPATransferException 
    */
-  public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e, SSAMap ssa)
-      throws CPATransferException;
+  public PathFormula makeAnd(PathFormula pf, CFAEdge e) throws CPATransferException;
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
@@ -64,9 +62,20 @@ public interface FormulaManager {
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
   /**
+   * Creates a new Abstraction object that represents the formula "true".
+   */
+  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula);
+  
+  /**
    * Creates a new empty path formula.
    */
   public PathFormula makeEmptyPathFormula();
+  
+  /**
+   * Creates a new empty path formula, but copies SSAMap, reachingPathsFormula
+   * and branchingCounter from oldFormula.
+   */
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula);
   
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and

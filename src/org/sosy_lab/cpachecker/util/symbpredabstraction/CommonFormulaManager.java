@@ -25,15 +25,16 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -213,13 +214,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       } else {
           cache = new HashMap<AbstractFormula, SymbolicFormula>();
       }
-      Stack<AbstractFormula> toProcess = new Stack<AbstractFormula>();
+      Deque<AbstractFormula> toProcess = new ArrayDeque<AbstractFormula>();
 
       cache.put(amgr.makeTrue(), smgr.makeTrue());
       cache.put(amgr.makeFalse(), smgr.makeFalse());
 
       toProcess.push(af);
-      while (!toProcess.empty()) {
+      while (!toProcess.isEmpty()) {
           AbstractFormula n = toProcess.peek();
           if (cache.containsKey(n)) {
               toProcess.pop();
@@ -259,16 +260,31 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           }
       }
 
-      assert(cache.containsKey(af));
+      SymbolicFormula result = cache.get(af);
+      assert result != null;
 
-      return cache.get(af);
+      return result;
   }
 
+  @Override
+  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula) {
+    if (previousBlockFormula == null) {
+      previousBlockFormula = smgr.makeTrue();
+    }
+    return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
+  }
+  
   // the rest of this class is related only to symbolic formulas
   
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue(), 0);
+  }
+  
+  @Override
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
+    return new PathFormula(smgr.makeTrue(), oldFormula.getSsa(), 0,
+        oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
   
   /**
@@ -297,7 +313,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa));
+    int newLength = Math.max(pF1.getLength(), pF2.getLength());
+    SymbolicFormula newReachingPathsFormula
+        = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
+    int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
+    
+    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength,
+                           newReachingPathsFormula, newBranchingCounter);
   }
 
   /**

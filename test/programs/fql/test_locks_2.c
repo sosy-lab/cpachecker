@@ -6,17 +6,23 @@ int main()
     int p2;  // condition variable
     int lk2; // lock variable
 
+    int __BLAST_NONDET;
+
 
     int cond;
 
     while(1) {
-        cond = input();
+        cond = __BLAST_NONDET;
         if (cond == 0) {
             goto out;
         } else {}
         lk1 = 0; // initially lock is open
 
         lk2 = 0; // initially lock is open
+
+
+	p1 = __BLAST_NONDET;
+	p2 = __BLAST_NONDET;
 
 
     // lock phase

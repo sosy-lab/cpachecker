@@ -5,6 +5,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ImmutableMap;
 
 public class MathsatModel implements Model {
@@ -407,7 +409,8 @@ public class MathsatModel implements Model {
       
       // TODO maybe we have to convert to SMTLIB format and then read in values in a controlled way, e.g., size of bitvector
       // TODO we are assuming numbers as values
-      if (mathsat.api.msat_term_is_number(lValueTerm) == 0) {
+      if (!(mathsat.api.msat_term_is_number(lValueTerm) != 0
+            || mathsat.api.msat_term_is_boolean_var(lValueTerm) != 0)) {
         throw new IllegalArgumentException("Mathsat term is not a number!");
       }
       
@@ -418,6 +421,7 @@ public class MathsatModel implements Model {
       switch (lAssignable.getType()) {
       case Boolean:
         lValue = new MathsatBooleanValue(Boolean.valueOf(lTermRepresentation));
+        break;
       case Real:
         try {
           lValue = new MathsatRealValue(Double.valueOf(lTermRepresentation));
@@ -459,9 +463,11 @@ public class MathsatModel implements Model {
     return mModel.get(pAssignable);
   }
   
+  private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
+  
   @Override
   public String toString() {
-    return mModel.toString();
+    return joiner.join(mModel);
   }
   
   @Override
