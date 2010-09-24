@@ -210,21 +210,6 @@ public class CtoFormulaConverter {
     }
     return idx;
   }
-
-  private int getIndex(String name, SymbolicFormulaList args, SSAMap ssa, boolean autoInstantiate) {
-    int idx = ssa.getIndex(name, args);
-    if (idx <= 0) {
-      if (!autoInstantiate) {
-        return -1;
-      } else {
-        logger.log(Level.ALL, "DEBUG_3",
-            "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
-        idx = 1;
-        ssa.setIndex(name, args, idx);
-      }
-    }
-    return idx;
-  }
   
   /**
    * Produces a fresh new SSA index for the left-hand side of an assignment
@@ -256,6 +241,26 @@ public class CtoFormulaConverter {
       idx = getIndex(var, ssa);
     }
     return smgr.makeVariable(var, idx);
+  }
+  
+  private SymbolicFormula makeAssignment(String var, String function,
+          SymbolicFormula rightHandSide, SSAMap ssa) {
+    
+    String name = scoped(var, function);
+    int idx = makeLvalIndex(name, ssa);
+    SymbolicFormula f = smgr.makeVariable(name, idx);
+    return smgr.makeAssignment(f, rightHandSide);
+  }
+  
+  private SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMap ssa) {
+    int idx = ssa.getIndex(name, args);
+    if (idx <= 0) {
+      logger.log(Level.ALL, "DEBUG_3",
+          "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
+      idx = 1;
+      ssa.setIndex(name, args, idx);
+    }
+    return smgr.makeUIF(name, args, idx);
   }
 
 //  @Override
@@ -487,9 +492,8 @@ public class CtoFormulaConverter {
     SymbolicFormula term = smgr.makeTrue();
     int i = 0;
     for (IASTParameterDeclaration param : params) {
-      String paramName = scoped(FUNCTION_PARAM_NAME + (i++), function);
-      int idx = getIndex(paramName, ssa);
-      SymbolicFormula paramFormula = smgr.makeVariable(paramName, idx);
+      SymbolicFormula paramFormula = makeVariable(FUNCTION_PARAM_NAME + (i++), function, ssa);
+      
       if (param.getDeclarator().getPointerOperators().length != 0) {
         log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
             + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
@@ -500,10 +504,7 @@ public class CtoFormulaConverter {
         pn = param.getDeclarator().getNestedDeclarator().getName().toString();
       }
       assert(!pn.isEmpty());
-      String formalParamName = scoped(pn, function);
-      idx = makeLvalIndex(formalParamName, ssa);
-      SymbolicFormula formalParam = smgr.makeVariable(formalParamName, idx);
-      SymbolicFormula eq = smgr.makeAssignment(formalParam, paramFormula);
+      SymbolicFormula eq = makeAssignment(pn, function, paramFormula, ssa);
       term = smgr.makeAnd(term, eq);
     }
     return smgr.makeAnd(m1, term);
@@ -519,14 +520,12 @@ public class CtoFormulaConverter {
     } else if (retExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
       assert(exp.getOperator() == IASTBinaryExpression.op_assign);
-      String retvar = scoped(VAR_RETURN_NAME, function);
-
-      int retidx = getIndex(retvar, ssa);
-      SymbolicFormula retvarFormula = smgr.makeVariable(retvar, retidx);
+      
+      SymbolicFormula retvarFormula = makeVariable(VAR_RETURN_NAME, function, ssa);
       IASTExpression e = exp.getOperand1();
       
       function = ce.getSuccessor().getFunctionName();
-      SymbolicFormula outvarFormula = buildsatLvalueTerm(e, function, ssa);
+      SymbolicFormula outvarFormula = buildLvalueTerm(e, function, ssa);
       SymbolicFormula term = smgr.makeAssignment(outvarFormula, retvarFormula);
       return smgr.makeAnd(m1, term);
     } else {
@@ -573,10 +572,7 @@ public class CtoFormulaConverter {
           log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
               + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
         }
-        String paramName = scoped(FUNCTION_PARAM_NAME + (i-1), function);
-        int idx = makeLvalIndex(paramName, ssa);
-        SymbolicFormula paramFormula = smgr.makeVariable(paramName, idx);
-        SymbolicFormula eq = smgr.makeAssignment(paramFormula, arg);
+        SymbolicFormula eq = makeAssignment(FUNCTION_PARAM_NAME + (i-1), function, arg, ssa);
         term = smgr.makeAnd(term, eq);
       }
       return smgr.makeAnd(m1, term);
@@ -596,13 +592,8 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      String retvalname = scoped(VAR_RETURN_NAME, function);
-      int idx = makeLvalIndex(retvalname, ssa);
-
-      SymbolicFormula retvar = smgr.makeVariable(retvalname, idx);
       SymbolicFormula retval = buildTerm(exp, function, ssa);
-      SymbolicFormula term = smgr.makeAssignment(retvar, retval);
-      return smgr.makeAnd(m1, term);
+      return makeAssignment(VAR_RETURN_NAME, function, retval, ssa);
     }
     // if we are here, we can't handle the return properly...
     throw new UnrecognizedCFAEdgeException(edge);
@@ -744,7 +735,7 @@ public class CtoFormulaConverter {
       case IASTUnaryExpression.op_postFixDecr:
       case IASTUnaryExpression.op_prefixDecr: {
         SymbolicFormula mvar = buildTerm(operand, function, ssa);
-        SymbolicFormula newvar = buildsatLvalueTerm(operand, function, ssa);
+        SymbolicFormula newvar = buildLvalueTerm(operand, function, ssa);
         SymbolicFormula me;
         SymbolicFormula one = smgr.makeNumber(1);
         if (op == IASTUnaryExpression.op_postFixIncr ||
@@ -869,7 +860,7 @@ public class CtoFormulaConverter {
             throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
           }
         }
-        SymbolicFormula mvar = buildsatLvalueTerm(e1, function, ssa);
+        SymbolicFormula mvar = buildLvalueTerm(e1, function, ssa);
         return smgr.makeAssignment(mvar, me2);
       }
 
@@ -929,11 +920,9 @@ public class CtoFormulaConverter {
         String ufname =
           (fexp.isPointerDereference() ? "->{" : ".{") +
           tpname + "," + field + "}";
-        SymbolicFormulaList aterm = smgr.makeList(term);
-        int idx = getIndex(ufname, aterm, ssa, true);
 
         // see above for the case of &x and *x
-        return smgr.makeUIF(ufname, aterm, idx);
+        return makeUIF(ufname, smgr.makeList(term), ssa);
       } else {
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
@@ -949,10 +938,7 @@ public class CtoFormulaConverter {
         SymbolicFormula sterm = buildTerm(subexp, function, ssa);
 
         String ufname = OP_ARRAY_SUBSCRIPT;
-        SymbolicFormulaList args = smgr.makeList(aterm, sterm);
-        int idx = getIndex(ufname, args, ssa, true);
-
-        return smgr.makeUIF(ufname, args, idx);
+        return makeUIF(ufname, smgr.makeList(aterm, sterm), ssa);
 
       } else {
         warnUnsafeVar(exp);
@@ -972,7 +958,7 @@ public class CtoFormulaConverter {
     throw new UnrecognizedCCodeException("Unknown expression", null, exp);
   }
 
-  private SymbolicFormula buildsatLvalueTerm(IASTExpression exp,
+  private SymbolicFormula buildLvalueTerm(IASTExpression exp,
         String function, SSAMap ssa) throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression || !lvalsAsUif) {
       String var;
