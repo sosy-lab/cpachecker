@@ -101,6 +101,15 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     formulaManager = symbPredAbsCpa.getFormulaManager();
   }
 
+  private static SymbPredAbsPrecision extractSymbPredAbsPrecision(Precision p) {
+    if (p instanceof SymbPredAbsPrecision) {
+      return (SymbPredAbsPrecision)p;
+    } else if (p instanceof WrapperPrecision) {
+      return ((WrapperPrecision)p).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
+    }
+    return null;
+  }
+  
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
@@ -110,6 +119,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // the last element is the element corresponding to the error location
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     List<ARTElement> artPath = new ArrayList<ARTElement>();
+    ArrayList<SymbPredAbsPrecision> pathPrecisions = new ArrayList<SymbPredAbsPrecision>();
+    ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
     
     Iterator<Pair<ARTElement,CFAEdge>> it = pPath.iterator();
     it.next(); // skip initial element
@@ -118,19 +129,17 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       SymbPredAbsAbstractElement symbElement =
         ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
+      pmapBuilder.putAll(extractSymbPredAbsPrecision(pReached.getPrecision(ae)).getPredicateMap());
       if (symbElement.isAbstractionNode()) {
+        SymbPredAbsPrecision symbPrecision = extractSymbPredAbsPrecision(pReached.getPrecision(ae));
         path.add(symbElement);
+        pathPrecisions.add(symbPrecision);
         artPath.add(ae);
       }
     }
 
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
-    SymbPredAbsPrecision oldSymbPredAbsPrecision = null;
-    if (oldPrecision instanceof SymbPredAbsPrecision) {
-      oldSymbPredAbsPrecision = (SymbPredAbsPrecision)oldPrecision;
-    } else if (oldPrecision instanceof WrapperPrecision) {
-      oldSymbPredAbsPrecision = ((WrapperPrecision)oldPrecision).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
-    }
+    SymbPredAbsPrecision oldSymbPredAbsPrecision = extractSymbPredAbsPrecision(oldPrecision);
     if (oldSymbPredAbsPrecision == null) {
       throw new IllegalStateException("Could not find the SymbPredAbsPrecision for the error element");
     }
@@ -145,7 +154,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
-              performRefinement(oldSymbPredAbsPrecision, path, artPath, info);
+              performRefinement(oldSymbPredAbsPrecision, path, artPath, pathPrecisions, pmapBuilder, info);
 
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
@@ -168,9 +177,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   /**
    * pPath and pArtPath need to fit together such that
    * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(SymbPredAbsAbstractElement) 
+   * The same is true for pPath and pPathPrecisions
    */
   private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
       ArrayList<SymbPredAbsAbstractElement> pPath, List<ARTElement> pArtPath,
+      ArrayList<SymbPredAbsPrecision> pPathPrecisions, ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder, 
       CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
@@ -180,7 +191,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     ARTElement firstInterpolationARTElement = null;
     boolean newPredicatesFound = false;
     
-    ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
+//    ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
@@ -200,12 +211,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         // new predicates for this location
         newPredicatesFound = true;
       }
+      pmapBuilder.putAll(pPathPrecisions.get(i++).getPredicateMap());
 
       pmapBuilder.putAll(loc, newpreds);
       pmapBuilder.putAll(loc, globalPredicates);
     }
     assert firstInterpolationElement != null;
     assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+    assert i == pPath.size();
 
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
     SymbPredAbsPrecision newPrecision;

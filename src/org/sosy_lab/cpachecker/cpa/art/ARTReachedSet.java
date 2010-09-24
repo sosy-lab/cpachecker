@@ -29,6 +29,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -121,7 +122,19 @@ public class ARTReachedSet {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
 
-    Set<ARTElement> toUnreach = e.getSubtree();
+    mCpa.getLogger().log(Level.ALL, "Removing subtree from reached set, root is", e);
+    
+    Set<ARTElement> toUnreach;
+    if (e.getParents().size() == 1) {
+      toUnreach = e.getSubtree();
+    } else {
+      toUnreach = new HashSet<ARTElement>();
+      for (ARTElement parent : e.getParents()) {
+        for (ARTElement child : parent.getChildren()) {
+          toUnreach.addAll(child.getSubtree());
+        }
+      }
+    }
 
     // collect all elements covered by the subtree
     List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
