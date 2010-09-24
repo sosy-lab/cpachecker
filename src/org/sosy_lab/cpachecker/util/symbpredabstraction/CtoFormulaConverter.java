@@ -274,7 +274,6 @@ public class CtoFormulaConverter {
       return oldFormula;
     }
     
-    SymbolicFormula m = oldFormula.getSymbolicFormula();
     SymbolicFormula reachingPathsFormula = oldFormula.getReachingPathsFormula();
     int branchingCounter = oldFormula.getBranchingCounter();
     
@@ -285,48 +284,46 @@ public class CtoFormulaConverter {
     SSAMap oldssa = oldFormula.getSsa();
     SSAMap ssa = new SSAMap(oldssa);
 
-    SymbolicFormula f;
+    SymbolicFormula edgeFormula;
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge)edge;
 
       if (statementEdge.isJumpEdge()) {
-        if (statementEdge.getSuccessor().getFunctionName().equals(
-            "main")) {
-          logger.log(Level.ALL, "DEBUG_3",
-              "CtoFormulaConverter, IGNORING return ",
-              "from main: ", edge.getRawStatement());
-          f = m;
+        if (statementEdge.getSuccessor().getFunctionName().equals("main")) {
+          logger.log(Level.ALL, "IGNORING return from main:", edge.getRawStatement());
+          edgeFormula = smgr.makeTrue();
         } else {
-          f = makeAndReturn(m, statementEdge, function, ssa);
+          edgeFormula = makeReturn(statementEdge, function, ssa);
         }
       } else {
-        f = makeAndStatement(m, statementEdge, function, ssa);
+        edgeFormula = makeStatement(statementEdge, function, ssa);
       }
       break;
     }
 
     case DeclarationEdge: {
-      f = makeAndDeclaration(m, (DeclarationEdge)edge, function, ssa);
+      edgeFormula = makeDeclaration((DeclarationEdge)edge, function, ssa);
       break;
     }
 
     case AssumeEdge: {
       branchingCounter++;
       Pair<SymbolicFormula, SymbolicFormula> pair
-          = makeAndAssume(m, (AssumeEdge)edge, function, ssa, branchingCounter);
-      f = pair.getFirst();
+          = makeAssume((AssumeEdge)edge, function, ssa, branchingCounter);
+      edgeFormula = pair.getFirst();
       reachingPathsFormula = smgr.makeAnd(reachingPathsFormula, pair.getSecond());
       break;
     }
 
     case BlankEdge: {
-      f = m;
+      assert false : "Handled above";
+      edgeFormula = smgr.makeTrue();
       break;
     }
 
     case FunctionCallEdge: {
-      f = makeAndFunctionCall(m, (FunctionCallEdge)edge, function, ssa);
+      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa);
       break;
     }
 
@@ -334,7 +331,7 @@ public class CtoFormulaConverter {
       // get the expression from the summary edge
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-      f = makeAndExitFunction(m, ce, function, ssa);
+      edgeFormula = makeExitFunction(ce, function, ssa);
       break;
     }
 
@@ -342,18 +339,25 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
+    if (edgeFormula.isTrue()) {
+      // formula is just "true",
+      // i.e. no writes to SSAMap, no branching and length should stay the same
+      return oldFormula;
+    }
+    
+    SymbolicFormula newFormula = smgr.makeAnd(oldFormula.getSymbolicFormula(), edgeFormula);
+    
     if (ssa.equals(oldssa)) {
       ssa = oldssa;
     } else {
       ssa = SSAMap.unmodifiableSSAMap(ssa);
     }
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(f, ssa, newLength, reachingPathsFormula, branchingCounter);
+    return new PathFormula(newFormula, ssa, newLength, reachingPathsFormula, branchingCounter);
   }
 
-  private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,
-      DeclarationEdge declarationEdge, String function, SSAMap ssa)
-      throws CPATransferException {
+  private SymbolicFormula makeDeclaration(DeclarationEdge declarationEdge,
+      String function, SSAMap ssa) throws CPATransferException {
 
     IASTDeclarator[] decls = declarationEdge.getDeclarators();
     IASTDeclSpecifier spec = declarationEdge.getDeclSpecifier();
@@ -365,6 +369,8 @@ public class CtoFormulaConverter {
       assert(isGlobal);
       IASTEnumerationSpecifier.IASTEnumerator[] enums =
         ((IASTEnumerationSpecifier)spec).getEnumerators();
+      
+      SymbolicFormula result = smgr.makeTrue();
       for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
         String var = e.getName().getRawSignature();
         globalVars.add(var);
@@ -380,9 +386,9 @@ public class CtoFormulaConverter {
         SymbolicFormula minit = buildTerm(exp, function, ssa);
         SymbolicFormula mvar = smgr.makeVariable(var, idx);
         SymbolicFormula t = smgr.makeAssignment(mvar, minit);
-        m1 = smgr.makeAnd(m1, t);
+        result = smgr.makeAnd(result, t);
       }
-      return m1;
+      return result;
     }
 
 
@@ -393,7 +399,7 @@ public class CtoFormulaConverter {
       if (spec instanceof IASTCompositeTypeSpecifier) {
         // this is the declaration of a struct, just ignore it...
         log(Level.ALL, "Ignoring declaration", spec);
-        return m1;
+        return smgr.makeTrue();
       } else {
         throw new UnrecognizedCFAEdgeException(
             "UNSUPPORTED SPECIFIER FOR DECLARATION: " +
@@ -403,9 +409,10 @@ public class CtoFormulaConverter {
 
     if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       log(Level.ALL, "Ignoring typedef", spec);
-      return m1;
+      return smgr.makeTrue();
     }
 
+    SymbolicFormula result = smgr.makeTrue();
     for (IASTDeclarator d : decls) {
       String var = d.getName().getRawSignature();
       if (isGlobal) {
@@ -449,7 +456,7 @@ public class CtoFormulaConverter {
         SymbolicFormula minit = buildTerm(exp, function, ssa);
         SymbolicFormula mvar = smgr.makeVariable(var, idx);
         SymbolicFormula t = smgr.makeAssignment(mvar, minit);
-        m1 = smgr.makeAnd(m1, t);
+        result = smgr.makeAnd(result, t);
       } else if (spec.getStorageClass() ==
         IASTDeclSpecifier.sc_extern) {
         log(Level.ALL, "Ignoring initializer of extern declaration", d);
@@ -461,7 +468,7 @@ public class CtoFormulaConverter {
           SymbolicFormula mvar = smgr.makeVariable(var, idx);
           SymbolicFormula z = smgr.makeNumber(0);
           SymbolicFormula t = smgr.makeAssignment(mvar, z);
-          m1 = smgr.makeAnd(m1, t);
+          result = smgr.makeAnd(result, t);
           logger.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
               (isGlobal ? "GLOBAL" : ""), "VAR: ",
               var, " (", d.getName().getRawSignature(), ")");
@@ -471,16 +478,17 @@ public class CtoFormulaConverter {
         }
       }
     }
-    return m1;
+    return result;
   }
 
-  private SymbolicFormula makeAndExitFunction(SymbolicFormula m1,
-      CallToReturnEdge ce, String function, SSAMap ssa)
-      throws CPATransferException {
+  private SymbolicFormula makeExitFunction(CallToReturnEdge ce, String function,
+      SSAMap ssa) throws CPATransferException {
+    
     IASTExpression retExp = ce.getExpression();
     if (retExp instanceof IASTFunctionCallExpression) {
       // this should be a void return, just do nothing...
-      return m1;
+      return smgr.makeTrue();
+      
     } else if (retExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
       assert(exp.getOperator() == IASTBinaryExpression.op_assign);
@@ -490,18 +498,16 @@ public class CtoFormulaConverter {
       
       function = ce.getSuccessor().getFunctionName();
       SymbolicFormula outvarFormula = buildLvalueTerm(e, function, ssa);
-      SymbolicFormula term = smgr.makeAssignment(outvarFormula, retvarFormula);
-      return smgr.makeAnd(m1, term);
+      return smgr.makeAssignment(outvarFormula, retvarFormula);
+    
     } else {
-      throw new UnrecognizedCFAEdgeException(
-          "UNKNOWN FUNCTION EXIT EXPRESSION: " +
-          ce.getRawStatement());
+      throw new UnrecognizedCFAEdgeException("UNKNOWN FUNCTION EXIT EXPRESSION: " + ce.getRawStatement());
     }
   }
 
-  private SymbolicFormula makeAndFunctionCall(SymbolicFormula m1,
-      FunctionCallEdge edge, String callerFunction, SSAMap ssa)
-      throws CPATransferException {
+  private SymbolicFormula makeFunctionCall(FunctionCallEdge edge,
+      String callerFunction, SSAMap ssa) throws CPATransferException {
+    
     if (edge.isExternalCall()) {
       throw new UnrecognizedCFAEdgeException(
           "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
@@ -515,13 +521,13 @@ public class CtoFormulaConverter {
       
       assert formalParams.size() == paramsCount;
       if (paramsCount == 0) {
-        return m1;
+        return smgr.makeTrue();
       }
 
       String calledFunction = fn.getFunctionName();
       
       int i = 0;
-      SymbolicFormula term = smgr.makeTrue();
+      SymbolicFormula result = smgr.makeTrue();
       for (IASTParameterDeclaration formalParam : formalParams) {
         // get formal parameter name
         String formalParamName = formalParam.getDeclarator().getName().toString();
@@ -541,20 +547,19 @@ public class CtoFormulaConverter {
         
         SymbolicFormula eq = makeAssignment(formalParamName, calledFunction, actualParam, ssa);
         
-        term = smgr.makeAnd(term, eq);
+        result = smgr.makeAnd(result, eq);
       }
 
-      return smgr.makeAnd(m1, term);
+      return result;
     }
   }
 
-  private SymbolicFormula makeAndReturn(SymbolicFormula m1, StatementEdge edge,
-      String function, SSAMap ssa)
+  private SymbolicFormula makeReturn(StatementEdge edge, String function, SSAMap ssa)
       throws CPATransferException {
     IASTExpression exp = edge.getExpression();
     if (exp == null) {
       // this is a return from a void function, do nothing
-      return m1;
+      return smgr.makeTrue();
     } else if (exp instanceof IASTUnaryExpression) {
       
       // we have to save the information about the return value,
@@ -562,20 +567,20 @@ public class CtoFormulaConverter {
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
       SymbolicFormula retval = buildTerm(exp, function, ssa);
-      SymbolicFormula term = makeAssignment(VAR_RETURN_NAME, function, retval, ssa); 
-      return smgr.makeAnd(m1, term);
+      return makeAssignment(VAR_RETURN_NAME, function, retval, ssa); 
     }
     // if we are here, we can't handle the return properly...
     throw new UnrecognizedCFAEdgeException(edge);
   }
 
-  private SymbolicFormula makeAndStatement(SymbolicFormula f1, StatementEdge stmt,
-      String function, SSAMap ssa) throws CPATransferException {
+  private SymbolicFormula makeStatement(StatementEdge stmt, String function,
+          SSAMap ssa) throws CPATransferException {
+
     IASTExpression expr = stmt.getExpression();
 
-    SymbolicFormula f2 = buildTerm(expr, function, ssa);
+    SymbolicFormula f = buildTerm(expr, function, ssa);
 
-    if (!smgr.isBoolean(f2)) {
+    if (!smgr.isBoolean(f)) {
       // in this case, we have something like:
         // f(x);
       // i.e. an expression that gets assigned to nothing. Since
@@ -588,17 +593,16 @@ public class CtoFormulaConverter {
         log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
                         stmt.getExpression());
       }
-      return f1;
+      return smgr.makeTrue();
     }
-    return smgr.makeAnd(f1, f2);
+    return f;
   }
 
-  private Pair<SymbolicFormula, SymbolicFormula> makeAndAssume(SymbolicFormula previousFormula,
-      AssumeEdge assume, String function, SSAMap ssa, int branchingIdx) throws CPATransferException {
+  private Pair<SymbolicFormula, SymbolicFormula> makeAssume(AssumeEdge assume,
+      String function, SSAMap ssa, int branchingIdx) throws CPATransferException {
 
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
-    SymbolicFormula f = smgr.makeAnd(edgeFormula, previousFormula);
     
     // add a unique predicate for each assume edge
     String var = ASSUME_EDGE_PREDICATE + assume.getAssumeEdgeId();
@@ -611,7 +615,7 @@ public class CtoFormulaConverter {
     SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
     equivalence = smgr.makeAnd(equivalence, predFormula);
     
-    return new Pair<SymbolicFormula, SymbolicFormula>(f, equivalence);
+    return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, equivalence);
   }
 
   private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMap ssa)
