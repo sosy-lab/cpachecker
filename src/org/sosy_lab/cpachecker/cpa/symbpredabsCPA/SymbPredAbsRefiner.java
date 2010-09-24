@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatBooleanValue;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatType;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel.MathsatVariable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -288,7 +287,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
             preds.put(idx, p);
           }
           
-          Boolean value = ((MathsatBooleanValue)model.getValue(a)).isTrue();
+          Boolean value = (Boolean)model.getValue(a);
           p.put(edgeId, value);
         }             
       }
