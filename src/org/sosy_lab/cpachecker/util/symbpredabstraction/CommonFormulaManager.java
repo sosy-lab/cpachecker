@@ -341,13 +341,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
       
-      if (i1 > i2) {
+      if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
         SymbolicFormula t = makeSSAMerger(var, Math.max(i2, 1), i1);
         mt2 = smgr.makeAnd(mt2, t);
               
-      } else if (i1 < i2) {
+      } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
         SymbolicFormula t = makeSSAMerger(var, Math.max(i1, 1), i2); 
@@ -361,13 +361,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       int i1 = ssa1.getIndex(f);
       int i2 = ssa2.getIndex(f);
       
-      if (i1 > i2) {
+      if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
         SymbolicFormula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
         mt2 = smgr.makeAnd(mt2, t);
               
-      } else if (i1 < i2) {
+      } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
         SymbolicFormula t = makeSSAMerger(name, args, Math.max(i1, 1), i2); 
