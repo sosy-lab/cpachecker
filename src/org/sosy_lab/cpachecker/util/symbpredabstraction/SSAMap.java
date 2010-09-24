@@ -27,12 +27,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
@@ -75,6 +77,55 @@ public class SSAMap {
     return EMPTY_SSA_MAP;
   }
 
+  /**
+   * Returns an unmodifiable SSAMap that contains all indices from two SSAMaps.
+   * If there are conflicting indices, the maximum of both is used.
+   */
+  public static SSAMap merge(SSAMap s1, SSAMap s2) {
+    
+    ImmutableMap.Builder<String, Integer> varsBuilder = ImmutableMap.builder();
+    for (Entry<String, Integer> entry : s1.vars.entrySet()) {
+      String name = entry.getKey();
+      Integer i1 = entry.getValue();
+      Integer i2 = s2.vars.get(name);
+      Integer resultIndex;
+      if (i2 == null) {
+        resultIndex = i1;
+      } else {
+        resultIndex = (i1.intValue() >= i2.intValue() ? i1 : i2);
+      }
+      varsBuilder.put(name, resultIndex);
+    }
+    for (Entry<String, Integer> entry : s2.vars.entrySet()) {
+      String name = entry.getKey();
+      if (!s1.vars.containsKey(name)) {
+        varsBuilder.put(name, entry.getValue());
+      }
+    }
+    
+    ImmutableMap.Builder<Pair<String, SymbolicFormulaList>, Integer> funcsBuilder = ImmutableMap.builder();
+    for (Entry<Pair<String, SymbolicFormulaList>, Integer> entry : s1.funcs.entrySet()) {
+      Pair<String, SymbolicFormulaList> key = entry.getKey();
+      Integer i1 = entry.getValue();
+      Integer i2 = s2.funcs.get(key);
+      Integer resultIndex;
+      if (i2 == null) {
+        resultIndex = i1;
+      } else {
+        resultIndex = (i1.intValue() >= i2.intValue() ? i1 : i2);
+      }
+      funcsBuilder.put(key, resultIndex);
+    }
+    for (Entry<Pair<String, SymbolicFormulaList>, Integer> entry : s2.funcs.entrySet()) {
+      Pair<String, SymbolicFormulaList> key = entry.getKey();
+      if (!s1.vars.containsKey(key)) {
+        funcsBuilder.put(key, entry.getValue());
+      }
+    }
+    
+    return new SSAMap(varsBuilder.build(), funcsBuilder.build());
+  }
+  
   private final Map<String, Integer> vars;
   private final Map<Pair<String, SymbolicFormulaList>, Integer> funcs;
 

@@ -333,21 +333,21 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    */
   private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
-    SSAMap result = new SSAMap();
+    SSAMap result = SSAMap.merge(ssa1, ssa2);
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
-    for (String var : ssa1.allVariables()) {
+    
+    for (String var : result.allVariables()) {
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
-      assert(i1 > 0);
-      if (i2 > 0 && i2 != i1) {
-        // we have to merge this variable assignment
-        result.setIndex(var, Math.max(i1, i2));
-        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
-        mt1 = smgr.makeAnd(mt1, t.getFirst());
-        mt2 = smgr.makeAnd(mt2, t.getSecond());
-      } else {
-        if (i2 <= 0) {
+      
+      if (i1 > i2) {
+        if (i2 > 0) {
+          // we have to merge this variable assignment
+          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
+          mt1 = smgr.makeAnd(mt1, t.getFirst());
+          mt2 = smgr.makeAnd(mt2, t.getSecond());
+        } else {
           // it's not enough to set the SSA index. We *must* also
           // generate a formula saying that the var does not change
           // in this branch!
@@ -358,80 +358,74 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
             mt2 = smgr.makeAnd(mt2, e);
           }
         }
-        result.setIndex(var, i1);
-      }
-    }
-    for (String var : ssa2.allVariables()) {
-      int i2 = ssa2.getIndex(var);
-      int i1 = ssa1.getIndex(var);
-      assert(i2 > 0);
-      if (i1 <= 0) {
-        // it's not enough to set the SSA index. We *must* also
-        // generate a formula saying that the var does not change
-        // in this branch!
-        SymbolicFormula v1 = smgr.makeVariable(var, 1);
-        for (int i = 2; i <= i2; ++i) {
-          SymbolicFormula v = smgr.makeVariable(var, i);
-          SymbolicFormula e = smgr.makeEqual(v, v1);
-          mt1 = smgr.makeAnd(mt1, e);
-        }
-        result.setIndex(var, i2);
-      } else {
-        assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
-      }
-    }
-
-    for (Pair<String, SymbolicFormulaList> f : ssa1.allFunctions()) {
-      int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
-      int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
-      assert(i1 > 0);
-      if (i2 > 0 && i2 != i1) {
-        // we have to merge this lvalue assignment
-        result.setIndex(f.getFirst(), f.getSecond(), Math.max(i1, i2));
-        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(f.getFirst(), f.getSecond(), i1, i2);
-        mt1 = smgr.makeAnd(mt1, t.getFirst());
-        mt2 = smgr.makeAnd(mt2, t.getSecond());
-      } else {
-        if (i2 <= 0) {
+      
+      } else if (i1 < i2) {
+        if (i1 > 0) {
+          // we have to merge this variable assignment
+          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
+          mt1 = smgr.makeAnd(mt1, t.getFirst());
+          mt2 = smgr.makeAnd(mt2, t.getSecond());
+        } else {
           // it's not enough to set the SSA index. We *must* also
           // generate a formula saying that the var does not change
           // in this branch!
-          SymbolicFormula v1 = smgr.makeUIF(f.getFirst(), f.getSecond(), 1);
+          SymbolicFormula v1 = smgr.makeVariable(var, 1);
+          for (int i = 2; i <= i2; ++i) {
+            SymbolicFormula v = smgr.makeVariable(var, i);
+            SymbolicFormula e = smgr.makeEqual(v, v1);
+            mt1 = smgr.makeAnd(mt1, e);
+          }
+        }
+      }
+    }
+    
+    for (Pair<String, SymbolicFormulaList> f : result.allFunctions()) {
+      String name = f.getFirst();
+      SymbolicFormulaList args = f.getSecond();
+      int i1 = ssa1.getIndex(name, args);
+      int i2 = ssa2.getIndex(name, args);
+      
+      if (i1 > i2) {
+        if (i2 > 0) {
+          // we have to merge this lvalue assignment
+          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(name, args, i1, i2);
+          mt1 = smgr.makeAnd(mt1, t.getFirst());
+          mt2 = smgr.makeAnd(mt2, t.getSecond());
+        } else {
+          // it's not enough to set the SSA index. We *must* also
+          // generate a formula saying that the lvalue does not change
+          // in this branch!
+          SymbolicFormula v1 = smgr.makeUIF(name, args, 1);
           for (int i = 2; i <= i1; ++i) {
-            SymbolicFormula v = smgr.makeUIF(f.getFirst(), f.getSecond(), i);
+            SymbolicFormula v = smgr.makeUIF(name, args, i);
             SymbolicFormula e = smgr.makeEqual(v, v1);
             mt2 = smgr.makeAnd(mt2, e);
           }
         }
-        result.setIndex(f.getFirst(), f.getSecond(), i1);
-      }
-    }
-    for (Pair<String, SymbolicFormulaList> f : ssa2.allFunctions()) {
-      int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
-      int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
-      assert(i2 > 0);
-      if (i1 <= 0) {
-        // it's not enough to set the SSA index. We *must* also
-        // generate a formula saying that the var does not change
-        // in this branch!
-        SymbolicFormula v1 = smgr.makeUIF(f.getFirst(), f.getSecond(), 1);
-        for (int i = 2; i <= i2; ++i) {
-          SymbolicFormula v = smgr.makeUIF(f.getFirst(), f.getSecond(), i);
-          SymbolicFormula e = smgr.makeEqual(v, v1);
-          mt1 = smgr.makeAnd(mt1, e);
+      
+      } else if (i1 < i2) {
+        if (i1 > 0) {
+          // we have to merge this lvalue assignment
+          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(name, args, i1, i2);
+          mt1 = smgr.makeAnd(mt1, t.getFirst());
+          mt2 = smgr.makeAnd(mt2, t.getSecond());
+        } else {
+          // it's not enough to set the SSA index. We *must* also
+          // generate a formula saying that the lvalue does not change
+          // in this branch!
+          SymbolicFormula v1 = smgr.makeUIF(name, args, 1);
+          for (int i = 2; i <= i2; ++i) {
+            SymbolicFormula v = smgr.makeUIF(name, args, i);
+            SymbolicFormula e = smgr.makeEqual(v, v1);
+            mt1 = smgr.makeAnd(mt1, e);
+          }
         }
-        result.setIndex(f.getFirst(), f.getSecond(), i2);
-      } else {
-        assert(i1 == i2 ||
-            result.getIndex(f.getFirst(), f.getSecond()) ==
-              Math.max(i1, i2));
       }
     }
 
     Pair<SymbolicFormula, SymbolicFormula> sp =
       new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
-    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(
-        sp, result);
+    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(sp, result);
   }
 
   // creates the two mathsat terms
