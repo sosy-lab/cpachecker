@@ -164,7 +164,11 @@ public class SSAMap {
   }
 
   public int getIndex(String name, SymbolicFormulaList args) {
-    Integer i = funcs.get(new Pair<String, SymbolicFormulaList>(name, args));
+    return getIndex(new Pair<String, SymbolicFormulaList>(name, args));
+  }
+  
+  protected int getIndex(Pair<String, SymbolicFormulaList> key) {
+    Integer i = funcs.get(key);
     if (i != null) {
       return i;
     } else {
