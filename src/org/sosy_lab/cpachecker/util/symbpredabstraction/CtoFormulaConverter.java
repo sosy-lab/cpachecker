@@ -593,7 +593,8 @@ public class CtoFormulaConverter {
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
       SymbolicFormula retval = buildTerm(exp, function, ssa);
-      return makeAssignment(VAR_RETURN_NAME, function, retval, ssa);
+      SymbolicFormula term = makeAssignment(VAR_RETURN_NAME, function, retval, ssa); 
+      return smgr.makeAnd(m1, term);
     }
     // if we are here, we can't handle the return properly...
     throw new UnrecognizedCFAEdgeException(edge);
