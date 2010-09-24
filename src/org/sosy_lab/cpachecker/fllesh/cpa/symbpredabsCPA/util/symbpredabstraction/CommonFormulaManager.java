@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
 
+  private final PathFormula mEmptyPathFormula;
+  
   protected final AbstractFormulaManager amgr;
 
   // Here we keep the mapping abstract predicate ->
@@ -95,6 +97,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     } else {
       toConcreteCache = null;
     }
+    
+    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
   }
 
   /**
@@ -270,7 +274,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    return mEmptyPathFormula;
   }
   
   /**

@@ -147,9 +147,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         (satCheck ? "with satisfiability check" : ""));
 
     // id of parent
-    int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
-
-    PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
+    PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge);
 
     logger.log(Level.ALL, "New path formula is", pf);
 
@@ -194,9 +192,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
 
     // compute the pathFormula for the current edge
-    int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
-
-    PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
+    PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
     Collection<Predicate> preds = precision.getPredicates(edge.getSuccessor());
 
     maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction()+1);
@@ -249,20 +245,19 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
-  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge,
-                          int abstractionNodeId) throws CPATransferException {
+  private PathFormula convertEdgeToPathFormula(PathFormula pCurrentPathFormula, CFAEdge pCFAEdge) throws CPATransferException {
     final long start = System.currentTimeMillis();
-    PathFormula pf = null;
+    PathFormula lSuccessorFormula = null;
 
     long startComp = System.currentTimeMillis();
     // compute new pathFormula with the operation on the edge
-    pf = formulaManager.makeAnd(pathFormula, edge);
+    lSuccessorFormula = formulaManager.makeAnd(pCurrentPathFormula, pCFAEdge);
     pathFormulaComputationTime += System.currentTimeMillis() - startComp;
 
-    assert pf != null;
+    assert lSuccessorFormula != null;
     pathFormulaTime += System.currentTimeMillis() - start;
     
-    return pf;
+    return lSuccessorFormula;
   }
 
   public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonElement pAutomatonElement) {
