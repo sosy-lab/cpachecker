@@ -179,6 +179,7 @@ public interface SymbolicFormulaManager {
      * one that "instantiates" such variables according to the given SSA map.
      * This is used by AbstractFormulaManager.toConcrete().
      * 
+     * TODO the following is deprecated:
      * If the parameter ssa is null, every variable is instantiated with index 1.
      *
      * @param f the generic SymbolicFormula to instantiate
@@ -191,6 +192,7 @@ public interface SymbolicFormulaManager {
     /**
      * @see #instantiate(SymbolicFormula, SSAMap)
      */
+    @Deprecated
     public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
     
     /**
@@ -198,6 +200,7 @@ public interface SymbolicFormulaManager {
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
      */
+    @Deprecated
     public SymbolicFormula uninstantiate(SymbolicFormula pF);
 
     /**
@@ -218,6 +221,7 @@ public interface SymbolicFormulaManager {
     /**
      * Extracts the SSA indices from a formula. 
      */
+    @Deprecated
     public SSAMap extractSSA(SymbolicFormula f);
 
     /**
@@ -226,6 +230,7 @@ public interface SymbolicFormulaManager {
      * @param vars  the set were all variable names are stored
      * @param lvals the set where all lValue UIFs and their arguments are stored
      */
+    @Deprecated
     public void collectVarNames(SymbolicFormula term, Set<String> vars,
                                 Set<Pair<String, SymbolicFormulaList>> lvals);
     

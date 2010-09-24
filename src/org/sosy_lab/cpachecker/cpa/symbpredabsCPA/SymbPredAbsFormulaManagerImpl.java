@@ -32,10 +32,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -68,7 +66,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
@@ -232,9 +229,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     long startTime = System.currentTimeMillis();
     
-    // clone ssa map because we might change it
-    ssa = new SSAMap(ssa);
-    
     byte[] predVals = null;
     final byte NO_VALUE = -2;
     if (useCache) {
@@ -290,9 +284,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         AbstractFormula absbdd = amgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
-        Set<String> predvars = new HashSet<String>();
-        Set<Pair<String, SymbolicFormulaList>> predlvals =
-          new HashSet<Pair<String, SymbolicFormulaList>>();
 
         int predIndex = -1;
         for (Predicate p : predicates) {
@@ -310,30 +301,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             totBddTime += (endBddTime - startBddTime);
             //++stats.abstractionNumCachedQueries;
           } else {
-            Pair<? extends SymbolicFormula, ? extends SymbolicFormula> pi =
-              getPredicateVarAndAtom(p);
-
-            // update the SSA map, by instantiating all the uninstantiated
-            // variables that occur in the predicates definitions
-            // (at index 1)
-            predvars.clear();
-            predlvals.clear();
-            smgr.collectVarNames(pi.getSecond(), predvars, predlvals);
+            Pair<SymbolicFormula, SymbolicFormula> pi = getPredicateVarAndAtom(p);
             
-            for (String var : predvars) {
-              if (ssa.getIndex(var) < 0) {
-                ssa.setIndex(var, 1);
-              }
-            }
-            
-            for (Pair<String, SymbolicFormulaList> pp : predlvals) {
-              SymbolicFormulaList args = smgr.instantiate(pp.getSecond(), ssa);
-              if (ssa.getIndex(pp.getFirst(), args) < 0) {
-                ssa.setIndex(pp.getFirst(), args, 1);
-              }
-            }
-
-
             logger.log(Level.ALL, "DEBUG_1",
                 "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
@@ -454,17 +423,28 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // (So, for now we don't need to to anything...)
 
     // build the definition of the predicates, and instantiate them
-    SymbolicFormula predDef = buildPredicateFormula(predicates, ssa);
+    // also collect all predicate variables so that the solver knows for which
+    // variables we want to have the satisfying assignments
+    SymbolicFormula predDef = smgr.makeTrue();
+    List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
+
+    for (Predicate p : predicates) {
+      // get propositional variable and definition of predicate
+      Pair<SymbolicFormula, SymbolicFormula> pi = getPredicateVarAndAtom(p);
+
+      SymbolicFormula var = pi.getFirst();
+      SymbolicFormula def = pi.getSecond();
+      def = smgr.instantiate(def, ssa);
+      
+      // build the formula (var <-> def) and add it to the list of definitions
+      SymbolicFormula equiv = smgr.makeEquivalence(var, def);
+      predDef = smgr.makeAnd(predDef, equiv);
+
+      predVars.add(var);
+    }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     SymbolicFormula fm = smgr.makeAnd(f, predDef);
-    
-    // collect all predicate variables so that the solver knows for which
-    // variables we want to have the satisfying assignments
-    List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
-    for (Predicate p : predicates) {
-      predVars.add(getPredicateVarAndAtom(p).getFirst());
-    }
 
     logger.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);

@@ -491,6 +491,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
+  @Deprecated
   public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa) {
     long[] args = getTerm(f);
     long[] result = new long[args.length];
@@ -785,6 +786,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
    * returns an SSA map for the instantiated formula f
    */
   @Override
+  @Deprecated
   public SSAMap extractSSA(SymbolicFormula f) {
     SSAMap ssa = new SSAMap();
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
@@ -818,6 +820,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
+  @Deprecated
   public void collectVarNames(SymbolicFormula f, Set<String> vars,
                               Set<Pair<String, SymbolicFormulaList>> lvals) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();

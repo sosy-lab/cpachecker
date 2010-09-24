@@ -133,7 +133,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return The values passed to the makePredicate call (symbolic formula for var and atom)
    */
   @Override
-  public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
+  public Pair<SymbolicFormula, SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
     return predicateToVarAndAtom.get(p);
   }
 
@@ -158,6 +158,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @param ssa The SSAMap for the instantiation of the formula.
    * @return The above formula.
    */
+  @Deprecated
   protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
                                                   SSAMap ssa) {
     ssa = new SSAMap(ssa); // clone ssa map because we need to change it

@@ -89,7 +89,7 @@ public interface FormulaManager {
    * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
    * @return The values passed to the makePredicate call (symbolic formula for var and atom)
    */
-  public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p);
+  public Pair<SymbolicFormula, SymbolicFormula> getPredicateVarAndAtom(Predicate p);
 
   /**
    * Get predicate corresponding to a variable.

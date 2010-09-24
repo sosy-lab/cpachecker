@@ -104,7 +104,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
           PrintWriter pw = new PrintWriter(file);
           pw.println("ALL PREDICATES:");
           for (Predicate p : allPreds) {
-            Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
+            Pair<SymbolicFormula, SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
             pw.format("%s ==> %s <-> %s\n", p, d.getFirst(), d.getSecond());
           }
 
