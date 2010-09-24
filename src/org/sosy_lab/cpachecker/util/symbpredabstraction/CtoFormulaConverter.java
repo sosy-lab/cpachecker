@@ -105,7 +105,6 @@ public class CtoFormulaConverter {
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
-  private static final String FUNCTION_PARAM_NAME = "__param__";
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
@@ -269,8 +268,7 @@ public class CtoFormulaConverter {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
 
-    if (!(edge.getPredecessor() instanceof FunctionDefinitionNode)
-        && (edge.getEdgeType() == CFAEdgeType.BlankEdge)) {
+    if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
       
       // in this case there's absolutely nothing to do, so take a shortcut
       return oldFormula;
@@ -286,11 +284,6 @@ public class CtoFormulaConverter {
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
     SSAMap oldssa = oldFormula.getSsa();
     SSAMap ssa = new SSAMap(oldssa);
-    
-    if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
-      // function start
-      m = makeAndEnterFunction(m, (FunctionDefinitionNode)edge.getPredecessor(), function, ssa);
-    }
 
     SymbolicFormula f;
     switch (edge.getEdgeType()) {
@@ -481,35 +474,6 @@ public class CtoFormulaConverter {
     return m1;
   }
 
-  private SymbolicFormula makeAndEnterFunction(SymbolicFormula m1,
-      FunctionDefinitionNode fn, String function, SSAMap ssa)
-      throws UnrecognizedCFAEdgeException {
-    List<IASTParameterDeclaration> params = fn.getFunctionParameters();
-    if (params.isEmpty()) {
-      return m1;
-    }
-
-    SymbolicFormula term = smgr.makeTrue();
-    int i = 0;
-    for (IASTParameterDeclaration param : params) {
-      SymbolicFormula paramFormula = makeVariable(FUNCTION_PARAM_NAME + (i++), function, ssa);
-      
-      if (param.getDeclarator().getPointerOperators().length != 0) {
-        log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
-            + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
-      }
-      String pn = param.getDeclarator().getName().toString();
-      if (pn.isEmpty()) {
-        assert(param.getDeclarator().getNestedDeclarator() != null);
-        pn = param.getDeclarator().getNestedDeclarator().getName().toString();
-      }
-      assert(!pn.isEmpty());
-      SymbolicFormula eq = makeAssignment(pn, function, paramFormula, ssa);
-      term = smgr.makeAnd(term, eq);
-    }
-    return smgr.makeAnd(m1, term);
-  }
-
   private SymbolicFormula makeAndExitFunction(SymbolicFormula m1,
       CallToReturnEdge ce, String function, SSAMap ssa)
       throws CPATransferException {
@@ -536,45 +500,50 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula makeAndFunctionCall(SymbolicFormula m1,
-      FunctionCallEdge edge, String function, SSAMap ssa)
+      FunctionCallEdge edge, String callerFunction, SSAMap ssa)
       throws CPATransferException {
     if (edge.isExternalCall()) {
       throw new UnrecognizedCFAEdgeException(
           "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
     } else {
 
-      // build the actual parameters in the caller's context
-      SymbolicFormula[] actualParamsFormulas;
-      if (edge.getArguments() == null) {
-        actualParamsFormulas = new SymbolicFormula[0];
-      } else {
-        actualParamsFormulas = new SymbolicFormula[edge.getArguments().length];
-        IASTExpression[] actualParams = edge.getArguments();
-        for (int i = 0; i < actualParamsFormulas.length; ++i) {
-          actualParamsFormulas[i] = buildTerm(actualParams[i], function, ssa);
-        }
-      }
-      // now switch to the context of the function
-      FunctionDefinitionNode fn =
-        (FunctionDefinitionNode)edge.getSuccessor();
-      function = fn.getFunctionName();
+      IASTExpression[] actualParams = edge.getArguments();
+      int paramsCount = (actualParams == null ? 0 : actualParams.length);
       
-      // create the symbolic vars for the formal parameters
-      List<IASTParameterDeclaration> formalParams =
-        fn.getFunctionParameters();
-      assert(formalParams.size() == actualParamsFormulas.length);
+      FunctionDefinitionNode fn = (FunctionDefinitionNode)edge.getSuccessor();
+      List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
+      
+      assert formalParams.size() == paramsCount;
+      if (paramsCount == 0) {
+        return m1;
+      }
 
+      String calledFunction = fn.getFunctionName();
+      
       int i = 0;
       SymbolicFormula term = smgr.makeTrue();
-      for (IASTParameterDeclaration param : formalParams) {
-        SymbolicFormula arg = actualParamsFormulas[i++];
-        if (param.getDeclarator().getPointerOperators().length != 0) {
-          log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
-              + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
+      for (IASTParameterDeclaration formalParam : formalParams) {
+        // get formal parameter name
+        String formalParamName = formalParam.getDeclarator().getName().toString();
+        if (formalParamName.isEmpty()) {
+          assert(formalParam.getDeclarator().getNestedDeclarator() != null);
+          formalParamName = formalParam.getDeclarator().getNestedDeclarator().getName().toString();
         }
-        SymbolicFormula eq = makeAssignment(FUNCTION_PARAM_NAME + (i-1), function, arg, ssa);
+        assert(!formalParamName.isEmpty());
+
+        if (formalParam.getDeclarator().getPointerOperators().length != 0) {
+          log(Level.WARNING, "Ignoring the semantics of pointer for parameter " + formalParamName,
+              fn.getFunctionDefinition().getDeclarator());
+        }
+        
+        // get value of actual parameter
+        SymbolicFormula actualParam = buildTerm(actualParams[i++], callerFunction, ssa);
+        
+        SymbolicFormula eq = makeAssignment(formalParamName, calledFunction, actualParam, ssa);
+        
         term = smgr.makeAnd(term, eq);
       }
+
       return smgr.makeAnd(m1, term);
     }
   }
