@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
  */
 public class SSAMap implements ReadableSSAMap {
 
-  private static class UnmodifiableSSAMap extends SSAMap {
+  private static class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
     
     private UnmodifiableSSAMap(SSAMap ssa) {
       super(ssa.vars, ssa.funcs);
@@ -66,19 +66,43 @@ public class SSAMap implements ReadableSSAMap {
       throw new UnsupportedOperationException();
     }
     
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (getClass().equals(pOther.getClass())) {
+        UnmodifiableSSAMap lSSAMap = (UnmodifiableSSAMap)pOther;
+        
+        return vars.equals(lSSAMap.vars) && funcs.equals(lSSAMap.funcs);
+      }
+      
+      return false;
+    }
+    
+    @Override
+    public int hashCode() {
+      return 31 * vars.hashCode() + funcs.hashCode() + 243;
+    }
+    
   }
   
-  public static SSAMap unmodifiableSSAMap(SSAMap ssa) {
-    if (ssa instanceof UnmodifiableSSAMap) {
-      return ssa;
+  public static ImmutableSSAMap unmodifiableSSAMap(SSAMap ssa) {
+    if (ssa instanceof ImmutableSSAMap) {
+      return (ImmutableSSAMap)ssa;
     } else {
       return new UnmodifiableSSAMap(ssa);
     }
   }
   
-  private static final SSAMap EMPTY_SSA_MAP = new UnmodifiableSSAMap(new SSAMap());
+  private static final ImmutableSSAMap EMPTY_SSA_MAP = new UnmodifiableSSAMap(new SSAMap());
   
-  public static SSAMap emptySSAMap() {
+  public static ImmutableSSAMap emptySSAMap() {
     return EMPTY_SSA_MAP;
   }
   
@@ -117,8 +141,8 @@ public class SSAMap implements ReadableSSAMap {
     }
   }
 
-  private final Map<String, Integer> vars;
-  private final Map<FuncKey, Integer> funcs;
+  protected final Map<String, Integer> vars;
+  protected final Map<FuncKey, Integer> funcs;
 
   public SSAMap() {
     vars = new HashMap<String, Integer>();

@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -664,7 +663,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
    * to the formula.
    */
   @Override
-  public PathFormula shift(SymbolicFormula f, SSAMap ssa) {
+  public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
 
@@ -772,7 +771,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
     SymbolicFormula result = cache.get(f);
     assert result != null;
-    return new PathFormula(result, newssa);
+    return new Pair<SymbolicFormula, SSAMap>(result, newssa);
   }
   
   // returns a formula with some "static learning" about some bitwise

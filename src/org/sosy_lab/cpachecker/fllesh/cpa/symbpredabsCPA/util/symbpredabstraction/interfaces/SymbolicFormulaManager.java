@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
@@ -211,7 +210,7 @@ public interface SymbolicFormulaManager {
      * @param ssa the SSAMap to use for shifting
      * @return the shifted formula and the new SSA map
      */
-    public PathFormula shift(SymbolicFormula f, SSAMap ssa);
+    public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa);
 
     /**
      * The path formulas have an uninterpreted function :=

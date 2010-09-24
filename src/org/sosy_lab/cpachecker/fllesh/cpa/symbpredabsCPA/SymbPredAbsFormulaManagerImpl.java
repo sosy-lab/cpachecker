@@ -832,13 +832,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       p = it.next().getInitAbstractionFormula();
 
       // don't need to call replaceAssignments because shift does the same trick
-      p = smgr.shift(p.getSymbolicFormula(), ssa);
+      Pair<SymbolicFormula, SSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
       
-      result.add(p.getSymbolicFormula());
+      result.add(lPair.getFirst());
       
       // shift returns a new ssa map,
       // we need to add those variables that were not used by shift()
-      SSAMap newSsa = new SSAMap(p.getSSAMap());
+      SSAMap newSsa = lPair.getSecond();
       newSsa.update(ssa);
       ssa = newSsa;
     }
