@@ -163,7 +163,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   @Override
   public String toString() {
     return "Abstraction location: " + isAbstractionNode
-        + " Abstraction id: " + abstractionId;
+        + " Abstraction id: " + abstractionId + " Symbolic Formula: " + pathFormula.hashCode();
   }
   
   @Override

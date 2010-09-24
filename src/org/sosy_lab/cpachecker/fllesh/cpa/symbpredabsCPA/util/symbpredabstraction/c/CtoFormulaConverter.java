@@ -126,6 +126,11 @@ public class CtoFormulaConverter {
     this.logger = logger;
   }
   
+  
+  public void resetNondetCounter() {
+    nondetCounter = 0;
+  }
+  
 
   private void warnUnsafeVar(IASTExpression exp) {
     log(Level.WARNING, "Unhandled expression treated as free variable", exp);
@@ -220,31 +225,15 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  /**
-   * Produces a fresh new SSA index for the left-hand side of an assignment
-   * and updates the SSA map.
-   */
-  private int makeLvalIndex(String name, SymbolicFormulaList args, SSAMap ssa) {
-    int idx = ssa.getIndex(name, args);
-    if (idx > 0) {
-      idx = idx+1;
-    } else {
-      idx = 2; // AG - IMPORTANT!!! We must start from 2 and
-      // not from 1, because this is an assignment,
-      // so the SSA index must be fresh. If we use 1
-      // here, we will have troubles later when
-      // shifting indices
-    }
-    ssa.setIndex(name, args, idx);
-    return idx;
-  }
-  
   private SymbolicFormula makeVariable(String var, String function, SSAMap ssa) {
     int idx;
     if (isNondetVariable(var)) {
       // on every read access to special non-determininism variable, increase index
       var = NONDET_VARIABLE;
       idx = nondetCounter++;
+      /*idx = ssa.getIndex(var);
+      idx++;
+      ssa.setIndex(var, idx);*/
     } else {
       var = scoped(var, function);
       idx = getIndex(var, ssa);
@@ -937,83 +926,22 @@ public class CtoFormulaConverter {
     throw new UnrecognizedCCodeException("Unknown expression", null, exp);
   }
 
-  private SymbolicFormula buildsatLvalueTerm(IASTExpression exp,
-        String function, SSAMap ssa) throws UnrecognizedCCodeException {
-    if (exp instanceof IASTIdExpression || !lvalsAsUif) {
-      String var;
-      if (exp instanceof IASTIdExpression) {
-        var = ((IASTIdExpression)exp).getName().getRawSignature();
-      } else {
-        var = exprToVarName(exp);
-      }
-      if (isNondetVariable(var)) {
-        logger.log(Level.WARNING, "Assignment to special non-determinism variable",
-            exp.getRawSignature(), "will be ignored.");
-      }
-      var = scoped(var, function);
-      int idx = makeLvalIndex(var, ssa);
-
-      SymbolicFormula mvar = smgr.makeVariable(var, idx);
-      return mvar;
-    } else if (exp instanceof IASTUnaryExpression) {
-      int op = ((IASTUnaryExpression)exp).getOperator();
-      IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
-      String opname;
-      switch (op) {
-      case IASTUnaryExpression.op_amper:
-        opname = OP_ADDRESSOF_NAME;
-        break;
-      case IASTUnaryExpression.op_star:
-        opname = OP_STAR_NAME;
-        break;
-      default:
-        throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, exp);
-      }
-      SymbolicFormula term = buildTerm(operand, function, ssa);
-
-      // PW make SSA index of * independent from argument
-      int idx = makeLvalIndex(opname, ssa);
-      //int idx = makeLvalIndex(opname, term, ssa, absoluteSSAIndices);
-
-      // build the "updated" function corresponding to this operation.
-      // what we do is the following:
-      // C            |     MathSAT
-      // *x = 1       |     <ptr_*>::2(x) = 1
-      // ...
-      // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return smgr.makeUIF(opname, smgr.makeList(term), idx);
+  private SymbolicFormula buildsatLvalueTerm(IASTExpression pExpression, String pCurrentFunction, SSAMap pSSAMap) {
+    if (pExpression instanceof IASTIdExpression) {
+      String lVariable = ((IASTIdExpression)pExpression).getName().getRawSignature();
       
-    } else if (exp instanceof IASTFieldReference) {
-      IASTFieldReference fexp = (IASTFieldReference)exp;
-      String field = fexp.getFieldName().getRawSignature();
-      IASTExpression owner = fexp.getFieldOwner();
-      SymbolicFormula term = buildTerm(owner, function, ssa);
-
-      String tpname = getTypeName(owner.getExpressionType());
-      String ufname =
-        (fexp.isPointerDereference() ? "->{" : ".{") +
-        tpname + "," + field + "}";
-      SymbolicFormulaList args = smgr.makeList(term);
-      int idx = makeLvalIndex(ufname, args, ssa);
-
-      // see above for the case of &x and *x
-      return smgr.makeUIF(ufname, args, idx);
-
-    } else if (exp instanceof IASTArraySubscriptExpression) {
-      IASTArraySubscriptExpression aexp =
-        (IASTArraySubscriptExpression)exp;
-      IASTExpression arrexp = aexp.getArrayExpression();
-      IASTExpression subexp = aexp.getSubscriptExpression();
-      SymbolicFormula aterm = buildTerm(arrexp, function, ssa);
-      SymbolicFormula sterm = buildTerm(subexp, function, ssa);
-
-      String ufname = OP_ARRAY_SUBSCRIPT;
-      SymbolicFormulaList args = smgr.makeList(aterm, sterm);
-      int idx = makeLvalIndex(ufname, args, ssa);
-
-      return smgr.makeUIF(ufname, args, idx);
+      if (isNondetVariable(lVariable)) {
+        throw new RuntimeException("Do not assign values to nondeterministic variables!");
+      }
+      
+      String lScopedVariable = scoped(lVariable, pCurrentFunction);
+      int lIndex = makeLvalIndex(lScopedVariable, pSSAMap);
+      
+      return smgr.makeVariable(lScopedVariable, lIndex);
     }
-    throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
+    else {
+      throw new RuntimeException("We only support test generation for assignments to variables!");
+    }
   }
 
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,

@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -112,9 +114,21 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        return handleAbstractionLocation(element, precision, edge);
+        Collection<? extends AbstractElement> lSuccessors = handleAbstractionLocation(element, precision, edge);
+        
+        //System.out.println(lSuccessors);
+        
+        return lSuccessors;
+        
+        //return handleAbstractionLocation(element, precision, edge);
       } else {
-        return handleNonAbstractionLocation(element, edge, satCheck);
+        Collection<? extends AbstractElement> lSuccessors = handleNonAbstractionLocation(element, edge, satCheck);
+        
+        //System.out.println(lSuccessors);
+        
+        return lSuccessors;
+        
+        //return handleNonAbstractionLocation(element, edge, satCheck);
       }
 
     } finally {
@@ -140,30 +154,71 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return computed abstract element
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
+  
+  //HashMap<CFAEdge, Map<PathFormula, PathFormula>> mCache = new HashMap<CFAEdge, Map<PathFormula, PathFormula>>();
+  
   private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
-                SymbPredAbsAbstractElement element, CFAEdge edge, boolean satCheck)
+                SymbPredAbsAbstractElement element, CFAEdge pCFAEdge, boolean satCheck)
                 throws CPATransferException {
     logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
-
-    // id of parent
-    PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge);
-
-    logger.log(Level.ALL, "New path formula is", pf);
-
-    if (satCheck) {
-      numSatChecks++;
-      if (formulaManager.unsat(element.getAbstraction(), pf)) {
-        logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
-        return Collections.emptySet();
-      }
+    /*
+    Map<PathFormula, PathFormula> lLocalCache = mCache.get(pCFAEdge);
+    
+    if (lLocalCache == null) {
+      lLocalCache = new HashMap<PathFormula, PathFormula>();
+      mCache.put(pCFAEdge, lLocalCache);
     }
+    */
+    PathFormula lCurrentPathFormula = element.getPathFormula();
+    PathFormula lSuccessorPathFormula;
+    /*PathFormula lSuccessorPathFormula = lLocalCache.get(lCurrentPathFormula);
+    
+    if (lSuccessorPathFormula == null) {*/
+      // id of parent
+      lSuccessorPathFormula = convertEdgeToPathFormula(lCurrentPathFormula, pCFAEdge);
 
+      logger.log(Level.ALL, "New path formula is", lSuccessorPathFormula);
+
+      if (satCheck) {
+        numSatChecks++;
+        if (formulaManager.unsat(element.getAbstraction(), lSuccessorPathFormula)) {
+          logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
+          //return Collections.emptySet();
+          
+          throw new RuntimeException();
+        }
+        
+        throw new RuntimeException();
+      }
+      
+      /*lLocalCache.put(lCurrentPathFormula, lSuccessorPathFormula);
+      //System.out.println(lLocalCache.size());
+    }
+    else {
+      PathFormula lSuccessorPathFormula2 = convertEdgeToPathFormula(lCurrentPathFormula, pCFAEdge);
+      
+      if (!lSuccessorPathFormula.equals(lSuccessorPathFormula2)) {
+        System.out.println(lSuccessorPathFormula);
+        System.out.println("---");
+        System.out.println(lSuccessorPathFormula2);
+        */
+        /**
+         * Das Problem ist wie folgt: Durch das Caching werden die Indizes 
+         * der Nondet-Variablen nicht hochgezaehlt und damit laufen wir in 
+         * eine endlosschleife (wegen dem Beispiel).
+         * STIMMT DAS? MUESSTEN WIR DANN NICHT IRGENDWANN EINEN FIXPUNKT ERREICHEN?
+         */
+        /*
+        throw new RuntimeException();
+      }
+    }*/
+    
     // create the new abstract element for non-abstraction location
     return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
-        element.getAbstractionLocation(), pf,
+        element.getAbstractionLocation(), lSuccessorPathFormula,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
         element.getAbstractionId(),

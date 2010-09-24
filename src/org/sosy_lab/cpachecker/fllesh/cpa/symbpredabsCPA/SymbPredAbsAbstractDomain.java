@@ -117,8 +117,17 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
         return false;
         
       } else {
+        if (e1.getMergedInto() == e2) {
+          //System.out.println("stop: " + e1 + " *************** " + e2);
+          return true;
+        }
+        else {
+          //System.out.println("don't stop: " + e1 + " *************** " + e2);
+          return false;
+        }
+        
         // only the fast check which returns true if a merge occurred for this element
-        return e1.getMergedInto() == e2;
+        //return e1.getMergedInto() == e2;
       }
     }
   }

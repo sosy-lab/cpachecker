@@ -500,22 +500,6 @@ public class MainTest extends ExperimentalSeries {
   }
   
   @Test
-  public void testMain028() throws Exception {
-    String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
-                                        "test/programs/fql/arrays/infeasible_label.1.c",
-                                        "main",
-                                        true);
-    
-    FlleShResult lResult = execute(lArguments);
-    
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(0, lResult.getNumberOfTestCases());
-    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-  }
-  
-  @Test
   public void testMain031() throws Exception {
     String[] lArguments = Main.getParameters(
         "COVER \"EDGES(ID)*\"",
@@ -530,6 +514,22 @@ public class MainTest extends ExperimentalSeries {
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());   
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+
+  @Test
+  public void testMain028() throws Exception {
+    String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+                                        "test/programs/fql/arrays/infeasible_label.1.c",
+                                        "main",
+                                        true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(0, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
