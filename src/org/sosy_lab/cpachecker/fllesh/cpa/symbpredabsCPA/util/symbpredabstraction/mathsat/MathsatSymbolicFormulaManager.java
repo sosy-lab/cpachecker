@@ -109,6 +109,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   private final MathsatAbstractionPrinter absPrinter;  
   
+  private final SymbolicFormula trueFormula;
+  private final SymbolicFormula falseFormula;
+  
   public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatSymbolicFormulaManager.class);
     msatEnv = msat_create_env();
@@ -131,6 +134,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
     
     absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs", logger);
+    
+    trueFormula = encapsulate(msat_make_true(msatEnv));
+    falseFormula = encapsulate(msat_make_false(msatEnv));
   }
 
   long getMsatEnv() {
@@ -204,12 +210,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
   @Override
   public SymbolicFormula makeTrue() {
-    return encapsulate(msat_make_true(msatEnv));
+    return trueFormula;
   }
   
   @Override
   public SymbolicFormula makeFalse() {
-    return encapsulate(msat_make_false(msatEnv));
+    return falseFormula;
   }
 
   @Override

@@ -72,7 +72,8 @@ import com.google.common.collect.Multimap;
  * TODO Passing predicates from one reachability analysis to the next.
  * 
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
- * parts of the reached set? This requires a change in the coverage check. 
+ * parts of the reached set?) This requires a change in the coverage check.
+ * -> Handle enormous amounts of test goals. 
  * 
  */
 
@@ -88,8 +89,7 @@ public class FlleSh {
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
   private final ProductAutomatonCPA mProductAutomatonCPA;
-  //private final ConfigurableProgramAnalysis mSymbPredAbsCPA;
-  private final SymbPredAbsCPA mSymbPredAbsCPA;
+  private final ConfigurableProgramAnalysis mSymbPredAbsCPA;
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
   private final GuardedEdgeLabel mAlphaLabel;
@@ -158,7 +158,7 @@ public class FlleSh {
     lSymbPredAbsCPAFactory.setConfiguration(mConfiguration);
     lSymbPredAbsCPAFactory.setLogger(mLogManager);
     try {
-      mSymbPredAbsCPA = (SymbPredAbsCPA)lSymbPredAbsCPAFactory.createInstance();
+      mSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -271,11 +271,17 @@ public class FlleSh {
         
         lIsFeasible = true;
         
+        System.out.println(lCounterexampleTraceInfo.getCounterexample().toString());
+        
         SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
           System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
+          
+          System.out.println(lGoal.getAutomaton().toString());
+          
+          System.out.println(lTestCase);
           
           if (pApplySubsumptionCheck) {
             removeCoveredGoals(lGoals, lResultFactory, lTestCase, mWrapper, lAutomatonCPA, lPassingCPA);
@@ -306,9 +312,6 @@ public class FlleSh {
   private CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, ConfigurableProgramAnalysis pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
-    
-    // TODO
-    //mSymbPredAbsCPA.resetNondetCounter();
     
     /*
      * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,

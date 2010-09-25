@@ -48,7 +48,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
   private final PathFormula pathFormula;
-  /** If this node is not and abstraction node, then this is invalid;
+  /** If this node is not an abstraction node, then this is invalid;
    * otherwise this is the {@link PathFormula} of the last element before the
    * abstraction is computed. This formula is used by the refinement procedure
    * to build the formula to the error location */

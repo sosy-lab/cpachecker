@@ -163,10 +163,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     stats = new SymbPredAbsCPAStatistics(this);
   }
-  
-  public void resetNondetCounter() {
-    formulaManager.resetNondetCounter();
-  }
 
   @Override
   public SymbPredAbsAbstractDomain getAbstractDomain() {
