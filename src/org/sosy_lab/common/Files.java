@@ -1,9 +1,12 @@
 package org.sosy_lab.common;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 
@@ -94,6 +97,36 @@ public final class Files {
     }
   }
   
+  /**
+   * Reads the complete content of a file into a string.
+   * @param file The file.
+   * @return The content of the file.
+   * @throws IOException
+   */
+  public static String readFile(File file) throws IOException {
+    Preconditions.checkNotNull(file);
+    checkReadableFile(file);
+    
+    StringBuilder data = new StringBuilder((int)file.length());
+    BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+    
+    try {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        data.append(line);
+        data.append('\n');
+      }
+      return data.toString();
+      
+    } finally {
+      try {
+        reader.close();
+      } catch (IOException e) {
+        // ignore here
+      }
+    }
+  }
+
   /**
    * Verifies if a file exists, is a normal file and is readable. If this is not
    * the case, a FileNotFoundException with a nice message is thrown.

@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Stack;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
@@ -54,30 +51,14 @@ public class MathsatPredicateParser {
         this.mgr = mgr;
     }
 
-    public Set<Predicate> parsePredicates(InputStream in) throws IOException {
-            BufferedReader r = new BufferedReader(new InputStreamReader(in));
-            StringBuffer data = new StringBuffer();
-            String line = r.readLine();
-            while (line != null) {
-                data.append(line);
-                data.append("\n");
-                line = r.readLine();
-            }
-            if (data.toString().trim().isEmpty()) {
-              return null;
-            }
+    public Set<Predicate> parsePredicates(String in) {
+        long formula = mathsat.api.msat_from_msat(mmgr.getMsatEnv(), in);
+        if (mathsat.api.MSAT_ERROR_TERM(formula)) {
+            return null;
+        }
 
-            long msatEnv = mmgr.getMsatEnv();
-            long formula = mathsat.api.msat_from_msat(msatEnv, data.toString());
-            if (mathsat.api.MSAT_ERROR_TERM(formula)) {
-                return null;
-            }
-            return parsePredicates(formula);
-    }
-
-    private Set<Predicate> parsePredicates(long formula) {
         Set<Predicate> ret = new HashSet<Predicate>();
-        Stack<Long> toProcess = new Stack<Long>();
+        Deque<Long> toProcess = new ArrayDeque<Long>();
 
         // We *ASSUME* that in the original msat file the formula is a
         // conjunction of (name <-> def) for each predicate. Since mathsat
@@ -85,7 +66,7 @@ public class MathsatPredicateParser {
         // are in turn translated into ORs, here we look only for ORs in which
         // one of the children is a boolean variable
         toProcess.push(formula);
-        while (!toProcess.empty()) {
+        while (!toProcess.isEmpty()) {
             long t = toProcess.pop();
             if (mathsat.api.msat_term_is_and(t) != 0) {
                 for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {

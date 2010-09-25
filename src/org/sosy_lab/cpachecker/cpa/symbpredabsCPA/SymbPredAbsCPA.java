@@ -24,13 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -148,10 +147,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     
     Set<Predicate> predicates = null;
     if (predicatesFile != null) {
-      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
       try {
-        InputStream file = new FileInputStream(predicatesFile);
-        predicates = p.parsePredicates(file);
+        String fileContent = Files.readFile(predicatesFile);
+        
+        MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
+        predicates = p.parsePredicates(fileContent);
       } catch (IOException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");

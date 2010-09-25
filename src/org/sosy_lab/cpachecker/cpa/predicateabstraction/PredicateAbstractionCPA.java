@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicateabstraction;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -43,6 +41,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremPr
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -137,9 +136,8 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         Collection<Predicate> preds;
         try {
             if (!fixedPredMapFile.isEmpty()) {
-                File f = new File(fixedPredMapFile);
-                InputStream in = new FileInputStream(f);
-                preds = p.parsePredicates(in);
+                String fileContent = Files.readFile(new File(fixedPredMapFile));
+                preds = p.parsePredicates(fileContent);
             } else {
                 preds = null;
             }
