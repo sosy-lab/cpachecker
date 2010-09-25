@@ -52,7 +52,7 @@ public class CProver {
     private Boolean result = null;
     
     public CBMCExecutor(LogManager logger, File file) throws IOException {
-      super(logger, getCmdline(file));
+      super(logger, RuntimeException.class, getCmdline(file));
     }
     
     private static String[] getCmdline(File file) {
@@ -85,7 +85,7 @@ public class CProver {
     try {
       logger.log(Level.FINER, "Starting CBMC verification.");
       CBMCExecutor cbmc = new CBMCExecutor(logger, cFile);
-      cbmc.read();
+      cbmc.join();
       logger.log(Level.FINER, "CBMC finished.");
       
       if (cbmc.result == null) {

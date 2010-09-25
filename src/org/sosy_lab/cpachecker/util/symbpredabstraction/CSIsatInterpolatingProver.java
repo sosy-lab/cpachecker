@@ -61,7 +61,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     private boolean satisfiable = false;
     
     public CSIsatExecutor() throws IOException {
-      super(CSIsatInterpolatingProver.this.logger, CSISAT_CMDLINE);
+      super(CSIsatInterpolatingProver.this.logger, IOException.class, CSISAT_CMDLINE);
     }
 
     @Override
@@ -142,7 +142,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     try {
       csisat = new CSIsatExecutor();
       csisat.writeFormulas(formulas);
-      csisat.read();
+      csisat.join();
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "Error during invocation of CSIsat interpolating theorem prover!");
       throw new UnsupportedOperationException(e);
