@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
+import com.google.common.base.Joiner;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -412,8 +413,27 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     return result;
   }
 
+  protected void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, smgr.dumpFormula(f), false);
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
 
-  @Override
+  private static final Joiner LINE_JOINER = Joiner.on('\n');
+  
+  protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, LINE_JOINER.join(f), false);
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+  
+  @Deprecated
   public void dumpFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
     Iterator<SymbolicFormula> it = f.iterator();
     SymbolicFormula t = it.next();

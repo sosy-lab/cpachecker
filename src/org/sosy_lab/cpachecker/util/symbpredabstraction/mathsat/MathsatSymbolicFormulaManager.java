@@ -93,8 +93,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<SymbolicFormula, SymbolicFormula> uninstantiateCache = new HashMap<SymbolicFormula, SymbolicFormula>();
-
-  private final MathsatAbstractionPrinter absPrinter;  
   
   private final SymbolicFormula trueFormula;
   private final SymbolicFormula falseFormula;
@@ -118,8 +116,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, 2, msatVarType2);
 
     stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
-    
-    absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs", logger);
     
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
@@ -473,14 +469,35 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return msat_to_msat(msatEnv, getTerm(f));
   }
 
-  @Override
-  public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
-      SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
-    
-    absPrinter.printMsatFormat(curState, edgeFormula, predDef, importantPreds);
-    absPrinter.printNusmvFormat(curState, edgeFormula, predDef, importantPreds);
-    absPrinter.nextNum();
+/* Method for converting MSAT format to NUSMV format.
+  public String printNusmvFormat(SymbolicFormula f, Set<SymbolicFormula> preds) {
+
+    StringBuilder out = new StringBuilder();
+    out.append("MODULE main\n");
+    String repr = dumpFormula(f);
+    for (String line : repr.split("\n")) {
+      if (line.startsWith("VAR")) {
+        out.append(line + ";\n");
+      } else if (line.startsWith("DEFINE")) {
+        String[] bits = line.split(" +", 5);
+        out.append("DEFINE " + bits[1] + " " + bits[4] + ";\n");
+      } else if (line.startsWith("FORMULA")) {
+        out.append("INIT" + line.substring(7) + "\n");
+      } else {
+        out.append(line);
+        out.append('\n');
+      }
+    }
+    out.append("\nTRANS FALSE\n");
+    out.append("INVARSPEC (0 = 0)\n");
+    for (SymbolicFormula p : preds) {
+      repr = p.toString();
+      repr = repr.replaceAll("([a-zA-Z:_0-9]+@[0-9]+)", "\"$1\"");
+      out.append("PRED " + repr + "\n");
+    }
+    return out.toString();
   }
+*/
 
   @Override
   public SymbolicFormula parseInfix(String s) {

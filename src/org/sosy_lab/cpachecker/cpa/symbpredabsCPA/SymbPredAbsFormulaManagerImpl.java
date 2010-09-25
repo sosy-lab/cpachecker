@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +41,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,8 +68,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-
-import com.google.common.base.Joiner;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -132,11 +128,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   private boolean wellScopedPredicates = false;
 
   @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
-  private File msatCexFile = new File("cex.msat");
+  private File dumpCexFile = new File("counterexample.msat");
 
   @Option(name="refinement.dumpInterpolationProblems")
   private boolean dumpInterpolationProblems = false;
 
+  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE)
+  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
+  private final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
+  
   @Option(name="interpolation.timelimit")
   private long itpTimeLimit = 0;
 
@@ -163,6 +163,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       LogManager logger) throws InvalidConfigurationException {
     super(pAmgr, pSmgr, config, logger);
     config.inject(this);
+    
+    formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
 
     stats = new Stats();
     thmProver = pThmProver;
@@ -490,7 +492,17 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // TODO dump hard abst
       if (solveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        smgr.dumpAbstraction(smgr.makeTrue(), f, predDef, predVars);
+        String dumpFile = String.format(formulaDumpFilePattern,
+                                 "abstraction", stats.numCallsAbstraction, "input", 0);
+        dumpFormulaToFile(f, new File(dumpFile));
+
+        dumpFile = String.format(formulaDumpFilePattern,
+                                 "abstraction", stats.numCallsAbstraction, "predDef", 0);
+        dumpFormulaToFile(predDef, new File(dumpFile));
+
+        dumpFile = String.format(formulaDumpFilePattern,
+                                 "abstraction", stats.numCallsAbstraction, "predVars", 0);
+        printFormulasToFile(predVars, new File(dumpFile));
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
@@ -579,13 +591,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
 
     if (dumpInterpolationProblems) {
-      int refinement = stats.numCallsCexAnalysis;
-      logger.log(Level.FINEST, "Dumping", f.size(), "formulas of refinement number", refinement);
-
       int k = 0;
       for (SymbolicFormula formula : f) {
-        dumpFormulasToFile(Collections.singleton(formula), 
-            new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".f" + k++));
+        String dumpFile = String.format(formulaDumpFilePattern,
+                    "interpolation", stats.numCallsCexAnalysis, "formula", k++);
+        dumpFormulaToFile(formula, new File(dumpFile));
       }
     }
 
@@ -620,7 +630,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     if (spurious) {
       info = new CounterexampleTraceInfo();
-      int refinement = stats.numCallsCexAnalysis;
 
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
@@ -652,8 +661,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
         if (dumpInterpolationProblems) {
-          dumpFormulasToFile(Collections.singleton(itp), 
-              new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".itp" + i));
+          String dumpFile = String.format(formulaDumpFilePattern,
+                  "interpolation", stats.numCallsCexAnalysis, "interpolant", i);
+          dumpFormulaToFile(itp, new File(dumpFile));
         }
 
         if (itp.isTrue() || itp.isFalse()) {
@@ -673,15 +683,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
               "predicates", preds);
 
           if (dumpInterpolationProblems) {
-            try {
-              Files.writeFile(new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".atoms" + i),
-                  Joiner.on('\n').join(atoms) + '\n', false);
-            } catch (IOException ex) {
-              logger.log(Level.WARNING, "Could not dump interpolant atoms to file! ("
-                  + ex.getMessage() + ")");
-            }
+            String dumpFile = String.format(formulaDumpFilePattern,
+                        "interpolation", stats.numCallsCexAnalysis, "atoms", i);
+            printFormulasToFile(atoms, new File(dumpFile));
           }
-          
         }
 
         // TODO wellScopedPredicates have been disabled
@@ -707,6 +712,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     } else {
       // this is a real bug, notify the user
       
+      // TODO - reconstruct counterexample
+      // For now, we dump the asserted formula to a user-specified file
+      SymbolicFormula cex = smgr.makeTrue();
+      for (SymbolicFormula part : f) {
+        cex = smgr.makeAnd(cex, part);
+      }
+      dumpFormulaToFile(cex, dumpCexFile);
+      
       // get the reachingPathsFormula and add it to the solver environment
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
@@ -719,10 +732,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       assert stillSatisfiable;
       
       info = new CounterexampleTraceInfo(pItpProver.getModel());
-
-      // TODO - reconstruct counterexample
-      // For now, we dump the asserted formula to a user-specified file
-      dumpFormulasToFile(f, msatCexFile);
     }
 
     pItpProver.reset();

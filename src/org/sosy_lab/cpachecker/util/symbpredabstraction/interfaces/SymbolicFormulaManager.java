@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -246,12 +245,6 @@ public interface SymbolicFormulaManager {
      */
     public SymbolicFormula getBitwiseAxioms(SymbolicFormula f);
 
-    /**
-     * Dump an abstraction problem to a file so that the user can look at this problem later.
-     */
-    public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
-        SymbolicFormula predDef, List<SymbolicFormula> importantPreds);
-    
     /**
      * Create the variable representing a predicate for the given atom. There won't
      * be any tracking of the correspondence between the atom and the variable,

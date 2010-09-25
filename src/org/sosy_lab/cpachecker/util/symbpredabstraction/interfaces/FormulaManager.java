@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
-import java.io.File;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -97,6 +95,4 @@ public interface FormulaManager {
    * @return a Predicate
    */
   public Predicate getPredicate(SymbolicFormula var);
-
-  void dumpFormulasToFile(Iterable<SymbolicFormula> pF, File outputFile);
 }
