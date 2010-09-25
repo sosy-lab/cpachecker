@@ -67,6 +67,24 @@ public class MainTest extends ExperimentalSeries {
   }
 
   @Test
+  public void testMain002b() throws Exception {
+    String[] lArguments = Main.getParameters(
+        "COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
+        "test/programs/fql/blastnondet.c",
+        "foo",
+        true
+    );
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
   public void testMain003() throws Exception {
     String[] lArguments = Main.getParameters(
         "COVER \"EDGES(ID)*\".{x > 100}.EDGES(@LABEL(L)).\"EDGES(ID)*\"",
