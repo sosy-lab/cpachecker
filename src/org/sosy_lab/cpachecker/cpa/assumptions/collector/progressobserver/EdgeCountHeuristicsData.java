@@ -145,7 +145,7 @@ public class EdgeCountHeuristicsData
 
   @Override
   public String toString() {
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
     for (int i=0; i < counters.length; i++)
       buffer.append(counters[i]).append("x(").append(node).append(',')
         .append(node.getLeavingEdge(i).getSuccessor()).append(") ");

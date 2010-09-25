@@ -154,7 +154,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
   public String toString() {
     if (this == getAutomatonCPA().getTopState()) return "AutomatonState.TOP";
     if (this == getAutomatonCPA().getBottomState()) return "AutomatonState.BOTTOM";
-    StringBuffer v = new StringBuffer();
+    StringBuilder v = new StringBuilder();
     for (AutomatonVariable o : vars.values()) {
       v.append(' ');
       v.append(o.getName());

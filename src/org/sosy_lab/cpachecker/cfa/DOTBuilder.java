@@ -104,7 +104,7 @@ public final class DOTBuilder {
 
 		generateDotHelper (subGraphWriters, nodeWriter, cfa);
 
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		sb.append("digraph " + "CFA" + " {\n");
 
 		sb.append(nodeWriter.getDot());

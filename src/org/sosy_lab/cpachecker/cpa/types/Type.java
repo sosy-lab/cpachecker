@@ -373,7 +373,7 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public String getDefinition() {
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder();
       sb.append(toString());
       sb.append(" { ");
       for (String member : members.keySet()) {
@@ -529,7 +529,7 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public String getDefinition() {
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder();
       sb.append(toString());
       sb.append(" { ");
       int lastValue = -1;
@@ -636,7 +636,7 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public String getDefinition() {
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder();
       sb.append(returnType);
       sb.append(" ");
       sb.append(name);

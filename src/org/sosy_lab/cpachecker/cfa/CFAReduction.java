@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Stack;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
@@ -84,10 +85,10 @@ public class CFAReduction {
 
   private void dfs(CFANode start, Map<CFANode, Integer> dfsMarked,
                    boolean reverse) {
-    Stack<CFANode> toProcess = new Stack<CFANode>();
+    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
 
     toProcess.push(start);
-    while (!toProcess.empty()) {
+    while (!toProcess.isEmpty()) {
       CFANode n = toProcess.peek();
       if (dfsMarked.containsKey(n) && dfsMarked.get(n) == 1) {
         toProcess.pop();

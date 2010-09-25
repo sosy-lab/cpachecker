@@ -156,7 +156,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     sb.append("[<global:");
     for (String var : globalVars) {
       sb.append(" " + var + " ");

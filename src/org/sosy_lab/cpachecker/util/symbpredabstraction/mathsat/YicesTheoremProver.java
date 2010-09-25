@@ -25,16 +25,16 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.Stack;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,7 +59,7 @@ public class YicesTheoremProver implements TheoremProver {
     private yices.YicesLite yicesManager;
     private SymbolicFormulaManager smgr;
 
-    private Stack<Collection<String>> declStack;
+    private Deque<Collection<String>> declStack;
     private Set<String> globalDecls;
 
     int curLevel = 0;
@@ -81,16 +81,16 @@ public class YicesTheoremProver implements TheoremProver {
         //System.out.println("USING YICES VERSION: " +
         //                   yicesManager.yicesl_version());
         smgr = mgr;
-        declStack = new Stack<Collection<String>>();
+        declStack = new ArrayDeque<Collection<String>>();
         globalDecls = new HashSet<String>();
     }
 
     // returns a pair (declarations, formula)
     private Pair<Collection<String>, String> toYices(MathsatSymbolicFormula f) {
-        Stack<Long> toProcess = new Stack<Long>();
-        Collection<String> decls = new Vector<String>();
+        Deque<Long> toProcess = new ArrayDeque<Long>();
+        Collection<String> decls = new ArrayList<String>();
         toProcess.push(f.getTerm());
-        while (!toProcess.empty()) {
+        while (!toProcess.isEmpty()) {
             long term = toProcess.peek();
             if (msatToYicesCache.containsKey(term)) {
                 toProcess.pop();
@@ -131,7 +131,7 @@ public class YicesTheoremProver implements TheoremProver {
                     String yicesFun = null;
                     if (!msatVarToYicesVar.containsKey(d)) {
                         yicesFun = "f" + (curVarIndex++);
-                        StringBuffer tp = new StringBuffer();
+                        StringBuilder tp = new StringBuilder();
                         tp.append("(->");
                         int arity = mathsat.api.msat_term_arity(term);
                         for (int i = 0; i < arity; i++) {
@@ -330,7 +330,7 @@ public class YicesTheoremProver implements TheoremProver {
             callback.callback(amodel);
 
             // add the model as a blocking clause
-            StringBuffer buf = new StringBuffer();
+            StringBuilder buf = new StringBuilder();
             for (SymbolicFormula m : model) {
                 long t = ((MathsatSymbolicFormula)m).getTerm();
                 if (mathsat.api.msat_term_is_not(t) != 0) {
@@ -381,7 +381,7 @@ public class YicesTheoremProver implements TheoremProver {
         yicesCommand("(pop)");
         --curLevel;
         assert(curLevel >= 0);
-        if (!declStack.empty()) {
+        if (!declStack.isEmpty()) {
             // yices has scoped declarations, but we want global ones: so, we
             // re-declared variables in the outer scope
             Collection<String> decls = declStack.pop();
@@ -394,7 +394,7 @@ public class YicesTheoremProver implements TheoremProver {
                     yicesCommand(d, true);
                 }
             }
-            if (!declStack.empty()) {
+            if (!declStack.isEmpty()) {
                 declStack.peek().addAll(decls);
             } else {
                 globalDecls.addAll(decls);

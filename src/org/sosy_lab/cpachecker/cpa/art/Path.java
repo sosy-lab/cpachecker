@@ -41,7 +41,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
 
     for (Pair<ARTElement, CFAEdge> pair : this) {
       sb.append("Line ");

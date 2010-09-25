@@ -102,8 +102,8 @@ public class ARTStatistics implements Statistics {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
-    StringBuffer sb = new StringBuffer();
-    StringBuffer edges = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
+    StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
     sb.append("style=filled; color=lightgrey; \n");
