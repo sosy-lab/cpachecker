@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
+package org.sosy_lab.cpachecker.cpa.predicateabstraction;
 
 import java.util.Collection;
 
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 
 
 /**
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  * A map from domain elements to a collection of predicates
  *
  */
-public interface PredicateMap {
+interface PredicateMap {
     /**
      * gets the predicates relevant to the given CFA node
      * @param n the node for which to retrieve the list of predicates

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction;
+package org.sosy_lab.cpachecker.cpa.predicateabstraction;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,14 +32,13 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
 
 /**
  * A predicate map which can be updated (refined) during execution
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class UpdateablePredicateMap implements PredicateMap {
+class UpdateablePredicateMap implements PredicateMap {
 
     private final Map<CFANode, Set<Predicate>> repr;
     private final Map<String, Set<Predicate>> functionGlobalPreds;

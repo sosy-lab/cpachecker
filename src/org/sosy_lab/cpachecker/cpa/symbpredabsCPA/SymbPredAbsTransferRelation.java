@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTra
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case
@@ -188,12 +187,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   /**
    * Computes element -(op)-> newElement where edge = (l1 -(op)-> l2) and l2
    * is an abstraction location.
-   * We set newElement's 'abstractionLocation' to edge.successor(),
-   * its newElement's 'pathFormula' to true, its 'initAbstractionFormula' to
-   * the 'pathFormula' of element, its 'abstraction' to newly computed abstraction
-   * over predicates we get from {@link PredicateMap#getRelevantPredicates(CFANode newElement)},
-   * its 'abstractionPathList' to edge.successor() concatenated to element's 'abstractionPathList',
-   * and its 'artParent' to element.
+   * We set newElement's 'pathFormula' to true and its 'abstraction' to newly
+   * computed abstraction over predicates we get from
+   * {@link SymbPredAbsPrecision#getPredicates(CFANode)}.
    *
    * @param pElement is the last abstract element
    * @param edge edge of the operation
