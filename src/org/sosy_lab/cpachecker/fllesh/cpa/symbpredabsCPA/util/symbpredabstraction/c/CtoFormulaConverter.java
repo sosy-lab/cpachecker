@@ -225,19 +225,19 @@ public class CtoFormulaConverter {
     return idx;
   }
   
+  private SymbolicFormula makeNondetVariable(SSAMap pSSAMap) {
+    int lIndex = nondetCounter++;
+    return smgr.makeVariable(NONDET_VARIABLE, lIndex);
+  }
+  
   private SymbolicFormula makeVariable(String var, String function, SSAMap ssa) {
-    int idx;
     if (isNondetVariable(var)) {
-      // on every read access to special non-determininism variable, increase index
-      var = NONDET_VARIABLE;
-      idx = nondetCounter++;
-      /*idx = ssa.getIndex(var);
-      idx++;
-      ssa.setIndex(var, idx);*/
-    } else {
-      var = scoped(var, function);
-      idx = getIndex(var, ssa);
+      throw new RuntimeException();
     }
+    
+    var = scoped(var, function);
+    int idx = getIndex(var, ssa);
+    
     return smgr.makeVariable(var, idx);
   }
 
@@ -582,7 +582,36 @@ public class CtoFormulaConverter {
       String function, SSAMap ssa) throws CPATransferException {
     IASTExpression expr = stmt.getExpression();
 
-    SymbolicFormula f2 = buildTerm(expr, function, ssa);
+    SymbolicFormula f2 = null;
+    
+    // check for nondet special case
+    if (expr instanceof IASTBinaryExpression) {
+      IASTBinaryExpression lBinaryExpression = (IASTBinaryExpression)expr;
+      
+      if (lBinaryExpression.getOperator() == IASTBinaryExpression.op_assign) {
+        IASTExpression lOperand1Expression = ((IASTBinaryExpression)expr).getOperand1();
+        IASTExpression lOperand2Expression = ((IASTBinaryExpression)expr).getOperand2();
+        
+        if (lOperand1Expression instanceof IASTIdExpression 
+            && lOperand2Expression instanceof IASTIdExpression) {
+          IASTIdExpression lRVariable = (IASTIdExpression)lOperand2Expression;
+          String lRVariableName = lRVariable.getName().getRawSignature();
+          
+          if (isNondetVariable(lRVariableName)) {
+            // special case handling
+            
+            SymbolicFormula lNondetVariable = makeNondetVariable(ssa);
+            SymbolicFormula lLValueVariable = buildsatLvalueTerm(lOperand1Expression, function, ssa);
+            
+            f2 = smgr.makeAssignment(lLValueVariable, lNondetVariable);
+          }
+        }
+      }
+    }
+    
+    if (f2 == null) {
+      f2 = buildTerm(expr, function, ssa);
+    }
 
     //SymbolicFormula d = mathsat.api.msat_term_get_decl(f2);
     //if (mathsat.api.msat_decl_get_return_type(d) != mathsat.api.MSAT_BOOL) {
