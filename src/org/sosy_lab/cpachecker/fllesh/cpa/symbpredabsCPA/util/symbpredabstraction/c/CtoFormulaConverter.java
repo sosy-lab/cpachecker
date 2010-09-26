@@ -104,12 +104,11 @@ public class CtoFormulaConverter {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  private static final String NONDET_VARIABLE = "__nondet__";
+  public static final String NONDET_VARIABLE = "__nondet__";
+  public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
-
-  private int nondetCounter = 0;
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -126,12 +125,6 @@ public class CtoFormulaConverter {
     this.logger = logger;
   }
   
-  
-  public void resetNondetCounter() {
-    nondetCounter = 0;
-  }
-  
-
   private void warnUnsafeVar(IASTExpression exp) {
     log(Level.WARNING, "Unhandled expression treated as free variable", exp);
   }
@@ -226,8 +219,32 @@ public class CtoFormulaConverter {
   }
   
   private SymbolicFormula makeNondetVariable(SSAMap pSSAMap) {
-    int lIndex = nondetCounter++;
+    int lIndex = pSSAMap.getIndex(NONDET_VARIABLE);
+    
+    if (lIndex < 0) {
+      lIndex = 1;
+    }
+    
+    lIndex++;
+    
+    // We have to keep nondet variable and its flag in sync.
+    pSSAMap.setIndex(NONDET_VARIABLE, lIndex);
+    pSSAMap.setIndex(NONDET_FLAG_VARIABLE, lIndex);
+    
     return smgr.makeVariable(NONDET_VARIABLE, lIndex);
+  }
+  
+  /*
+   * This method has to be called after makeNondetVariable
+   */
+  private SymbolicFormula makeNondetFlagVariable(SSAMap pSSAMap) {
+    int lIndex = pSSAMap.getIndex(NONDET_FLAG_VARIABLE);
+    
+    if (lIndex < 0) {
+      throw new RuntimeException();
+    }
+    
+    return smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
   }
   
   private SymbolicFormula makeVariable(String var, String function, SSAMap ssa) {
@@ -604,6 +621,14 @@ public class CtoFormulaConverter {
             SymbolicFormula lLValueVariable = buildsatLvalueTerm(lOperand1Expression, function, ssa);
             
             f2 = smgr.makeAssignment(lLValueVariable, lNondetVariable);
+            
+            // TODO store lOne only once
+            SymbolicFormula lNondetFlagVariable = makeNondetFlagVariable(ssa);
+            SymbolicFormula lOne = smgr.makeNumber(1);
+            
+            SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lOne);
+            
+            f2 = smgr.makeAnd(f2, lAssignment);
           }
         }
       }

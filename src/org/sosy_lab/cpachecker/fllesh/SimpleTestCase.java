@@ -7,6 +7,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.c.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
@@ -88,9 +89,11 @@ public class SimpleTestCase implements TestCase {
     
     boolean lIsPrecise = true;
     
-    String lNondetPrefix = "__nondet__@";
+    String lNondetPrefix = CtoFormulaConverter.NONDET_VARIABLE + "@";
+    String lNondetFlagPrefix = CtoFormulaConverter.NONDET_FLAG_VARIABLE + "@"; 
     
     SortedMap<Integer, Double> lNondetMap = new TreeMap<Integer, Double>();
+    SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<Integer, Boolean>();
     
     for (MathsatAssignable lAssignable : lAssignables) {
       String lName = lAssignable.getName();
@@ -106,20 +109,40 @@ public class SimpleTestCase implements TestCase {
         
         lNondetMap.put(lIndex, lDoubleValue);
       }
+      else if (lName.startsWith(lNondetFlagPrefix)) {
+        String lNumberString = lName.substring(lNondetFlagPrefix.length());
+        
+        Integer lIndex = Integer.valueOf(lNumberString);
+        
+        MathsatValue lValue = pCounterexample.getValue(lAssignable);
+        
+        double lDoubleValue = Double.parseDouble(lValue.toString());
+        
+        if (lDoubleValue != 0.0) {
+          lNondetFlagMap.put(lIndex, true);
+        }
+        else {
+          lNondetFlagMap.put(lIndex, false);
+        }
+      }
     }
     
     LinkedList<Integer> lInput = new LinkedList<Integer>();
     
     for (Map.Entry<Integer, Double> lEntry : lNondetMap.entrySet()) {
-      Double lValue = lEntry.getValue();
-      
-      int lIntValue = lEntry.getValue().intValue();
-      
-      if (lValue.doubleValue() != lIntValue) {
-        lIsPrecise = false;
+      Integer lKey = lEntry.getKey();
+
+      if (lNondetFlagMap.get(lKey)) {
+        Double lValue = lEntry.getValue();
+        
+        int lIntValue = lValue.intValue();
+        
+        if (lValue.doubleValue() != lIntValue) {
+          lIsPrecise = false;
+        }
+        
+        lInput.add(lIntValue);
       }
-      
-      lInput.add(lIntValue);
     }
     
     return new SimpleTestCase(lInput, lIsPrecise);

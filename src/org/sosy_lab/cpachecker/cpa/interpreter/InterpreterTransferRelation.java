@@ -1487,6 +1487,10 @@ public class InterpreterTransferRelation implements TransferRelation {
       // TODO change
       newElement.incIndex();
       
+      if (mInputs.length <= element.getInputIndex()) {
+        throw new RuntimeException();
+      }
+      
       newElement.assignConstant(leftVarName, mInputs[element.getInputIndex()]);
       
       return newElement;

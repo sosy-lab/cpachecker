@@ -320,53 +320,141 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    */
   private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
       ReadableSSAMap ssa1, ReadableSSAMap ssa2) {
+    
     SSAMap result = new SSAMap();
+    
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
+    
+    // variables
+    
     for (String var : ssa1.allVariables()) {
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
-      assert(i1 > 0);
-      if (i2 > 0 && i2 != i1) {
-        // we have to merge this variable assignment
-        result.setIndex(var, Math.max(i1, i2));
-        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
-        mt1 = smgr.makeAnd(mt1, t.getFirst());
-        mt2 = smgr.makeAnd(mt2, t.getSecond());
-      } else {
+      
+      if (i1 <= 0) {
+        throw new RuntimeException();
+      }
+      
+      if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
         if (i2 <= 0) {
+          
+          for (int lIndex = 1; lIndex < i1 + 1; lIndex++) {
+            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+            SymbolicFormula lZero = smgr.makeNumber(0);
+            SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+            
+            mt2 = smgr.makeAnd(mt2, lAssignment);
+          }
+          
+          result.setIndex(NONDET_VARIABLE, i1);
+          result.setIndex(NONDET_FLAG_VARIABLE, i1);
+        }
+        else if (i1 != i2) {
+          if (i1 > i2) {
+            for (int lIndex = i2 + 1; lIndex < i1 + 1; lIndex++) {
+              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+              SymbolicFormula lZero = smgr.makeNumber(0);
+              SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+              
+              mt2 = smgr.makeAnd(mt2, lAssignment);
+            }
+            
+            result.setIndex(NONDET_VARIABLE, i1);
+            result.setIndex(NONDET_FLAG_VARIABLE, i1);
+          }
+          else {
+            for (int lIndex = i1 + 1; lIndex < i2 + 1; lIndex++) {
+              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+              SymbolicFormula lZero = smgr.makeNumber(0);
+              SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+              
+              mt1 = smgr.makeAnd(mt1, lAssignment);
+            }
+            
+            result.setIndex(NONDET_VARIABLE, i2);
+            result.setIndex(NONDET_FLAG_VARIABLE, i2);
+          }
+        }
+        else {
+          result.setIndex(NONDET_VARIABLE, i1);
+          result.setIndex(NONDET_FLAG_VARIABLE, i1);
+        }
+      }
+      else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        // we handle everything in the NONDET_VARIABLE case
+      }
+      else {
+        if (i2 > 0 && i2 != i1) {
+          // we have to merge this variable assignment
+          result.setIndex(var, Math.max(i1, i2));
+          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
+          mt1 = smgr.makeAnd(mt1, t.getFirst());
+          mt2 = smgr.makeAnd(mt2, t.getSecond());
+        } 
+        else {
+          if (i2 <= 0) {
+            // it's not enough to set the SSA index. We *must* also
+            // generate a formula saying that the var does not change
+            // in this branch!
+            SymbolicFormula v1 = smgr.makeVariable(var, 1);
+            for (int i = 2; i <= i1; ++i) {
+              SymbolicFormula v = smgr.makeVariable(var, i);
+              SymbolicFormula e = smgr.makeEqual(v, v1);
+              mt2 = smgr.makeAnd(mt2, e);
+            }
+          }
+          result.setIndex(var, i1);
+        }
+      }
+    }
+    
+    
+    for (String var : ssa2.allVariables()) {
+      int i2 = ssa2.getIndex(var);
+      int i1 = ssa1.getIndex(var);
+      
+      if (i2 <= 0) {
+        throw new RuntimeException();
+      }
+      
+      if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+        if (i1 <= 0) {
+          
+          for (int lIndex = 1; lIndex < i2 + 1; lIndex++) {
+            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+            SymbolicFormula lZero = smgr.makeNumber(0);
+            SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+            
+            mt1 = smgr.makeAnd(mt1, lAssignment);
+          }
+          
+          result.setIndex(NONDET_VARIABLE, i2);
+          result.setIndex(NONDET_FLAG_VARIABLE, i2);
+        }
+      }
+      else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        // we handle everything in the NONDET_VARIABLE case
+      }
+      else {
+        if (i1 <= 0) {
           // it's not enough to set the SSA index. We *must* also
           // generate a formula saying that the var does not change
           // in this branch!
           SymbolicFormula v1 = smgr.makeVariable(var, 1);
-          for (int i = 2; i <= i1; ++i) {
+          for (int i = 2; i <= i2; ++i) {
             SymbolicFormula v = smgr.makeVariable(var, i);
             SymbolicFormula e = smgr.makeEqual(v, v1);
-            mt2 = smgr.makeAnd(mt2, e);
+            mt1 = smgr.makeAnd(mt1, e);
           }
+          result.setIndex(var, i2);
+        } else {
+          assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
         }
-        result.setIndex(var, i1);
       }
     }
-    for (String var : ssa2.allVariables()) {
-      int i2 = ssa2.getIndex(var);
-      int i1 = ssa1.getIndex(var);
-      assert(i2 > 0);
-      if (i1 <= 0) {
-        // it's not enough to set the SSA index. We *must* also
-        // generate a formula saying that the var does not change
-        // in this branch!
-        SymbolicFormula v1 = smgr.makeVariable(var, 1);
-        for (int i = 2; i <= i2; ++i) {
-          SymbolicFormula v = smgr.makeVariable(var, i);
-          SymbolicFormula e = smgr.makeEqual(v, v1);
-          mt1 = smgr.makeAnd(mt1, e);
-        }
-        result.setIndex(var, i2);
-      } else {
-        assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
-      }
-    }
+    
+    // functions
 
     for (Pair<String, SymbolicFormulaList> f : ssa1.allFunctions()) {
       int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
