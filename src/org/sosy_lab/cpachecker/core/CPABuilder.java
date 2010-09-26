@@ -213,8 +213,9 @@ public class CPABuilder {
             + childOptionName + " and " + childrenOptionName + " are specified!");
       }
 
+      ConfigurableProgramAnalysis child = buildCPAs(childCpaName, childOptionName, usedAliases, cpas);
       try {
-        factory.setChild(buildCPAs(childCpaName, childOptionName, usedAliases, cpas));
+        factory.setChild(child);
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!");
       }
