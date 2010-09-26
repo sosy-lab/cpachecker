@@ -118,11 +118,15 @@ public class CtoFormulaConverter {
   protected final SymbolicFormulaManager smgr;
   protected final LogManager logger;
   
+  private final SymbolicFormula mOne;
+  
   public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
     this.smgr = smgr;
     this.logger = logger;
+    
+    mOne = smgr.makeNumber(1);
   }
   
   private void warnUnsafeVar(IASTExpression exp) {
@@ -624,7 +628,7 @@ public class CtoFormulaConverter {
             
             // TODO store lOne only once
             SymbolicFormula lNondetFlagVariable = makeNondetFlagVariable(ssa);
-            SymbolicFormula lOne = smgr.makeNumber(1);
+            SymbolicFormula lOne = mOne;
             
             SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lOne);
             

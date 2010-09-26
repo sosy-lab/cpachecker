@@ -271,17 +271,11 @@ public class FlleSh {
         
         lIsFeasible = true;
         
-        System.out.println(lCounterexampleTraceInfo.getCounterexample().toString());
-        
         SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
           System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
-          
-          System.out.println(lGoal.getAutomaton().toString());
-          
-          System.out.println(lTestCase);
           
           if (pApplySubsumptionCheck) {
             removeCoveredGoals(lGoals, lResultFactory, lTestCase, mWrapper, lAutomatonCPA, lPassingCPA);

@@ -82,6 +82,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   protected boolean useCache = true;
 
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
+  
+  private final SymbolicFormula mZero;
 
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -99,6 +101,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     
     mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    
+    mZero = smgr.makeNumber(0);
   }
 
   /**
@@ -341,7 +345,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           
           for (int lIndex = 1; lIndex < i1 + 1; lIndex++) {
             SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
-            SymbolicFormula lZero = smgr.makeNumber(0);
+            SymbolicFormula lZero = mZero;
             SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
             
             mt2 = smgr.makeAnd(mt2, lAssignment);
@@ -354,7 +358,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           if (i1 > i2) {
             for (int lIndex = i2 + 1; lIndex < i1 + 1; lIndex++) {
               SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
-              SymbolicFormula lZero = smgr.makeNumber(0);
+              SymbolicFormula lZero = mZero;
               SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
               
               mt2 = smgr.makeAnd(mt2, lAssignment);
@@ -366,7 +370,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           else {
             for (int lIndex = i1 + 1; lIndex < i2 + 1; lIndex++) {
               SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
-              SymbolicFormula lZero = smgr.makeNumber(0);
+              SymbolicFormula lZero = mZero;
               SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
               
               mt1 = smgr.makeAnd(mt1, lAssignment);
