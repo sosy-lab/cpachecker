@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.LinkedList;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import org.sosy_lab.common.Pair;
@@ -54,4 +56,20 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     return sb.toString();
   }
 
+  public JSONArray toJSON() {
+    JSONArray path = new JSONArray();
+    for (Pair<ARTElement, CFAEdge> pair : this) {
+      JSONObject elem = new JSONObject();
+      ARTElement artelem = pair.getFirst();
+      CFAEdge edge = pair.getSecond();
+      elem.put("artelem", artelem.getElementId());
+      elem.put("source", edge.getPredecessor().getNodeNumber());
+      elem.put("target", edge.getSuccessor().getNodeNumber());
+      elem.put("desc", edge.getRawStatement().replaceAll("\n", " "));
+      elem.put("line", edge.getLineNumber());
+      path.add(elem);
+    }    
+    return path;
+  }
+  
 }

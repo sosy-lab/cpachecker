@@ -1,0 +1,851 @@
+<html>
+    <head>       
+        <title>CPAChecker Report</title>
+        <style>
+            .edge {
+                cursor:pointer;
+            }
+        
+            body {
+                background: #ddd;
+                font-family: sans-serif;
+                margin:0;
+                }
+                fieldset {
+                    border: 1px solid #999;
+                    display: inline-block;
+                    }
+                a {
+                    cursor: pointer;
+                    }
+                    a.action {
+                        display:inline-block;
+                        padding:5px;
+                        border: 1px solid #ccc;
+                        background-color: #ddd;
+                        }
+                
+                .toolbar {
+                    padding:5px;
+                    border: 1px solid #ccc;
+                    background-color: #eee;
+                    }
+                 
+                #errpathwin {                
+                    margin:0;
+                    padding:0px;
+                    background-color:#fff;
+                    vertical-align:top;
+                    width:500px;
+                    height:650px;
+                    overflow:scroll;                
+                    }                
+                    #errpathwin ul {
+                        list-style:none;
+                        font-family: monospace;
+                        padding:0;
+                        }
+                        #errpathwin ul span{
+                            width:4em;
+                            background:#ccc;
+                            display:inline-block;
+                            }
+                        #errpathwin ul li{
+                            margin:2px;
+                            white-space:nowrap;
+                            }
+                            #errpathwin ul li.selected {
+                                border: 1px solid red;
+                                margin:0;
+                                }
+                #rightpane iframe {       
+                    width:100%;
+                    height:100%;
+                    }
+                #logwin {
+                    overflow:scroll;
+                    background: #fff;
+                    }
+                #logwin {
+                    overflow:scroll;
+                    background: #fff;
+                    }
+                #statswin {
+                    overflow:scroll;
+                    background: #fff;
+                    }
+                #confwin {
+                    overflow:scroll;
+                    background: #fff;
+                    }
+                #cilwin {
+                    overflow:scroll;
+                    background: #fff;
+                    }
+                    #cilwin #cil_holder td {
+                        padding-right: 10px;
+                        padding-bottom:0;
+                        margin-bottom:0;
+                        }
+                        #cilwin #cil_holder td:first-child {
+                            background-color: #ccc;
+                            }
+                        #cilwin #cil_holder td pre {
+                            padding-bottom:0;
+                            margin-bottom:0;
+                            }
+        </style>
+    </head>
+    <body>                
+        <table width="100%" height="100%" border="1">
+            <tr>
+                <td colspan="3">
+                    <div class="toolbar">
+                    CPAChecker Report <small style='display:block;float:right'>Generated: {{{time_generated}}}</small>
+                    </div>
+                    <h3 id="cfalabel" style="display:none;">main</h3>
+                    <fieldset>
+                        <legend>Displayed CFA</legend>
+                        Function
+                        <select id="functionselect"></select>
+                    </fieldset>
+         
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="toolbar">
+                        <a class="action" id="sim_start">Start</a>
+                        <a class="action" id="sim_prev">Prev</a>
+                        <a class="action" id="sim_next">Next</a>  
+                    </div>
+                </td>
+                <td colspan="2">
+                    <div class="toolbar">
+                        <a class="action" id="show_cfa">CFA</a>
+                        <a class="action" id="show_art">ART</a>
+                        <a class="action" id="show_cil">CIL</a>
+                        <a class="action" id="show_log">Log</a>                        
+                        <a class="action" id="show_stats">Statistics</a> 
+                        <a class="action" id="show_conf">Configuration</a> 
+                    </div>                 
+                </td>
+                
+            <tr>
+                <td width="500px" height="90%" valign="top">
+                    
+                    <div id="errpathwin">
+                    </div>
+                </td>        
+                <td id="rightpane">
+                    <iframe id="cfawin" name="cfawin" src="about:blank"></iframe>
+                    <iframe id="artwin" name="artwin" src="ART.svg"></iframe>
+                    <div id="cilwin">
+                        {{{formatted_cil}}}
+                    </div>
+                    <div id="logwin">
+                        <pre>{{{logfile}}}</pre>
+                    </div>
+                    <div id="statswin">
+                        <pre>{{{statistics}}}</pre>
+                    </div>
+                    <div id="confwin">
+                        <pre>{{{conffile}}}</pre>
+                    </div>                                        
+                </td>
+                <td width="10px" style="overflow:hidden; padding:0; margin:0;border:none;">
+                    <iframe id="resizehint" name="resizehint" src="about:blank" style="width:1px;height:100%;margin:0;border:none;"></iframe>
+                </td>
+            </tr>
+        </table>
+        <script>
+            // ignore console.log and console.debug when firebug is turned off or not installed
+            if (!window.console) {
+                window.console = {
+                    log: function() {},
+                    debug: function() {}
+                };
+            }
+            //allows sending events to multiple handlers
+            function EventHelper(events) {
+                console.log('init eventhelper');
+                var self = this;
+                var handlers = {};
+                for (var i = 0; i < events.length; i++) {
+                    handlers[events[i]] = [];
+                }
+                //add handler for event
+                self.add = function(evtname, handler) {
+                    console.log('eventhelper add ' + evtname);
+                    if (handlers[evtname] !== undefined) {
+                        console.log('eventhelper add: adding handler to ' + evtname);
+                        handlers[evtname].push(handler);
+                    } else {
+                        console.log('eventhelper add: event not known.');
+                    }
+                };
+                //fire event - calls all registered handlers
+                self.fire = function(evtname, param1, param2, param3, param4) {
+                    console.log('eventhelper fire ' + evtname);
+                    if (handlers[evtname] !== undefined) {
+                        console.log('eventhelper fire: firing ' + evtname);
+                        var evthandlers = handlers[evtname];
+                        for (var i = 0; i < evthandlers.length; i++) {
+                            evthandlers[i](evtname, param1, param2, param3, param4);
+                        }
+                    } else {
+                        console.log('eventhelper fire: event not known.');
+                    }
+                };
+                //remove handler
+                self.remove = function(evtname, handler) {
+                    if (handlers[evtname] !== undefined) {
+                        handlers[evtname].remove(handler);
+                    }
+                };
+            }
+            
+            //CSS class helpers             
+            function addClass(elem, cssclass) {
+                elem.className += " " + cssclass;
+            }
+            
+            function removeClass(elem, cssclass) {
+                var re = new RegExp('\\b' + cssclass + '\\b');
+                elem.className = elem.className.replace(re, ' ');                
+            }
+            
+            //a tab widget (used for the panel on the right)
+            function Tabber(names) {
+                var self = this;
+                self.names = names;
+                
+                self.selected_win = null;
+                
+                self.select_tab = function(tabname) {
+                    for (var i = 0; i < self.names.length; i++) {
+                        if (self.names[i] == tabname) {
+                            self.windows[i].style.display = 'block';
+                            self.buttons[i].style.textDecoration = 'underline';
+                        } else {
+                            self.windows[i].style.display = 'none';
+                            self.buttons[i].style.textDecoration = 'none';
+                        }                        
+                    }
+                    self.selection = tabname;
+                    self.selected_win = self.windows[i];
+                };
+                                               
+                self.init = function() {
+                    self.windows = [];
+                    self.buttons = [];                    
+                    for (var i = 0; i < self.names.length; i++) {
+                        
+                        self.windows.push(document.getElementById(self.names[i] + 'win'));
+                        var button = document.getElementById('show_' + self.names[i]);
+                        self.buttons.push(button);
+                        button.onclick = (function(tabname) {
+                            return function() {
+                                self.select_tab(tabname);
+                            };    
+                        })(self.names[i]);                        
+                    }
+                    self.select_tab(self.names[0]);                               
+                };            
+            }
+            
+            //adjust height of components (used for errpathwin, cilwin and logwin to get around layout issues)
+            function HeightFix(hint, ids) {
+                var self = this;
+                self.ids = ids;
+                self.hint = hint;
+                self.refnode = document.getElementById(self.hint);
+                self.nodes = [];
+                for (var i = 0; i < self.ids.length; i++) {
+                    self.nodes.push(document.getElementById(self.ids[i]));
+                }
+                
+                function adjust_height() {
+                    var height = self.refnode.contentWindow.innerHeight - 5;
+                    for (var i = 0; i < self.nodes.length; i++) {
+                        self.nodes[i].style.height = '' + height + 'px';
+                    }
+                }
+                
+                window.onresize = adjust_height;
+                adjust_height();
+            };
+            
+            //the report viewer            
+            var viewer = {};
+            
+            //data object - populated later
+            viewer.data = {};
+            //windows object - components are nested inside
+            viewer.windows = {};
+            
+            //the panel on the right
+            viewer.windows.rightpane = new Tabber(['cfa', 'art', 'cil', 'log', 'stats', 'conf']);
+            
+            //the cfa view
+            viewer.windows.cfawin = new (function() {
+                console.log('instanciated cfawin');
+                var self = this;
+                //event support
+                self.handlers = new EventHelper(['cfa_loaded', 'node_clicked', 'edge_clicked']);
+                self.cfacache = {};
+                self.active_cfa = null;
+                self.active_function = null;
+                self.svgdoc = null;
+                self.selection = null;
+                
+                function edge_clickaction(edgeid) {
+                    return function() {
+                        self.handlers.fire('edge_clicked', edgeid);
+                    };
+                }
+                
+                //index the svg to make nodes and edges available as self.active_cfa
+                function index_svg() {
+                    console.log('cfawin -- index_svg');
+                        
+                    var nodes = {};
+                    var edges = {};
+                    var cfa = {
+                        'nodes': nodes,
+                        'edges': edges
+                    };
+                    //index nodes
+                    var svgnodes = self.svgdoc.getElementsByClassName('node');
+                    for (var i = 0; i < svgnodes.length; i++) {
+                        var svgnode = svgnodes[i];
+                        var nodeid = parseInt(svgnode.getElementsByTagName('title')[0].textContent);
+                        nodes[nodeid] = svgnode;
+                    }
+                    //index edges
+                    var svgedges = self.svgdoc.getElementsByClassName('edge');
+                    for (var i = 0; i < svgedges.length; i++) {
+                        var svgedge = svgedges[i];
+                        var title = svgedge.getElementsByTagName('title')[0].textContent;                            
+                        
+                        var nodes = title.split('->');
+                        var edgeid = nodes[0] + '->' + nodes[1];                        
+                        edges[edgeid] = svgedge;
+                        
+                        svgedge.onclick = edge_clickaction(edgeid);
+                    }
+                    self.cfacache[self.active_function] = cfa;
+                    self.active_cfa = cfa;
+                    
+                }
+                
+                //callback is fired when a new function was loaded into the cfa window
+                function on_frame_onload() {
+                    console.log('cfawin -- onload');
+                    self.label.innerHTML = self.active_function;                    
+                    self.svgdoc = self.frame.document;
+                    index_svg();
+                    self.handlers.fire('cfa_loaded', self.active_function);
+                }                
+                
+                //initialize the cfa window - DOM must be ready
+                self.init = function() {
+                    console.log('cfawin -- init');
+                    self.frame = window.frames['cfawin'];
+                    //self.frame.onload = on_frame_onload;
+                    self.label = document.getElementById('cfalabel');
+                    //self.load('main');
+                };
+
+                //load a specific function into the cfa window
+                self.load = function(func) {
+                    console.log('cfawin -- load ' + func);
+
+                    //HACK ... frame onload seems to only fire once for some reason :(
+                    setTimeout(on_frame_onload, 500);
+                    self.frame.location= 'cfa__' + func + '.svg';
+                    self.active_function = func;
+                };
+                
+                //get the svg node for a cfa node
+                self.get_svgnode = function(nodeid) {
+
+                    if (viewer.data.combinednodes[nodeid] !== undefined) {
+                        nodeid = viewer.data.combinednodes[nodeid];
+                    }
+                    return self.active_cfa['nodes'][nodeid];
+                };
+                
+                //get the svg node for a cfa edge
+                self.get_svgedge = function(edgeid) {
+
+                    var edge = [edgeid[0],edgeid[1]];
+                    if (edge[0] in viewer.data.combinednodes
+                        && edge[1] in viewer.data.combinednodes) {
+                        return undefined;
+                    }
+                    if (edge[0] in viewer.data.combinednodes) {
+                        edge[0] = viewer.data.combinednodes[edge[0]];
+                    }
+                    
+                    return self.active_cfa['edges']['' + edge[0] + '->' + edge[1]];
+                };
+                
+                //focus a cfa node - scrolls node into view and places an arrow next to the node
+                self.focus_node = function(nodeid, twice) {
+                    var funcname = viewer.data.cfainfo.nodes['' + nodeid].func;
+                    if (funcname != self.active_function && twice != true) {
+                        self.load(funcname);
+                        setTimeout(function() {
+                            self.focus_node(nodeid, true);
+                        }, 600);
+                    } else {
+                        var svgnode = self.get_svgnode(nodeid);
+                        var bbox = svgnode.getBBox();
+                        var bcr = svgnode.getBoundingClientRect();
+                        self.frame.scrollTo(self.frame.pageXOffset + bcr.left - 300, self.frame.pageYOffset +bcr.top - 300);
+                        self.draw_arrow(bbox.x + 10, bbox.y + 10);
+                        self.selection = nodeid;
+                    }
+                };
+                
+                //modify the color of an edge
+                self.set_edge_color = function(edgeid, color) {
+                    var svgedge = self.get_svgedge(edgeid);
+                    if (svgedge != undefined) {                    
+                        var path = svgedge.getElementsByTagName('path')[0];
+                        var poly = svgedge.getElementsByTagName('polygon')[0];
+                        path.setAttribute('stroke', color);
+                        poly.setAttribute('stroke', color);
+                        poly.setAttribute('fill', color);
+                    }
+                };
+                
+                //draw an arrow at a specific position
+                self.draw_arrow = function(x,y) {
+                    var svgns = "http://www.w3.org/2000/svg";
+                    var arrow = self.svgdoc.getElementById('arrow');
+                    if (!arrow) {
+                        arrow = self.svgdoc.createElementNS(svgns,'path');
+                        arrow.setAttributeNS(null, 'id', 'arrow');
+                        arrow.setAttributeNS(null, 'stroke', '#00dd00');
+                        arrow.setAttributeNS(null, 'fill', '#66ff66');
+                        
+                        self.svgdoc.getElementById('graph1').appendChild(arrow);
+                    }
+                    arrow.setAttributeNS(null, 'd', 'M' + x + ',' + y + 'l0,-24l-6,6l-24,-24l-12,12l24,24l-6,6z');                    
+                };
+            })();
+            
+            //the errorpath window on the left
+            viewer.windows.errorpathwin = new (function() {
+                var self = this;
+                //event support
+                self.handlers = new EventHelper(['node_selected', 'edge_selected']);
+                self.selection = null;                
+                self.edge2li = {};
+
+                //errorpath element selection vizualisation                 
+                function errpathelem_select(li) {
+                    if (self.selection)
+                        removeClass(self.selection, 'selected');
+                    self.selection = li;
+                    addClass(self.selection, 'selected');
+                }
+                
+                //errorpath node selection handler
+                function node_clickaction(nodeid, errpathindex) {
+                    return function() {
+                        errpathelem_select(this.parentNode.parentNode);
+                        viewer.windows.simulator.pos = errpathindex;
+                        self.handlers.fire('node_selected', nodeid, errpathindex);
+                        
+                    };
+                }
+
+                //errorpath edge selection handler                
+                function edge_clickaction(edgeid, errpathindex) {
+                    return function() {
+                        errpathelem_select(this.parentNode);
+                        viewer.windows.simulator.pos = errpathindex;
+                        self.handlers.fire('edge_selected', edgeid, errpathindex);
+                    };
+                }
+                
+                //select an index programmatically
+                self.select_elem = function(index) {
+                    errpathelem_select(self.index2li[index]);
+                    var elem = viewer.data.errorpath[index];                    
+                    self.handlers.fire('edge_selected', [elem.source, elem.target], index);
+                };
+                /*
+                //select an edge programatically
+                self.select_edge = function(edgeid) {
+                    errpathelem_select(self.edge2li[edgeid[0] + '->' + edgeid[1]]);
+                    self.handlers.fire('edge_selected', edgeid);
+                };
+                */
+                //inserts edges to function call nodes and makes return edges available in viewer.data.returnedges
+                function preprocess_errorpath() {
+                    
+                    var extended = [];
+                    
+                    var returnedges = {};
+                    for (var key in viewer.data.fcalledges) {
+                        var fcalledge = viewer.data.fcalledges[key];
+                        returnedges[fcalledge[1]] = fcalledge[0];
+                    }                    
+                    
+                    for (var i = 0; i < viewer.data.errorpath.length; i++) {
+                        var elem = viewer.data.errorpath[i];
+                        
+                        if ('' + elem.source in viewer.data.fcalledges) {
+                            var fcalledge = viewer.data.fcalledges['' + elem.source];
+                            var substitute = {
+                                'artelem' : elem.artelem,
+                                'source' : elem.source,
+                                'target' : parseInt(fcalledge[0], 10),
+                                'desc' : elem.desc,
+                                'stmt' : elem.desc,
+                                'line' : elem.line
+                            };
+                            extended.push(substitute);
+                            var jumpToFunc = {
+                                'artelem' : elem.artelem,
+                                'source' : parseInt(fcalledge[0], 10),
+                                'target' : elem.target,
+                                'desc' : '',
+                                'stmt' : '',
+                                'line' : elem.line
+                            };
+                            
+                            viewer.data.cfainfo.edges[substitute.source + '->' + substitute.target] = substitute;
+                            viewer.data.cfainfo.edges[jumpToFunc.source + '->' + jumpToFunc.target] = jumpToFunc;                            
+                            
+                            extended.push(jumpToFunc); 
+                            
+                            var node = {
+                                'id' : parseInt(fcalledge[0]),
+                                'func' : viewer.data.cfainfo.nodes['' + elem.source].func
+                            };
+                            viewer.data.cfainfo.nodes[fcalledge[0]] = node;                
+                        } else {
+                            extended.push(elem);
+                        }
+                    }
+
+                    viewer.data.errorpath = extended;
+                    viewer.data.returnedges = returnedges;
+                }
+                
+                //initialize the error path window - DOM needs to be ready
+                self.init = function() {
+
+                    self.index2li = {};
+                    preprocess_errorpath();
+                    var li = null;
+                    self.node = document.getElementById('errpathwin');
+                    var level = 0;
+                    var ul = document.createElement('ul');                    
+                    self.node.appendChild(ul);
+                    var errpath = viewer.data.errorpath;
+                    
+                    for (var i = 0; i < errpath.length; i++) {
+                        var step = errpath[i];
+                        //edge2errindex[step.source + '->' + step.target] = i;
+                        if (step.desc == 'Function start dummy edge') {
+                            level += 1;
+                            self.edge2li[step.source + '->' + step.target] = li;
+                            self.index2li[i] = li;
+                            continue;
+                            
+                        }
+                        
+                        if (step.desc.substring(0, 'Return Edge to'.length) == 'Return Edge to') {
+                            level -= 1;
+                            self.edge2li[step.source + '->' + step.target] = li;
+                            self.index2li[i] = li;
+                            continue;
+                        }
+                        
+                        if (step.desc == '') {
+                            self.edge2li[step.source + '->' + step.target] = li;
+                            self.index2li[i] = li;
+                            continue;                        
+                        }
+                        
+                        li = document.createElement('li');
+                        self.index2li[i] = li;
+                        self.edge2li[step.source + '->' + step.target] = li;
+                        var srcspan = document.createElement('span');
+                        var srclink = document.createElement('a');
+                        srclink.innerHTML = step['source'];
+                        srclink.onclick = node_clickaction(step['source'], 1);
+                        srcspan.appendChild(document.createTextNode('('));
+                        srcspan.appendChild(srclink);
+                        srcspan.appendChild(document.createTextNode(')'));
+                        li.appendChild(srcspan);
+                        
+                        var edgelink = document.createElement('a');
+                        edgelink.innerHTML = step.desc;
+                        edgelink.onclick = edge_clickaction([step['source'], step['target']], i);
+                        edgelink.style.textIndent = '' + (level * 15) + 'px';
+                        edgelink.style.display = 'inline-block';                        
+                        li.appendChild(edgelink);
+                        ul.appendChild(li);
+                    }
+                };
+            })();
+
+            //the ART window            
+            viewer.windows.artwin = new (function() {
+                var self = this;
+                
+                //focus a cfa node - scrolls node into view and places an arrow next to the node
+                self.focus_node = function(nodeid) {
+                    var svgnode = self.svgdoc.getElementById(nodeid);
+                    var bbox = svgnode.getBBox();                    
+                    var bcr = svgnode.getBoundingClientRect();
+                    self.frame.scrollTo(self.frame.pageXOffset + bcr.left - 300, self.frame.pageYOffset +bcr.top - 300);
+                    self.draw_arrow(bbox.x + 10, bbox.y + 10);
+                    self.selection = nodeid;
+                };
+                
+                //modify the color of an edge
+                self.set_edge_color = function(edgeid, color) {
+                    var svgedge = self.svgdoc.getElementById('' + edgeid[0] + '->' + edgeid[1]);
+                    if (svgedge != undefined) {                    
+                        var path = svgedge.getElementsByTagName('path')[0];
+                        var poly = svgedge.getElementsByTagName('polygon')[0];
+                        path.setAttribute('stroke', color);
+                        poly.setAttribute('stroke', color);
+                        poly.setAttribute('fill', color);
+                    }
+                };
+                
+                //draw an arrow at a specific position
+                self.draw_arrow = function(x,y) {
+                    var svgns = "http://www.w3.org/2000/svg";
+                    var arrow = self.svgdoc.getElementById('arrow');
+                    if (!arrow) {
+                        arrow = self.svgdoc.createElementNS(svgns,'path');
+                        arrow.setAttributeNS(null, 'id', 'arrow');
+                        arrow.setAttributeNS(null, 'stroke', '#00dd00');
+                        arrow.setAttributeNS(null, 'fill', '#66ff66');
+                        
+                        self.svgdoc.getElementById('graph1').appendChild(arrow);
+                    }
+                    arrow.setAttributeNS(null, 'd', 'M' + x + ',' + y + 'l0,-24l-6,6l-24,-24l-12,12l24,24l-6,6z');                    
+                };
+                
+                function edge_clickaction() {
+                    console.log('edge clicked');
+                    var label = this.getElementsByTagName('text')[0].textContent;
+
+                    var nodeid = label.split('}-> N')[1];
+                    nodeid = parseInt(nodeid.substring(0, nodeid.length - 1), 10);
+                    
+                    viewer.windows.rightpane.select_tab('cfa');
+                    viewer.windows.cfawin.focus_node(nodeid);
+                }
+                
+                self.onready = function() {
+                    var edges = self.svgdoc.getElementsByClassName('edge');
+                    for (var i = 0; i < edges.length; i++) {
+                       edges[i].onclick = edge_clickaction;
+                    }
+                    
+                };
+                
+                //initialize ART window - DOM must be ready
+                self.init = function() {
+                    console.log('artwin -- init');
+                    self.frame = window.frames['artwin'];                   
+                    self.svgdoc = self.frame.document;                    
+                };
+            })();
+            
+            //the simulator allows to step through the error path
+            viewer.windows.simulator = new (function() {
+                var self = this;
+                self.pos = 0;
+                
+                //update view after an action
+                function update() {
+                    var curr = viewer.data.errorpath[self.pos];
+                    viewer.windows.errorpathwin.select_elem(self.pos);
+                }
+                
+                //initialize simulator
+                self.init = function() {
+                    //start button
+                    document.getElementById('sim_start').onclick = function() {
+                        self.pos = 0;
+                        update();   
+                    };
+                    //prev button
+                    document.getElementById('sim_prev').onclick = function() {
+                        if (self.pos > 0) self.pos--;
+                        update();
+                    };
+                    //next button
+                    document.getElementById('sim_next').onclick = function() {
+                        if (self.pos < viewer.data.errorpath.length) self.pos++;
+                        update();                    
+                    };
+                };
+            })();
+            
+            //allows to select the displayed cfa
+            viewer.windows.functionselector = new (function() {
+                var self = this;
+                
+                //selection change handler
+                function change() {
+                    viewer.windows.cfawin.load(self.box.value);
+                }
+                
+                //initialize functionselector
+                self.init = function() {
+                    self.box = document.getElementById('functionselect');
+                    viewer.data.functionlist.sort();
+                    for (var i = 0; i < viewer.data.functionlist.length; i++) {
+                        var func = viewer.data.functionlist[i];
+                        var opt = document.createElement('option');
+                        opt.text = func;
+                        opt.value = func;                        
+                        self.box.appendChild(opt);
+                    }
+                    self.box.value = 'main';
+                    self.box.onchange = change;
+                    viewer.windows.cfawin.handlers.add('cfa_loaded', function(evtname, funcname) {
+                        self.box.value = funcname;
+                    });
+                };
+            })();
+            
+
+            
+        </script>
+        
+        <script>
+            //the errorpath data
+            viewer.data.errorpath = {{{errorpath}}};
+            
+            //list of functions in the CFA
+            viewer.data.functionlist = {{{functionlist}}};
+            
+            //nodes that wrap multiple edges
+            viewer.data.combinednodes = {{{combinednodes}}};
+            
+            //info about all nodes and edges in the cfa ... this is not yet fully available via GUI
+            viewer.data.cfainfo = {{{cfainfo}}};
+            
+            //the virtual edges that had to be inserted in the CFA where other functions are called
+            //(edges to and from the nodes representing function calls)
+            viewer.data.fcalledges = {{{fcalledges}}};
+            
+            
+            function draw_error_path_cfa() {
+                for (var i = 0; i < viewer.data.errorpath.length; i++) {
+                    var elem = viewer.data.errorpath[i];
+                    viewer.windows.cfawin.set_edge_color([elem.source, elem.target], 'red');
+                    if (elem.target in viewer.data.returnedges) {
+                        var src = viewer.data.returnedges[elem.target];
+                        viewer.windows.cfawin.set_edge_color([parseInt(src), elem.target], 'red');                    
+                    }
+                }                
+            }
+
+            function draw_error_path_art() {
+                if (viewer.data.errorpath.length > 0) {
+                    var prev = viewer.data.errorpath[0];
+                    for (var i = 1; i < viewer.data.errorpath.length; i++) {
+                        var curr = viewer.data.errorpath[i];
+                        viewer.windows.artwin.set_edge_color([prev.artelem, curr.artelem], 'red');                        
+                        prev = curr;                                                
+                    }
+                }
+            }
+
+            console.log('init main');
+            viewer.windows.cfawin.handlers.add('cfa_loaded', function() {
+                console.log('draw error path!');
+                draw_error_path_cfa();
+
+            });
+            
+            
+            var selected_cil = null;
+            
+            function scroll_cil(line) {
+                if (line > 0) {
+                    line--;
+                }
+                if (selected_cil) {
+                    selected_cil.style.backgroundColor = '#fff';
+                }
+                selected_cil = document.getElementById('cil_line_' + line);
+                selected_cil.style.backgroundColor = 'red';
+                selected_cil.scrollIntoView();
+            }
+            
+            //viewer.windows.cfawin.init();
+            viewer.windows.errorpathwin.handlers.add('node_selected', function(evtname, nodeid, errpathindex) {
+                if (viewer.windows.rightpane.selection == 'cfa') {
+                    viewer.windows.cfawin.focus_node(nodeid);
+                } else if (viewer.windows.rightpane.selection == 'art') {
+                    viewer.windows.artwin.focus_node(
+                        '' + viewer.data.errorpath[errpathindex].artelem
+                    );
+                } else if (viewer.windows.rightpane.selection == 'cil') {
+                    scroll_cil(viewer.data.cfainfo.nodes[nodeid].line);
+                }
+            });
+
+            viewer.windows.errorpathwin.handlers.add('edge_selected', function(evtname, edgeid, errpathindex) {
+                if (viewer.windows.rightpane.selection == 'cfa') {
+                    viewer.windows.cfawin.focus_node(edgeid[1]);
+                    //viewer.windows.cfawin.set_edge_color(edgeid, 'red');
+                } else if (viewer.windows.rightpane.selection == 'art') {
+                    viewer.windows.artwin.focus_node(
+                        '' + viewer.data.errorpath[errpathindex].artelem
+                    );
+                } else if (viewer.windows.rightpane.selection == 'cil') {
+                    scroll_cil(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
+                }
+            });
+            
+            viewer.windows.cfawin.handlers.add('edge_clicked', function(evtname, edgeid) {
+                viewer.windows.rightpane.select_tab('cil');
+                scroll_cil(viewer.data.cfainfo.edges[edgeid].line);
+            });
+            
+            viewer.windows.cfawin.init();
+            viewer.windows.simulator.init();
+            viewer.windows.rightpane.init();
+            viewer.windows.errorpathwin.init();
+            
+            var task = setInterval(function() {
+                //console.log('check DOMready');
+                viewer.windows.artwin.init();
+                if (viewer.windows.artwin.svgdoc && viewer.windows.artwin.svgdoc.getElementById) {
+                    console.log('ART DOM seems to be ready.');                    
+                    clearInterval(task);
+                    viewer.windows.artwin.onready();
+                    draw_error_path_art();
+                }
+            }, 1000);
+            
+            viewer.windows.functionselector.init();
+            
+            
+            
+            var hfix = new HeightFix('resizehint', ['errpathwin', 'cilwin', 'logwin', 'statswin', 'confwin']);
+            
+            viewer.windows.cfawin.load('main');
+            
+
+            
+        </script>
+        

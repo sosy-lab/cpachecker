@@ -71,6 +71,9 @@ public class CFACreator {
   @Option(name="cfa.export")
   private boolean exportCfa = true;
 
+  @Option(name="cfa.exportPerFunction")
+  private boolean exportCfaPerFunction = true;  
+  
   @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE)
   private File exportCfaFile = new File("cfa.dot");
 
@@ -170,7 +173,20 @@ public class CFACreator {
         // continue with analysis
       }
     }
-  
+    
+    // write the CFA to files (one file per function + some metainfo)
+    if (exportCfaPerFunction) {
+      try {
+        File outdir = exportCfaFile.getParentFile();        
+        DOTBuilder2.writeReport(mainFunction, outdir);
+      } catch (IOException e) {        
+        logger.log(Level.WARNING,
+          "Could not write CFA to dot and json files, check configuration option cfa.file! (",
+          e.getMessage() + ")");
+        // continue with analysis
+      }
+    }  
+    
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
   
     this.functions = ImmutableMap.copyOf(cfas);
