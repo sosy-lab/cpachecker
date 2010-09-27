@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -67,15 +67,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProv
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
-  private static class SymbPredAbsCPAFactory extends AbstractCPAFactory {
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new SymbPredAbsCPA(getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new SymbPredAbsCPAFactory();
+    return AutomaticCPAFactory.forType(SymbPredAbsCPA.class);
   }
 
   @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})

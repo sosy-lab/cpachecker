@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -48,16 +49,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpas.art")
 public class ARTCPA extends AbstractSingleWrapperCPA {
 
-  private static class ARTCPAFactory extends AbstractSingleWrapperCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new ARTCPA(getChild(), getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new ARTCPAFactory();
+    return AutomaticCPAFactory.forType(ARTCPA.class);
   }
 
   /**

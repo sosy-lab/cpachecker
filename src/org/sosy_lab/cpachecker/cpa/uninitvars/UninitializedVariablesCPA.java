@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -56,16 +56,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
-  private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new UninitializedVariablesCPA(getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new UninitializedVariablesCPAFactory();
+    return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
   @Option(name="uninitVars.printWarnings")

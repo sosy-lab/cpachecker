@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -53,16 +54,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  */
 public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
 
-  private static class AssumptionCollectorCPAFactory extends AbstractSingleWrapperCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new AssumptionCollectorCPA(getChild(), getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new AssumptionCollectorCPAFactory();
+    return AutomaticCPAFactory.forType(AssumptionCollectorCPA.class);
   }
 
   private final AssumptionCollectorDomain abstractDomain;
