@@ -13,12 +13,12 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
-public class SimpleTestCase {
+public class TestCase {
 
   private int[] mInputs;
   private boolean mIsPrecise;
   
-  private SimpleTestCase(LinkedList<Integer> pInputs, boolean pIsPrecise) {
+  private TestCase(LinkedList<Integer> pInputs, boolean pIsPrecise) {
     mInputs = new int[pInputs.size()];
     
     int lIndex = 0;
@@ -30,7 +30,7 @@ public class SimpleTestCase {
     mIsPrecise = pIsPrecise;
   }
   
-  private SimpleTestCase(int[] pInputs, boolean pIsPrecise) {
+  private TestCase(int[] pInputs, boolean pIsPrecise) {
     mInputs = new int[pInputs.length];
     
     for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
@@ -59,7 +59,7 @@ public class SimpleTestCase {
     }
     
     if (getClass().equals(pOther.getClass())) {
-      SimpleTestCase lTestCase = (SimpleTestCase)pOther;
+      TestCase lTestCase = (TestCase)pOther;
       
       if (mInputs.length == lTestCase.mInputs.length) {
         if (mIsPrecise == lTestCase.mIsPrecise) {
@@ -90,7 +90,7 @@ public class SimpleTestCase {
     return lBuffer.toString();
   }
   
-  public static SimpleTestCase fromString(String pTestCase) {
+  public static TestCase fromString(String pTestCase) {
     boolean lIsPrecise;
     
     String[] lParts = pTestCase.split(",");
@@ -115,14 +115,14 @@ public class SimpleTestCase {
       lValues[lIndex] = Integer.parseInt(lParts[lIndex + 1]);
     }
     
-    return new SimpleTestCase(lValues, lIsPrecise);
+    return new TestCase(lValues, lIsPrecise);
   }
   
-  public static SimpleTestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
+  public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
     return fromCounterexample((MathsatModel)pTraceInfo.getCounterexample(), pLogManager);
   }
   
-  public static SimpleTestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {
+  public static TestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {
     Set<MathsatAssignable> lAssignables = pCounterexample.getAssignables();
     
     boolean lIsPrecise = true;
@@ -183,7 +183,7 @@ public class SimpleTestCase {
       }
     }
     
-    return new SimpleTestCase(lInput, lIsPrecise);
+    return new TestCase(lInput, lIsPrecise);
   }
 
 }

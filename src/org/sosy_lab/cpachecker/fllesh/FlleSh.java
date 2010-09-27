@@ -271,7 +271,7 @@ public class FlleSh {
         
         lIsFeasible = true;
         
-        SimpleTestCase lTestCase = SimpleTestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
         
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
@@ -460,7 +460,7 @@ public class FlleSh {
     }
   }
   
-  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, SimpleTestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
     // a) determine cfa path
     CFAEdge[] lCFAPath;
     try {
@@ -502,7 +502,7 @@ public class FlleSh {
     pGoals.removeAll(lSubsumedGoals);
   }
   
-  private CFAEdge[] reconstructPath(SimpleTestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
+  private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
     CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
     
     // test goal automata CPAs
