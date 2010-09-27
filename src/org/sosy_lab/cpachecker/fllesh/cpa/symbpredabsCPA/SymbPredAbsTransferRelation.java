@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -88,13 +90,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
-
+  
+  // path formula cache
+  private HashMap<PathFormula, Map<CFAEdge, PathFormula>> mCache;
+  
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
+    
+    mCache = new HashMap<PathFormula, Map<CFAEdge, PathFormula>>();
 }
 
   @Override
@@ -301,14 +308,27 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private PathFormula convertEdgeToPathFormula(PathFormula pCurrentPathFormula, CFAEdge pCFAEdge) throws CPATransferException {
     final long start = System.currentTimeMillis();
     PathFormula lSuccessorFormula = null;
-
-    long startComp = System.currentTimeMillis();
-    // compute new pathFormula with the operation on the edge
-    lSuccessorFormula = formulaManager.makeAnd(pCurrentPathFormula, pCFAEdge);
-    pathFormulaComputationTime += System.currentTimeMillis() - startComp;
+    
+    Map<CFAEdge, PathFormula> lLocalCache = mCache.get(pCurrentPathFormula);
+    
+    if (lLocalCache == null) {
+      lLocalCache = new HashMap<CFAEdge, PathFormula>();
+      mCache.put(pCurrentPathFormula, lLocalCache);
+    }
+    
+    lSuccessorFormula = lLocalCache.get(pCFAEdge);
+    
+    if (lSuccessorFormula == null) {
+      long startComp = System.currentTimeMillis();
+      // compute new pathFormula with the operation on the edge
+      lSuccessorFormula = formulaManager.makeAnd(pCurrentPathFormula, pCFAEdge);
+      pathFormulaComputationTime += System.currentTimeMillis() - startComp;
+      
+      lLocalCache.put(pCFAEdge, lSuccessorFormula);
+    }
 
     assert lSuccessorFormula != null;
-    pathFormulaTime += System.currentTimeMillis() - start;
+    pathFormulaTime += System.currentTimeMillis() - start;    
     
     return lSuccessorFormula;
   }
