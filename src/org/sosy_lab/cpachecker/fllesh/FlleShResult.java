@@ -16,15 +16,15 @@ public class FlleShResult {
     private Task mTask;
     private Set<ElementaryCoveragePattern> mFeasibleTestGoals;
     private Set<ElementaryCoveragePattern> mInfeasibleTestGoals;
-    private Map<TestCase, Set<ElementaryCoveragePattern>> mTestSuite;
-    private Set<TestCase> mImpreciseTestCases;
+    private Map<SimpleTestCase, Set<ElementaryCoveragePattern>> mTestSuite;
+    private Set<SimpleTestCase> mImpreciseTestCases;
     
     private Factory(Task pTask) {
       mTask = pTask;
       mFeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
       mInfeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
-      mTestSuite = new HashMap<TestCase, Set<ElementaryCoveragePattern>>();
-      mImpreciseTestCases = new HashSet<TestCase>();
+      mTestSuite = new HashMap<SimpleTestCase, Set<ElementaryCoveragePattern>>();
+      mImpreciseTestCases = new HashSet<SimpleTestCase>();
     }
     
     public void add(ElementaryCoveragePattern pECP, boolean pIsFeasible) {
@@ -36,7 +36,7 @@ public class FlleShResult {
       }
     }
     
-    public void addFeasibleTestCase(ElementaryCoveragePattern pECP, TestCase pTestCase) {
+    public void addFeasibleTestCase(ElementaryCoveragePattern pECP, SimpleTestCase pTestCase) {
       mFeasibleTestGoals.add(pECP);
       Set<ElementaryCoveragePattern> lTestSuite = getTestSuite(pTestCase);
       lTestSuite.add(pECP);
@@ -46,14 +46,14 @@ public class FlleShResult {
       mInfeasibleTestGoals.add(pECP);
     }
     
-    public void addImpreciseTestCase(TestCase pTestCase) {
+    public void addImpreciseTestCase(SimpleTestCase pTestCase) {
       Preconditions.checkNotNull(pTestCase);
       Preconditions.checkArgument(!pTestCase.isPrecise());
       
       mImpreciseTestCases.add(pTestCase);
     }
     
-    private Set<ElementaryCoveragePattern> getTestSuite(TestCase pTestCase) {
+    private Set<ElementaryCoveragePattern> getTestSuite(SimpleTestCase pTestCase) {
       if (mTestSuite.containsKey(pTestCase)) {
         return mTestSuite.get(pTestCase);
       }

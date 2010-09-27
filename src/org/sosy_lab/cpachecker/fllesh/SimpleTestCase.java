@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
-public class SimpleTestCase implements TestCase {
+public class SimpleTestCase {
 
   private int[] mInputs;
   private boolean mIsPrecise;
@@ -40,12 +40,10 @@ public class SimpleTestCase implements TestCase {
     mIsPrecise = pIsPrecise;
   }
 
-  @Override
   public boolean isPrecise() {
     return mIsPrecise;
   }
   
-  @Override
   public int[] getInputs() {
     return mInputs;
   }
