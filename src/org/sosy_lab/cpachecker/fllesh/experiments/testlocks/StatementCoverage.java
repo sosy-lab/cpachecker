@@ -44,7 +44,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(82, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(76, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals()); 
-    Assert.assertEquals(6, lResult.getNumberOfTestCases()); // TODO was 7
+    Assert.assertEquals(5, lResult.getNumberOfTestCases()); // TODO was 6, 7
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -60,7 +60,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(96, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(89, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(7, lResult.getNumberOfTestCases()); // TODO was 8
+    Assert.assertEquals(8, lResult.getNumberOfTestCases()); // TODO was 7, 8
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -76,7 +76,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(110, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(102, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(9, lResult.getNumberOfTestCases());
+    Assert.assertEquals(8, lResult.getNumberOfTestCases()); // TODO was 9
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -92,7 +92,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(124, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(115, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(5, lResult.getNumberOfTestCases()); // TODO was 10
+    Assert.assertEquals(6, lResult.getNumberOfTestCases()); // TODO was 5, 10
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -108,7 +108,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(138, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(128, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, lResult.getNumberOfTestCases()); // TODO was 9
+    Assert.assertEquals(9, lResult.getNumberOfTestCases()); // TODO was 10, 9
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -124,7 +124,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(152, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(141, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(10, lResult.getNumberOfTestCases()); // TODO was 9
+    Assert.assertEquals(7, lResult.getNumberOfTestCases()); // TODO was 10, 9
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -172,7 +172,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(194, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(180, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(14, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(6, lResult.getNumberOfTestCases()); // TODO was 13
+    Assert.assertEquals(5, lResult.getNumberOfTestCases()); // TODO was 6, 13
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -188,7 +188,7 @@ public class StatementCoverage extends ExperimentalSeries {
     Assert.assertEquals(208, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(193, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(4, lResult.getNumberOfTestCases()); // TODO was 16
+    Assert.assertEquals(7, lResult.getNumberOfTestCases()); // TODO was 4, 16
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   

@@ -29,6 +29,16 @@ public class SimpleTestCase implements TestCase {
     
     mIsPrecise = pIsPrecise;
   }
+  
+  private SimpleTestCase(int[] pInputs, boolean pIsPrecise) {
+    mInputs = new int[pInputs.length];
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      mInputs[lIndex] = pInputs[lIndex];
+    }
+    
+    mIsPrecise = pIsPrecise;
+  }
 
   @Override
   public boolean isPrecise() {
@@ -72,12 +82,42 @@ public class SimpleTestCase implements TestCase {
   @Override
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
+    lBuffer.append(isPrecise()?"p":"i");
     
     for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
-      lBuffer.append(mInputs[lIndex] + ", ");
+      lBuffer.append(",");
+      lBuffer.append(mInputs[lIndex]);
     }
     
     return lBuffer.toString();
+  }
+  
+  public static SimpleTestCase fromString(String pTestCase) {
+    boolean lIsPrecise;
+    
+    String[] lParts = pTestCase.split(",");
+    
+    if (lParts.length == 0) {
+      throw new RuntimeException();
+    }
+    
+    if (lParts[0].equals("p")) {
+      lIsPrecise = true;
+    }
+    else if (lParts[0].equals("i")) {
+      lIsPrecise = false;
+    }
+    else {
+      throw new RuntimeException();
+    }
+    
+    int[] lValues = new int[lParts.length - 1];
+    
+    for (int lIndex = 0; lIndex < lValues.length; lIndex++) {
+      lValues[lIndex] = Integer.parseInt(lParts[lIndex + 1]);
+    }
+    
+    return new SimpleTestCase(lValues, lIsPrecise);
   }
   
   public static SimpleTestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
