@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
-import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 
@@ -189,12 +187,6 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa);
 
     /**
-     * @see #instantiate(SymbolicFormula, SSAMap)
-     */
-    @Deprecated
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
-    
-    /**
      * Given an "instantiated" formula, returns the corresponding formula in
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
@@ -217,22 +209,6 @@ public interface SymbolicFormulaManager {
     public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
              boolean splitArithEqualities, boolean conjunctionsOnly);
 
-    /**
-     * Extracts the SSA indices from a formula. 
-     */
-    @Deprecated
-    public SSAMap extractSSA(SymbolicFormula f);
-
-    /**
-     * Collects all variables names and all lValues in a term.
-     * @param term  the symbolic formula to analyze
-     * @param vars  the set were all variable names are stored
-     * @param lvals the set where all lValue UIFs and their arguments are stored
-     */
-    @Deprecated
-    public void collectVarNames(SymbolicFormula term, Set<String> vars,
-                                Set<Pair<String, SymbolicFormulaList>> lvals);
-    
     /**
      * Create string representation of a formula in a format which may be dumped
      * to a file.

@@ -510,25 +510,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   @Override
   public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
-    return instantiate(f, ssa, new HashMap<SymbolicFormula, SymbolicFormula>());
-  }
-
-  @Override
-  @Deprecated
-  public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa) {
-    long[] args = getTerm(f);
-    long[] result = new long[args.length];
-    Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
-    
-    for (int i = 0; i < args.length; i++) {
-      result[i] = getTerm(instantiate(encapsulate(args[i]), ssa, cache));
-    }
-    return encapsulate(result);
-  }
-
-  private SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa,
-                                      Map<SymbolicFormula, SymbolicFormula> cache) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+    Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -803,77 +786,5 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     }
     arithCache.put(f, res);
     return res;
-  }
-
-  /**
-   * returns an SSA map for the instantiated formula f
-   */
-  @Override
-  @Deprecated
-  public SSAMap extractSSA(SymbolicFormula f) {
-    SSAMap ssa = new SSAMap();
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-    Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();
-
-    toProcess.push(f);
-    while (!toProcess.isEmpty()) {
-      final SymbolicFormula tt = toProcess.pop();
-      if (cache.contains(tt)) {
-        continue;
-      }
-      cache.add(tt);
-      final long t = getTerm(tt);
-
-      if (msat_term_is_variable(t) != 0) {
-        Pair<String, Integer> var = parseName(msat_term_repr(t));
-        String name = var.getFirst();
-        int idx = var.getSecond();
-        if (idx > ssa.getIndex(name)) {
-          ssa.setIndex(name, idx);
-        }
-      } else {
-        int arity = msat_term_arity(t);
-        for (int i = 0; i < arity; ++i) {
-          toProcess.push(encapsulate(msat_term_get_arg(t, i)));
-        }
-      }
-    }
-
-    return ssa;
-  }
-
-  @Override
-  @Deprecated
-  public void collectVarNames(SymbolicFormula f, Set<String> vars,
-                              Set<Pair<String, SymbolicFormulaList>> lvals) {
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-
-    toProcess.push(f);
-    // TODO - this assumes the term is small! There is no memoizing yet!!
-    while (!toProcess.isEmpty()) {
-        final long t = getTerm(toProcess.pop());
-
-        if (msat_term_is_variable(t) != 0) {
-          vars.add(msat_term_repr(t));
-        
-        } else {
-          final int arity = msat_term_arity(t);
-          for (int i = 0; i < arity; ++i) {
-            toProcess.push(encapsulate(msat_term_get_arg(t, i)));
-          }
-          
-          if (msat_term_is_uif(t) != 0) {
-            String name = msat_decl_get_name(msat_term_get_decl(t));
-            if (ufCanBeLvalue(name)) {
-              long[] a = new long[arity];
-              for (int i = 0; i < arity; ++i) {
-                a[i] = msat_term_get_arg(t, i);
-              }
-              SymbolicFormulaList aa = encapsulate(a);
-              lvals.add(new Pair<String, SymbolicFormulaList>(name, aa));
-            }
-          }
-        }
-    }
   }
 }

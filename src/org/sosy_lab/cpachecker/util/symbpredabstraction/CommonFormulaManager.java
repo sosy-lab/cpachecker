@@ -30,11 +30,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -137,53 +134,6 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       throw new IllegalArgumentException(var + "seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
-  }
-  
-  /**
-   * Create the formula \bigwedge (predvar <-> preddef)
-   * All variables will be instantiated with the indices from the given SSAMap.
-   * @param predicates The predicates to include in the formula.
-   * @param ssa The SSAMap for the instantiation of the formula.
-   * @return The above formula.
-   */
-  @Deprecated
-  protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
-                                                  SSAMap ssa) {
-    ssa = new SSAMap(ssa); // clone ssa map because we need to change it
-    
-    Set<String> allvars = new HashSet<String>();
-    Set<Pair<String, SymbolicFormulaList>> allfuncs = new HashSet<Pair<String, SymbolicFormulaList>>();
-    SymbolicFormula preddef = smgr.makeTrue();
-
-    for (Predicate p : predicates) {
-        SymbolicFormula var = p.getSymbolicVariable();
-        SymbolicFormula def = p.getSymbolicAtom();
-        smgr.collectVarNames(def, allvars, allfuncs);
-        
-        // build the formula (var <-> def)
-        SymbolicFormula equiv = smgr.makeEquivalence(var, def);
-
-        // and add it to the list of definitions
-        preddef = smgr.makeAnd(preddef, equiv);
-    }
-    
-    // update the SSA map, by instantiating all the uninstantiated
-    // variables that occur in the predicates definitions (at index 1)
-    for (String var : allvars) {
-      if (ssa.getIndex(var) < 0) {
-        ssa.setIndex(var, 1);
-      }
-    }
-
-    for (Pair<String, SymbolicFormulaList> p : allfuncs) {
-      SymbolicFormulaList args = smgr.instantiate(p.getSecond(), ssa);
-      if (ssa.getIndex(p.getFirst(), args) < 0) {
-        ssa.setIndex(p.getFirst(), args, 1);
-      }
-    }
-
-    // instantiate the definitions with the right SSA
-    return smgr.instantiate(preddef, ssa);
   }
   
   /**
@@ -414,23 +364,6 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
     try {
       Files.writeFile(outputFile, LINE_JOINER.join(f), false);
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
-  }
-  
-  @Deprecated
-  public void dumpFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
-    Iterator<SymbolicFormula> it = f.iterator();
-    SymbolicFormula t = it.next();
-    
-    while (it.hasNext()) { 
-      t = smgr.makeAnd(t, it.next());
-    }
-    
-    try {
-      Files.writeFile(outputFile, smgr.dumpFormula(t), false);
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
