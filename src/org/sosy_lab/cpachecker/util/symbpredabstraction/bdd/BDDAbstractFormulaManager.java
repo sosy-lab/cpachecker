@@ -30,7 +30,6 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -144,21 +143,21 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   }
 
   @Override
-  public Predicate createPredicate() {
+  public AbstractFormula createPredicate() {
     BDD bddVar = createNewVar();
 
-    return new BDDPredicate(bddVar);
+    return new BDDAbstractFormula(bddVar);
   }
 
   @Override
-  public Triple<Predicate, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
+  public Triple<AbstractFormula, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
     BDDAbstractFormula f = (BDDAbstractFormula)pF;
 
     int varIndex = f.getBDD().var();
-    BDDPredicate predicate = new BDDPredicate(factory.ithVar(varIndex));
+    BDDAbstractFormula predicate = new BDDAbstractFormula(factory.ithVar(varIndex));
     BDDAbstractFormula fThen = new BDDAbstractFormula(f.getBDD().high());
     BDDAbstractFormula fElse = new BDDAbstractFormula(f.getBDD().low());
 
-    return new Triple<Predicate, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
+    return new Triple<AbstractFormula, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
   }
 }

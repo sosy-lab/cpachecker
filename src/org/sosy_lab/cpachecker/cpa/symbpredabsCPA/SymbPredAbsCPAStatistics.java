@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -43,8 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -104,8 +102,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
           PrintWriter pw = new PrintWriter(file);
           pw.println("ALL PREDICATES:");
           for (Predicate p : allPreds) {
-            Pair<SymbolicFormula, SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
-            pw.format("%s ==> %s <-> %s\n", p, d.getFirst(), d.getSecond());
+            pw.format("%s ==> %s <-> %s\n", p.getAbstractVariable(), p.getSymbolicVariable(), p.getSymbolicAtom());
           }
 
           pw.println("\nFOR EACH LOCATION:");

@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 /**
  * TransferRelation for explicit-state lazy abstraction. This is the most
  * complex of the CPA-related classes, and where the analysis is actually

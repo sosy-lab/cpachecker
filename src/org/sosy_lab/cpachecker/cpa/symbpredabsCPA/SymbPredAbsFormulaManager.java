@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 
 
 /**

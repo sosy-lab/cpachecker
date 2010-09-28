@@ -28,8 +28,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 

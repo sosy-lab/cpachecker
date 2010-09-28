@@ -85,7 +85,7 @@ public interface AbstractFormulaManager {
    * Creates a new variable and returns the predicate representing it.
    * @return a new predicate
    */
-  public Predicate createPredicate();
+  public AbstractFormula createPredicate();
 
   /**
    * An abstract formula consists of the form
@@ -95,7 +95,7 @@ public interface AbstractFormulaManager {
    * @return a triple with the condition predicate and the formulas for the true
    *         branch and the else branch
    */
-  public Triple<Predicate, AbstractFormula, AbstractFormula>
+  public Triple<AbstractFormula, AbstractFormula, AbstractFormula>
       getIfThenElse(AbstractFormula f);
 
 }

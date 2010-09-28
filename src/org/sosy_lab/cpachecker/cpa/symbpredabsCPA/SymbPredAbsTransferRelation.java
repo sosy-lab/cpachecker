@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case

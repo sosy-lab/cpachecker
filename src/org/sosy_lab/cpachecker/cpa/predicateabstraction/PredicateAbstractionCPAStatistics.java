@@ -34,8 +34,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -121,10 +120,8 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
               PrintWriter pw = new PrintWriter(predmapFile);
               pw.println("ALL PREDICATES:");
               for (Predicate p : allPreds) {
-                Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d =
-                  amgr.getPredicateVarAndAtom(p);
-                pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
-                    d.getSecond());
+                pw.format("%s ==> %s <-> %s\n", p.getAbstractVariable(), p.getSymbolicVariable(),
+                    p.getSymbolicAtom());
               }
               if (!addPredicatesGlobally) {
                 pw.println("\nFOR EACH LOCATION:");

@@ -48,7 +48,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -68,10 +67,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
   protected final AbstractFormulaManager amgr;
 
-  // Here we keep the mapping abstract predicate ->
-  // (symbolic formula representing the variable, symbolic formula representing the atom)
-  private final Map<Predicate, Pair<SymbolicFormula, SymbolicFormula>> predicateToVarAndAtom;
-  // and the reverse mapping symbolic variable -> predicate
+  // Here we keep the mapping abstract predicate variable -> predicate
+  private final Map<AbstractFormula, Predicate> absVarToPredicate;
+  // and the mapping symbolic variable -> predicate
   private final Map<SymbolicFormula, Predicate> symbVarToPredicate;
 
   @Option
@@ -85,7 +83,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
 
-    predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
+    absVarToPredicate = new HashMap<AbstractFormula, Predicate>();
     symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
 
     if (useCache) {
@@ -113,29 +111,18 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    */
   @Override
   public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom) {
-    if (symbVarToPredicate.containsKey(var)) {
-      return symbVarToPredicate.get(var);
-    } else {
-      Predicate result = amgr.createPredicate();
+    Predicate result = symbVarToPredicate.get(var);
+    if (result == null) {
+      AbstractFormula absVar = amgr.createPredicate();
 
-      logger.log(Level.FINEST, "Created predicate", result,
+      logger.log(Level.FINEST, "Created predicate", absVar,
                      "from variable", var, "and atom", atom);
 
-      predicateToVarAndAtom.put(result, new Pair<SymbolicFormula, SymbolicFormula>(var, atom));
+      result = new Predicate(absVar, var, atom);
       symbVarToPredicate.put(var, result);
-      return result;
+      absVarToPredicate.put(absVar, result);
     }
-  }
-
-  /**
-   * Get the symbolic formulas for the variable and the atom which belong to a
-   * predicate.
-   * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
-   * @return The values passed to the makePredicate call (symbolic formula for var and atom)
-   */
-  @Override
-  public Pair<SymbolicFormula, SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
-    return predicateToVarAndAtom.get(p);
+    return result;
   }
 
   /**
@@ -169,8 +156,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula preddef = smgr.makeTrue();
 
     for (Predicate p : predicates) {
-        SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
-        SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
+        SymbolicFormula var = p.getSymbolicVariable();
+        SymbolicFormula def = p.getSymbolicAtom();
         smgr.collectVarNames(def, allvars, allfuncs);
         
         // build the formula (var <-> def)
@@ -229,7 +216,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           SymbolicFormula m1 = null;
           SymbolicFormula m2 = null;
 
-          Triple<Predicate, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
+          Triple<AbstractFormula, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
           AbstractFormula c1 = parts.getSecond();
           AbstractFormula c2 = parts.getThird();
           if (!cache.containsKey(c1)) {
@@ -249,10 +236,10 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
               assert m2 != null;
 
               toProcess.pop();
-              Predicate var = parts.getFirst();
-              assert(predicateToVarAndAtom.containsKey(var));
+              AbstractFormula var = parts.getFirst();
+              assert(absVarToPredicate.containsKey(var));
 
-              SymbolicFormula atom = predicateToVarAndAtom.get(var).getSecond();
+              SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();
 
               SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
               cache.put(n, ite);

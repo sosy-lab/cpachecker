@@ -52,11 +52,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -493,7 +493,7 @@ implements PredicateAbstractionFormulaManager {
     
     List<SymbolicFormula> important = new ArrayList<SymbolicFormula>(predicates.size());
     for (Predicate p : predicates) {
-      important.add(getPredicateVarAndAtom(p).getFirst());
+      important.add(p.getSymbolicVariable());
     }
     
     // first, create the new formula corresponding to
@@ -658,7 +658,7 @@ implements PredicateAbstractionFormulaManager {
       ++predIndex;
       if (useCache && predVals[predIndex] != NO_VALUE) {
         long startBddTime = System.currentTimeMillis();
-        AbstractFormula v = p.getFormula();
+        AbstractFormula v = p.getAbstractVariable();
         if (predVals[predIndex] == -1) { // pred is false
           v = amgr.makeNot(v);
           absbdd = amgr.makeAnd(absbdd, v);
@@ -669,15 +669,13 @@ implements PredicateAbstractionFormulaManager {
         totBddTime += (endBddTime - startBddTime);
         ++stats.abstractionNumCachedQueries;
       } else {
-        Pair<? extends SymbolicFormula, ? extends SymbolicFormula> pi =
-          getPredicateVarAndAtom(p);
 
         // update the SSA map, by instantiating all the uninstantiated
         // variables that occur in the predicates definitions
         // (at index 1)
         predvars.clear();
         predlvals.clear();
-        smgr.collectVarNames(pi.getSecond(), predvars, predlvals);
+        smgr.collectVarNames(p.getSymbolicAtom(), predvars, predlvals);
 
         for (String var : predvars) {
           if (ssa.getIndex(var) < 0) {
@@ -694,10 +692,10 @@ implements PredicateAbstractionFormulaManager {
 
 
         logger.log(Level.ALL, "DEBUG_1",
-            "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
+            "CHECKING VALUE OF PREDICATE: ", p.getSymbolicVariable());
 
         // instantiate the definition of the predicate
-        SymbolicFormula predTrue =  smgr.instantiate(pi.getSecond(), ssa);
+        SymbolicFormula predTrue =  smgr.instantiate(p.getSymbolicAtom(), ssa);
         SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
         boolean isTrue = false, isFalse = false;
@@ -711,7 +709,7 @@ implements PredicateAbstractionFormulaManager {
 
         if (isTrue) {
           long startBddTime = System.currentTimeMillis();
-          AbstractFormula v = p.getFormula();
+          AbstractFormula v = p.getAbstractVariable();
           absbdd = amgr.makeAnd(absbdd, v);
           long endBddTime = System.currentTimeMillis();
           totBddTime += (endBddTime - startBddTime);
@@ -724,7 +722,7 @@ implements PredicateAbstractionFormulaManager {
 
           if (isFalse) {
             long startBddTime = System.currentTimeMillis();
-            AbstractFormula v = p.getFormula();
+            AbstractFormula v = p.getAbstractVariable();
             v = amgr.makeNot(v);
             absbdd = amgr.makeAnd(absbdd, v);
             long endBddTime = System.currentTimeMillis();

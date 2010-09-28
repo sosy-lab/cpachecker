@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
@@ -63,7 +64,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
@@ -292,7 +292,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           ++predIndex;
           if (useCache && predVals[predIndex] != NO_VALUE) {
             long startBddTime = System.currentTimeMillis();
-            AbstractFormula v = p.getFormula();
+            AbstractFormula v = p.getAbstractVariable();
             if (predVals[predIndex] == -1) { // pred is false
               v = amgr.makeNot(v);
               absbdd = amgr.makeAnd(absbdd, v);
@@ -302,14 +302,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             long endBddTime = System.currentTimeMillis();
             totBddTime += (endBddTime - startBddTime);
             //++stats.abstractionNumCachedQueries;
-          } else {
-            Pair<SymbolicFormula, SymbolicFormula> pi = getPredicateVarAndAtom(p);
-            
+          } else {            
             logger.log(Level.ALL, "DEBUG_1",
-                "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
+                "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
             // instantiate the definition of the predicate
-            SymbolicFormula predTrue = smgr.instantiate(pi.getSecond(), ssa);
+            SymbolicFormula predTrue = smgr.instantiate(p.getSymbolicAtom(), ssa);
             SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
             // check whether this predicate has a truth value in the next
@@ -321,7 +319,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
             if (isTrue) {
               long startBddTime = System.currentTimeMillis();
-              AbstractFormula v = p.getFormula();
+              AbstractFormula v = p.getAbstractVariable();
               absbdd = amgr.makeAnd(absbdd, v);
               long endBddTime = System.currentTimeMillis();
               totBddTime += (endBddTime - startBddTime);
@@ -334,7 +332,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
               if (isFalse) {
                 long startBddTime = System.currentTimeMillis();
-                AbstractFormula v = p.getFormula();
+                AbstractFormula v = p.getAbstractVariable();
                 v = amgr.makeNot(v);
                 absbdd = amgr.makeAnd(absbdd, v);
                 long endBddTime = System.currentTimeMillis();
@@ -432,10 +430,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     for (Predicate p : predicates) {
       // get propositional variable and definition of predicate
-      Pair<SymbolicFormula, SymbolicFormula> pi = getPredicateVarAndAtom(p);
-
-      SymbolicFormula var = pi.getFirst();
-      SymbolicFormula def = pi.getSecond();
+      SymbolicFormula var = p.getSymbolicVariable();
+      SymbolicFormula def = p.getSymbolicAtom();
       def = smgr.instantiate(def, ssa);
       
       // build the formula (var <-> def) and add it to the list of definitions

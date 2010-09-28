@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
@@ -140,7 +140,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       boolean newPred = false;
 
       for (Predicate p : newpreds) {
-        AbstractFormula f = p.getFormula();
+        AbstractFormula f = p.getAbstractVariable();
         if (abstractFormulaManager.isFalse(f)) {
           assert newpreds.size() == 1;
 
@@ -148,7 +148,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
         } else if (!abstractFormulaManager.entails(abs, f)) {
           newPred = true;
-          abs = abstractFormulaManager.makeAnd(abs, p.getFormula());
+          abs = abstractFormulaManager.makeAnd(abs, p.getAbstractVariable());
         }
       }
 

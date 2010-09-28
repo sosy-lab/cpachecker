@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 public interface FormulaManager {
 
@@ -80,14 +80,6 @@ public interface FormulaManager {
    * the atom that defines it
    */
   public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom);
-
-  /**
-   * Get the symbolic formulas for the variable and the atom which belong to a
-   * predicate.
-   * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
-   * @return The values passed to the makePredicate call (symbolic formula for var and atom)
-   */
-  public Pair<SymbolicFormula, SymbolicFormula> getPredicateVarAndAtom(Predicate p);
 
   /**
    * Get predicate corresponding to a variable.
