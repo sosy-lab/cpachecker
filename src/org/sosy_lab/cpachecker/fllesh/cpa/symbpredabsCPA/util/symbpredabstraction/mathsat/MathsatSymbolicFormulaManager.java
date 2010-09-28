@@ -180,11 +180,22 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return ((MathsatSymbolicFormulaList)f).getTerms();
   }
   
-  static SymbolicFormula encapsulate(long t) {
+  //private Map<Long, MathsatSymbolicFormula> mMSFCache = new HashMap<Long, MathsatSymbolicFormula>();
+  
+  SymbolicFormula encapsulate(long t) {
+    /*MathsatSymbolicFormula lFormula = mMSFCache.get(t);
+    
+    if (lFormula == null) {
+      lFormula = new MathsatSymbolicFormula(t);
+      mMSFCache.put(t, lFormula);
+    }
+    
+    return lFormula;*/
+    
     return new MathsatSymbolicFormula(t);
   }
 
-  private static SymbolicFormulaList encapsulate(long[] t) {
+  private SymbolicFormulaList encapsulate(long[] t) {
     return new MathsatSymbolicFormulaList(t);
   }
   

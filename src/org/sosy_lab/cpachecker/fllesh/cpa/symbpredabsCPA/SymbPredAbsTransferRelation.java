@@ -119,21 +119,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        Collection<? extends AbstractElement> lSuccessors = handleAbstractionLocation(element, precision, edge);
-        
-        //System.out.println(lSuccessors);
-        
-        return lSuccessors;
-        
-        //return handleAbstractionLocation(element, precision, edge);
+        return handleAbstractionLocation(element, precision, edge);
       } else {
-        Collection<? extends AbstractElement> lSuccessors = handleNonAbstractionLocation(element, edge, satCheck);
-        
-        //System.out.println(lSuccessors);
-        
-        return lSuccessors;
-        
-        //return handleNonAbstractionLocation(element, edge, satCheck);
+        return handleNonAbstractionLocation(element, edge, satCheck);
       }
 
     } finally {
@@ -160,28 +148,42 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
   
-  //HashMap<CFAEdge, Map<PathFormula, PathFormula>> mCache = new HashMap<CFAEdge, Map<PathFormula, PathFormula>>();
+  //private Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<SymbPredAbsAbstractElement>>> mElementCache = new HashMap<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<SymbPredAbsAbstractElement>>>();
+  //private Map<SymbPredAbsAbstractElement, Integer> mHitCounter = new HashMap<SymbPredAbsAbstractElement, Integer>();
   
   private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
                 SymbPredAbsAbstractElement element, CFAEdge pCFAEdge, boolean satCheck)
                 throws CPATransferException {
     logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
-    /*
-    Map<PathFormula, PathFormula> lLocalCache = mCache.get(pCFAEdge);
+/*
+    Map<CFAEdge, Collection<SymbPredAbsAbstractElement>> lSuccessorCache = mElementCache.get(element);
     
-    if (lLocalCache == null) {
-      lLocalCache = new HashMap<PathFormula, PathFormula>();
-      mCache.put(pCFAEdge, lLocalCache);
+    if (lSuccessorCache == null) {
+      lSuccessorCache = new HashMap<CFAEdge, Collection<SymbPredAbsAbstractElement>>();
+      
+      mElementCache.put(element, lSuccessorCache);
+      
+      mHitCounter.put(element, 0);
     }
-    */
-    PathFormula lCurrentPathFormula = element.getPathFormula();
-    PathFormula lSuccessorPathFormula;
-    /*PathFormula lSuccessorPathFormula = lLocalCache.get(lCurrentPathFormula);
+    else {
+      int lCacheHits = mHitCounter.get(element);
+      
+      if (lCacheHits > 5) {
+        throw new RuntimeException();
+      }
+      
+      mHitCounter.put(element, lCacheHits + 1);
+    }
     
-    if (lSuccessorPathFormula == null) {*/
-      // id of parent
-      lSuccessorPathFormula = convertEdgeToPathFormula(lCurrentPathFormula, pCFAEdge);
+    Collection<SymbPredAbsAbstractElement> lSuccessors = lSuccessorCache.get(pCFAEdge);
+    
+    if (lSuccessors == null) {*/
+    
+    Collection<SymbPredAbsAbstractElement> lSuccessors;
+    
+      PathFormula lCurrentPathFormula = element.getPathFormula();
+      PathFormula lSuccessorPathFormula = convertEdgeToPathFormula(lCurrentPathFormula, pCFAEdge);
 
       logger.log(Level.ALL, "New path formula is", lSuccessorPathFormula);
 
@@ -190,35 +192,30 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         if (formulaManager.unsat(element.getAbstraction(), lSuccessorPathFormula)) {
           logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
           //return Collections.emptySet();
-          
+            
           throw new RuntimeException();
         }
         
         throw new RuntimeException();
       }
       
-      /*lLocalCache.put(lCurrentPathFormula, lSuccessorPathFormula);
-      //System.out.println(lLocalCache.size());
-    }
-    else {
-      PathFormula lSuccessorPathFormula2 = convertEdgeToPathFormula(lCurrentPathFormula, pCFAEdge);
+      lSuccessors = Collections.singleton(new SymbPredAbsAbstractElement(
+          // set 'abstractionLocation' to last element's abstractionLocation since they are same
+          // set 'pathFormula' to pf - the updated pathFormula -
+          element.getAbstractionLocation(), lSuccessorPathFormula,
+          // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
+          element.getInitAbstractionFormula(), element.getAbstraction(),
+          element.getAbstractionId(),
+          // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
+          element.getSizeSinceAbstraction() + 1));
       
-      if (!lSuccessorPathFormula.equals(lSuccessorPathFormula2)) {
-        System.out.println(lSuccessorPathFormula);
-        System.out.println("---");
-        System.out.println(lSuccessorPathFormula2);
-        */
-        /**
-         * Das Problem ist wie folgt: Durch das Caching werden die Indizes 
-         * der Nondet-Variablen nicht hochgezaehlt und damit laufen wir in 
-         * eine endlosschleife (wegen dem Beispiel).
-         * STIMMT DAS? MUESSTEN WIR DANN NICHT IRGENDWANN EINEN FIXPUNKT ERREICHEN?
-         */
-        /*
-        throw new RuntimeException();
-      }
+      /*lSuccessorCache.put(pCFAEdge, lSuccessors);
     }*/
     
+    return lSuccessors;
+    
+    
+    /*
     // create the new abstract element for non-abstraction location
     return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
@@ -229,6 +226,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         element.getAbstractionId(),
         // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
         element.getSizeSinceAbstraction() + 1));
+        */
   }
 
   /**

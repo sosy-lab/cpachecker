@@ -442,6 +442,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     return ret;
   }
+  
+  //private Map<Triple<AbstractFormula, PathFormula, Collection<Predicate>>, AbstractFormula> mAbstractionCache = new HashMap<Triple<AbstractFormula, PathFormula, Collection<Predicate>>, AbstractFormula>();
 
   private AbstractFormula buildBooleanAbstraction(
       AbstractFormula abstractionFormula, PathFormula pathFormula,
@@ -450,6 +452,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
+    
+    /*Triple<AbstractFormula, PathFormula, Collection<Predicate>> lCacheKey = new Triple<AbstractFormula, PathFormula, Collection<Predicate>>(abstractionFormula, pathFormula, predicates); 
+    
+    AbstractFormula lAbstraction = this.mAbstractionCache.get(lCacheKey);
+    
+    if (lAbstraction == null) {*/
+      
+    
 
     long startTime = System.currentTimeMillis();
 
@@ -530,7 +540,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     stats.abstractionTime += abstractionSolverTime;
     stats.abstractionMaxTime =
       Math.max(abstractionSolverTime, stats.abstractionMaxTime);
-
+    
+      /*mAbstractionCache.put(lCacheKey, result);
+      lAbstraction = result;
+    }
+    
+    //return result;
+    
+    return lAbstraction;*/
+    
     return result;
   }
 
@@ -542,7 +560,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
-
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
     logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
 
@@ -560,6 +577,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * @return counterexample info with predicated information
    * @throws CPAException
    */
+  
+  //Map<List<SymbPredAbsAbstractElement>, List<SymbolicFormula>> mCache = new HashMap<List<SymbPredAbsAbstractElement>, List<SymbolicFormula>>();
+  
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
@@ -568,6 +588,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     logger.log(Level.FINEST, "Building counterexample trace");
 
+    /*List<SymbolicFormula> lTraceFormulas = mCache.get(pAbstractTrace);
+    
+    if (lTraceFormulas == null) {
+      lTraceFormulas = getFormulasForTrace(pAbstractTrace);
+      mCache.put(pAbstractTrace, lTraceFormulas);
+    }
+    
+    List<SymbolicFormula> f = lTraceFormulas;*/
+    
     List<SymbolicFormula> f = getFormulasForTrace(pAbstractTrace);
 
     if (useBitwiseAxioms) {
@@ -812,6 +841,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       }
     }
   }
+  
+  //private Map<SymbolicFormula, Map<SSAMap, Pair<SymbolicFormula, SSAMap>>> mPairCache = new HashMap<SymbolicFormula, Map<SSAMap, Pair<SymbolicFormula, SSAMap>>>();
 
   private List<SymbolicFormula> getFormulasForTrace(
       List<SymbPredAbsAbstractElement> abstractTrace) {
@@ -831,6 +862,19 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     while (it.hasNext()) {
       p = it.next().getInitAbstractionFormula();
 
+      /*Map<SSAMap, Pair<SymbolicFormula, SSAMap>> lLocalPairCache = mPairCache.get(p.getSymbolicFormula());
+      
+      if (lLocalPairCache == null) {
+        lLocalPairCache = new HashMap<SSAMap, Pair<SymbolicFormula, SSAMap>>();
+        mPairCache.put(p.getSymbolicFormula(), lLocalPairCache);
+      }
+      
+      Pair<SymbolicFormula, SSAMap> lPair = lLocalPairCache.get(ssa);
+      
+      if (lPair == null) {
+        lPair = smgr.shift(p.getSymbolicFormula(), ssa);
+      }*/
+      
       // don't need to call replaceAssignments because shift does the same trick
       Pair<SymbolicFormula, SSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
       

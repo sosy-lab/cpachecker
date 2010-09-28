@@ -69,6 +69,8 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    */
   private SymbPredAbsAbstractElement mergedInto = null;
   
+  public static int INSTANCES = 0;
+  
   public SymbPredAbsAbstractElement() {
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
@@ -77,6 +79,8 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.abstraction = null;
     this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
+    
+    INSTANCES++;
   }
 
   /**
@@ -96,6 +100,8 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.abstraction = a;
     this.abstractionId = nextAbstractionId++;
     this.sizeSinceAbstraction = 0;
+    
+    INSTANCES++;
   }
   
   /**
@@ -117,6 +123,8 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     this.abstraction = a;
     this.abstractionId = abstractionId;
     this.sizeSinceAbstraction = sizeSinceAbstraction;
+    
+    INSTANCES++;
   }
   
   public AbstractFormula getAbstraction() {
