@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Option.Type;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Primitives;
 
 
 /**
@@ -58,18 +58,6 @@ public class Configuration {
 
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
-
-  private static final ImmutableMap<Class<?>, Class<?>> PRIMITIVE_TYPES
-      = new ImmutableMap.Builder<Class<?>, Class<?>>()
-                     .put(boolean.class, Boolean.class)
-                     .put(byte.class,    Byte.class)
-                     .put(char.class,    Character.class)
-                     .put(double.class,  Double.class)
-                     .put(float.class,   Float.class)
-                     .put(int.class,     Integer.class)
-                     .put(long.class,    Long.class)
-                     .put(short.class,   Short.class)
-                     .build();
 
   private static final String OUTPUT_DIRECTORY_OPTION = "output.path";
   private static final String OUTPUT_DIRECTORY_DEFAULT = "test/output/";
@@ -429,7 +417,7 @@ public class Configuration {
         result = ARRAY_SPLIT_PATTERN.split(valueStr);
   
       } else if (type.isPrimitive()) {
-        Class<?> wrapperType = PRIMITIVE_TYPES.get(type); // get wrapper type in order to use valueOf method
+        Class<?> wrapperType = Primitives.wrap(type); // get wrapper type in order to use valueOf method
   
         result = valueOf(wrapperType, name, valueStr);
   
