@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -76,6 +75,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -834,7 +834,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       
       } catch (ExecutionException e) {
         Throwable t = e.getCause();
-        Classes.throwExceptionIfPossible(t, CPAException.class);
+        Throwables.propagateIfPossible(t, CPAException.class);
         
         logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
         throw new ForceStopCPAException();

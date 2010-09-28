@@ -39,11 +39,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.Option.Type;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -326,7 +326,7 @@ public class Configuration {
         // the invoked method. We want to handle this exception.
         Throwable t = e.getCause();
         try {
-          Classes.throwExceptionIfPossible(t, InvalidConfigurationException.class);
+          Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
         
         } catch (IllegalArgumentException iae) {
           throw new InvalidConfigurationException("Invalid value in configuration file: \""

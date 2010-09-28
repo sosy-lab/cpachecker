@@ -33,7 +33,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,6 +46,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import com.google.common.base.Throwables;
 
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
@@ -103,7 +104,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
         return Collections.emptySet();
 
       } catch (ExecutionException e) {
-        Classes.throwExceptionIfPossible(e.getCause(), CPATransferException.class);
+        Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
         // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
         throw new AssertionError(e);
       }

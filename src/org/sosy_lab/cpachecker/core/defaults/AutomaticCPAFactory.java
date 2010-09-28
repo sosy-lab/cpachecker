@@ -27,7 +27,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
 
@@ -86,8 +86,7 @@ public class AutomaticCPAFactory implements CPAFactory {
       return type.cast(cons.newInstance(actualParameters));
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
-      Classes.throwExceptionIfPossible(t, CPAException.class);
-      Classes.throwExceptionIfPossible(t, InvalidConfigurationException.class);
+      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
       throw new RuntimeException("Unexpected checked exception", t);
 
     } catch (InstantiationException e) {

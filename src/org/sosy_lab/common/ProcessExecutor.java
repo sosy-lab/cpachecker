@@ -15,6 +15,7 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 
 /**
  * This class can be used to execute a separate process and read it's output in
@@ -187,8 +188,7 @@ public class ProcessExecutor<E extends Exception> {
     
     } catch (ExecutionException e) {
       Throwable t = e.getCause();
-      Classes.throwExceptionIfPossible(t, IOException.class);
-      Classes.throwExceptionIfPossible(t, exceptionClass);
+      Throwables.propagateIfPossible(t, IOException.class, exceptionClass);
       logger.logException(Level.SEVERE, t, "");
       assert false : "Callables threw undeclared checked exception, this is impossible!";
 
