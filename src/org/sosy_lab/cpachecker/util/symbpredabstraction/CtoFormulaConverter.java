@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -184,7 +185,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, SSAMap ssa) {
+  private int makeLvalIndex(String name, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name);
     if (idx > 0) {
       idx = idx+1;
@@ -199,7 +200,7 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  private int getIndex(String var, SSAMap ssa) {
+  private int getIndex(String var, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
@@ -214,7 +215,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, SymbolicFormulaList args, SSAMap ssa) {
+  private int makeLvalIndex(String name, SymbolicFormulaList args, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name, args);
     if (idx > 0) {
       idx = idx+1;
@@ -229,7 +230,7 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  private SymbolicFormula makeVariable(String var, String function, SSAMap ssa) {
+  private SymbolicFormula makeVariable(String var, String function, SSAMapBuilder ssa) {
     int idx;
     if (isNondetVariable(var)) {
       // on every read access to special non-determininism variable, increase index
@@ -243,7 +244,7 @@ public class CtoFormulaConverter {
   }
   
   private SymbolicFormula makeAssignment(String var, String function,
-          SymbolicFormula rightHandSide, SSAMap ssa) {
+          SymbolicFormula rightHandSide, SSAMapBuilder ssa) {
     
     String name = scoped(var, function);
     int idx = makeLvalIndex(name, ssa);
@@ -251,7 +252,7 @@ public class CtoFormulaConverter {
     return smgr.makeAssignment(f, rightHandSide);
   }
   
-  private SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMap ssa) {
+  private SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name, args);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
@@ -280,9 +281,7 @@ public class CtoFormulaConverter {
     String function = (edge.getPredecessor() != null) 
                           ? edge.getPredecessor().getFunctionName() : null;
 
-    // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
-    SSAMap oldssa = oldFormula.getSsa();
-    SSAMap ssa = new SSAMap(oldssa);
+    SSAMapBuilder ssa = oldFormula.getSsa().builder();
 
     SymbolicFormula edgeFormula;
     switch (edge.getEdgeType()) {
@@ -346,18 +345,12 @@ public class CtoFormulaConverter {
     }
     
     SymbolicFormula newFormula = smgr.makeAnd(oldFormula.getSymbolicFormula(), edgeFormula);
-    
-    if (ssa.equals(oldssa)) {
-      ssa = oldssa;
-    } else {
-      ssa = SSAMap.unmodifiableSSAMap(ssa);
-    }
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, ssa, newLength, reachingPathsFormula, branchingCounter);
+    return new PathFormula(newFormula, ssa.build(), newLength, reachingPathsFormula, branchingCounter);
   }
 
   private SymbolicFormula makeDeclaration(DeclarationEdge declarationEdge,
-      String function, SSAMap ssa) throws CPATransferException {
+      String function, SSAMapBuilder ssa) throws CPATransferException {
 
     IASTDeclarator[] decls = declarationEdge.getDeclarators();
     IASTDeclSpecifier spec = declarationEdge.getDeclSpecifier();
@@ -482,7 +475,7 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula makeExitFunction(CallToReturnEdge ce, String function,
-      SSAMap ssa) throws CPATransferException {
+      SSAMapBuilder ssa) throws CPATransferException {
     
     IASTExpression retExp = ce.getExpression();
     if (retExp instanceof IASTFunctionCallExpression) {
@@ -506,7 +499,7 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula makeFunctionCall(FunctionCallEdge edge,
-      String callerFunction, SSAMap ssa) throws CPATransferException {
+      String callerFunction, SSAMapBuilder ssa) throws CPATransferException {
     
     if (edge.isExternalCall()) {
       throw new UnrecognizedCFAEdgeException(
@@ -554,7 +547,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private SymbolicFormula makeReturn(StatementEdge edge, String function, SSAMap ssa)
+  private SymbolicFormula makeReturn(StatementEdge edge, String function, SSAMapBuilder ssa)
       throws CPATransferException {
     IASTExpression exp = edge.getExpression();
     if (exp == null) {
@@ -574,7 +567,7 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula makeStatement(StatementEdge stmt, String function,
-          SSAMap ssa) throws CPATransferException {
+      SSAMapBuilder ssa) throws CPATransferException {
 
     IASTExpression expr = stmt.getExpression();
 
@@ -599,7 +592,7 @@ public class CtoFormulaConverter {
   }
 
   private Pair<SymbolicFormula, SymbolicFormula> makeAssume(AssumeEdge assume,
-      String function, SSAMap ssa, int branchingIdx) throws CPATransferException {
+      String function, SSAMapBuilder ssa, int branchingIdx) throws CPATransferException {
 
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
@@ -618,7 +611,7 @@ public class CtoFormulaConverter {
     return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, equivalence);
   }
 
-  private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMap ssa)
+  private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)
         throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression) {
       // this is a variable: get the right index for the SSA
@@ -933,7 +926,7 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula buildLvalueTerm(IASTExpression exp,
-        String function, SSAMap ssa) throws UnrecognizedCCodeException {
+        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression || !lvalsAsUif) {
       String var;
       if (exp instanceof IASTIdExpression) {
@@ -1012,7 +1005,7 @@ public class CtoFormulaConverter {
   }
 
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
-        String function, SSAMap ssa) throws UnrecognizedCCodeException {
+        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
     String func;
     if (fn instanceof IASTIdExpression) {
@@ -1050,7 +1043,7 @@ public class CtoFormulaConverter {
   }
 
   protected SymbolicFormula makePredicate(IASTExpression exp, boolean isTrue,
-        String function, SSAMap ssa) throws UnrecognizedCCodeException {
+        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     
     SymbolicFormula result = null;
     

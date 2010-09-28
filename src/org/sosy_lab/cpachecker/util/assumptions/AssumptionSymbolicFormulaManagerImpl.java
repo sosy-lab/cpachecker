@@ -30,6 +30,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -55,8 +56,12 @@ public class AssumptionSymbolicFormulaManagerImpl
    * to circumvent the assumptions of MathsatSymbolicFormulaManager
    */
   private static class DummySSAMap
-    extends SSAMap
+    extends SSAMapBuilder
   {
+    public DummySSAMap() {
+      super(SSAMap.emptySSAMap());
+    }
+    
     @Override
     public int getIndex(String pName, SymbolicFormulaList pArgs) {
       return 1;
@@ -73,6 +78,11 @@ public class AssumptionSymbolicFormulaManagerImpl
 
     @Override
     public void setIndex(String pVariable, int pIdx) {
+    }
+    
+    @Override
+    public SSAMap build() {
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -108,7 +118,7 @@ public class AssumptionSymbolicFormulaManagerImpl
     super(config, getSymbolicFormulaManager(), logger);
   }
 
-  private final SSAMap dummySSAMap = new DummySSAMap();
+  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
 
   private SymbolicFormula buildSymbolicFormula(IASTExpression p, boolean sign, String function) throws UnrecognizedCCodeException
   {
