@@ -174,13 +174,9 @@ public interface SymbolicFormulaManager {
     /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
-     * This is used by AbstractFormulaManager.toConcrete().
      * 
-     * TODO the following is deprecated:
-     * If the parameter ssa is null, every variable is instantiated with index 1.
-     *
      * @param f the generic SymbolicFormula to instantiate
-     * @param ssa the SSAMap to use (may be null)
+     * @param ssa the SSAMap to use
      * @return a copy of f in which every "generic" variable is replaced by the
      * corresponding "SSA instance"
      */

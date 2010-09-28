@@ -525,7 +525,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       if (msat_term_is_variable(t) != 0) {
         toProcess.pop();
         String name = msat_term_repr(t);
-        int idx = (ssa != null ? ssa.getIndex(name) : 1);
+        int idx = ssa.getIndex(name);
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
           long newt = buildMsatVariable(name, idx);
@@ -557,7 +557,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
             assert name != null;
             
             if (ufCanBeLvalue(name)) {
-              int idx = (ssa != null ? ssa.getIndex(name, encapsulate(newargs)) : 1);
+              int idx = ssa.getIndex(name, encapsulate(newargs));
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = buildMsatUF(makeName(name, idx), newargs);
