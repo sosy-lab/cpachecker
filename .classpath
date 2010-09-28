@@ -14,7 +14,7 @@
 	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="lib" path="lib/icu4j-4_2_1.jar"/>
-	<classpathentry kind="lib" path="lib/google-collect-1.0.jar"/>
+	<classpathentry kind="lib" path="lib/guava-r07.jar"/>
 	<classpathentry kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.cdt.core_5.1.2.201002161416.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.runtime_3.5.0.v20090525.jar"/>

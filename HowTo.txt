@@ -72,7 +72,9 @@ Sources of binaries provided with the distribution/SVN:
 - java-cup-11a.jar: http://www2.cs.tum.edu/projects/cup/
 - icu4j-4_2_1.jar: http://site.icu-project.org/
 - JFlex.jar: http://jflex.de/
-- Google Collections: http://code.google.com/p/google-collections/
+- Guava (Google Core Libraries for Java):
+  http://guava-libraries.googlecode.com
+  Apache License 2.0
 - JGraphT: http://www.jgrapht.org/
 - Eclipse and Eclipse CDT: http://www.eclipse.org/ and http://www.eclipse.org/cdt/
 - JUnit: http://junit.sourceforge.net/
