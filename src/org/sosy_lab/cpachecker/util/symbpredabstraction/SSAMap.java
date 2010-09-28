@@ -23,16 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
 /**
@@ -98,11 +95,10 @@ public class SSAMap {
         return ssa;
       }
       
-      // TODO copyOf unnecessary when type == ImmutableMultiset
       ImmutableMultiset<String> newVars
-        = (varsBuilder  == null ? ImmutableMultiset.copyOf(ssa.vars)  : varsBuilder.build());
+                     = (varsBuilder  == null ? ssa.vars  : varsBuilder.build());
       ImmutableMultiset<Pair<String, SymbolicFormulaList>> newFuncs
-        = (funcsBuilder == null ? ImmutableMultiset.copyOf(ssa.funcs) : funcsBuilder.build());
+                     = (funcsBuilder == null ? ssa.funcs : funcsBuilder.build());
       
       ssa = new SSAMap(newVars, newFuncs);
       varsBuilder  = null;
@@ -168,21 +164,8 @@ public class SSAMap {
    * builder class for ImmutableMultiset is more flexible than the one for the
    * ImmutableMap, which makes using a SSAMapBuilder possible. 
    */
-  // TODO change types to ImmutableMultiset
-  private final Multiset<String> vars;
-  private final Multiset<Pair<String, SymbolicFormulaList>> funcs;
-
-  @Deprecated
-  public SSAMap() {
-    vars = HashMultiset.create(0);
-    funcs = HashMultiset.create(0);
-  }
-  
-  @Deprecated
-  public SSAMap(SSAMap old) {
-    vars = HashMultiset.create(old.vars);
-    funcs = HashMultiset.create(old.funcs);
-  }
+  private final ImmutableMultiset<String> vars;
+  private final ImmutableMultiset<Pair<String, SymbolicFormulaList>> funcs;
   
   private SSAMap(ImmutableMultiset<String> vars,
                  ImmutableMultiset<Pair<String, SymbolicFormulaList>> funcs) {
@@ -197,7 +180,7 @@ public class SSAMap {
     return new SSAMapBuilder(this);
   }
   
-  private static <T> int getIndex(T key, Multiset<T> map) {
+  private static <T> int getIndex(T key, ImmutableMultiset<T> map) {
     int i = map.count(key);
     if (i != 0) {
       return i;
@@ -214,11 +197,6 @@ public class SSAMap {
     return getIndex(variable, vars);
   }
 
-  @Deprecated
-  public void setIndex(String variable, int idx) {
-    vars.setCount(variable, idx);
-  }
-
   public int getIndex(String name, SymbolicFormulaList args) {
     return getIndex(new Pair<String, SymbolicFormulaList>(name, args), funcs);
   }
@@ -227,18 +205,12 @@ public class SSAMap {
     return getIndex(key, funcs);
   }
 
-  @Deprecated
-  public void setIndex(String name, SymbolicFormulaList args, int idx) {
-    funcs.setCount(new Pair<String, SymbolicFormulaList>(name, args), idx);
-  }
-
-  // TODO unmodifiable wrapper unnecessary when type == ImmutableMultiset
   protected Set<String> allVariables() {
-    return Collections.unmodifiableSet(vars.elementSet());
+    return vars.elementSet();
   }
 
   protected Set<Pair<String, SymbolicFormulaList>> allFunctions() {
-    return Collections.unmodifiableSet(funcs.elementSet());
+    return funcs.elementSet();
   }
 
   private static final Joiner joiner = Joiner.on(" ");
