@@ -110,7 +110,7 @@ public class CtoFormulaConverter {
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
   private static final String NONDET_VARIABLE = "__nondet__";
-  private static final String ASSUME_EDGE_PREDICATE = "__assume__";
+  public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
@@ -597,8 +597,8 @@ public class CtoFormulaConverter {
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
     
-    // add a unique predicate for each assume edge
-    String var = ASSUME_EDGE_PREDICATE + assume.getAssumeEdgeId();
+    // add a unique predicate for each branching decision
+    String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
 
     SymbolicFormula predFormula = smgr.makePredicateVariable(var, branchingIdx);
     if (assume.getTruthAssumption() == false) {

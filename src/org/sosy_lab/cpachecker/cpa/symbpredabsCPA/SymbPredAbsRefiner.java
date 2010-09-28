@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
@@ -71,7 +72,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   private static final String IMPRECISE_ERROR_PATH_WARNING = "The produced error path is imprecise!";
 
-  private static Pattern PREDICATE_NAME_PATTERN = Pattern.compile("^.*__assume__(?=\\d+@\\d+$)");
+  private static Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
+      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -272,7 +274,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         
         String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
         if (!name.equals(a.getName())) {
-          // pattern matched, so it's a variable with __assume__ in it
+          // pattern matched, so it's a variable with __pc__ in it
           
           String[] parts = name.split("@");
           assert parts.length == 2;
@@ -318,7 +320,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         
       case 2: // branch
         // first, find out the edges and the children
-        Integer edgeId = null;
         CFAEdge trueEdge = null;
         CFAEdge falseEdge = null;
         ARTElement trueChild = null;
@@ -332,25 +333,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
             return pPath;
           }
 
-          AssumeEdge assumeEdge = ((AssumeEdge)currentEdge);
-          Integer currentEdgeId = assumeEdge.getAssumeEdgeId();
-          if (edgeId == null) {
-            edgeId = currentEdgeId;
-          } else if (!edgeId.equals(currentEdgeId)) {
-            logger.log(Level.WARNING, "ART branches with different AssumeEdges!");
-            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-            return pPath;
-          }
-          
-          if (assumeEdge.getTruthAssumption()) {
-            trueEdge = assumeEdge;
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+            trueEdge = currentEdge;
             trueChild = currentChild;
           } else {
-            falseEdge = assumeEdge;
+            falseEdge = currentEdge;
             falseChild = currentChild;
           }
         }
-        assert edgeId != null;
         if (trueEdge == null || falseEdge == null) {
           logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
           logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
@@ -359,7 +349,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         assert trueChild != null;
         assert falseChild != null;
         
-        // search first idx where we have a predicate for the edgeId
+        // search first idx where we have a predicate for the current branching
+        Integer branchingId = currentElement.retrieveLocationElement().getLocationNode().getNodeNumber();
         Boolean predValue;
         do {
           Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
@@ -370,7 +361,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           }
           
           currentIdx = nextEntry.getKey();
-          predValue = nextEntry.getValue().get(edgeId);
+          predValue = nextEntry.getValue().get(branchingId);
         } while (predValue == null);
         
         // now select the right edge
