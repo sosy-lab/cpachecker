@@ -24,14 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -83,46 +85,37 @@ public class SymbPredAbsCPAStatistics implements Statistics {
         }
       }
 
-      Set<Predicate> allPreds = new HashSet<Predicate>(predicates.values());
-      Collection<CFANode> allLocs = predicates.keySet();
-      int maxPredsPerLocation = 0;
-      int totPredsUsed = 0;
-
-      for (CFANode l : allLocs) {
-        Collection<Predicate> p = predicates.get(l);
-        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
-        totPredsUsed += p.size();
-      }
-      int avgPredsPerLocation = allLocs.size() > 0 ? totPredsUsed/allLocs.size() : 0;
-
       // check if/where to dump the predicate map
       if (result == Result.SAFE && export) {
-
+        TreeMap<CFANode, Collection<Predicate>> sortedPredicates
+              = new TreeMap<CFANode, Collection<Predicate>>(predicates.asMap());
+        StringBuilder sb = new StringBuilder();
+        
+        for (Entry<CFANode, Collection<Predicate>> e : sortedPredicates.entrySet()) {
+          sb.append("LOCATION: ");
+          sb.append(e.getKey());
+          sb.append('\n');
+          Joiner.on('\n').appendTo(sb, e.getValue());
+          sb.append("\n\n");
+        }
+        
         try {
-          PrintWriter pw = new PrintWriter(file);
-          pw.println("ALL PREDICATES:");
-          for (Predicate p : allPreds) {
-            pw.format("%s ==> %s <-> %s\n", p.getAbstractVariable(), p.getSymbolicVariable(), p.getSymbolicAtom());
-          }
-
-          pw.println("\nFOR EACH LOCATION:");
-          for (CFANode l : allLocs) {
-            Collection<Predicate> c = predicates.get(l);
-            pw.println("\nLOCATION: " + l);
-            for (Predicate p : c) {
-              pw.println(p);
-            }
-          }
-          pw.flush();
-          pw.close();
-          if (pw.checkError()) {
-            cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file);
-          }
-        } catch (FileNotFoundException e) {
+          Files.writeFile(file, sb);
+        } catch (IOException e) {
           cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file,
               (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
         }
       }
+
+      int maxPredsPerLocation = 0;
+      for (Collection<Predicate> p : predicates.asMap().values()) {
+        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
+      }
+
+      int allLocs = predicates.keySet().size();
+      int totPredsUsed = predicates.size();
+      int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
+      int allDistinctPreds = (new HashSet<Predicate>(predicates.values())).size();
 
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
@@ -134,8 +127,8 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Number of refinement steps:        " + bs.numCallsCexAnalysis);
       out.println("Number of coverage checks:         " + bs.numCoverageChecks);
       out.println();
-      out.println("Number of predicates discovered:          " + allPreds.size());
-      out.println("Number of abstraction locations:          " + allLocs.size());
+      out.println("Number of predicates discovered:          " + allDistinctPreds);
+      out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
       out.println("Max number of predicates per abstraction: " + trans.maxPredsPerAbstraction);
