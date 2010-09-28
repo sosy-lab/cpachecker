@@ -352,7 +352,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
   protected void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
     try {
-      Files.writeFile(outputFile, smgr.dumpFormula(f), false);
+      Files.writeFile(outputFile, smgr.dumpFormula(f));
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
@@ -363,7 +363,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
     try {
-      Files.writeFile(outputFile, LINE_JOINER.join(f), false);
+      Files.writeFile(outputFile, LINE_JOINER.join(f));
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");

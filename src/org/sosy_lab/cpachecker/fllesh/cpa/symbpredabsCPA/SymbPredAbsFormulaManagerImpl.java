@@ -732,7 +732,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           if (dumpInterpolationProblems) {
             try {
               Files.writeFile(new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".atoms" + i),
-                  Joiner.on('\n').join(atoms) + '\n', false);
+                  Joiner.on('\n').join(atoms) + '\n');
             } catch (IOException ex) {
               logger.log(Level.WARNING, "Could not dump interpolant atoms to file! ("
                   + ex.getMessage() + ")");

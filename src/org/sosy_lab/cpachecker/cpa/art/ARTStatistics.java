@@ -92,8 +92,8 @@ public class ARTStatistics implements Statistics {
 
         try {
 
-          Files.writeFile(errorPathFile, targetPath, false);
-          Files.writeFile(errorPathJson, targetPath.toJSON(), false);
+          Files.writeFile(errorPathFile, targetPath);
+          Files.writeFile(errorPathJson, targetPath.toJSON());
 
         } catch (IOException e) {
           cpa.getLogger().log(Level.WARNING,
@@ -175,7 +175,7 @@ public class ARTStatistics implements Statistics {
     sb.append("}\n");
 
     try {
-      Files.writeFile(artFile, sb, false);
+      Files.writeFile(artFile, sb);
     } catch (IOException e) {
       cpa.getLogger().log(Level.WARNING,
           "Could not write ART to file (", e.getMessage(), ")");

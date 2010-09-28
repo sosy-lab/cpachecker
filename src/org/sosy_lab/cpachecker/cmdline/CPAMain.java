@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -132,7 +133,7 @@ public class CPAMain {
     }
 
     try {
-      Files.checkReadableFile(null, names[0]);
+      Files.checkReadableFile(new File(names[0]));
     } catch (FileNotFoundException e) {
       logManager.log(Level.SEVERE, e.getMessage());
       System.exit(1);

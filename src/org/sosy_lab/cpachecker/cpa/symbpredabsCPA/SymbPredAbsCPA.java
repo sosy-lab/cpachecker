@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,6 +58,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicate
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
+
+import com.google.common.io.Files;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -141,7 +143,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     Set<Predicate> predicates = null;
     if (predicatesFile != null) {
       try {
-        String fileContent = Files.readFile(predicatesFile);
+        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
         
         MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
         predicates = p.parsePredicates(fileContent);

@@ -136,7 +136,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       
       if (exportErrorPath) {
         try {
-          Files.writeFile(exportFile, info.getCounterexample(), false);
+          Files.writeFile(exportFile, info.getCounterexample());
         } catch (IOException e) {
           logger.log(Level.WARNING, "Could not write satisfying assignment for error path to file! ("
               + e.getMessage() + ")");

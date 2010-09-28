@@ -61,7 +61,7 @@ public class AutomatonTest {
       File tmpSpc = new File("test/config/automata/tmpSpecification.spc");
       String content = "#include test/config/automata/UninitializedVariablesTestAutomaton.txt \n" +
       "#include test/config/automata/tmpSpecification.spc \n";
-      Files.writeFile(tmpSpc, content, false);
+      Files.writeFile(tmpSpc, content);
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.isSafe());
       Assert.assertTrue(results.logContains("File \"test/config/automata/tmpSpecification.spc\" was referenced multiple times."));

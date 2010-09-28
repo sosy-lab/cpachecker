@@ -84,7 +84,7 @@ public class ARTStatistics implements Statistics {
       if (lastElement != null && lastElement.isTarget()) {
         try {
           Files.writeFile(errorPathFile,
-              AbstractARTBasedRefiner.buildPath(lastElement), false);
+              AbstractARTBasedRefiner.buildPath(lastElement));
         } catch (IOException e) {
           logger.log(Level.WARNING,
               "Could not write error path to file (", e.getMessage(), ")");
@@ -159,7 +159,7 @@ public class ARTStatistics implements Statistics {
     sb.append("}\n");
 
     try {
-      Files.writeFile(artFile, sb, false);
+      Files.writeFile(artFile, sb);
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Could not write ART to file (", e.getMessage(), ")");

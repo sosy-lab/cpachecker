@@ -184,7 +184,7 @@ public class TranslationUnit {
   
   public void toDot(String pFunction, File pFile) throws IOException {
     CFAFunctionDefinitionNode lEntry = getFunction(pFunction);
-    Files.writeFile(pFile, DOTBuilder.generateDOT(mCFAs.values(), lEntry), false);
+    Files.writeFile(pFile, DOTBuilder.generateDOT(mCFAs.values(), lEntry));
   }
   
   /**

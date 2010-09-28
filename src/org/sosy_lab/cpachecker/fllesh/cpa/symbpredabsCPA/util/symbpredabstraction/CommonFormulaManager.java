@@ -574,7 +574,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     
     try {
-      Files.writeFile(outputFile, smgr.dumpFormula(t), false);
+      Files.writeFile(outputFile, smgr.dumpFormula(t));
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");

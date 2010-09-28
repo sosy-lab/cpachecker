@@ -97,7 +97,7 @@ class MainCPAStatistics implements Statistics {
 
         if (exportReachedSet) {
           try {
-            Files.writeFile(outputFile, Joiner.on('\n').join(reached), false);
+            Files.writeFile(outputFile, Joiner.on('\n').join(reached));
           } catch (IOException e) {
             logger.log(Level.WARNING,
                 "Could not write reached set to file (", e.getMessage(), ")");

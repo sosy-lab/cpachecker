@@ -165,7 +165,7 @@ public class CFACreator {
     if (exportCfa) {
       try {
         Files.writeFile(exportCfaFile,
-            DOTBuilder.generateDOT(cfas.values(), mainFunction), false);
+            DOTBuilder.generateDOT(cfas.values(), mainFunction));
       } catch (IOException e) {
         logger.log(Level.WARNING,
           "Could not write CFA to dot file, check configuration option cfa.file! (",
