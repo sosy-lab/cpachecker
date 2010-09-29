@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,8 +32,6 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -94,9 +93,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final SymbPredAbsFormulaManager formulaManager;
   
   // path formula cache
-  private HashMap<PathFormula, Map<CFAEdge, PathFormula>> mCache;
+  private final Map<PathFormula, Map<CFAEdge, PathFormula>> mCache;
+  
+  // successor caches
+  private final List<Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>> mNonabstractionElementsCache;
+  private final Map<SymbPredAbsAbstractElement, Map<SymbPredAbsPrecision, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>> mAbstractionElementsCache;
   
   private final PathFormula mEmptyPathFormula;
+  
+  private final AbstractionElement.Factory mAbstractionElementFactory;
   
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
@@ -108,6 +113,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     mCache = new HashMap<PathFormula, Map<CFAEdge, PathFormula>>();
     
     mEmptyPathFormula = formulaManager.makeEmptyPathFormula();
+    mNonabstractionElementsCache = new ArrayList<Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>>();
+    mAbstractionElementsCache = new HashMap<SymbPredAbsAbstractElement, Map<SymbPredAbsPrecision, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>>();
+    
+    mAbstractionElementFactory = pCpa.getAbstractionElementFactory();
 }
 
   @Override
@@ -140,6 +149,20 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
   }
+  
+  private Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>> getNonabstractionElementsCache(AbstractionElement pAbstractionElement) {
+    if (mNonabstractionElementsCache.size() <= pAbstractionElement.ID) {
+      createNonabstractionElementsCache(pAbstractionElement);
+    }
+    
+    return mNonabstractionElementsCache.get(pAbstractionElement.ID);
+  }
+  
+  private void createNonabstractionElementsCache(AbstractionElement pAbstractionElement) {
+    for (int lIndex = mNonabstractionElementsCache.size(); lIndex <= pAbstractionElement.ID; lIndex++) {
+      mNonabstractionElementsCache.add(new HashMap<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>());
+    }
+  }
 
   /**
    * Computes element -(op)-> newElement where edge = (l1 -(op)-> l2) and l2
@@ -153,30 +176,26 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return computed abstract element
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
-  
-  Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>> mNonabstractionElementsCache = new HashMap<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>();
-  //Map<Pair<SymbPredAbsAbstractElement, CFAEdge>, Collection<? extends SymbPredAbsAbstractElement>> mNonabstractionElementsCache = new HashMap<Pair<SymbPredAbsAbstractElement, CFAEdge>, Collection<? extends SymbPredAbsAbstractElement>>();
-  
   private Collection<? extends SymbPredAbsAbstractElement> handleNonAbstractionLocation(
                 SymbPredAbsAbstractElement element, CFAEdge pCFAEdge, boolean satCheck)
                 throws CPATransferException {
     logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
     
-    Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>> lLocalCache = mNonabstractionElementsCache.get(element);
+    AbstractionElement lAbstractionElement = element.getAbstractionElement();
+    
+    Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>> lCache = getNonabstractionElementsCache(lAbstractionElement);
+    
+    Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>> lLocalCache = lCache.get(element);
     
     if (lLocalCache == null) {
       lLocalCache = new HashMap<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>();
-      mNonabstractionElementsCache.put(element, lLocalCache);
+      lCache.put(element, lLocalCache);
     }
     
     Collection<? extends SymbPredAbsAbstractElement> lSuccessors;
     
     lSuccessors = lLocalCache.get(pCFAEdge);
-    
-    /*Pair<SymbPredAbsAbstractElement, CFAEdge> lKey = new Pair<SymbPredAbsAbstractElement, CFAEdge>(element, pCFAEdge);
-    
-    lSuccessors = mNonabstractionElementsCache.get(lKey);*/
     
     if (lSuccessors == null) {
       PathFormula lSuccessorPathFormula;
@@ -204,23 +223,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       
       lSuccessors = Collections.singleton(
           new NonabstractionElement(element.getAbstractionElement(), lSuccessorPathFormula, element.getSizeSinceAbstraction() + 1)
-      );
+        );
       
       lLocalCache.put(pCFAEdge, lSuccessors);
-      //mNonabstractionElementsCache.put(lKey, lSuccessors);
     }
-    
-    
-    
-    /*lSuccessors = Collections.singleton(new SymbPredAbsAbstractElement(
-      // set 'abstractionLocation' to last element's abstractionLocation since they are same
-      // set 'pathFormula' to pf - the updated pathFormula -
-      element.getAbstractionLocation(), lSuccessorPathFormula,
-      // set 'initAbstractionFormula', 'abstraction' and 'abstractionId' to last element's values, they don't change
-      element.getInitAbstractionFormula(), element.getAbstraction(),
-      element.getAbstractionId(),
-      // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
-      element.getSizeSinceAbstraction() + 1));*/
       
     return lSuccessors;
   }
@@ -240,11 +246,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return computed abstract element
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
-  
-  Map<SymbPredAbsAbstractElement, Map<SymbPredAbsPrecision, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>> mAbstractionElementsCache = new HashMap<SymbPredAbsAbstractElement, Map<SymbPredAbsPrecision, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>>();
-  
-  //Map<Triple<SymbPredAbsAbstractElement, SymbPredAbsPrecision, CFAEdge>, Collection<? extends SymbPredAbsAbstractElement>> mAbstractionElementsCache = new HashMap<Triple<SymbPredAbsAbstractElement, SymbPredAbsPrecision, CFAEdge>, Collection<? extends SymbPredAbsAbstractElement>>();
-  
   private Collection<? extends SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, SymbPredAbsPrecision precision, CFAEdge edge)
   throws CPATransferException {
 
@@ -269,10 +270,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     Collection<? extends SymbPredAbsAbstractElement> lSuccessors;
     
     lSuccessors = lCFAEdgeBasedCache.get(edge);
-    
-    /*Triple<SymbPredAbsAbstractElement, SymbPredAbsPrecision, CFAEdge> lKey = new Triple<SymbPredAbsAbstractElement, SymbPredAbsPrecision, CFAEdge>(element, precision, edge);
-    
-    lSuccessors = mAbstractionElementsCache.get(lKey);*/
     
     if (lSuccessors == null) {
       PathFormula pathFormula;
@@ -314,27 +311,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
       numAbstractions++;
 
-      lSuccessors = Collections.singleton(
-          new AbstractionElement(edge.getSuccessor(), newAbstraction, pathFormula)
-      );
+      AbstractionElement lSuccessor = mAbstractionElementFactory.create(edge.getSuccessor(), newAbstraction, pathFormula);
+      
+      lSuccessors = Collections.singleton(lSuccessor);
       
       lCFAEdgeBasedCache.put(edge, lSuccessors);
-      //mAbstractionElementsCache.put(lKey, lSuccessors);
     }
     
     return lSuccessors;
-    
-    /*return Collections.singleton(
-        new AbstractionElement(edge.getSuccessor(), newAbstraction, pathFormula)
-        );*/
-    
-    /*return Collections.singleton(new SymbPredAbsAbstractElement(
-        // set 'abstractionLocation' to edge.getSuccessor()
-        // set 'pathFormula' to newPathFormula computed above
-        edge.getSuccessor(), newPathFormula,
-        // set 'initAbstractionFormula' to  pathFormula computed above
-        // set 'abstraction' to newly computed abstraction
-        pathFormula, newAbstraction));*/
   }
 
   /**
@@ -468,7 +452,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction());
 
         return Collections.singleton(
-            new AbstractionElement(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
+            mAbstractionElementFactory.create(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
+            //new AbstractionElement(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
             /*new SymbPredAbsAbstractElement(
             // set 'abstractionLocation' to edge.getSuccessor()
             // set 'pathFormula' to true

@@ -111,11 +111,17 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
+  private final AbstractionElement.Factory mAbstractionElementFactory; 
+  
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.config = config;
     this.logger = logger;
+    
+
+    mAbstractionElementFactory = new AbstractionElement.Factory();
+    
 
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
@@ -165,6 +171,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     stats = new SymbPredAbsCPAStatistics(this);
   }
+  
+  public AbstractionElement.Factory getAbstractionElementFactory() {
+    return mAbstractionElementFactory;
+  }
 
   @Override
   public SymbPredAbsAbstractDomain getAbstractDomain() {
@@ -212,7 +222,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     if (lInitialElement == null) {
       PathFormula pf = formulaManager.makeEmptyPathFormula();
       AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
-      lInitialElement = new AbstractionElement(node, initAbstraction, pf);
+      //lInitialElement = new AbstractionElement(node, initAbstraction, pf);
+      lInitialElement = mAbstractionElementFactory.create(node, initAbstraction, pf);
       
       mInitialElementsCache.put(node, lInitialElement);
     }

@@ -6,6 +6,22 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 
 public class AbstractionElement implements SymbPredAbsAbstractElement {
 
+  public static class Factory {
+    private int mNextId;
+    
+    public Factory() {
+      mNextId = 0;
+    }
+    
+    public AbstractionElement create(CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
+      return new AbstractionElement(pAbstractionLocation, pAbstractionFormula, pInitAbstractionFormula, mNextId++);
+    }
+    
+    public int getNumberOfCreatedAbstractionElements() {
+      return mNextId;
+    }
+  }
+  
   private final CFANode mAbstractionLocation;
   
   /** If this node is not an abstraction node, then this is invalid;
@@ -17,13 +33,16 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
   /** The abstraction which is updated only on abstraction locations */
   private AbstractFormula mAbstractionFormula;
   
-  public static int INSTANCES = 0;
+  //public static int INSTANCES = 0;
   
-  public AbstractionElement(CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
+  public final int ID;
+  
+  private AbstractionElement(CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula, int pID) {
     mAbstractionLocation = pAbstractionLocation;
     mAbstractionFormula = pAbstractionFormula;
     mInitAbstractionFormula = pInitAbstractionFormula;
-    INSTANCES++;
+    //INSTANCES++;
+    ID = pID;
   }
   
   public CFANode getLocation() {
