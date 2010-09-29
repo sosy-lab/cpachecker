@@ -581,7 +581,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   //Map<List<SymbPredAbsAbstractElement>, List<SymbolicFormula>> mCache = new HashMap<List<SymbPredAbsAbstractElement>, List<SymbolicFormula>>();
   
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
+      ArrayList<AbstractionElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
@@ -714,7 +714,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         }
 
         if (itp.isTrue() || itp.isFalse()) {
-          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
+          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got no interpolant.");
 
         } else {
           foundPredicates = true;
@@ -724,7 +724,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           Collection<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
-          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
+          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
@@ -746,11 +746,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
-        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+        if (wellScopedPredicates && e.getAbstractionElement().getLocation() instanceof CFAFunctionDefinitionNode) {
           entryPoints.push(i);
         }
         // TODO check we are returning from a function
-        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+        if (wellScopedPredicates && e.getAbstractionElement().getLocation().getEnteringSummaryEdge() != null) {
           entryPoints.pop();
         }
       }
@@ -793,7 +793,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ArrayList<SymbPredAbsAbstractElement> pAbstractTrace) throws CPAException {
+      ArrayList<AbstractionElement> pAbstractTrace) throws CPAException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
@@ -842,16 +842,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
   }
   
-  //private Map<SymbolicFormula, Map<SSAMap, Pair<SymbolicFormula, SSAMap>>> mPairCache = new HashMap<SymbolicFormula, Map<SSAMap, Pair<SymbolicFormula, SSAMap>>>();
-
   private List<SymbolicFormula> getFormulasForTrace(
-      List<SymbPredAbsAbstractElement> abstractTrace) {
+      List<AbstractionElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
-    Iterator<SymbPredAbsAbstractElement> it = abstractTrace.iterator();
+    Iterator<AbstractionElement> it = abstractTrace.iterator();
     assert it.hasNext();
     
     // handle first formula separately because we don't need to shift
@@ -862,19 +860,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     while (it.hasNext()) {
       p = it.next().getInitAbstractionFormula();
 
-      /*Map<SSAMap, Pair<SymbolicFormula, SSAMap>> lLocalPairCache = mPairCache.get(p.getSymbolicFormula());
-      
-      if (lLocalPairCache == null) {
-        lLocalPairCache = new HashMap<SSAMap, Pair<SymbolicFormula, SSAMap>>();
-        mPairCache.put(p.getSymbolicFormula(), lLocalPairCache);
-      }
-      
-      Pair<SymbolicFormula, SSAMap> lPair = lLocalPairCache.get(ssa);
-      
-      if (lPair == null) {
-        lPair = smgr.shift(p.getSymbolicFormula(), ssa);
-      }*/
-      
       // don't need to call replaceAssignments because shift does the same trick
       Pair<SymbolicFormula, SSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
       
@@ -1061,10 +1046,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
 
-    private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;
+    private final ArrayList<AbstractionElement> abstractTrace;
     private final InterpolatingTheoremProver<T> currentItpProver;
 
-    public TransferCallable(ArrayList<SymbPredAbsAbstractElement> pAbstractTrace,
+    public TransferCallable(ArrayList<AbstractionElement> pAbstractTrace,
         InterpolatingTheoremProver<T> pItpProver) {
       abstractTrace = pAbstractTrace;
       currentItpProver = pItpProver;

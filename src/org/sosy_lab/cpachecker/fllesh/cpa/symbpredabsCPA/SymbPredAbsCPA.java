@@ -28,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -37,10 +39,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -117,7 +119,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
-
+    
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager);
@@ -200,13 +202,22 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return logger;
   }
 
+  private Map<CFANode, AbstractionElement> mInitialElementsCache = 
+    new HashMap<CFANode, AbstractionElement>();
+  
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    PathFormula pf = formulaManager.makeEmptyPathFormula();
-    AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
-
-    return new SymbPredAbsAbstractElement(node,
-        pf, pf, initAbstraction);
+  public AbstractionElement getInitialElement(CFAFunctionDefinitionNode node) {
+    AbstractionElement lInitialElement = mInitialElementsCache.get(node);
+    
+    if (lInitialElement == null) {
+      PathFormula pf = formulaManager.makeEmptyPathFormula();
+      AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
+      lInitialElement = new AbstractionElement(node, initAbstraction, pf);
+      
+      mInitialElementsCache.put(node, lInitialElement);
+    }
+    
+    return lInitialElement;
   }
 
   @Override

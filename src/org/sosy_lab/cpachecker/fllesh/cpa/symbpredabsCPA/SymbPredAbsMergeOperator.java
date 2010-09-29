@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,52 +57,57 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     formulaManager = pCpa.getFormulaManager();
   }
 
+  //Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>> mMergeCache = new HashMap<NonabstractionElement, Map<NonabstractionElement, MergedElement>>();
+  Map<Pair<NonabstractionElement, NonabstractionElement>, MergedElement> mMergeCache = new HashMap<Pair<NonabstractionElement, NonabstractionElement>, MergedElement>();
+  
   @Override
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2, Precision precision) {
 
-    SymbPredAbsAbstractElement elem1 = (SymbPredAbsAbstractElement)element1;
-    SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
-
-    // this will be the merged element
-    SymbPredAbsAbstractElement merged;
-
-    if (elem1.isAbstractionNode() || elem2.isAbstractionNode()) {
+    if (element1 instanceof AbstractionElement || element2 instanceof AbstractionElement) {
       // we don't merge if this is an abstraction location
-      merged = elem2;
-    } else {
-      // don't merge if the elements are in different blocks (they have different abstraction ids)
-      if (elem1.getAbstractionId() != elem2.getAbstractionId()) {
-        merged = elem2;
-      
-      } else {
-        long start = System.currentTimeMillis();
-        // create a new element, note that their abstraction formulas, initAbstractionFormula,
-        // abstraction locations, artParents are same because they have the same
-        // abstraction path
-        assert (elem1.getAbstraction().equals(elem2.getAbstraction()));
-        assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
-        assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
-
-        logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
-
-        PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
-
-        logger.log(Level.ALL, "New path formula is", pathFormula);
-                
-        merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
-            pathFormula, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
-            elem1.getAbstractionId(),
-            Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
-
-        // now mark elem1 so that coverage check can find out it was merged
-        elem1.setMergedInto(merged);
-        
-        long end = System.currentTimeMillis();
-        totalMergeTime = totalMergeTime + (end - start);
-      }
+      return element2;
     }
+    
+    NonabstractionElement elem1 = (NonabstractionElement)element1;
+    NonabstractionElement elem2 = (NonabstractionElement)element2;
 
+    if (!elem1.getAbstractionElement().equals(elem2.getAbstractionElement())) {
+      return element2;
+    }
+    
+    /*Map<NonabstractionElement, MergedElement> lLocalCache = mMergeCache.get(elem1);
+    
+    if (lLocalCache == null) {
+      lLocalCache = new HashMap<NonabstractionElement, MergedElement>();
+      mMergeCache.put(elem1, lLocalCache);
+    }*/
+    
+    // this will be the merged element
+    MergedElement merged;
+    //merged = lLocalCache.get(elem2);
+    
+    Pair<NonabstractionElement, NonabstractionElement> lKey = new Pair<NonabstractionElement, NonabstractionElement>(elem1, elem2);
+    merged = mMergeCache.get(lKey);
+    
+    if (merged == null) {
+      long start = System.currentTimeMillis();
+
+      logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
+
+      PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
+
+      logger.log(Level.ALL, "New path formula is", pathFormula);
+
+      merged = new MergedElement(elem1.getAbstractionElement(), pathFormula, Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()), elem1);
+      
+      long end = System.currentTimeMillis();
+      totalMergeTime = totalMergeTime + (end - start);
+      
+      //lLocalCache.put(elem1, merged);
+      mMergeCache.put(lKey, merged);
+    }
+    
     return merged;
   }
 
