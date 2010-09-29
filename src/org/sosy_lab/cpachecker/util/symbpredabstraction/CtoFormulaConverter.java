@@ -338,15 +338,16 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    if (edgeFormula.isTrue()) {
-      // formula is just "true",
+    SSAMap newSsa = ssa.build();
+    if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
+      // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
       return oldFormula;
     }
     
     SymbolicFormula newFormula = smgr.makeAnd(oldFormula.getSymbolicFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, ssa.build(), newLength, reachingPathsFormula, branchingCounter);
+    return new PathFormula(newFormula, newSsa, newLength, reachingPathsFormula, branchingCounter);
   }
 
   private SymbolicFormula makeDeclaration(DeclarationEdge declarationEdge,
