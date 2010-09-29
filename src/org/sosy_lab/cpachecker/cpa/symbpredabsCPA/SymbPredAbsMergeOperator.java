@@ -74,10 +74,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       
       } else {
         long start = System.currentTimeMillis();
-        // create a new element, note that their abstraction formulas, initAbstractionFormula,
-        // abstraction locations, artParents are same because they have the same
-        // abstraction path
-        assert (elem1.getAbstraction().equals(elem2.getAbstraction()));
+        // create a new element
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
