@@ -107,7 +107,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.config = config;
     this.logger = logger;
 
-    abstractFormulaManager = new BDDAbstractFormulaManager(config);
+    abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
 
     TheoremProver thmProver;

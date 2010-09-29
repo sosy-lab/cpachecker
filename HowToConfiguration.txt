@@ -229,7 +229,7 @@ cpas.symbpredabs.interpolatingProver = mathsat
 # get an initial set of predicates from a file in MSAT format
 cpas.symbpredabs.abstraction.initialPredicates =
 
-# cache queries to mathsat and BDD entailment checks
+# cache queries to mathsat
 cpas.symbpredabs.mathsat.useCache = true
 
 
