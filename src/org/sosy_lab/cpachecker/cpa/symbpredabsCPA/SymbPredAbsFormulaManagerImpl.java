@@ -68,7 +68,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Collections2;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -669,19 +671,24 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         } else {
           foundPredicates = true;
 
-          Collection<SymbolicFormula> atoms = smgr.extractAtoms(itp, splitItpAtoms, false);
-          assert !atoms.isEmpty();
-          Collection<Predicate> preds = buildPredicates(atoms);
+          Collection<Predicate> preds = getAtomsAsPredicates(itp);
+          assert !preds.isEmpty();
           info.addPredicatesForRefinement(e, preds);
 
           logger.log(Level.ALL, "For step", i, "got:",
               "interpolant", itp,
-              "atoms ", atoms,
               "predicates", preds);
 
           if (dumpInterpolationProblems) {
             String dumpFile = String.format(formulaDumpFilePattern,
                         "interpolation", stats.numCallsCexAnalysis, "atoms", i);
+            Collection<SymbolicFormula> atoms = Collections2.transform(preds,
+                new Function<Predicate, SymbolicFormula>(){
+                      @Override
+                      public SymbolicFormula apply(Predicate pArg0) {
+                        return pArg0.getSymbolicAtom();
+                      }
+                });
             printFormulasToFile(atoms, new File(dumpFile));
           }
         }
@@ -988,6 +995,18 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     return f;
   }
 
+  @Override
+  public List<Predicate> getAtomsAsPredicates(SymbolicFormula f) {
+    Collection<SymbolicFormula> atoms = smgr.extractAtoms(f, splitItpAtoms, false);
+    
+    List<Predicate> preds = new ArrayList<Predicate>(atoms.size());
+
+    for (SymbolicFormula atom : atoms) {
+      preds.add(makePredicate(smgr.createPredicateVariable(atom), atom));
+    }
+    return preds;    
+  }
+  
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
 
     private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;

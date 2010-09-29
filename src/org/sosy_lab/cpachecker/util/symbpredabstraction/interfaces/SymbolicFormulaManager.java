@@ -172,6 +172,13 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula parseInfix(String s) throws IllegalArgumentException;
 
     /**
+     * Parse a formula given as a String in a solver-specific file format.
+     * @return The same formula in the internal representation.
+     * @throws IllegalArgumentException If the string cannot be parsed.
+     */
+    public SymbolicFormula parse(String s) throws IllegalArgumentException;
+    
+    /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
      * 

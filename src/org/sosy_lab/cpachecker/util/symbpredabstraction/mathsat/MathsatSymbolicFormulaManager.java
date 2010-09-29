@@ -509,6 +509,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
+  public SymbolicFormula parse(String s) {
+    long f = msat_from_msat(msatEnv, s);
+    Preconditions.checkArgument(!MSAT_ERROR_TERM(f),
+        "Could not parse formula %s as Mathsat formula.", s);
+
+    return encapsulate(f);
+  }
+  
+  @Override
   public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();

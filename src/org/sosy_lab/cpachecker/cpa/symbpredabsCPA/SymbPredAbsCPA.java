@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -52,9 +51,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
@@ -140,13 +139,15 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
     
-    Set<Predicate> predicates = null;
+    Collection<Predicate> predicates = null;
     if (predicatesFile != null) {
       try {
         String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        
-        MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
-        predicates = p.parsePredicates(fileContent);
+        SymbolicFormula f = symbolicFormulaManager.parse(fileContent);
+        predicates = formulaManager.getAtomsAsPredicates(f);
+      } catch (IllegalArgumentException e) {
+        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
+            "(" + e.getMessage() + ")");
       } catch (IOException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");
