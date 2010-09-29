@@ -58,7 +58,8 @@ explicitCPA.cpas.explicit.threshold = 10
 A more complex example:
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
-composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA cpa.symbpredabs.SymbPredAbsCPA
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automatonanalysis.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.symbpredabs.SymbPredAbsCPA
+ErrorLocationAutomaton.automatonAnalysis.inputFile = test/config/automata/ErrorLocationAutomaton.txt
 
 
 Valid configuration options and default values
@@ -219,26 +220,13 @@ uninitVars.printWarnings = true
 # Options for Predicate Abstraction
 #------------------------------------------------------------------------------
 
-# collect and print detailed statistics (at the moment, only the
-# number of abstraction steps for each location)
-cpas.symbpredabs.explicit.extendedStats = false
-
 # which solver to use? (mathsat, yices)
 cpas.symbpredabs.explicit.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
 cpas.symbpredabs.interpolatingProver = mathsat
 
-# don't use abstraction refinement, but read predicates from the map specified
-# with fixedPredMap option
-cpas.symbpredabs.abstraction.norefinement = false
-
-# when not using refinement, where to get the list of predicates from
-# (in MSAT format, for PredicateAbstractionCPA)
-cpas.symbpredabs.abstraction.fixedPredMap =
-
-# when not using refinement, where to get the list of predicates from
-# (in MSAT format, for SymbPredAbsCPA)
+# get an initial set of predicates from a file in MSAT format
 cpas.symbpredabs.abstraction.initialPredicates =
 
 # cache queries to mathsat and BDD entailment checks
@@ -313,11 +301,6 @@ cpas.symbpredabs.abstraction.cartesian = false
 # split arithmetic equalities when extracting predicates from interpolants
 cpas.symbpredabs.refinement.splitItpAtoms = false
 
-# mimick the behaviour of Blast on refinement: collect all the predicates from
-# all the cuts of the abstract counterexample, and add all of them to all relevant
-# locations
-cpas.symbpredabs.refinement.useBlastWay = false
-
 # refinement will try to build "well-scoped" predicates, by cutting spurious
 # traces as explained in Section 5.2 of the paper "Abstractions From Proofs"
 # (this does not work with function inlining)
@@ -327,16 +310,11 @@ cpas.symbpredabs.refinement.addWellScopedPredicates = false
 # refinement will add all discovered predicates to all the locations in the abstract trace
 cpas.symbpredabs.refinement.addPredicatesGlobally = false
 
-cpas.symbpredabs.abstraction.explicit.nonAtomicPredicates = false
-
 
 # where to dump the counterexample formula in case the error location is reached
 cpas.symbpredabs.refinement.msatCexFile = counterexample.msat
 
-# where to dump the final predicate map in case the error location is not reached (for PredicateAbstractionCPA)
-cpas.symbpredabs.refinement.finalPredMapFile = predmap.txt
-
-# export final predicate map, if the error location is not reached (for SymbPredAbsCPA)
+# export final predicate map, if the error location is not reached
 cpas.symbpredabs.predmap.export = true
 cpas.symbpredabs.predmap.file = predmap.txt
 
