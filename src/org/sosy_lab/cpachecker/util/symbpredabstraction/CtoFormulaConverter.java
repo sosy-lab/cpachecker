@@ -43,6 +43,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
@@ -290,7 +291,7 @@ public class CtoFormulaConverter {
 
       if (statementEdge.isJumpEdge()) {
         if (statementEdge.getSuccessor().getFunctionName().equals("main")) {
-          logger.log(Level.ALL, "IGNORING return from main:", edge.getRawStatement());
+          log(Level.FINEST, "IGNORING return from main:", edge.getRawAST());
           edgeFormula = smgr.makeTrue();
         } else {
           edgeFormula = makeReturn(statementEdge, function, ssa);
@@ -353,7 +354,6 @@ public class CtoFormulaConverter {
   private SymbolicFormula makeDeclaration(DeclarationEdge declarationEdge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
 
-    IASTDeclarator[] decls = declarationEdge.getDeclarators();
     IASTDeclSpecifier spec = declarationEdge.getDeclSpecifier();
 
     boolean isGlobal = declarationEdge instanceof GlobalDeclarationEdge;
@@ -372,10 +372,7 @@ public class CtoFormulaConverter {
         assert(exp != null);
 
         int idx = 1;
-        ssa.setIndex(var, 1);
-
-        logger.log(Level.ALL, "DEBUG_3",
-            "Declared enum field: ", var, ", index: ", idx);
+        ssa.setIndex(var, idx);
 
         SymbolicFormula minit = buildTerm(exp, function, ssa);
         SymbolicFormula mvar = smgr.makeVariable(var, idx);
@@ -383,96 +380,92 @@ public class CtoFormulaConverter {
         result = smgr.makeAnd(result, t);
       }
       return result;
-    }
-
-
-    if (!(spec instanceof IASTSimpleDeclSpecifier ||
-        spec instanceof IASTElaboratedTypeSpecifier ||
-        spec instanceof IASTNamedTypeSpecifier)) {
-
-      if (spec instanceof IASTCompositeTypeSpecifier) {
-        // this is the declaration of a struct, just ignore it...
-        log(Level.ALL, "Ignoring declaration", spec);
-        return smgr.makeTrue();
-      } else {
-        throw new UnrecognizedCFAEdgeException(
-            "UNSUPPORTED SPECIFIER FOR DECLARATION: " +
-            declarationEdge.getRawStatement());
-      }
-    }
-
-    if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
-      log(Level.ALL, "Ignoring typedef", spec);
+    
+    } else if (spec instanceof IASTCompositeTypeSpecifier) {
+      // this is the declaration of a struct, just ignore it...
+      log(Level.ALL, "Ignoring declaration", spec);
       return smgr.makeTrue();
-    }
+    
+    } else if (spec instanceof IASTSimpleDeclSpecifier ||
+               spec instanceof IASTElaboratedTypeSpecifier ||
+               spec instanceof IASTNamedTypeSpecifier) {
 
-    SymbolicFormula result = smgr.makeTrue();
-    for (IASTDeclarator d : decls) {
-      String var = d.getName().getRawSignature();
-      if (isGlobal) {
-        globalVars.add(var);
+      if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+        log(Level.ALL, "Ignoring typedef", spec);
+        return smgr.makeTrue();
       }
-      var = scoped(var, function);
-      // assign new index to variable
-      // (a declaration contains an implicit assignment, even without initializer)
-      int idx = makeLvalIndex(var, ssa);
-
-      logger.log(Level.ALL, "DEBUG_3",
-          "Declared variable: ", var, ", index: ", idx);
-      // TODO get the type of the variable, and act accordingly
-
-      // if the var is unsigned, add the constraint that it should
-      // be > 0
-//    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
-//    long z = mathsat.api.msat_make_number(msatEnv, "0");
-//    long mvar = buildMsatVariable(var, idx);
-//    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
-//    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-//    m1 = new MathsatSymbolicFormula(t);
-//    }
-
-      // if there is an initializer associated to this variable,
-      // take it into account
-      if (d.getInitializer() != null) {
-        IASTInitializer init = d.getInitializer();
-        if (!(init instanceof IASTInitializerExpression)) {
-//        throw new UnrecognizedCFAEdgeException(
-//        "BAD INITIALIZER: " + edge.getRawStatement());
-          log(Level.ALL, "Ingoring unsupported initializer", init);
+  
+      SymbolicFormula result = smgr.makeTrue();
+      for (IASTDeclarator d : declarationEdge.getDeclarators()) {
+        if (d instanceof IASTFunctionDeclarator) {
+          // ignore function declarations here
           continue;
         }
-        if (isNondetVariable(var)) {
-          logger.log(Level.WARNING, "Assignment to special non-determinism variable",
-              var, "will be ignored.");
+        
+        String varNameWithoutFunction = d.getName().getRawSignature();
+        if (isGlobal) {
+          globalVars.add(varNameWithoutFunction);
         }
-        IASTExpression exp =
-          ((IASTInitializerExpression)init).getExpression();
-        SymbolicFormula minit = buildTerm(exp, function, ssa);
-        SymbolicFormula mvar = smgr.makeVariable(var, idx);
-        SymbolicFormula t = smgr.makeAssignment(mvar, minit);
-        result = smgr.makeAnd(result, t);
-      } else if (spec.getStorageClass() ==
-        IASTDeclSpecifier.sc_extern) {
-        log(Level.ALL, "Ignoring initializer of extern declaration", d);
-      } else if (isGlobal || initAllVars) {
-        // auto-initialize variables to zero, unless they match
-        // the noAutoInitPrefix pattern
-        if (noAutoInitPrefix.equals("") ||
-            !d.getName().getRawSignature().startsWith(noAutoInitPrefix)) {
-          SymbolicFormula mvar = smgr.makeVariable(var, idx);
-          SymbolicFormula z = smgr.makeNumber(0);
-          SymbolicFormula t = smgr.makeAssignment(mvar, z);
-          result = smgr.makeAnd(result, t);
-          logger.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
-              (isGlobal ? "GLOBAL" : ""), "VAR: ",
-              var, " (", d.getName().getRawSignature(), ")");
-        } else {
-          logger.log(Level.ALL, "DEBUG_3",
-              "NOT AUTO-INITIALIZING VAR:", var);
+        String var = scoped(varNameWithoutFunction, function);
+  
+        // assign new index to variable
+        // (a declaration contains an implicit assignment, even without initializer)
+        int idx = makeLvalIndex(var, ssa);
+  
+        logger.log(Level.ALL, "Declared variable:", var, "index:", idx);
+        // TODO get the type of the variable, and act accordingly
+  
+        // if the var is unsigned, add the constraint that it should
+        // be > 0
+  //    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
+  //    long z = mathsat.api.msat_make_number(msatEnv, "0");
+  //    long mvar = buildMsatVariable(var, idx);
+  //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
+  //    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+  //    m1 = new MathsatSymbolicFormula(t);
+  //    }
+  
+        // if there is an initializer associated to this variable,
+        // take it into account
+        IASTInitializer init = d.getInitializer();
+        if (init != null) {
+          // initializer value present
+          if (!(init instanceof IASTInitializerExpression)) {
+            log(Level.WARNING, "Ingoring unsupported initializer", init);
+          
+          } else if (isNondetVariable(varNameWithoutFunction)) {
+            log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", d);
+          
+          } else {
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+            SymbolicFormula minit = buildTerm(exp, function, ssa);
+            SymbolicFormula mvar = smgr.makeVariable(var, idx);
+            SymbolicFormula t = smgr.makeAssignment(mvar, minit);
+            result = smgr.makeAnd(result, t);
+          }
+  
+        } else if (spec.getStorageClass() == IASTDeclSpecifier.sc_extern) {
+          log(Level.WARNING, "Ignoring initializer of extern declaration", d);
+  
+        } else if (isGlobal || initAllVars) {
+          // auto-initialize variables to zero
+
+          if (isNondetVariable(varNameWithoutFunction)) {
+            logger.log(Level.ALL, "NOT AUTO-INITIALIZING VAR:", var);
+          } else {
+            SymbolicFormula mvar = smgr.makeVariable(var, idx);
+            SymbolicFormula z = smgr.makeNumber(0);
+            SymbolicFormula t = smgr.makeAssignment(mvar, z);
+            result = smgr.makeAnd(result, t);
+            logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
+          }
         }
       }
+      return result;
+
+    } else { 
+      throw new UnrecognizedCFAEdgeException(declarationEdge);
     }
-    return result;
   }
 
   private SymbolicFormula makeExitFunction(CallToReturnEdge ce, String function,
