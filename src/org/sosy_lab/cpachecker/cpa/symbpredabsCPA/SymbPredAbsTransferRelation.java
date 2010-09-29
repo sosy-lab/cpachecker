@@ -98,24 +98,19 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
-
-  // formula managers
   private final SymbPredAbsFormulaManager formulaManager;
 
-  // map from a node to path formula
-  // used to not compute the formula again
-  // the first integer in the key is parent element's node id
-  // the second integer is current element's node id
-  // the third is the sucessor element's node id
-  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaMapHash =
-    new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
+  // pathFormula computation cache
+  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache;
 
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getFormulaManager();
-}
+    
+    pathFormulaCache = useCache ? new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>() : null;
+  }
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
@@ -123,8 +118,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
-    SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
-  
+
+    // check what to do (abstraction, satCheck, nothing)
     int sizeSinceAbstraction = element.getPathFormula().getLength();
     boolean thresholdReached = (absBlockSize > 0) && (sizeSinceAbstraction >= absBlockSize-1);
     boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor(), thresholdReached);
@@ -133,7 +128,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        return handleAbstractionLocation(element, precision, edge);
+        return handleAbstractionLocation(element, (SymbPredAbsPrecision) pPrecision, edge);
       } else {
         return handleNonAbstractionLocation(element, edge, satCheck);
       }
@@ -146,7 +141,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         nonAbstractionTime += time;
       }
     }
-
   }
 
   /**
@@ -209,22 +203,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
 
-    // TODO handle returning from functions
-//  if (edge instanceof ReturnEdge){
-//    SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
-//    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
-//    AbstractFormula ctx = previousElem.getAbstraction();
-//    MathsatSymbolicFormula fctx = (MathsatSymbolicFormula)mmgr.instantiate(abstractFormulaManager.toConcrete(mmgr, ctx), null);
-//  }
-
-    long time1 = System.currentTimeMillis();
+    long start = System.currentTimeMillis();
 
     // compute new abstraction
     Abstraction newAbstraction = formulaManager.buildAbstraction(
         element.getAbstraction(), pathFormula, preds);
 
-    long time2 = System.currentTimeMillis();
-    computingAbstractionTime += time2 - time1;
+    long end = System.currentTimeMillis();
+    computingAbstractionTime += end - start;
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstraction.isFalse()) {
@@ -247,7 +233,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    *
    * @param pathFormula The previous pathFormula.
    * @param edge  The edge to analyze.
-   * @param abstractionNodeId The id of the last abstraction node (used for cache access).
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
@@ -255,22 +240,21 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     final long start = System.currentTimeMillis();
     PathFormula pf;
 
-    if (!useCache || !absOnFunction || !absOnLoop || absBlockSize > 0) {
+    if (!useCache) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
       pf = formulaManager.makeAnd(pathFormula, edge);
       pathFormulaComputationTime += System.currentTimeMillis() - startComp;
 
     } else {
-      final Pair<PathFormula, CFAEdge> formulaCacheKey =
-        new Pair<PathFormula, CFAEdge>(pathFormula, edge);
-      pf = pathFormulaMapHash.get(formulaCacheKey);
+      final Pair<PathFormula, CFAEdge> formulaCacheKey = new Pair<PathFormula, CFAEdge>(pathFormula, edge);
+      pf = pathFormulaCache.get(formulaCacheKey);
       if (pf == null) {
         long startComp = System.currentTimeMillis();
         // compute new pathFormula with the operation on the edge
         pf = formulaManager.makeAnd(pathFormula, edge);
         pathFormulaComputationTime += System.currentTimeMillis() - startComp;
-        pathFormulaMapHash.put(formulaCacheKey, pf);
+        pathFormulaCache.put(formulaCacheKey, pf);
       }
     }
     assert pf != null;
@@ -382,7 +366,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         return Collections.emptySet();
       } else {
         // although this is not an abstraction location, we fake an abstraction
-        // because refinement code expect it to be like this
+        // because refinement code expects it to be like this
         logger.log(Level.FINEST, "Last part of the path is not infeasible.");
         
         maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
