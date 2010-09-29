@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -49,6 +49,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
   private final LogManager logger;
   private final FormulaManager formulaManager;
+  
+  private ArrayList<Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>>> mMergeCache = new ArrayList<Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>>>(); 
 
   long totalMergeTime = 0;
 
@@ -56,9 +58,20 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     this.logger = pCpa.getLogger();
     formulaManager = pCpa.getFormulaManager();
   }
-
-  //Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>> mMergeCache = new HashMap<NonabstractionElement, Map<NonabstractionElement, MergedElement>>();
-  Map<Pair<NonabstractionElement, NonabstractionElement>, MergedElement> mMergeCache = new HashMap<Pair<NonabstractionElement, NonabstractionElement>, MergedElement>();
+  
+  private Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>> getMergeCache(AbstractionElement pAbstractionElement) {
+    if (mMergeCache.size() <= pAbstractionElement.ID) {
+      createMergeCache(pAbstractionElement);
+    }
+    
+    return mMergeCache.get(pAbstractionElement.ID);
+  }
+  
+  private void createMergeCache(AbstractionElement pAbstractionElement) {
+    for (int lIndex = mMergeCache.size(); lIndex <= pAbstractionElement.ID; lIndex++) {
+      mMergeCache.add(new HashMap<NonabstractionElement, Map<NonabstractionElement, MergedElement>>());
+    }
+  }
   
   @Override
   public AbstractElement merge(AbstractElement element1,
@@ -76,19 +89,19 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       return element2;
     }
     
-    /*Map<NonabstractionElement, MergedElement> lLocalCache = mMergeCache.get(elem1);
-    
-    if (lLocalCache == null) {
-      lLocalCache = new HashMap<NonabstractionElement, MergedElement>();
-      mMergeCache.put(elem1, lLocalCache);
-    }*/
-    
     // this will be the merged element
     MergedElement merged;
-    //merged = lLocalCache.get(elem2);
     
-    Pair<NonabstractionElement, NonabstractionElement> lKey = new Pair<NonabstractionElement, NonabstractionElement>(elem1, elem2);
-    merged = mMergeCache.get(lKey);
+    Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>> lCache = getMergeCache(elem1.getAbstractionElement());
+    
+    Map<NonabstractionElement, MergedElement> lSecondCache = lCache.get(elem1);
+    
+    if (lSecondCache == null) {
+      lSecondCache = new HashMap<NonabstractionElement, MergedElement>();
+      lCache.put(elem1, lSecondCache);
+    }
+    
+    merged = lSecondCache.get(elem2);
     
     if (merged == null) {
       long start = System.currentTimeMillis();
@@ -104,8 +117,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       long end = System.currentTimeMillis();
       totalMergeTime = totalMergeTime + (end - start);
       
-      //lLocalCache.put(elem1, merged);
-      mMergeCache.put(lKey, merged);
+      lSecondCache.put(elem2, merged);
     }
     
     return merged;
