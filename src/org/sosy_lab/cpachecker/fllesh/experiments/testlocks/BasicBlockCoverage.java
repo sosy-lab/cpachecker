@@ -124,7 +124,7 @@ public class BasicBlockCoverage extends ExperimentalSeries {
     Assert.assertEquals(57, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(46, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(11, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(7, lResult.getNumberOfTestCases()); // TODO was 10, 9
+    Assert.assertEquals(8, lResult.getNumberOfTestCases()); // TODO was 7, 10, 9
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
@@ -188,7 +188,7 @@ public class BasicBlockCoverage extends ExperimentalSeries {
     Assert.assertEquals(77, lResult.getTask().getNumberOfTestGoals());
     Assert.assertEquals(62, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(7, lResult.getNumberOfTestCases()); // TODO was 4, 16
+    Assert.assertEquals(8, lResult.getNumberOfTestCases()); // TODO was 7, 4, 16
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   
