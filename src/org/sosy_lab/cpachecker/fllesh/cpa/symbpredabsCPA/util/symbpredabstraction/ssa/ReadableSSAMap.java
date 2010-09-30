@@ -12,5 +12,6 @@ public interface ReadableSSAMap {
   public int getIndex(String pName, SymbolicFormulaList pArgs);
   public Iterable<String> allVariables();
   public Iterable<Pair<String, SymbolicFormulaList>> allFunctions();
+  public ImmutableSSAMap immutable();
   
 }

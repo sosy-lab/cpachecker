@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 
 /**
@@ -100,7 +101,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       toConcreteCache = null;
     }
     
-    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), UnmodifiableSSAMap.EMPTY_MAP);
     
     mZero = smgr.makeNumber(0);
   }
@@ -307,7 +308,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa));
+    return new PathFormula(newFormula, newSsa.immutable());
   }
 
   /**

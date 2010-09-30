@@ -341,7 +341,7 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa));
+    return new PathFormula(f, ssa.immutable());
   }
 
   private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,

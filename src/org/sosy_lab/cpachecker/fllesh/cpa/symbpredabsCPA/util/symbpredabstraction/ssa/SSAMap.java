@@ -44,103 +44,7 @@ import com.google.common.collect.Lists;
  * referring to that variable
  */
 public class SSAMap implements ReadableSSAMap {
-
-  private static class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
-    
-    private UnmodifiableSSAMap(SSAMap ssa) {
-      super(ssa.vars, ssa.funcs);
-    }
-    
-    @Override
-    public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
-      throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void setIndex(String pVariable, int pIdx) {
-      throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void update(SSAMap pOther) {
-      throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      if (getClass().equals(pOther.getClass())) {
-        UnmodifiableSSAMap lSSAMap = (UnmodifiableSSAMap)pOther;
-        
-        return vars.equals(lSSAMap.vars) && funcs.equals(lSSAMap.funcs);
-      }
-      
-      return false;
-    }
-    
-    @Override
-    public int hashCode() {
-      return 31 * vars.hashCode() + funcs.hashCode() + 243;
-    }
-    
-  }
   
-  public static ImmutableSSAMap unmodifiableSSAMap(SSAMap ssa) {
-    if (ssa instanceof ImmutableSSAMap) {
-      return (ImmutableSSAMap)ssa;
-    } else {
-      return new UnmodifiableSSAMap(ssa);
-    }
-  }
-  
-  private static final ImmutableSSAMap EMPTY_SSA_MAP = new UnmodifiableSSAMap(new SSAMap());
-  
-  public static ImmutableSSAMap emptySSAMap() {
-    return EMPTY_SSA_MAP;
-  }
-  
-  private static class FuncKey {
-    private final String name;
-    private final SymbolicFormulaList args;
-
-    public FuncKey(String n, SymbolicFormulaList a) {
-        name = n;
-        args = a;
-    }
-
-    public String getName() { return name; }
-    public SymbolicFormulaList getArgs() { return args; }
-
-    @Override
-    public int hashCode() {
-        return 31 * name.hashCode() + args.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      } else if (o instanceof FuncKey) {
-          FuncKey f = (FuncKey)o;
-          return name.equals(f.name) && args.equals(f.args);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return name + "(" + args + ")";
-    }
-  }
-
   protected final Map<String, Integer> vars;
   protected final Map<FuncKey, Integer> funcs;
 
@@ -170,7 +74,7 @@ public class SSAMap implements ReadableSSAMap {
     }
   }
   
-  private SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
+  protected SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
     this.vars = vars;
     this.funcs = funcs;
   }
@@ -243,4 +147,10 @@ public class SSAMap implements ReadableSSAMap {
       }
     }
   }
+  
+  @Override
+  public ImmutableSSAMap immutable() {
+    return new UnmodifiableSSAMap(this);
+  }
+  
 }
