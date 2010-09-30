@@ -41,10 +41,10 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1024, lResult.getTask().getNumberOfTestGoals());
-    Assert.assertEquals(601, lResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(423, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(32, lResult.getNumberOfTestCases());
+    Assert.assertEquals(32768, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(13824, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(18944, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(199, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
   

@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
@@ -96,6 +97,7 @@ public class FlleSh {
   private final GuardedEdgeLabel mAlphaLabel;
   private final GuardedEdgeLabel mOmegaLabel;
   private final GuardedEdgeLabel mInverseAlphaLabel;
+  private final Map<TestCase, CFAEdge[]> mGeneratedTestCases;
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
     mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
@@ -168,13 +170,178 @@ public class FlleSh {
     
     mTimeInReach = new TimeAccumulator();
     mTimesInReach = 0;
+    
+    // we can collect test cases accross several run invocations and use them for coverage analysis
+    // TODO output test cases from an earlier run
+    mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
   }
   
   public FlleShResult run(String pFQLSpecification) {
-    return run(pFQLSpecification, true, false);
+    return run(pFQLSpecification, true, false, false);
+  }
+  
+  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance) {
+    if (pGenerateTestGoalAutomataInAdvance) {
+      return run2(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
+    }
+    else {
+      return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
+    }
+  }
+  
+  public void throwAwayTestCases() {
+    mGeneratedTestCases.clear();
+  }
+  
+  public void loadTestCases(File pFile) {
+    // TODO load test cases from file
+    // TODO add loaded test cases into mGeneratedTestCases
+  }
+  
+  public void saveTestCases(File pFile) {
+    // TODO write test cases in mGeneratedTestCases into pFile
   }
   
   public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
+    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
+    
+    // Parse FQL Specification
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    
+    System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+    
+    Task lTask = Task.create(lFQLSpecification, mCoverageSpecificationTranslator);
+    
+    System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+    
+    System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
+    
+    FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
+    
+    GuardedEdgeAutomatonCPA lPassingCPA = null;
+    
+    if (lTask.hasPassingClause()) {
+      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    }
+    
+    // set up utility variables
+    int lIndex = 0;
+    
+    int lFeasibleTestGoalsTimeSlot = 0;
+    int lInfeasibleTestGoalsTimeSlot = 1;
+    
+    TimeAccumulator lTimeAccu = new TimeAccumulator(2);
+    
+    TimeAccumulator lTimeReach = new TimeAccumulator();
+    TimeAccumulator lTimeCover = new TimeAccumulator();
+    
+    for (ElementaryCoveragePattern lGoalPattern : lTask) {
+      lTimeAccu.proceed();
+      
+      Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      
+      int lCurrentGoalNumber = ++lIndex;
+      System.out.println("Processing goal #" + lCurrentGoalNumber);
+      
+      if (pApplySubsumptionCheck) {
+        boolean isCovered = false;
+        
+        for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
+          TestCase lTestCase = lGeneratedTestCase.getKey();
+          
+          if (!lTestCase.isPrecise()) {
+            throw new RuntimeException();
+          }
+          
+          if (accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()).equals(ThreeValuedAnswer.ACCEPT)) {
+            isCovered = true;
+            
+            lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+            
+            break;
+          }
+        }
+        
+        if (isCovered) {
+          System.out.println("Goal #" + lCurrentGoalNumber + " is covered by an existing test case!");
+          
+          lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+          
+          continue;
+        }
+      }
+      
+      // TODO remove
+      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
+      
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
+      
+      lTimeReach.proceed();
+      
+      CounterexampleTraceInfo lCounterexampleTraceInfo = reach(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      
+      lTimeReach.pause();
+      
+      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
+        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+        
+        lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
+        
+        lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
+      }
+      else {
+        lTimeCover.proceed();
+        
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
+        
+        if (lTestCase.isPrecise()) {
+          System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
+          
+          lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+          
+          CFAEdge[] lCFAPath;
+          
+          try {
+            lCFAPath = reconstructPath(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
+          } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+          } catch (CPAException e) {
+            throw new RuntimeException(e);
+          }
+          
+          // we only add precise test cases for coverage analysis
+          mGeneratedTestCases.put(lTestCase, lCFAPath);
+        }
+        else {
+          System.out.println("Goal #" + lCurrentGoalNumber + " is imprecise!");
+          
+          lResultFactory.addImpreciseTestCase(lTestCase);
+        }
+        
+        lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+        lTimeCover.pause();
+      }
+    }
+    
+    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
+    System.out.println("Time in reach: " + mTimeInReach.getSeconds());
+    System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
+    
+    System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
+    System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
+    
+    return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+  }
+  
+  public FlleShResult run2(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
     System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     
     // Parse FQL Specification
