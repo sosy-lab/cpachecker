@@ -56,6 +56,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     return sb.toString();
   }
 
+  @SuppressWarnings("unchecked")
   public JSONArray toJSON() {
     JSONArray path = new JSONArray();
     for (Pair<ARTElement, CFAEdge> pair : this) {
