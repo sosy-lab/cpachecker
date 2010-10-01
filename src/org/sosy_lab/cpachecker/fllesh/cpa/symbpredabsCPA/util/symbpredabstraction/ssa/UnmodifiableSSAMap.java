@@ -1,8 +1,10 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa;
 
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
-public class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
+public class UnmodifiableSSAMap extends SSAMap {
   
   public static final UnmodifiableSSAMap EMPTY_MAP = new UnmodifiableSSAMap();
   
@@ -12,6 +14,10 @@ public class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
   
   public UnmodifiableSSAMap(SSAMap ssa) {
     super(ssa);
+  }
+  
+  protected UnmodifiableSSAMap(Map<String, Integer> pVariables, Map<FuncKey, Integer> pFunctions) {
+    super(pVariables, pFunctions);
   }
   
   @Override
@@ -42,7 +48,7 @@ public class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
     if (getClass().equals(pOther.getClass())) {
       UnmodifiableSSAMap lSSAMap = (UnmodifiableSSAMap)pOther;
       
-      return vars.equals(lSSAMap.vars) && funcs.equals(lSSAMap.funcs);
+      return VARIABLES.equals(lSSAMap.VARIABLES) && FUNCTIONS.equals(lSSAMap.FUNCTIONS);
     }
     
     return false;
@@ -50,11 +56,11 @@ public class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
   
   @Override
   public int hashCode() {
-    return 31 * vars.hashCode() + funcs.hashCode() + 243;
+    return 31 * VARIABLES.hashCode() + FUNCTIONS.hashCode() + 243;
   }
   
   @Override
-  public ImmutableSSAMap immutable() {
+  public UnmodifiableSSAMap immutable() {
     return this;
   }
   

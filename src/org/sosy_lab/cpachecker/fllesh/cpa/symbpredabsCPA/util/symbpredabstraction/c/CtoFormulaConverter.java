@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.CopyOnWriteSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
 /**
@@ -281,7 +282,8 @@ public class CtoFormulaConverter {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
-    SSAMap ssa = new SSAMap(pCurrentPathFormula.getSSAMap());
+    //SSAMap ssa = new SSAMap(pCurrentPathFormula.getSSAMap());
+    SSAMap ssa = new CopyOnWriteSSAMap(pCurrentPathFormula.getSSAMap());
     
     if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
       // function start

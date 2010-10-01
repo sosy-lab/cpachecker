@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.CopyOnWriteSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
@@ -171,8 +171,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return The above formula.
    */
   protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
-                                                  ReadableSSAMap pSSAMap) {
-    SSAMap ssa = new SSAMap(pSSAMap); // clone ssa map because we need to change it
+                                                  UnmodifiableSSAMap pSSAMap) {
+    //SSAMap ssa = new SSAMap(pSSAMap); // clone ssa map because we need to change it
+    SSAMap ssa = new CopyOnWriteSSAMap(pSSAMap);
     
     Set<String> allvars = new HashSet<String>();
     Set<Pair<String, SymbolicFormulaList>> allfuncs = new HashSet<Pair<String, SymbolicFormulaList>>();
@@ -296,8 +297,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    ReadableSSAMap ssa1 = pF1.getSSAMap();
-    ReadableSSAMap ssa2 = pF2.getSSAMap();
+    UnmodifiableSSAMap ssa1 = pF1.getSSAMap();
+    UnmodifiableSSAMap ssa2 = pF2.getSSAMap();
 
     Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
@@ -324,9 +325,10 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return A pair (SymbolicFormula, SSAMap)
    */
   private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-      ReadableSSAMap ssa1, ReadableSSAMap ssa2) {
+      UnmodifiableSSAMap ssa1, UnmodifiableSSAMap ssa2) {
     
     SSAMap result = new SSAMap();
+    //SSAMap result = new CopyOnWriteSSAMap(ssa1);
     
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
