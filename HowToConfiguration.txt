@@ -147,9 +147,6 @@ cpa = cpa.composite.CompositeCPA
 # which strategy to adopt for visiting states? dfs, bfs, or topsort
 analysis.traversal = dfs
 
-# stop after the first error has been found
-analysis.stopAfterError = true
-
 # print reached set to text file
 reachedSet.export = true
 reachedSet.file = reached.txt
