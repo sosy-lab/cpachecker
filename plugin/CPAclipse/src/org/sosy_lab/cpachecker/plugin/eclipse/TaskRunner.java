@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.logging.StreamHandler;
@@ -208,10 +207,10 @@ public class TaskRunner {
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
 					if (CPAclipse.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
-						results.printStatistics(new PrintWriter(consoleStream, true));					
+						results.printStatistics(new PrintStream(consoleStream, true));					
 					} else {
 						// cannot avoid this, because i have to generate the (log)- files
-						results.printStatistics(new PrintWriter(consoleStream, true));
+						results.printStatistics(new PrintStream(consoleStream, true));
 						switch (results.getResult()) {
 						case SAFE:
 							//color: green, doesnt work, threading issues
@@ -236,7 +235,7 @@ public class TaskRunner {
 						IFile result = outDir.getFile("VerificationResult.txt");						
 						File f = new File(result.getLocation().toPortableString());
 						f.createNewFile();
-						results.printStatistics(new PrintWriter(f));
+						results.printStatistics(new PrintStream(f));
 						result.refreshLocal(IResource.DEPTH_ONE, null);
 						
 						IFile prevConfig = outDir.getFile("UsedConfiguration.properties");
