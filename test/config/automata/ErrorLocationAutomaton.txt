@@ -1,11 +1,6 @@
 OBSERVER AUTOMATON ErrorLocationAutomaton
-// This Automaton replaces the ErrorLocationCPA. 
-//   It detects error locations that can be specified by arbitrary labels 
-//   (or other pieces of matchable code) that occur in the source code.
-
-/* The ErrorLocationCPA had 3 triggers.
- * The Trigger "(CFAEdge.CFASuccessor instanceOf CFAErrorNode)" could not be implemented in this automaton.
- */
+// This automaton detects error locations that are specified either
+// by the label "ERROR" or by an assertion (function call to __assert_fail).
 
 INITIAL STATE Init;
 
@@ -17,7 +12,7 @@ STATE USEFIRST Init :
        // matches if assert_fail is called with at least one argument
   || MATCH {__assert_fail($?)}
 
-  -> PRINT "Program error location reachable in line $line: \"$rawstatement\"" ERROR;
+  -> ERROR;
 
 
 END AUTOMATON
