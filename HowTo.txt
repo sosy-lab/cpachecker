@@ -39,12 +39,10 @@ Building and running CPAchecker from within Eclipse:
 ----------------------------------------------------
 1. Install Eclipse 3.5 or 3.6 with JDT.
    http://www.eclipse.org/
-2. Install the C/C++ Development Kit version 6.0.
-   You need to install only the "Eclipse C/C++ Development Tools SDK" package
-   (e.g., from update site http://download.eclipse.org/releases/galileo/).
-3. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
+2. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
    Create new project from SVN repository
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
+3. Ignore warning "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'".
 4. Create a run configuration with main class "org.sosy_lab.cpachecker.cmdline.CPAMain",
    program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
    VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
@@ -93,3 +91,9 @@ pwendler 2009-08-25:
 1. Sun Java 1.6.0_14
 2. Eclipse 3.5.0 (Galileo)
 4. CDT 6.0.0
+
+pwendler 2010-10-01
+0. x64 Linux
+1. OpenJDK 1.6.0_18
+2. Eclipse 3.6.0 (Helios)
+4. no CDT
