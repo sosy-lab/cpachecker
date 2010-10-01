@@ -56,5 +56,7 @@ Bundle-ClassPath: bin/,
  lib/jgrapht-jdk1.6.jar,
  lib/mathsat.jar,
  lib/yicesapijava.jar,
- .
+ .,
+ lib/json_simple-1.1.jar,
+ lib/guava-r07.jar
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

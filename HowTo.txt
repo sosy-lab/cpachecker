@@ -60,6 +60,8 @@ Troubleshooting:
 
 
 Sources of binaries provided with the distribution/SVN:
+NOTE: If you add a library to CPAchecker, be sure to update MANIFEST.MF
+and build.properties with the Eclipse PDE wizard!
 - libJOct.so: Use steps similar to compileOctLib.sh after downloading and
   installing the octagon library (http://www.di.ens.fr/~mine/oct/ merged into
   APRON with different interfaces)
