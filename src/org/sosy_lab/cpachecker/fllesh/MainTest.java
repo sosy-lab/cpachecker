@@ -41,7 +41,7 @@ public class MainTest extends ExperimentalSeries {
 
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());   
@@ -59,7 +59,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -77,7 +77,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -95,7 +95,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -113,7 +113,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(20, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(20, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -137,7 +137,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(18, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -156,7 +156,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(18, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -175,7 +175,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(8, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(8, lResult.getNumberOfTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -194,7 +194,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(5, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfTestCases());
@@ -212,7 +212,7 @@ public class MainTest extends ExperimentalSeries {
         
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(3, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(3, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -232,7 +232,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(5, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -254,7 +254,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(9, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -276,7 +276,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(9, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -298,7 +298,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(18, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -321,7 +321,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(9, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -343,7 +343,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(26, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(26, lResult.getNumberOfTestGoals());
     Assert.assertEquals(23, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfTestCases());
@@ -367,7 +367,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(15, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(15, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -385,7 +385,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(17, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(17, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -408,7 +408,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(17, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(17, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -429,7 +429,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(43, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(43, lResult.getNumberOfTestGoals());
     Assert.assertEquals(40, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfTestCases());
@@ -447,7 +447,7 @@ public class MainTest extends ExperimentalSeries {
 
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(6, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(6, lResult.getNumberOfTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -465,7 +465,7 @@ public class MainTest extends ExperimentalSeries {
 
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(4, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -482,7 +482,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(4, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -504,7 +504,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(9, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
@@ -528,7 +528,7 @@ public class MainTest extends ExperimentalSeries {
 
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());   
@@ -544,7 +544,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfTestCases());
@@ -562,7 +562,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(-1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -583,7 +583,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(690, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -604,7 +604,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(690, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -627,7 +627,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(690, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -648,7 +648,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(690, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
@@ -666,7 +666,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfTestCases());
@@ -686,7 +686,7 @@ public class MainTest extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
-    Assert.assertEquals(-1, lResult.getTask().getNumberOfTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());

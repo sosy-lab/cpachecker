@@ -2,6 +2,9 @@ package org.sosy_lab.cpachecker.fllesh.ecp;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+
+import com.google.common.base.Preconditions;
 
 public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<ElementaryCoveragePattern> {
 
@@ -26,6 +29,23 @@ public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<Ele
     }
     else {
       mSubpatterns.add(pSecondSubpattern);
+    }
+  }
+  
+  public ECPConcatenation(List<ElementaryCoveragePattern> pSubpatterns) {
+    Preconditions.checkNotNull(pSubpatterns);
+    Preconditions.checkArgument(pSubpatterns.size() > 0);
+    
+    mSubpatterns = new LinkedList<ElementaryCoveragePattern>();
+    
+    for (ElementaryCoveragePattern lSubpattern : pSubpatterns) {
+      if (lSubpattern instanceof ECPConcatenation) {
+        ECPConcatenation lConcatenation = (ECPConcatenation)lSubpattern;
+        mSubpatterns.addAll(lConcatenation.mSubpatterns);
+      }
+      else {
+        mSubpatterns.add(lSubpattern);
+      }
     }
   }
   

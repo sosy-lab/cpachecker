@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
@@ -216,19 +218,21 @@ public class FlleSh {
     System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
     System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
     
-    Task lTask = Task.create(lFQLSpecification, mCoverageSpecificationTranslator);
+    ElementaryCoveragePattern lPassingClause = null;
+    
+    if (lFQLSpecification.hasPassingClause()) {
+      lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lFQLSpecification.getPathPattern());
+    }
     
     System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
     System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
     
-    System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
-    
-    FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
+    FlleShResult.Factory lResultFactory = FlleShResult.factory();
     
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
-    if (lTask.hasPassingClause()) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    if (lPassingClause != null) {
+      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -243,13 +247,18 @@ public class FlleSh {
     TimeAccumulator lTimeReach = new TimeAccumulator();
     TimeAccumulator lTimeCover = new TimeAccumulator();
     
-    for (ElementaryCoveragePattern lGoalPattern : lTask) {
+    IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+    
+    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
+    
+    while (lGoalIterator.hasNext()) {
       lTimeAccu.proceed();
+
+      lIndex++;
+      
+      ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      
-      int lCurrentGoalNumber = ++lIndex;
-      System.out.println("Processing goal #" + lCurrentGoalNumber);
       
       if (pApplySubsumptionCheck) {
         boolean isCovered = false;
@@ -271,7 +280,7 @@ public class FlleSh {
         }
         
         if (isCovered) {
-          System.out.println("Goal #" + lCurrentGoalNumber + " is covered by an existing test case!");
+          System.out.println("Goal #" + lIndex + " is covered by an existing test case!");
           
           lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
           
@@ -291,7 +300,7 @@ public class FlleSh {
       lTimeReach.pause();
       
       if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
-        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+        System.out.println("Goal #" + lIndex + " is infeasible!");
         
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         
@@ -303,7 +312,7 @@ public class FlleSh {
         TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
         
         if (lTestCase.isPrecise()) {
-          System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
+          System.out.println("Goal #" + lIndex + " is feasible!");
           
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
           
@@ -321,7 +330,7 @@ public class FlleSh {
           mGeneratedTestCases.put(lTestCase, lCFAPath);
         }
         else {
-          System.out.println("Goal #" + lCurrentGoalNumber + " is imprecise!");
+          System.out.println("Goal #" + lIndex + " is imprecise!");
           
           lResultFactory.addImpreciseTestCase(lTestCase);
         }
@@ -362,7 +371,7 @@ public class FlleSh {
     
     System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
     
-    FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
+    FlleShResult.Factory lResultFactory = FlleShResult.factory();
     
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     

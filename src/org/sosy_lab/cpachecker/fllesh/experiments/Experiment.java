@@ -39,7 +39,7 @@ public class Experiment {
   }
   
   public void addExperiment(String pFileName, String pFQLSpecification, String pProgramEntry, boolean pCILPreprocessing, FlleShResult pResult, double pTime) {
-    addExperiment(pFileName, pFQLSpecification, pProgramEntry, pCILPreprocessing, pResult.getTask().getNumberOfTestGoals(), pResult.getNumberOfFeasibleTestGoals(), pResult.getNumberOfInfeasibleTestGoals(), pResult.getNumberOfTestCases(), pResult.getNumberOfImpreciseTestCases(), pTime, pResult.getTimeInReach(), pResult.getTimeInCover(), pResult.getTimeForFeasibleTestGoals(), pResult.getTimeForInfeasibleTestGoals());
+    addExperiment(pFileName, pFQLSpecification, pProgramEntry, pCILPreprocessing, pResult.getNumberOfTestGoals(), pResult.getNumberOfFeasibleTestGoals(), pResult.getNumberOfInfeasibleTestGoals(), pResult.getNumberOfTestCases(), pResult.getNumberOfImpreciseTestCases(), pTime, pResult.getTimeInReach(), pResult.getTimeInCover(), pResult.getTimeForFeasibleTestGoals(), pResult.getTimeForInfeasibleTestGoals());
   }
   
   public void close() {
