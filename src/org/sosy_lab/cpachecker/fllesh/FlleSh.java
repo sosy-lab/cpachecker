@@ -249,6 +249,8 @@ public class FlleSh {
     
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
     
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
     
     while (lGoalIterator.hasNext()) {
@@ -256,7 +258,7 @@ public class FlleSh {
 
       lIndex++;
       
-      System.out.println("Processing test goal #" + lIndex);
+      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
       
@@ -349,7 +351,13 @@ public class FlleSh {
     System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
     System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
     
-    return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+    FlleShResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
+    
+    if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
+      throw new RuntimeException();
+    }
+    
+    return lResult;
   }
   
   public FlleShResult run2(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {

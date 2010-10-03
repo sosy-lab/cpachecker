@@ -20,6 +20,24 @@ public class IncrementalCoverageSpecificationTranslator {
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(mPathPatternTranslator);
   }
   
+  public int getNumberOfTestGoals(CoverageSpecification pSpecification) {
+    if (pSpecification instanceof Atom || pSpecification instanceof Quotation) {
+      return mCoverageSpecificationTranslator.translate(pSpecification).size();
+    }
+    else if (pSpecification instanceof Union) {
+      Union lUnion = (Union)pSpecification;
+      
+      return getNumberOfTestGoals(lUnion.getFirstSubspecification()) + getNumberOfTestGoals(lUnion.getSecondSubspecification());
+    }
+    else if (pSpecification instanceof Concatenation) {
+      Concatenation lConcatenation = (Concatenation)pSpecification;
+      
+      return getNumberOfTestGoals(lConcatenation.getFirstSubspecification()) * getNumberOfTestGoals(lConcatenation.getSecondSubspecification());
+    }
+    
+    throw new RuntimeException();
+  }
+  
   public Iterator<ElementaryCoveragePattern> translate(CoverageSpecification pSpecification) {
     if (pSpecification instanceof Atom || pSpecification instanceof Quotation) {
       return mCoverageSpecificationTranslator.translate(pSpecification).iterator();
@@ -34,9 +52,8 @@ public class IncrementalCoverageSpecificationTranslator {
       
       return new ConcatenationIterator(lConcatenation.getFirstSubspecification(), lConcatenation.getSecondSubspecification());
     }
-    else {
-      throw new RuntimeException();
-    }
+    
+    throw new RuntimeException();
   }
   
   private class UnionIterator implements Iterator<ElementaryCoveragePattern> {
