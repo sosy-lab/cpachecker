@@ -256,6 +256,8 @@ public class FlleSh {
 
       lIndex++;
       
+      System.out.println("Processing test goal #" + lIndex);
+      
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
