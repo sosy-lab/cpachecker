@@ -491,7 +491,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     Pair<SymbolicFormula, List<SymbolicFormula>> absKey =
       new Pair<SymbolicFormula, List<SymbolicFormula>>(fm, predVars);
     AbstractFormula result;
-    if (useCache && abstractionCache.containsKey(absKey)) {
+    
+    //if (useCache && abstractionCache.containsKey(absKey)) {
+    if (abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
 
@@ -504,9 +506,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       result = allSatResult.getResult();
 
-      if (useCache) {
+      //if (useCache) {
         abstractionCache.put(absKey, result);
-      }
+      //}
 
       // update statistics
       int numModels = allSatResult.getCount();
