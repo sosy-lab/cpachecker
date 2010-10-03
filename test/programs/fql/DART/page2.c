@@ -1,10 +1,30 @@
 
-int f(int x) { return 2 * x; }
+void abort();
 
-int h(int x, int y) {
+int f(int x) 
+{ 
+  int result;
+
+  result = 2 * x;
+
+  return (result); 
+}
+
+int h(int x, int y) 
+{
+  int tmp;
+
   if (x != y)
-    if (f(x) == x + 10)
+  {
+    tmp = f(x);
+
+    if (tmp == x + 10)
+    {
+ERROR: ;
       abort();  /* error */
-  return 0;
+    }
+  }
+
+  return (0);
 }
 

@@ -1,11 +1,22 @@
 
-struct foo { int i; char c; }
+void abort();
 
-bar (struct foo *a) {
-  if (a->c == 0) {
+struct foo 
+{ 
+  int i; 
+  char c; 
+};
+
+void bar (struct foo *a) 
+{
+  if (a->c == 0) 
+  {
     *((char *)a + sizeof(int)) = 1;
+
     if (a->c != 0)
+    {
       abort();
+    }
   }
 }
 
