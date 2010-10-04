@@ -74,28 +74,6 @@ Troubleshooting:
   Solution: Install the missing library ('libgmpxx4ldbl' in this case on debian/ubuntu systems)
 
 
-Sources of binaries provided with the distribution/SVN:
-NOTE: If you add a library to CPAchecker, be sure to update MANIFEST.MF
-and build.properties with the Eclipse PDE wizard!
-- libJOct.so: Use steps similar to compileOctLib.sh after downloading and
-  installing the octagon library (http://www.di.ens.fr/~mine/oct/ merged into
-  APRON with different interfaces)
-- javabdd-1.0b2.jar, libcudd.so: See
-  http://javabdd.sourceforge.net/compiling.html
-- mathsat.jar: Source code provided with the archive
-- CSIsat: http://www.sosy-lab.org/~dbeyer/CSIsat/
-- Yices Java Lite API:
-  http://atlantis.seidenberg.pace.edu/wiki/lep/Yices%20Java%20API%20Lite
-- java-cup-11a.jar: http://www2.cs.tum.edu/projects/cup/
-- icu4j-4_2_1.jar: http://site.icu-project.org/
-- JFlex.jar: http://jflex.de/
-- Guava (Google Core Libraries for Java):
-  http://guava-libraries.googlecode.com
-  Apache License 2.0
-- JGraphT: http://www.jgrapht.org/
-- Eclipse and Eclipse CDT: http://www.eclipse.org/ and http://www.eclipse.org/cdt/
-- JUnit: http://junit.sourceforge.net/
-
 Examples of working installation:
 db 2008-11-28:
 0. x86 32bit
