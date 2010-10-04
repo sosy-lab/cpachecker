@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslat
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fllesh.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
@@ -317,11 +318,9 @@ public class FlleSh {
         TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
         
         if (lTestCase.isPrecise()) {
-          System.out.println("Goal #" + lIndex + " is feasible!");
+          CFAEdge[] lCFAPath = null;
           
-          lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
-          
-          CFAEdge[] lCFAPath;
+          boolean lIsPrecise = true;
           
           try {
             lCFAPath = reconstructPath(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
@@ -329,10 +328,24 @@ public class FlleSh {
             throw new RuntimeException(e);
           } catch (CPAException e) {
             throw new RuntimeException(e);
+          } catch (ImpreciseExecutionException e) {
+            lIsPrecise = false;
+            lTestCase = e.getTestCase();
           }
           
-          // we only add precise test cases for coverage analysis
-          mGeneratedTestCases.put(lTestCase, lCFAPath);
+          if (lIsPrecise) {
+            System.out.println("Goal #" + lIndex + " is feasible!");
+            
+            lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+            
+            // we only add precise test cases for coverage analysis
+            mGeneratedTestCases.put(lTestCase, lCFAPath);
+          }
+          else {
+            System.err.println("Goal #" + lIndex + " lead to an imprecise execution!");
+            
+            lResultFactory.addImpreciseTestCase(lTestCase);
+          }
         }
         else {
           System.out.println("Goal #" + lIndex + " is imprecise!");
@@ -466,7 +479,12 @@ public class FlleSh {
           System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
           
           if (pApplySubsumptionCheck) {
-            removeCoveredGoals(lGoals, lResultFactory, lTestCase, mWrapper, lAutomatonCPA, lPassingCPA);
+            try {
+              removeCoveredGoals(lGoals, lResultFactory, lTestCase, mWrapper, lAutomatonCPA, lPassingCPA);
+            } catch (ImpreciseExecutionException e) {
+              // TODO implement proper handling 
+              throw new RuntimeException(e);
+            }
           }
         }
         else {
@@ -651,7 +669,7 @@ public class FlleSh {
     }
   }
   
-  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
     // a) determine cfa path
     CFAEdge[] lCFAPath;
     try {
@@ -693,7 +711,7 @@ public class FlleSh {
     pGoals.removeAll(lSubsumedGoals);
   }
   
-  private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException {
+  private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
     
     // test goal automata CPAs
@@ -749,7 +767,7 @@ public class FlleSh {
       System.out.println(pCoverAutomatonCPA);
       System.out.println(pTestCase);
       System.out.println(lEndNodes);
-      throw new RuntimeException();
+      throw new ImpreciseExecutionException(pTestCase);
     }
     
     CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();

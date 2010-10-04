@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.testcases;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -13,12 +14,12 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
-public class TestCase {
+public abstract class TestCase {
 
   private int[] mInputs;
   private boolean mIsPrecise;
   
-  private TestCase(LinkedList<Integer> pInputs, boolean pIsPrecise) {
+  protected TestCase(List<Integer> pInputs, boolean pIsPrecise) {
     mInputs = new int[pInputs.size()];
     
     int lIndex = 0;
@@ -30,7 +31,7 @@ public class TestCase {
     mIsPrecise = pIsPrecise;
   }
   
-  private TestCase(int[] pInputs, boolean pIsPrecise) {
+  protected TestCase(int[] pInputs, boolean pIsPrecise) {
     mInputs = new int[pInputs.length];
     
     for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
@@ -38,6 +39,24 @@ public class TestCase {
     }
     
     mIsPrecise = pIsPrecise;
+  }
+  
+  protected static boolean equal(int[] lInputs1, int[] lInputs2) {
+    if (lInputs1.length == lInputs2.length) {
+      for (int lIndex = 0; lIndex < lInputs1.length; lIndex++) {
+        if (lInputs1[lIndex] != lInputs2[lIndex]) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+    
+    return false;
+  }
+  
+  protected boolean equalInputs(int[] lOtherInputs) {
+    return equal(mInputs, lOtherInputs);
   }
 
   public boolean isPrecise() {
@@ -61,16 +80,8 @@ public class TestCase {
     if (getClass().equals(pOther.getClass())) {
       TestCase lTestCase = (TestCase)pOther;
       
-      if (mInputs.length == lTestCase.mInputs.length) {
-        if (mIsPrecise == lTestCase.mIsPrecise) {
-          for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
-            if (mInputs[lIndex] != lTestCase.mInputs[lIndex]) {
-              return false;
-            }
-          }
-          
-          return true;
-        }
+      if (mIsPrecise == lTestCase.mIsPrecise) {
+        return equalInputs(lTestCase.mInputs);
       }
     }
     
@@ -115,7 +126,13 @@ public class TestCase {
       lValues[lIndex] = Integer.parseInt(lParts[lIndex + 1]);
     }
     
-    return new TestCase(lValues, lIsPrecise);
+    if (lIsPrecise) {
+      return new PreciseInputsTestCase(lValues);
+    }
+    else {
+      // TODO what about imprecise exeution test cases ?
+      return new ImpreciseInputsTestCase(lValues);
+    }
   }
   
   public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
@@ -183,7 +200,12 @@ public class TestCase {
       }
     }
     
-    return new TestCase(lInput, lIsPrecise);
+    if (lIsPrecise) {
+      return new PreciseInputsTestCase(lInput);
+    }
+    else {
+      return new ImpreciseInputsTestCase(lInput);
+    }
   }
 
 }
