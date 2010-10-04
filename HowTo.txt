@@ -42,13 +42,30 @@ Building and running CPAchecker from within Eclipse:
 2. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
    Create new project from SVN repository
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
-3. Ignore warning "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'".
+3. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
+   and "Bundle 'org.eclipse.cdt.core' cannot be resolved'".
 4. Create a run configuration with main class "org.sosy_lab.cpachecker.cmdline.CPAMain",
    program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
    VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
    specifying your environment for the library path.
    Settings for <ENVIRONMENT>:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
+
+Using CPAchecker as an Eclipse plugin for your C projects
+---------------------------------------------------------
+1. Add the URL http://www.sosy-lab.org/~dbeyer/eclipse-download/ as an update site to Eclipse.
+2. Install CPAclipse plugin.
+
+Using CPAchecker as an Eclipse plugin for your C projects (for CPAchecker developers)
+-------------------------------------------------------------------------------------
+1. You need Eclipse 3.5 with CDT 6 and the Eclipse Plugin Development Environment.
+   (Eclipse 3.6 is currently not supported). Also install an SVN plugin.
+2. Create an Eclipse project for CPAchecker as described above.
+3. Create an Eclipse project for CPAclipse from the SVN repository
+   URL: http://svn.sosy-lab.org/software/cpachecker/trunk/plugin/CPAclipse
+4. If there are warnings about missing bundles, you don't have CDT in the correct version.
+5. Run the CPAclipse project as an "Eclipse Application".
+
 
 Troubleshooting:
 ----------------
