@@ -153,6 +153,14 @@ public class InterpreterTransferRelation implements TransferRelation {
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
     
+    // TODO implement a debugger like interpreter
+    /*try {
+      System.out.println(cfaEdge);
+      System.in.read();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }*/
+    
     if (successor == null) {
       return Collections.emptySet();
     } else {
