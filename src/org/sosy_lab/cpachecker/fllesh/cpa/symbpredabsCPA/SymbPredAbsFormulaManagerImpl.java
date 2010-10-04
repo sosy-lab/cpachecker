@@ -153,6 +153,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option
   private boolean useBitwiseAxioms = false;
   
+  // controls whether counterexamples should be dumped to a file
+  // for testing it is disabled
+  private static final boolean dumpCEXToFile = false;
+  
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -767,7 +771,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      dumpFormulasToFile(f, msatCexFile);
+      if (dumpCEXToFile) {
+        dumpFormulasToFile(f, msatCexFile);
+      }
     }
 
     pItpProver.reset();

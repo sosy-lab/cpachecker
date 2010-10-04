@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh;
+package org.sosy_lab.cpachecker.fllesh.testcases;
 
 import java.util.LinkedList;
 import java.util.Map;

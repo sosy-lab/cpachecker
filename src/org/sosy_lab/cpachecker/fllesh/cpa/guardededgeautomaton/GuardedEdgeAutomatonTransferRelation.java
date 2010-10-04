@@ -54,6 +54,10 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     mReachedAutomatonStates = pReachedAutomatonStates;
   }
   
+  protected Automaton<GuardedEdgeLabel> getAutomaton() {
+    return mAutomaton;
+  }
+  
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
@@ -85,6 +89,10 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
         mSuccessors.add(mCache.get(lOutgoingEdge));
       }
     }
+    
+    /*if (mSuccessors.size() == 0) {
+      System.out.println(pCfaEdge);
+    }*/
     
     return mSuccessors;
   }

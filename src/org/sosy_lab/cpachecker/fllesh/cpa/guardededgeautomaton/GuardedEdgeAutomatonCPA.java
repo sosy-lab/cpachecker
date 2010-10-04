@@ -68,5 +68,10 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   public TransferRelation getTransferRelation() {
     return mTransferRelation;
   }
+  
+  @Override
+  public String toString() {
+    return mTransferRelation.getAutomaton().toString();
+  }
 
 }

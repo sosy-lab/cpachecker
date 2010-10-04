@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslat
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
@@ -745,6 +746,7 @@ public class FlleSh {
     Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
     
     if (lEndNodes.size() != 1) {
+      System.out.println(pCoverAutomatonCPA);
       System.out.println(pTestCase);
       System.out.println(lEndNodes);
       throw new RuntimeException();
