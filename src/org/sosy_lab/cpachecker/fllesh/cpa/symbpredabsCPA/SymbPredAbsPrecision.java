@@ -42,7 +42,7 @@ public class SymbPredAbsPrecision implements Precision {
   private static final boolean absOnLoop = true;
   private static final boolean absOnlyIfBoth = false;
   
-  private final SetMultimap<CFANode, Predicate> predicateMap;
+  private final ImmutableSetMultimap<CFANode, Predicate> predicateMap;
   private final Set<Predicate> globalPredicates;
 
   public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap, Collection<Predicate> globalPredicates) {
@@ -55,7 +55,25 @@ public class SymbPredAbsPrecision implements Precision {
     predicateMap = ImmutableSetMultimap.of();
     this.globalPredicates = (globalPredicates == null ? ImmutableSet.<Predicate>of() : ImmutableSet.copyOf(globalPredicates));
   }
-
+  
+  public SymbPredAbsPrecision() {
+    predicateMap = ImmutableSetMultimap.of();
+    globalPredicates = ImmutableSet.<Predicate>of();
+  }
+  
+  public SymbPredAbsPrecision(SymbPredAbsPrecision pPrecision) {
+    this(pPrecision.predicateMap, pPrecision.globalPredicates);
+  }
+  
+  public SymbPredAbsPrecision update(SymbPredAbsPrecision pPrecision) {
+    ImmutableSetMultimap<CFANode, Predicate> lPredicateMap = new ImmutableSetMultimap.Builder<CFANode, Predicate>()
+    .putAll(predicateMap).putAll(pPrecision.predicateMap).build();
+    
+    ImmutableSet<Predicate> lGlobalPredicates = new ImmutableSet.Builder<Predicate>().addAll(globalPredicates).addAll(pPrecision.globalPredicates).build();
+    
+    return new SymbPredAbsPrecision(lPredicateMap, lGlobalPredicates);
+  }
+  
   public SetMultimap<CFANode, Predicate> getPredicateMap() {
     return predicateMap;
   }

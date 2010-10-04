@@ -70,11 +70,13 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
+  
+  private SymbPredAbsCPA symbPredAbsCpa;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    SymbPredAbsCPA symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
+    symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
     if (symbPredAbsCpa == null) {
       throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
     }
@@ -129,6 +131,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
               performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
 
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      
+      System.out.println("New precision: " + refinementResult.getSecond());
+      
+      symbPredAbsCpa.updateInitialPrecision(refinementResult.getSecond());
+      
       return true;
     } else {
       // we have a real error

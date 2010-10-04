@@ -106,7 +106,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
   private final StopOperator stop;
-  private final SymbPredAbsPrecision initialPrecision;
+  private SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
@@ -231,6 +231,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return lInitialElement;
   }
 
+  public void updateInitialPrecision(SymbPredAbsPrecision pPrecision) {
+    initialPrecision = initialPrecision.update(pPrecision);
+  }
+  
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return initialPrecision;

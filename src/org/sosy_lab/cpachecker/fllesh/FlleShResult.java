@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -63,6 +64,15 @@ public class FlleShResult {
         
         return lTestSuite;
       }
+    }
+    
+    public Collection<TestCase> getTestCases() {
+      Set<TestCase> lTestCases = new HashSet<TestCase>();
+      
+      lTestCases.addAll(mTestSuite.keySet());
+      lTestCases.addAll(mImpreciseTestCases);
+      
+      return lTestCases;
     }
     
     public FlleShResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
