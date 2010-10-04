@@ -217,7 +217,13 @@ void ctrl_set_vals()
 }
 
 void ctrl_get_vals()
-{ int i=0,in0 = simio_in,in1 = ctrl_dly1, in2 = ctrl_dly2;
+{ 
+  int __BLAST_NONDET;
+
+  // simio_in is volatile
+  simio_in = __BLAST_NONDET;
+
+	int i=0,in0 = simio_in,in1 = ctrl_dly1, in2 = ctrl_dly2;
   int in0_bit0__0, in1_bit0__0, in2_bit0__0;
   int in0_bit0__1, in1_bit0__1, in2_bit0__1;
   int in0_bit0__2, in1_bit0__2, in2_bit0__2;
@@ -228,8 +234,6 @@ void ctrl_get_vals()
   int in0_bit0__7, in1_bit0__7, in2_bit0__7;
   int in0_bit0__8, in1_bit0__8, in2_bit0__8;
   int in0_bit0__9, in1_bit0__9, in2_bit0__9;
-
-  int __BLAST_NONDET;
 
   int tmp;
   tmp = __BLAST_NONDET;
@@ -253,6 +257,8 @@ void ctrl_get_vals()
 	tmp = __BLAST_NONDET;
   in0_bit0__9 = (tmp == 0);
 
+  // lets assume in0 is a 10-bit word
+	__CPROVER_assume(in0 == (in0_bit0__0 + 2 * in0_bit0__1 + 4 * in0_bit0__2 + 8 * in0_bit0__3 + 16 * in0_bit0__4 + 32 * in0_bit0__5 + 64 * in0_bit0__6 + 128 * in0_bit0__7 + 256 * in0_bit0__8 + 512 * in0_bit0__9));
 
 	tmp = __BLAST_NONDET;
   in1_bit0__0 = (tmp == 0);
@@ -275,6 +281,8 @@ void ctrl_get_vals()
 	tmp = __BLAST_NONDET;
   in1_bit0__9 = (tmp == 0);
 
+  // lets assume in1 is a 10-bit word
+	__CPROVER_assume(in1 == (in1_bit0__0 + 2 * in1_bit0__1 + 4 * in1_bit0__2 + 8 * in1_bit0__3 + 16 * in1_bit0__4 + 32 * in1_bit0__5 + 64 * in1_bit0__6 + 128 * in1_bit0__7 + 256 * in1_bit0__8 + 512 * in1_bit0__9));
 
 	tmp = __BLAST_NONDET;
   in2_bit0__0 = (tmp == 0);
@@ -296,6 +304,9 @@ void ctrl_get_vals()
   in2_bit0__8 = (tmp == 0);
 	tmp = __BLAST_NONDET;
   in2_bit0__9 = (tmp == 0);
+
+  // lets assume in2 is a 10-bit word
+	__CPROVER_assume(in2 == (in2_bit0__0 + 2 * in2_bit0__1 + 4 * in2_bit0__2 + 8 * in2_bit0__3 + 16 * in2_bit0__4 + 32 * in2_bit0__5 + 64 * in2_bit0__6 + 128 * in2_bit0__7 + 256 * in2_bit0__8 + 512 * in2_bit0__9));
 
 
   ctrl_dly2 = ctrl_dly1;

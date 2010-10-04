@@ -43,9 +43,9 @@ public class LiftControl extends ExperimentalSeries {
     
     Assert.assertEquals(245, lResult.getNumberOfTestGoals());
     Assert.assertEquals(57, lResult.getNumberOfFeasibleTestGoals());
-    Assert.assertEquals(170, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(187, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
-    Assert.assertEquals(18, lResult.getNumberOfImpreciseTestCases());
+    Assert.assertEquals(1, lResult.getNumberOfImpreciseTestCases());
   }
   
 }
