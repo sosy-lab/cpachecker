@@ -106,8 +106,6 @@ public class CFABuilder extends ASTVisitor
 	// Data structure for storing global declarations
 	private List<IASTDeclaration> globalDeclarations;
 
-	private int nextAssumeEdgeId = 0;
-	
 	private final LogManager logger;
 
 	public CFABuilder (LogManager logger) {
@@ -420,12 +418,11 @@ public class CFABuilder extends ASTVisitor
 		}
 		    break;
 		case NORMAL: {
-		    int currentAssumeEdgeId = nextAssumeEdgeId++;
 		    CFANode ifStartTrue = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
 		            fileloc.getStartingLineNumber(), prevNode, ifStartTrue,
 		            ifStatement.getConditionExpression (),
-		            true, currentAssumeEdgeId);
+		            true);
 
 		    assumeEdgeTrue.addToCFA(logger);
 		    locStack.push (ifStartTrue);
@@ -435,7 +432,7 @@ public class CFABuilder extends ASTVisitor
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, ifStartFalse,
 		                ifStatement.getConditionExpression (),
-		                false, currentAssumeEdgeId);
+		                false);
 
 		        assumeEdgeFalse.addToCFA(logger);
 		        elseStack.push (ifStartFalse);
@@ -443,7 +440,7 @@ public class CFABuilder extends ASTVisitor
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, postIfNode,
 		                ifStatement.getConditionExpression (),
-		                false, currentAssumeEdgeId);
+		                false);
 
 		        assumeEdgeFalse.addToCFA(logger);
 		    }

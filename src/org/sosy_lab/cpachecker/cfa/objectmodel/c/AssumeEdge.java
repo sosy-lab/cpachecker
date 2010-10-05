@@ -35,16 +35,15 @@ public class AssumeEdge extends AbstractCFAEdge
 {
     private final boolean truthAssumption;
     private final IASTExpression expression;
-    private final int assumeEdgeId;
 
     public AssumeEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
-                           IASTExpression expression, boolean truthAssumption,
-                           int assumeEdgeId) {
+                           IASTExpression expression,
+                           boolean truthAssumption)
+    {
         super (rawStatement, lineNumber, predecessor, successor);
 
         this.truthAssumption = truthAssumption;
         this.expression = expression;
-        this.assumeEdgeId = assumeEdgeId;
     }
 
     @Override
@@ -67,10 +66,6 @@ public class AssumeEdge extends AbstractCFAEdge
     public String getRawStatement ()
     {
         return "[" + super.getRawStatement () + "]";
-    }
-    
-    public int getAssumeEdgeId() {
-      return assumeEdgeId;
     }
 
     /**
