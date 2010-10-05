@@ -3,6 +3,7 @@ CPAchecker configuration
 
 Configuration of CPAchecker is done via command-line arguments and
 configuration files in the syntax of Java properties files.
+Standard configuration files with explanations can be found in test/config/.
 
 
 Command-line options
@@ -30,8 +31,8 @@ If an option appears on the command line as well as in the configuration file,
 the value from the command line overrides the one from the file.
 
 All other arguments to CPAchecker are interpreted as code files that should be
-analyzed (option analysis.programs). However, currently only one such file has
-to be specified.
+analyzed (option analysis.programs). However, currently only one such file may
+be specified.
 
 
 Specifying the CPA(s)
@@ -79,7 +80,7 @@ output.path = test/output/
 
 # file with a specification that should be checked
 # (see test/config/automata/ for examples)
-specification = 
+specification =
 
 # name of the log file
 log.file = CPALog.txt
