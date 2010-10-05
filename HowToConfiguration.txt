@@ -13,6 +13,7 @@ following arguments (see below to learn what the options mean):
 -help			print list of command-line argumments and exit
 -config <FILE>		sets configuration file name
 -cpas <CPAS>		sets "cpa = cpa.composite.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
+-spec <FILE>		sets "specification = <FILE>"
 -outputpath <DIR>	sets "output.path = <DIR>"
 -logfile <FILE>		sets "log.file = <FILE>"
 -nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
@@ -61,12 +62,24 @@ art.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automatonanalysis.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.symbpredabs.SymbPredAbsCPA
 ErrorLocationAutomaton.automatonAnalysis.inputFile = test/config/automata/ErrorLocationAutomaton.txt
 
+Note that instead of manually specifying an ObserverAutomatonCPA, you can
+use the option "specification". The following example is identical to the last one:
+
+cpa = cpa.art.ARTCPA art
+art.cpa = cpa.composite.CompositeCPA composite
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.symbpredabs.SymbPredAbsCPA
+specification = test/config/automata/ErrorLocationAutomaton.txt
+
 
 Valid configuration options and default values
 ----------------------------------------------
 
 # directory to put all output files in
 output.path = test/output/
+
+# file with a specification that should be checked
+# (see test/config/automata/ for examples)
+specification = 
 
 # name of the log file
 log.file = CPALog.txt

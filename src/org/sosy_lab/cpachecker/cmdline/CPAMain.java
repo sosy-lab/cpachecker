@@ -47,6 +47,7 @@ import com.google.common.base.Joiner;
 public class CPAMain {
 
   private static final String CONFIGURATION_FILE_OPTION = "configuration.file";
+  private static final String SPECIFICATION_FILE_OPTION = "specification";
 
   static class InvalidCmdlineArgumentException extends Exception {
 
@@ -198,6 +199,7 @@ public class CPAMain {
           || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
           || handleArgument1("-config", CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
+          || handleArgument1("-spec", SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
       ) {
         // nothing left to do
 
@@ -232,6 +234,7 @@ public class CPAMain {
         System.out.println("OPTIONS:");
         System.out.println(" -config");
         System.out.println(" -cpas");
+        System.out.println(" -spec");
         System.out.println(" -outputpath");
         System.out.println(" -logfile");
         System.out.println(" -entryfunction");
