@@ -23,16 +23,43 @@ Building CPAchecker:
 
 Running CPAchecker:
 -------------------
-5. Choose a configuration file and a source code file
+5. Choose a source code file that you want to be checked.
+   Several types of example programs can be found in test/programs/
+   If you use your own program, remember to pre-process it with CIL (see above).
+   Example: test/programs/simple/loop1.c
+6. Choose a configuration file. This file defines for example which CPAs are used.
+   Standard configuration files can be found in the directory test/config/.
    Example: test/config/explicitAnalysisInf.properties
-            test/programs/simple/loop1.c
-   Check that the configuration file does not contain any non-existent paths
-6. Execute "scripts/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
+   The configuration options used in this file are explained in HowToConfiguration.txt.
+7. Choose a specification file (you may not need this for some CPAs).
+   The standard configuration files use test/config/automata/ErrorLocationAutomaton.txt
+   as the default specification. With this one, CPAchecker will look for labels
+   named "ERROR" and assertions in the source code file.
+   Other examples for specifications can be found in test/config/automata/.
+8. Execute "scripts/cpa.sh -config <CONFIG_FILE> [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
+   The specification is optional if already specified in the configuration file.
+   The current directory should be the CPAchecker project directory.
+   Additional command line switches are described in HowToConfiguration.txt.
+   Example: scripts/cpa.sh -config test/config/explicitAnalysisInf.properties test/programs/simple/loop1.c
+9. Additionally to the console output, there will be several output files in test/output/:
+     ART.dot: Visualization of abstract reachability tree (Graphviz format)
+     cfa*.dot: Visualization of control flow automaton (Graphviz format)
+     counterexample.msat: Formula representation of the error path
+     ErrorPath.txt: A path through the program that leads to an error
+     ErrorPathAssignment.txt: Assignments for all variables on the error path.
+     predmap.txt: Predicates used by predicate analysis to prove program safety
+     reached.txt: Dump of all reached abstract states
+   Note that not all of these files will be available for all configurations.
+   Also some of these files are only produced if an error is found (or vice-versa).
+   CPAchecker will overwrite files in this directory!
+   These files may be used to generate a report that can be viewed in a browser.
+   See HowToBuildReport.txt for this.
 
 Running test cases:
 -------------------
-7. You need ant-junit.jar (on Debian/Ubuntu included in the package ant-optional).
-8. Run "ant tests" from the project root directory. The output (including the test
+1. Build CPAchecker as described above.
+2. You need ant-junit.jar (on Debian/Ubuntu included in the package ant-optional).
+3. Run "ant tests" from the project root directory. The output (including the test
    results) will be in test/output/.
 
 Building and running CPAchecker from within Eclipse:
@@ -44,11 +71,11 @@ Building and running CPAchecker from within Eclipse:
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
 3. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
    and "Bundle 'org.eclipse.cdt.core' cannot be resolved'".
-4. Create a run configuration with main class "org.sosy_lab.cpachecker.cmdline.CPAMain",
-   program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
-   VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
-   specifying your environment for the library path.
-   Settings for <ENVIRONMENT>:
+4. Follow the instructions in section "Running CPAchecker", but instead of step 8
+   create an Eclipse run configuration with main class "org.sosy_lab.cpachecker.cmdline.CPAMain",
+   program arguments "-config <CONFIG_FILE> [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
+   and VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
+   Replace <ENVIRONMENT> with one of the following depending on your system:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
 Using CPAchecker as an Eclipse plugin for your C projects
