@@ -67,9 +67,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsTransferRelation implements TransferRelation {
 
-  @Option(name="blk.threshold")
-  private int absBlockSize = 0;
-
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
 
@@ -127,8 +124,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
   
-    boolean thresholdReached = (absBlockSize > 0) && (element.getSizeSinceAbstraction() >= absBlockSize-1);
-    boolean abstractionLocation = precision.isAbstractionLocation(edge.getSuccessor(), thresholdReached);
+    boolean abstractionLocation = precision.isAbstractionLocation(element, edge);
 
     boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= satCheckBlockSize-1);
     

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 import java.util.Collection;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,6 +38,8 @@ import com.google.common.collect.SetMultimap;
 
 public class SymbPredAbsPrecision implements Precision {
 
+  private int absBlockSize = 0;
+  
   // TODO change
   private static final boolean absOnFunction = true;
   private static final boolean absOnLoop = true;
@@ -123,25 +126,32 @@ public class SymbPredAbsPrecision implements Precision {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isAbstractionLocation(CFANode succLoc, boolean thresholdReached) {
-    boolean result = false;
+  public boolean isAbstractionLocation(SymbPredAbsAbstractElement pCurrentElement, CFAEdge pCFAEdge) {
+    CFANode lSuccessorLocation = pCFAEdge.getSuccessor();
+    boolean lThresholdIsReached = false;
+    
+    boolean lResult = false;
+    
+    if (absBlockSize > 0) {
+      lThresholdIsReached = (pCurrentElement.getSizeSinceAbstraction() >= absBlockSize-1);
+    }
     
     if (absOnLoop) {
-      result = succLoc.isLoopStart();
+      lResult = lSuccessorLocation.isLoopStart();
     }
     if (absOnFunction) {
-      result = result
-            || (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
-            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+      lResult = lResult
+            || (lSuccessorLocation instanceof CFAFunctionDefinitionNode) // function call edge
+            || (lSuccessorLocation.getEnteringSummaryEdge() != null); // function return edge
     }
     
     if (absOnlyIfBoth) {
-      result = result && thresholdReached;
+      lResult = lResult && lThresholdIsReached;
     } else {
-      result = result || thresholdReached;
+      lResult = lResult || lThresholdIsReached;
     }
 
-    return result;
+    return lResult;
   }
   
 }
