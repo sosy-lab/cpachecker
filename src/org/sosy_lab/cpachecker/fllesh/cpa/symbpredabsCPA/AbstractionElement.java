@@ -13,8 +13,12 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
       mNextId = 0;
     }
     
-    public AbstractionElement create(CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
-      return new AbstractionElement(pAbstractionLocation, pAbstractionFormula, pInitAbstractionFormula, mNextId++);
+    public AbstractionElement create(AbstractionElement pPreviousAbstractionElement, CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
+      return new AbstractionElement(pPreviousAbstractionElement, pAbstractionLocation, pAbstractionFormula, pInitAbstractionFormula, mNextId++);
+    }
+    
+    public AbstractionElement createInitialElement(CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
+      return create(null, pAbstractionLocation, pAbstractionFormula, pInitAbstractionFormula);
     }
     
     public int getNumberOfCreatedAbstractionElements() {
@@ -37,12 +41,16 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
   
   public final int ID;
   
-  private AbstractionElement(CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula, int pID) {
+  private AbstractionElement mPreviousAbstractionElement;
+  
+  private AbstractionElement(AbstractionElement pPreviousAbstractionElement, CFANode pAbstractionLocation, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula, int pID) {
     mAbstractionLocation = pAbstractionLocation;
     mAbstractionFormula = pAbstractionFormula;
     mInitAbstractionFormula = pInitAbstractionFormula;
     //INSTANCES++;
     ID = pID;
+    
+    mPreviousAbstractionElement = pPreviousAbstractionElement;
   }
   
   public CFANode getLocation() {
@@ -62,6 +70,14 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
     return 0;
   }
 
+  public boolean hasPreviousAbstractionElement() {
+    return (mPreviousAbstractionElement != null);
+  }
+  
+  public AbstractionElement getPreviousAbstractionElement() {
+    return mPreviousAbstractionElement;
+  }
+  
   @Override
   public AbstractionElement getAbstractionElement() {
     return this;

@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.testcases.ImpreciseExecutionException;
-import org.sosy_lab.cpachecker.fllesh.testcases.PreciseInputsTestCase;
 import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
@@ -280,13 +279,13 @@ public class FlleSh {
     }*/
     
     while (lGoalIterator.hasNext()) {
-      lTimeAccu.proceed();
-
       lIndex++;
       
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+      
+      lTimeAccu.proceed();
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       
@@ -300,13 +299,43 @@ public class FlleSh {
             throw new RuntimeException();
           }
           
-          if (accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()).equals(ThreeValuedAnswer.ACCEPT)) {
+          ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()); 
+          
+          if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             isCovered = true;
             
             lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
             
             break;
           }
+          /*else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
+            // TODO implement coverage check with interpreter
+            
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
+            
+            
+            try {
+              if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
+                isCovered = true;
+                
+                lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+                
+                break;
+              }
+            } catch (InvalidConfigurationException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            } catch (CPAException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            } catch (ImpreciseExecutionException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            }
+          }*/
         }
         
         if (isCovered) {
@@ -355,6 +384,10 @@ public class FlleSh {
           } catch (ImpreciseExecutionException e) {
             lIsPrecise = false;
             lTestCase = e.getTestCase();
+            
+            System.out.println(e);
+            
+            throw new RuntimeException();
           }
           
           if (lIsPrecise) {
@@ -739,6 +772,71 @@ public class FlleSh {
     
     // remove all subsumed goals
     pGoals.removeAll(lSubsumedGoals);
+  }
+
+  private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+    
+    // test goal automata CPAs
+    if (pPassingAutomatonCPA != null) {
+      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+    }
+    
+    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    
+    // call stack CPA
+    lCompoundCPAFactory.push(mCallStackCPA, true);
+    
+    // explicit CPA
+    InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
+    lCompoundCPAFactory.push(lInterpreterCPA);
+    
+    // product automaton CPA
+    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
+    
+    // assume CPA
+    lCompoundCPAFactory.push(mAssumeCPA);
+    
+    
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
+    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
+    
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    lCPAFactory.setChildren(lComponentAnalyses);
+    lCPAFactory.setConfiguration(mConfiguration);
+    lCPAFactory.setLogger(mLogManager);
+    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+    
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+
+    AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
+    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
+
+    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
+    
+    if (lEndNodes.size() == 0) {
+      return false;
+    }
+    else if (lEndNodes.size() == 1) {
+      CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
+      
+      CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
+      
+      return lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance());
+    }
+    else {
+      throw new RuntimeException();
+    }
   }
   
   private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {

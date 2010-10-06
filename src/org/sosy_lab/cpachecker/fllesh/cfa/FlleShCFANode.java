@@ -6,10 +6,13 @@ public class FlleShCFANode extends CFANode {
 
   public final static int FlleShLineNumber = Integer.MIN_VALUE;
   
+  private final int mOldNodeNumber;
+  
   public FlleShCFANode(CFANode pNode) {
     // TODO should we use the line number of pNode ?
     // TODO should we copy use the node number of pNode ?
     super(FlleShLineNumber, pNode.getFunctionName());
+    mOldNodeNumber = pNode.getNodeNumber();
   }
   
   @Override
@@ -24,7 +27,7 @@ public class FlleShCFANode extends CFANode {
   
   @Override
   public String toString() {
-    return "F" + super.getNodeNumber();
+    return "F" + super.getNodeNumber() + " (" + mOldNodeNumber + ")";
   }
   
   @Override

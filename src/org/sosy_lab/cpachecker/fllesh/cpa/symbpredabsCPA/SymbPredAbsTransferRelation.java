@@ -201,7 +201,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
       else {
         lSuccessorPathFormula = convertEdgeToPathFormula(((NonabstractionElement)element).getPathFormula(), pCFAEdge);
-      }    
+      }
 
       logger.log(Level.ALL, "New path formula is", lSuccessorPathFormula);
 
@@ -307,7 +307,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
       numAbstractions++;
 
-      AbstractionElement lSuccessor = mAbstractionElementFactory.create(edge.getSuccessor(), newAbstraction, pathFormula);
+      AbstractionElement lSuccessor = mAbstractionElementFactory.create(element.getAbstractionElement(), edge.getSuccessor(), newAbstraction, pathFormula);
       
       lSuccessors = Collections.singleton(lSuccessor);
       
@@ -355,7 +355,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return lSuccessorFormula;
   }
 
-  public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonElement pAutomatonElement) {
+  public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonElement pAutomatonElement, SymbPredAbsPrecision pPrecision) {
     
     if (pAutomatonElement instanceof GuardedEdgeAutomatonPredicateElement) {
       GuardedEdgeAutomatonPredicateElement lAutomatonElement = (GuardedEdgeAutomatonPredicateElement)pAutomatonElement;
@@ -363,10 +363,57 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       for (ECPPredicate lPredicate : lAutomatonElement) {
         FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
         
-        try {
-          pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
-        } catch (CPATransferException e) {
-          throw new RuntimeException(e);
+        if (pElement instanceof AbstractionElement) {
+          AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
+          
+          try {
+            PathFormula lPathFormula = convertEdgeToPathFormula(lCurrentAbstractionElement.getInitAbstractionFormula(), lEdge);
+            
+            Collection<Predicate> preds = pPrecision.getPredicates(pNode);
+
+            maxBlockSize = Math.max(maxBlockSize, 1);
+            maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
+
+            // TODO handle returning from functions
+
+            long time1 = System.currentTimeMillis();
+
+            // compute new abstraction
+            AbstractFormula newAbstraction = formulaManager.buildAbstraction(
+                lCurrentAbstractionElement.getPreviousAbstractionElement().getAbstractionFormula(), lPathFormula, preds);
+
+            long time2 = System.currentTimeMillis();
+            computingAbstractionTime += time2 - time1;
+
+            // if the abstraction is false, return bottom (represented by empty set)
+            if (abstractFormulaManager.isFalse(newAbstraction)) {
+              logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
+              return null;
+            }
+
+            numAbstractions++;
+
+            pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), pNode, newAbstraction, lPathFormula);
+          } catch (CPATransferException e1) {
+            throw new RuntimeException(e1);
+          }
+        }
+        else {
+          try {
+            Collection<? extends SymbPredAbsAbstractElement> lResultSet = handleNonAbstractionLocation(pElement, lEdge, false);
+
+            if (lResultSet.size() == 0) {
+              return null;
+            }
+            else if (lResultSet.size() == 1) {
+              pElement = lResultSet.iterator().next();
+            }
+            else {
+              throw new RuntimeException();
+            }
+          } catch (CPATransferException e) {
+            throw new RuntimeException(e);
+          }
         }
       }
     }
@@ -374,13 +421,72 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return pElement;
   }
   
-  public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) {
+  public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement, SymbPredAbsPrecision pPrecision) {
     FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
+    
+    /*if (true) {
+      // implement abstraction location handling
+      throw new RuntimeException();
+    }
     
     try {
       pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
     } catch (CPATransferException e) {
       throw new RuntimeException(e);
+    }*/
+    
+    
+    if (pElement instanceof AbstractionElement) {
+      AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
+      
+      try {
+        PathFormula lPathFormula = convertEdgeToPathFormula(lCurrentAbstractionElement.getInitAbstractionFormula(), lEdge);
+        
+        Collection<Predicate> preds = pPrecision.getPredicates(pNode);
+
+        maxBlockSize = Math.max(maxBlockSize, 1);
+        maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
+
+        // TODO handle returning from functions
+
+        long time1 = System.currentTimeMillis();
+
+        // compute new abstraction
+        AbstractFormula newAbstraction = formulaManager.buildAbstraction(
+            lCurrentAbstractionElement.getPreviousAbstractionElement().getAbstractionFormula(), lPathFormula, preds);
+
+        long time2 = System.currentTimeMillis();
+        computingAbstractionTime += time2 - time1;
+
+        // if the abstraction is false, return bottom (represented by empty set)
+        if (abstractFormulaManager.isFalse(newAbstraction)) {
+          logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
+          return null;
+        }
+
+        numAbstractions++;
+
+        pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), pNode, newAbstraction, lPathFormula);
+      } catch (CPATransferException e1) {
+        throw new RuntimeException(e1);
+      }
+    }
+    else {
+      try {
+        Collection<? extends SymbPredAbsAbstractElement> lResultSet = handleNonAbstractionLocation(pElement, lEdge, false);
+
+        if (lResultSet.size() == 0) {
+          return null;
+        }
+        else if (lResultSet.size() == 1) {
+          pElement = lResultSet.iterator().next();
+        }
+        else {
+          throw new RuntimeException();
+        }
+      } catch (CPATransferException e) {
+        throw new RuntimeException(e);
+      }
     }
     
     return pElement;
@@ -394,13 +500,17 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
     
     for (AbstractElement lElement : otherElements) {
-      if (lElement instanceof GuardedEdgeAutomatonElement) {
-        element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonElement)lElement);
+      if (lElement instanceof GuardedEdgeAutomatonPredicateElement) {
+        element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonElement)lElement, (SymbPredAbsPrecision)pPrecision);
       }
       
       if (lElement instanceof ConstrainedAssumeElement) {
-        element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
+        element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement, (SymbPredAbsPrecision)pPrecision);
       }
+    }
+    
+    if (element == null) {
+      return Collections.emptySet();
     }
     
     if (element instanceof AbstractionElement) {
@@ -447,8 +557,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
         maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction());
 
+        if (element.getAbstractionElement() == null) {
+          throw new RuntimeException();
+        }
+        
         return Collections.singleton(
-            mAbstractionElementFactory.create(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
+            mAbstractionElementFactory.create(element.getAbstractionElement(), edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
             //new AbstractionElement(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
             /*new SymbPredAbsAbstractElement(
             // set 'abstractionLocation' to edge.getSuccessor()

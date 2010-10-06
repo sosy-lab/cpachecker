@@ -223,7 +223,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       PathFormula pf = formulaManager.makeEmptyPathFormula();
       AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
       //lInitialElement = new AbstractionElement(node, initAbstraction, pf);
-      lInitialElement = mAbstractionElementFactory.create(node, initAbstraction, pf);
+      lInitialElement = mAbstractionElementFactory.createInitialElement(node, initAbstraction, pf);
       
       mInitialElementsCache.put(node, lInitialElement);
     }
