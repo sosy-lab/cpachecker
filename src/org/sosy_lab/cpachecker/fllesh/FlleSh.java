@@ -181,15 +181,15 @@ public class FlleSh {
   }
   
   public FlleShResult run(String pFQLSpecification) {
-    return run(pFQLSpecification, true, false, false);
+    return run(pFQLSpecification, true, false, false, false);
   }
   
-  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance) {
+  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck) {
     if (pGenerateTestGoalAutomataInAdvance) {
       return run2(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
     }
     else {
-      return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
+      return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck);
     }
   }
   
@@ -206,7 +206,7 @@ public class FlleSh {
     // TODO write test cases in mGeneratedTestCases into pFile
   }
   
-  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
+  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered) {
     System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     
     // Parse FQL Specification
@@ -281,17 +281,21 @@ public class FlleSh {
     while (lGoalIterator.hasNext()) {
       lIndex++;
       
-      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
-      
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+      
+      /*if (lIndex == 2 || lIndex == 6 || lIndex == 8 || lIndex == 10 || lIndex == 12 || lIndex == 14 || lIndex == 16 || lIndex == 18 || lIndex == 20 || lIndex == 22 || lIndex == 24 || lIndex == 26 || lIndex == 28 || lIndex == 30 || lIndex == 32 || lIndex == 34 || lIndex == 36 || lIndex == 38) {
+        continue;
+      }*/
+      
+      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
       lTimeAccu.proceed();
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       
+      boolean lIsCovered = false;
+      
       if (pApplySubsumptionCheck) {
-        boolean isCovered = false;
-        
         for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
           TestCase lTestCase = lGeneratedTestCase.getKey();
           
@@ -302,21 +306,18 @@ public class FlleSh {
           ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()); 
           
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
-            isCovered = true;
+            lIsCovered = true;
             
             lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
             
             break;
           }
-          /*else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            // TODO implement coverage check with interpreter
-            
+          else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
             GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
-            
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
-                isCovered = true;
+                lIsCovered = true;
                 
                 lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
                 
@@ -335,12 +336,14 @@ public class FlleSh {
               e.printStackTrace();
               throw new RuntimeException(e);
             }
-          }*/
+          }
         }
+      }
+      
+      if (lIsCovered) {
+        System.out.println("Goal #" + lIndex + " is covered by an existing test case!");
         
-        if (isCovered) {
-          System.out.println("Goal #" + lIndex + " is covered by an existing test case!");
-          
+        if (!pCheckReachWhenCovered) {
           lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
           
           continue;
@@ -360,6 +363,10 @@ public class FlleSh {
       
       if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
         System.out.println("Goal #" + lIndex + " is infeasible!");
+        
+        if (lIsCovered) {
+          throw new RuntimeException();
+        }
         
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         
