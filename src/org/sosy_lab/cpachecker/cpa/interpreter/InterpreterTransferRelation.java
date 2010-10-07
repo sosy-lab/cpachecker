@@ -43,6 +43,7 @@ import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -60,6 +61,11 @@ import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
+import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
+import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
+import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 
 public class InterpreterTransferRelation implements TransferRelation {
 
@@ -77,9 +83,9 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
+  public Collection<InterpreterElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
-    AbstractElement successor;
+    InterpreterElement successor;
     InterpreterElement explicitElement = (InterpreterElement)element;
     
     // check the type of the edge
@@ -359,11 +365,11 @@ public class InterpreterTransferRelation implements TransferRelation {
     return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, statementEdge);
   }
 
-  private AbstractElement handleAssumption(InterpreterElement element,
+  private InterpreterElement handleAssumption(InterpreterElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
                   throws UnrecognizedCFAEdgeException {
-    
-
+        
+        
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -434,7 +440,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     
   }
 
-  private AbstractElement propagateBooleanExpression(AbstractElement element, 
+  private InterpreterElement propagateBooleanExpression(AbstractElement element, 
       int opType,IASTExpression op1, 
       IASTExpression op2, String functionName, boolean truthValue) 
   throws UnrecognizedCFAEdgeException {
@@ -448,27 +454,26 @@ public class InterpreterTransferRelation implements TransferRelation {
     {
       // [literal]
       if(op2 == null && opType == -999){
-        String varName = op1.getRawSignature();
+        String lVariableName = op1.getRawSignature();
+        
+        String lScopedVariableName = getvarName(lVariableName, functionName);
+        
+        if (!newElement.contains(lScopedVariableName)) {
+          return null;
+        }
+        
         if(truthValue){
-          if(newElement.contains(getvarName(varName, functionName))){
-            if(newElement.getValueFor(getvarName(varName, functionName)) == 0){
-              return null;
-            }
-          }
-          else{
+          if(newElement.getValueFor(lScopedVariableName) == 0){
+            return null;
           }
         }
         // ! [literal]
         else {
-          if(newElement.contains(getvarName(varName, functionName))){
-            if(newElement.getValueFor(getvarName(varName, functionName)) != 0){
-              return null;
-            }
-          }
-          else{
-            newElement.assignConstant(getvarName(varName, functionName), 0);
+          if(newElement.getValueFor(lScopedVariableName) != 0){
+            return null;
           }
         }
+        
       }
       // a (bop) 9
       else if(op2 instanceof IASTLiteralExpression)
@@ -531,6 +536,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               else{
+                return null;
               }
             }
             else {
@@ -1379,18 +1385,22 @@ public class InterpreterTransferRelation implements TransferRelation {
     switch (binaryOperator) {
     case IASTBinaryExpression.op_divide:
     case IASTBinaryExpression.op_modulo:
-    case IASTBinaryExpression.op_lessEqual:
-    case IASTBinaryExpression.op_greaterEqual:
     case IASTBinaryExpression.op_binaryAnd:
     case IASTBinaryExpression.op_binaryOr:
       // TODO check which cases can be handled (I think all)
       newElement.forget(assignedVar);
-      break;
+      
+      throw new RuntimeException();
+      //break;
 
     case IASTBinaryExpression.op_plus:
     case IASTBinaryExpression.op_minus:
     case IASTBinaryExpression.op_multiply:
-
+    case IASTBinaryExpression.op_greaterThan:
+    case IASTBinaryExpression.op_greaterEqual:
+    case IASTBinaryExpression.op_lessThan:
+    case IASTBinaryExpression.op_lessEqual:
+      
       Long val1;
       Long val2;
 
@@ -1399,6 +1409,8 @@ public class InterpreterTransferRelation implements TransferRelation {
         // a = *b + c
         // TODO prepare for using strengthen operator to dereference pointer
         val1 = null;
+        
+        throw new RuntimeException();
       } else {
 
         val1 = getExpressionValue(element, lVarInBinaryExp, functionName, cfaEdge);
@@ -1426,6 +1438,22 @@ public class InterpreterTransferRelation implements TransferRelation {
         case IASTBinaryExpression.op_multiply:
           value = val1 * val2;
           break;
+          
+        case IASTBinaryExpression.op_greaterThan:
+          value = (val1 > val2)?1:0;
+          break;
+          
+        case IASTBinaryExpression.op_greaterEqual:
+          value = (val1 >= val2)?1:0;
+          break;
+        
+        case IASTBinaryExpression.op_lessThan:
+          value = (val1 < val2)?1:0;
+          break;
+          
+        case IASTBinaryExpression.op_lessEqual:
+          value = (val1 <= val2)?1:0;
+          break;
 
         default:
           throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
@@ -1434,6 +1462,11 @@ public class InterpreterTransferRelation implements TransferRelation {
         newElement.assignConstant(assignedVar, value);
       } else {
         newElement.forget(assignedVar);
+      }
+      break;
+    default:
+      {
+        throw new RuntimeException();
       }
     }
     return newElement;
@@ -1576,6 +1609,12 @@ public class InterpreterTransferRelation implements TransferRelation {
       if (ae instanceof PointerAnalysisElement) {
         return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
       }
+      else if (ae instanceof ConstrainedAssumeElement) {
+        return strengthen(cfaEdge.getSuccessor(), explicitElement, (ConstrainedAssumeElement)ae, precision);
+      }
+      else if (ae instanceof GuardedEdgeAutomatonPredicateElement) {
+        return strengthen(cfaEdge.getSuccessor(), explicitElement, (GuardedEdgeAutomatonPredicateElement)ae, precision);
+      }
     }
     return null;
   }
@@ -1626,4 +1665,45 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
     return null;
   }
+  
+  public Collection<InterpreterElement> strengthen(CFANode pNode, InterpreterElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement, Precision pPrecision) {
+    InterpreterElement lResultElement = pElement;
+    
+    for (ECPPredicate lPredicate : pAutomatonElement) {
+      FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+        
+      try {
+        Collection<InterpreterElement> lResult = getAbstractSuccessors(lResultElement, pPrecision, lEdge);
+        
+        if (lResult.size() == 0) {
+          return Collections.emptySet();
+        }
+        else if (lResult.size() == 1) {
+          lResultElement = lResult.iterator().next();
+        }
+        else {
+          throw new RuntimeException();
+        }
+          
+        return lResult;
+      } catch (CPATransferException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    
+    return Collections.singleton(lResultElement);
+  }
+  
+  public Collection<? extends AbstractElement> strengthen(CFANode pNode, InterpreterElement pElement, ConstrainedAssumeElement pAssumeElement, Precision pPrecision) {
+    FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
+    
+    try {
+      Collection<? extends AbstractElement> lResult = getAbstractSuccessors(pElement, pPrecision, lEdge);
+      
+      return lResult;
+    } catch (CPATransferException e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
 }
