@@ -186,6 +186,8 @@ public class InterpreterElement implements AbstractElement {
     if(mConstantsMap.containsKey(assignedVar)){
       mConstantsMap.remove(assignedVar);
     }
+    
+    throw new RuntimeException();
   }
  
 }
