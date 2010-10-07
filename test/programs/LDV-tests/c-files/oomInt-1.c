@@ -1,5 +1,6 @@
-#ifdef BLAST_AUTO_1
+//#ifdef BLAST_AUTO_1
   #include <assert.h>
+/*
 #else
   void assert(int i)
   {
@@ -9,17 +10,22 @@
 	}
   }
 #endif
+*/
 
 /*
 We've got an exception NoNewPredicatesException on program oomInt.c.
 */
-#ifdef BLAST_AUTO_1
+
+//#ifdef BLAST_AUTO_1
 int VERDICT_SAFE;
 int CURRENTLY_SAFE;
+
+/*
 #else
 int VERDICT_SAFE;
 int CURRENTLY_UNKNOWN;
 #endif
+*/
 
 int abs_int(int i)
 {
