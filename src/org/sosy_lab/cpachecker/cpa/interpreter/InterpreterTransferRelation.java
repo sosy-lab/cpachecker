@@ -1383,16 +1383,6 @@ public class InterpreterTransferRelation implements TransferRelation {
     InterpreterElement newElement = element.clone();
 
     switch (binaryOperator) {
-    case IASTBinaryExpression.op_divide:
-    case IASTBinaryExpression.op_modulo:
-    case IASTBinaryExpression.op_binaryAnd:
-    case IASTBinaryExpression.op_binaryOr:
-      // TODO check which cases can be handled (I think all)
-      newElement.forget(assignedVar);
-      
-      throw new RuntimeException();
-      //break;
-
     case IASTBinaryExpression.op_plus:
     case IASTBinaryExpression.op_minus:
     case IASTBinaryExpression.op_multiply:
@@ -1400,6 +1390,15 @@ public class InterpreterTransferRelation implements TransferRelation {
     case IASTBinaryExpression.op_greaterEqual:
     case IASTBinaryExpression.op_lessThan:
     case IASTBinaryExpression.op_lessEqual:
+    case IASTBinaryExpression.op_equals:
+    case IASTBinaryExpression.op_notequals:
+    case IASTBinaryExpression.op_shiftRight:
+    case IASTBinaryExpression.op_shiftLeft:
+    case IASTBinaryExpression.op_divide:
+    case IASTBinaryExpression.op_modulo:
+    case IASTBinaryExpression.op_binaryAnd:
+    case IASTBinaryExpression.op_binaryOr:
+
       
       Long val1;
       Long val2;
@@ -1425,6 +1424,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       if (val2 != null) { // this implies val1 != null
 
         long value;
+        
         switch (binaryOperator) {
 
         case IASTBinaryExpression.op_plus:
@@ -1454,6 +1454,38 @@ public class InterpreterTransferRelation implements TransferRelation {
         case IASTBinaryExpression.op_lessEqual:
           value = (val1 <= val2)?1:0;
           break;
+          
+        case IASTBinaryExpression.op_equals:
+          value = (val1 == val2)?1:0;
+          break;
+          
+        case IASTBinaryExpression.op_notequals:
+          value = (val1 != val2)?1:0;
+          break;
+          
+        case IASTBinaryExpression.op_shiftRight:
+          value = val1 >> val2;
+          break;
+          
+        case IASTBinaryExpression.op_shiftLeft:
+          value = val1 << val2;
+          break;
+          
+        case IASTBinaryExpression.op_divide:
+          value = val1 / val2;
+          break;
+          
+        case IASTBinaryExpression.op_modulo:
+          value = val1 % val2;
+          break;
+          
+        case IASTBinaryExpression.op_binaryAnd:
+          value = val1 & val2;
+          break;
+          
+        case IASTBinaryExpression.op_binaryOr:
+          value = val1 | val2;
+          break;
 
         default:
           throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
@@ -1466,7 +1498,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       break;
     default:
       {
-        throw new RuntimeException();
+        throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
       }
     }
     return newElement;
