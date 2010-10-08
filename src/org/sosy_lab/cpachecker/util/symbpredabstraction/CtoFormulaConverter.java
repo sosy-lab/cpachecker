@@ -504,7 +504,7 @@ public class CtoFormulaConverter {
       int paramsCount = (actualParams == null ? 0 : actualParams.length);
       
       FunctionDefinitionNode fn = (FunctionDefinitionNode)edge.getSuccessor();
-      List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
+      List<? extends IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
       
       assert formalParams.size() == paramsCount;
       if (paramsCount == 0) {

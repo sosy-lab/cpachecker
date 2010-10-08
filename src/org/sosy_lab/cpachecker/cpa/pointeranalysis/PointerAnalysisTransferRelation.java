@@ -270,10 +270,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           //by first creating its context...
           successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
 
-          List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
-
           //..then adding all parameters as local variables
-          for (IASTParameterDeclaration dec : l) {
+          for (IASTParameterDeclaration dec : entryFunctionDefinitionNode.getFunctionParameters()) {
             IASTDeclarator[] declarators = {dec.getDeclarator()};
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
             handleDeclaration(successor, cfaEdge, declarators, declSpecifier);

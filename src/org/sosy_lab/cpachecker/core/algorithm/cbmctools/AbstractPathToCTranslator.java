@@ -126,13 +126,11 @@ public class AbstractPathToCTranslator {
 
     IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
 
-    List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
-
     String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
 
     boolean lFirstFunctionParameter = true;
 
-    for (IASTParameterDeclaration lFunctionParameter : lFunctionParameters) {
+    for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
       if (lFirstFunctionParameter) {
         lFirstFunctionParameter = false;
       }
@@ -534,13 +532,11 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
 
-    List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
-
     String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
 
     boolean lFirstFunctionParameter = true;
 
-    for (IASTParameterDeclaration lFunctionParameter : lFunctionParameters) {
+    for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
       if (lFirstFunctionParameter) {
         lFirstFunctionParameter = false;
       }

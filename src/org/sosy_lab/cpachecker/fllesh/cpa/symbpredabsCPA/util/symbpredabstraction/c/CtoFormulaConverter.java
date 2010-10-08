@@ -472,7 +472,7 @@ public class CtoFormulaConverter {
   private SymbolicFormula makeAndEnterFunction(SymbolicFormula m1,
       FunctionDefinitionNode fn, String function, SSAMap ssa)
       throws UnrecognizedCFAEdgeException {
-    List<IASTParameterDeclaration> params = fn.getFunctionParameters();
+    List<? extends IASTParameterDeclaration> params = fn.getFunctionParameters();
     if (params.isEmpty()) {
       return m1;
     }
@@ -554,7 +554,7 @@ public class CtoFormulaConverter {
       function = fn.getFunctionName();
       
       // create the symbolic vars for the formal parameters
-      List<IASTParameterDeclaration> formalParams =
+      List<? extends IASTParameterDeclaration> formalParams =
         fn.getFunctionParameters();
       assert(formalParams.size() == actualParamsFormulas.length);
 
