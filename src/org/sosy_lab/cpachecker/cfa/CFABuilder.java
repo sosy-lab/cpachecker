@@ -61,6 +61,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
@@ -171,7 +172,7 @@ public class CFABuilder extends ASTVisitor
 				CFANode prevNode = locStack.pop ();
 				CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
-				DeclarationEdge edge = new DeclarationEdge ((IASTSimpleDeclaration) declaration,
+				DeclarationEdge edge = new DeclarationEdge(ASTConverter.convert((IASTSimpleDeclaration)declaration),
 				        fileloc.getStartingLineNumber(), prevNode, nextNode);
 				edge.addToCFA(logger);
 
@@ -204,7 +205,7 @@ public class CFABuilder extends ASTVisitor
       }
   
       IASTParameterDeclaration[] params = ((IASTStandardFunctionDeclarator)decl).getParameters();
-      List<IASTParameterDeclaration> parameters = new ArrayList<IASTParameterDeclaration>(params.length);
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration>(params.length);
       List<String> parameterNames = new ArrayList<String>(params.length);
       
       for (IASTParameterDeclaration param : params) {
@@ -217,14 +218,14 @@ public class CFABuilder extends ASTVisitor
 
         // function may have the parameter "void", so we need this check
         if (!name.isEmpty()) {
-          parameters.add(param);
+          parameters.add(ASTConverter.convert(param));
           parameterNames.add(name);
         }
       }
 			
 			CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
 
-			currentCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode, parameters, parameterNames);
+			currentCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
 
 			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), currentCFA, functionStartDummyNode);
@@ -359,7 +360,7 @@ public class CFABuilder extends ASTVisitor
 		CFANode prevNode = locStack.pop ();
 		CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
-		StatementEdge edge = new StatementEdge(exprStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression(), false);
+		StatementEdge edge = new StatementEdge(ASTConverter.convert(exprStatement), fileloc.getStartingLineNumber(), prevNode, nextNode, ASTConverter.convert(exprStatement.getExpression()), false);
 		edge.addToCFA(logger);
 
 		locStack.push (nextNode);
@@ -421,7 +422,7 @@ public class CFABuilder extends ASTVisitor
 		    CFANode ifStartTrue = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
 		            fileloc.getStartingLineNumber(), prevNode, ifStartTrue,
-		            ifStatement.getConditionExpression (),
+		            ASTConverter.convert(ifStatement.getConditionExpression ()),
 		            true);
 
 		    assumeEdgeTrue.addToCFA(logger);
@@ -431,7 +432,7 @@ public class CFABuilder extends ASTVisitor
 		        CFANode ifStartFalse = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, ifStartFalse,
-		                ifStatement.getConditionExpression (),
+		                ASTConverter.convert(ifStatement.getConditionExpression ()),
 		                false);
 
 		        assumeEdgeFalse.addToCFA(logger);
@@ -439,7 +440,7 @@ public class CFABuilder extends ASTVisitor
 		    } else {
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, postIfNode,
-		                ifStatement.getConditionExpression (),
+		                ASTConverter.convert(ifStatement.getConditionExpression ()),
 		                false);
 
 		        assumeEdgeFalse.addToCFA(logger);
@@ -550,7 +551,7 @@ public class CFABuilder extends ASTVisitor
 		CFANode prevNode = locStack.peek ();
 		CFANode nextNode = currentCFA.getExitNode();
 
-		StatementEdge edge = new StatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue(), true);
+		StatementEdge edge = new StatementEdge(ASTConverter.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, nextNode, ASTConverter.convert(returnStatement.getReturnValue()), true);
 		edge.addToCFA(logger);
 	}
 
@@ -727,7 +728,7 @@ public class CFABuilder extends ASTVisitor
 //        }
 //      }
       CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(ASTConverter.convert(sd),
           sd.getFileLocation().getStartingLineNumber(), cur, n);
       e.addToCFA(logger);
       decls.add(n);
