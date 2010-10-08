@@ -1,0 +1,116 @@
+package org.sosy_lab.cpachecker.cfa.ast;
+
+import org.eclipse.cdt.core.dom.ILinkage;
+import org.eclipse.cdt.core.dom.ast.IASTCompletionContext;
+import org.eclipse.cdt.core.dom.ast.IASTImageLocation;
+import org.eclipse.cdt.core.dom.ast.IBinding;
+
+public final class IASTName extends IASTNode implements
+    org.eclipse.cdt.core.dom.ast.IASTName {
+
+  public IASTName(String pRawSignature, IASTFileLocation pFileLocation) {
+    super(pRawSignature, pFileLocation);
+  }
+
+  @Override
+  @Deprecated
+  public char[] getSimpleID() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public boolean isDeclaration() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public boolean isDefinition() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public boolean isReference() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IBinding getBinding() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IASTCompletionContext getCompletionContext() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IASTImageLocation getImageLocation() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IASTName getLastName() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public ILinkage getLinkage() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public char[] getLookupKey() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IBinding getPreBinding() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public int getRoleOfName(boolean pArg0) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IBinding resolveBinding() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IBinding resolvePreBinding() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public void setBinding(IBinding pArg0) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public char[] toCharArray() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  @Deprecated
+  public IASTName copy() {
+    throw new UnsupportedOperationException();
+  }
+}
