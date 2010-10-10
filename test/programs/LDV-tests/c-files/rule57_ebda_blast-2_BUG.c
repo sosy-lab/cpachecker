@@ -1,13 +1,14 @@
 #include <assert.h>
 
-#ifdef BLAST_AUTO_1
-/* tmp_slot is freed before exit */
-int VERDICT_SAFE;
-int CURRENTLY_SAFE;
-#else
+// #ifdef BLAST_AUTO_1
+// /* tmp_slot is freed before exit */
+// int VERDICT_SAFE;
+// int CURRENTLY_SAFE;
+// #else
+
 int VERDICT_UNSAFE;
 int CURRENTLY_UNSAFE;
-#endif
+// #endif
 
 struct hotplug_slot;
 
@@ -38,7 +39,7 @@ int freed_tmp_slot = 1;
 extern void * kzalloc(int, int);
 
 void kfree(void *p) {
-	if(p!=NULL && p==tmp_slot)
+	if(p!=0 && p==tmp_slot)
 		freed_tmp_slot = 1;
 }
 
@@ -53,17 +54,17 @@ int ebda_rsrc_controller() {
 	struct bus_info *bus_info_ptr1;
 	int rc;
 
-	hp_slot_ptr = kzalloc(sizeof(*hp_slot_ptr), MY_GFP_KERNEL);
+	hp_slot_ptr = kzalloc(sizeof(*hp_slot_ptr), 1);
 	if(!hp_slot_ptr) {
-		rc = -MY_ENOMEM;
+		rc = -2;
 		goto error_no_hp_slot;
 	}
 	hp_slot_ptr->b = 5;
 
-	tmp_slot = kzalloc(sizeof(*tmp_slot), MY_GFP_KERNEL);
+	tmp_slot = kzalloc(sizeof(*tmp_slot), 1);
 
 	if(!tmp_slot) {
-		rc = -MY_ENOMEM;
+		rc = -2;
 		goto error_no_slot;
 	}
 	//change state
@@ -75,16 +76,16 @@ int ebda_rsrc_controller() {
 	
 	bus_info_ptr1 = ibmphp_find_same_bus_num();
 	if(!bus_info_ptr1) {
-		rc = -MY_ENODEV;
-#ifdef BLAST_AUTO_1
-		//BUG if not done
-		kfree(tmp_slot);
-		freed_tmp_slot = 1;
-#endif
+		rc = -3;
+// #ifdef BLAST_AUTO_1
+// 		//BUG if not done
+// 		kfree(tmp_slot);
+// 		freed_tmp_slot = 1;
+// #endif
 		goto error;
 	}
 	tmp_slot->bus_on = bus_info_ptr1;
-	bus_info_ptr1 = NULL;
+	bus_info_ptr1 = 0;
 
 	tmp_slot->hotplug_slot = hp_slot_ptr;
 

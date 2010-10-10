@@ -1,9 +1,9 @@
 #include <assert.h>
 
-#ifdef BLAST_AUTO_1
-int VERDICT_UNSAFE;
-int CURRENTLY_UNSAFE;
-#else
+// #ifdef BLAST_AUTO_1
+// int VERDICT_UNSAFE;
+// int CURRENTLY_UNSAFE;
+// #else
 
 int VERDICT_UNSAFE;
 int CURRENTLY_UNSAFE;
@@ -12,17 +12,17 @@ int CURRENTLY_UNSAFE;
 void check_error(int b) {
 	assert(b);
 }
-#endif
+// #endif
 
 int main(void) {
 	int i=0;
         while(i<5) {
                 i++;
-#ifdef BLAST_AUTO_1
-                assert(i!=3);
-#else
+// #ifdef BLAST_AUTO_1
+//                 assert(i!=3);
+// #else
 		check_error(i!=3);
-#endif
+// #endif
         }
 	return 0;
 }

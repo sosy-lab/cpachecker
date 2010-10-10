@@ -1,14 +1,14 @@
 #include <assert.h>
 #include <malloc.h>
 
-#ifdef BLAST_AUTO_1
-/* double add */
-int VERDICT_UNSAFE;
-int CURRENTLY_UNSAFE;
-#else
+// #ifdef BLAST_AUTO_1
+// /* double add */
+// int VERDICT_UNSAFE;
+// int CURRENTLY_UNSAFE;
+// #else
 int VERDICT_SAFE;
 int CURRENTLY_SAFE;
-#endif
+// #endif
 
 int int_nondet(void);
 
@@ -32,7 +32,7 @@ struct list_head {
 	struct list_head *prev, *next;
 };
 
-struct list_head *elem = NULL;
+struct list_head *elem = 0;
 
 static void list_add(struct list_head *new, struct list_head *head) {
   assert(new!=elem);
@@ -42,7 +42,7 @@ static void list_add(struct list_head *new, struct list_head *head) {
 
 static void list_del(struct list_head *entry) {
   if(entry==elem)
-	elem=NULL;
+	elem=0;
 }
 
 static struct list_head head;
@@ -51,15 +51,15 @@ int main() {
   struct list_head *dev1, *dev2;
   dev1 = my_malloc(10);//sizeof(*dev1));
   dev2 = my_malloc(10);//sizeof(*dev2));
-  if(dev1!=NULL && dev2!=NULL) {	  
+  if(dev1!=0 && dev2!=0) {	  
     list_add(dev2, &head);
     list_add(dev1, &head);
     list_del(dev2);
     list_add(dev2, &head);
-#ifdef BLAST_AUTO_1
-    //BUG:
-    list_add(dev1, &head);
-#endif
+// #ifdef BLAST_AUTO_1
+//     //BUG:
+//     list_add(dev1, &head);
+// #endif
   }
   return 0;
 }
