@@ -87,7 +87,7 @@ public class InterpreterElement implements AbstractElement {
     }
     
     if(nameOfVar.contains(noAutoInitPrefix)){
-      throw new RuntimeException();
+      throw new RuntimeException(nameOfVar);
     }
 
     mConstantsMap.put(nameOfVar, value);
