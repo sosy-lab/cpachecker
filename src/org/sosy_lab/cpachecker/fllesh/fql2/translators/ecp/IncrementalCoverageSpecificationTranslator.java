@@ -1,14 +1,22 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Atom;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Union;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Occurrences;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Path;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
 
 public class IncrementalCoverageSpecificationTranslator {
 
@@ -22,6 +30,7 @@ public class IncrementalCoverageSpecificationTranslator {
   
   public int getNumberOfTestGoals(CoverageSpecification pSpecification) {
     if (pSpecification instanceof Atom || pSpecification instanceof Quotation) {
+      // TODO special treatement of PATHS-atom (in quotations?)
       return mCoverageSpecificationTranslator.translate(pSpecification).size();
     }
     else if (pSpecification instanceof Union) {
@@ -39,6 +48,13 @@ public class IncrementalCoverageSpecificationTranslator {
   }
   
   public Iterator<ElementaryCoveragePattern> translate(CoverageSpecification pSpecification) {
+    if (pSpecification instanceof Paths) {
+      Paths lPaths = (Paths)pSpecification;
+      
+      TargetGraph lTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(lPaths.getFilter());
+      
+      return new PathIterator(lTargetGraph, lPaths.getBound());
+    }
     if (pSpecification instanceof Atom || pSpecification instanceof Quotation) {
       return mCoverageSpecificationTranslator.translate(pSpecification).iterator();
     }
@@ -54,6 +70,175 @@ public class IncrementalCoverageSpecificationTranslator {
     }
     
     throw new RuntimeException();
+  }
+  
+  private class PathIterator implements Iterator<ElementaryCoveragePattern> {
+
+    private class SinglePathIterator implements Iterator<ElementaryCoveragePattern> {
+      
+      
+      private LinkedList<Edge> mEdgeSequence;
+      private LinkedList<Iterator<Edge>> mIteratorSequence;
+      private LinkedList<ElementaryCoveragePattern> mPatternSequence;
+      private ElementaryCoveragePattern mCurrentPattern;
+      
+      private final Node mInitialNode;
+      
+      private final Occurrences mOccurrences;
+      
+      public SinglePathIterator(Node pInitialNode) {
+        mInitialNode = pInitialNode;
+        mCurrentPattern = null;
+        mEdgeSequence = new LinkedList<Edge>();
+        mIteratorSequence = new LinkedList<Iterator<Edge>>();
+        mPatternSequence = new LinkedList<ElementaryCoveragePattern>();
+
+        if (mTargetGraph.isFinalNode(pInitialNode)) {
+          mCurrentPattern = mPathPatternTranslator.translate(new Path(pInitialNode, mEdgeSequence));
+        }
+        
+        // the iterator sequence is always one longer than the edge sequence
+        mIteratorSequence.add(mTargetGraph.getOutgoingEdges(mInitialNode).iterator());
+        
+        mOccurrences = new Occurrences();
+      }
+
+      @Override
+      public boolean hasNext() {
+        if (mCurrentPattern == null) {
+          // we have to determine the next path
+          
+          Iterator<Edge> lFrontierIterator = mIteratorSequence.getLast();
+          
+          if (lFrontierIterator.hasNext()) {
+            Edge lNextEdge = lFrontierIterator.next();
+            
+            int lOccurrences = mOccurrences.increment(lNextEdge);
+            
+            if (lOccurrences > mBound) {
+              mOccurrences.decrement(lNextEdge);
+              
+              mCurrentPattern = new ECPConcatenation(mPatternSequence);
+              //mCurrentPattern = mPathPatternTranslator.translate(new Path(lNextEdge.getSource(), mEdgeSequence));
+              
+              return true;
+            }
+            
+            Node lTarget = lNextEdge.getTarget();
+            
+            mEdgeSequence.add(lNextEdge);
+            mPatternSequence.add(mPathPatternTranslator.translate(lNextEdge));
+            mIteratorSequence.add(mTargetGraph.getOutgoingEdges(lTarget).iterator());
+            
+            if (mTargetGraph.isFinalNode(lTarget)) {
+              mCurrentPattern = new ECPConcatenation(mPatternSequence);
+              //mCurrentPattern = mPathPatternTranslator.translate(new Path(lTarget, mEdgeSequence));
+              
+              return true;
+            }
+            
+            return hasNext();
+          }
+          else {
+            // backtrack
+            
+            mIteratorSequence.removeLast();
+            
+            if (mIteratorSequence.isEmpty()) {
+              if (!mEdgeSequence.isEmpty()) {
+                throw new RuntimeException();
+              }
+              
+              return false;
+            }
+            
+            Edge lEdge = mEdgeSequence.removeLast();
+            mPatternSequence.removeLast();
+            
+            mOccurrences.decrement(lEdge);
+            
+            return hasNext();
+          }
+        }
+        
+        return true;
+      }
+
+      @Override
+      public ElementaryCoveragePattern next() {
+        if (hasNext()) {
+          ElementaryCoveragePattern lPattern = mCurrentPattern;
+          mCurrentPattern = null;
+          return lPattern;
+        }
+        
+        throw new NoSuchElementException();
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+      
+      
+    }
+    
+    private TargetGraph mTargetGraph;
+    private int mBound;
+    private Iterator<Node> mInitialNodes;
+    private SinglePathIterator mCurrentSinglePathIterator;
+    
+    public PathIterator(TargetGraph pTargetGraph, int pBound) {
+      mTargetGraph = pTargetGraph;
+      mBound = pBound;
+      
+      mInitialNodes = mTargetGraph.initialNodes().iterator();
+            
+      if (mInitialNodes.hasNext()) {
+        Node lCurrentInitialNode = mInitialNodes.next();
+        
+        mCurrentSinglePathIterator = new SinglePathIterator(lCurrentInitialNode);
+      }
+      else {
+        mCurrentSinglePathIterator = null;
+      }
+    }
+    
+    @Override
+    public boolean hasNext() {
+      if (mCurrentSinglePathIterator == null) {
+        return false;
+      }
+      
+      if (mCurrentSinglePathIterator.hasNext()) {
+        return true;
+      }
+      
+      if (mInitialNodes.hasNext()) {
+        Node lCurrentInitialNode = mInitialNodes.next();
+        mCurrentSinglePathIterator = new SinglePathIterator(lCurrentInitialNode);
+      }
+      else {
+        mCurrentSinglePathIterator = null;
+      }
+      
+      return hasNext();
+    }
+
+    @Override
+    public ElementaryCoveragePattern next() {
+      if (hasNext()) {
+        return mCurrentSinglePathIterator.next();
+      }
+      
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public void remove() {
+      throw new RuntimeException();
+    }
+    
   }
   
   private class UnionIterator implements Iterator<ElementaryCoveragePattern> {

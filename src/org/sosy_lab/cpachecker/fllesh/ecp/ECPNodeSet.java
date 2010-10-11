@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.ecp;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -8,13 +9,21 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
   
-  private Set<CFANode> mCFANodes = new HashSet<CFANode>();
+  public static ECPNodeSet EMPTY_NODE_SET = new ECPNodeSet();
+  
+  private Set<CFANode> mCFANodes;
+  
+  private ECPNodeSet() {
+    mCFANodes = Collections.emptySet();
+  }
   
   public ECPNodeSet(Set<CFANode> pCFANodes) {
+    mCFANodes = new HashSet<CFANode>();
     mCFANodes.addAll(pCFANodes);
   }
   
   public ECPNodeSet(CFANode pCFANode) {
+    mCFANodes = new HashSet<CFANode>();
     mCFANodes.add(pCFANode);
   }
   

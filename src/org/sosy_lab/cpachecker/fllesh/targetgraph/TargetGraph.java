@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.fllesh.targetgraph;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Set;
 
 import org.jgrapht.DirectedGraph;
@@ -102,48 +100,7 @@ public class TargetGraph {
   public Set<Edge> getEdges() {
     return mGraph.edgeSet();
   }
-  
-  private static class Occurrences {
     
-    Map<Edge, Integer> mOccurrences = new HashMap<Edge, Integer>();
-    
-    public Occurrences() {
-      
-    }
-    
-    public void decrement(Edge pEdge) {
-      if (mOccurrences.containsKey(pEdge)) {
-        int lCurrentValue = mOccurrences.get(pEdge);
-        
-        lCurrentValue--;
-        
-        if (lCurrentValue < 0) {
-          lCurrentValue = 0;
-        }
-        
-        mOccurrences.put(pEdge, lCurrentValue);
-      }
-      else {
-        throw new RuntimeException();
-      }
-    }
-    
-    public int increment(Edge pEdge) {
-      int lCurrentValue = 0;
-      
-      if (mOccurrences.containsKey(pEdge)) {
-        lCurrentValue = mOccurrences.get(pEdge);
-      }
-
-      lCurrentValue++;
-     
-      mOccurrences.put(pEdge, lCurrentValue);
-      
-      return lCurrentValue;
-    }
-    
-  }
-  
   public Set<Path> getBoundedPaths(int pBound) {
     if (pBound <= 0) {
       throw new IllegalArgumentException();
@@ -176,6 +133,12 @@ public class TargetGraph {
         dfs(lOutgoingEdge.getTarget(), pPrefix, pPaths, pOccurrences, pBound);
         
         pPrefix.pollLast();
+      }
+      else {
+        // TODO change again
+        Path lPath = new Path(pCurrentNode, pPrefix);
+        
+        pPaths.add(lPath);
       }
       
       pOccurrences.decrement(lOutgoingEdge);

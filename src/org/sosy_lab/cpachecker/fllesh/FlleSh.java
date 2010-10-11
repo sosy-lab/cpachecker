@@ -251,7 +251,11 @@ public class FlleSh {
     
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
     
-    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    //int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    
+    int lNumberOfTestGoals = -1;
+    
+    System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
     
@@ -282,10 +286,6 @@ public class FlleSh {
       lIndex++;
       
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
-      
-      /*if (lIndex == 2 || lIndex == 6 || lIndex == 8 || lIndex == 10 || lIndex == 12 || lIndex == 14 || lIndex == 16 || lIndex == 18 || lIndex == 20 || lIndex == 22 || lIndex == 24 || lIndex == 26 || lIndex == 28 || lIndex == 30 || lIndex == 32 || lIndex == 34 || lIndex == 36 || lIndex == 38) {
-        continue;
-      }*/
       
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
@@ -392,9 +392,9 @@ public class FlleSh {
             lIsPrecise = false;
             lTestCase = e.getTestCase();
             
-            System.out.println(e);
+            /*System.out.println(e);
             
-            throw new RuntimeException();
+            throw new RuntimeException();*/
           }
           
           if (lIsPrecise) {
@@ -431,9 +431,9 @@ public class FlleSh {
     
     FlleShResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
     
-    if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
+    /*if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
       throw new RuntimeException();
-    }
+    }*/
     
     System.out.println("Generated Test Cases:");
     
