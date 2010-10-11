@@ -33,19 +33,67 @@ import org.sosy_lab.cpachecker.fllesh.experiments.ExperimentalSeries;
 public class LiftControl extends ExperimentalSeries {
   
   @Test
-  public void test_lift() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
-                                        "test/programs/fql/lift_control/lift.cil.c",
-                                        "main",
-                                        true);
+  public void test_lift_bb() throws Exception {
+    String[] lArguments = Main.getParameters(
+        Main.BASIC_BLOCK_COVERAGE,
+        "test/programs/fql/lift_control/lift.cil.c",
+        "main", true);
     
     FlleShResult lResult = execute(lArguments);
     
     Assert.assertEquals(245, lResult.getNumberOfTestGoals());
-    Assert.assertEquals(57, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(45, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(187, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
-    Assert.assertEquals(1, lResult.getNumberOfImpreciseTestCases());
+    Assert.assertEquals(13, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_lift_bb2() throws Exception {
+    String[] lArguments = Main.getParameters(
+        Main.BASIC_BLOCK_2_COVERAGE,
+        "test/programs/fql/lift_control/lift.cil.c",
+        "main", true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(60025, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(-1, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_lift_bb3() throws Exception {
+    String[] lArguments = Main.getParameters(
+        Main.BASIC_BLOCK_3_COVERAGE,
+        "test/programs/fql/lift_control/lift.cil.c",
+        "main", true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(14706125, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(-1, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_lift_path1() throws Exception {
+    String[] lArguments = Main.getParameters(
+        "COVER \"EDGES(ID)*\".PATHS(ID, 1).\"EDGES(ID)*\"",
+        "test/programs/fql/lift_control/lift.cil.c",
+        "main", true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(245, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(-1, lResult.getNumberOfImpreciseTestCases());
   }
   
 }
