@@ -118,8 +118,26 @@ public class IncrementalCoverageSpecificationTranslator {
             if (lOccurrences > mBound) {
               mOccurrences.decrement(lNextEdge);
               
+              Edge lLastEdge = mEdgeSequence.getLast();
+              
+              if (lLastEdge == null) {
+                if (mTargetGraph.isFinalNode(mInitialNode)) {
+                  // we initially generated this pattern, so 
+                  // we do not have to generate it once again 
+                  
+                  return false;
+                }
+              }
+              else {
+                if (mTargetGraph.isFinalNode(lLastEdge.getTarget())) {
+                  // we have generated this pattern before as
+                  // we entered lLastEdge (see below)
+                  
+                  return hasNext();
+                }
+              }
+              
               mCurrentPattern = new ECPConcatenation(mPatternSequence);
-              //mCurrentPattern = mPathPatternTranslator.translate(new Path(lNextEdge.getSource(), mEdgeSequence));
               
               return true;
             }
@@ -132,7 +150,6 @@ public class IncrementalCoverageSpecificationTranslator {
             
             if (mTargetGraph.isFinalNode(lTarget)) {
               mCurrentPattern = new ECPConcatenation(mPatternSequence);
-              //mCurrentPattern = mPathPatternTranslator.translate(new Path(lTarget, mEdgeSequence));
               
               return true;
             }
