@@ -32,7 +32,7 @@ struct list_head {
 	struct list_head *prev, *next;
 };
 
-struct list_head *elem = 0;
+struct list_head *elem = NULL;
 
 static void list_add(struct list_head *new, struct list_head *head) {
   assert(new!=elem);
@@ -42,7 +42,7 @@ static void list_add(struct list_head *new, struct list_head *head) {
 
 static void list_del(struct list_head *entry) {
   if(entry==elem)
-	elem=0;
+	elem=NULL;
 }
 
 static struct list_head head;

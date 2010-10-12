@@ -18,7 +18,7 @@ int pstate[2];
 void init() {
 	int i;
 	for(i=0; i<2; i++) {
-		pp[i]=0;
+		pp[i]=NULL;
 		pstate[i]=0;
 	}
 }
@@ -26,7 +26,7 @@ void init() {
 void f(void *pointer) {
 	int i;
 	for(i=0; i<2; i++) {
-		if(pp[i]==0) {
+		if(pp[i]==NULL) {
 			pp[i]=pointer;
 			pstate[i]=1;
 			break;
@@ -59,7 +59,7 @@ int main() {
 	init();
 	a = malloc(sizeof(int));
 	b = malloc(sizeof(int));
-	if(a==0 || b==0)
+	if(a==NULL || b==NULL)
 		return -1;
 
 	f(a);

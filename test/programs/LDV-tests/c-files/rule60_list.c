@@ -26,7 +26,7 @@ static struct list_head head;
 int main() {
   struct list_head *dev;
   dev = malloc(sizeof(*dev));
-  if(dev!=0) {
+  if(dev!=NULL) {
 	  dev->inserted=0;
 	  list_add(dev, &head);
 	  list_del(dev);

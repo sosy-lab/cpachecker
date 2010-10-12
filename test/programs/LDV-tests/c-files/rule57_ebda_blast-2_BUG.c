@@ -54,17 +54,17 @@ int ebda_rsrc_controller() {
 	struct bus_info *bus_info_ptr1;
 	int rc;
 
-	hp_slot_ptr = kzalloc(sizeof(*hp_slot_ptr), 1);
+	hp_slot_ptr = kzalloc(sizeof(*hp_slot_ptr), MY_GFP_KERNEL);
 	if(!hp_slot_ptr) {
-		rc = -2;
+		rc = -MY_ENOMEM;
 		goto error_no_hp_slot;
 	}
 	hp_slot_ptr->b = 5;
 
-	tmp_slot = kzalloc(sizeof(*tmp_slot), 1);
+	tmp_slot = kzalloc(sizeof(*tmp_slot), MY_GFP_KERNEL);
 
 	if(!tmp_slot) {
-		rc = -2;
+		rc = -MY_ENOMEM;
 		goto error_no_slot;
 	}
 	//change state
@@ -76,7 +76,7 @@ int ebda_rsrc_controller() {
 	
 	bus_info_ptr1 = ibmphp_find_same_bus_num();
 	if(!bus_info_ptr1) {
-		rc = -3;
+		rc = -MY_ENODEV;
 // #ifdef BLAST_AUTO_1
 // 		//BUG if not done
 // 		kfree(tmp_slot);
@@ -85,7 +85,7 @@ int ebda_rsrc_controller() {
 		goto error;
 	}
 	tmp_slot->bus_on = bus_info_ptr1;
-	bus_info_ptr1 = 0;
+	bus_info_ptr1 = NULL;
 
 	tmp_slot->hotplug_slot = hp_slot_ptr;
 

@@ -19,7 +19,7 @@ main(int argc, char* argv[]) {
 
 void* l_malloc(int size) {	
 	void *retVal = malloc(size);
-	if(retVal != 0) 
+	if(retVal != NULL) 
 		globalState=1; 
 	return retVal;
 }
@@ -28,7 +28,7 @@ void l_free(void* ptr) {
 	/* если вызывается free на указатель, на котором уже
 	 * была вызвана функция free, то результат работы неопределен,
 	 * поэтому поворный вызов free недопустим */
-	if(ptr!=0) assert(globalState == 1);
+	if(ptr!=NULL) assert(globalState == 1);
 	globalState = 0;
 	free(ptr);
 }

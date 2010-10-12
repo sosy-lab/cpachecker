@@ -9,7 +9,7 @@ struct path_info {
 };
 
 void list_add(int *new) {
-	assert(new!=0);
+	assert(new!=NULL);
 }
 
 static void rr_fail_path(struct path_info *pi)

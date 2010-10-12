@@ -9,10 +9,10 @@ int undef_int(void);
 struct list_head {
 };
 
-struct list_head *elem = 0;
+struct list_head *elem = NULL;
 
 void list_add(struct list_head *new, struct list_head *head) {
-  if(new!=0) {
+  if(new!=NULL) {
 	  assert(new!=elem);
 	  if(undef_int())
         	elem = new;
