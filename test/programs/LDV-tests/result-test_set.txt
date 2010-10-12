@@ -1,0 +1,35 @@
+user@PC:~/workspace/CPAchecker/scripts> run_test_set.sh LDV-tests.set symbpredabsCPA.properties
+
+Running: test/programs/LDV-tests/cil.c-files/1_3.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/alt_test_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/callfpointer.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/ex3_forlist_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/fo_test.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/nested_structure.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/nested_structure_noptr.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/nested_structure_ptr.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/oomInt-1.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/oomInt-2.cil.c with config: symbpredabsCPA... SAFE
+Running: test/programs/LDV-tests/cil.c-files/palias_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/rule57_ebda_blast-1.cil.c with config: symbpredabsCPA... UNSAFE
+Running: test/programs/LDV-tests/cil.c-files/rule57_ebda_blast-2_BUG.cil.c with config: symbpredabsCPA... UNSAFE
+Running: test/programs/LDV-tests/cil.c-files/rule60_list2-1_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/rule60_list2-2.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/rule60_list.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/sizeofparameters_test_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/structure_assignment.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_address_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_fieldaddr_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_kzalloc-1_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_kzalloc-2_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_malloc-1_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_malloc-2_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_malloc_warn_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_overflow.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_union-1_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_union-2.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_union_cast-1.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_union_cast-2.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_while_int-1_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/test_while_int-2_BUG.cil.c with config: symbpredabsCPA... UNKNOWN
+Running: test/programs/LDV-tests/cil.c-files/volatile_alias_BUG.cil.c with config: symbpredabsCPA... UNSAFE
