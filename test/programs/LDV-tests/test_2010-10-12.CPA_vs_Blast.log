@@ -1,0 +1,35 @@
+INSTANCE            			CPAchecker     	BLAST          	Difference (who is right?)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+1_3.cil.c                      	UNSAFE         	UNSAFE         	
+alt_test_BUG.cil.c             	UNSAFE         	UNSAFE         	
+callfpointer.cil.c             	SAFE           	UNSAFE         	<
+ex3_forlist_BUG.cil.c          	UNSAFE         	SAFE           	<
+fo_test.cil.c                  	UNSAFE         	UNSAFE         	
+nested_structure.cil.c         	SAFE           	SAFE           	
+nested_structure_noptr.cil.c   	SAFE           	SAFE           	
+nested_structure_ptr.cil.c     	SAFE           	SAFE           	
+oomInt-1.cil.c                 	SAFE           	SAFE           	
+oomInt-2.cil.c                 	SAFE           	SAFE           	
+palias_BUG.cil.c               	UNSAFE         	SAFE           	<
+rule57_ebda_blast-1.cil.c      	UNSAFE         	SAFE           	--->
+rule57_ebda_blast-2_BUG.cil.c  	UNSAFE         	UNSAFE         	
+rule60_list.cil.c              	UNSAFE         	SAFE           	--->
+rule60_list2-1_BUG.cil.c       	ABORTED        	SAFE           	none
+rule60_list2-2.cil.c           	SAFE           	SAFE           	
+sizeofparameters_test_BUG.cil.c	UNSAFE         	UNSAFE         	
+structure_assignment.cil.c     	UNSAFE         	SAFE           	--->
+test_address_BUG.cil.c         	UNSAFE         	SAFE           	<
+test_fieldaddr_BUG.cil.c       	UNSAFE         	SAFE           	<
+test_kzalloc-1_BUG.cil.c       	UNSAFE         	SAFE           	<
+test_kzalloc-2_BUG.cil.c       	UNSAFE         	UNSAFE         	
+test_malloc-1_BUG.cil.c        	UNSAFE         	SAFE           	<
+test_malloc-2_BUG.cil.c        	UNSAFE         	SAFE           	<
+test_malloc_warn_BUG.cil.c     	UNSAFE         	UNSAFE         	
+test_overflow.cil.c            	UNSAFE         	UNSAFE         	
+test_union-1_BUG.cil.c         	UNSAFE         	SAFE           	<
+test_union-2.cil.c             	SAFE           	SAFE           	
+test_union_cast-1.cil.c        	EXCEPTION      	SAFE           	--->
+test_union_cast-2.cil.c        	EXCEPTION      	SAFE           	--->
+test_while_int-1_BUG.cil.c     	UNSAFE         	UNSAFE         	
+test_while_int-2_BUG.cil.c     	UNSAFE         	UNSAFE         	
+volatile_alias_BUG.cil.c       	UNSAFE         	SAFE           	<
