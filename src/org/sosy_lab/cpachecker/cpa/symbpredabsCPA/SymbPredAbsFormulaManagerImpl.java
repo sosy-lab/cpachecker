@@ -77,24 +77,20 @@ import com.google.common.collect.Collections2;
 class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager implements SymbPredAbsFormulaManager {
 
   static class Stats {
-    public long abstractionTime = 0;
-    public long abstractionMaxTime = 0;
+    public int numCallsAbstraction = 0;
+    public int numCallsAbstractionCached = 0;
+    public long abstractionSolveTime = 0;
+    public long abstractionMaxSolveTime = 0;
     public long abstractionBddTime = 0;
     public long abstractionMaxBddTime = 0;
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
-    public int numCallsAbstraction = 0;
-    public int numCallsAbstractionCached = 0;
+
+    public int numCallsCexAnalysis = 0;
     public long cexAnalysisTime = 0;
     public long cexAnalysisMaxTime = 0;
-    public int numCallsCexAnalysis = 0;
-    public long abstractionSolveTime = 0;
-    public long abstractionMaxSolveTime = 0;
     public long cexAnalysisSolverTime = 0;
     public long cexAnalysisMaxSolverTime = 0;
-    public int numCoverageChecks = 0;
-    public long bddCoverageCheckTime = 0;
-    public long bddCoverageCheckMaxTime = 0;
     public long cexAnalysisGetUsefulBlocksTime = 0;
     public long cexAnalysisGetUsefulBlocksMaxTime = 0;
   }
@@ -231,8 +227,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<Predicate> predicates) {
-
-    long startTime = System.currentTimeMillis();
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -355,14 +349,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         long solveEndTime = System.currentTimeMillis();
 
         // update statistics
-        long endTime = System.currentTimeMillis();
         long solveTime = (solveEndTime - solveStartTime) - totBddTime;
-        long time = (endTime - startTime) - totBddTime;
-        stats.abstractionMaxTime =
-          Math.max(time, stats.abstractionMaxTime);
         stats.abstractionMaxBddTime =
           Math.max(totBddTime, stats.abstractionMaxBddTime);
-        stats.abstractionTime += time;
         stats.abstractionBddTime += totBddTime;
         stats.abstractionSolveTime += solveTime;
         stats.abstractionMaxSolveTime =
@@ -415,8 +404,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<Predicate> predicates) {
-
-    long startTime = System.currentTimeMillis();
 
     // first, create the new formula corresponding to
     // (symbFormula & edges from e to succ)
@@ -481,7 +468,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       stats.abstractionSolveTime += solveTime;
       stats.abstractionBddTime   += bddTime;
-      startTime += bddTime; // do not count BDD creation time
 
       stats.abstractionMaxBddTime =
         Math.max(bddTime, stats.abstractionMaxBddTime);
@@ -505,13 +491,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
-
-    // update statistics
-    long endTime = System.currentTimeMillis();
-    long abstractionSolverTime = (endTime - startTime);
-    stats.abstractionTime += abstractionSolverTime;
-    stats.abstractionMaxTime =
-      Math.max(abstractionSolverTime, stats.abstractionMaxTime);
 
     return result;
   }

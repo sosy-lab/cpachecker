@@ -85,18 +85,25 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private int satCheckBlockSize = 0;
 
   // statistics
-  public long abstractionTime = 0;
-  public long nonAbstractionTime = 0;
-  public long pathFormulaTime = 0;
-  public long pathFormulaComputationTime = 0;
-  public long initAbstractionFormulaTime = 0;
-  public long computingAbstractionTime = 0;
+  long postTime = 0;
+  long satCheckTime = 0;
+  long pathFormulaTime = 0;
+  long pathFormulaComputationTime = 0;
+  long computingAbstractionTime = 0;
+  long strengthenTime = 0;
+  long strengthenCheckTime = 0;
 
-  public int numAbstractions = 0;
-  public int numSatChecks = 0;
-  public int maxBlockSize = 0;
-  public int maxPredsPerAbstraction = 0;
-
+  int numPosts = 0;
+  int numAbstractions = 0;
+  int numAbstractionsFalse = 0;
+  int numSatChecks = 0;
+  int numSatChecksFalse = 0;
+  int numStrengthenChecks = 0;
+  int numStrengthenChecksFalse = 0;
+  int maxBlockSize = 0;
+  int maxPredsPerAbstraction = 0;
+  int pathFormulaCacheHits = 0;
+  
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
 
@@ -116,7 +123,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
       Precision pPrecision, CFAEdge edge) throws CPATransferException {
 
-    long time = System.currentTimeMillis();
+    long start = System.currentTimeMillis();
+    numPosts++;
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
 
     // check what to do (abstraction, satCheck, nothing)
@@ -134,12 +142,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
 
     } finally {
-      time = System.currentTimeMillis() - time;
-      if (abstractionLocation) {
-        abstractionTime += time;
-      } else {
-        nonAbstractionTime += time;
-      }
+      postTime += System.currentTimeMillis() - start;
     }
   }
 
@@ -167,7 +170,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (satCheck) {
       numSatChecks++;
-      if (formulaManager.unsat(element.getAbstraction(), pf)) {
+      long start = System.currentTimeMillis(); 
+
+      boolean unsat = formulaManager.unsat(element.getAbstraction(), pf);
+      
+      satCheckTime += System.currentTimeMillis() - start;
+      
+      if (unsat) {
+        numSatChecksFalse++;
         logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
         return Collections.emptySet();
       }
@@ -193,6 +203,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, SymbPredAbsPrecision precision, CFAEdge edge)
   throws CPATransferException {
 
+    numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
 
     // compute the pathFormula for the current edge
@@ -214,14 +225,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstraction.isFalse()) {
+      numAbstractionsFalse++;
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Collections.emptySet();
     }
 
     // create new empty path formula
     PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
-
-    numAbstractions++;
 
     return Collections.singleton(
         new SymbPredAbsAbstractElement(true, newPathFormula, newAbstraction));
@@ -255,6 +265,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         pf = formulaManager.makeAnd(pathFormula, edge);
         pathFormulaComputationTime += System.currentTimeMillis() - startComp;
         pathFormulaCache.put(formulaCacheKey, pf);
+      } else {
+        pathFormulaCacheHits++;
       }
     }
     assert pf != null;
@@ -326,6 +338,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws UnrecognizedCFAEdgeException {
     // do abstraction (including reachability check) if an error was found by another CPA
 
+    long start = System.currentTimeMillis();
+    try {
+    
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
     
     for (AbstractElement lElement : otherElements) {
@@ -358,10 +373,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (errorFound) {
       logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
-      numSatChecks++;
+      numStrengthenChecks++;
+      long startCheck = System.currentTimeMillis(); 
       PathFormula pathFormula = element.getPathFormula();
+      
+      boolean unsat = formulaManager.unsat(element.getAbstraction(), pathFormula);
+      strengthenCheckTime += System.currentTimeMillis() - startCheck;
 
-      if (formulaManager.unsat(element.getAbstraction(), pathFormula)) {
+      if (unsat) {
+        numStrengthenChecksFalse++;
         logger.log(Level.FINEST, "Path is infeasible.");
         return Collections.emptySet();
       } else {
@@ -385,6 +405,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
       
       return null;
+    }
+    
+    } finally {
+      strengthenTime += System.currentTimeMillis() - start;
     }
   }
 }

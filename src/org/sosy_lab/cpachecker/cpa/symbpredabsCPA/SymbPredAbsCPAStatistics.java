@@ -119,14 +119,25 @@ public class SymbPredAbsCPAStatistics implements Statistics {
 
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
+      SymbPredAbsAbstractDomain d = cpa.getAbstractDomain();
 
-      out.println("Number of abstraction steps:       " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");
-      out.println("Max LBE block size:                " + trans.maxBlockSize);
-      out.println("Number of abstractions:            " + trans.numAbstractions);
-      out.println("Number of satisfiability checks:   " + trans.numSatChecks);
-      out.println("Number of refinement steps:        " + bs.numCallsCexAnalysis);
-      out.println("Number of coverage checks:         " + bs.numCoverageChecks);
+      out.println("Number of abstractions:            " + trans.numAbstractions + " (" + toPercent(trans.numAbstractions, trans.numPosts) + " of all post computations)");
+      if (trans.numAbstractions > 0) {
+        out.println("  Times result was 'false':        " + trans.numAbstractionsFalse + " (" + toPercent(trans.numAbstractionsFalse, trans.numAbstractions) + ")");
+      }
+      if (trans.numSatChecks > 0) {
+        out.println("Number of satisfiability checks:   " + trans.numSatChecks);
+        out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.numSatChecks) + ")");
+      }
+      out.println("Number of strengthen sat checks:   " + trans.numStrengthenChecks);
+      if (trans.numStrengthenChecks > 0) {
+        out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
+      }
+      out.println("Number of coverage checks:         " + d.numCoverageCheck);
+      out.println("  BDD entailment checks:           " + d.numBddCoverageCheck);
+      out.println("  Symbolic coverage check:         " + d.numSymbolicCoverageCheck);
       out.println();
+      out.println("Max ABE block size:                       " + trans.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
       out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
@@ -138,34 +149,44 @@ public class SymbPredAbsCPAStatistics implements Statistics {
         out.println("Avg number of models for allsat:          " + bs.allSatCount / bs.numCallsAbstraction);
       }
       out.println();
-      out.println("Time for merge:                " + toTime(cpa.getMergeOperator().totalMergeTime));
-      out.println("Time for abstraction post:     " + toTime(trans.abstractionTime));
-      out.println("  initial abstraction formula: " + toTime(trans.initAbstractionFormulaTime));
-      out.println("  computing abstraction:       " + toTime(trans.computingAbstractionTime));
-      out.println("    Time for All-SMT: ");
-      out.println("      Total:                   " + toTime(bs.abstractionTime));
-      out.println("      Max:                     " + toTime(bs.abstractionMaxTime));
-      out.println("      Solving time only:       " + toTime(bs.abstractionSolveTime));
-      out.println("    Time for BDD construction: ");
-      out.println("      Total:                   " + toTime(bs.abstractionBddTime));
-      out.println("      Max:                     " + toTime(bs.abstractionMaxBddTime));
-      out.println("    Time for coverage check: ");
-      out.println("      Total:                   " + toTime(bs.bddCoverageCheckTime));
-      out.println("      Max:                     " + toTime(bs.bddCoverageCheckMaxTime));
-      out.println("Time for non-abstraction post: " + toTime(trans.nonAbstractionTime));
-      out.println("Time for finding path formula: " + toTime(trans.pathFormulaTime));
-      out.println("  actual computation of PF:    " + toTime(trans.pathFormulaComputationTime));
-      out.println("Time for counterexample analysis/abstraction refinement: ");
-      out.println("  Total:                       " + toTime(bs.cexAnalysisTime));
-      out.println("  Max:                         " + toTime(bs.cexAnalysisMaxTime));
-      out.println("  Solving time only:           " + toTime(bs.cexAnalysisSolverTime));
-      if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
-        out.println("  Cex.focusing total:          " + toTime(bs.cexAnalysisGetUsefulBlocksTime));
-        out.println("  Cex.focusing max:            " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
+      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.numPosts) + ")");
+      if (bs.numCallsAbstraction > 0) {
+        out.println("Number of abstraction cache hits:    " + bs.numCallsAbstractionCached + " (" + toPercent(bs.numCallsAbstractionCached, bs.numCallsAbstraction) + ")");
+      }
+      out.println();
+      out.println("Time for post operator:              " + toTime(trans.postTime));
+      out.println("  Time for path formula creation:    " + toTime(trans.pathFormulaTime));
+      out.println("    Actual computation:              " + toTime(trans.pathFormulaComputationTime));
+      if (trans.numSatChecks > 0) {
+        out.println("  Time for satisfiability checks:    " + toTime(trans.satCheckTime));
+      }
+      out.println("  Time for abstraction:              " + toTime(trans.computingAbstractionTime));
+      out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
+      out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
+      out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
+      out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
+      out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
+      out.println("Time for coverage check:             " + toTime(d.coverageCheckTime));
+      if (d.numBddCoverageCheck > 0) {
+        out.println("  Time for BDD entailment checks:    " + toTime(d.bddCoverageCheckTime));
+      }
+      if (d.numSymbolicCoverageCheck > 0) {
+        out.println("  Time for symbolic coverage checks: " + toTime(d.bddCoverageCheckTime));
+      }
+      if (bs.numCallsCexAnalysis > 0) {
+        out.println("Time for counterexample analysis:    " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
+        out.println("  Solving time only:                 " + toTime(bs.cexAnalysisSolverTime) + " (Max: " + toTime(bs.cexAnalysisMaxSolverTime) + ")");
+        if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
+          out.println("  Cex.focusing:                " + toTime(bs.cexAnalysisGetUsefulBlocksTime) + " (Max: " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime) + ")");
+        }
       }
     }
 
     private String toTime(long timeMillis) {
       return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    }
+    
+    private String toPercent(double val, double full) {
+      return String.format("%1.0f", val/full*100) + "%";
     }
 }
