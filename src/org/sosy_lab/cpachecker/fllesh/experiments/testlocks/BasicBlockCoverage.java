@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.fllesh.experiments.testlocks;
 
+import java.util.LinkedList;
+
 import junit.framework.Assert;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.fllesh.FlleSh;
 import org.sosy_lab.cpachecker.fllesh.FlleShResult;
 import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.experiments.ExperimentalSeries;
+import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 
 public class BasicBlockCoverage extends ExperimentalSeries {
   
@@ -46,6 +50,21 @@ public class BasicBlockCoverage extends ExperimentalSeries {
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfTestCases()); // TODO was 6, 7
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_101a() throws Exception {
+    FlleSh lFlleSh = new FlleSh("test/programs/fql/locks/test_locks_5.c", "main");
+    
+    LinkedList<TestCase> lTestSuite = new LinkedList<TestCase>();
+    
+    lTestSuite.add(TestCase.fromString("p,0"));
+    lTestSuite.add(TestCase.fromString("p,-1,-1,1,1,1,0,0"));
+    lTestSuite.add(TestCase.fromString("p,-1,-1,0,0,0,1,0"));
+    lTestSuite.add(TestCase.fromString("p,-1,-1,1,1,1,1,0"));
+    lTestSuite.add(TestCase.fromString("p,-1,0,-1,1,1,1,0"));
+    
+    lFlleSh.checkCoverage(Main.BASIC_BLOCK_COVERAGE, lTestSuite, true);
   }
   
   @Test

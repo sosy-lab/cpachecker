@@ -103,6 +103,8 @@ public class FlleSh {
   private final GuardedEdgeLabel mInverseAlphaLabel;
   private final Map<TestCase, CFAEdge[]> mGeneratedTestCases;
   
+  private final Map<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>> mInfeasibleGoals;
+  
   public FlleSh(String pSourceFileName, String pEntryFunction) {
     mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
     
@@ -178,18 +180,20 @@ public class FlleSh {
     // we can collect test cases accross several run invocations and use them for coverage analysis
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
+    
+    mInfeasibleGoals = new HashMap<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>>();
   }
   
   public FlleShResult run(String pFQLSpecification) {
-    return run(pFQLSpecification, true, false, false, false);
+    return run(pFQLSpecification, true, false, false, false, true);
   }
   
-  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck) {
+  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic) {
     if (pGenerateTestGoalAutomataInAdvance) {
       return run2(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
     }
     else {
-      return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck);
+      return run_incremental(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
     }
   }
   
@@ -206,7 +210,137 @@ public class FlleSh {
     // TODO write test cases in mGeneratedTestCases into pFile
   }
   
-  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered) {
+  public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
+    // Parse FQL Specification
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    
+    checkCoverage(lFQLSpecification, pTestSuite, pPedantic);
+  }
+  
+  public void checkCoverage(FQLSpecification pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
+    
+    GuardedEdgeAutomatonCPA lPassingCPA = null;
+    
+    if (pFQLSpecification.hasPassingClause()) {
+      ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
+      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    }
+    
+    IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+    
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLSpecification.getCoverageSpecification());
+    
+    System.out.println("Number of test goals: " + lNumberOfTestGoals);
+    
+    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLSpecification.getCoverageSpecification());
+    
+    int lIndex = 0;
+    
+    int lNumberOfCoveredTestGoals = 0;
+    
+    Map<TestCase, CFAEdge[]> mPathCache = new HashMap<TestCase, CFAEdge[]>();
+    
+    FQLSpecification lIdStarFQLSpecification;
+    try {
+      lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
+    } catch (Exception e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+      throw new RuntimeException(e1);
+    }
+    ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
+    Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    
+    while (lGoalIterator.hasNext()) {
+      lIndex++;
+      
+      ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+      
+      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
+      
+      Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
+      
+      boolean lIsCovered = false;
+      
+      for (TestCase lTestCase : pTestSuite) {
+        if (!lTestCase.isPrecise()) {
+          throw new RuntimeException();
+        }
+        
+        CFAEdge[] lCFAPath = mPathCache.get(lTestCase);
+        
+        boolean lIsPrecise = true;
+        
+        if (lCFAPath == null) {
+          try {
+            lCFAPath = reconstructPath(lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
+          } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+          } catch (CPAException e) {
+            throw new RuntimeException(e);
+          } catch (ImpreciseExecutionException e) {
+            lIsPrecise = false;
+            lTestCase = e.getTestCase();
+            
+            if (pPedantic) {
+              throw new RuntimeException(e);
+            }
+          }
+          
+          if (lIsPrecise) {
+            mPathCache.put(lTestCase, lCFAPath);
+          }
+        }
+        
+        ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lCFAPath); 
+        
+        if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
+          lIsCovered = true;
+          
+          break;
+        }
+        else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
+          try {
+            if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
+              lIsCovered = true;
+              
+              break;
+            }
+          } catch (InvalidConfigurationException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          } catch (CPAException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          } catch (ImpreciseExecutionException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          }
+        }
+      }
+      
+      if (lIsCovered) {
+        System.out.println("COVERED");
+        
+        lNumberOfCoveredTestGoals++;
+      }
+    }
+    
+    System.out.println("Coverage: " + ((double)lNumberOfCoveredTestGoals)/((double)lIndex));
+  }
+  
+  public FlleShResult run_incremental(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
     System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     
     // Parse FQL Specification
@@ -251,9 +385,9 @@ public class FlleSh {
     
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
     
-    //int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
     
-    int lNumberOfTestGoals = -1;
+    //int lNumberOfTestGoals = -1;
     
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
@@ -281,6 +415,8 @@ public class FlleSh {
       
       throw new RuntimeException(e);
     }*/
+    
+    int lRemovedByInfeasibilityPropagation = 0;
     
     while (lGoalIterator.hasNext()) {
       lIndex++;
@@ -338,6 +474,38 @@ public class FlleSh {
             }
           }
         }
+        
+        /*if (!lIsCovered) {
+          // apply infeasibility check
+          if (lPassingCPA == null) {
+            // as a first step consider only cases when no passing clause is given
+            
+            //Iterator<Collection<Automaton.State>> lStatesIterator = mInfeasibleGoals_States.iterator(); 
+            
+            for (Map.Entry<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>> lEntry : mInfeasibleGoals.entrySet()) {
+            //for (Pair<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>> lEntry : mInfeasibleGoals) {
+            //for (Automaton<GuardedEdgeLabel> lInfeasibleAutomaton : mInfeasibleGoals_Automata) {
+              //Collection<Automaton.State> lStates = mInfeasibleGoals_States.iterator().ne
+              //Collection<Automaton.State> lStates = lStatesIterator.next();
+              if (isTransitivelyInfeasible(lEntry.getKey(), lGoal.getAutomaton(), lEntry.getValue())) {
+                //throw new RuntimeException();
+                
+                lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
+                
+                // TODO with this change the consistency check should not work anymore 
+                lIsCovered = true;
+                
+                lRemovedByInfeasibilityPropagation++;
+                
+                break;
+              }
+            }
+          }
+          else {
+            // TODO implement general case
+            
+          }
+        }*/
       }
       
       if (lIsCovered) {
@@ -365,8 +533,10 @@ public class FlleSh {
         System.out.println("Goal #" + lIndex + " is infeasible!");
         
         if (lIsCovered) {
-          throw new RuntimeException();
+          throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
         }
+        
+        //mInfeasibleGoals.put(lGoal.getAutomaton(), mReachedAutomatonStates);
         
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         
@@ -392,9 +562,9 @@ public class FlleSh {
             lIsPrecise = false;
             lTestCase = e.getTestCase();
             
-            /*System.out.println(e);
-            
-            throw new RuntimeException();*/
+            if (pPedantic) {
+              throw new RuntimeException(e);
+            }
           }
           
           if (lIsPrecise) {
@@ -440,6 +610,10 @@ public class FlleSh {
     for (TestCase lTestCase : lResultFactory.getTestCases()) {
       System.out.println(lTestCase);
     }
+
+    System.out.println("Removed by infeasibility propagation: " + lRemovedByInfeasibilityPropagation);
+
+    System.out.println("Size of infeasibility cache: " + mInfeasibleGoals.size());
     
     return lResult;
   }
@@ -996,6 +1170,8 @@ public class FlleSh {
     Multimap<Automaton.State, Automaton.State> lCore = HashMultimap.create();
     Multimap<Automaton.State, Automaton.State> lFrontier = HashMultimap.create();
     
+    //HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
+    
     while (!lWorklist.isEmpty()) {
       Pair<Automaton.State, Automaton.State> lCurrentPair = lWorklist.removeFirst();
       
@@ -1006,6 +1182,7 @@ public class FlleSh {
       
       boolean lSimilar = true;
       
+      //lPotentialWork.clear();
       HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
       
       for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
@@ -1046,13 +1223,6 @@ public class FlleSh {
         lFrontier.put(lCurrentPair.getFirst(), lCurrentPair.getSecond());
       }
     }
-    
-    /*if (lCore.keySet().size() >= 4) {
-      System.out.println(pInfeasibleAutomaton.toString());
-      System.out.println("---");
-      System.out.println(pOtherAutomaton.toString());
-      throw new RuntimeException();
-    }*/
     
     return lCore.keySet();
     

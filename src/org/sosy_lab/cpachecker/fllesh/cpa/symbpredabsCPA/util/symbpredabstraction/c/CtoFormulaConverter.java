@@ -991,7 +991,7 @@ public class CtoFormulaConverter {
       String lVariable = ((IASTIdExpression)pExpression).getName().getRawSignature();
       
       if (isNondetVariable(lVariable)) {
-        throw new RuntimeException("Do not assign values to nondeterministic variables!");
+        throw new RuntimeException("Do not assign values to nondeterministic variables! (Line " + pExpression.getFileLocation().getStartingLineNumber() + ")");
       }
       
       String lScopedVariable = scoped(lVariable, pCurrentFunction);
