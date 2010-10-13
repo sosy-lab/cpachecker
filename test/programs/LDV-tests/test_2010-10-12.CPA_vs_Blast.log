@@ -1,4 +1,4 @@
-INSTANCE            			CPAchecker     	BLAST          	Difference (who is right?)
+INSTANCE            			CPAchecker     	BLAST          	Difference (what is right?)
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 1_3.cil.c                      	UNSAFE         	UNSAFE         	
 alt_test_BUG.cil.c             	UNSAFE         	UNSAFE         	
