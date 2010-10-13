@@ -69,6 +69,10 @@ public class InterpreterElement implements AbstractElement {
     return mInputIndex;
   }
 
+  public void setInputIndex(int pIndex) {
+    mInputIndex = pIndex;
+  }
+  
   // TODO change
   public void incIndex() {
     mInputIndex = mInputIndex + 1;
