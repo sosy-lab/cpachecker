@@ -617,7 +617,6 @@ public class CtoFormulaConverter {
       String num = lexp.getRawSignature();
       switch (lexp.getKind()) {
       case IASTLiteralExpression.lk_integer_constant:
-      case IASTLiteralExpression.lk_float_constant:
         if (num.startsWith("0x")) {
           // this should be in hex format
           // we use Long instead of Integer to avoid getting negative
@@ -632,7 +631,26 @@ public class CtoFormulaConverter {
           }
           num = num.substring(0, pos+1);
         }
-        break;
+        
+        // TODO here we assume 32 bit integers!!! This is because CIL
+        // seems to do so as well...
+        try {
+          Integer.parseInt(num);
+        } catch (NumberFormatException nfe) {
+          long l = Long.parseLong(num);
+          if (l < 0) {
+            num = Long.toString(Integer.MAX_VALUE + l);
+          } else {
+            num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
+          }
+        }
+        return smgr.makeNumber(num);
+        
+      case IASTLiteralExpression.lk_float_constant:
+        // parse with valueOf and convert to String again, because Mathsat
+        // does not accept all possible C float constants (but Java hopefully does)
+        return smgr.makeNumber(Double.valueOf(num).toString());
+
       case IASTLiteralExpression.lk_char_constant: {
         // we convert to a byte, and take the integer value
         String s = exp.getRawSignature();
@@ -667,19 +685,7 @@ public class CtoFormulaConverter {
       default:
         throw new UnrecognizedCCodeException("Unknown literal", null, exp);
       }
-      // TODO here we assume 32 bit integers!!! This is because CIL
-      // seems to do so as well...
-      try {
-        Integer.parseInt(num);
-      } catch (NumberFormatException nfe) {
-        long l = Long.parseLong(num);
-        if (l < 0) {
-          num = Long.toString(Integer.MAX_VALUE + l);
-        } else {
-          num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
-        }
-      }
-      return smgr.makeNumber(num);
+
     } else if (exp instanceof IASTCastExpression) {
       // we completely ignore type casts
       logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
