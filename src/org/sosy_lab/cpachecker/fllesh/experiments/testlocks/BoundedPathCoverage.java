@@ -137,6 +137,23 @@ public class BoundedPathCoverage extends ExperimentalSeries {
     
     FlleShResult lResult = execute(lArguments);
     
+    // 611.402s
+    Assert.assertEquals(32767, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(255, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(32512, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(255, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_locks_1_k8() throws Exception {
+    String[] lArguments = Main.getParameters(
+        "COVER \"EDGES(ID)*\".PATHS(ID, 8).\"EDGES(ID)*\"",
+        "test/programs/fql/locks/test_locks_1.c",
+        "main", true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
     Assert.assertEquals(32767, lResult.getNumberOfTestGoals());
     Assert.assertEquals(255, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(32512, lResult.getNumberOfInfeasibleTestGoals());

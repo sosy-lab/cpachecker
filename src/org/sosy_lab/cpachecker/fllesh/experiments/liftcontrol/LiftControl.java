@@ -96,4 +96,36 @@ public class LiftControl extends ExperimentalSeries {
     Assert.assertEquals(-1, lResult.getNumberOfImpreciseTestCases());
   }
   
+  @Test
+  public void test_lift_2_bb() throws Exception {
+    String[] lArguments = Main.getParameters(
+        Main.BASIC_BLOCK_COVERAGE,
+        "test/programs/fql/lift_control/lift_no_dbgCnt.c",
+        "main", true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(245, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(57, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(188, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
+  public void test_lift_3_bb() throws Exception {
+    String[] lArguments = Main.getParameters(
+        Main.BASIC_BLOCK_COVERAGE,
+        "test/programs/fql/lift_control/lift_no_dbgCnt_modified_ioinit.c",
+        "main", true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(245, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(171, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(10, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
 }
