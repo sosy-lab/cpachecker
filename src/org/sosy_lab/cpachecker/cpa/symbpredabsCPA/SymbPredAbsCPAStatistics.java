@@ -123,6 +123,9 @@ public class SymbPredAbsCPAStatistics implements Statistics {
 
       out.println("Number of abstractions:            " + trans.numAbstractions + " (" + toPercent(trans.numAbstractions, trans.numPosts) + " of all post computations)");
       if (trans.numAbstractions > 0) {
+        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, trans.numAbstractions) + ")");
+        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, trans.numAbstractions) + ")");
+        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, trans.numAbstractions) + ")");
         out.println("  Times result was 'false':        " + trans.numAbstractionsFalse + " (" + toPercent(trans.numAbstractionsFalse, trans.numAbstractions) + ")");
       }
       if (trans.numSatChecks > 0) {

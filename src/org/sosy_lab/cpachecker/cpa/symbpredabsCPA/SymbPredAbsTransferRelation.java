@@ -94,6 +94,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   long strengthenCheckTime = 0;
 
   int numPosts = 0;
+  int numBlkFunctions = 0;
+  int numBlkLoops = 0;
+  int numBlkThreshold = 0;
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
   int numSatChecks = 0;
@@ -130,8 +133,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // check what to do (abstraction, satCheck, nothing)
     int sizeSinceAbstraction = element.getPathFormula().getLength();
     boolean thresholdReached = (absBlockSize > 0) && (sizeSinceAbstraction >= absBlockSize-1);
+    if (thresholdReached) {
+      numBlkThreshold++;
+    }
+    
     boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor(), thresholdReached);
-
     boolean satCheck = (satCheckBlockSize > 0) && (sizeSinceAbstraction >= satCheckBlockSize-1);
     
     try {
@@ -286,11 +292,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     if (absOnLoop) {
       result = succLoc.isLoopStart();
+      if (result) {
+        numBlkFunctions++;
+      }
     }
     if (absOnFunction) {
-      result = result
-            || (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
+      boolean function =      
+               (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
             || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+      if (function) {
+        result = true;
+        numBlkFunctions++;
+      }
     }
     
     if (absOnlyIfBoth) {
