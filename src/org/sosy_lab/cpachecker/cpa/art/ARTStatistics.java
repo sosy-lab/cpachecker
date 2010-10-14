@@ -86,18 +86,22 @@ public class ARTStatistics implements Statistics {
       if (lastElement != null && lastElement.isTarget()) {
 
         Path targetPath = cpa.getTargetPath();
-        assert targetPath != null;
-        // target path has to be the path to the current target element
-        assert targetPath.getLast().getFirst() == lastElement;
-
-        try {
-
-          Files.writeFile(errorPathFile, targetPath);
-          Files.writeFile(errorPathJson, targetPath.toJSON());
-
-        } catch (IOException e) {
+        if (targetPath != null) {
+          // target path has to be the path to the current target element
+          assert targetPath.getLast().getFirst() == lastElement;
+  
+          try {
+  
+            Files.writeFile(errorPathFile, targetPath);
+            Files.writeFile(errorPathJson, targetPath.toJSON());
+  
+          } catch (IOException e) {
+            cpa.getLogger().log(Level.WARNING,
+                "Could not write error path to file (", e.getMessage(), ")");
+          }
+        } else {
           cpa.getLogger().log(Level.WARNING,
-              "Could not write error path to file (", e.getMessage(), ")");
+              "No error path available.");
         }
       }
     }
