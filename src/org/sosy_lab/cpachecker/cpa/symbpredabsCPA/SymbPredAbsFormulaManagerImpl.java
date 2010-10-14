@@ -145,7 +145,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option
   private boolean useBitwiseAxioms = false;
   
-  private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
+  private final Map<Pair<SymbolicFormula, Collection<Predicate>>, Abstraction> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -179,18 +179,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 //    }
 
     if (useCache) {
-      if (cartesianAbstraction) {
-        abstractionCache = null;
-        cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
-        feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
-
-      } else {
-        abstractionCache = new HashMap<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula>();
-        cartesianAbstractionCache = null;
-        feasibilityCache = null;
-      }
+      abstractionCache = new HashMap<Pair<SymbolicFormula, Collection<Predicate>>, Abstraction>();
     } else {
       abstractionCache = null;
+    }
+    if (useCache && cartesianAbstraction) {
+      cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
+      feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
+    } else {
       cartesianAbstractionCache = null;
       feasibilityCache = null;
     }
@@ -214,6 +210,21 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
     SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
     
+    // caching
+    Pair<SymbolicFormula, Collection<Predicate>> absKey = null;
+    if (useCache) {
+      absKey = new Pair<SymbolicFormula, Collection<Predicate>>(f, predicates);
+      Abstraction result = abstractionCache.get(absKey);
+
+      if (result != null) {
+        // create new abstraction object to have a unique abstraction id
+        result = new Abstraction(result.asAbstractFormula(), result.asSymbolicFormula(), result.getBlockFormula());
+        logger.log(Level.ALL, "Abstraction was cached, result is", result);
+        stats.numCallsAbstractionCached++;
+        return result;
+      }
+    }
+    
     AbstractFormula abs;
     if (cartesianAbstraction) {
       abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
@@ -221,8 +232,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
     
-    SymbolicFormula symbolicAbs = smgr.instantiate(toConcrete(abs),pathFormula.getSsa()); 
-    return new Abstraction(abs, symbolicAbs, pathFormula.getSymbolicFormula());
+    SymbolicFormula symbolicAbs = smgr.instantiate(toConcrete(abs), pathFormula.getSsa());
+    Abstraction result = new Abstraction(abs, symbolicAbs, pathFormula.getSymbolicFormula());
+
+    if (useCache) {
+      abstractionCache.put(absKey, result);
+    }
+    
+    return result;
   }
 
   private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
@@ -434,64 +451,47 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // the formula is (abstractionFormula & pathFormula & predDef)
     SymbolicFormula fm = smgr.makeAnd(f, predDef);
 
-    logger.log(Level.ALL, "DEBUG_2",
-        "COMPUTING ALL-SMT ON FORMULA: ", fm);
+    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    Pair<SymbolicFormula, List<SymbolicFormula>> absKey =
-      new Pair<SymbolicFormula, List<SymbolicFormula>>(fm, predVars);
-    AbstractFormula result;
-    if (useCache && abstractionCache.containsKey(absKey)) {
-      ++stats.numCallsAbstractionCached;
-      result = abstractionCache.get(absKey);
+    long solveStartTime = System.currentTimeMillis();
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, amgr);
+    long solveEndTime = System.currentTimeMillis();
 
-      logger.log(Level.ALL, "Abstraction was cached, result is", result);
+    // update statistics
+    int numModels = allSatResult.getCount();
+    if (numModels < Integer.MAX_VALUE) {
+      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+      stats.allSatCount += numModels;
+    }
+    long bddTime   = allSatResult.getTotalTime();
+    long solveTime = (solveEndTime - solveStartTime) - bddTime;
 
-    } else {
-      long solveStartTime = System.currentTimeMillis();
-      AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, amgr);
-      long solveEndTime = System.currentTimeMillis();
+    stats.abstractionSolveTime += solveTime;
+    stats.abstractionBddTime   += bddTime;
 
-      result = allSatResult.getResult();
+    stats.abstractionMaxBddTime =
+      Math.max(bddTime, stats.abstractionMaxBddTime);
+    stats.abstractionMaxSolveTime =
+      Math.max(solveTime, stats.abstractionMaxSolveTime);
 
-      if (useCache) {
-        abstractionCache.put(absKey, result);
-      }
+    // TODO dump hard abst
+    if (solveTime > 10000 && dumpHardAbstractions) {
+      // we want to dump "hard" problems...
+      String dumpFile = String.format(formulaDumpFilePattern,
+                               "abstraction", stats.numCallsAbstraction, "input", 0);
+      dumpFormulaToFile(f, new File(dumpFile));
 
-      // update statistics
-      int numModels = allSatResult.getCount();
-      if (numModels < Integer.MAX_VALUE) {
-        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-        stats.allSatCount += numModels;
-      }
-      long bddTime   = allSatResult.getTotalTime();
-      long solveTime = (solveEndTime - solveStartTime) - bddTime;
+      dumpFile = String.format(formulaDumpFilePattern,
+                               "abstraction", stats.numCallsAbstraction, "predDef", 0);
+      dumpFormulaToFile(predDef, new File(dumpFile));
 
-      stats.abstractionSolveTime += solveTime;
-      stats.abstractionBddTime   += bddTime;
-
-      stats.abstractionMaxBddTime =
-        Math.max(bddTime, stats.abstractionMaxBddTime);
-      stats.abstractionMaxSolveTime =
-        Math.max(solveTime, stats.abstractionMaxSolveTime);
-
-      // TODO dump hard abst
-      if (solveTime > 10000 && dumpHardAbstractions) {
-        // we want to dump "hard" problems...
-        String dumpFile = String.format(formulaDumpFilePattern,
-                                 "abstraction", stats.numCallsAbstraction, "input", 0);
-        dumpFormulaToFile(f, new File(dumpFile));
-
-        dumpFile = String.format(formulaDumpFilePattern,
-                                 "abstraction", stats.numCallsAbstraction, "predDef", 0);
-        dumpFormulaToFile(predDef, new File(dumpFile));
-
-        dumpFile = String.format(formulaDumpFilePattern,
-                                 "abstraction", stats.numCallsAbstraction, "predVars", 0);
-        printFormulasToFile(predVars, new File(dumpFile));
-      }
-      logger.log(Level.ALL, "Abstraction computed, result is", result);
+      dumpFile = String.format(formulaDumpFilePattern,
+                               "abstraction", stats.numCallsAbstraction, "predVars", 0);
+      printFormulasToFile(predVars, new File(dumpFile));
     }
 
+    AbstractFormula result = allSatResult.getResult();
+    logger.log(Level.ALL, "Abstraction computed, result is", result);
     return result;
   }
 
