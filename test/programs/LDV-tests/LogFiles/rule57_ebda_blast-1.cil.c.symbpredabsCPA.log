@@ -22,18 +22,20 @@ Analysis finished. (CPAchecker.runAlgorithm, INFO)
 CPAchecker general statistics:
 ------------------------------
 Size of reached set: 59
-Total Time Elapsed:     0.064s
-Total Time Elapsed including CFA construction:     0.466s
+Total Time Elapsed:     0.059s
+Total Time Elapsed including CFA construction:     0.539s
 
 Summary Predicate Abstraction CPA
 ---------------------------------
-Number of abstraction steps:       1 (0 cached)
-Max LBE block size:                27
-Number of abstractions:            1
-Number of satisfiability checks:   1
-Number of refinement steps:        1
+Number of abstractions:            1 (2% of all post computations)
+  Times result was 'false':        0 (0%)
+Number of strengthen sat checks:   1
+  Times result was 'false':        0 (0%)
 Number of coverage checks:         0
+  BDD entailment checks:           0
+  Symbolic coverage check:         0
 
+Max ABE block size:                       27
 Number of predicates discovered:          0
 Number of abstraction locations:          0
 Max number of predicates per location:    0
@@ -43,33 +45,27 @@ Total number of models for allsat:        1
 Max number of models for allsat:          1
 Avg number of models for allsat:          1
 
-Time for merge:                    0.000s
-Time for abstraction post:         0.002s
-  initial abstraction formula:     0.000s
-  computing abstraction:           0.002s
-    Time for All-SMT: 
-      Total:                       0.002s
-      Max:                         0.002s
-      Solving time only:           0.002s
-    Time for BDD construction: 
-      Total:                       0.000s
-      Max:                         0.000s
-    Time for coverage check: 
-      Total:                       0.000s
-      Max:                         0.000s
-Time for non-abstraction post:     0.018s
-Time for finding path formula:     0.018s
-  actual computation of PF:        0.016s
-Time for counterexample analysis/abstraction refinement: 
-  Total:                           0.011s
-  Max:                             0.011s
-  Solving time only:               0.001s
+Number of path formula cache hits:   0 (0%)
+Number of abstraction cache hits:    0 (0%)
+
+Time for post operator:                  0.019s
+  Time for path formula creation:        0.017s
+    Actual computation:                  0.016s
+  Time for abstraction:                  0.002s
+    Solving time:                        0.002s (Max:     0.002s)
+    Time for BDD construction:           0.000s (Max:     0.000s)
+Time for strengthen operator:            0.002s
+  Time for satisfiability checks:        0.001s
+Time for merge operator:                 0.000s
+Time for coverage check:                 0.000s
+Time for counterexample analysis:        0.011s (Max:     0.011s)
+  Solving time only:                     0.001s (Max:     0.001s)
 
 CEGAR algorithm
 ---------------
 Number of refinements:          1 (0 successful)
 
-Total time for CEGAR algorithm:     0.064s
+Total time for CEGAR algorithm:     0.059s
 Time for refinements:               0.018s
 Average time for refinement:        0.018s
 Time for garbage collection:        0.000s
@@ -85,11 +81,11 @@ Number of times merged:          0
 Number of times stopped:         0
 Number of times breaked:         1
 
-Total time for CPA algorithm:       0.046s
+Total time for CPA algorithm:       0.041s
 Time for choose from waitlist:      0.000s
-Time for precision adjustment:      0.003s
-Time for transfer relation:         0.030s
+Time for precision adjustment:      0.004s
+Time for transfer relation:         0.031s
 Time for merge operator:            0.000s
-Time for stop operator:             0.006s
+Time for stop operator:             0.003s
 
 Error location(s) reached? YES, there is a BUG!
