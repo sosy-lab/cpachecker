@@ -31,6 +31,7 @@ import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -153,8 +154,8 @@ public class DefUseTransferRelation implements TransferRelation
       defUseElement = defUseElement.clone ();
       MultiDeclarationEdge multiDeclarationEdge = (MultiDeclarationEdge) cfaEdge;
 
-      for (IASTDeclarator [] declarators : multiDeclarationEdge.getDeclarators ())
-        handleDeclaration (defUseElement, declarators, cfaEdge);
+      for (IASTSimpleDeclaration d : multiDeclarationEdge.getDeclarators ())
+        handleDeclaration (defUseElement, d.getDeclarators(), cfaEdge);
 
       break;
     }

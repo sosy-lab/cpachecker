@@ -23,64 +23,44 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 
-public class MultiDeclarationEdge extends AbstractCFAEdge
-{
-    private final List<IASTDeclarator[]> declarators;
-    private final List<String> rawStatements;
+public class MultiDeclarationEdge extends AbstractCFAEdge {
+  
+  private final List<IASTSimpleDeclaration> declarations;
+  private final List<String> rawStatements;
 
-    public MultiDeclarationEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
-                              List<IASTDeclarator[]> declarators,
-                              List<String> rawStatements)
-    {
-        super(rawStatement, lineNumber, predecessor, successor);
+  public MultiDeclarationEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
+                            List<IASTSimpleDeclaration> declarations,
+                            List<String> rawStatements) {
+    super(rawStatement, lineNumber, predecessor, successor);
+    this.declarations = Preconditions.checkNotNull(declarations);
+    this.rawStatements = Preconditions.checkNotNull(rawStatements);
+  }
 
-        if (declarators == null)
-            this.declarators = new ArrayList<IASTDeclarator[]> ();
-        else
-            this.declarators = declarators;
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.MultiDeclarationEdge;
+  }
 
-        if (rawStatements == null)
-            this.rawStatements = new ArrayList<String> ();
-        else
-            this.rawStatements = rawStatements;
-    }
+  public List<IASTSimpleDeclaration> getDeclarators() {
+    return declarations;
+  }
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.MultiDeclarationEdge;
-    }
+  public List<String> getRawStatements() {
+    return rawStatements;
+  }
 
-    public List<IASTDeclarator[]> getDeclarators ()
-    {
-        return declarators;
-    }
-
-    public List<String> getRawStatements ()
-    {
-        return rawStatements;
-    }
-
-    @Override
-    public String getRawStatement ()
-    {
-        StringBuilder builder = new StringBuilder ();
-
-        for (String sig : rawStatements)
-        {
-            builder.append (sig).append ("\\n");
-        }
-
-        return builder.toString ();
-    }
+  @Override
+  public String getRawStatement() {
+    return Joiner.on('\n').join(rawStatements);
+  }
 }
