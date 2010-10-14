@@ -52,6 +52,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IBinding;
@@ -72,7 +73,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -303,10 +304,21 @@ public class CtoFormulaConverter {
     }
 
     case DeclarationEdge: {
-      edgeFormula = makeDeclaration((DeclarationEdge)edge, function, ssa);
+      DeclarationEdge d = (DeclarationEdge)edge;
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), d.isGlobal(), edge, function, ssa);
       break;
     }
 
+    case MultiDeclarationEdge: {
+      MultiDeclarationEdge md = (MultiDeclarationEdge)edge;
+      edgeFormula = smgr.makeTrue();
+      for (IASTSimpleDeclaration d : md.getDeclarators()) {
+        edgeFormula = smgr.makeAnd(edgeFormula,
+            makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), md.isGlobal(), edge, function, ssa));
+      }
+      break;
+    }
+    
     case AssumeEdge: {
       branchingCounter++;
       Pair<SymbolicFormula, SymbolicFormula> pair
@@ -351,12 +363,9 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newLength, reachingPathsFormula, branchingCounter);
   }
 
-  private SymbolicFormula makeDeclaration(DeclarationEdge declarationEdge,
+  private SymbolicFormula makeDeclaration(IASTDeclSpecifier spec,
+      IASTDeclarator[] declarators, boolean isGlobal, CFAEdge edge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
-
-    IASTDeclSpecifier spec = declarationEdge.getDeclSpecifier();
-
-    boolean isGlobal = declarationEdge instanceof GlobalDeclarationEdge;
 
     if (spec instanceof IASTEnumerationSpecifier) {
       // extract the fields, and add them as global variables
@@ -396,7 +405,7 @@ public class CtoFormulaConverter {
       }
   
       SymbolicFormula result = smgr.makeTrue();
-      for (IASTDeclarator d : declarationEdge.getDeclarators()) {
+      for (IASTDeclarator d : declarators) {
         if (d instanceof IASTFunctionDeclarator) {
           // ignore function declarations here
           continue;
@@ -464,7 +473,7 @@ public class CtoFormulaConverter {
       return result;
 
     } else { 
-      throw new UnrecognizedCFAEdgeException(declarationEdge);
+      throw new UnrecognizedCFAEdgeException(edge);
     }
   }
 

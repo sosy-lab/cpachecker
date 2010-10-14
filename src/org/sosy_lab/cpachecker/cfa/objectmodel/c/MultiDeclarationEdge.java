@@ -37,13 +37,16 @@ public class MultiDeclarationEdge extends AbstractCFAEdge {
   
   private final List<IASTSimpleDeclaration> declarations;
   private final List<String> rawStatements;
+  private final boolean isGlobal;
 
   public MultiDeclarationEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
                             List<IASTSimpleDeclaration> declarations,
-                            List<String> rawStatements) {
+                            List<String> rawStatements,
+                            boolean isGlobal) {
     super(rawStatement, lineNumber, predecessor, successor);
     this.declarations = Preconditions.checkNotNull(declarations);
     this.rawStatements = Preconditions.checkNotNull(rawStatements);
+    this.isGlobal = isGlobal;
   }
 
   @Override
@@ -62,5 +65,9 @@ public class MultiDeclarationEdge extends AbstractCFAEdge {
   @Override
   public String getRawStatement() {
     return Joiner.on('\n').join(rawStatements);
+  }
+  
+  public boolean isGlobal() {
+    return isGlobal;
   }
 }

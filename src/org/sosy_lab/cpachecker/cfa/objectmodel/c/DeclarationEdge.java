@@ -58,4 +58,8 @@ public class DeclarationEdge extends AbstractCFAEdge {
   public IASTSimpleDeclaration getRawAST() {
     return declaration;
   }
+  
+  public boolean isGlobal() {
+    return false;
+  }
 }
