@@ -27,12 +27,15 @@ Analysis finished. (CPAchecker.runAlgorithm, INFO)
 CPAchecker general statistics:
 ------------------------------
 Size of reached set: 110
-Total Time Elapsed:     0.315s
-Total Time Elapsed including CFA construction:     1.747s
+Total Time Elapsed:     0.247s
+Total Time Elapsed including CFA construction:     1.152s
 
 Summary Predicate Abstraction CPA
 ---------------------------------
 Number of abstractions:            63 (20% of all post computations)
+  Because of function entry/exit:  63 (100%)
+  Because of loop head:            0 (0%)
+  Because of threshold:            0 (0%)
   Times result was 'false':        0 (0%)
 Number of strengthen sat checks:   16
   Times result was 'false':        12 (75%)
@@ -53,26 +56,26 @@ Avg number of models for allsat:          2
 Number of path formula cache hits:   189 (59%)
 Number of abstraction cache hits:    4 (6%)
 
-Time for post operator:                  0.139s
-  Time for path formula creation:        0.059s
-    Actual computation:                  0.042s
-  Time for abstraction:                  0.077s
-    Solving time:                        0.053s (Max:     0.013s)
-    Time for BDD construction:           0.006s (Max:     0.001s)
-Time for strengthen operator:            0.010s
+Time for post operator:                  0.114s
+  Time for path formula creation:        0.037s
+    Actual computation:                  0.029s
+  Time for abstraction:                  0.074s
+    Solving time:                        0.053s (Max:     0.008s)
+    Time for BDD construction:           0.005s (Max:     0.001s)
+Time for strengthen operator:            0.008s
   Time for satisfiability checks:        0.007s
-Time for merge operator:                 0.006s
+Time for merge operator:                 0.009s
 Time for coverage check:                 0.000s
-Time for counterexample analysis:        0.025s (Max:     0.010s)
-  Solving time only:                     0.016s (Max:     0.007s)
+Time for counterexample analysis:        0.019s (Max:     0.007s)
+  Solving time only:                     0.014s (Max:     0.006s)
 
 CEGAR algorithm
 ---------------
 Number of refinements:          4 (4 successful)
 
-Total time for CEGAR algorithm:     0.315s
-Time for refinements:               0.056s
-Average time for refinement:        0.014s
+Total time for CEGAR algorithm:     0.247s
+Time for refinements:               0.037s
+Average time for refinement:        0.009s
 Time for garbage collection:        0.000s
 
 CPA algorithm
@@ -86,11 +89,11 @@ Number of times merged:          16
 Number of times stopped:         16
 Number of times breaked:         4
 
-Total time for CPA algorithm:       0.259s
-Time for choose from waitlist:      0.002s
-Time for precision adjustment:      0.025s
-Time for transfer relation:         0.197s
-Time for merge operator:            0.008s
-Time for stop operator:             0.005s
+Total time for CPA algorithm:       0.209s
+Time for choose from waitlist:      0.004s
+Time for precision adjustment:      0.009s
+Time for transfer relation:         0.161s
+Time for merge operator:            0.010s
+Time for stop operator:             0.006s
 
 Error location(s) reached? NO, the system is considered safe by the chosen CPAs
