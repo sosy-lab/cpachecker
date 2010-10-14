@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -298,11 +299,22 @@ public class CtoFormulaConverter {
           edgeFormula = makeReturn(statementEdge, function, ssa);
         }
       } else {
-        edgeFormula = makeStatement(statementEdge, function, ssa);
+        edgeFormula = makeStatement(statementEdge.getExpression(), function, ssa);
       }
       break;
     }
 
+    case MultiStatementEdge: {
+      MultiStatementEdge ms = (MultiStatementEdge)edge;
+      edgeFormula = smgr.makeTrue();
+      for (IASTExpression e : ms.getExpressions()) {
+        edgeFormula = smgr.makeAnd(edgeFormula,
+          edgeFormula = makeStatement(e, function, ssa));
+      }
+      
+      break;
+    }
+    
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
       edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), d.isGlobal(), edge, function, ssa);
@@ -569,10 +581,8 @@ public class CtoFormulaConverter {
     throw new UnrecognizedCFAEdgeException(edge);
   }
 
-  private SymbolicFormula makeStatement(StatementEdge stmt, String function,
+  private SymbolicFormula makeStatement(IASTExpression expr, String function,
       SSAMapBuilder ssa) throws CPATransferException {
-
-    IASTExpression expr = stmt.getExpression();
 
     SymbolicFormula f = buildTerm(expr, function, ssa);
 
@@ -587,7 +597,7 @@ public class CtoFormulaConverter {
       // don't log here to avoid warning about cases like printf() 
       if (!(expr instanceof IASTFunctionCallExpression)) {
         log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
-                        stmt.getExpression());
+                        expr);
       }
       return smgr.makeTrue();
     }
