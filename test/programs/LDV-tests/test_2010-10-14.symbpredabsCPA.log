@@ -1,0 +1,35 @@
+INSTANCE                                                           	    TIME	OUTCOME		Reached	Refinements	Abstractions		Blocksize
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+test/programs/LDV-tests/cil.c-files/1_3_BUG.cil.c                  	   0.438	UNSAFE         	33     	1              	5                     	7
+test/programs/LDV-tests/cil.c-files/alt_test_BUG.cil.c             	   0.486	UNSAFE         	47     	2              	8                     	8
+test/programs/LDV-tests/cil.c-files/callfpointer_BUG.cil.c         	   0.493	SAFE           	11     	0              	2                     	3
+test/programs/LDV-tests/cil.c-files/ex3_forlist.cil.c              	   0.777	UNSAFE         	176    	5              	140                   	9
+test/programs/LDV-tests/cil.c-files/fo_test_BUG.cil.c              	   0.567	UNSAFE         	42     	1              	3                     	10
+test/programs/LDV-tests/cil.c-files/nested_structure.cil.c         	   0.489	SAFE           	21     	0              	0                     	0
+test/programs/LDV-tests/cil.c-files/nested_structure_noptr.cil.c   	   0.453	SAFE           	17     	0              	0                     	0
+test/programs/LDV-tests/cil.c-files/nested_structure_ptr.cil.c     	   0.426	SAFE           	23     	0              	0                     	0
+test/programs/LDV-tests/cil.c-files/oomInt-1.cil.c                 	   0.504	SAFE           	21     	1              	6                     	3
+test/programs/LDV-tests/cil.c-files/oomInt-2.cil.c                 	   0.449	SAFE           	24     	1              	10                    	3
+test/programs/LDV-tests/cil.c-files/palias.cil.c                   	   0.420	UNSAFE         	13     	1              	0                     	7
+test/programs/LDV-tests/cil.c-files/rule57_ebda_blast-1.cil.c      	   0.539	UNSAFE         	59     	1              	1                     	27
+test/programs/LDV-tests/cil.c-files/rule57_ebda_blast-2_BUG.cil.c  	   0.558	UNSAFE         	59     	1              	1                     	27
+test/programs/LDV-tests/cil.c-files/rule60_list.cil.c              	   0.422	UNSAFE         	23     	1              	1                     	10
+test/programs/LDV-tests/cil.c-files/rule60_list2-1_BUG.cil.c       	      -1	ABORTED (probably by Mathsat)
+test/programs/LDV-tests/cil.c-files/rule60_list2-2.cil.c           	   1.747	SAFE           	110    	4              	63                    	10
+test/programs/LDV-tests/cil.c-files/sizeofparameters_test_BUG.cil.c	   0.339	UNSAFE         	15     	1              	1                     	6
+test/programs/LDV-tests/cil.c-files/structure_assignment.cil.c     	   0.488	UNSAFE         	15     	1              	0                     	7
+test/programs/LDV-tests/cil.c-files/test_address.cil.c             	   0.439	UNSAFE         	15     	1              	2                     	4
+test/programs/LDV-tests/cil.c-files/test_fieldaddr.cil.c           	   0.561	UNSAFE         	72     	3              	17                    	6
+test/programs/LDV-tests/cil.c-files/test_kzalloc-1.cil.c           	   0.431	UNSAFE         	16     	1              	0                     	7
+test/programs/LDV-tests/cil.c-files/test_kzalloc-2_BUG.cil.c       	   0.500	UNSAFE         	16     	1              	0                     	7
+test/programs/LDV-tests/cil.c-files/test_malloc-1.cil.c            	   0.433	UNSAFE         	25     	1              	0                     	13
+test/programs/LDV-tests/cil.c-files/test_malloc-2.cil.c            	   0.438	UNSAFE         	21     	1              	0                     	11
+test/programs/LDV-tests/cil.c-files/test_malloc_warn_BUG.cil.c     	   0.270	UNSAFE         	17     	1              	0                     	7
+test/programs/LDV-tests/cil.c-files/test_overflow_BUG.cil.c        	   0.352	UNSAFE         	25     	1              	2                     	5
+test/programs/LDV-tests/cil.c-files/test_union-1.cil.c             	   0.380	UNSAFE         	12     	1              	0                     	5
+test/programs/LDV-tests/cil.c-files/test_union-2.cil.c             	   0.395	SAFE           	13     	0              	0                     	0
+test/programs/LDV-tests/cil.c-files/test_union_cast-1.cil.c        	   0.487	SAFE           	14     	0              	0                     	0
+test/programs/LDV-tests/cil.c-files/test_union_cast-2.cil.c        	   0.426	SAFE           	14     	0              	0                     	0
+test/programs/LDV-tests/cil.c-files/test_while_int-1_BUG.cil.c     	   0.421	UNSAFE         	41     	3              	6                     	4
+test/programs/LDV-tests/cil.c-files/test_while_int-2_BUG.cil.c     	   0.488	UNSAFE         	51     	3              	15                    	4
+test/programs/LDV-tests/cil.c-files/volatile_alias.cil.c           	   0.508	UNSAFE         	16     	1              	0                     	9

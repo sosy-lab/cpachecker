@@ -20,5 +20,5 @@ CIL was called with:
 "cilly" is not "cilly.asm.exe"!
 -----------------------------------------------------------------
 
-If there was the expression "int CURRENTLY_UNSAFE" in a file, 
+If there is the expression "int VERDICT_UNSAFE" in a file, 
 the file is named "*_BUG.cil.c".
