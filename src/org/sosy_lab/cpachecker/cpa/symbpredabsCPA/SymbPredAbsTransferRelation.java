@@ -302,7 +302,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
             || (succLoc.getEnteringSummaryEdge() != null); // function return edge
       if (function) {
         result = true;
-        numBlkFunctions++;
+        numBlkLoops++;
       }
     }
     
