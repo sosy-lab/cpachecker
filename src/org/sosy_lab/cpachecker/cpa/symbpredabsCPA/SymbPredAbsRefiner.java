@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
@@ -87,6 +88,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
+  private List<CFANode> lastErrorPath = null;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -180,6 +182,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     ARTElement firstInterpolationARTElement = null;
     boolean newPredicatesFound = false;
     
+    List<CFANode> absLocations = new ArrayList<CFANode>(pArtPath.size());
     ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
@@ -191,6 +194,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       SymbPredAbsAbstractElement e = pPath.get(i);
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       CFANode loc = ae.retrieveLocationElement().getLocationNode();
+      absLocations.add(loc);
       
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
@@ -232,6 +236,10 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       root = firstInterpolationARTElement;
 
     } else {
+      if (absLocations.equals(lastErrorPath)) {
+        throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
+      }
+      
       CFANode loc = firstInterpolationARTElement.retrieveLocationElement().getLocationNode();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
@@ -248,6 +256,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         throw new CPAException("Inconsistent ART, did not find element for " + loc);
       }
     }
+    lastErrorPath = absLocations;
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
 
