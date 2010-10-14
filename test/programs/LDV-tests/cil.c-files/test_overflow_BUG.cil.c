@@ -12,15 +12,15 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 5 "./test_overflow.c"
+#line 5 "test_overflow_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 7 "./test_overflow.c"
+#line 7 "test_overflow_BUG.c"
 int CURRENTLY_UNSAFE  ;
 #line 9
 ssize_t getService(void) ;
-#line 10 "./test_overflow.c"
+#line 10 "test_overflow_BUG.c"
 int globalSize  ;
-#line 12 "./test_overflow.c"
+#line 12 "test_overflow_BUG.c"
 int main(int argc , char **argv ) 
 { int retVal ;
   ssize_t tmp ;
@@ -38,7 +38,7 @@ int main(int argc , char **argv )
   } else {
     {
 #line 16
-    __assert_fail("sizeof(retVal)==globalSize", "./test_overflow.c", 16U, "main");
+    __assert_fail("sizeof(retVal)==globalSize", "test_overflow_BUG.c", 16U, "main");
     }
   }
   {
@@ -49,7 +49,7 @@ int main(int argc , char **argv )
   return (0);
 }
 }
-#line 22 "./test_overflow.c"
+#line 22 "test_overflow_BUG.c"
 ssize_t getService(void) 
 { ssize_t localVar ;
 

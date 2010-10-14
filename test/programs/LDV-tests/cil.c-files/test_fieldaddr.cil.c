@@ -3,15 +3,15 @@
 
 #line 211 "/usr/lib64/gcc/x86_64-suse-linux/4.5/include/stddef.h"
 typedef unsigned long size_t;
-#line 9 "./test_fieldaddr_BUG.c"
+#line 9 "test_fieldaddr.c"
 struct list_head {
 
 };
-#line 22 "./test_fieldaddr_BUG.c"
+#line 22 "test_fieldaddr.c"
 struct drm_device {
    struct list_head vmalist ;
 };
-#line 26 "./test_fieldaddr_BUG.c"
+#line 26 "test_fieldaddr.c"
 struct drm_vma_entry {
    struct list_head head ;
 };
@@ -22,15 +22,15 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__function ) ;
 #line 51 "/usr/include/malloc.h"
 extern  __attribute__((__nothrow__)) void *malloc(size_t __size )  __attribute__((__malloc__)) ;
-#line 4 "./test_fieldaddr_BUG.c"
+#line 4 "test_fieldaddr.c"
 int VERDICT_SAFE  ;
-#line 5 "./test_fieldaddr_BUG.c"
+#line 5 "test_fieldaddr.c"
 int CURRENTLY_UNSAFE  ;
 #line 7
 extern int undef_int(void) ;
-#line 12 "./test_fieldaddr_BUG.c"
+#line 12 "test_fieldaddr.c"
 struct list_head *elem  =    (struct list_head *)((void *)0);
-#line 14 "./test_fieldaddr_BUG.c"
+#line 14 "test_fieldaddr.c"
 void list_add(struct list_head *new , struct list_head *head ) 
 { int tmp ;
 
@@ -43,7 +43,7 @@ void list_add(struct list_head *new , struct list_head *head )
     } else {
       {
 #line 16
-      __assert_fail("new!=elem", "./test_fieldaddr_BUG.c", 16U, "list_add");
+      __assert_fail("new!=elem", "test_fieldaddr.c", 16U, "list_add");
       }
     }
     {
@@ -64,7 +64,7 @@ void list_add(struct list_head *new , struct list_head *head )
   return;
 }
 }
-#line 30 "./test_fieldaddr_BUG.c"
+#line 30 "test_fieldaddr.c"
 void drm_vm_open_locked(struct drm_device *dev ) 
 { struct drm_vma_entry *vma_entry ;
   void *tmp ;
@@ -89,7 +89,7 @@ void drm_vm_open_locked(struct drm_device *dev )
   return;
 }
 }
-#line 41 "./test_fieldaddr_BUG.c"
+#line 41 "test_fieldaddr.c"
 int main(void) 
 { struct drm_device dev ;
 

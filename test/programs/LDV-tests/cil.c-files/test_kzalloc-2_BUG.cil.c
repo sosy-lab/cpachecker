@@ -3,7 +3,7 @@
 
 #line 211 "/usr/lib64/gcc/x86_64-suse-linux/4.5/include/stddef.h"
 typedef unsigned long size_t;
-#line 18 "./test_kzalloc-2_BUG.c"
+#line 18 "test_kzalloc-2_BUG.c"
 struct A {
    int *a ;
    int *b ;
@@ -15,11 +15,11 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__function ) ;
 #line 471 "/usr/include/stdlib.h"
 extern  __attribute__((__nothrow__)) void *malloc(size_t __size )  __attribute__((__malloc__)) ;
-#line 11 "./test_kzalloc-2_BUG.c"
+#line 11 "test_kzalloc-2_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 12 "./test_kzalloc-2_BUG.c"
+#line 12 "test_kzalloc-2_BUG.c"
 int CURRENTLY_UNSAFE  ;
-#line 23 "./test_kzalloc-2_BUG.c"
+#line 23 "test_kzalloc-2_BUG.c"
 int main(void) 
 { struct A *x ;
   void *tmp ;
@@ -37,7 +37,7 @@ int main(void)
   } else {
     {
 #line 32
-    __assert_fail("x->a == 0", "./test_kzalloc-2_BUG.c", 32U, "main");
+    __assert_fail("x->a == 0", "test_kzalloc-2_BUG.c", 32U, "main");
     }
   }
 #line 33

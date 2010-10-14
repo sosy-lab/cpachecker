@@ -6,11 +6,11 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 20 "./oomInt-1.c"
+#line 20 "oomInt-1.c"
 int VERDICT_SAFE  ;
-#line 21 "./oomInt-1.c"
+#line 21 "oomInt-1.c"
 int CURRENTLY_SAFE  ;
-#line 30 "./oomInt-1.c"
+#line 30 "oomInt-1.c"
 int abs_int(int i ) 
 { 
 
@@ -25,9 +25,9 @@ int abs_int(int i )
   }
 }
 }
-#line 40 "./oomInt-1.c"
+#line 40 "oomInt-1.c"
 int p  =    0;
-#line 41 "./oomInt-1.c"
+#line 41 "oomInt-1.c"
 void firstFunction(void) 
 { 
 
@@ -42,14 +42,14 @@ void firstFunction(void)
   } else {
     {
 #line 44
-    __assert_fail("p >= 0", "./oomInt-1.c", 44U, "firstFunction");
+    __assert_fail("p >= 0", "oomInt-1.c", 44U, "firstFunction");
     }
   }
 #line 45
   return;
 }
 }
-#line 47 "./oomInt-1.c"
+#line 47 "oomInt-1.c"
 void main(void) 
 { 
 

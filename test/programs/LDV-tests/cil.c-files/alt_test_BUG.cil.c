@@ -12,17 +12,17 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 5 "./alt_test_BUG.c"
+#line 5 "alt_test_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 6 "./alt_test_BUG.c"
+#line 6 "alt_test_BUG.c"
 int CURRENTLY_UNSAFE  ;
-#line 8 "./alt_test_BUG.c"
+#line 8 "alt_test_BUG.c"
 int globalState  =    0;
 #line 9
 void *l_malloc(int size ) ;
 #line 10
 void l_free(void *ptr ) ;
-#line 12 "./alt_test_BUG.c"
+#line 12 "alt_test_BUG.c"
 int main(int argc , char **argv ) 
 { int *a ;
   void *tmp ;
@@ -42,7 +42,7 @@ int main(int argc , char **argv )
   return (0);
 }
 }
-#line 20 "./alt_test_BUG.c"
+#line 20 "alt_test_BUG.c"
 void *l_malloc(int size ) 
 { void *retVal ;
   void *tmp ;
@@ -65,7 +65,7 @@ void *l_malloc(int size )
   return (retVal);
 }
 }
-#line 27 "./alt_test_BUG.c"
+#line 27 "alt_test_BUG.c"
 void l_free(void *ptr ) 
 { 
 
@@ -78,7 +78,7 @@ void l_free(void *ptr )
     } else {
       {
 #line 31
-      __assert_fail("globalState == 1", "./alt_test_BUG.c", 31U, "l_free");
+      __assert_fail("globalState == 1", "alt_test_BUG.c", 31U, "l_free");
       }
     }
   } else {

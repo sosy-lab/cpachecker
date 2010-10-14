@@ -3,7 +3,7 @@
 
 #line 211 "/usr/lib64/gcc/x86_64-suse-linux/4.5/include/stddef.h"
 typedef unsigned long size_t;
-#line 8 "./test_malloc_warn_BUG.c"
+#line 8 "test_malloc_warn_BUG.c"
 struct miniStruct {
    int a ;
    int b ;
@@ -17,11 +17,11 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 5 "./test_malloc_warn_BUG.c"
+#line 5 "test_malloc_warn_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 6 "./test_malloc_warn_BUG.c"
+#line 6 "test_malloc_warn_BUG.c"
 int CURRENTLY_UNSAFE  ;
-#line 13 "./test_malloc_warn_BUG.c"
+#line 13 "test_malloc_warn_BUG.c"
 int main(int argc , char **argv ) 
 { struct miniStruct *minis ;
   void *tmp ;
@@ -39,7 +39,7 @@ int main(int argc , char **argv )
   } else {
     {
 #line 17
-    __assert_fail("sizeof(minis) == sizeof(struct minis)", "./test_malloc_warn_BUG.c",
+    __assert_fail("sizeof(minis) == sizeof(struct minis)", "test_malloc_warn_BUG.c",
                   17U, "main");
     }
   }

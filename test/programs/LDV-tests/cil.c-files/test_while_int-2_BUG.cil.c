@@ -6,11 +6,11 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 8 "./test_while_int-2_BUG.c"
+#line 8 "test_while_int-2_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 9 "./test_while_int-2_BUG.c"
+#line 9 "test_while_int-2_BUG.c"
 int CURRENTLY_UNSAFE  ;
-#line 12 "./test_while_int-2_BUG.c"
+#line 12 "test_while_int-2_BUG.c"
 void check_error(int b ) 
 { 
 
@@ -21,14 +21,14 @@ void check_error(int b )
   } else {
     {
 #line 13
-    __assert_fail("b", "./test_while_int-2_BUG.c", 13U, "check_error");
+    __assert_fail("b", "test_while_int-2_BUG.c", 13U, "check_error");
     }
   }
 #line 14
   return;
 }
 }
-#line 17 "./test_while_int-2_BUG.c"
+#line 17 "test_while_int-2_BUG.c"
 int main(void) 
 { int i ;
 

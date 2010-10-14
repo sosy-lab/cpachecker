@@ -6,15 +6,15 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 10 "./ex3_forlist_BUG.c"
+#line 10 "ex3_forlist.c"
 int VERDICT_SAFE  ;
-#line 11 "./ex3_forlist_BUG.c"
+#line 11 "ex3_forlist.c"
 int CURRENTLY_UNSAFE  ;
-#line 15 "./ex3_forlist_BUG.c"
+#line 15 "ex3_forlist.c"
 void *pp[2]  ;
-#line 16 "./ex3_forlist_BUG.c"
+#line 16 "ex3_forlist.c"
 int pstate[2]  ;
-#line 18 "./ex3_forlist_BUG.c"
+#line 18 "ex3_forlist.c"
 void init(void) 
 { int i ;
 
@@ -44,7 +44,7 @@ void init(void)
   return;
 }
 }
-#line 26 "./ex3_forlist_BUG.c"
+#line 26 "ex3_forlist.c"
 void f(void *pointer ) 
 { int i ;
 
@@ -80,7 +80,7 @@ void f(void *pointer )
   return;
 }
 }
-#line 37 "./ex3_forlist_BUG.c"
+#line 37 "ex3_forlist.c"
 void g(void *pointer ) 
 { int i ;
 
@@ -105,7 +105,7 @@ void g(void *pointer )
       } else {
         {
 #line 42
-        __assert_fail("pstate[i]==1", "./ex3_forlist_BUG.c", 42U, "g");
+        __assert_fail("pstate[i]==1", "ex3_forlist.c", 42U, "g");
         }
       }
 #line 43
@@ -122,9 +122,9 @@ void g(void *pointer )
   return;
 }
 }
-#line 50 "./ex3_forlist_BUG.c"
+#line 50 "ex3_forlist.c"
 int counter  =    1;
-#line 51 "./ex3_forlist_BUG.c"
+#line 51 "ex3_forlist.c"
 void *malloc(int size ) 
 { int tmp ;
 
@@ -137,7 +137,7 @@ void *malloc(int size )
   return ((void *)tmp);
 }
 }
-#line 56 "./ex3_forlist_BUG.c"
+#line 56 "ex3_forlist.c"
 int main(void) 
 { int *a ;
   int *b ;

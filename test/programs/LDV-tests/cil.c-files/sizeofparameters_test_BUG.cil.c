@@ -6,15 +6,15 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 4 "./sizeofparameters_test_BUG.c"
+#line 4 "sizeofparameters_test_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 5 "./sizeofparameters_test_BUG.c"
+#line 5 "sizeofparameters_test_BUG.c"
 int CURRENTLY_UNSAFE  ;
 #line 7
 void foo(int a ) ;
-#line 9 "./sizeofparameters_test_BUG.c"
+#line 9 "sizeofparameters_test_BUG.c"
 int globalSize  ;
-#line 11 "./sizeofparameters_test_BUG.c"
+#line 11 "sizeofparameters_test_BUG.c"
 int main(int argc , char **argv ) 
 { long a ;
 
@@ -29,7 +29,7 @@ int main(int argc , char **argv )
   return (0);
 }
 }
-#line 19 "./sizeofparameters_test_BUG.c"
+#line 19 "sizeofparameters_test_BUG.c"
 void foo(int a ) 
 { 
 
@@ -40,7 +40,7 @@ void foo(int a )
   } else {
     {
 #line 20
-    __assert_fail("sizeof(a)==globalSize", "./sizeofparameters_test_BUG.c", 20U, "foo");
+    __assert_fail("sizeof(a)==globalSize", "sizeofparameters_test_BUG.c", 20U, "foo");
     }
   }
 #line 21

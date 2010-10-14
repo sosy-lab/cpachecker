@@ -16,17 +16,17 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__function ) ;
 #line 85 "/usr/include/fcntl.h"
 extern int open(char const   *__file , int __oflag  , ...)  __attribute__((__nonnull__(1))) ;
-#line 7 "./fo_test.c"
+#line 7 "fo_test_BUG.c"
 int VERDICT_UNSAFE  ;
-#line 8 "./fo_test.c"
+#line 8 "fo_test_BUG.c"
 int CURRENTLY_UNSAFE  ;
-#line 10 "./fo_test.c"
+#line 10 "fo_test_BUG.c"
 int globalState  =    0;
 #line 11
 ssize_t l_read(int fd , char *cbuf , size_t count ) ;
 #line 12
 int l_open(char *file , int flags ) ;
-#line 14 "./fo_test.c"
+#line 14 "fo_test_BUG.c"
 int main(int argc , char **argv ) 
 { int file ;
   int tmp ;
@@ -56,7 +56,7 @@ int main(int argc , char **argv )
 }
 #line 24
 extern int ( /* missing proto */  read)() ;
-#line 22 "./fo_test.c"
+#line 22 "fo_test_BUG.c"
 ssize_t l_read(int fd , char *cbuf , size_t count ) 
 { int tmp ;
 
@@ -67,7 +67,7 @@ ssize_t l_read(int fd , char *cbuf , size_t count )
   } else {
     {
 #line 23
-    __assert_fail("globalState == 1", "./fo_test.c", 23U, "l_read");
+    __assert_fail("globalState == 1", "fo_test_BUG.c", 23U, "l_read");
     }
   }
   {
@@ -78,7 +78,7 @@ ssize_t l_read(int fd , char *cbuf , size_t count )
   return ((long )tmp);
 }
 }
-#line 27 "./fo_test.c"
+#line 27 "fo_test_BUG.c"
 int l_open(char *file , int flags ) 
 { int fd ;
   int tmp ;

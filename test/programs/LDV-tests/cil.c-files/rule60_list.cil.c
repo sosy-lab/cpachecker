@@ -3,7 +3,7 @@
 
 #line 211 "/usr/lib64/gcc/x86_64-suse-linux/4.5/include/stddef.h"
 typedef unsigned long size_t;
-#line 9 "./rule60_list.c"
+#line 9 "rule60_list.c"
 struct list_head {
    struct list_head *prev ;
    struct list_head *next ;
@@ -16,11 +16,11 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__function ) ;
 #line 51 "/usr/include/malloc.h"
 extern  __attribute__((__nothrow__)) void *malloc(size_t __size )  __attribute__((__malloc__)) ;
-#line 6 "./rule60_list.c"
+#line 6 "rule60_list.c"
 int VERDICT_SAFE  ;
-#line 7 "./rule60_list.c"
+#line 7 "rule60_list.c"
 int CURRENTLY_SAFE  ;
-#line 14 "./rule60_list.c"
+#line 14 "rule60_list.c"
 static void list_add(struct list_head *new , struct list_head *head ) 
 { 
 
@@ -31,7 +31,7 @@ static void list_add(struct list_head *new , struct list_head *head )
   } else {
     {
 #line 15
-    __assert_fail("new->inserted==0", "./rule60_list.c", 15U, "list_add");
+    __assert_fail("new->inserted==0", "rule60_list.c", 15U, "list_add");
     }
   }
 #line 16
@@ -40,7 +40,7 @@ static void list_add(struct list_head *new , struct list_head *head )
   return;
 }
 }
-#line 19 "./rule60_list.c"
+#line 19 "rule60_list.c"
 static void list_del(struct list_head *entry ) 
 { 
 
@@ -51,7 +51,7 @@ static void list_del(struct list_head *entry )
   } else {
     {
 #line 20
-    __assert_fail("entry->inserted==1", "./rule60_list.c", 20U, "list_del");
+    __assert_fail("entry->inserted==1", "rule60_list.c", 20U, "list_del");
     }
   }
 #line 21
@@ -60,9 +60,9 @@ static void list_del(struct list_head *entry )
   return;
 }
 }
-#line 24 "./rule60_list.c"
+#line 24 "rule60_list.c"
 static struct list_head head  ;
-#line 26 "./rule60_list.c"
+#line 26 "rule60_list.c"
 int main(void) 
 { struct list_head *dev ;
   void *tmp ;
