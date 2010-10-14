@@ -1,3 +1,7 @@
+INFO: used test-sets: 
+"LDV-tests.set" for all files, "LDV-tests_rule.set" for all rule*-files
+
+
 INSTANCE                       	CPAchecker     	Blast          	right?
 --------------------------------------------------------------------------------------
 1_3_BUG.cil.c                  	UNSAFE         	SAFE           	<--
@@ -11,7 +15,7 @@ nested_structure_ptr.cil.c     	SAFE           	               	<--
 oomInt-1.cil.c                 	SAFE           	SAFE           	x
 oomInt-2.cil.c                 	SAFE           	               	<--
 palias.cil.c                   	UNSAFE         	UNSAFE         	none
-rule57_ebda_blast-1.cil.c      	UNSAFE         	SAFE           	----->
+rule57_ebda_blast-1.cil.c      	SAFE           	SAFE           	x
 rule57_ebda_blast-2_BUG.cil.c  	UNSAFE         	UNSAFE         	x
 rule60_list.cil.c              	UNSAFE         	SAFE           	----->
 rule60_list2-1_BUG.cil.c       	ABORTED        	UNSAFE         	----->
