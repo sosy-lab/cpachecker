@@ -665,10 +665,9 @@ public class CtoFormulaConverter {
           assert (exp.getRawSignature().length() == 3);
           n = exp.getRawSignature().charAt(1);
         }
-        num = "" + n;
-
+        return smgr.makeNumber("" + n);
       }
-      break;
+
       case IASTLiteralExpression.lk_string_literal: {
         // we create a string constant representing the given
         // string literal
@@ -769,6 +768,7 @@ public class CtoFormulaConverter {
         return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
       }
       }
+
     } else if (exp instanceof IASTBinaryExpression) {
       int op = ((IASTBinaryExpression)exp).getOperator();
       IASTExpression e1 = ((IASTBinaryExpression)exp).getOperand1();
@@ -865,8 +865,9 @@ public class CtoFormulaConverter {
           return smgr.makeShiftLeft(me1, me2);
         case IASTBinaryExpression.op_shiftRight:
           return smgr.makeShiftRight(me1, me2);
+        default:
+          throw new AssertionError("Missing switch case");
         }
-        break;
       }
 
       default:
@@ -876,6 +877,7 @@ public class CtoFormulaConverter {
         SymbolicFormula ftmp = makePredicate(exp, true, function, ssa);
         return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
       }
+
     } else if (exp instanceof IASTFieldReference) {
       if (lvalsAsUif) {
         IASTFieldReference fexp = (IASTFieldReference)exp;
@@ -920,9 +922,10 @@ public class CtoFormulaConverter {
         IASTTypeIdExpression.op_sizeof);
       warnUnsafeVar(exp);
       return makeVariable(exprToVarName(exp), function, ssa);
+
+    } else {
+      throw new UnrecognizedCCodeException("Unknown expression", null, exp);
     }
-    
-    throw new UnrecognizedCCodeException("Unknown expression", null, exp);
   }
 
   private SymbolicFormula buildLvalueTerm(IASTExpression exp,
@@ -1000,8 +1003,10 @@ public class CtoFormulaConverter {
       int idx = makeLvalIndex(ufname, args, ssa);
 
       return smgr.makeUIF(ufname, args, idx);
+
+    } else {
+      throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
     }
-    throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
   }
 
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
