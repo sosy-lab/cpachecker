@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 public abstract class AbstractARTBasedRefiner implements Refiner {
 
@@ -99,7 +100,19 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
     assert seenCounterexamples.add(path);
 
-    boolean result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+    boolean result;
+    try {
+      result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+    } catch (RefinementFailedException e) {
+      if (e.getErrorPath() == null) {
+        e.setErrorPath(path);
+      }
+      
+      // set the path from the exception as the target path
+      // so it can be used for debugging
+      mArtCpa.setTargetPath(e.getErrorPath());
+      throw e;
+    }
 
     assert checkART(pReached);
 
