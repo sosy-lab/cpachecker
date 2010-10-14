@@ -223,7 +223,7 @@
 
             function zoom()
             {
-			  graph = window.frames[activeWindow].document.getElementById('graph0');
+			  graph = window.frames[activeWindow].document.getElementsByClassName("graph")[0];
 
 			  transforms = graph.getAttribute("transform").split(" ");
 
