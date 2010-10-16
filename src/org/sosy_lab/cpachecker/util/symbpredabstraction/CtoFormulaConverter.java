@@ -105,7 +105,11 @@ public class CtoFormulaConverter {
   
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("printf", "puts");
+      = ImmutableSet.of("__assert_fail", "printf", "puts");
+  
+  // list of non-deterministic functions
+  private static final Set<String> NONDET_EXTERNAL_FUNCTIONS
+      = ImmutableSet.of("int_nondet", "malloc", "random");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -1034,7 +1038,14 @@ public class CtoFormulaConverter {
     String func;
     if (fn instanceof IASTIdExpression) {
       func = ((IASTIdExpression)fn).getName().getRawSignature();
-      if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
+      if (NONDET_EXTERNAL_FUNCTIONS.contains(func)) {
+        // function call like "random()"
+        // ignore parameters and just create a fresh variable for it  
+        globalVars.add(func);
+        int idx = makeLvalIndex(func, ssa);
+        return smgr.makeVariable(func, idx);
+        
+      } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
         log(Level.INFO, "Assuming external function to be a pure function", fn);
       }
     } else {
