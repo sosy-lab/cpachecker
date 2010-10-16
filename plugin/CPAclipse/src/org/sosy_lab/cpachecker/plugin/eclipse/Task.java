@@ -4,7 +4,6 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -83,20 +82,14 @@ public class Task {
 	}
 	
 	public Configuration createConfig() throws IOException, CoreException, InvalidConfigurationException {
-		String projectRoot = configFile.getProject().getLocation().toPortableString();
-		Configuration config =  new Configuration(configFile.getContents(),
-				Collections.<String, String>emptyMap(), projectRoot);
-		// append Task Name to Output Path
-		String newPath = config.getProperty("output.path", DEFAULT_OUTPUT_DIR);
-		if (newPath.endsWith("/")) {
-			newPath = newPath + this.name + "/";
-		} else {
-			newPath = newPath + "/" + this.name + "/";
-		}
-		Map<String, String> overridesMap = new HashMap<String, String>(2);
-		overridesMap.put("output.path", newPath);
-		overridesMap.put("specification", this.specificationFile.getLocation().toPortableString());
-		return new Configuration(configFile.getContents(), overridesMap, projectRoot);
+		Map<String, String> overridesMap = new HashMap<String, String>(4);
+		
+		overridesMap.put("output.path", getOutputDirectory(false).getProjectRelativePath().toOSString());
+		overridesMap.put("output.disable", "false");
+		overridesMap.put("specification", specificationFile.getProjectRelativePath().toOSString());
+		overridesMap.put("rootDirectory", configFile.getProject().getLocation().toOSString());
+		
+		return new Configuration(configFile.getContents(), overridesMap);
 	}
 
 	public String getName() {
@@ -108,10 +101,6 @@ public class Task {
 	}
 	public IFile getSpecFile() {
 		return this.specificationFile;
-	}
-
-	public String getConfigFilePathProjRelative() {
-		return configFile.getProjectRelativePath().toPortableString();
 	}
 
 	/**
@@ -185,11 +174,6 @@ public class Task {
 	 * @return
 	 */
 	public IFolder getOutputDirectory(boolean create) {
-		/*IPreferencesService service = Platform.getPreferencesService();
-		String value = service.getString(CPAcheckerPlugin.PLUGIN_ID,
-				PreferenceConstants.P_RESULT_DIR,
-				PreferenceConstants.P_RESULT_DIR_DEFAULT_VALUE, null);
-				*/
 		Properties properties = new Properties();
 	    try {
 			properties.load(this.configFile.getContents());
@@ -201,10 +185,8 @@ public class Task {
 		String projectRelativePath = properties.getProperty("output.path", DEFAULT_OUTPUT_DIR);
 		
 		IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(
-				this.configFile.getProject().getFullPath().append(projectRelativePath));
-		assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
-		// we assume that the taskname uses only characters that can occur in directory names
-		outDir = outDir.getFolder(this.getName());
+				this.configFile.getProject().getFullPath().append(projectRelativePath).append(this.getName()));
+
 		if (create && !outDir.exists()) {
 			try {
 				outDir.create(true, true, null);

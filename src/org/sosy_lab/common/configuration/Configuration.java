@@ -51,21 +51,22 @@ import com.google.common.primitives.Primitives;
  * Immutable wrapper around a {@link Properties} instance, providing some
  * useful access helper methods.
  */
-@Options(prefix="output")
+@Options
 public class Configuration {
   
-  @Option(name="path")
+  @Option(name="output.path")
   private String outputDirectory = "test/output/";
   
-  @Option(name="disable")
+  @Option(name="output.disable")
   private boolean disableOutput = false;
+  
+  @Option
+  private String rootDirectory = ".";
 
   private static final long serialVersionUID = -5910186668866464153L;
 
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
-
-  private final String rootDirectory;
   
   private final Properties properties;
 
@@ -88,8 +89,7 @@ public class Configuration {
    * @throws InvalidConfigurationException 
    */
   public Configuration(String fileName, Map<String, String> pOverrides) throws IOException, InvalidConfigurationException {
-    this(fileName == null ? null : new FileInputStream(fileName),
-        pOverrides, null);
+    this(fileName == null ? null : new FileInputStream(fileName), pOverrides);
   }
 
   /**
@@ -107,39 +107,27 @@ public class Configuration {
    * @throws IOException If the file cannot be read.
    * @throws InvalidConfigurationException 
    */
-  public Configuration(InputStream inStream, Map<String, String> pOverrides, String rootDirectory) throws IOException, InvalidConfigurationException {
+  public Configuration(InputStream inStream, Map<String, String> pOverrides) throws IOException, InvalidConfigurationException {
+    this(loadProperties(inStream), pOverrides);
     Preconditions.checkArgument(inStream != null || pOverrides != null);
-    properties = new Properties();
-    prefix = "";
-    this.rootDirectory = rootDirectory;
-
-    if (inStream != null) {
-      properties.load(inStream);
-    }
-
-    if (pOverrides != null) {
-      properties.putAll(pOverrides);
-    }
-
-    unusedProperties = new HashSet<String>(properties.size());
-    for (Object key : properties.keySet()) {
-      unusedProperties.add((String)key);
-    }
-    this.inject(this);
   }
-
+  
   /**
    * Constructor for creating a Configuration with values set from a given map.
    * @param pValues The values this configuration should represent.
    * @throws InvalidConfigurationException 
    */
   public Configuration(Map<String, String> pValues) throws InvalidConfigurationException {
-    Preconditions.checkNotNull(pValues);
-    properties = new Properties();
-    prefix = "";
-    rootDirectory = null;
+    this(new Properties(), Preconditions.checkNotNull(pValues));
+  }
 
-    properties.putAll(pValues);
+  private Configuration(Properties pProperties, Map<String, String> pValues) throws InvalidConfigurationException {
+    this.properties = pProperties;
+    prefix = "";
+
+    if (pValues != null) {
+      properties.putAll(pValues);
+    }
 
     unusedProperties = new HashSet<String>(properties.size());
     for (Object key : properties.keySet()) {
@@ -148,6 +136,14 @@ public class Configuration {
     this.inject(this);
   }
 
+  private static Properties loadProperties(InputStream inStream) throws IOException {
+    Properties result = new Properties();
+    if (inStream != null) {
+      result.load(inStream);
+    }
+    return result;
+  }
+  
   /**
    * Constructor for creating Configuration from a given configuration.
    * Allows to pass a prefix. Options with the prefix will override those with
@@ -160,11 +156,12 @@ public class Configuration {
     Preconditions.checkNotNull(pPrefix);
 
     properties = pConfig.properties;
-    rootDirectory = pConfig.rootDirectory;
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
     unusedProperties = pConfig.unusedProperties; // use same instance here!
+    
     outputDirectory = pConfig.outputDirectory;
     disableOutput = pConfig.disableOutput;
+    rootDirectory = pConfig.rootDirectory;
   }
 
   /**

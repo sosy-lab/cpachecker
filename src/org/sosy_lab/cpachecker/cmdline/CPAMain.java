@@ -157,8 +157,10 @@ public class CPAMain {
       System.exit(1);
     }
 
+    File cFile = new File(cpaConfig.getRootDirectory(), names[0]);
+    
     try {
-      Files.checkReadableFile(new File(names[0]));
+      Files.checkReadableFile(cFile);
     } catch (FileNotFoundException e) {
       logManager.log(Level.SEVERE, e.getMessage());
       System.exit(1);
@@ -181,7 +183,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(names[0]);
+    CPAcheckerResult result = cpachecker.run(cFile.getPath());
 
     shutdownHook.setResult(result);
 
