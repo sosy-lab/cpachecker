@@ -1059,6 +1059,7 @@ public class CtoFormulaConverter {
       // for it (instantiated at 1 because we need an index but it never
       // increases)
       globalVars.add(func);
+      ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
       return smgr.makeVariable(func, 1);
     } else {
       IASTExpression[] args;
