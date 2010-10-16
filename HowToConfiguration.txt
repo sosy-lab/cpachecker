@@ -75,6 +75,10 @@ specification = test/config/automata/ErrorLocationAutomaton.txt
 Valid configuration options and default values
 ----------------------------------------------
 
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
 # directory to put all output files in
 output.path = test/output/
 

@@ -51,11 +51,14 @@ import com.google.common.primitives.Primitives;
  * Immutable wrapper around a {@link Properties} instance, providing some
  * useful access helper methods.
  */
-@Options
+@Options(prefix="output")
 public class Configuration {
   
-  @Option(name="output.path")
+  @Option(name="path")
   private String outputDirectory = "test/output/";
+  
+  @Option(name="disable")
+  private boolean disableOutput = false;
 
   private static final long serialVersionUID = -5910186668866464153L;
 
@@ -161,6 +164,7 @@ public class Configuration {
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
     unusedProperties = pConfig.unusedProperties; // use same instance here!
     outputDirectory = pConfig.outputDirectory;
+    disableOutput = pConfig.disableOutput;
   }
 
   /**
@@ -265,8 +269,10 @@ public class Configuration {
       }
       
       Object value = convertValue(name, valueStr, defaultValue, type, option.type());
-      if (value == null) {
-        // options which were not specified need not to be set 
+      
+      // options which were not specified need not to be set
+      // but do set OUTPUT_FILE options for disableOutput to work
+      if (value == null && (option.type() != Type.OUTPUT_FILE)) {
         continue;
       }
 
@@ -303,8 +309,10 @@ public class Configuration {
       String valueStr = getOptionValue(name, option, type.isEnum());
 
       Object value = convertValue(name, valueStr, type, null, option.type());
-      if (value == null) {
-        // options which were not specified need not to be set 
+      
+      // options which were not specified need not to be set
+      // but do set OUTPUT_FILE options for disableOutput to work
+      if (value == null && (option.type() != Type.OUTPUT_FILE)) {
         continue;
       }
 
@@ -472,6 +480,10 @@ public class Configuration {
     }
 
     if (typeInfo == Type.OUTPUT_FILE) {
+      if (disableOutput) {
+        return null;
+      }
+      
       if (!file.isAbsolute()) {
         file = new File(outputDirectory, file.getPath());
       }
