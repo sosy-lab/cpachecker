@@ -26,13 +26,16 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,37 +80,55 @@ public class ARTStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
+    
+    Path targetPath = null;
+    ARTElement lastElement = (ARTElement)pReached.getLastElement();
+    if (lastElement != null && lastElement.isTarget()) {
+
+      targetPath = cpa.getTargetPath();
+      if (targetPath != null) {
+        // target path has to be the path to the current target element
+        assert targetPath.getLast().getFirst() == lastElement;
+      } else {
+        cpa.getLogger().log(Level.WARNING, "No error path available.");
+      }
+    }
+    
     if (exportART) {
-      dumpARTToDotFile(pReached);
+      dumpARTToDotFile(pReached, getEdgesOfPath(targetPath));
     }
 
-    if (exportErrorPath) {
-      ARTElement lastElement = (ARTElement)pReached.getLastElement();
-      if (lastElement != null && lastElement.isTarget()) {
+    if (exportErrorPath && targetPath != null) {
+      try {
 
-        Path targetPath = cpa.getTargetPath();
-        if (targetPath != null) {
-          // target path has to be the path to the current target element
-          assert targetPath.getLast().getFirst() == lastElement;
-  
-          try {
-  
-            Files.writeFile(errorPathFile, targetPath);
-            Files.writeFile(errorPathJson, targetPath.toJSON());
-  
-          } catch (IOException e) {
-            cpa.getLogger().log(Level.WARNING,
-                "Could not write error path to file (", e.getMessage(), ")");
-          }
-        } else {
-          cpa.getLogger().log(Level.WARNING,
-              "No error path available.");
-        }
+        Files.writeFile(errorPathFile, targetPath);
+        Files.writeFile(errorPathJson, targetPath.toJSON());
+
+      } catch (IOException e) {
+        cpa.getLogger().log(Level.WARNING,
+            "Could not write error path to file (", e.getMessage(), ")");
       }
     }
   }
+  
+  private static Set<Pair<ARTElement, ARTElement>> getEdgesOfPath(Path pPath) {
+    if (pPath == null) {
+      return Collections.emptySet();
+    }
+    
+    Set<Pair<ARTElement, ARTElement>> result = new HashSet<Pair<ARTElement, ARTElement>>(pPath.size());
+    Iterator<Pair<ARTElement, CFAEdge>> it = pPath.iterator();
+    assert it.hasNext();
+    ARTElement lastElement = it.next().getFirst();
+    while (it.hasNext()) {
+      ARTElement currentElement = it.next().getFirst();
+      result.add(new Pair<ARTElement, ARTElement>(lastElement, currentElement));
+      lastElement = currentElement;
+    }
+    return result;
+  }
 
-  private void dumpARTToDotFile(ReachedSet pReached) {
+  private void dumpARTToDotFile(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
@@ -117,7 +138,7 @@ public class ARTStatistics implements Statistics {
     StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
-    sb.append("style=filled; color=\"#ccc\"; fontsize=10.0; fontname=\"Courier New\"; \n");
+    sb.append("style=filled; fontsize=10.0; fontname=\"Courier New\"; \n");
 
     worklist.add(firstElement);
 
@@ -157,17 +178,25 @@ public class ARTStatistics implements Statistics {
         edges.append(" [style = dashed, label = \"covered by\"];\n");
       }
 
-      for(ARTElement child : currentElement.getChildren()){
+      for (ARTElement child : currentElement.getChildren()) {
+        boolean colored = pathEdges.contains(new Pair<ARTElement, ARTElement>(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);        
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
-        edges.append(" [label = \"");
-        edges.append(edge != null ? edge.toString().replace('"', '\'') : "");        
-        edges.append("\"");
+        edges.append(" [");
+        if (colored) {
+          edges.append("color = red");
+        }
         if (edge != null) {
-          String id = "" + currentElement.getElementId() + "->" + child.getElementId();
-          edges.append(" id=\"" + id + "\"");
+          edges.append(" label = \"");
+          edges.append(edge.toString().replace('"', '\''));        
+          edges.append("\"");
+          edges.append(" id=\"");
+          edges.append(currentElement.getElementId());
+          edges.append("->");
+          edges.append(child.getElementId());
+          edges.append("\"");
         }
         edges.append("];\n");
         if(!worklist.contains(child)){
