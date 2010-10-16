@@ -155,7 +155,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       
-      if (exportErrorPath) {
+      if (exportErrorPath && exportFile != null) {
         try {
           Files.writeFile(exportFile, info.getCounterexample());
         } catch (IOException e) {

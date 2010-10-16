@@ -163,7 +163,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     super(pAmgr, pSmgr, config, logger);
     config.inject(this);
     
-    formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
+    if (formulaDumpFile != null) {
+      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
+    } else {
+      dumpHardAbstractions = false;
+      formulaDumpFilePattern = null;
+    }
 
     stats = new Stats();
     thmProver = pThmProver;
@@ -697,11 +702,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      SymbolicFormula cex = smgr.makeTrue();
-      for (SymbolicFormula part : f) {
-        cex = smgr.makeAnd(cex, part);
+      if (dumpCexFile != null) {
+        SymbolicFormula cex = smgr.makeTrue();
+        for (SymbolicFormula part : f) {
+          cex = smgr.makeAnd(cex, part);
+        }
+        dumpFormulaToFile(cex, dumpCexFile);
       }
-      dumpFormulaToFile(cex, dumpCexFile);
       
       // get the reachingPathsFormula and add it to the solver environment
       // this formula contains predicates for all branches we took

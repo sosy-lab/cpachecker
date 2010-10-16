@@ -112,7 +112,7 @@ public class CPAMain {
       System.err.flush();
       if (mResult != null) {
         PrintStream stream = System.out; 
-        if (exportStatistics) {
+        if (exportStatistics && exportStatisticsFile != null) {
           try {
             FileOutputStream file = new FileOutputStream(exportStatisticsFile);
             stream = new PrintStream(new DuplicateOutputStream(stream, file));

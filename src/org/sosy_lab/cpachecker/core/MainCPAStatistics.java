@@ -95,7 +95,7 @@ class MainCPAStatistics implements Statistics {
           stopAnalysisTimer();
         }
 
-        if (exportReachedSet) {
+        if (exportReachedSet && outputFile != null) {
           try {
             Files.writeFile(outputFile, Joiner.on('\n').join(reached));
           } catch (IOException e) {

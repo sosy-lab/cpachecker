@@ -126,7 +126,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     }
 
     Appendable output;
-    if (exportAssumptions) {
+    if (exportAssumptions && assumptionsFile != null) {
       //if no filename is given, use default value
 
       try {

@@ -86,7 +86,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       }
 
       // check if/where to dump the predicate map
-      if (result == Result.SAFE && export) {
+      if (result == Result.SAFE && export && file != null) {
         TreeMap<CFANode, Collection<Predicate>> sortedPredicates
               = new TreeMap<CFANode, Collection<Predicate>>(predicates.asMap());
         StringBuilder sb = new StringBuilder();

@@ -150,7 +150,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new AutomatonTransferRelation(automaton, logger);
 
-    if (export) {
+    if (export && exportFile != null) {
       try {
         this.automaton.writeDotFile(new PrintStream(exportFile));
       } catch (FileNotFoundException e) {

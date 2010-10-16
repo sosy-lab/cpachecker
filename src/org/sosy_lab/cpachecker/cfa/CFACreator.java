@@ -162,7 +162,7 @@ public class CFACreator {
     assert CFACheck.check(mainFunction);
   
     // write CFA to file
-    if (exportCfa) {
+    if (exportCfa && exportCfaFile != null) {
       try {
         Files.writeFile(exportCfaFile,
             DOTBuilder.generateDOT(cfas.values(), mainFunction));
@@ -175,7 +175,7 @@ public class CFACreator {
     }
     
     // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction) {
+    if (exportCfaPerFunction && exportCfaFile != null) {
       try {
         File outdir = exportCfaFile.getParentFile();        
         DOTBuilder2.writeReport(mainFunction, outdir);

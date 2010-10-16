@@ -94,11 +94,11 @@ public class ARTStatistics implements Statistics {
       }
     }
     
-    if (exportART) {
+    if (exportART && artFile != null) {
       dumpARTToDotFile(pReached, getEdgesOfPath(targetPath));
     }
 
-    if (exportErrorPath && targetPath != null) {
+    if (exportErrorPath && targetPath != null && errorPathFile != null) {
       try {
 
         Files.writeFile(errorPathFile, targetPath);
