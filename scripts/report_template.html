@@ -684,18 +684,6 @@
                     self.selection = nodeid;
                 };
                 
-                //modify the color of an edge
-                self.set_edge_color = function(edgeid, color) {
-                    var svgedge = self.svgdoc.getElementById('' + edgeid[0] + '->' + edgeid[1]);
-                    if (svgedge != undefined) {                    
-                        var path = svgedge.getElementsByTagName('path')[0];
-                        var poly = svgedge.getElementsByTagName('polygon')[0];
-                        path.setAttribute('stroke', color);
-                        poly.setAttribute('stroke', color);
-                        poly.setAttribute('fill', color);
-                    }
-                };
-                
                 //draw an arrow at a specific position
                 self.draw_arrow = function(x,y) {
                     var svgns = "http://www.w3.org/2000/svg";
@@ -830,22 +818,10 @@
                 }                
             }
 
-            function draw_error_path_art() {
-                if (viewer.data.errorpath.length > 0) {
-                    var prev = viewer.data.errorpath[0];
-                    for (var i = 1; i < viewer.data.errorpath.length; i++) {
-                        var curr = viewer.data.errorpath[i];
-                        viewer.windows.artwin.set_edge_color([prev.artelem, curr.artelem], 'red');                        
-                        prev = curr;                                                
-                    }
-                }
-            }
-
             console.log('init main');
             viewer.windows.cfawin.handlers.add('cfa_loaded', function() {
                 console.log('draw error path!');
                 draw_error_path_cfa();
-
             });
             
             
@@ -906,7 +882,6 @@
                     console.log('ART DOM seems to be ready.');                    
                     clearInterval(task);
                     viewer.windows.artwin.onready();
-                    draw_error_path_art();
                 }
             }, 1000);
             
