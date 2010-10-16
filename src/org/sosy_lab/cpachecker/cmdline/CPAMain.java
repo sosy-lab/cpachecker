@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,10 +36,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.DuplicateOutputStream;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -58,15 +63,23 @@ public class CPAMain {
     }
   }
 
+  @Options(prefix="statistics")
   private static class ShutdownHook extends Thread {
 
+    @Option(name="export")
+    private boolean exportStatistics = true;
+    
+    @Option(name="file", type=Option.Type.OUTPUT_FILE)
+    private File exportStatisticsFile = new File("Statistics.txt");
+    
     private final LogManager logManager;
     private final Thread mainThread;
 
     // if still null when run() is executed, analysis has been interrupted by user
     private CPAcheckerResult mResult = null;
 
-    public ShutdownHook(LogManager logger) {
+    public ShutdownHook(Configuration config, LogManager logger) throws InvalidConfigurationException {
+      config.inject(this);
       this.logManager = logger;
       mainThread = Thread.currentThread();
     }
@@ -98,7 +111,17 @@ public class CPAMain {
       System.out.flush();
       System.err.flush();
       if (mResult != null) {
-        mResult.printStatistics(System.out);
+        PrintStream stream = System.out; 
+        if (exportStatistics) {
+          try {
+            FileOutputStream file = new FileOutputStream(exportStatisticsFile);
+            stream = new PrintStream(new DuplicateOutputStream(stream, file));
+          } catch (FileNotFoundException e) {
+            logManager.log(Level.WARNING, "Could not write statistics to file ("
+                + e.getMessage() + ")");
+          }
+        }
+        mResult.printStatistics(stream);
       }
       logManager.flush();
     }
@@ -140,9 +163,11 @@ public class CPAMain {
       System.exit(1);
     }
 
-    // run analysis
+    // create everything
     CPAchecker cpachecker = null;
+    ShutdownHook shutdownHook = null;
     try {
+      shutdownHook = new ShutdownHook(cpaConfig, logManager);
       cpachecker = new CPAchecker(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
@@ -152,9 +177,9 @@ public class CPAMain {
     // this is for catching Ctrl+C and printing statistics even in that
     // case. It might be useful to understand what's going on when
     // the analysis takes a lot of time...
-    ShutdownHook shutdownHook = new ShutdownHook(logManager);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
+    // run analysis
     CPAcheckerResult result = cpachecker.run(names[0]);
 
     shutdownHook.setResult(result);
