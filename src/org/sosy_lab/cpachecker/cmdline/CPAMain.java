@@ -157,7 +157,10 @@ public class CPAMain {
       System.exit(1);
     }
 
-    File cFile = new File(cpaConfig.getRootDirectory(), names[0]);
+    File cFile = new File(names[0]);
+    if (!cFile.isAbsolute()) {
+      cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
+    }
     
     try {
       Files.checkReadableFile(cFile);

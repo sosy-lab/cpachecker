@@ -486,7 +486,7 @@ public class Configuration {
       }
     }
     
-    if (rootDirectory != null && !file.isAbsolute()) {
+    if (!file.isAbsolute()) {
       file = new File(rootDirectory, file.getPath());    
     }
     
@@ -502,9 +502,6 @@ public class Configuration {
     return file;
   }
   
-  /**
-   * Might return null!
-   */
   public String getRootDirectory() {
     return this.rootDirectory;
   }
