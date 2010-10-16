@@ -53,14 +53,14 @@ import com.google.common.primitives.Primitives;
  */
 @Options
 public class Configuration {
+  
+  @Option(name="output.path")
+  private String outputDirectory = "test/output/";
 
   private static final long serialVersionUID = -5910186668866464153L;
 
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
-
-  private static final String OUTPUT_DIRECTORY_OPTION = "output.path";
-  private static final String OUTPUT_DIRECTORY_DEFAULT = "test/output/";
 
   private final String rootDirectory;
   
@@ -82,8 +82,9 @@ public class Configuration {
    * @param fileName The optional complete path to the configuration file.
    * @param pOverrides An optional set of option values.
    * @throws IOException If the file cannot be read.
+   * @throws InvalidConfigurationException 
    */
-  public Configuration(String fileName, Map<String, String> pOverrides) throws IOException {
+  public Configuration(String fileName, Map<String, String> pOverrides) throws IOException, InvalidConfigurationException {
     this(fileName == null ? null : new FileInputStream(fileName),
         pOverrides, null);
   }
@@ -101,8 +102,9 @@ public class Configuration {
    * @param pOverrides An optional set of option values.
    * @param rootDirectory An optional directory where all relative paths will be based.
    * @throws IOException If the file cannot be read.
+   * @throws InvalidConfigurationException 
    */
-  public Configuration(InputStream inStream, Map<String, String> pOverrides, String rootDirectory) throws IOException {
+  public Configuration(InputStream inStream, Map<String, String> pOverrides, String rootDirectory) throws IOException, InvalidConfigurationException {
     Preconditions.checkArgument(inStream != null || pOverrides != null);
     properties = new Properties();
     prefix = "";
@@ -120,12 +122,15 @@ public class Configuration {
     for (Object key : properties.keySet()) {
       unusedProperties.add((String)key);
     }
+    this.inject(this);
   }
+
   /**
    * Constructor for creating a Configuration with values set from a given map.
    * @param pValues The values this configuration should represent.
+   * @throws InvalidConfigurationException 
    */
-  public Configuration(Map<String, String> pValues) {
+  public Configuration(Map<String, String> pValues) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pValues);
     properties = new Properties();
     prefix = "";
@@ -137,6 +142,7 @@ public class Configuration {
     for (Object key : properties.keySet()) {
       unusedProperties.add((String)key);
     }
+    this.inject(this);
   }
 
   /**
@@ -154,6 +160,7 @@ public class Configuration {
     rootDirectory = pConfig.rootDirectory;
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
     unusedProperties = pConfig.unusedProperties; // use same instance here!
+    outputDirectory = pConfig.outputDirectory;
   }
 
   /**
@@ -466,7 +473,7 @@ public class Configuration {
 
     if (typeInfo == Type.OUTPUT_FILE) {
       if (!file.isAbsolute()) {
-        file = new File(getProperty(OUTPUT_DIRECTORY_OPTION, OUTPUT_DIRECTORY_DEFAULT), file.getPath());
+        file = new File(outputDirectory, file.getPath());
       }
     }
     

@@ -345,10 +345,9 @@ public class AutomatonTest {
     map.put("log.level", "OFF");
     map.put("log.consoleLevel", "WARNING");
 
-    Configuration config = new Configuration(map);
     LogManager pLogger = null;
     try {
-      pLogger = new LogManager(config);
+      pLogger = new LogManager(new Configuration(map));
     } catch (InvalidConfigurationException e1) {
       Assert.fail("Test setup failed");
     }

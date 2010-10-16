@@ -131,19 +131,20 @@ public class CPAMain {
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
-    try {
-      cpaConfig = createConfiguration(args);
-    } catch (InvalidCmdlineArgumentException e) {
-      System.err.println("Could not parse command line arguments: " + e.getMessage());
-      System.exit(1);
-    } catch (IOException e) {
-      System.err.println("Could not read config file " + e.getMessage());
-      System.exit(1);
-    }
-
     LogManager logManager = null;
     try {
+      try {
+        cpaConfig = createConfiguration(args);
+      } catch (InvalidCmdlineArgumentException e) {
+        System.err.println("Could not parse command line arguments: " + e.getMessage());
+        System.exit(1);
+      } catch (IOException e) {
+        System.err.println("Could not read config file " + e.getMessage());
+        System.exit(1);
+      }
+  
       logManager = new LogManager(cpaConfig);
+
     } catch (InvalidConfigurationException e) {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
@@ -188,7 +189,7 @@ public class CPAMain {
   }
 
   static Configuration createConfiguration(String[] args)
-          throws InvalidCmdlineArgumentException, IOException {
+          throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
     if (args == null || args.length < 1) {
       throw new InvalidCmdlineArgumentException("Need to specify at least configuration file or list of CPAs! Use -help for more information.");
     }

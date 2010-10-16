@@ -106,9 +106,8 @@ public class FlleSh {
   private final Map<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>> mInfeasibleGoals;
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
-    mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
-    
     try {
+      mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new LogManager(mConfiguration);
       mCPAchecker = new ModifiedCPAchecker(mConfiguration, mLogManager);
     } catch (InvalidConfigurationException e) {
@@ -1091,12 +1090,12 @@ public class FlleSh {
     return lPathElement.toArray();
   }
   
-  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) {
+  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
     File lPropertiesFile = FlleSh.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
   
-  private static Configuration createConfiguration(List<String> pSourceFiles, String pPropertiesFile) {
+  private static Configuration createConfiguration(List<String> pSourceFiles, String pPropertiesFile) throws InvalidConfigurationException {
     Map<String, String> lCommandLineOptions = new HashMap<String, String>();
 
     lCommandLineOptions.put("analysis.programNames", Joiner.on(", ").join(pSourceFiles));

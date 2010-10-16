@@ -18,6 +18,7 @@ import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 public class Task {
@@ -81,7 +82,7 @@ public class Task {
 		}
 	}
 	
-	public Configuration createConfig() throws IOException, CoreException {
+	public Configuration createConfig() throws IOException, CoreException, InvalidConfigurationException {
 		String projectRoot = configFile.getProject().getLocation().toPortableString();
 		Configuration config =  new Configuration(configFile.getContents(),
 				Collections.<String, String>emptyMap(), projectRoot);
@@ -130,6 +131,8 @@ public class Task {
 		} catch (IOException e) {
 			return true;
 		} catch (CoreException e) {
+			return true;
+		} catch (InvalidConfigurationException e) {
 			return true;
 		}
 		return false;

@@ -71,28 +71,24 @@ public class CPASelfCheck {
    * @param args
    */
   public static void main(String[] args) {
-    Configuration cpaConfig = null;
+    CPAchecker cpachecker = null;
     try {
-      cpaConfig = CPAMain.createConfiguration(args);
-    } catch (InvalidCmdlineArgumentException e) {
-      System.err.println("Could not parse command line arguments: " + e.getMessage());
-      System.exit(1);
-    } catch (IOException e) {
-      System.err.println("Could not read config file " + e.getMessage());
-      System.exit(1);
-    }
-    try {
+      Configuration cpaConfig = null;
+      try {
+        cpaConfig = CPAMain.createConfiguration(args);
+      } catch (InvalidCmdlineArgumentException e) {
+        System.err.println("Could not parse command line arguments: " + e.getMessage());
+        System.exit(1);
+      } catch (IOException e) {
+        System.err.println("Could not read config file " + e.getMessage());
+        System.exit(1);
+      }
+
       logManager = new LogManager(cpaConfig);
+      cpachecker = new CPAchecker(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
-    }
-
-    CPAchecker cpachecker = null;
-    try {
-      cpachecker = new CPAchecker(cpaConfig, logManager);
-    } catch (InvalidConfigurationException e) {
-      logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
     }
 
     try {
