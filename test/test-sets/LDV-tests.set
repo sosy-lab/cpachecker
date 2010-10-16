@@ -1,1 +1,1 @@
-test/programs/LDV-tests/cil.c-files/*
+test/programs/LDV-tests/*.cil.c

@@ -18,7 +18,7 @@ palias.cil.c                   	UNSAFE         	UNSAFE         	none
 rule57_ebda_blast-1.cil.c      	SAFE           	SAFE           	x
 rule57_ebda_blast-2_BUG.cil.c  	UNSAFE         	UNSAFE         	x
 rule60_list.cil.c              	UNSAFE         	SAFE           	----->
-rule60_list2-1_BUG.cil.c       	ABORTED        	UNSAFE         	----->
+rule60_list2-1_BUG.cil.c       	UNSAFE         	UNSAFE         	x
 rule60_list2-2.cil.c           	SAFE           	SAFE           	x
 sizeofparameters_test_BUG.cil.c	UNSAFE         	UNSAFE         	x
 structure_assignment.cil.c     	UNSAFE         	               	none
