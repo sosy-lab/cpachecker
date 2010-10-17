@@ -114,6 +114,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="shortestCexTrace")
   private boolean shortestTrace = false;
 
+  @Option(name="refinement.atomicPredicates")
+  private boolean atomicPredicates = true;
+
   @Option(name="refinement.splitItpAtoms")
   private boolean splitItpAtoms = false;
 
@@ -983,8 +986,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   @Override
   public List<Predicate> getAtomsAsPredicates(SymbolicFormula f) {
-    Collection<SymbolicFormula> atoms = smgr.extractAtoms(f, splitItpAtoms, false);
-    
+    Collection<SymbolicFormula> atoms;
+    if (atomicPredicates) {
+      atoms = smgr.extractAtoms(f, splitItpAtoms, false);
+    } else {
+      atoms = Collections.singleton(smgr.uninstantiate(f));
+    }
+
     List<Predicate> preds = new ArrayList<Predicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {

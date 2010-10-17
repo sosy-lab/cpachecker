@@ -321,6 +321,10 @@ cpas.symbpredabs.shortestCexTraceUseZigZag = false
 # whether to use Boolean (false) or Cartesian (true) abstraction
 cpas.symbpredabs.abstraction.cartesian = false
 
+# only use the atoms from the interpolants as predicates,
+# and not the whole interpolant
+cpas.symbpredabs.refinement.atomicPredicates = true
+
 # split arithmetic equalities when extracting predicates from interpolants
 cpas.symbpredabs.refinement.splitItpAtoms = false
 
