@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTStatistics;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
@@ -74,8 +74,6 @@ import com.google.common.collect.Multimap;
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time 
  * measurements when invoking FlleSh several times in a unit test.
- * 
- * TODO Passing predicates from one reachability analysis to the next.
  * 
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
  * parts of the reached set?) This requires a change in the coverage check.
@@ -140,7 +138,13 @@ public class FlleSh {
      * Initialize shared CPAs.
      */
     // location CPA
-    mLocationCPA = new LocationCPA();
+    try {
+      mLocationCPA = LocationCPA.factory().createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
     
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
@@ -391,29 +395,6 @@ public class FlleSh {
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
-    
-    /*try {
-      int[] lAInputs = { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-      
-      PreciseInputsTestCase lATestCase = new PreciseInputsTestCase(lAInputs);
-        
-      FQLSpecification lTmpFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
-      
-      ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lTmpFQLSpecification.getPathPattern());
-      
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
-      
-      CFAEdge[] lAPath = reconstructPath(lATestCase, mWrapper.getEntry(), lIdStarCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
-      
-      mGeneratedTestCases.put(lATestCase, lAPath);
-      
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-      
-      throw new RuntimeException(e);
-    }*/
     
     int lRemovedByInfeasibilityPropagation = 0;
     
