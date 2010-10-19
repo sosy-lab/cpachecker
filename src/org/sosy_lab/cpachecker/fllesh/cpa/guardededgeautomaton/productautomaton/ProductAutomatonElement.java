@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.productautomaton;
+package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
