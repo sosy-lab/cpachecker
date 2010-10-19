@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.cfapath;
+package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 

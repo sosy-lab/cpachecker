@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.cfapath;
+package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import java.util.Collections;
 import java.util.Set;
