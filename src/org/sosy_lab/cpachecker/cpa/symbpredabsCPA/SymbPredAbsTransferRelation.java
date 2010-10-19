@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
-import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
+import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;

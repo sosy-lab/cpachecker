@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.assume;
+package org.sosy_lab.cpachecker.cpa.assume;
 
 import java.util.Collection;
 import java.util.Collections;

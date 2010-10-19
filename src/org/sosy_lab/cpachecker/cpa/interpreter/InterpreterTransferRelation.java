@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
-import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
+import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;

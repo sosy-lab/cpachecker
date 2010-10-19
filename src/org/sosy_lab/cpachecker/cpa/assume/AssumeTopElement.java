@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.assume;
+package org.sosy_lab.cpachecker.cpa.assume;
 
 public class AssumeTopElement implements AssumeElement {
 
