@@ -746,28 +746,11 @@ public class InterpreterTransferRelation implements TransferRelation {
         // a == b
         if(opType == IASTBinaryExpression.op_equals)
         {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                !newElement.contains(getvarName(rightVarName, functionName))){
-              newElement.assignConstant(getvarName(rightVarName, functionName),
-                  newElement.getValueFor(getvarName(leftVarName, functionName)));
-              
-              throw new RuntimeException();
-            }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                !newElement.contains(getvarName(leftVarName, functionName))){
-              newElement.assignConstant(getvarName(leftVarName, functionName),
-                  newElement.getValueFor(getvarName(rightVarName, functionName)));
-              
-              throw new RuntimeException();
-            }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
-                newElement.getValueFor(getvarName(leftVarName, functionName))) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
+              newElement.getValueFor(getvarName(leftVarName, functionName))) {
                 
-                return InterpreterBottomElement.INSTANCE;
-              }
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else{
@@ -781,22 +764,15 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a != b
-        else if(opType == IASTBinaryExpression.op_notequals)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
-                newElement.getValueFor(getvarName(leftVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_notequals) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
+              newElement.getValueFor(getvarName(leftVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
+          else {
             AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue); 
             
             if (lSuccessor == null) {
@@ -807,19 +783,12 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a > b
-        else if(opType == IASTBinaryExpression.op_greaterThan)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
-                newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_greaterThan) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else {
@@ -833,19 +802,12 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a >= b
-        else if(opType == IASTBinaryExpression.op_greaterEqual)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
-                  newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_greaterEqual) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else {
@@ -859,22 +821,15 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a < b
-        else if(opType == IASTBinaryExpression.op_lessThan)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
-                newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_lessThan) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
+          else {
             AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue); 
             
             if (lSuccessor == null) {
@@ -885,22 +840,15 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a <= b
-        else if(opType == IASTBinaryExpression.op_lessEqual)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
-              newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_lessEqual) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
+          else {
             AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
             
             if (lSuccessor == null) {
