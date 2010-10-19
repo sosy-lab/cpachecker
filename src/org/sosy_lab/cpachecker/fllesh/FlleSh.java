@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.NonabstractionElement;
@@ -344,8 +343,6 @@ public class FlleSh {
   }
   
   public FlleShResult run_incremental(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
-    
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -572,7 +569,6 @@ public class FlleSh {
       }
     }
     
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
@@ -599,8 +595,6 @@ public class FlleSh {
   }
   
   public FlleShResult run2(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
-    
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -726,7 +720,6 @@ public class FlleSh {
       }
     }
     
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
