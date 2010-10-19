@@ -69,7 +69,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
   @Option(name="analysis.useAssumptionCollector")
-  private boolean useAssumptionCollector = false;
+  private boolean useAssumptionCollector = true;
 
   @Option(name="heuristics", required=true)
   private String[] heuristicsNames = {};

@@ -155,7 +155,7 @@ public class CtoFormulaConverter {
   }
 
   // looks up the variable in the current namespace
-  private String scoped(String var, String function) {
+  protected String scoped(String var, String function) {
     if (globalVars.contains(var)) {
       return var;
     } else {
@@ -1147,5 +1147,9 @@ public class CtoFormulaConverter {
       result = smgr.makeNot(result);
     }
     return result;
+  }
+  
+  protected void addToGlobalVars(String pVar){
+    globalVars.add(pVar);
   }
 }

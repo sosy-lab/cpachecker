@@ -38,9 +38,9 @@ public class AssumptionCollectorDomain implements AbstractDomain {
   private final AbstractElement top;
   private final AbstractElement bottom;
 
-  public AssumptionCollectorDomain(AbstractDomain wrappedDomain) {
-    top = new AssumptionCollectorElement(wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE, false);
-    bottom = new AssumptionCollectorElement(wrappedDomain.getBottomElement(), AssumptionWithLocation.TRUE, true);
+  public AssumptionCollectorDomain(AssumptionCollectorCPA cpa, AbstractDomain wrappedDomain) {
+    top = new AssumptionCollectorElement(cpa, wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE, false);
+    bottom = new AssumptionCollectorElement(cpa, wrappedDomain.getBottomElement(), AssumptionWithLocation.TRUE, true);
   }
 
   @Override

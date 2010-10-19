@@ -62,7 +62,7 @@ public class AssumptionCollectorMerge implements MergeOperator {
     AssumptionWithLocation mergedAssumption = assumption1.and(assumption2);
     boolean mergedShouldStop = shouldStop1 && shouldStop2;
 
-    AssumptionCollectorElement mergedElement = new AssumptionCollectorElement(retElement, mergedAssumption, mergedShouldStop);
+    AssumptionCollectorElement mergedElement = new AssumptionCollectorElement(collectorElement1.getCpa(), retElement, mergedAssumption, mergedShouldStop);
 
     return mergedElement;
   }

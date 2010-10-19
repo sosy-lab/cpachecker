@@ -28,11 +28,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl.DummySSAMap;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -77,36 +81,40 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   }
 
   private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
-    throws CPATransferException
+  throws CPATransferException
   {
-    String function = (edge.getPredecessor() != null) 
-          ? edge.getPredecessor().getFunctionName() : null;
+    String function = (edge.getSuccessor() != null) 
+    ? edge.getSuccessor().getFunctionName() : null;
 
     SymbolicFormula assumptionFormula = smgr.makeTrue();
+    SSAMapBuilder ssaBuilder = new DummySSAMap();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
-      assumptionFormula = manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
+      Pair<SymbolicFormula, SSAMapBuilder> pair = 
+        manager.makeAnd(assumptionFormula, edge, b.assumptionsForEdge(edge), function);
+      assumptionFormula = pair.getFirst(); 
+      ssaBuilder = pair.getSecond();
     }
-    return new GenericAssumptionsElement((new Assumption(assumptionFormula, true)).atLocation(edge.getPredecessor()));
+    return new GenericAssumptionsElement((new Assumption(assumptionFormula, true, ssaBuilder.build())).atLocation(edge.getPredecessor()));
   }
 
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge cfaEdge)
-    throws CPATransferException
-  {
+      throws CPATransferException
+      {
     return Collections.singleton(getAbstractSuccessor(pElement, cfaEdge, pPrecision));
-  }
+      }
 
   @Override
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement el, List<AbstractElement> otherElements,
       CFAEdge edge, Precision p)
-    throws CPATransferException
-  {
+      throws CPATransferException
+      {
     // TODO Improve strengthening for assumptions so that they
     //      may be discharged online
     return null;
-  }
+      }
 
 }

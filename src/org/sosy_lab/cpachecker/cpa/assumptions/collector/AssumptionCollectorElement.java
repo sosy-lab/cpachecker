@@ -37,17 +37,19 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
 
   private final AssumptionWithLocation assumption;
   private final boolean stop;
+  private final AssumptionCollectorCPA cpa;
 
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop)
+  public AssumptionCollectorElement(AssumptionCollectorCPA cpa, AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop)
   {
     super(wrappedElement);
     assumption = f;
     stop = forceStop;
+    this.cpa = cpa;
   }
 
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f)
+  public AssumptionCollectorElement(AssumptionCollectorCPA cpa, AbstractElement wrappedElement, AssumptionWithLocation f)
   {
-    this(wrappedElement, f, false);
+    this(cpa, wrappedElement, f, false);
   }
 
   /**
@@ -97,6 +99,10 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
     } else {
       return false;
     }
+  }
+
+  public AssumptionCollectorCPA getCpa() {
+    return cpa;
   }
 
   // FIXME hashCode() implementation missing!

@@ -114,6 +114,9 @@ public class AbstractPathToCTranslator {
       ret = ret + lProgramString + "\n";
     }
 
+    // replace nondet keyword with cbmc nondet keyword
+    ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
+    ret = ret.replaceAll("__BLAST_NONDET", "nondet_int()");
     return ret;
   }
 
@@ -411,7 +414,8 @@ public class AbstractPathToCTranslator {
         lAssumptionString = "!(" + lExpressionString + ")";
       }
 
-      return ("__CPROVER_assume(" + lAssumptionString + ");");
+      //return ("__CPROVER_assume(" + lAssumptionString + ");");
+      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;

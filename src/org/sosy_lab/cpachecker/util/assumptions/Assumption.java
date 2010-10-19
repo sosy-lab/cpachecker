@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl.DummySSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
@@ -41,21 +43,24 @@ public class Assumption {
   }
 
   public static final Assumption TRUE = new Assumption();
-  public static final Assumption FALSE = new Assumption(manager.makeFalse(), false);
+  public static final Assumption FALSE = new Assumption(manager.makeFalse(), false, null);
 
   private final SymbolicFormula dischargeableAssumption;
   private final SymbolicFormula otherAssumption;
+  private SSAMap ssaMap;
 
-  public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
+  public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest, SSAMap pSSAMap)
   {
     dischargeableAssumption = dischargeable;
     otherAssumption = rest;
+    ssaMap = pSSAMap;
   }
 
-  public Assumption(SymbolicFormula assumption, boolean isDischargeable)
+  public Assumption(SymbolicFormula assumption, boolean isDischargeable, SSAMap pSSAMap)
   {
     dischargeableAssumption = isDischargeable ? assumption : manager.makeTrue();
     otherAssumption = isDischargeable ? manager.makeTrue() : assumption;
+    ssaMap = pSSAMap;
   }
 
   /** Constructs an invariant corresponding to true */
@@ -63,6 +68,7 @@ public class Assumption {
   {
     dischargeableAssumption = manager.makeTrue();
     otherAssumption = manager.makeTrue();
+    ssaMap = null;
   }
 
   public SymbolicFormula getDischargeableFormula() {
@@ -92,10 +98,15 @@ public class Assumption {
       return other;
     else if (other == TRUE)
       return this;
-
+    
     SymbolicFormula newDischargeable = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
-    SymbolicFormula newOther = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
-    return new Assumption(newDischargeable, newOther);
+    SymbolicFormula newOther = manager.makeAnd(otherAssumption, other.otherAssumption);
+    SSAMap ssaMap1 = this.getSsaMap();
+    SSAMap ssaMap2 = other.getSsaMap();
+    if(ssaMap1 == null) ssaMap1 = new DummySSAMap().build();
+    if(ssaMap2 == null) ssaMap2 = new DummySSAMap().build();
+    SSAMap newSSAMap = SSAMap.merge(ssaMap1, ssaMap2);
+    return new Assumption(newDischargeable, newOther, newSSAMap);
   }
 
   /**
@@ -107,7 +118,7 @@ public class Assumption {
       return true;
     else
       return dischargeableAssumption.isTrue()
-          && otherAssumption.isTrue();
+      && otherAssumption.isTrue();
   }
 
   public boolean isFalse() {
@@ -117,9 +128,17 @@ public class Assumption {
       return false;
     else
       return dischargeableAssumption.isFalse()
-          || otherAssumption.isFalse();
+      || otherAssumption.isFalse();
+  }
+  
+  public SSAMap getSsaMap() {
+    return ssaMap;
   }
 
+  public void setSSAMap(SSAMap pSSAMap){
+    ssaMap = pSSAMap;
+  }
+  
   /**
    * Return an assumption with location for the given
    * location
@@ -131,4 +150,11 @@ public class Assumption {
     else
       return new AssumptionWithSingleLocation(node, this);
   }
+  
+  @Override
+  public String toString() {
+    return "Formula: " + dischargeableAssumption;
+    //+ " SSAMap: " + ssaMap;
+  }
+  
 }

@@ -81,6 +81,9 @@ public class CProver {
   }
 
   public static boolean checkFeasibility(String program, LogManager logger) throws IOException {
+    Files.writeFile(new File("/localhome/erkan/cpa/tempCBMC.c"), program);
+    // TODO replace nondet keyword with some external call for nondeterministic behaviour
+    // program.replaceAll(regex, replacement);
     File cFile = Files.createTempFile("path", ".c", program);
     try {
       logger.log(Level.FINER, "Starting CBMC verification.");

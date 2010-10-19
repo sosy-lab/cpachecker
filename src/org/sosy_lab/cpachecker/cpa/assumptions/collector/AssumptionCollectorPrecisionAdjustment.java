@@ -78,7 +78,7 @@ public class AssumptionCollectorPrecisionAdjustment
     
     AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
     boolean stop = assumptionElement.isStop();
-    AbstractElement resultElement = new AssumptionCollectorElement(newElement, assumption, stop);
+    AbstractElement resultElement = new AssumptionCollectorElement(assumptionElement.getCpa(), newElement, assumption, stop);
     
     return new Pair<AbstractElement, Precision>(resultElement, newPrecision);
   }

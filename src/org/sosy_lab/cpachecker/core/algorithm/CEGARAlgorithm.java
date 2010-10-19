@@ -58,7 +58,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private long totalTime = 0;
     private long refinementTime = 0;
     private long gcTime = 0;
-
+    private long maxRefinementTime = 0;
+    
     private int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
 
@@ -78,6 +79,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("Total time for CEGAR algorithm: " + toTime(totalTime));
         out.println("Time for refinements:           " + toTime(refinementTime));
         out.println("Average time for refinement:    " + toTime(refinementTime/countRefinements));
+        out.println("Max time for refinement:        " + toTime(maxRefinementTime));
         out.println("Time for garbage collection:    " + toTime(gcTime));
       }
     }
@@ -176,8 +178,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         long startRefinement = System.currentTimeMillis();
         boolean refinementResult = mRefiner.performRefinement(reached);
-        stats.refinementTime += (System.currentTimeMillis() - startRefinement);
+        long lastRefinementsTime = (System.currentTimeMillis() - startRefinement);
+        stats.refinementTime += lastRefinementsTime;
 
+        if(lastRefinementsTime > stats.maxRefinementTime){
+          stats.maxRefinementTime = lastRefinementsTime;
+        }
+        
         if (refinementResult) {
           // successful refinement
 

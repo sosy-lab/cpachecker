@@ -28,5 +28,7 @@ public class TransferMonitorStatistics implements Statistics{
     pOut.println("Av Post Time:              " + numberFormat.format(averageTransferTime) + "ms");
     pOut.println("Max Post time on a path:   " + TransferRelationMonitorElement.maxTotalTimeForPath + "ms" );
     pOut.println("Max size of a single path: " + TransferRelationMonitorTransferRelation.maxSizeOfSinglePath);
+    pOut.println("Max number of branches:    " + TransferRelationMonitorElement.maxNumberOfBranches);
   }
+
 }

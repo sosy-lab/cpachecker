@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 /**
@@ -40,6 +39,6 @@ public interface GenericAssumptionBuilder {
    * the pre-state of the edge.
    * @return A non-null predicate representing the assumptions
    */
-  public IASTExpression assumptionsForEdge(CFAEdge edge);
+  public IASTNode assumptionsForEdge(CFAEdge edge);
 
 }
