@@ -18,7 +18,6 @@ public class CompoundTransferRelation implements TransferRelation {
 
   private final TransferRelation[] mTransferRelations;
   private final AbstractDomain[] mDomains;
-  private final AbstractElement[] mBottomElements;
   
   private final List<Collection<? extends AbstractElement>> mSuccessorElements;
   private final ArrayList<AbstractElement> mPrefix;
@@ -35,12 +34,10 @@ public class CompoundTransferRelation implements TransferRelation {
     mTransferRelations = new TransferRelation[pTransferRelations.size()];
     mNumberOfCPAs = mTransferRelations.length;
     mDomains = new AbstractDomain[mNumberOfCPAs];
-    mBottomElements = new AbstractElement[mNumberOfCPAs];
     
     for (int lIndex = 0; lIndex < mNumberOfCPAs; lIndex++) {
       mTransferRelations[lIndex] = pTransferRelations.get(lIndex);
       mDomains[lIndex] = pDomains.get(lIndex);
-      mBottomElements[lIndex] = mDomains[lIndex].getBottomElement();
     }
     
     mSuccessorElements = new ArrayList<Collection<? extends AbstractElement>>(mNumberOfCPAs);
@@ -125,11 +122,6 @@ public class CompoundTransferRelation implements TransferRelation {
       Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
 
       for (AbstractElement currentComponent : myComponentsSuccessors) {
-        // we do not generate compound bottom elements
-        if (mBottomElements[depth].equals(currentComponent)) {
-          continue;
-        }
-        
         prefix.set(depth, currentComponent);
         
         createCartesianProduct(depth + 1, allComponentsSuccessors, prefix, allResultingElements);
@@ -146,11 +138,6 @@ public class CompoundTransferRelation implements TransferRelation {
       Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
 
       for (AbstractElement currentComponent : myComponentsSuccessors) {
-        // we do not generate compound bottom elements
-        if (mBottomElements[depth].equals(currentComponent)) {
-          continue;
-        }
-        
         lComponents[depth] = currentComponent;
         
         createCartesianProduct2(depth + 1, allComponentsSuccessors, lComponents, allResultingElements);

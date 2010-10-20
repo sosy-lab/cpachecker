@@ -50,31 +50,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		this.cpa = cpa;
 	}
 
-	private static class DominatorBottomElement extends DominatorElement
-    {
-
-        @Override
-        public String toString() {
-        	return "\\top";
-        }
-
-        @Override
-        public boolean equals(Object o) {
-        	return (o instanceof DominatorBottomElement);
-        }
-
-        @Override
-        public int hashCode() {
-        	return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public CFANode getLocationNode() {
-          // TODO Auto-generated method stub
-          return null;
-        }
-    }
-
 	private static class DominatorTopElement extends DominatorElement
     {
 
@@ -100,7 +75,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         }
     }
 
-    private final static DominatorBottomElement bottomElement = new DominatorBottomElement();
     private final static DominatorTopElement topElement = new DominatorTopElement();
 
     @Override
@@ -109,7 +83,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         if (element1.equals(element2))
             return true;
 
-        if (element1.equals(bottomElement) || element2.equals(topElement))
+        if (element2.equals(topElement))
             return true;
 
         if (element1 instanceof DominatorElement && element2 instanceof DominatorElement) {
@@ -149,15 +123,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
       DominatorElement dominatorElement1 = (DominatorElement) element1;
       DominatorElement dominatorElement2 = (DominatorElement) element2;
 
-    	if (element1.equals(bottomElement)) {
-			return dominatorElement2;
-		}
-
 		if (element1.equals(topElement)) {
-			return dominatorElement1;
-		}
-
-		if (element2.equals(bottomElement)) {
 			return dominatorElement1;
 		}
 
@@ -186,14 +152,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		result.update(dominatorElement1.getDominatedElement());
 
 		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getBottomElement()
-	 */
-	@Override
-  public DominatorBottomElement getBottomElement() {
-		return bottomElement;
 	}
 
 	/* (non-Javadoc)

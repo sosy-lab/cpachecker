@@ -34,14 +34,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class PointerAnalysisDomain implements AbstractDomain {
 
-  private static class PointerAnalysisBottomElement implements AbstractElement {
-
-    @Override
-    public String toString() {
-      return "<PointerAnalysis BOTTOM>";
-    }
-  }
-
   private static class PointerAnalysisTopElement implements AbstractElement {
 
     @Override
@@ -93,13 +85,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
     public boolean satisfiesPartialOrder(AbstractElement newElement,
                                          AbstractElement reachedElement)
                                          throws CPAException {
-      if (newElement == bottomElement) {
+      if (reachedElement == topElement) {
         return true;
-      } else if (reachedElement == topElement) {
-        return true;
-      } else if (reachedElement == bottomElement) {
-        assert false : "Bottom element should never be in the reached set";
-        return false;
       } else if (newElement == topElement) {
         return false;
       }
@@ -113,7 +100,6 @@ public class PointerAnalysisDomain implements AbstractDomain {
 
   private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
   private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
-  private static final AbstractElement bottomElement = new PointerAnalysisBottomElement();
   private static final AbstractElement topElement = new PointerAnalysisTopElement();
 
   @Override
@@ -124,11 +110,6 @@ public class PointerAnalysisDomain implements AbstractDomain {
   @Override
   public PartialOrder getPartialOrder() {
     return partialOrder;
-  }
-
-  @Override
-  public AbstractElement getBottomElement() {
-    return bottomElement;
   }
 
   @Override

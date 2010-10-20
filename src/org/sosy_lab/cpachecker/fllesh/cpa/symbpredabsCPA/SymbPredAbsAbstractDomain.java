@@ -63,13 +63,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2) throws CPAException {
       
-      if (element1 == SymbPredAbsBottomElement.INSTANCE) {
+      if (element2 == SymbPredAbsTopElement.INSTANCE) {
         return true;
-      } else if (element2 == SymbPredAbsTopElement.INSTANCE) {
-        return true;
-      } else if (element2 == SymbPredAbsBottomElement.INSTANCE) {
-        // we should not put this in the reached set
-        throw new RuntimeException();
       } else if (element1 == SymbPredAbsTopElement.INSTANCE) {
         return false;
       }
@@ -109,11 +104,6 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
   private final static JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
-
-  @Override
-  public SymbPredAbsBottomElement getBottomElement() {
-    return SymbPredAbsBottomElement.INSTANCE;
-  }
 
   @Override
   public JoinOperator getJoinOperator() {

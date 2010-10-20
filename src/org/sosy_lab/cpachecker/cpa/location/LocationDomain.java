@@ -31,32 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class LocationDomain implements AbstractDomain
 {
-    private static class LocationBottomElement extends LocationElement
-    {
-      public LocationBottomElement() {
-        super(null);
-      }
-
-      @Override
-      public boolean equals(Object pOther) {
-        if (pOther == null) {
-          return false;
-        }
-
-        return (pOther instanceof LocationBottomElement);
-      }
-
-      @Override
-      public int hashCode() {
-        return Integer.MIN_VALUE;
-      }
-
-      @Override
-      public String toString() {
-        return "LocationBottomElement";
-      }
-    }
-
     private static class LocationTopElement extends LocationElement
     {
 
@@ -96,30 +70,13 @@ public class LocationDomain implements AbstractDomain
             if (locElement1.equals (locElement2))
                 return locElement1;
 
-            if (locElement1.equals(bottomElement))
-                return locElement2;
-            if (locElement2.equals(bottomElement))
-                return locElement1;
-
             return topElement;
         }
     }
 
-    private final static LocationBottomElement bottomElement = new LocationBottomElement ();
     private final static LocationTopElement topElement = new LocationTopElement ();
     private final        PartialOrder partialOrder = new EqualityPartialOrder(this);
     private final static JoinOperator joinOperator = new LocationJoinOperator ();
-
-    public LocationDomain ()
-    {
-
-    }
-
-    @Override
-    public LocationElement getBottomElement ()
-    {
-        return bottomElement;
-    }
 
     @Override
     public AbstractElement getTopElement ()

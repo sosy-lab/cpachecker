@@ -28,10 +28,6 @@ public class ProductAutomatonPartialOrder implements PartialOrder {
       throw new IllegalArgumentException();
     }
     
-    if (pElement1.equals(ProductAutomatonBottomElement.getInstance())) {
-      return true;
-    }
-    
     if (pElement2.equals(ProductAutomatonTopElement.getInstance())) {
       return true;
     }
@@ -41,10 +37,6 @@ public class ProductAutomatonPartialOrder implements PartialOrder {
     }
     
     if (pElement1.equals(ProductAutomatonTopElement.getInstance())) {
-      return false;
-    }
-    
-    if (pElement2.equals(ProductAutomatonBottomElement.getInstance())) {
       return false;
     }
     

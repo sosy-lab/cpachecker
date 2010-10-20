@@ -188,12 +188,10 @@ public class InterpreterTransferRelation implements TransferRelation {
         throw new RuntimeException();
       }
       
-      if (!InterpreterBottomElement.INSTANCE.equals(successor)) {
-        InterpreterElement lSuccessor = (InterpreterElement)successor;
-        
-        if (lSuccessor.getInputIndex() != explicitElement.getInputIndex()) {
-          throw new RuntimeException();
-        }
+      InterpreterElement lSuccessor = (InterpreterElement)successor;
+      
+      if (lSuccessor.getInputIndex() != explicitElement.getInputIndex()) {
+        throw new RuntimeException();
       }
       
       break;

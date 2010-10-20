@@ -11,7 +11,7 @@ public class GuardedEdgeAutomatonDomain extends FlatLatticeDomain {
   }
   
   private GuardedEdgeAutomatonDomain() {
-    super(GuardedEdgeAutomatonTopElement.getInstance(), GuardedEdgeAutomatonBottomElement.getInstance());
+    super(GuardedEdgeAutomatonTopElement.getInstance());
   }
 
 }

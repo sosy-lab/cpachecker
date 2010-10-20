@@ -56,13 +56,11 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   private final TransferRelation wrappedTransfer;
   private final AssumptionAndForceStopReportingVisitor reportingVisitor;
   private final SymbolicFormulaManager manager;
-  private final AbstractElement wrappedBottom;
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)
   {
     wrappedCPA = cpa.getWrappedCpa();
     wrappedTransfer = wrappedCPA.getTransferRelation();
-    wrappedBottom = wrappedCPA.getAbstractDomain().getBottomElement();
     reportingVisitor = new AssumptionAndForceStopReportingVisitor();
     manager = cpa.getSymbolicFormulaManager();
   }
@@ -99,7 +97,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
         assumption = assumption.and(dataAssumption);
       }
 
-      boolean isBottom = forceStop || wrappedBottom.equals(unwrappedSuccessor);
+      boolean isBottom = forceStop;
 
       successors.add(new AssumptionCollectorElement(element.getCpa(), unwrappedSuccessor, assumption, isBottom));
     }

@@ -41,14 +41,8 @@ public class InterpreterDomain implements AbstractDomain {
       InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
       InterpreterElement explicitAnalysisElementReached = (InterpreterElement) reachedElement;
 
-      if (newElement == sBottomElement) {
+      if (reachedElement == sTopElement) {
         return true;
-      } else if (reachedElement == sTopElement) {
-        return true;
-      } else if (reachedElement == sBottomElement) {
-        // we should not put this in the reached set
-        assert(false);
-        return false;
       } else if (newElement == sTopElement) {
         return false;
       }
@@ -102,21 +96,9 @@ public class InterpreterDomain implements AbstractDomain {
     }
   }
 
-  private final static InterpreterBottomElement sBottomElement = InterpreterBottomElement.INSTANCE;
   private final static InterpreterTopElement sTopElement = InterpreterTopElement.INSTANCE;
   private final static PartialOrder sPartialOrder = new InterpreterPartialOrder ();
   private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
-
-  public InterpreterDomain()
-  {
-
-  }
-
-  @Override
-  public InterpreterBottomElement getBottomElement ()
-  {
-    return sBottomElement;
-  }
 
   @Override
   public InterpreterTopElement getTopElement ()

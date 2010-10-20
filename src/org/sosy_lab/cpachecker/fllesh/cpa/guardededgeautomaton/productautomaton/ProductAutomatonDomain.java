@@ -15,10 +15,6 @@ public class ProductAutomatonDomain implements AbstractDomain {
     
   }
 
-  @Override
-  public ProductAutomatonBottomElement getBottomElement() {
-    return ProductAutomatonBottomElement.getInstance();
-  }
 
   @Override
   public JoinOperator getJoinOperator() {

@@ -32,33 +32,6 @@ public class ARTDomain implements AbstractDomain {
 
   private final ARTCPA cpa;
 
-  private static class ArtBottomElement extends ARTElement
-  {
-    public ArtBottomElement() {
-      super(null, null);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-
-      if (pOther == null) {
-        return false;
-      }
-
-      return (pOther instanceof ArtBottomElement);
-    }
-
-    @Override
-    public int hashCode() {
-      return Integer.MIN_VALUE;
-    }
-
-    @Override
-    public String toString() {
-      return "ArtBottomElement";
-    }
-  }
-
   private static class ArtTopElement extends ARTElement
   {
     public ArtTopElement() {
@@ -95,7 +68,7 @@ public class ARTDomain implements AbstractDomain {
         return true;
       }
 
-      if (element1 instanceof ArtBottomElement || element2 instanceof ArtTopElement){
+      if (element2 instanceof ArtTopElement){
         return true;
       }
 
@@ -115,16 +88,10 @@ public class ARTDomain implements AbstractDomain {
       if (artElement1.equals (artElement2))
         return artElement1;
 
-      if (artElement1.equals(bottomElement))
-        return artElement2;
-      if (artElement2.equals(bottomElement))
-        return artElement1;
-
       return topElement;
     }
   }
 
-  private final static ArtBottomElement bottomElement = new ArtBottomElement ();
   private final static ArtTopElement topElement = new ArtTopElement ();
   private final static PartialOrder partialOrder = new ArtPartialOrder ();
   private final static JoinOperator joinOperator = new ArtJoinOperator ();
@@ -132,12 +99,6 @@ public class ARTDomain implements AbstractDomain {
   public ARTDomain(ARTCPA pCpa)
   {
     cpa = pCpa;
-  }
-
-  @Override
-  public AbstractElement getBottomElement ()
-  {
-      return bottomElement;
   }
 
   @Override

@@ -63,7 +63,6 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
     // Special cases
     if (this == TOP) return other;
     if (other == TOP) return this;
-    if ((this == BOTTOM) || (other == BOTTOM)) return BOTTOM;
 
     return new GenericAssumptionsElement(assumption.and(other.assumption));
   }
@@ -82,5 +81,4 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
   }
 
   public static final GenericAssumptionsElement TOP = new GenericAssumptionsElement(AssumptionWithLocation.TRUE);
-  public static final GenericAssumptionsElement BOTTOM = new GenericAssumptionsElement(AssumptionWithLocation.FALSE);
 }

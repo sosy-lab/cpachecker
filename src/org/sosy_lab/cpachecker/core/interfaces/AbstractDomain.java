@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 public interface AbstractDomain
 {
     public AbstractElement getTopElement ();
-    public AbstractElement getBottomElement ();
     public PartialOrder getPartialOrder ();
     public JoinOperator getJoinOperator ();
 }

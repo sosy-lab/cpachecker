@@ -58,12 +58,6 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     symbolicCoverageCheck = pSymbolicCoverageCheck;
   }
 
-  private final static class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
-    @Override
-    public String toString() {
-      return "<BOTTOM>";
-    }
-  }
   private final static class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
     @Override
     public String toString() {
@@ -100,14 +94,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     ++stats.numCoverageChecks;
        */
 
-      if (e1 == bottom) {
+      if (e2 == top) {
         return true;
-      } else if (e2 == top) {
-        return true;
-      } else if (e2 == bottom) {
-        // we should not put this in the reached set
-        assert(false);
-        return false;
       } else if (e1 == top) {
         return false;
       }
@@ -150,15 +138,9 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
   }
 
-  private final static SymbPredAbsBottomElement bottom = new SymbPredAbsBottomElement();
   private final static SymbPredAbsTopElement top = new SymbPredAbsTopElement();
   private final static JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
-
-  @Override
-  public SymbPredAbsAbstractElement getBottomElement() {
-    return bottom;
-  }
 
   @Override
   public JoinOperator getJoinOperator() {

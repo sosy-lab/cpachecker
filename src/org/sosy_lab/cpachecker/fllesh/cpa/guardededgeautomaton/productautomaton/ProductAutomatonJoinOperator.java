@@ -32,14 +32,6 @@ public class ProductAutomatonJoinOperator implements JoinOperator {
       return pElement1;
     }
     
-    if (pElement1.equals(ProductAutomatonBottomElement.getInstance())) {
-      return pElement2;
-    }
-    
-    if (pElement2.equals(ProductAutomatonBottomElement.getInstance())) {
-      return pElement1;
-    }
-    
     if (pElement1.equals(ProductAutomatonTopElement.getInstance())) {
       return pElement1;
     }

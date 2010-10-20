@@ -39,18 +39,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class UninitializedVariablesDomain implements AbstractDomain {
 
-  private static class UninitializedVariablesBottomElement extends UninitializedVariablesElement {
-
-    public UninitializedVariablesBottomElement() {
-      super("<BOTTOM>");
-    }
-
-    @Override
-    public String toString() {
-      return "<UninitializedVariables BOTTOM>";
-    }
-  }
-
   private static class UninitializedVariablesTopElement extends UninitializedVariablesElement {
 
     public UninitializedVariablesTopElement() {
@@ -91,10 +79,10 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
 
-      if (element1 == bottomElement || element2 == topElement) {
+      if (element2 == topElement) {
         return true;
       }
-      if (element2 == bottomElement || element1 == topElement) {
+      if (element1 == topElement) {
         return false;
       }
 
@@ -127,7 +115,6 @@ public class UninitializedVariablesDomain implements AbstractDomain {
 
   private static final JoinOperator joinOperator = new UninitializedVariablesJoinOperator();
   private static final PartialOrder partialOrder = new UninitializedVariablesPartialOrder();
-  private static final AbstractElement bottomElement = new UninitializedVariablesBottomElement();
   private static final AbstractElement topElement = new UninitializedVariablesTopElement();
 
   @Override
@@ -138,11 +125,6 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   @Override
   public PartialOrder getPartialOrder() {
     return partialOrder;
-  }
-
-  @Override
-  public AbstractElement getBottomElement() {
-    return bottomElement;
   }
 
   @Override

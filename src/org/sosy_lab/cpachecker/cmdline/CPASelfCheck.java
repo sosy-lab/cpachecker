@@ -124,8 +124,7 @@ public class CPASelfCheck {
 
         boolean ok = true;
         // check domain and lattice
-        ok &= checkSingletonBottomTop(cpa, cpaInst, main);
-        ok &= checkBottomLessThanTop(cpa, cpaInst, main);
+        ok &= checkSingletonTop(cpa, cpaInst, main);
         ok &= checkInitialElementInLattice(cpa, cpaInst, main);
         ok &= checkJoin(cpa, cpaInst, main);
         /// TODO checking the invariantes of the transfer relation is a bit more work ...
@@ -177,28 +176,15 @@ public class CPASelfCheck {
     return true;
   }
 
-  private static boolean checkSingletonBottomTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
+  private static boolean checkSingletonTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
     Constructor<ConfigurableProgramAnalysis> ct = pCpa.getConstructor(String.class, String.class);
     Object argumentlist[] = {"sep", "sep"};
     ConfigurableProgramAnalysis inst2 = ct.newInstance(argumentlist);
 
     // maybe use equals, but elements should really be static
     boolean ok = true;
-    ok &= ensure(pCpaInst.getAbstractDomain().getBottomElement() == inst2.getAbstractDomain().getBottomElement(),
-        "Bottom elements are not the same!");
     ok &= ensure(pCpaInst.getAbstractDomain().getTopElement() == inst2.getAbstractDomain().getTopElement(),
         "Top elements are not the same!");
-    return ok;
-  }
-
-  private static boolean checkBottomLessThanTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
-    AbstractElement bottom = pCpaInst.getAbstractDomain().getBottomElement();
-    AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
-
-    boolean ok = true;
-    ok &= ensure(le.satisfiesPartialOrder(bottom, top), "Bottom is not less or equal to top!");
-    ok &= ensure(!le.satisfiesPartialOrder(top, bottom), "Top is less or equal to bottom!");
     return ok;
   }
 
@@ -207,12 +193,10 @@ public class CPASelfCheck {
                                                    Class<ConfigurableProgramAnalysis> pCpa,
                                                    ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
-    AbstractElement bottom = pCpaInst.getAbstractDomain().getBottomElement();
-    AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
+    AbstractElement top = pCpaInst.getAbstractDomain().getTopElement();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
 
     boolean ok = true;
-    ok &= ensure(le.satisfiesPartialOrder(bottom, initial), "Initial element is not greater or equal bottom!");
     ok &= ensure(le.satisfiesPartialOrder(initial, top), "Initial element is not less or equal top!");
     return ok;
   }
@@ -221,7 +205,7 @@ public class CPASelfCheck {
                                 ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
     JoinOperator join = pCpaInst.getAbstractDomain().getJoinOperator();
-    AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
+    AbstractElement top = pCpaInst.getAbstractDomain().getTopElement();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
 
     boolean ok = true;

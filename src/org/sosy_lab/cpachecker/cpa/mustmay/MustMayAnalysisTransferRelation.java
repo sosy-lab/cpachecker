@@ -39,17 +39,12 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
   private TransferRelation mMustTransferRelation;
   private TransferRelation mMayTransferRelation;
 
-  private AbstractElement mMayBottomElement;
-
-  public MustMayAnalysisTransferRelation(TransferRelation pMustTransferRelation, TransferRelation pMayTransferRelation, MustMayAnalysisElement pBottomElement) {
+  public MustMayAnalysisTransferRelation(TransferRelation pMustTransferRelation, TransferRelation pMayTransferRelation) {
     assert(pMustTransferRelation != null);
     assert(pMayTransferRelation != null);
-    assert(pBottomElement != null);
 
     mMustTransferRelation = pMustTransferRelation;
     mMayTransferRelation = pMayTransferRelation;
-
-    mMayBottomElement = pBottomElement.getMayElement();
   }
 
   @Override
@@ -76,10 +71,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
     HashSet<AbstractElement> lConsolidatedMaySuccessors = new HashSet<AbstractElement>();
 
     for (AbstractElement lSuccessor : lMaySuccessors) {
-      if (!lSuccessor.equals(mMayBottomElement)) {
-        // lSuccessor is not bottom element of may analysis
-        lConsolidatedMaySuccessors.add(lSuccessor);
-      }
+      lConsolidatedMaySuccessors.add(lSuccessor);
     }
 
     if (lConsolidatedMaySuccessors.isEmpty()) {

@@ -74,8 +74,8 @@ public class OctTransferRelation implements TransferRelation{
     LibraryAccess.initOctEnvironment();
   }
 
-  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws OctagonTransferException
-  {
+  @Override
+  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws OctagonTransferException {
 
 //  if(cfaEdge.getSuccessor().isLoopStart()){
 //  System.out.println(" looping ");
@@ -192,11 +192,10 @@ public class OctTransferRelation implements TransferRelation{
     }
 
     if(octElement.isEmpty()){
-      octElement.setBottom();
+      return Collections.emptySet();
     }
 
-    if(cfaEdge.getSuccessor() instanceof CFAErrorNode &&
-        !octElement.isBottom()){
+    if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
       System.out.println(" ERROR NODE REACHED ");
       System.out.println(" ============================= ");
       System.out.println(octElement);
@@ -207,12 +206,7 @@ public class OctTransferRelation implements TransferRelation{
 //  System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
 //  System.out.println(octElement);
 //  System.out.println();
-    return octElement;
-  }
-
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws OctagonTransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
+    return Collections.singleton(octElement);
   }
 
   /**

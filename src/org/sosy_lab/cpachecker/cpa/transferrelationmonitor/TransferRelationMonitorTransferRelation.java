@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,7 +51,6 @@ import com.google.common.base.Throwables;
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
-  private final AbstractDomain domain;
   private final TransferRelation transferRelation;
   public static long maxSizeOfSinglePath = 0;
 
@@ -73,7 +71,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     config.inject(this);
 
     transferRelation = pWrappedCPA.getTransferRelation();
-    domain = pWrappedCPA.getAbstractDomain();
   }
 
   @Override
@@ -118,10 +115,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
     Collection<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>();
     for (AbstractElement absElement : successors) {
-      if (absElement.equals(domain.getBottomElement())) {
-        // omit bottom element from successors list
-        continue;
-      }
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());

@@ -60,7 +60,7 @@ public class AlwaysTopCPA implements ConfigurableProgramAnalysis {
   StopSepOperator mStopOperator;
 
   public AlwaysTopCPA() {
-    mDomain = new FlatLatticeDomain(AlwaysTopTopElement.getInstance(), AlwaysTopBottomElement.getInstance());
+    mDomain = new FlatLatticeDomain(AlwaysTopTopElement.getInstance());
     mMergeOperator = new MergeSepOperator();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
   }

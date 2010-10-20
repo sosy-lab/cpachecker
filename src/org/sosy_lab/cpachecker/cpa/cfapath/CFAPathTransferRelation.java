@@ -14,16 +14,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CFAPathTransferRelation implements TransferRelation {
   
   private static final Set<CFAPathTopElement> sTopElementSingleton = CFAPathTopElement.getSingleton();
-  private static final Set<? extends AbstractElement> sEmptySet = Collections.emptySet();
   
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    if (pElement.equals(CFAPathBottomElement.getInstance())) {
-      return sEmptySet;
-    }
-    
     if (pElement.equals(CFAPathTopElement.getInstance())) {
       return sTopElementSingleton;
     }

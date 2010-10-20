@@ -32,33 +32,6 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
 
   private final TransferRelationMonitorCPA cpa;
 
-  private static class TransferRelationMonitorBottomElement extends TransferRelationMonitorElement
-  {
-    public TransferRelationMonitorBottomElement() {
-      super(null, null);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-
-      if (pOther == null) {
-        return false;
-      }
-
-      return (pOther instanceof TransferRelationMonitorBottomElement);
-    }
-
-    @Override
-    public int hashCode() {
-      return Integer.MIN_VALUE;
-    }
-
-    @Override
-    public String toString() {
-      return "TransferRelationMonitorBottomElement";
-    }
-  }
-
   private static class TransferRelationMonitorTopElement extends TransferRelationMonitorElement
   {
     public TransferRelationMonitorTopElement() {
@@ -95,7 +68,7 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
         return true;
       }
 
-      if (element1 instanceof TransferRelationMonitorBottomElement || element2 instanceof TransferRelationMonitorTopElement){
+      if (element2 instanceof TransferRelationMonitorTopElement){
         return true;
       }
 
@@ -115,16 +88,10 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
       if (transferRelationMonitorElement1.equals (transferRelationMonitorElement2))
         return transferRelationMonitorElement1;
 
-      if (transferRelationMonitorElement1.equals(bottomElement))
-        return transferRelationMonitorElement2;
-      if (transferRelationMonitorElement2.equals(bottomElement))
-        return transferRelationMonitorElement1;
-
       return topElement;
     }
   }
 
-  private final static TransferRelationMonitorBottomElement bottomElement = new TransferRelationMonitorBottomElement ();
   private final static TransferRelationMonitorTopElement topElement = new TransferRelationMonitorTopElement ();
   private final static PartialOrder partialOrder = new ArtPartialOrder ();
   private final static JoinOperator joinOperator = new ArtJoinOperator ();
@@ -132,12 +99,6 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
   public TransferRelationMonitorDomain(TransferRelationMonitorCPA pCpa)
   {
     cpa = pCpa;
-  }
-
-  @Override
-  public AbstractElement getBottomElement ()
-  {
-      return bottomElement;
   }
 
   @Override

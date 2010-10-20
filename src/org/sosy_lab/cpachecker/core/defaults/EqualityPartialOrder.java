@@ -48,8 +48,7 @@ public class EqualityPartialOrder implements PartialOrder {
   public boolean satisfiesPartialOrder(AbstractElement newElement,
                                        AbstractElement reachedElement) {
 
-    return(domain.getBottomElement().equals(newElement)
-        || domain.getTopElement().equals(reachedElement)
+    return(domain.getTopElement().equals(reachedElement)
         || newElement.equals(reachedElement));
   }
 }

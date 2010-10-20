@@ -33,32 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
 
-  private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement
-  {
-    @Override
-    public String toString() {
-      return "<ExplicitAnalysis BOTTOM>";
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      return (getClass().equals(pOther.getClass()));
-    }
-    
-    @Override
-    public int hashCode() {
-      return Integer.MIN_VALUE;
-    }
-  }
-
   private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement
   {
     @Override
@@ -101,14 +75,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 //      System.out.println("===============");
 //      System.exit(0);
 
-      if (explicitAnalysisElementNew == bottomElement) {
+      if (explicitAnalysisElementReached == topElement) {
         return true;
-      } else if (explicitAnalysisElementReached == topElement) {
-        return true;
-      } else if (explicitAnalysisElementReached == bottomElement) {
-        // we should not put this in the reached set
-        assert(false);
-        return false;
       } else if (explicitAnalysisElementNew == topElement) {
         return false;
       }
@@ -172,21 +140,9 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private final static ExplicitAnalysisBottomElement bottomElement = new ExplicitAnalysisBottomElement ();
   private final static ExplicitAnalysisTopElement topElement = new ExplicitAnalysisTopElement ();
   private final static PartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
   private final static JoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
-
-  public ExplicitAnalysisDomain ()
-  {
-
-  }
-
-  @Override
-  public ExplicitAnalysisElement getBottomElement ()
-  {
-    return bottomElement;
-  }
 
   @Override
   public ExplicitAnalysisElement getTopElement ()

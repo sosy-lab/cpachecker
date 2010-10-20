@@ -49,7 +49,6 @@ public class GenericAssumptionsDomain implements AbstractDomain {
       public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
         throws CPAException
       {
-        if (GenericAssumptionsElement.BOTTOM.equals(el1)) return true;
         if (GenericAssumptionsElement.TOP.equals(el2)) return true;
         return el1.equals(el2);
       }
@@ -57,11 +56,6 @@ public class GenericAssumptionsDomain implements AbstractDomain {
 
   public GenericAssumptionsDomain(GenericAssumptionsCPA aCPA)
   {
-  }
-
-  @Override
-  public AbstractElement getBottomElement() {
-    return GenericAssumptionsElement.BOTTOM;
   }
 
   @Override

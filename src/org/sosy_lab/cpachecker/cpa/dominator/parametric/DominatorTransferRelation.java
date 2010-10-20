@@ -71,11 +71,6 @@ public class DominatorTransferRelation implements TransferRelation {
 
     Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
     for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
-      if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
-        // don't need to return bottom, may just leave out this element from result set
-        continue;
-      }
-
       if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
         successors.add(this.domain.getTopElement());
 

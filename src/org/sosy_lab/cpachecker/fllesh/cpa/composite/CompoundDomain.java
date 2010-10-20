@@ -10,7 +10,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class CompoundDomain implements AbstractDomain {
 
-  private CompoundBottomElement mBottomElement;
   private CompoundElement mTopElement;
   private CompoundJoinOperator mJoinOperator;
   private CompoundPartialOrder mPartialOrder;
@@ -27,16 +26,10 @@ public class CompoundDomain implements AbstractDomain {
       lPartialOrders.add(lSubdomain.getPartialOrder());
     }
     
-    mBottomElement = CompoundBottomElement.create(pSubdomains);
     mTopElement = new CompoundElement(lTopElements);
     mJoinOperator = new CompoundJoinOperator(lJoinOperators);
     mPartialOrder = new CompoundPartialOrder(lPartialOrders);
     
-  }
-  
-  @Override
-  public CompoundBottomElement getBottomElement() {
-    return mBottomElement;
   }
 
   @Override

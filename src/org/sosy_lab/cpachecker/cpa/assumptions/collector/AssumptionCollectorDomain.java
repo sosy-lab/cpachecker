@@ -36,16 +36,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class AssumptionCollectorDomain implements AbstractDomain {
 
   private final AbstractElement top;
-  private final AbstractElement bottom;
 
   public AssumptionCollectorDomain(AssumptionCollectorCPA cpa, AbstractDomain wrappedDomain) {
     top = new AssumptionCollectorElement(cpa, wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE, false);
-    bottom = new AssumptionCollectorElement(cpa, wrappedDomain.getBottomElement(), AssumptionWithLocation.TRUE, true);
-  }
-
-  @Override
-  public AbstractElement getBottomElement() {
-    return bottom;
   }
 
   @Override
@@ -71,8 +64,7 @@ public class AssumptionCollectorDomain implements AbstractDomain {
         throws CPAException
       {
         return (el1.equals(el2))
-          || (top.equals(el2))
-          || (bottom.equals(el1));
+          || (top.equals(el2));
       }
     };
   }

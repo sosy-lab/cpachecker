@@ -22,12 +22,10 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
   
   private static final ProductAutomatonUndeterminedElement sUndeterminedElement = ProductAutomatonUndeterminedElement.getInstance();
   private static final ProductAutomatonTopElement sTopElement = ProductAutomatonTopElement.getInstance();
-  private static final ProductAutomatonBottomElement sBottomElement = ProductAutomatonBottomElement.getInstance();
   private static final Set<ProductAutomatonTopElement> sTopElementSingleton = Collections.singleton(ProductAutomatonTopElement.getInstance());
   private static final Set<ProductAutomatonUndeterminedElement> sUndeterminedElementSingleton = Collections.singleton(sUndeterminedElement);
   private static final Set<ProductAutomatonAcceptingElement> sAcceptingElementSingleton = Collections.singleton(ProductAutomatonAcceptingElement.getInstance());
   private static final Set<ProductAutomatonNonAcceptingElement> sNonAcceptingElementSingleton = Collections.singleton(ProductAutomatonNonAcceptingElement.getInstance());
-  private static final Set<AbstractElement> sEmptySet = Collections.emptySet();
   
   private ProductAutomatonTransferRelation() {
     
@@ -40,10 +38,6 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
     
     if (pElement.equals(sTopElement)) {
       return sTopElementSingleton;
-    }
-    
-    if (pElement.equals(sBottomElement)) {
-      return sEmptySet;
     }
     
     return sUndeterminedElementSingleton;

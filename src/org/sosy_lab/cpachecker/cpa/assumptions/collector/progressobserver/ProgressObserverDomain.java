@@ -35,11 +35,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class ProgressObserverDomain implements AbstractDomain {
 
-  private final ProgressObserverElement bottom;
   private final ProgressObserverElement top;
 
   public ProgressObserverDomain(ProgressObserverCPA a) {
-    bottom = ProgressObserverElement.getBottom(a);
     top = ProgressObserverElement.getTop(a);
   }
 
@@ -55,15 +53,9 @@ public class ProgressObserverDomain implements AbstractDomain {
   private final PartialOrder partialOrder = new PartialOrder() {
     @Override
     public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2) throws CPAException {
-      return (el1.equals(bottom))
-          || (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
+      return (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
     }
   };
-
-  @Override
-  public ProgressObserverElement getBottomElement() {
-    return bottom;
-  }
 
   @Override
   public JoinOperator getJoinOperator() {

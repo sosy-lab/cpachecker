@@ -11,7 +11,7 @@ public class CFAPathDomain extends FlatLatticeDomain {
   }
   
   public CFAPathDomain() {
-    super(CFAPathTopElement.getInstance(), CFAPathBottomElement.getInstance());
+    super(CFAPathTopElement.getInstance());
   }
 
 }

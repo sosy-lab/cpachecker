@@ -137,11 +137,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     public JoinOperator getJoinOperator() {
       return joinOperator;
     }
-
-    @Override
-    public AbstractElement getBottomElement() {
-      return bottomState;
-    }
   };
 
   private ControlAutomatonCPA(Automaton automaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
