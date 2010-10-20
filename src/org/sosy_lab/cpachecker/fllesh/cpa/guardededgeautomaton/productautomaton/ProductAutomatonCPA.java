@@ -1,9 +1,11 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -17,16 +19,16 @@ public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
     return sInstance;
   }
   
-  private final ProductAutomatonDomain mDomain;
+  private final AbstractDomain mDomain;
   private final StopSepOperator mStopOperator;
   
   private ProductAutomatonCPA() {
-    mDomain = ProductAutomatonDomain.getInstance();
+    mDomain = new FlatLatticeDomain(ProductAutomatonUndeterminedElement.getInstance());
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
   }
   
   @Override
-  public ProductAutomatonDomain getAbstractDomain() {
+  public AbstractDomain getAbstractDomain() {
     return mDomain;
   }
 

@@ -39,7 +39,7 @@ public class ProgressObserverDomain implements AbstractDomain {
   private final JoinOperator joinOperator = new JoinOperator() {
     @Override
     public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
-      return null;
+      throw new UnsupportedOperationException();
     }
   };
 

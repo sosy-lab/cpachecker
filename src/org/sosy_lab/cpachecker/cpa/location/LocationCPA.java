@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
-	private static final LocationDomain abstractDomain = new LocationDomain();
+  private static final AbstractDomain abstractDomain = new FlatLatticeDomain();
 	private static final TransferRelation transferRelation = new LocationTransferRelation();
 	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 

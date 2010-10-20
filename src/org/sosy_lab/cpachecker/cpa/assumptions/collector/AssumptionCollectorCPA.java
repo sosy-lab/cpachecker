@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -58,7 +59,7 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(AssumptionCollectorCPA.class);
   }
 
-  private final AssumptionCollectorDomain abstractDomain;
+  private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
@@ -70,7 +71,7 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
   {
     super(cpa);
     symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
-    abstractDomain = new AssumptionCollectorDomain();
+    abstractDomain = new FlatLatticeDomain();
     mergeOperator = new AssumptionCollectorMerge(getWrappedCpa());
     stopOperator = new AssumptionCollectorStop(getWrappedCpa());
     transferRelation = new AssumptionCollectorTransferRelation(this);

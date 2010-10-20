@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -86,7 +87,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     config.inject(this);
 
     this.logger = logger;
-    abstractDomain = new ARTDomain(this);
+    abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
     precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
     if (mergeType.equals("SEP")){
