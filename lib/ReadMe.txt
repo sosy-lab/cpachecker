@@ -3,9 +3,14 @@ Libraries contained in this project:
 NOTE: If you add a library to CPAchecker, be sure to update MANIFEST.MF
 and build.properties with the Eclipse PDE wizard!
 
+- cbmc: CBMC
+  http://www.cprover.org/cbmc/
+  Open source license: license-cbmc.txt
+  Bit-precise bounded model checker for C
+
 - libcudd.so: CUDD: CU Decision Diagram Package
   http://vlsi.colorado.edu/~fabio/CUDD/
-  Open source library: libcudd-license.txt
+  Open source library: license-libcudd.txt
   BDD library for predicate abstraction.
 
 - csisat: CSIsat
@@ -30,7 +35,7 @@ and build.properties with the Eclipse PDE wizard!
 
 - icu4j-*.jar: International Components for Unicode
   http://site.icu-project.org/
-  ICU License - ICU 1.8.1 and later
+  ICU License - ICU 1.8.1 and later: license-libicu4j.html
   Needed by Eclipse CDT parser for error messages.
 
 - javabdd-*.jar: JavaBDD
@@ -40,7 +45,7 @@ and build.properties with the Eclipse PDE wizard!
 
 - java-cup-*.jar: CUP LALR Parser Generator for Java
   http://www2.cs.tum.edu/projects/cup/
-  CUP Parser Generator License: cup-license.txt
+  CUP Parser Generator License: license-cup.txt
   Used for generating automaton and FQL parsers.
 
 - JFLex.jar: JFlex Scanner Generator for Java
@@ -56,7 +61,7 @@ and build.properties with the Eclipse PDE wizard!
 
 - libJOct.so: Octagon Abstract Domain Library
   http://www.di.ens.fr/~mine/oct/
-  Octagon Abstract Domain License: octagon-license.txt
+  Octagon Abstract Domain License: license-octagon.txt
   Used for octagon abstract domain.
   Source for wrapper in native/source/octagon-libJOct.so/
 
@@ -67,7 +72,7 @@ and build.properties with the Eclipse PDE wizard!
 
 - mathsat.jar, libmathsatj.so: Mathsat4
   http://mathsat4.disi.unitn.it/
-  CPAchecker-specific license: native/libmathsatj_license.txt
+  CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver for predicate analysis.
   Source for Java wrapper library in native/source/libmathsatj/
 
