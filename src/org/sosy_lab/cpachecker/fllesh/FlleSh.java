@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTStatistics;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
+import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
@@ -810,7 +810,7 @@ public class FlleSh {
 
     Statistics lARTStatistics;
     try {
-      lARTStatistics = new ARTStatistics(mConfiguration, mLogManager);
+      lARTStatistics = new ARTStatistics(mConfiguration, lARTCPA);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
