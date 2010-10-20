@@ -52,7 +52,17 @@ public class MustMayAnalysisPartialOrder implements PartialOrder {
     MustMayAnalysisElement lElement1 = (MustMayAnalysisElement)pElement1;
     MustMayAnalysisElement lElement2 = (MustMayAnalysisElement)pElement2;
 
-    return (mMustPartialOrder.satisfiesPartialOrder(lElement1.getMustElement(), lElement2.getMustElement()) && mMayPartialOrder.satisfiesPartialOrder(lElement1.getMayElement(), lElement2.getMayElement()));
+    boolean mustSatisfies;
+    if (lElement1.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      mustSatisfies = true;
+    } else if (lElement2.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      mustSatisfies = false;
+    } else {
+      mustSatisfies = mMustPartialOrder.satisfiesPartialOrder(lElement1.getMustElement(), lElement2.getMustElement());
+    }
+    
+    boolean maySatisfies = mMayPartialOrder.satisfiesPartialOrder(lElement1.getMayElement(), lElement2.getMayElement()); 
+    return (mustSatisfies && maySatisfies);
   }
 
 }

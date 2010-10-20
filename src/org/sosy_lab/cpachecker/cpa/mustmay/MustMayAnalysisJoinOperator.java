@@ -53,7 +53,14 @@ public class MustMayAnalysisJoinOperator implements JoinOperator {
     MustMayAnalysisElement lElement1 = (MustMayAnalysisElement)pElement1;
     MustMayAnalysisElement lElement2 = (MustMayAnalysisElement)pElement2;
 
-    AbstractElement lMustElement = mMustJoinOperator.join(lElement1.getMustElement(), lElement2.getMustElement());
+    AbstractElement lMustElement;
+    if (lElement1.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      lMustElement = lElement2;
+    } else if (lElement2.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      lMustElement = lElement1;
+    } else {
+      lMustElement = mMustJoinOperator.join(lElement1.getMustElement(), lElement2.getMustElement());
+    }
     AbstractElement lMayElement = mMayJoinOperator.join(lElement1.getMayElement(), lElement2.getMayElement());
 
     return new MustMayAnalysisElement(lMustElement, lMayElement);

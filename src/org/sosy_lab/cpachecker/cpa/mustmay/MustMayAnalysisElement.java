@@ -31,6 +31,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 
 public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperElement {
 
+  /**
+   * This object is used when the MustCPA produced no successors.
+   */
+  static final AbstractElement DONT_KNOW_ELEMENT = new AbstractElement() { }; 
+  
   AbstractElement mMustElement;
   AbstractElement mMayElement;
 
