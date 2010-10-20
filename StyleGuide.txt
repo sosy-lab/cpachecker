@@ -1,4 +1,4 @@
-Style Guide (by dbeyer and tautschnig)
+Style Guide
 
 Spelling:
 - Names are spelled camel-like, whereEachNewWordStartsWithCapital.
@@ -25,12 +25,12 @@ Eclipse:
 - I have added a suggested style into the .settings for Eclipse.
 
 Version Control:
+- Commit early, commit often, and
+  split the commits into reasonable changesets.
 - In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
   find ./ -name "*" -exec svn propset svn:eol-style native {} \;
   from time to time.
-- Commit early, commit often, and
-  split the commits into reasonable changesets.
-  If possible (this will definitely not always be the case)
+- If possible (this will definitely not always be the case)
   commit in a way that the project compiles after each commit.
   This will ease automatic regression testing a lot...
 - For large chunks of whitespace/indentation changes,
