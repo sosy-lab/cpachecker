@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 
 @Options(prefix="cpas.explicit")
 public class ExplicitAnalysisTransferRelation implements TransferRelation {
