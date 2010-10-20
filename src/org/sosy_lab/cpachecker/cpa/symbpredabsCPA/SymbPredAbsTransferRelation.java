@@ -55,13 +55,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 /**
- * Transfer relation for symbolic predicate abstraction. It makes a case
- * split to compute the abstract state. If the new abstract state is
- * computed for an abstraction location we compute the abstraction and
- * on the given set of predicates, otherwise we just update the path formula
- * and do not compute the abstraction.
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it> and Erkan
+ * Transfer relation for symbolic predicate abstraction. First it computes
+ * the strongest post for the given CFA edge. Afterwards it optionally 
+ * computes an abstraction.
  */
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsTransferRelation implements TransferRelation {
@@ -140,7 +136,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     Collection<SymbPredAbsAbstractElement> result;
     if (doAbstraction) {
-      result = handleAbstractionLocation(pathFormula, element.getAbstraction(), (SymbPredAbsPrecision) pPrecision, loc);
+      result = handleAbstraction(pathFormula, element.getAbstraction(), (SymbPredAbsPrecision) pPrecision, loc);
     } else {
       result = handleNonAbstractionLocation(pathFormula, element.getAbstraction());
     }
@@ -149,16 +145,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   /**
-   * Computes element -(op)-> newElement where edge = (l1 -(op)-> l2) and l2
-   * is not an abstraction location.
-   * Only pfParents and pathFormula are updated and set as returned element's
-   * instances in this method, all other values for the previous abstract
-   * element is copied.
-   *
-   * @param pElement is the last abstract element
-   * @param edge edge of the operation
-   * @return computed abstract element
-   * @throws UnrecognizedCFAEdgeException if edge is not recognized
+   * Does special things when we do not compute an abstraction for the
+   * successor. This currently only envolves an optional sat check.
    */
   private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
                 PathFormula pathFormula, Abstraction abstraction) {
@@ -188,18 +176,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   /**
-   * Computes element -(op)-> newElement where edge = (l1 -(op)-> l2) and l2
-   * is an abstraction location.
-   * We set newElement's 'pathFormula' to true and its 'abstraction' to newly
-   * computed abstraction over predicates we get from
-   * {@link SymbPredAbsPrecision#getPredicates(CFANode)}.
-   *
-   * @param pElement is the last abstract element
-   * @param edge edge of the operation
-   * @return computed abstract element
-   * @throws UnrecognizedCFAEdgeException if edge is not recognized
+   * Compute an abstraction.
    */
-  private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(
+  private Collection<SymbPredAbsAbstractElement> handleAbstraction(
       PathFormula pathFormula, Abstraction abstraction,
       SymbPredAbsPrecision precision, CFANode loc) {
 
