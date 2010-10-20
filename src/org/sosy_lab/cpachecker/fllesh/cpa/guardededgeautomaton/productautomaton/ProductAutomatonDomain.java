@@ -24,11 +24,5 @@ public class ProductAutomatonDomain implements AbstractDomain {
   @Override
   public ProductAutomatonPartialOrder getPartialOrder() {
     return ProductAutomatonPartialOrder.getInstance();
-  }
-
-  @Override
-  public ProductAutomatonTopElement getTopElement() {
-    return ProductAutomatonTopElement.getInstance();
-  }
-  
+  }  
 }

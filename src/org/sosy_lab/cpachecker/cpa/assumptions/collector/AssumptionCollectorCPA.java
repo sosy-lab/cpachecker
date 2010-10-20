@@ -70,7 +70,7 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
   {
     super(cpa);
     symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
-    abstractDomain = new AssumptionCollectorDomain(this, getWrappedCpa().getAbstractDomain());
+    abstractDomain = new AssumptionCollectorDomain();
     mergeOperator = new AssumptionCollectorMerge(getWrappedCpa());
     stopOperator = new AssumptionCollectorStop(getWrappedCpa());
     transferRelation = new AssumptionCollectorTransferRelation(this);

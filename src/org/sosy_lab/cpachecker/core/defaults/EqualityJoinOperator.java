@@ -43,11 +43,11 @@ public class EqualityJoinOperator implements JoinOperator {
   private final PartialOrder mPartialOrder;
   private final AbstractElement mTopElement;
 
-  public EqualityJoinOperator(AbstractDomain pDomain) {
+  public EqualityJoinOperator(AbstractDomain pDomain, AbstractElement pTopElement) {
     assert(pDomain != null);
 
     this.mPartialOrder = pDomain.getPartialOrder();
-    this.mTopElement = pDomain.getTopElement();
+    this.mTopElement = pTopElement;
   }
 
   @Override

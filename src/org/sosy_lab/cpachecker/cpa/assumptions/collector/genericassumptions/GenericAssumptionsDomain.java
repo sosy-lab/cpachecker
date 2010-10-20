@@ -68,7 +68,6 @@ public class GenericAssumptionsDomain implements AbstractDomain {
     return partialOrder;
   }
 
-  @Override
   public AbstractElement getTopElement() {
     return GenericAssumptionsElement.TOP;
   }

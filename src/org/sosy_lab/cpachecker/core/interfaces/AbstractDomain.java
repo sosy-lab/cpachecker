@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public interface AbstractDomain
 {
-    public AbstractElement getTopElement ();
     public PartialOrder getPartialOrder ();
     public JoinOperator getJoinOperator ();
 }

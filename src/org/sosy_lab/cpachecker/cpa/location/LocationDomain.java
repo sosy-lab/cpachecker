@@ -75,14 +75,8 @@ public class LocationDomain implements AbstractDomain
     }
 
     private final static LocationTopElement topElement = new LocationTopElement ();
-    private final        PartialOrder partialOrder = new EqualityPartialOrder(this);
+    private final        PartialOrder partialOrder = new EqualityPartialOrder(topElement);
     private final static JoinOperator joinOperator = new LocationJoinOperator ();
-
-    @Override
-    public AbstractElement getTopElement ()
-    {
-        return topElement;
-    }
 
     @Override
     public JoinOperator getJoinOperator ()

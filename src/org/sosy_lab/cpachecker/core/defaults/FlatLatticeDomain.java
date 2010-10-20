@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
  *
  */
 public class FlatLatticeDomain implements AbstractDomain {
-  private final AbstractElement mTopElement;
   private final JoinOperator mJoinOperator;
   private final PartialOrder mPartialOrder;
 
@@ -50,19 +49,12 @@ public class FlatLatticeDomain implements AbstractDomain {
   public FlatLatticeDomain(AbstractElement pTopElement) {
     assert(pTopElement != null);
 
-    this.mTopElement = pTopElement;
-
-    this.mPartialOrder = new EqualityPartialOrder(this);
-    this.mJoinOperator = new EqualityJoinOperator(this);
+    this.mPartialOrder = new EqualityPartialOrder(pTopElement);
+    this.mJoinOperator = new EqualityJoinOperator(this, pTopElement);
   }
 
   public FlatLatticeDomain() {
     this(new TopElement());
-  }
-
-  @Override
-  public AbstractElement getTopElement() {
-    return this.mTopElement;
   }
 
   @Override

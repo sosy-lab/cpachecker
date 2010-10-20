@@ -108,7 +108,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
 
   private final AutomatonDomain automatonDomain = new AutomatonDomain();
-  private final PartialOrder partialOrder = new EqualityPartialOrder(automatonDomain);
+  private final PartialOrder partialOrder = new EqualityPartialOrder(topState);
   private final StopOperator stopOperator = new StopSepOperator(partialOrder);
   private final JoinOperator joinOperator = new JoinOperator() {
     @Override
@@ -123,10 +123,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   };
 
   private class AutomatonDomain implements AbstractDomain {
-    @Override
-    public AbstractElement getTopElement() {
-      return topState;
-    }
 
     @Override
     public PartialOrder getPartialOrder() {

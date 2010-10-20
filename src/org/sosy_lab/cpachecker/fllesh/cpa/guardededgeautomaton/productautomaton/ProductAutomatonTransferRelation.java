@@ -21,8 +21,6 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
   }
   
   private static final ProductAutomatonUndeterminedElement sUndeterminedElement = ProductAutomatonUndeterminedElement.getInstance();
-  private static final ProductAutomatonTopElement sTopElement = ProductAutomatonTopElement.getInstance();
-  private static final Set<ProductAutomatonTopElement> sTopElementSingleton = Collections.singleton(ProductAutomatonTopElement.getInstance());
   private static final Set<ProductAutomatonUndeterminedElement> sUndeterminedElementSingleton = Collections.singleton(sUndeterminedElement);
   private static final Set<ProductAutomatonAcceptingElement> sAcceptingElementSingleton = Collections.singleton(ProductAutomatonAcceptingElement.getInstance());
   private static final Set<ProductAutomatonNonAcceptingElement> sNonAcceptingElementSingleton = Collections.singleton(ProductAutomatonNonAcceptingElement.getInstance());
@@ -35,11 +33,7 @@ public class ProductAutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    
-    if (pElement.equals(sTopElement)) {
-      return sTopElementSingleton;
-    }
-    
+
     return sUndeterminedElementSingleton;
   }
 

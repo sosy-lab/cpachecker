@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
@@ -35,12 +34,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class AssumptionCollectorDomain implements AbstractDomain {
 
-  private final AbstractElement top;
-
-  public AssumptionCollectorDomain(AssumptionCollectorCPA cpa, AbstractDomain wrappedDomain) {
-    top = new AssumptionCollectorElement(cpa, wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE, false);
-  }
-
   @Override
   public JoinOperator getJoinOperator() {
     return new JoinOperator() {
@@ -48,10 +41,7 @@ public class AssumptionCollectorDomain implements AbstractDomain {
       public AbstractElement join(AbstractElement el1, AbstractElement el2)
         throws CPAException
       {
-        if (el1 == el2)
-          return el1;
-        else
-          return top;
+        throw new UnsupportedOperationException();
       }
     };
   }
@@ -63,15 +53,8 @@ public class AssumptionCollectorDomain implements AbstractDomain {
       public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
         throws CPAException
       {
-        return (el1.equals(el2))
-          || (top.equals(el2));
+        return (el1.equals(el2));
       }
     };
   }
-
-  @Override
-  public AbstractElement getTopElement() {
-    return top;
-  }
-
 }

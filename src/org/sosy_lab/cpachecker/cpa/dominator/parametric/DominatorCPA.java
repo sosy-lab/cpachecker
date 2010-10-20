@@ -50,7 +50,7 @@ public class DominatorCPA {
 	  this.cpa = cpa;
 
 		this.abstractDomain = new DominatorDomain(this.cpa);
-    this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
+    this.transferRelation = new DominatorTransferRelation(this.cpa);
     this.mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
 		this.stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 		this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();

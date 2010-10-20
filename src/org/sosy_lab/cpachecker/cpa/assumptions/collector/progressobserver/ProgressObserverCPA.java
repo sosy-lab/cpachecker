@@ -137,7 +137,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
     enabledHeuristics = createEnabledHeuristics(cfg);
 
-    abstractDomain = new ProgressObserverDomain(this);
+    abstractDomain = new ProgressObserverDomain();
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new ProgressObserverStop();
     transferRelation = new ProgressObserverTransferRelation(this);

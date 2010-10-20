@@ -38,14 +38,6 @@ public class OctDomain implements AbstractDomain{
 
   public static long totaltime = 0;
 
-  private static class OctTopElement extends OctElement
-  {
-    public OctTopElement ()
-    {
-      //super (LibraryAccess.universe(Variables.numOfVars));
-    }
-  }
-
   private static class OctPartialOrder implements PartialOrder
   {
     @Override
@@ -108,15 +100,8 @@ public class OctDomain implements AbstractDomain{
     }
   }
 
-  private final static OctTopElement topElement = new OctTopElement ();
   private final static PartialOrder partialOrder = new OctPartialOrder ();
   private final static JoinOperator joinOperator = new OctJoinOperator ();
-
-  @Override
-  public AbstractElement getTopElement ()
-  {
-    return topElement;
-  }
 
   @Override
   public JoinOperator getJoinOperator ()

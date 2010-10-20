@@ -102,12 +102,6 @@ public class ARTDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement getTopElement ()
-  {
-      return topElement;
-  }
-
-  @Override
   public JoinOperator getJoinOperator ()
   {
       return joinOperator;

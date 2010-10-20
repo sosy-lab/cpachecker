@@ -33,8 +33,6 @@ public class MustMayAnalysisDomain implements AbstractDomain {
   AbstractDomain mMustDomain;
   AbstractDomain mMayDomain;
 
-  MustMayAnalysisElement mTopElement;
-
   MustMayAnalysisJoinOperator mJoinOperator;
   MustMayAnalysisPartialOrder mPartialOrder;
 
@@ -45,15 +43,8 @@ public class MustMayAnalysisDomain implements AbstractDomain {
     mMustDomain = pMustDomain;
     mMayDomain = pMayDomain;
 
-    mTopElement = new MustMayAnalysisElement(pMustDomain.getTopElement(), pMayDomain.getTopElement());
-
     mJoinOperator = new MustMayAnalysisJoinOperator(mMustDomain.getJoinOperator(), mMayDomain.getJoinOperator());
     mPartialOrder = new MustMayAnalysisPartialOrder(mMustDomain.getPartialOrder(), mMayDomain.getPartialOrder());
-  }
-
-  @Override
-  public MustMayAnalysisElement getTopElement() {
-    return mTopElement;
   }
 
   @Override

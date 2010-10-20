@@ -155,14 +155,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	}
 
 	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getTopElement()
-	 */
-	@Override
-  public DominatorTopElement getTopElement() {
-		return topElement;
-	}
-
-	/* (non-Javadoc)
 	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getJoinOperator()
 	 */
 	@Override

@@ -43,19 +43,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 public class DominatorTransferRelation implements TransferRelation {
 
-	private final DominatorDomain domain;
 	private final ConfigurableProgramAnalysis cpa;
 
-	public DominatorTransferRelation(DominatorDomain domain, ConfigurableProgramAnalysis cpa) {
-		if (domain == null) {
-			throw new IllegalArgumentException("domain is null!");
-		}
-
+	public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
 		if (cpa == null) {
 			throw new IllegalArgumentException("cpa is null!");
 		}
 
-		this.domain = domain;
 		this.cpa = cpa;
 	}
 
@@ -71,14 +65,9 @@ public class DominatorTransferRelation implements TransferRelation {
 
     Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
     for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
-      if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
-        successors.add(this.domain.getTopElement());
-
-      } else {
-        DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
-        successor.update(successorOfDominatedElement);
-        successors.add(successor);
-      }
+      DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
+      successor.update(successorOfDominatedElement);
+      successors.add(successor);
     }
 
     return successors;

@@ -35,12 +35,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class ProgressObserverDomain implements AbstractDomain {
 
-  private final ProgressObserverElement top;
-
-  public ProgressObserverDomain(ProgressObserverCPA a) {
-    top = ProgressObserverElement.getTop(a);
-  }
-
   // Join is not supported
   private final JoinOperator joinOperator = new JoinOperator() {
     @Override
@@ -65,11 +59,6 @@ public class ProgressObserverDomain implements AbstractDomain {
   @Override
   public PartialOrder getPartialOrder() {
     return partialOrder;
-  }
-
-  @Override
-  public ProgressObserverElement getTopElement() {
-    return top;
   }
 
 }

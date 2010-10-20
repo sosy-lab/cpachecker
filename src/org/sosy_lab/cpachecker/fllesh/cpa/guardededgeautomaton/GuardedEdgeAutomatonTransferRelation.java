@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
 
-  private final AbstractElement mTopElement;
   private final Automaton<GuardedEdgeLabel> mAutomaton;
   
   private final HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
@@ -26,7 +25,6 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   private final Collection<Automaton.State> mReachedAutomatonStates; 
   
   public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
-    mTopElement = pDomain.getTopElement();
     mAutomaton = pAutomaton;
     
     // create cache
@@ -60,10 +58,6 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    
-    if (pElement.equals(mTopElement)) {
-      return Collections.singleton(mTopElement);
-    }
 
     if (pElement instanceof GuardedEdgeAutomatonPredicateElement) {
       throw new IllegalArgumentException();

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
@@ -38,17 +37,17 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
  */
 public class EqualityPartialOrder implements PartialOrder {
 
-  private final AbstractDomain domain;
+  private final AbstractElement mTopElement;
 
-  public EqualityPartialOrder(AbstractDomain domain) {
-    this.domain = domain;
+  public EqualityPartialOrder(AbstractElement pTopElement) {
+    this.mTopElement = pTopElement;
   }
 
   @Override
   public boolean satisfiesPartialOrder(AbstractElement newElement,
                                        AbstractElement reachedElement) {
 
-    return(domain.getTopElement().equals(reachedElement)
+    return(mTopElement.equals(reachedElement)
         || newElement.equals(reachedElement));
   }
 }

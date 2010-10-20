@@ -28,7 +28,6 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
@@ -36,7 +35,6 @@ public class CompositeDomain implements AbstractDomain
 {
     private final ImmutableList<AbstractDomain> domains;
 
-    private final CompositeElement topElement;
     private final CompositeJoinOperator joinOperator;
     private final CompositePartialOrder partialOrder;
 
@@ -44,18 +42,15 @@ public class CompositeDomain implements AbstractDomain
     {
         this.domains = domains;
 
-        ImmutableList.Builder<AbstractElement> tops = ImmutableList.builder();
         ImmutableList.Builder<JoinOperator> joinOperators = ImmutableList.builder();
         ImmutableList.Builder<PartialOrder> partialOrders = ImmutableList.builder();
 
         for (AbstractDomain domain : domains)
         {
-            tops.add (domain.getTopElement ());
             joinOperators.add (domain.getJoinOperator ());
             partialOrders.add (domain.getPartialOrder ());
         }
 
-        this.topElement = new CompositeElement(tops.build());
         this.joinOperator = new CompositeJoinOperator(joinOperators.build());
         this.partialOrder = new CompositePartialOrder(partialOrders.build());
     }
@@ -63,12 +58,6 @@ public class CompositeDomain implements AbstractDomain
     public List<AbstractDomain> getDomains ()
     {
         return domains;
-    }
-
-    @Override
-    public CompositeElement getTopElement ()
-    {
-        return topElement;
     }
 
     @Override

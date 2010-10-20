@@ -102,12 +102,6 @@ public class TransferRelationMonitorDomain implements AbstractDomain{
   }
 
   @Override
-  public AbstractElement getTopElement ()
-  {
-      return topElement;
-  }
-
-  @Override
   public JoinOperator getJoinOperator ()
   {
       return joinOperator;

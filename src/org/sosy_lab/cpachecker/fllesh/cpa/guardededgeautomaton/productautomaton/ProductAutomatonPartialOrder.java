@@ -28,16 +28,8 @@ public class ProductAutomatonPartialOrder implements PartialOrder {
       throw new IllegalArgumentException();
     }
     
-    if (pElement2.equals(ProductAutomatonTopElement.getInstance())) {
-      return true;
-    }
-    
     if (pElement1.equals(pElement2)) {
       return true;
-    }
-    
-    if (pElement1.equals(ProductAutomatonTopElement.getInstance())) {
-      return false;
     }
     
     if (pElement2.equals(ProductAutomatonUndeterminedElement.getInstance())) {

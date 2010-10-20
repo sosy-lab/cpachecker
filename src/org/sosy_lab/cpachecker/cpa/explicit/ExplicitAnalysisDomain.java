@@ -33,32 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
 
-  private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement
-  {
-    @Override
-    public String toString() {
-      return "<ExplicitAnalysis TOP>";
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      return (getClass().equals(pOther.getClass()));
-    }
-    
-    @Override
-    public int hashCode() {
-      return Integer.MAX_VALUE;
-    }
-  }
-
   private static class ExplicitAnalysisPartialOrder implements PartialOrder
   {
     // returns true if element1 < element2 on lattice
@@ -74,12 +48,6 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 //      SystemSystem.out.println.out.println(explicitAnalysisElementReached);
 //      System.out.println("===============");
 //      System.exit(0);
-
-      if (explicitAnalysisElementReached == topElement) {
-        return true;
-      } else if (explicitAnalysisElementNew == topElement) {
-        return false;
-      }
 
       Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
@@ -140,15 +108,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private final static ExplicitAnalysisTopElement topElement = new ExplicitAnalysisTopElement ();
   private final static PartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
   private final static JoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
-
-  @Override
-  public ExplicitAnalysisElement getTopElement ()
-  {
-    return topElement;
-  }
 
   @Override
   public JoinOperator getJoinOperator ()

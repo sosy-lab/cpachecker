@@ -41,12 +41,6 @@ public class InterpreterDomain implements AbstractDomain {
       InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
       InterpreterElement explicitAnalysisElementReached = (InterpreterElement) reachedElement;
 
-      if (reachedElement == sTopElement) {
-        return true;
-      } else if (newElement == sTopElement) {
-        return false;
-      }
-
       Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
 
@@ -96,15 +90,8 @@ public class InterpreterDomain implements AbstractDomain {
     }
   }
 
-  private final static InterpreterTopElement sTopElement = InterpreterTopElement.INSTANCE;
   private final static PartialOrder sPartialOrder = new InterpreterPartialOrder ();
   private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
-
-  @Override
-  public InterpreterTopElement getTopElement ()
-  {
-    return sTopElement;
-  }
 
   @Override
   public JoinOperator getJoinOperator ()

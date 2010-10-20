@@ -35,14 +35,6 @@ import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
 
 public class DefUseDomain implements AbstractDomain
 {
-    private static class DefUseTopElement extends DefUseElement
-    {
-      public DefUseTopElement ()
-      {
-          super (null);
-      }
-    }
-
     private static class DefUsePartialOrder implements PartialOrder
     {
         @Override
@@ -87,15 +79,8 @@ public class DefUseDomain implements AbstractDomain
         }
     }
 
-    private final static DefUseTopElement topElement = new DefUseTopElement ();
     private final static PartialOrder partialOrder = new DefUsePartialOrder ();
     private final static JoinOperator joinOperator = new DefUseJoinOperator ();
-
-    @Override
-    public AbstractElement getTopElement ()
-    {
-        return topElement;
-    }
 
     @Override
     public JoinOperator getJoinOperator ()
