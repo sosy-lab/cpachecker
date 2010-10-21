@@ -21,40 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
-/**
- * @author holzera
- *
- */
-public class FlatLatticeDomain implements AbstractDomain {
+public class DefaultAbstractDomain implements AbstractDomain {
+
   private final JoinOperator mJoinOperator;
   private final PartialOrder mPartialOrder;
 
-  private static class TopElement implements AbstractElement {
-    @Override
-    public String toString() {
-      return "<TOP>";
-    }
-  }
-
-  public FlatLatticeDomain(AbstractElement pTopElement) {
-    assert(pTopElement != null);
-
-    this.mPartialOrder = new EqualityPartialOrder(pTopElement);
-    this.mJoinOperator = new EqualityJoinOperator(mPartialOrder, pTopElement);
-  }
-
-  public FlatLatticeDomain() {
-    this(new TopElement());
+  public DefaultAbstractDomain(JoinOperator pJoinOperator,
+      PartialOrder pPartialOrder) {
+    mJoinOperator = checkNotNull(pJoinOperator);
+    mPartialOrder = checkNotNull(pPartialOrder);
   }
 
   @Override
@@ -66,5 +49,4 @@ public class FlatLatticeDomain implements AbstractDomain {
   public PartialOrder getPartialOrder() {
     return this.mPartialOrder;
   }
-
 }

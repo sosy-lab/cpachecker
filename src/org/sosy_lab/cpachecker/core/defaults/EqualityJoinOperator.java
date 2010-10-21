@@ -26,7 +26,8 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
@@ -43,11 +44,9 @@ public class EqualityJoinOperator implements JoinOperator {
   private final PartialOrder mPartialOrder;
   private final AbstractElement mTopElement;
 
-  public EqualityJoinOperator(AbstractDomain pDomain, AbstractElement pTopElement) {
-    assert(pDomain != null);
-
-    this.mPartialOrder = pDomain.getPartialOrder();
-    this.mTopElement = pTopElement;
+  public EqualityJoinOperator(PartialOrder pPartialOrder, AbstractElement pTopElement) {
+    this.mPartialOrder = checkNotNull(pPartialOrder);
+    this.mTopElement = checkNotNull(pTopElement);
   }
 
   @Override
