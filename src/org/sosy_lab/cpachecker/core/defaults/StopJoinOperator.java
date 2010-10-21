@@ -21,11 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.uninitvars;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -33,13 +34,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * @author Philipp Wendler
+ * Standard stop-join operator that first joins all elements
+ * of the reached set into a single element, and then checks the
+ * partial order relation.
  */
-public class UninitializedVariablesStopJoin implements StopOperator {
+public class StopJoinOperator implements StopOperator {
 
- private final UninitializedVariablesDomain domain;
+ private final AbstractDomain domain;
 
-  public UninitializedVariablesStopJoin(UninitializedVariablesDomain domain) {
+  public StopJoinOperator(AbstractDomain domain) {
     this.domain = domain;
   }
 
