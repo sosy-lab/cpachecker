@@ -53,8 +53,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     public ConfigurableProgramAnalysis createInstance() {
       Configuration config = getConfiguration();
       String mergeType = config.getProperty("cpas.defuse.merge");
-      String stopType = config.getProperty("cpas.defuse.stop");
-      return new DefUseCPA(mergeType, stopType);
+      return new DefUseCPA(mergeType);
     }
   }
 
@@ -68,7 +67,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-  private DefUseCPA (String mergeType, String stopType) {
+  private DefUseCPA (String mergeType) {
     DefUseDomain defUseDomain = new DefUseDomain ();
     this.abstractDomain = defUseDomain;
 
@@ -81,12 +80,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
       this.mergeOperator = new DefUseMergeJoin ();
     }
 
-    this.stopOperator = null;
-    if(stopType.equals("sep")){
-      this.stopOperator = new StopSepOperator(defUseDomain.getPartialOrder());
-    } else if(stopType.equals("join")){
-      this.stopOperator = new DefUseStopJoin ();
-    }
+    this.stopOperator = new StopSepOperator(defUseDomain.getPartialOrder());
 
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
