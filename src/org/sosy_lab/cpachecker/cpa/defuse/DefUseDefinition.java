@@ -27,15 +27,17 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+
 public class DefUseDefinition implements AbstractElement
 {
-    private String variableName;
-    private CFAEdge assigningEdge;
+    private final String variableName;
+    private final CFAEdge assigningEdge;
 
     public DefUseDefinition (String variableName, CFAEdge assigningEdge)
     {
-    	//System.out.println("DefUseDefinition: " + variableName + " + "+ assigningEdge.getPredecessor().getNodeNumber());
-        this.variableName = variableName;
+        this.variableName = Preconditions.checkNotNull(variableName);
         this.assigningEdge = assigningEdge;
     }
 
@@ -62,21 +64,8 @@ public class DefUseDefinition implements AbstractElement
             return false;
 
         DefUseDefinition otherDef = (DefUseDefinition) other;
-        if (!otherDef.variableName.equals (this.variableName))
-            return false;
-
-        if (this.assigningEdge == null && otherDef.assigningEdge == null)
-            return true;
-
-        if ((this.assigningEdge == null && otherDef.assigningEdge != null) ||
-            (this.assigningEdge != null && otherDef.assigningEdge == null))
-            return false;
-
-        if ((otherDef.assigningEdge.getPredecessor ().getNodeNumber () != this.assigningEdge.getPredecessor ().getNodeNumber ()) ||
-            (otherDef.assigningEdge.getSuccessor ().getNodeNumber () != this.assigningEdge.getSuccessor ().getNodeNumber ()))
-            return false;
-
-        return true;
+        return otherDef.variableName.equals(this.variableName) 
+            && Objects.equal(otherDef.assigningEdge, this.assigningEdge);
     }
 
 }

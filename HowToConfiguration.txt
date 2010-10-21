@@ -208,6 +208,9 @@ ART.file = ART.dot
 cpas.art.errorPath.export = true
 cpas.art.errorPath.file = ErrorPath.txt
 
+# which merge operator to use for DefUseCPA (join or sep)
+cpas.defuse.merge = sep
+
 # which merge operator to use for ExplicitAnalysisCPA (join or sep)
 cpas.explicit.merge = sep
 

@@ -35,7 +35,6 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
@@ -47,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-  private void handleExpression (DefUseElement defUseElement, IASTExpression expression, CFAEdge cfaEdge)
+  private DefUseElement handleExpression (DefUseElement defUseElement, IASTExpression expression, CFAEdge cfaEdge)
   {
     if (expression instanceof IASTBinaryExpression)
     {
@@ -71,7 +70,7 @@ public class DefUseTransferRelation implements TransferRelation
         // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 
         DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
-        defUseElement.update (definition);
+        defUseElement = new DefUseElement(defUseElement, definition);
       }
       }
     }
@@ -85,12 +84,13 @@ public class DefUseTransferRelation implements TransferRelation
         String lParam = unaryExpression.getOperand ().getRawSignature ();
 
         DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
-        defUseElement.update (definition);
+        defUseElement = new DefUseElement(defUseElement, definition);
       }
     }
+    return defUseElement;
   }
 
-  private void handleDeclaration (DefUseElement defUseElement, IASTDeclarator [] declarators, CFAEdge cfaEdge)
+  private DefUseElement handleDeclaration (DefUseElement defUseElement, IASTDeclarator [] declarators, CFAEdge cfaEdge)
   {
     for (IASTDeclarator declarator : declarators)
     {
@@ -100,73 +100,54 @@ public class DefUseTransferRelation implements TransferRelation
         String varName = declarator.getName ().getRawSignature ();
         DefUseDefinition definition = new DefUseDefinition (varName, cfaEdge);
 
-        defUseElement.update (definition);
+        defUseElement = new DefUseElement(defUseElement, definition);
       }
     }
+    return defUseElement;
   }
 
-  private AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
-  {
+  @Override
+  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     DefUseElement defUseElement = (DefUseElement) element;
-
+    
     switch (cfaEdge.getEdgeType ())
     {
     case StatementEdge:
     {
-      defUseElement = defUseElement.clone ();
-
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTExpression expression = statementEdge.getExpression ();
-      //System.out.println("Statement Edge = " + expression.getRawSignature());
-      handleExpression (defUseElement, expression, cfaEdge);
+      defUseElement = handleExpression (defUseElement, expression, cfaEdge);
       break;
     }
     case MultiStatementEdge:
     {
-      defUseElement = defUseElement.clone ();
       MultiStatementEdge multiStatementEdge = (MultiStatementEdge) cfaEdge;
 
       for (IASTExpression expression : multiStatementEdge.getExpressions ())
-        handleExpression (defUseElement, expression, cfaEdge);
+        defUseElement = handleExpression (defUseElement, expression, cfaEdge);
 
       break;
     }
     case DeclarationEdge:
     {
-      defUseElement = defUseElement.clone ();
-
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
-      // System.out.println("Decleration Edge = " + declarationEdge.getRawStatement());
-      handleDeclaration (defUseElement, declarators, cfaEdge);
-      break;
-    }
-
-    case AssumeEdge:
-    {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      System.out.println("Assume Edge = " + assumeEdge.getRawStatement());
+      defUseElement = handleDeclaration (defUseElement, declarators, cfaEdge);
       break;
     }
 
     case MultiDeclarationEdge:
     {
-      defUseElement = defUseElement.clone ();
       MultiDeclarationEdge multiDeclarationEdge = (MultiDeclarationEdge) cfaEdge;
 
       for (IASTSimpleDeclaration d : multiDeclarationEdge.getDeclarators ())
-        handleDeclaration (defUseElement, d.getDeclarators(), cfaEdge);
+        defUseElement = handleDeclaration (defUseElement, d.getDeclarators(), cfaEdge);
 
       break;
     }
     }
 
-    return defUseElement;
-  }
-
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
+    return Collections.singleton(defUseElement);
   }
 
   @Override

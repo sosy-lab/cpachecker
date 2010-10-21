@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -42,16 +42,8 @@ public class DefUseDomain implements AbstractDomain
         {
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
-
-            int numDefs = defUseElement1.getNumDefinitions ();
-            for (int idx = 0; idx < numDefs; idx++)
-            {
-                DefUseDefinition definition = defUseElement1.getDefinition (idx);
-                if (!defUseElement2.containsDefinition (definition))
-                    return false;
-            }
-
-            return true;
+            
+            return defUseElement2.containsAllOf(defUseElement1);
         }
     }
 
@@ -64,15 +56,14 @@ public class DefUseDomain implements AbstractDomain
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
 
-            List<DefUseDefinition> joined = new ArrayList<DefUseDefinition> ();
-            for (int idx = 0; idx < defUseElement1.getNumDefinitions (); idx++)
-                joined.add (defUseElement1.getDefinition (idx));
+            Set<DefUseDefinition> joined = new HashSet<DefUseDefinition> ();
+            for (DefUseDefinition definition : defUseElement1)
+                joined.add(definition);
 
-            for (int idx = 0; idx < defUseElement2.getNumDefinitions (); idx++)
+            for (DefUseDefinition definition : defUseElement2)
             {
-                DefUseDefinition def = defUseElement2.getDefinition (idx);
-                if (!joined.contains (def))
-                    joined.add (def);
+                if (!joined.contains(definition))
+                    joined.add (definition);
             }
 
             return new DefUseElement (joined);
