@@ -50,7 +50,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs.predmap")
-public class SymbPredAbsCPAStatistics implements Statistics {
+class SymbPredAbsCPAStatistics implements Statistics {
 
     @Option
     private boolean export = true;
@@ -59,9 +59,11 @@ public class SymbPredAbsCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final SymbPredAbsCPA cpa;
+    private final SymbPredAbsPartialOrder order;
 
-    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa) throws InvalidConfigurationException {
+    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsPartialOrder pOrder) throws InvalidConfigurationException {
       this.cpa = cpa;
+      this.order = pOrder;
       cpa.getConfiguration().inject(this);
     }
 
@@ -119,7 +121,6 @@ public class SymbPredAbsCPAStatistics implements Statistics {
 
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
-      SymbPredAbsAbstractDomain d = cpa.getAbstractDomain();
 
       out.println("Number of abstractions:            " + trans.numAbstractions + " (" + toPercent(trans.numAbstractions, trans.numPosts) + " of all post computations)");
       if (trans.numAbstractions > 0) {
@@ -136,9 +137,9 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       if (trans.numStrengthenChecks > 0) {
         out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
       }
-      out.println("Number of coverage checks:         " + d.numCoverageCheck);
-      out.println("  BDD entailment checks:           " + d.numBddCoverageCheck);
-      out.println("  Symbolic coverage check:         " + d.numSymbolicCoverageCheck);
+      out.println("Number of coverage checks:         " + order.numCoverageCheck);
+      out.println("  BDD entailment checks:           " + order.numBddCoverageCheck);
+      out.println("  Symbolic coverage check:         " + order.numSymbolicCoverageCheck);
       out.println();
       out.println("Max ABE block size:                       " + trans.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
@@ -169,12 +170,12 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
       out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
       out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
-      out.println("Time for coverage check:             " + toTime(d.coverageCheckTime));
-      if (d.numBddCoverageCheck > 0) {
-        out.println("  Time for BDD entailment checks:    " + toTime(d.bddCoverageCheckTime));
+      out.println("Time for coverage check:             " + toTime(order.coverageCheckTime));
+      if (order.numBddCoverageCheck > 0) {
+        out.println("  Time for BDD entailment checks:    " + toTime(order.bddCoverageCheckTime));
       }
-      if (d.numSymbolicCoverageCheck > 0) {
-        out.println("  Time for symbolic coverage checks: " + toTime(d.bddCoverageCheckTime));
+      if (order.numSymbolicCoverageCheck > 0) {
+        out.println("  Time for symbolic coverage checks: " + toTime(order.bddCoverageCheckTime));
       }
       if (bs.numCallsCexAnalysis > 0) {
         out.println("Time for counterexample analysis:    " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
