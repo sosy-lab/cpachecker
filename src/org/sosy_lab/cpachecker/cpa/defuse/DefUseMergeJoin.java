@@ -27,10 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseMergeJoin implements MergeOperator
 {
@@ -52,11 +50,5 @@ public class DefUseMergeJoin implements MergeOperator
     }
 
     return new DefUseElement (mergedDefinitions);
-  }
-
-  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                           AbstractElementWithLocation pElement2,
-                                           Precision prec) throws CPAException {
-    throw new CPAException ("Cannot return element with location information");
   }
 }

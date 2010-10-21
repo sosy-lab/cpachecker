@@ -36,10 +36,10 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
    */
   static final AbstractElement DONT_KNOW_ELEMENT = new AbstractElement() { }; 
   
-  AbstractElement mMustElement;
-  AbstractElement mMayElement;
+  private final AbstractElement mMustElement;
+  private final AbstractElement mMayElement;
 
-  ArrayList<AbstractElement> mWrappedElements;
+  private final ArrayList<AbstractElement> mWrappedElements;
 
   public MustMayAnalysisElement(AbstractElement pMustElement, AbstractElement pMayElement) {
     assert(pMustElement != null);
@@ -121,11 +121,7 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
 
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
-    // TODO: think about what to do here
-    assert(false);
-
-    // TODO Auto-generated method stub
-    return null;
+    return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
 
 }
