@@ -36,7 +36,6 @@ import java.util.Set;
 
 import org.json.simple.JSONObject;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -206,7 +205,7 @@ public final class DOTBuilder2 {
     
     void visitNode(CFANode node) {
       toAdd = node;      
-      comboQualified = !(node instanceof CFAErrorNode) && !node.isLoopStart() 
+      comboQualified = !node.isLoopStart() 
           && node.getNumEnteringEdges() == 1 && node.getNumLeavingEdges() == 1 
           && node.getLeavingSummaryEdge() == null;
       if (!comboQualified) {
@@ -304,9 +303,7 @@ public final class DOTBuilder2 {
     private String nodeToDot(CFANode node) {
       String shape = "circle";
     
-      if (node instanceof CFAErrorNode) {
-        shape = "tripleoctagon";
-      } else if(node.isLoopStart()){
+      if(node.isLoopStart()){
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
           node.getLeavingEdge(0) instanceof AssumeEdge) {

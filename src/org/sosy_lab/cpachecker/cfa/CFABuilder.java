@@ -63,7 +63,6 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
@@ -491,14 +490,7 @@ public class CFABuilder extends ASTVisitor
 		String labelName = labelStatement.getName ().toString ();
 
 		CFANode prevNode = locStack.pop ();
-		CFALabelNode labelNode = null; // AG
-		if (labelName.toLowerCase().startsWith("error")) {
-		    // AG - we want to know which are the error locations: each
-		    // node with a label starting with "error"
-		    labelNode = new CFAErrorNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
-		} else {
-		    labelNode = new CFALabelNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
-		}
+		CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
 
 		BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
 		blankEdge.addToCFA(logger);

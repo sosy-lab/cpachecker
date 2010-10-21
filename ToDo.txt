@@ -12,8 +12,6 @@ Conceptual suggestions:
 - [PW] Discuss if MultiStatement/MultiDeclaration edges and the CFASimplifier are
   still needed.
 
-- [PW] Think of what to do with CFAErrorNode
-
 - [PW] As there is no clear policy which object instances are considered bottom
   (and this differs between CPAs), better remove usage of Top and Bottom. If a
   CPA really needs it, it can still implement it on it's on (without exposing it).
@@ -83,6 +81,8 @@ Architecture
 
 Handled Jobs
 ================================
+- [PW] Think of what to do with CFAErrorNode
+
 - [PW] Currently for function calls the abstract element from the call site is stored
   on the summary edge so that transfer relations processing the return edge can use
   this information. IMHO this is ugly because state should not be stored in the CFA and
