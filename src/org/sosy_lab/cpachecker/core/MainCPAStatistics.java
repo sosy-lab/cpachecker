@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Joiner;
@@ -112,7 +113,13 @@ class MainCPAStatistics implements Statistics {
 
         out.println("\nCPAchecker general statistics:");
         out.println("------------------------------");
-        out.println("Size of reached set: " + reached.size());
+        if (reached instanceof PartitionedReachedSet) {
+          PartitionedReachedSet p = (PartitionedReachedSet)reached;
+          out.println("Size of reached set: " + reached.size()
+              + " (in " + p.getNumberOfPartitions() + " partitions)");
+        } else {
+          out.println("Size of reached set: " + reached.size());
+        }
         out.println("Total Time Elapsed: " + toTime(totalTimeInMillis));
         out.println("Total Time Elapsed including CFA construction: " +
                 toTime(totalAbsoluteTimeMillis));

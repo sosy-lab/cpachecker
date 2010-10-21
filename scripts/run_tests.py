@@ -61,7 +61,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
                 'Total Time Elapsed including CFA construction:'):
                 tot_time = line[46:].strip()[:-1]
             elif reached is None and line.startswith('Size of reached set:'):
-                reached = line[20:].strip()
+                reached = (line[line.find(':')+1:line.find('(')-1].strip())
             elif abstractions is None and line.startswith('Number of abstractions:'):
                 abstractions = (line[line.find(':')+1:line.find('(')-1].strip())
             elif refinements is None and line.startswith('Number of refinements:'):

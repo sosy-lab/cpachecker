@@ -82,4 +82,8 @@ public class PartitionedReachedSet extends ReachedSet {
     Object key = ((Partitionable)pElement).getPartitionKey();
     return Collections.unmodifiableSet(partitionedReached.get(key));
   }
+  
+  public int getNumberOfPartitions() {
+    return partitionedReached.keySet().size();
+  }
 }
