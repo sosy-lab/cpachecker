@@ -45,7 +45,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -220,6 +219,10 @@ public class AbstractPathToCTranslator {
       if(sizeOfChildsParents == 1){
         CBMCStackElement lastStackElement = stack.peek().peek();
 
+        if (childElement.isTarget()) {
+          lastStackElement.write("assert(0); // target state ");
+        }
+        
         if(edge instanceof BlankEdge){
           lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
         }
@@ -240,17 +243,7 @@ public class AbstractPathToCTranslator {
           stack.push(newFunctionStack);
         }
         else if(edge instanceof ReturnEdge){
-          lastStackElement.write("}");
           stack.pop();
-        }
-        else if(edge.getSuccessor() instanceof CFAErrorNode){
-          lastStackElement.write("assert(0); // error location ");
-//        lastStackElement.write("}");
-
-          while(stack.size() > 0){
-            CBMCStackElement stackElem = stack.pop().firstElement();
-            stackElem.write("}");
-          }
         }
         else{
           lastStackElement.write(processSimpleEdge(edge));
@@ -382,11 +375,12 @@ public class AbstractPathToCTranslator {
         }
       }
     }
-
+    
+    
     List<StringBuffer> retList = new ArrayList<StringBuffer>();
 
     for(CBMCStackElement stackElem: functions){
-      retList.add(stackElem.getCode());
+      retList.add(stackElem.getCode().append("\n}"));
     }
 
     return retList;
