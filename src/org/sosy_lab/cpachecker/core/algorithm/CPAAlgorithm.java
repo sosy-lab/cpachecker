@@ -58,6 +58,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private long stopTime = 0;
 
     private int countIterations = 0;
+    private int maxWaitlistSize = 0;
     private int countWaitlistSize = 0;
     private int countSuccessors = 0;
     private int maxSuccessors = 0;
@@ -75,6 +76,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
+      out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize/countIterations);
       out.println("Number of computed successors:   " + countSuccessors);
       out.println("Max successors for one element:  " + maxSuccessors);
@@ -122,7 +124,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
-      stats.countWaitlistSize += reachedSet.getWaitlistSize();
+      int size = reachedSet.getWaitlistSize();
+      if (size >= stats.maxWaitlistSize) {
+        stats.maxWaitlistSize = size;
+      }
+      stats.countWaitlistSize += size;
 
       long start = System.currentTimeMillis();
       final AbstractElement element = reachedSet.popFromWaitlist();
