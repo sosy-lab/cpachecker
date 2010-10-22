@@ -431,7 +431,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     Assumption asmpt = new Assumption();
     for(Entry<CFANode, Assumption> e: asmptwl.getAssumptionsIterator()){
       Assumption otherAssumption = e.getValue();
-      otherAssumption.setSSAMap(pElement.getPathFormula().getSsa());
       asmpt = asmpt.and(otherAssumption);
     }
 
@@ -444,7 +443,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
       pfOfAssumption = 
         ((CommonFormulaManager)formulaManager).makePathFormulaFromSymbolicFormula(
-            asmpt);
+            asmpt, pElement.getPathFormula().getSsa());
 
     Collection<Predicate> preds = ((SymbPredAbsPrecision)pPrecision).getPredicates(pLoc);
 

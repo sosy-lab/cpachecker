@@ -93,7 +93,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       boolean forceStop = pair.getSecond();
       if (forceStop) {
         SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
-        AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula), false, null)).atLocation(pCfaEdge.getPredecessor());
+        AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula), false)).atLocation(pCfaEdge.getPredecessor());
         assumption = assumption.and(dataAssumption);
       }
 

@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
 import java.util.Collection;
 
-import com.google.common.collect.Collections2;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

@@ -29,18 +29,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl.DummySSAMap;
-
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
  * Transfer relation for the generic assumption generator.
@@ -86,15 +84,13 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     ? edge.getSuccessor().getFunctionName() : null;
 
     SymbolicFormula assumptionFormula = smgr.makeTrue();
-    SSAMapBuilder ssaBuilder = new DummySSAMap();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
       Pair<SymbolicFormula, SSAMapBuilder> pair = 
         manager.makeAnd(assumptionFormula, edge, b.assumptionsForEdge(edge), function);
       assumptionFormula = pair.getFirst(); 
-      ssaBuilder = pair.getSecond();
     }
-    return new GenericAssumptionsElement((new Assumption(assumptionFormula, true, ssaBuilder.build())).atLocation(edge.getPredecessor()));
+    return new GenericAssumptionsElement((new Assumption(assumptionFormula, true)).atLocation(edge.getPredecessor()));
   }
 
   @Override

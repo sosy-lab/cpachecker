@@ -193,12 +193,14 @@ implements GenericAssumptionBuilder
       }
     }
 
+    @SuppressWarnings("static-access")
     @Override
     public int visit(IASTDeclaration pDeclaration) {
       result = pDeclaration;
       return super.PROCESS_ABORT;
     }
 
+    @SuppressWarnings("static-access")
     @Override
     public int visit(IASTExpression pExpression) {
       if(pExpression instanceof IASTIdExpression){
