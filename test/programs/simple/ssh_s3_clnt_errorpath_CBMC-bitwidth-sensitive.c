@@ -1,8 +1,11 @@
 int main()
 {
   int test_int;
+  unsigned long test;
 
-  if ( !(test_int + 256UL) ) {
+  test = (unsigned long)test_int;
+
+  if ( !(test + 256UL) ) {
 
     goto ERROR;
 
