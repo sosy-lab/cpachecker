@@ -46,7 +46,7 @@ public class CProver {
   private static class CBMCExecutor extends ProcessExecutor<RuntimeException> {
     
     // TODO function name
-    private static final String[] CBMC_ARGS = {"cbmc", "--function", "main_0"};
+    private static final String[] CBMC_ARGS = {"cbmc", "--function", "main_0", "--32"};
     
     private Boolean result = null;
     
