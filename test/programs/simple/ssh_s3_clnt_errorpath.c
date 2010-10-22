@@ -7,7 +7,6 @@
 	remove line 170 in order to make the error path feasible using cbmc
 */
 
-
 int main()
 {
 int s ;
