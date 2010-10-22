@@ -53,31 +53,34 @@ public class AssumptionCollectorStop implements StopOperator {
       Collection<AbstractElement> reached, Precision precision)
       throws CPAException
   {
-    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    if (assumptionElement.isStop())
-      return false;
-
-    Collection<AbstractElement> wrappedReached = Collections2.transform(reached, AssumptionCollectorElement.getUnwrapFunction());
-
-    return wrappedStop.stop(assumptionElement.getWrappedElement(), wrappedReached, precision);
+    return true;
+    
+//    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
+//
+//    // if stop, then do not stop to make sure the state is
+//    // added to the reached set
+//    if (assumptionElement.isStop())
+//      return false;
+//
+//    Collection<AbstractElement> wrappedReached = Collections2.transform(reached, AssumptionCollectorElement.getUnwrapFunction());
+//
+//    return wrappedStop.stop(assumptionElement.getWrappedElement(), wrappedReached, precision);
   }
 
   @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
       throws CPAException
   {
-    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    if (assumptionElement.isStop())
-      return false;
-
-    AssumptionCollectorElement reachedAssumptionElement = (AssumptionCollectorElement) reachedElement;
-    return wrappedStop.stop(assumptionElement.getWrappedElement(), reachedAssumptionElement.getWrappedElement());
+    return true;
+//    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
+//
+//    // if stop, then do not stop to make sure the state is
+//    // added to the reached set
+//    if (assumptionElement.isStop())
+//      return false;
+//
+//    AssumptionCollectorElement reachedAssumptionElement = (AssumptionCollectorElement) reachedElement;
+//    return wrappedStop.stop(assumptionElement.getWrappedElement(), reachedAssumptionElement.getWrappedElement());
 
   }
 
