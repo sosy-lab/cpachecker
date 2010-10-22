@@ -642,6 +642,8 @@ public class CtoFormulaConverter {
       case IASTLiteralExpression.lk_integer_constant:
         if (num.startsWith("0x")) {
           // this should be in hex format
+          // remove "0x" and optionally "UL" from the string
+          num = num.substring(2).replace("UL", "");
           // we use Long instead of Integer to avoid getting negative
           // numbers (e.g. for 0xffffff we would get -1)
           num = Long.valueOf(num, 16).toString();
