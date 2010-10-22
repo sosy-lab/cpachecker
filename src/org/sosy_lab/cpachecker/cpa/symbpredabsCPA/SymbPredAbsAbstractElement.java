@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -53,11 +53,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    * Used for fast coverage checks.
    */
   private SymbPredAbsAbstractElement mergedInto = null;
-  
-  /**
-   * The assumption that is used to compute this state
-   * */
-  private Assumption assumption;
   
   SymbPredAbsAbstractElement() {
     this.isAbstractionNode = false;
@@ -96,14 +91,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     mergedInto = pMergedInto;
   }
 
-  public Assumption getAssumption() {
-    return assumption;
-  }
-
-  public void setAssumption(Assumption pAssumption) {
-    assumption = pAssumption;
-  }
-  
   @Override
   public String toString() {
     return "Abstraction location: " + isAbstractionNode

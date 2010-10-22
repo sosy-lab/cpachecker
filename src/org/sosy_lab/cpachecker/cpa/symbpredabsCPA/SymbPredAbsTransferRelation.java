@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -42,15 +43,19 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
-import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
@@ -343,8 +348,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     try {
     
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
-    
+    Collection<? extends AbstractElement> elements = null;
     for (AbstractElement lElement : otherElements) {
+      if(lElement instanceof AssumptionCollectorElement){
+        elements = strengthen(element, (AssumptionCollectorElement)lElement, pPrecision, edge.getPredecessor());
+      }
+      
       if (lElement instanceof GuardedEdgeAutomatonElement) {
         element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonElement)lElement);
       }
@@ -405,11 +414,54 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         return Collections.singleton(element);
       }
       
-      return null;
+      return elements;
     }
     
     } finally {
       strengthenTime += System.currentTimeMillis() - start;
     }
+  }
+  
+  /* Strengthen operator for handling assumptions, this only works when block size = 1
+   * I'll handle cases where block size is > 1 later - Erkan */
+  private Collection<? extends AbstractElement> strengthen(SymbPredAbsAbstractElement pElement, 
+      AssumptionCollectorElement pElement2, Precision pPrecision, CFANode pLoc) {
+    AssumptionWithLocation asmptwl = pElement2.getCollectedAssumptions();
+    
+    Assumption asmpt = new Assumption();
+    for(Entry<CFANode, Assumption> e: asmptwl.getAssumptionsIterator()){
+      Assumption otherAssumption = e.getValue();
+      otherAssumption.setSSAMap(pElement.getPathFormula().getSsa());
+      asmpt = asmpt.and(otherAssumption);
+    }
+
+    if(asmpt.isTrue()){
+
+      return Collections.singleton(pElement);
+    }
+
+    PathFormula pfOfAssumption = null;
+    
+      pfOfAssumption = 
+        ((CommonFormulaManager)formulaManager).makePathFormulaFromSymbolicFormula(
+            asmpt);
+
+    Collection<Predicate> preds = ((SymbPredAbsPrecision)pPrecision).getPredicates(pLoc);
+
+    Abstraction newAbstraction = formulaManager.buildAbstraction(
+        pElement.getAbstraction(), pfOfAssumption, preds);
+
+    // if the abstraction is false, return bottom (represented by empty set)
+    if (newAbstraction.isFalse()) {
+      numAbstractionsFalse++;
+      logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
+      return Collections.emptySet();
+    }
+
+    // create new empty path formula
+    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pElement.getPathFormula());
+
+    return Collections.singleton(
+        new SymbPredAbsAbstractElement(true, newPathFormula, newAbstraction));
   }
 }
