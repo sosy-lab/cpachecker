@@ -61,6 +61,9 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   }
 
   public SymbPredAbsAbstractElement(boolean isAbstractionNode, PathFormula pf, Abstraction a) {
+    // Check whether the pathFormula of an abstraction node is just "true".
+    // Merge and partialOrder rely on this for optimization.
+    Preconditions.checkArgument(!isAbstractionNode || pf.getSymbolicFormula().isTrue());
     this.isAbstractionNode = isAbstractionNode;
     this.pathFormula = pf;
     this.abstraction = a;
