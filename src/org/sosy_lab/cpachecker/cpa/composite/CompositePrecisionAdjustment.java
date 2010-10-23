@@ -113,10 +113,6 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       AbstractElement oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
       Triple<AbstractElement,Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
-      if (out == null) {
-        // element is not reachable
-        return null;
-      }
       AbstractElement newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
       if (out.getThird() == Action.BREAK) {

@@ -56,11 +56,6 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    if (unwrappedResult == null) {
-      // element is not reachable
-      return null;
-    }
-
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();

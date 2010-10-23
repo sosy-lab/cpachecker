@@ -64,7 +64,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int countWaitlistSize = 0;
     private int countSuccessors = 0;
     private int maxSuccessors = 0;
-    private int countPrecUnreachable = 0;
     private int countMerge = 0;
     private int countStop = 0;
     private int countBreak = 0;
@@ -82,7 +81,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Average size of waitlist:        " + countWaitlistSize/countIterations);
       out.println("Number of computed successors:   " + countSuccessors);
       out.println("Max successors for one element:  " + maxSuccessors);
-      out.println("Unreachable elements after prec: " + countPrecUnreachable);
       out.println("Number of times merged:          " + countMerge);
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
@@ -162,12 +160,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         end = System.currentTimeMillis();
         stats.precisionTime += (end - start);
 
-        if (precAdjustmentResult == null) {
-          logger.log(Level.FINER, "Successor is not reachable (determined by precision adjustment)");
-          stats.countPrecUnreachable++;
-          continue;
-        }
-        
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();

@@ -62,11 +62,6 @@ public class AssumptionCollectorPrecisionAdjustment
     AbstractElement oldElement = assumptionElement.getWrappedElement();
     UnmodifiableReachedSet unwrappedReached = new UnmodifiableReachedSetView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecisionAdjustment.prec(oldElement, oldPrecision, unwrappedReached);
-
-    if (unwrappedResult == null) {
-      // element is not reachable
-      return null;
-    }
     
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();

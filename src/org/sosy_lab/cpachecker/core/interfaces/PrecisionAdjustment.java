@@ -53,15 +53,10 @@ public interface PrecisionAdjustment {
    * the identical objects for element and precision. This makes it easier for
    * wrapper CPAs.
    * 
-   * If this method detects that the current element is a non-reachable element,
-   * it may return null to signal this. The element will then not be considered
-   * any further.
-   * 
    * @param element The current abstract element.
    * @param precision The current precision.
    * @param elements The current reached set.
-   * @return The new element, new precision and the action flag,
-   *          or null if the element is not reachable.
+   * @return The new element, new precision and the action flag.
    */
   public Triple<AbstractElement,Precision, Action> prec(
       AbstractElement element, Precision precision, UnmodifiableReachedSet elements);
