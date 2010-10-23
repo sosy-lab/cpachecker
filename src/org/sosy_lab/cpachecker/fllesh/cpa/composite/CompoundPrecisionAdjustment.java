@@ -3,7 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.composite;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -68,7 +68,7 @@ public class CompoundPrecisionAdjustment implements PrecisionAdjustment {
   }
   
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
       Precision pPrecision, UnmodifiableReachedSet pElements) {
     
     CompoundElement lElement = (CompoundElement)pElement;
@@ -78,6 +78,7 @@ public class CompoundPrecisionAdjustment implements PrecisionAdjustment {
     List<Precision> lOutPrecisions = new ArrayList<Precision>();
 
     boolean lModified = false;
+    Action action = Action.CONTINUE;
 
     for (int i = 0; i < mDimension; ++i) {
       UnmodifiableReachedSet slice =
@@ -85,7 +86,7 @@ public class CompoundPrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractElement oldElement = lElement.getSubelement(i);
       Precision oldPrecision = lPrecision.get(i);
-      Pair<AbstractElement,Precision> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      Triple<AbstractElement,Precision,Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
       
       if (out == null) {
         // element is not reachable
@@ -94,6 +95,10 @@ public class CompoundPrecisionAdjustment implements PrecisionAdjustment {
       
       AbstractElement newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
+      if (out.getThird() == Action.BREAK) {
+        action = Action.BREAK;
+      }
+      
       if ((newElement != oldElement) || (newPrecision != oldPrecision)) {
         lModified = true;
       }
@@ -103,9 +108,9 @@ public class CompoundPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (lModified) {
-      return new Pair<AbstractElement, Precision>(new CompoundElement(lOutElements), new CompositePrecision(lOutPrecisions));
+      return new Triple<AbstractElement, Precision, Action>(new CompoundElement(lOutElements), new CompositePrecision(lOutPrecisions), action);
     } else {
-      return new Pair<AbstractElement, Precision>(pElement, pPrecision);
+      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, action);
     }
   }
 

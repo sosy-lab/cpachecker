@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -55,13 +55,13 @@ public class AssumptionCollectorPrecisionAdjustment
   private static final Function<Precision, Precision> UNWRAP_PRECISION_FUNCTION = Functions.<Precision>identity();
 
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement element,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement element,
       Precision oldPrecision, UnmodifiableReachedSet reachedElements)
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement)element;
     AbstractElement oldElement = assumptionElement.getWrappedElement();
     UnmodifiableReachedSet unwrappedReached = new UnmodifiableReachedSetView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
-    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(oldElement, oldPrecision, unwrappedReached);
+    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecisionAdjustment.prec(oldElement, oldPrecision, unwrappedReached);
 
     if (unwrappedResult == null) {
       // element is not reachable
@@ -70,17 +70,18 @@ public class AssumptionCollectorPrecisionAdjustment
     
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
+    Action action = unwrappedResult.getThird();
     
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Pair<AbstractElement, Precision>(element, oldPrecision);
+      return new Triple<AbstractElement, Precision, Action>(element, oldPrecision, action);
     }
     
     AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
     boolean stop = assumptionElement.isStop();
     AbstractElement resultElement = new AssumptionCollectorElement(assumptionElement.getCpa(), newElement, assumption, stop);
     
-    return new Pair<AbstractElement, Precision>(resultElement, newPrecision);
+    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }
 
 }

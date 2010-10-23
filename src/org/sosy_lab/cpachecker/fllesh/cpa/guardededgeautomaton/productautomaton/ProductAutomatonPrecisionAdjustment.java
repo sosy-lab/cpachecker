@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -20,14 +19,14 @@ public class ProductAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   }
   
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
       Precision pPrecision, UnmodifiableReachedSet pElements) {
     
     if (pElement instanceof ProductAutomatonAcceptingElement) {
-      return new Pair<AbstractElement, Precision>(pElement, SingletonPrecision.getBreakInstance());
+      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, Action.BREAK);
     }
     else {
-      return new Pair<AbstractElement, Precision>(pElement, pPrecision);
+      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, Action.CONTINUE);
     }
   }
 

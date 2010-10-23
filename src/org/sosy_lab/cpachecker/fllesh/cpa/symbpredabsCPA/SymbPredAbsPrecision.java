@@ -114,11 +114,6 @@ public class SymbPredAbsPrecision implements Precision {
     return predicateMap.toString();
   }
   
-  @Override
-  public boolean isBreak() {
-    return false;
-  }
-  
   /**
    * @param succLoc successor CFA location.
    * @param thresholdReached if the maximum block size has been reached

@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -155,21 +157,22 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
         start = System.currentTimeMillis();
-        Pair<AbstractElement, Precision> adjustedSuccessor = 
+        Triple<AbstractElement, Precision, Action> precAdjustmentResult = 
           precisionAdjustment.prec(successor, precision, reachedSet);
         end = System.currentTimeMillis();
         stats.precisionTime += (end - start);
 
-        if (adjustedSuccessor == null) {
+        if (precAdjustmentResult == null) {
           logger.log(Level.FINER, "Successor is not reachable (determined by precision adjustment)");
           stats.countPrecUnreachable++;
           continue;
         }
         
-        successor = adjustedSuccessor.getFirst();
-        Precision successorPrecision = adjustedSuccessor.getSecond();
+        successor = precAdjustmentResult.getFirst();
+        Precision successorPrecision = precAdjustmentResult.getSecond();
+        Action action = precAdjustmentResult.getThird();
 
-        if (successorPrecision.isBreak()) {
+        if (action == Action.BREAK) {
           stats.countBreak++;
           // re-add the old element to the waitlist, there may be unhandled
           // successors left that otherwise would be forgotten
@@ -179,6 +182,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.totalTime += (System.currentTimeMillis() - startTotalTime);
           return;
         }
+        assert action == Action.CONTINUE : "Enum Action has unhandled values!";
         
         Collection<AbstractElement> reached = reachedSet.getReached(successor);
 
