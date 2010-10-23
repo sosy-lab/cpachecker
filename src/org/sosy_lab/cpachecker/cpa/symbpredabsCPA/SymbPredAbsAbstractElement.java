@@ -96,7 +96,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   @Override
   public Object getPartitionKey() {
     if (isAbstractionNode) {
-      // all abstraction nodes are in one block (for coverage checks)
+      if (abstraction.asSymbolicFormula().isFalse()) {
+        // put unreachable states in a separate partition to avoid merging
+        // them with any reachable states
+        return Boolean.FALSE;
+      }
+      // all other abstraction nodes are in one block (for coverage checks)
       return null;
     } else {
       return abstraction;

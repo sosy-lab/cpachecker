@@ -131,6 +131,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     numPosts++;
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     CFANode loc = edge.getSuccessor();
+
+    // Check whether abstraction is false.
+    // Such elements might get created when precision adjustment computes an abstraction.
+    if (element.getAbstraction().asSymbolicFormula().isFalse()) {
+      return Collections.emptySet();
+    }
     
     // calculate strongest post
     PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
