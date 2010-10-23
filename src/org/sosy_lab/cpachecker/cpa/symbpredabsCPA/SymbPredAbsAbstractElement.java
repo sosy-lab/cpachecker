@@ -46,7 +46,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   private final PathFormula pathFormula;
 
   /** The abstraction which is updated only on abstraction locations */
-  private Abstraction abstraction;
+  private final Abstraction abstraction;
   
   /**
    * The abstract element this element was merged into.
@@ -80,10 +80,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
 
   public boolean isAbstractionNode(){
     return isAbstractionNode;
-  }
-
-  public void setAbstraction(Abstraction pAbstraction) {
-    abstraction = pAbstraction;
   }
 
   void setMergedInto(SymbPredAbsAbstractElement pMergedInto) {
