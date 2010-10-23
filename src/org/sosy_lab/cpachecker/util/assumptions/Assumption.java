@@ -135,7 +135,24 @@ public class Assumption {
   @Override
   public String toString() {
     return "Formula: " + dischargeableAssumption;
-    //+ " SSAMap: " + ssaMap;
+  }
+  
+  @Override
+  public int hashCode() {
+    return (31 + dischargeableAssumption.hashCode()) * 31 + otherAssumption.hashCode();
+  }  
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    } else if (!(obj instanceof Assumption)) {
+      return false;
+    } else {
+      Assumption other = (Assumption)obj;
+      return dischargeableAssumption.equals(other.dischargeableAssumption) && 
+              otherAssumption.equals(other.otherAssumption);
+    }
   }
   
 }
