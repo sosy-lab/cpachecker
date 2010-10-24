@@ -45,3 +45,7 @@ File and Class Names:
   the prefix order induced by the names should
   represent the semantic relation and structure of the concepts.
 
+Coding:
+- Prefer iterators over List.get(int).
+- Before implementing equals() for an AbstractElement,
+  think if you can cache and reuse such objects.

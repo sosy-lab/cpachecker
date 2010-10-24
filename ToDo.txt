@@ -11,65 +11,34 @@ Conceptual suggestions:
 -----------------------
 - [PW] Discuss if MultiStatement/MultiDeclaration edges and the CFASimplifier are
   still needed.
+  [DB+PW] Remove, any CPA that has an advantage of this should use something ABE like.
 
-- [PW] As there is no clear policy which object instances are considered bottom
-  (and this differs between CPAs), better remove usage of Top and Bottom. If a
-  CPA really needs it, it can still implement it on it's on (without exposing it).
+- [DB+PW] JoinOperator may not return just top if it doesn't know what to do
+  (especially SymbPredAbsJoinOperator violates this).
 
-- [MT] move getInitialElement to its own class
-  * method makeInitialElement (AE, AEwLoc, must be static)
+- [DB+PW] Check if it decreases performance if we remove the method
+  StopOperator.stop(ARTElement element, ARTElement element2)
+  If not, remove it. If so, replace all calls of it with calls to partialOrder instead
+  and remove this method.
+  Same for CompositeStopOperator.
+  Component StopOperators have to throw exception if they are called with more
+  than one element (unsound!).
 
-- [MT] Instead of the String parameters to set sep or join for merge and stop just
-  create multiple CPA classes that fix the operator ** did not understand this, erkan **
+- [DB] Rename satisfiesPartialOrder to isLessOrEqual
 
-- [MT] review mergeJoin for the use of joinOperator
-
-- [MT] cleanup stop operator, rename compositestopsep, compositemergesep
-
-- [DB] Maybe rename satisfiesPartialOrder to isLessOrEqual
-
-- [MT] compositestop is broken
-  stop(e,reachedSet,prec) calls stop(e,reachedElement), thus loses info about
-  precision (and never calls stop(e,reachedSet,prec) of the underlying CPA
-  [PW] True for ARTCPA as well. Losing precision should be fixed by passing
-  the precision in the second stop method as well.
-
-- [MT] Use iterators instead of get(i), this is CLEANER, SAFER, and FASTER in general
-  (unless impossible, of course)
-
-- [MT] Refactor the TheoremProver (and similarly named ones) interfaces and move all
-  the decision procedures related stuff to its own package
+  [DB+PW] Maybe move satisfiesPartialOrder() and join() to AbstractDomain
 
 - [MT] Overriding equals (and possibly also hashCode) is a design flaw in almost
   all cases, apply proper design patterns (Singleton and Factory); I'd expect a
   speedup by several orders of magnitude
-
-- [MT] DefUse became useless after not updating for a long time. Fix some time.
-
-- [MT] Setting cpas.symbpredabs.mathsat.useCache to false causes a null pointer
-  exception (with ExplicitCPA, at least)
-
-- [MT] Setting cpas.symbpredabs.explicit.getUsefulBlocks to false results in a
-  failing assertion in getInstance of the mathsat manager code (with
-  ExplicitCPA, at least)
-
-- [MT] Setting cpas.symbpredabs.shortestCexTrace to false causes some error I
-  can't remember right now, easily reproducible with ExplicitCPA
+  [DB+PW] use for Formulas and LocationCPA
 
 - [MT] The statistics classes should provide some simple support for adding
   timers, the current statistics interface is really too stupid
-
-- [MT] setPredecessor/setSuccessor (of CFAEdge) should really not be used in
-  non-private contexts, all uses (there are some) are likely just useless,
-  because CFACheck did not yield errors and there use would otherwise be buggy.
-
-- [MT] Properties of the CFA (like function entry points) should not be
-  evaluated in each CPA again and again, this info must be built into the CFA
-
-- [Erkan] Get rid of obsolete packages and classes
+  [DB+PW] Write a class Timer { start(); stop(); printSum(); printMax(); printSum(); }
 
 
-Architecture
+Architecture (all handled)
 ================================
 
 - db: Eliminate old, BLAST-like predicate abstraction and provide a properties file
@@ -81,6 +50,39 @@ Architecture
 
 Handled Jobs
 ================================
+- [PW] As there is no clear policy which object instances are considered bottom
+  (and this differs between CPAs), better remove usage of Top and Bottom. If a
+  CPA really needs it, it can still implement it on it's on (without exposing it).
+
+- [MT+PW] move getInitialElement to its own class
+  * method makeInitialElement (AE, AEwLoc, must be static)
+
+- [MT] Instead of the String parameters to set sep or join for merge and stop just
+  create multiple CPA classes that fix the operator ** did not understand this, erkan **
+  [DB+PW] No, it's fine as it is.
+
+- [MT] review mergeJoin for the use of joinOperator
+
+- [MT] cleanup stop operator, rename compositestopsep, compositemergesep
+
+- [MT] compositestop is broken
+  stop(e,reachedSet,prec) calls stop(e,reachedElement), thus loses info about
+  precision (and never calls stop(e,reachedSet,prec) of the underlying CPA
+  [PW] True for ARTCPA as well. Losing precision should be fixed by passing
+  the precision in the second stop method as well.
+
+- [MT] Refactor the TheoremProver (and similarly named ones) interfaces and move all
+  the decision procedures related stuff to its own package
+
+- [MT] DefUse became useless after not updating for a long time. Fix some time.
+
+- [MT] setPredecessor/setSuccessor (of CFAEdge) should really not be used in
+  non-private contexts, all uses (there are some) are likely just useless,
+  because CFACheck did not yield errors and there use would otherwise be buggy.
+
+- [MT] Properties of the CFA (like function entry points) should not be
+  evaluated in each CPA again and again, this info must be built into the CFA
+
 - [PW] Think of what to do with CFAErrorNode
 
 - [PW] Currently for function calls the abstract element from the call site is stored
