@@ -62,9 +62,12 @@ public class ARTStatistics implements Statistics {
   @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
 
+  @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
+  private File errorPathSourceFile = new File("ErrorPath.c");
+
   @Option(name="cpas.art.errorPath.json", type=Option.Type.OUTPUT_FILE)
-  private File errorPathJson = new File("ErrorPath.json");  
-  
+  private File errorPathJson = new File("ErrorPath.json");
+
   private final ARTCPA cpa;
 
   public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
@@ -80,7 +83,7 @@ public class ARTStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-    
+
     Path targetPath = null;
     ARTElement lastElement = (ARTElement)pReached.getLastElement();
     if (lastElement != null && lastElement.isTarget()) {
@@ -93,7 +96,7 @@ public class ARTStatistics implements Statistics {
         cpa.getLogger().log(Level.WARNING, "No error path available.");
       }
     }
-    
+
     if (exportART && artFile != null) {
       dumpARTToDotFile(pReached, getEdgesOfPath(targetPath));
     }
@@ -102,6 +105,7 @@ public class ARTStatistics implements Statistics {
       try {
 
         Files.writeFile(errorPathFile, targetPath);
+        Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
         Files.writeFile(errorPathJson, targetPath.toJSON());
 
       } catch (IOException e) {
@@ -110,12 +114,12 @@ public class ARTStatistics implements Statistics {
       }
     }
   }
-  
+
   private static Set<Pair<ARTElement, ARTElement>> getEdgesOfPath(Path pPath) {
     if (pPath == null) {
       return Collections.emptySet();
     }
-    
+
     Set<Pair<ARTElement, ARTElement>> result = new HashSet<Pair<ARTElement, ARTElement>>(pPath.size());
     Iterator<Pair<ARTElement, CFAEdge>> it = pPath.iterator();
     assert it.hasNext();
@@ -165,7 +169,7 @@ public class ARTStatistics implements Statistics {
 
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
         String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
-        
+
         sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +" id=\"" + currentElement.getElementId() + "\"] " + currentElement.getElementId() + ";\n");
 
         nodesList.add(currentElement.getElementId());
@@ -180,7 +184,7 @@ public class ARTStatistics implements Statistics {
 
       for (ARTElement child : currentElement.getChildren()) {
         boolean colored = pathEdges.contains(new Pair<ARTElement, ARTElement>(currentElement, child));
-        CFAEdge edge = currentElement.getEdgeToChild(child);        
+        CFAEdge edge = currentElement.getEdgeToChild(child);
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
@@ -190,7 +194,7 @@ public class ARTStatistics implements Statistics {
         }
         if (edge != null) {
           edges.append(" label = \"");
-          edges.append(edge.toString().replace('"', '\''));        
+          edges.append(edge.toString().replace('"', '\''));
           edges.append("\"");
           edges.append(" id=\"");
           edges.append(currentElement.getElementId());
