@@ -65,6 +65,23 @@ class CallstackElement implements AbstractElement, Partitionable {
          + " [" + Integer.toHexString(super.hashCode()) + "]";
   }
   
-  // no equals and hashCode because each instance represents a unique abstract state!
-  
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (!(obj instanceof CallstackElement)) {
+      return false;
+    }
+
+    CallstackElement other = (CallstackElement)obj;
+    return (this.previousElement == other.previousElement)
+        && (this.currentFunction.equals(other.currentFunction))
+        && (this.callerNode.equals(other.callerNode));
+  }
+
+  @Override
+  public int hashCode() {
+    return callerNode.hashCode();
+  }  
 }
