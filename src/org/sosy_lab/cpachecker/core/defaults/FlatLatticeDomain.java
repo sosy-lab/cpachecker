@@ -28,17 +28,17 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * @author holzera
- *
+ * This class implements a domain for CPAs, where the partial order is
+ * identical to the equality relation, if both of the two operands are neither
+ * bottom nor top. The resulting lattice is a layered graph with three layers
+ * (one for top, one for bottom and one for all other elements) and edges only
+ * between different layers.
  */
 public class FlatLatticeDomain implements AbstractDomain {
-  private final JoinOperator mJoinOperator;
-  private final PartialOrder mPartialOrder;
+  private final AbstractElement mTopElement;
 
   private static class TopElement implements AbstractElement {
     @Override
@@ -50,8 +50,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   public FlatLatticeDomain(AbstractElement pTopElement) {
     assert(pTopElement != null);
 
-    this.mPartialOrder = new EqualityPartialOrder(pTopElement);
-    this.mJoinOperator = new EqualityJoinOperator(mPartialOrder, pTopElement);
+    this.mTopElement = pTopElement;
   }
 
   public FlatLatticeDomain() {
@@ -59,14 +58,20 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return mJoinOperator.join(pElement1, pElement2);
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+    if (satisfiesPartialOrder(pElement1, pElement2)) {
+      return pElement2;
+    }
+
+    if (satisfiesPartialOrder(pElement2, pElement1)) {
+      return pElement1;
+    }
+
+    return mTopElement;
   }
 
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return mPartialOrder.satisfiesPartialOrder(pElement1, pElement2);
+  public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement) throws CPAException {
+    return (mTopElement.equals(reachedElement) || newElement.equals(reachedElement));
   }
 }
