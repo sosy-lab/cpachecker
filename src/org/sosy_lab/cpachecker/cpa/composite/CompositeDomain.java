@@ -25,41 +25,47 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.List;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CompositeDomain implements AbstractDomain
-{
-    private final ImmutableList<AbstractDomain> domains;
+public class CompositeDomain implements AbstractDomain {
 
-    private final CompositeJoinOperator joinOperator;
-    private final CompositePartialOrder partialOrder;
+  private final ImmutableList<AbstractDomain> domains;
 
-    public CompositeDomain(ImmutableList<AbstractDomain> domains)
-    {
-        this.domains = domains;
+  public CompositeDomain(ImmutableList<AbstractDomain> domains) {
+      this.domains = domains;
+  }
 
-        this.joinOperator = new CompositeJoinOperator(domains);
-        this.partialOrder = new CompositePartialOrder(domains);
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    // a simple join is here not possible, because it would over-approximate,
+    // but join needs to return the least upper bound
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean satisfiesPartialOrder(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+    CompositeElement comp1 = (CompositeElement)pElement1;
+    CompositeElement comp2 = (CompositeElement)pElement2;
+
+    List<AbstractElement> comp1Elements = comp1.getElements();
+    List<AbstractElement> comp2Elements = comp2.getElements();
+
+    Preconditions.checkState(comp1Elements.size() == comp2Elements.size());
+    Preconditions.checkState(comp1Elements.size() == domains.size());
+
+    for (int idx = 0; idx < comp1Elements.size(); idx++) {
+      AbstractDomain domain = domains.get(idx);
+      if (!domain.satisfiesPartialOrder(comp1Elements.get (idx), comp2Elements.get(idx))) {
+        return false;
+      }
     }
 
-    public List<AbstractDomain> getDomains ()
-    {
-        return domains;
-    }
-
-    @Override
-    public AbstractElement join(AbstractElement pElement1,
-        AbstractElement pElement2) throws CPAException {
-      return joinOperator.join(pElement1, pElement2);
-    }
-
-    @Override
-    public boolean satisfiesPartialOrder(AbstractElement pElement1,
-        AbstractElement pElement2) throws CPAException {
-      return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
-    }
+    return true;
+  }
 }
