@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -40,11 +40,10 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
-import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
@@ -741,30 +740,21 @@ public class FlleSh {
      * the computational effort necessary to determine that there are no successors.
      */
     
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
-    
-    lCompoundCPAFactory.push(mCallStackCPA, true);
-    
-    if (pPassingCPA != null) {
-      lCompoundCPAFactory.push(pPassingCPA, true);
-    }
-    
-    lCompoundCPAFactory.push(pAutomatonCPA, true);
-    
-    lCompoundCPAFactory.push(mSymbPredAbsCPA);
-    lCompoundCPAFactory.push(mProductAutomatonCPA);
-    
-    lCompoundCPAFactory.push(mAssumeCPA);
-    
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
-    try {
-      lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
+    
+    lComponentAnalyses.add(mCallStackCPA);
+    
+    if (pPassingCPA != null) {
+      lComponentAnalyses.add(pPassingCPA);
     }
+    
+    lComponentAnalyses.add(pAutomatonCPA);
+    
+    lComponentAnalyses.add(mSymbPredAbsCPA);
+    lComponentAnalyses.add(mProductAutomatonCPA);
+    
+    lComponentAnalyses.add(mAssumeCPA);
 
     ARTCPA lARTCPA;
     try {
@@ -821,7 +811,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
     
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -929,32 +919,30 @@ public class FlleSh {
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
     
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
-      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+      lComponentAnalyses.add(pPassingAutomatonCPA);
     }
     
-    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    lComponentAnalyses.add(pCoverAutomatonCPA);
     
     // call stack CPA
-    lCompoundCPAFactory.push(mCallStackCPA, true);
+    lComponentAnalyses.add(mCallStackCPA);
     
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
-    lCompoundCPAFactory.push(lInterpreterCPA);
+    lComponentAnalyses.add(lInterpreterCPA);
     
     // product automaton CPA
-    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mProductAutomatonCPA);
     
     // assume CPA
-    lCompoundCPAFactory.push(mAssumeCPA);
+    lComponentAnalyses.add(mAssumeCPA);
     
-    
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-    lComponentAnalyses.add(mLocationCPA);
-    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
     
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
@@ -967,7 +955,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -976,53 +964,52 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
-    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
+    // TODO sanity check by assertion
+    CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
     
-    if (lEndNodes.size() == 0) {
+    if (lEndNode == null) {
       return false;
     }
-    else if (lEndNodes.size() == 1) {
-      CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
-      
-      CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
-      
-      return lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance());
-    }
     else {
-      throw new RuntimeException();
+      if (((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
+        // location of last element is at end node
+
+        return lEndNode.get(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance());
+      }
+      
+      return false;
     }
   }
   
   private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
     
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
-      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+      lComponentAnalyses.add(pPassingAutomatonCPA);
     }
     
-    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    lComponentAnalyses.add(pCoverAutomatonCPA);
     
     // call stack CPA
-    lCompoundCPAFactory.push(mCallStackCPA, true);
+    lComponentAnalyses.add(mCallStackCPA);
     
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
-    lCompoundCPAFactory.push(lInterpreterCPA);
+    lComponentAnalyses.add(lInterpreterCPA);
     
     // CFA path CPA
-    int lCFAPathCPAIndex = lCompoundCPAFactory.push(mCFAPathCPA);
+    int lCFAPathCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mCFAPathCPA);
     
     // product automaton CPA
-    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mProductAutomatonCPA);
     
     // assume CPA
-    lCompoundCPAFactory.push(mAssumeCPA);
+    lComponentAnalyses.add(mAssumeCPA);
     
-    
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-    lComponentAnalyses.add(mLocationCPA);
-    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
     
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
@@ -1035,7 +1022,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1044,22 +1031,22 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
-    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
+    // TODO sanity check by assertion
+    CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
     
-    if (lEndNodes.size() != 1) {
-      System.out.println(lEndNodes);
+    if (lEndNode == null) {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
     
-    CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
+    if (!((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
+      throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
+    }
     
-    CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
-    
-    if (!lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
+    if (!lEndNode.get(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
       throw new RuntimeException();
     }
     
-    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(lCFAPathCPAIndex);
+    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
     
     return lPathElement.toArray();
   }
