@@ -92,6 +92,12 @@ public class CompositeTransferRelation implements TransferRelation{
 
       Collection<? extends AbstractElement> componentSuccessors = transfer.getAbstractSuccessors(componentElement, lPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
+      
+      if (resultCount == 0) {
+        // shortcut
+        break;
+      }
+      
       allComponentsSuccessors.add(componentSuccessors);
     }
 
@@ -137,6 +143,12 @@ public class CompositeTransferRelation implements TransferRelation{
         }
         else {
           lNumberOfResultingElements *= lResultsList.size();
+          
+          if (lNumberOfResultingElements == 0) {
+            // shortcut
+            break;
+          }
+          
           lStrengthenedElements.add(lResultsList);
         }
       }
