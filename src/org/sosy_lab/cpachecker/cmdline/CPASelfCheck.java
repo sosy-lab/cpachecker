@@ -48,11 +48,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -176,19 +175,18 @@ public class CPASelfCheck {
 
   private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
                                 ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
-    JoinOperator join = pCpaInst.getAbstractDomain().getJoinOperator();
+    AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
 
     boolean ok = true;
-    ok &= ensure(le.satisfiesPartialOrder(initial, join.join(initial,initial)),
+    ok &= ensure(d.satisfiesPartialOrder(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
     return ok;
   }
 
   private static boolean checkMergeSoundness(Class<ConfigurableProgramAnalysis> pCpa,
                                  ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
+    AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
@@ -196,7 +194,7 @@ public class CPASelfCheck {
     boolean ok = true;
     ok &= ensure(merge != null, "Merge-hack: mergeOperator is null!");
     if (!ok) return false;
-    ok &= ensure(le.satisfiesPartialOrder(initial, merge.merge(initial,initial,initialPrec)),
+    ok &= ensure(d.satisfiesPartialOrder(initial, merge.merge(initial,initial,initialPrec)),
         "Merging same elements was unsound!");
     return ok;
   }

@@ -60,7 +60,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
     mDomain = new MustMayAnalysisDomain(lMustDomain, lMayDomain);
 
-    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    mStopOperator = new StopSepOperator(mDomain);
 
     mTransferRelation = new MustMayAnalysisTransferRelation(pMustCPA.getTransferRelation(), pMayCPA.getTransferRelation());
   }

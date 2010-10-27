@@ -29,8 +29,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositeDomain implements AbstractDomain
@@ -44,17 +42,8 @@ public class CompositeDomain implements AbstractDomain
     {
         this.domains = domains;
 
-        ImmutableList.Builder<JoinOperator> joinOperators = ImmutableList.builder();
-        ImmutableList.Builder<PartialOrder> partialOrders = ImmutableList.builder();
-
-        for (AbstractDomain domain : domains)
-        {
-            joinOperators.add (domain.getJoinOperator ());
-            partialOrders.add (domain.getPartialOrder ());
-        }
-
-        this.joinOperator = new CompositeJoinOperator(joinOperators.build());
-        this.partialOrder = new CompositePartialOrder(partialOrders.build());
+        this.joinOperator = new CompositeJoinOperator(domains);
+        this.partialOrder = new CompositePartialOrder(domains);
     }
 
     public List<AbstractDomain> getDomains ()
@@ -63,26 +52,14 @@ public class CompositeDomain implements AbstractDomain
     }
 
     @Override
-    public JoinOperator getJoinOperator ()
-    {
-        return joinOperator;
-    }
-
-    @Override
-    public PartialOrder getPartialOrder ()
-    {
-        return partialOrder;
-    }
-
-    @Override
     public AbstractElement join(AbstractElement pElement1,
         AbstractElement pElement2) throws CPAException {
-      return getJoinOperator().join(pElement1, pElement2);
+      return joinOperator.join(pElement1, pElement2);
     }
 
     @Override
     public boolean satisfiesPartialOrder(AbstractElement pElement1,
         AbstractElement pElement2) throws CPAException {
-      return getPartialOrder().satisfiesPartialOrder(pElement1, pElement2);
+      return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
     }
 }

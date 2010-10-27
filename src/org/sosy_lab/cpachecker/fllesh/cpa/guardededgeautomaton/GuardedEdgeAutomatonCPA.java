@@ -26,7 +26,7 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   
   public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
-    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    mStopOperator = new StopSepOperator(mDomain);
     mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton, pReachedAutomatonStates);
     
     Automaton.State lInitialState = pAutomaton.getInitialState();

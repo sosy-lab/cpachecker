@@ -24,7 +24,7 @@ public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
   
   private ProductAutomatonCPA() {
     mDomain = new FlatLatticeDomain(ProductAutomatonUndeterminedElement.getInstance());
-    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    mStopOperator = new StopSepOperator(mDomain);
   }
   
   @Override

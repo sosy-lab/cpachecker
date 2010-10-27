@@ -78,12 +78,12 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
       mergeOp = MergeSepOperator.getInstance();
     }
     if(mergeType.equals("join")) {
-      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
+      mergeOp = new MergeJoinOperator(domain);
     }
 
     abstractDomain = domain;
     mergeOperator = mergeOp;
-    stopOperator = new StopSepOperator(domain.getPartialOrder());
+    stopOperator = new StopSepOperator(domain);
     transferRelation = new PointerAnalysisTransferRelation(printWarnings, logger);
   }
 

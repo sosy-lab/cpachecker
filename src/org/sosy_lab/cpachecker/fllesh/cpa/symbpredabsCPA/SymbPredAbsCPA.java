@@ -154,7 +154,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
-    stop = new StopSepOperator(domain.getPartialOrder());
+    stop = new StopSepOperator(domain);
     
     Set<Predicate> predicates = null;
     if (predicatesFile != null) {

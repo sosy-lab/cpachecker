@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -37,14 +37,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class StopSepOperator implements StopOperator {
 
-  private final PartialOrder partialOrder;
+  private final AbstractDomain domain;
 
   /**
    * Creates a stop-sep operator based on the given
    * partial order
    */
-  public StopSepOperator(PartialOrder order) {
-    partialOrder = order;
+  public StopSepOperator(AbstractDomain d) {
+    domain = d;
   }
 
   @Override
@@ -52,7 +52,7 @@ public class StopSepOperator implements StopOperator {
     throws CPAException
   {
     for (AbstractElement reachedElement : reached) {
-      if (partialOrder.satisfiesPartialOrder(el, reachedElement))
+      if (domain.satisfiesPartialOrder(el, reachedElement))
         return true;
     }
     return false;
@@ -61,7 +61,7 @@ public class StopSepOperator implements StopOperator {
   @Override
   public boolean stop(AbstractElement el, AbstractElement reachedElement)
       throws CPAException {
-    return partialOrder.satisfiesPartialOrder(el, reachedElement);
+    return domain.satisfiesPartialOrder(el, reachedElement);
   }
 
 }

@@ -85,13 +85,13 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     if(mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
     } else if(mergeType.equals("join")) {
-      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
+      mergeOp = new MergeJoinOperator(domain);
     }
 
     StopOperator stopOp = null;
 
     if(stopType.equals("sep")) {
-      stopOp = new StopSepOperator(domain.getPartialOrder());
+      stopOp = new StopSepOperator(domain);
     } else if(stopType.equals("join")){
       stopOp = new StopJoinOperator(domain);
     }

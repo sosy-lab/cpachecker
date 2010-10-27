@@ -95,26 +95,14 @@ public class InterpreterDomain implements AbstractDomain {
   private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
 
   @Override
-  public JoinOperator getJoinOperator ()
-  {
-    return sJoinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder ()
-  {
-    return sPartialOrder;
-  }
-
-  @Override
   public AbstractElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
-    return getJoinOperator().join(pElement1, pElement2);
+    return sJoinOperator.join(pElement1, pElement2);
   }
 
   @Override
   public boolean satisfiesPartialOrder(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
-    return getPartialOrder().satisfiesPartialOrder(pElement1, pElement2);
+    return sPartialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

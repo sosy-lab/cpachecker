@@ -90,7 +90,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         	DominatorElement dominatorElement1 = (DominatorElement)element1;
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
 
-        	if (this.cpa.getAbstractDomain().getPartialOrder().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
+        	if (this.cpa.getAbstractDomain().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
         		Iterator<AbstractElement> dominatorIterator = dominatorElement2.getIterator();
 
         		while (dominatorIterator.hasNext()) {
@@ -152,21 +152,5 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		result.update(dominatorElement1.getDominatedElement());
 
 		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getJoinOperator()
-	 */
-	@Override
-  public JoinOperator getJoinOperator() {
-		return this;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getPartialOrder()
-	 */
-	@Override
-  public PartialOrder getPartialOrder() {
-		return this;
 	}
 }

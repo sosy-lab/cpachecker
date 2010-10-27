@@ -105,7 +105,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  private final StopOperator stopOperator = new StopSepOperator(automatonDomain.getPartialOrder());
+  private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
 
   private ControlAutomatonCPA(Automaton automaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);

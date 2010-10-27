@@ -52,24 +52,14 @@ public class ProgressObserverDomain implements AbstractDomain {
   };
 
   @Override
-  public JoinOperator getJoinOperator() {
-    return joinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder() {
-    return partialOrder;
-  }
-
-  @Override
   public AbstractElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
-    return getJoinOperator().join(pElement1, pElement2);
+    return joinOperator.join(pElement1, pElement2);
   }
 
   @Override
   public boolean satisfiesPartialOrder(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
-    return getPartialOrder().satisfiesPartialOrder(pElement1, pElement2);
+    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

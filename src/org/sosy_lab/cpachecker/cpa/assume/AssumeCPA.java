@@ -29,7 +29,7 @@ public class AssumeCPA implements ConfigurableProgramAnalysis {
   
   public AssumeCPA(String pAssumeFunctionName) {
     mDomain = new AssumeDomain();
-    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    mStopOperator = new StopSepOperator(mDomain);
     mTransferRelation = new AssumeTransferRelation(pAssumeFunctionName);
   }
   

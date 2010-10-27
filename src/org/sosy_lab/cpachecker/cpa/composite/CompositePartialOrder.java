@@ -27,17 +27,18 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositePartialOrder implements PartialOrder
 {
-    private final ImmutableList<PartialOrder> partialOrders;
+  private final ImmutableList<AbstractDomain> domains;
 
-    public CompositePartialOrder(ImmutableList<PartialOrder> partialOrders)
+    public CompositePartialOrder(ImmutableList<AbstractDomain> domains)
     {
-        this.partialOrders = partialOrders;
+      this.domains = domains;
     }
 
     @Override
@@ -51,13 +52,13 @@ public class CompositePartialOrder implements PartialOrder
 
         if (comp1Elements.size () != comp2Elements.size ())
             throw new CPAException ("Must check pre-order satisfaction of composite elements of the same size");
-        if (comp1Elements.size () != partialOrders.size ())
+        if (comp1Elements.size () != domains.size ())
             throw new CPAException ("Wrong number of pre-orders");
 
         for (int idx = 0; idx < comp1Elements.size (); idx++)
         {
-            PartialOrder partialOrder = partialOrders.get (idx);
-            if (!partialOrder.satisfiesPartialOrder (comp1Elements.get (idx), comp2Elements.get (idx)))
+            AbstractDomain domain = domains.get(idx);
+            if (!domain.satisfiesPartialOrder (comp1Elements.get (idx), comp2Elements.get (idx)))
                 return false;
         }
 

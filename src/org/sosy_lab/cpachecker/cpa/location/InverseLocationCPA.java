@@ -47,7 +47,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
 
   private static final AbstractDomain abstractDomain = new FlatLatticeDomain();
   private static final TransferRelation transferRelation = new InverseLocationTransferRelation();
-  private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+  private static final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public static CPAFactory factory() {
     return new LocationCPAFactory(true);

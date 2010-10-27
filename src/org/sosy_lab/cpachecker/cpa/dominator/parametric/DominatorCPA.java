@@ -51,8 +51,8 @@ public class DominatorCPA {
 
 		this.abstractDomain = new DominatorDomain(this.cpa);
     this.transferRelation = new DominatorTransferRelation(this.cpa);
-    this.mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
-		this.stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+    this.mergeOperator = new MergeJoinOperator(abstractDomain);
+		this.stopOperator = new StopSepOperator(abstractDomain);
 		this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 	}
 

@@ -75,10 +75,10 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     if(mergeType.equals("sep")){
       this.mergeOperator = MergeSepOperator.getInstance();
     } else if(mergeType.equals("join")){
-      this.mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
+      this.mergeOperator = new MergeJoinOperator(abstractDomain);
     }
 
-    this.stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+    this.stopOperator = new StopSepOperator(abstractDomain);
   }
 
   @Override

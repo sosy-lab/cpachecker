@@ -28,7 +28,6 @@ import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -49,19 +48,18 @@ public class StopJoinOperator implements StopOperator {
   @Override
   public boolean stop(AbstractElement element, Collection<AbstractElement> reached,
                       Precision precision) throws CPAException {
-    JoinOperator join = domain.getJoinOperator();
     Iterator<AbstractElement> it = reached.iterator();
     AbstractElement joinedElement = it.next();
     while (it.hasNext()) {
-      joinedElement = join.join(it.next(), joinedElement);
+      joinedElement = domain.join(it.next(), joinedElement);
     }
 
-    return domain.getPartialOrder().satisfiesPartialOrder(element, joinedElement);
+    return domain.satisfiesPartialOrder(element, joinedElement);
   }
 
   @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
                       throws CPAException {
-    return domain.getPartialOrder().satisfiesPartialOrder(element, reachedElement);
+    return domain.satisfiesPartialOrder(element, reachedElement);
   }
 }

@@ -28,17 +28,18 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositeJoinOperator implements JoinOperator
 {
-    private final ImmutableList<JoinOperator> joinOperators;
+    private final ImmutableList<AbstractDomain> domains;
 
-    public CompositeJoinOperator (ImmutableList<JoinOperator> joinOperators)
+    public CompositeJoinOperator (ImmutableList<AbstractDomain> domains)
     {
-        this.joinOperators = joinOperators;
+        this.domains = domains;
     }
 
     @Override
@@ -52,15 +53,15 @@ public class CompositeJoinOperator implements JoinOperator
 
         if (comp1Elements.size () != comp2Elements.size ())
             throw new CPAException ("Must join composite elements of the same size");
-        if (comp1Elements.size () != joinOperators.size ())
+        if (comp1Elements.size () != domains.size ())
             throw new CPAException ("Wrong number of join operators");
 
         List<AbstractElement> results = new ArrayList<AbstractElement> ();
 
         for (int idx = 0; idx < comp1Elements.size (); idx++)
         {
-            JoinOperator joinOperator = joinOperators.get (idx);
-            AbstractElement result = joinOperator.join (comp1Elements.get (idx), comp2Elements.get (idx));
+            AbstractDomain domain = domains.get(idx);
+            AbstractElement result = domain.join (comp1Elements.get (idx), comp2Elements.get (idx));
             results.add (result);
         }
 

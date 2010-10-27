@@ -3,16 +3,17 @@ package org.sosy_lab.cpachecker.fllesh.cpa.composite;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompoundPartialOrder implements PartialOrder {
 
-  private List<PartialOrder> mPartialOrders;
+  private List<AbstractDomain> mDomains;
   
-  public CompoundPartialOrder(List<PartialOrder> pPartialOrders) {
-    mPartialOrders = new ArrayList<PartialOrder>(pPartialOrders);
+  public CompoundPartialOrder(List<AbstractDomain> pDomains) {
+    mDomains = new ArrayList<AbstractDomain>(pDomains);
   }
   
   @Override
@@ -21,8 +22,8 @@ public class CompoundPartialOrder implements PartialOrder {
     CompoundElement lElement1 = (CompoundElement)pElement1;
     CompoundElement lElement2 = (CompoundElement)pElement2;
     
-    for (int lIndex = 0; lIndex < mPartialOrders.size(); lIndex++) {
-      if (!mPartialOrders.get(lIndex).satisfiesPartialOrder(lElement1.getSubelement(lIndex), lElement2.getSubelement(lIndex))) {
+    for (int lIndex = 0; lIndex < mDomains.size(); lIndex++) {
+      if (!mDomains.get(lIndex).satisfiesPartialOrder(lElement1.getSubelement(lIndex), lElement2.getSubelement(lIndex))) {
         return false;
       }
     }

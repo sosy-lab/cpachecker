@@ -43,7 +43,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 
   private static final AbstractDomain abstractDomain = new FlatLatticeDomain();
 	private static final TransferRelation transferRelation = new LocationTransferRelation();
-	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
 	public static CPAFactory factory() {
 	  return new LocationCPAFactory(false);
