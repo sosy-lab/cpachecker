@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /*
  * This join operator is defined point wise.
@@ -57,4 +59,15 @@ public class MustMayAnalysisDomain implements AbstractDomain {
     return mPartialOrder;
   }
 
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return getJoinOperator().join(pElement1, pElement2);
+  }
+
+  @Override
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return getPartialOrder().satisfiesPartialOrder(pElement1, pElement2);
+  }
 }

@@ -25,9 +25,13 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public interface AbstractDomain
-{
+public interface AbstractDomain {
     public PartialOrder getPartialOrder ();
     public JoinOperator getJoinOperator ();
+    
+    public AbstractElement join(AbstractElement element1, AbstractElement element2) throws CPAException;
+    public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException;
+
 }

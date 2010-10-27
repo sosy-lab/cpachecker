@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseDomain implements AbstractDomain
 {
@@ -83,5 +84,17 @@ public class DefUseDomain implements AbstractDomain
     public PartialOrder getPartialOrder ()
     {
         return partialOrder;
+    }
+    
+    @Override
+    public AbstractElement join(AbstractElement pElement1,
+        AbstractElement pElement2) throws CPAException {
+      return getJoinOperator().join(pElement1, pElement2);
+    }
+
+    @Override
+    public boolean satisfiesPartialOrder(AbstractElement pElement1,
+        AbstractElement pElement2) throws CPAException {
+      return getPartialOrder().satisfiesPartialOrder(pElement1, pElement2);
     }
 }

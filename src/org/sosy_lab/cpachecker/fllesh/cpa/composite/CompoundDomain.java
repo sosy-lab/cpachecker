@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompoundDomain implements AbstractDomain {
 
@@ -35,5 +37,17 @@ public class CompoundDomain implements AbstractDomain {
   @Override
   public PartialOrder getPartialOrder() {
     return mPartialOrder;
+  }
+
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return getJoinOperator().join(pElement1, pElement2);
+  }
+
+  @Override
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return getPartialOrder().satisfiesPartialOrder(pElement1, pElement2);
   }
 }
