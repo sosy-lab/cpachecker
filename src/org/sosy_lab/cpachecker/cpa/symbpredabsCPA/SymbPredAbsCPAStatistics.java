@@ -59,11 +59,11 @@ class SymbPredAbsCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final SymbPredAbsCPA cpa;
-    private final SymbPredAbsPartialOrder order;
+    private final SymbPredAbsAbstractDomain domain;
 
-    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsPartialOrder pOrder) throws InvalidConfigurationException {
+    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsAbstractDomain pDomain) throws InvalidConfigurationException {
       this.cpa = cpa;
-      this.order = pOrder;
+      this.domain = pDomain;
       cpa.getConfiguration().inject(this);
     }
 
@@ -137,9 +137,9 @@ class SymbPredAbsCPAStatistics implements Statistics {
       if (trans.numStrengthenChecks > 0) {
         out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
       }
-      out.println("Number of coverage checks:         " + order.numCoverageCheck);
-      out.println("  BDD entailment checks:           " + order.numBddCoverageCheck);
-      out.println("  Symbolic coverage check:         " + order.numSymbolicCoverageCheck);
+      out.println("Number of coverage checks:         " + domain.numCoverageCheck);
+      out.println("  BDD entailment checks:           " + domain.numBddCoverageCheck);
+      out.println("  Symbolic coverage check:         " + domain.numSymbolicCoverageCheck);
       out.println();
       out.println("Max ABE block size:                       " + trans.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
@@ -170,12 +170,12 @@ class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
       out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
       out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
-      out.println("Time for coverage check:             " + toTime(order.coverageCheckTime));
-      if (order.numBddCoverageCheck > 0) {
-        out.println("  Time for BDD entailment checks:    " + toTime(order.bddCoverageCheckTime));
+      out.println("Time for coverage check:             " + toTime(domain.coverageCheckTime));
+      if (domain.numBddCoverageCheck > 0) {
+        out.println("  Time for BDD entailment checks:    " + toTime(domain.bddCoverageCheckTime));
       }
-      if (order.numSymbolicCoverageCheck > 0) {
-        out.println("  Time for symbolic coverage checks: " + toTime(order.bddCoverageCheckTime));
+      if (domain.numSymbolicCoverageCheck > 0) {
+        out.println("  Time for symbolic coverage checks: " + toTime(domain.bddCoverageCheckTime));
       }
       if (bs.numCallsCexAnalysis > 0) {
         out.println("Time for counterexample analysis:    " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");

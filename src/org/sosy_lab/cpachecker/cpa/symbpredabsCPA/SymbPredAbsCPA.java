@@ -36,15 +36,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.DefaultAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.EqualityJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -92,7 +89,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final Configuration config;
   private final LogManager logger;
 
-  private final AbstractDomain domain;
+  private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
   private final StopOperator stop;
@@ -139,9 +136,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     transfer = new SymbPredAbsTransferRelation(this);
     
     topElement = new SymbPredAbsAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstraction(null));    
-    SymbPredAbsPartialOrder order = new SymbPredAbsPartialOrder(this);
-    JoinOperator join = new EqualityJoinOperator(order, topElement);
-    domain = new DefaultAbstractDomain(join, order);
+    domain = new SymbPredAbsAbstractDomain(this);
     
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain);
@@ -162,7 +157,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     initialPrecision = new SymbPredAbsPrecision(predicates);
 
-    stats = new SymbPredAbsCPAStatistics(this, order);
+    stats = new SymbPredAbsCPAStatistics(this, domain);
   }
 
   @Override

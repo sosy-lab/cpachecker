@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 
 @Options(prefix="cpas.symbpredabs")
-public final class SymbPredAbsPartialOrder implements PartialOrder {
+public final class SymbPredAbsAbstractDomain implements AbstractDomain {
   
   @Option
   private boolean symbolicCoverageCheck = false; 
@@ -49,7 +49,7 @@ public final class SymbPredAbsPartialOrder implements PartialOrder {
   private final AbstractFormulaManager mAbstractFormulaManager;
   private final SymbPredAbsFormulaManager mgr;
     
-  public SymbPredAbsPartialOrder(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
+  public SymbPredAbsAbstractDomain(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
     mAbstractFormulaManager = pCpa.getAbstractFormulaManager();
     mgr = pCpa.getFormulaManager();
@@ -111,5 +111,11 @@ public final class SymbPredAbsPartialOrder implements PartialOrder {
     } finally {
       coverageCheckTime += System.currentTimeMillis() - start;
     }
+  }
+
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    throw new UnsupportedOperationException();
   }
 }
