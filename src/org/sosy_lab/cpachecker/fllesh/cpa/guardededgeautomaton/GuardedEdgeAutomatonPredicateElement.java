@@ -55,4 +55,9 @@ public class GuardedEdgeAutomatonPredicateElement extends GuardedEdgeAutomatonSt
     return super.toString() + mPredicates.toString();
   }
 
+  @Override
+  public Object getPartitionKey() {
+    return this;
+  }
+
 }

@@ -12,4 +12,9 @@ public class GuardedEdgeAutomatonTopElement implements GuardedEdgeAutomatonEleme
     
   }
 
+  @Override
+  public Object getPartitionKey() {
+    return this;
+  }
+
 }

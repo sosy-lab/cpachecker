@@ -35,5 +35,10 @@ public class GuardedEdgeAutomatonStandardElement extends GuardedEdgeAutomatonSta
   public int hashCode() {
     return getAutomatonState().hashCode() + 37239;
   }
+
+  @Override
+  public Object getPartitionKey() {
+    return this;
+  }
   
 }
