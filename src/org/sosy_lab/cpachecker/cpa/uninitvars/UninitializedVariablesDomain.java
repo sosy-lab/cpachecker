@@ -30,8 +30,6 @@ import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -39,8 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class UninitializedVariablesDomain implements AbstractDomain {
 
-  private static class UninitializedVariablesJoinOperator implements JoinOperator {
-    @Override
+  private static class UninitializedVariablesJoinOperator {
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
@@ -57,8 +54,7 @@ public class UninitializedVariablesDomain implements AbstractDomain {
     }
   }
 
-  private static class UninitializedVariablesPartialOrder implements PartialOrder {
-    @Override
+  private static class UninitializedVariablesPartialOrder {
     // returns true if element1 < element2 on lattice
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2)
@@ -94,8 +90,8 @@ public class UninitializedVariablesDomain implements AbstractDomain {
     }
   }
 
-  private static final JoinOperator joinOperator = new UninitializedVariablesJoinOperator();
-  private static final PartialOrder partialOrder = new UninitializedVariablesPartialOrder();
+  private static final UninitializedVariablesJoinOperator joinOperator = new UninitializedVariablesJoinOperator();
+  private static final UninitializedVariablesPartialOrder partialOrder = new UninitializedVariablesPartialOrder();
 
   @Override
   public AbstractElement join(AbstractElement pElement1,

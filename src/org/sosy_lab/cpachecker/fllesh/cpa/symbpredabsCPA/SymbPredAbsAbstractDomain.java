@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
@@ -50,16 +48,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     symbolicCoverageCheck = pSymbolicCoverageCheck;
   }
 
-  private final static class SymbPredAbsJoinOperator implements JoinOperator {
-    @Override
-    public SymbPredAbsAbstractElement join(AbstractElement element1,
-                                AbstractElement element2) throws CPAException {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  private final class SymbPredAbsPartialOrder implements PartialOrder {
-    @Override
+  private final class SymbPredAbsPartialOrder {
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2) throws CPAException {
       
@@ -96,13 +85,12 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
   }
 
-  private final static JoinOperator join = new SymbPredAbsJoinOperator();
-  private final PartialOrder partial = new SymbPredAbsPartialOrder();
+  private final SymbPredAbsPartialOrder partial = new SymbPredAbsPartialOrder();
 
   @Override
   public AbstractElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
-    return join.join(pElement1, pElement2);
+    throw new UnsupportedOperationException();
   }
 
   @Override

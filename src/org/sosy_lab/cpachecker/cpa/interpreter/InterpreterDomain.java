@@ -27,16 +27,13 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class InterpreterDomain implements AbstractDomain {
 
-  private static class InterpreterPartialOrder implements PartialOrder
+  private static class InterpreterPartialOrder
   {
     // returns true if element1 < element2 on lattice
-    @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
     {
       InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
@@ -63,9 +60,8 @@ public class InterpreterDomain implements AbstractDomain {
     }
   }
 
-  private static class InterpreterJoinOperator implements JoinOperator
+  private static class InterpreterJoinOperator
   {
-    @Override
     public AbstractElement join(AbstractElement element1, AbstractElement element2)
     {
       /*InterpreterElement explicitAnalysisElement1 = (InterpreterElement) element1;
@@ -91,8 +87,8 @@ public class InterpreterDomain implements AbstractDomain {
     }
   }
 
-  private final static PartialOrder sPartialOrder = new InterpreterPartialOrder ();
-  private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
+  private final static InterpreterPartialOrder sPartialOrder = new InterpreterPartialOrder ();
+  private final static InterpreterJoinOperator sJoinOperator = new InterpreterJoinOperator ();
 
   @Override
   public AbstractElement join(AbstractElement pElement1,

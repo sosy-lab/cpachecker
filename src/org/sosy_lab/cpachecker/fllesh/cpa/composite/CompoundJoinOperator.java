@@ -5,10 +5,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CompoundJoinOperator implements JoinOperator {
+public class CompoundJoinOperator {
 
   private List<AbstractDomain> mDomains;
   
@@ -16,7 +15,6 @@ public class CompoundJoinOperator implements JoinOperator {
     mDomains = new ArrayList<AbstractDomain>(pDomains);
   }
   
-  @Override
   public AbstractElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     CompoundElement lElement1 = (CompoundElement)pElement1;

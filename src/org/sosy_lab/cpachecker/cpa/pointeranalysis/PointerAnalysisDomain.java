@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.pointeranalysis;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -34,8 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class PointerAnalysisDomain implements AbstractDomain {
 
-  private static class PointerAnalysisJoinOperator implements JoinOperator {
-    @Override
+  private static class PointerAnalysisJoinOperator {
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
 
@@ -72,8 +69,7 @@ public class PointerAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static class PointerAnalysisPartialOrder implements PartialOrder {
-    @Override
+  private static class PointerAnalysisPartialOrder {
     public boolean satisfiesPartialOrder(AbstractElement newElement,
                                          AbstractElement reachedElement)
                                          throws CPAException {
@@ -84,8 +80,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
-  private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
+  private static final PointerAnalysisJoinOperator joinOperator = new PointerAnalysisJoinOperator();
+  private static final PointerAnalysisPartialOrder partialOrder = new PointerAnalysisPartialOrder();
 
   @Override
   public AbstractElement join(AbstractElement pElement1,

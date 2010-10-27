@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MustMayAnalysisPartialOrder implements PartialOrder {
+public class MustMayAnalysisPartialOrder {
 
   AbstractDomain mMustDomain;
   AbstractDomain mMayDomain;
@@ -41,7 +40,6 @@ public class MustMayAnalysisPartialOrder implements PartialOrder {
     mMayDomain = pMayDomain;
   }
 
-  @Override
   public boolean satisfiesPartialOrder(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     assert(pElement1 != null);

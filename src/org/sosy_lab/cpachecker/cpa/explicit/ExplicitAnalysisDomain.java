@@ -28,16 +28,13 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
 
-  private static class ExplicitAnalysisPartialOrder implements PartialOrder
+  private static class ExplicitAnalysisPartialOrder
   {
     // returns true if element1 < element2 on lattice
-    @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
     {
       ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
@@ -71,9 +68,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static class ExplicitAnalysisJoinOperator implements JoinOperator
+  private static class ExplicitAnalysisJoinOperator
   {
-    @Override
     public AbstractElement join(AbstractElement element1, AbstractElement element2)
     {
       ExplicitAnalysisElement explicitAnalysisElement1 = (ExplicitAnalysisElement) element1;
@@ -109,8 +105,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private final static PartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
-  private final static JoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
+  private final static ExplicitAnalysisPartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
+  private final static ExplicitAnalysisJoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
 
   @Override
   public AbstractElement join(AbstractElement pElement1,

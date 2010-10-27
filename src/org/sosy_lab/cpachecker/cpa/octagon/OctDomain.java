@@ -31,17 +31,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class OctDomain implements AbstractDomain{
 
   public static long totaltime = 0;
 
-  private static class OctPartialOrder implements PartialOrder
+  private static class OctPartialOrder
   {
-    @Override
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
     {
 
@@ -89,9 +86,8 @@ public class OctDomain implements AbstractDomain{
     }
   }
 
-  private static class OctJoinOperator implements JoinOperator
+  private static class OctJoinOperator
   {
-    @Override
     public AbstractElement join (AbstractElement element1, AbstractElement element2)
     {
       // TODO fix
@@ -101,8 +97,8 @@ public class OctDomain implements AbstractDomain{
     }
   }
 
-  private final static PartialOrder partialOrder = new OctPartialOrder ();
-  private final static JoinOperator joinOperator = new OctJoinOperator ();
+  private final static OctPartialOrder partialOrder = new OctPartialOrder ();
+  private final static OctJoinOperator joinOperator = new OctJoinOperator ();
 
   @Override
   public AbstractElement join(AbstractElement pElement1,

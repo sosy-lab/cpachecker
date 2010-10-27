@@ -34,15 +34,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * @author holzera
  *
  */
-public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperator {
+public class DominatorDomain implements AbstractDomain {
 
 	private final ConfigurableProgramAnalysis cpa;
 

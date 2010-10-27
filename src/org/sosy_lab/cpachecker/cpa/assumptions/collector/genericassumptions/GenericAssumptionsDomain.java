@@ -26,33 +26,9 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class GenericAssumptionsDomain implements AbstractDomain {
-
-  private final JoinOperator joinOperator =
-    new JoinOperator() {
-      @Override
-      public AbstractElement join(AbstractElement el1, AbstractElement el2)
-        throws CPAException {
-        GenericAssumptionsElement iel1 = (GenericAssumptionsElement)el1;
-        GenericAssumptionsElement iel2 = (GenericAssumptionsElement)el2;
-        return iel1.makeAnd(iel2);
-      }
-    };
-
-  private final PartialOrder partialOrder =
-    new PartialOrder() {
-      @Override
-      public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
-        throws CPAException
-      {
-        if (GenericAssumptionsElement.TOP.equals(el2)) return true;
-        return el1.equals(el2);
-      }
-    };
 
   public GenericAssumptionsDomain(GenericAssumptionsCPA aCPA)
   {
@@ -63,14 +39,15 @@ public class GenericAssumptionsDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return joinOperator.join(pElement1, pElement2);
+  public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
+    GenericAssumptionsElement iel1 = (GenericAssumptionsElement)el1;
+    GenericAssumptionsElement iel2 = (GenericAssumptionsElement)el2;
+    return iel1.makeAnd(iel2);
   }
 
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
+  public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2) throws CPAException {
+    if (GenericAssumptionsElement.TOP.equals(el2)) return true;
+    return el1.equals(el2);
   }
 }

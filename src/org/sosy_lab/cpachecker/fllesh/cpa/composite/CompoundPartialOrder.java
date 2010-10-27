@@ -5,10 +5,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CompoundPartialOrder implements PartialOrder {
+public class CompoundPartialOrder {
 
   private List<AbstractDomain> mDomains;
   
@@ -16,7 +15,6 @@ public class CompoundPartialOrder implements PartialOrder {
     mDomains = new ArrayList<AbstractDomain>(pDomains);
   }
   
-  @Override
   public boolean satisfiesPartialOrder(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     CompoundElement lElement1 = (CompoundElement)pElement1;

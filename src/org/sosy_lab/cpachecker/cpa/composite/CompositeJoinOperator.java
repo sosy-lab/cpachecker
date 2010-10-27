@@ -30,10 +30,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CompositeJoinOperator implements JoinOperator
+public class CompositeJoinOperator
 {
     private final ImmutableList<AbstractDomain> domains;
 
@@ -42,7 +41,6 @@ public class CompositeJoinOperator implements JoinOperator
         this.domains = domains;
     }
 
-    @Override
     public AbstractElement join (AbstractElement element1, AbstractElement element2) throws CPAException
     {
         CompositeElement comp1 = (CompositeElement) element1;

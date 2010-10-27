@@ -28,17 +28,14 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseDomain implements AbstractDomain
 {
-    private static class DefUsePartialOrder implements PartialOrder
+    private static class DefUsePartialOrder
     {
-        @Override
         public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             DefUseElement defUseElement1 = (DefUseElement) element1;
@@ -48,9 +45,8 @@ public class DefUseDomain implements AbstractDomain
         }
     }
 
-    private static class DefUseJoinOperator implements JoinOperator
+    private static class DefUseJoinOperator
     {
-        @Override
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
         {
             // Useless code, but helps to catch bugs by causing cast exceptions
@@ -71,8 +67,8 @@ public class DefUseDomain implements AbstractDomain
         }
     }
 
-    private final static PartialOrder partialOrder = new DefUsePartialOrder ();
-    private final static JoinOperator joinOperator = new DefUseJoinOperator ();
+    private final static DefUsePartialOrder partialOrder = new DefUsePartialOrder ();
+    private final static DefUseJoinOperator joinOperator = new DefUseJoinOperator ();
     
     @Override
     public AbstractElement join(AbstractElement pElement1,

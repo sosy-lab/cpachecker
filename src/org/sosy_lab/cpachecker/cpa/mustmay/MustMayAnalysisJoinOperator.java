@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MustMayAnalysisJoinOperator implements JoinOperator {
+public class MustMayAnalysisJoinOperator {
 
   AbstractDomain mMustDomain;
   AbstractDomain mMayDomain;
@@ -42,7 +41,6 @@ public class MustMayAnalysisJoinOperator implements JoinOperator {
     mMayDomain = pMayDomain;
   }
 
-  @Override
   public MustMayAnalysisElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     assert(pElement1 != null);

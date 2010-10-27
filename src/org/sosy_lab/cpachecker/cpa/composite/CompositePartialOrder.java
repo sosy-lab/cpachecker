@@ -29,10 +29,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CompositePartialOrder implements PartialOrder
+public class CompositePartialOrder
 {
   private final ImmutableList<AbstractDomain> domains;
 
@@ -41,7 +40,6 @@ public class CompositePartialOrder implements PartialOrder
       this.domains = domains;
     }
 
-    @Override
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2) throws CPAException
     {
         CompositeElement comp1 = (CompositeElement) element1;
