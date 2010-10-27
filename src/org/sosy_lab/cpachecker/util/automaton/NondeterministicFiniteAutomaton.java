@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.util;
+package org.sosy_lab.cpachecker.util.automaton;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class Automaton<T> {
+public class NondeterministicFiniteAutomaton<T> {
   
   public static class State {
     
@@ -22,9 +22,9 @@ public class Automaton<T> {
     
     private static class StateIterable implements Iterable<State> {
 
-      private final Automaton<?> mAutomaton;
+      private final NondeterministicFiniteAutomaton<?> mAutomaton;
       
-      public StateIterable(Automaton<?> pAutomaton) {
+      public StateIterable(NondeterministicFiniteAutomaton<?> pAutomaton) {
         mAutomaton = pAutomaton;
       }
       
@@ -72,7 +72,7 @@ public class Automaton<T> {
       mPool = new ArrayList<State>();
     }
     
-    public State get(Automaton<?> pAutomaton) {
+    public State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
       State lState;
       
       if (pAutomaton.mStatesCounter == mPool.size()) {
@@ -159,7 +159,7 @@ public class Automaton<T> {
   private int mStatesCounter;
   private final StatePool.StateIterable mStateIterable;
   
-  public Automaton() {
+  public NondeterministicFiniteAutomaton() {
     mStateIterable = new StatePool.StateIterable(this);
     
     mFinalStates = new HashSet<State>();
@@ -235,8 +235,8 @@ public class Automaton<T> {
     return mIncomingEdges.get(pState.ID);
   }
   
-  public Automaton<T> getLambdaFreeAutomaton() {
-    Automaton<T> lLambdaFreeAutomaton = new Automaton<T>();
+  public NondeterministicFiniteAutomaton<T> getLambdaFreeAutomaton() {
+    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<T>();
     
     // mStatesCounter - 1 because the initial state of lLambdaFreeAutomaton
     // exists already

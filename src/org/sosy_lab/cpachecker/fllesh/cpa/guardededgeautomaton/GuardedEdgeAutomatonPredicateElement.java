@@ -4,14 +4,14 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class GuardedEdgeAutomatonPredicateElement extends GuardedEdgeAutomatonStateElement implements Iterable<ECPPredicate> {
 
   private final List<ECPPredicate> mPredicates;
   private final GuardedEdgeAutomatonStandardElement mStandardElement;
   
-  public GuardedEdgeAutomatonPredicateElement(Automaton.State pState, List<ECPPredicate> pPredicates, boolean pIsFinalState) {
+  public GuardedEdgeAutomatonPredicateElement(NondeterministicFiniteAutomaton.State pState, List<ECPPredicate> pPredicates, boolean pIsFinalState) {
     super(pState, pIsFinalState);
     mStandardElement = new GuardedEdgeAutomatonStandardElement(this);
     mPredicates = pPredicates;

@@ -5,15 +5,15 @@ import java.util.ArrayList;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public abstract class GuardedEdgeAutomatonStateElement implements
     GuardedEdgeAutomatonElement {
 
-  private final Automaton.State mAutomatonState;
+  private final NondeterministicFiniteAutomaton.State mAutomatonState;
   private final boolean mIsFinalState;
   
-  public GuardedEdgeAutomatonStateElement(Automaton.State pState, boolean pIsFinalState) {
+  public GuardedEdgeAutomatonStateElement(NondeterministicFiniteAutomaton.State pState, boolean pIsFinalState) {
     mAutomatonState = pState;
     mIsFinalState = pIsFinalState;
   }
@@ -22,12 +22,12 @@ public abstract class GuardedEdgeAutomatonStateElement implements
     return mIsFinalState;
   }
   
-  public final Automaton.State getAutomatonState() {
+  public final NondeterministicFiniteAutomaton.State getAutomatonState() {
     return mAutomatonState;
   }
   
-  public static GuardedEdgeAutomatonStateElement create(Automaton<GuardedEdgeLabel>.Edge pEdge, Automaton<GuardedEdgeLabel> pAutomaton) {
-    Automaton.State lAutomatonState = pEdge.getTarget();
+  public static GuardedEdgeAutomatonStateElement create(NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge pEdge, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton.State lAutomatonState = pEdge.getTarget();
     
     GuardedEdgeLabel lLabel = pEdge.getLabel();
     

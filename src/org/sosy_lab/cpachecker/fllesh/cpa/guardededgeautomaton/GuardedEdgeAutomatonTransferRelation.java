@@ -12,27 +12,27 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
 
-  private final Automaton<GuardedEdgeLabel> mAutomaton;
+  private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   
-  private final HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
+  private final HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
   
   private final HashSet<GuardedEdgeAutomatonStateElement> mSuccessors;
   
-  private final Collection<Automaton.State> mReachedAutomatonStates; 
+  private final Collection<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates; 
   
-  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
+  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
     mAutomaton = pAutomaton;
     
     // create cache
-    mCache = new HashMap<Automaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement>();
+    mCache = new HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement>();
     
-    HashMap<GuardedEdgeAutomatonStateElement, Automaton<GuardedEdgeLabel>.Edge> lTmpCache = new HashMap<GuardedEdgeAutomatonStateElement, Automaton<GuardedEdgeLabel>.Edge>(); 
+    HashMap<GuardedEdgeAutomatonStateElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lTmpCache = new HashMap<GuardedEdgeAutomatonStateElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>(); 
     
-    for (Automaton<GuardedEdgeLabel>.Edge lAutomatonEdge : pAutomaton.getEdges()) {
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lAutomatonEdge : pAutomaton.getEdges()) {
       GuardedEdgeAutomatonStateElement lElement = GuardedEdgeAutomatonStateElement.create(lAutomatonEdge, pAutomaton);
       
       if (lTmpCache.containsKey(lElement)) {
@@ -50,7 +50,7 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     mReachedAutomatonStates = pReachedAutomatonStates;
   }
   
-  protected Automaton<GuardedEdgeLabel> getAutomaton() {
+  protected NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
     return mAutomaton;
   }
   
@@ -71,7 +71,7 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     
     mSuccessors.clear();
     
-    for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
       if (lLabel.contains(pCfaEdge)) {
         mSuccessors.add(mCache.get(lOutgoingEdge));

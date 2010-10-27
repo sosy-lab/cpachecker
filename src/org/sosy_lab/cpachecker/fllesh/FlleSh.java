@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecification
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 
@@ -100,7 +100,7 @@ public class FlleSh {
   private final GuardedEdgeLabel mInverseAlphaLabel;
   private final Map<TestCase, CFAEdge[]> mGeneratedTestCases;
   
-  private final Map<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>> mInfeasibleGoals;
+  private final Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>> mInfeasibleGoals;
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
     try {
@@ -183,7 +183,7 @@ public class FlleSh {
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
     
-    mInfeasibleGoals = new HashMap<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>>();
+    mInfeasibleGoals = new HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>>();
   }
   
   public FlleShResult run(String pFQLSpecification) {
@@ -230,7 +230,7 @@ public class FlleSh {
     
     if (pFQLSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -257,7 +257,7 @@ public class FlleSh {
       throw new RuntimeException(e1);
     }
     ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
-    Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
     GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     
     while (lGoalIterator.hasNext()) {
@@ -268,7 +268,7 @@ public class FlleSh {
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
       
       boolean lIsCovered = false;
       
@@ -368,7 +368,7 @@ public class FlleSh {
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lPassingClause != null) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -426,7 +426,7 @@ public class FlleSh {
             break;
           }
           else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -496,7 +496,7 @@ public class FlleSh {
       }
       
       // TODO remove
-      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
+      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
       
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
       
@@ -618,7 +618,7 @@ public class FlleSh {
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lTask.hasPassingClause()) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -656,7 +656,7 @@ public class FlleSh {
       int lCurrentGoalNumber = ++lIndex;
       System.out.println("Goal #" + lCurrentGoalNumber);
       
-      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
+      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
       
       //System.out.println(lGoal.getAutomaton());
       
@@ -835,22 +835,22 @@ public class FlleSh {
     return lRefiner.getCounterexampleTraceInfo();
   }
   
-  private static ThreeValuedAnswer accepts(Automaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
-    Set<Automaton.State> lCurrentStates = new HashSet<Automaton.State>();
-    Set<Automaton.State> lNextStates = new HashSet<Automaton.State>();
+  private static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
     
     lCurrentStates.add(pAutomaton.getInitialState());
     
     boolean lHasPredicates = false;
     
     for (CFAEdge lCFAEdge : pCFAPath) {
-      for (Automaton.State lCurrentState : lCurrentStates) {
+      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
         // Automaton accepts as soon as it sees a final state (implicit self-loop)
         if (pAutomaton.getFinalStates().contains(lCurrentState)) {
           return ThreeValuedAnswer.ACCEPT;
         }
         
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
           GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
           
           if (lLabel.hasGuards()) {
@@ -866,12 +866,12 @@ public class FlleSh {
       
       lCurrentStates.clear();
       
-      Set<Automaton.State> lTmp = lCurrentStates;
+      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
       lCurrentStates = lNextStates;
       lNextStates = lTmp;
     }
     
-    for (Automaton.State lCurrentState : lCurrentStates) {
+    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
       // Automaton accepts as soon as it sees a final state (implicit self-loop)
       if (pAutomaton.getFinalStates().contains(lCurrentState)) {
         return ThreeValuedAnswer.ACCEPT;
@@ -1129,24 +1129,24 @@ public class FlleSh {
     return lPropertiesFile;
   }
   
-  private boolean isTransitivelyInfeasible(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
+  private boolean isTransitivelyInfeasible(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pOtherAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
     // When all reached states are contained in the similar states than pOtherAutomaton has to be infeasible, too.
     return getSimilarStates(pInfeasibleAutomaton, pOtherAutomaton).containsAll(pReachedAutomatonStates);
   }
   
-  private Collection<Automaton.State> getSimilarStates(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton) {
-    Pair<Automaton.State, Automaton.State> lInitialPair = new Pair<Automaton.State, Automaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
+  private Collection<NondeterministicFiniteAutomaton.State> getSimilarStates(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pOtherAutomaton) {
+    Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lInitialPair = new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
     
-    LinkedList<Pair<Automaton.State, Automaton.State>> lWorklist = new LinkedList<Pair<Automaton.State, Automaton.State>>();
+    LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lWorklist = new LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
     lWorklist.add(lInitialPair);
     
-    Multimap<Automaton.State, Automaton.State> lCore = HashMultimap.create();
-    Multimap<Automaton.State, Automaton.State> lFrontier = HashMultimap.create();
+    Multimap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lCore = HashMultimap.create();
+    Multimap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lFrontier = HashMultimap.create();
     
     //HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
     
     while (!lWorklist.isEmpty()) {
-      Pair<Automaton.State, Automaton.State> lCurrentPair = lWorklist.removeFirst();
+      Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lCurrentPair = lWorklist.removeFirst();
       
       if (lCore.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())
           || lFrontier.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())) {
@@ -1156,14 +1156,14 @@ public class FlleSh {
       boolean lSimilar = true;
       
       //lPotentialWork.clear();
-      HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
+      HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lPotentialWork = new HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
       
-      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
         boolean lOneDirectionSimilar = false;
         
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
+            lPotentialWork.add(new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -1173,12 +1173,12 @@ public class FlleSh {
         }
       }
       
-      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
         boolean lOneDirectionSimilar = false;
         
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
+            lPotentialWork.add(new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -1216,7 +1216,7 @@ public class FlleSh {
     return lSimilarStates;*/
   }
   
-  private void removeTransitiveInfeasibleGoals(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<Automaton.State> pReachedAutomatonStates) {
+  private void removeTransitiveInfeasibleGoals(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
     HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
     
     //System.out.println(pAutomaton.toString());

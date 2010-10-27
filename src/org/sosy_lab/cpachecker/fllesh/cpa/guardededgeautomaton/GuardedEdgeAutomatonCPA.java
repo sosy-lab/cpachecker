@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
 
@@ -24,12 +24,12 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   private final StopSepOperator mStopOperator;
   private final GuardedEdgeAutomatonTransferRelation mTransferRelation;
   
-  public GuardedEdgeAutomatonCPA(Automaton<GuardedEdgeLabel> pAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
+  public GuardedEdgeAutomatonCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain);
     mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton, pReachedAutomatonStates);
     
-    Automaton.State lInitialState = pAutomaton.getInitialState();
+    NondeterministicFiniteAutomaton.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);
     mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal);
   }

@@ -7,29 +7,29 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class AutomatonPrettyPrinter {
   
-  public static String print(Automaton<? extends GuardedLabel> pAutomaton) {
+  public static String print(NondeterministicFiniteAutomaton<? extends GuardedLabel> pAutomaton) {
     AutomatonPrettyPrinter lPrettyPrinter = new AutomatonPrettyPrinter();
     
     return lPrettyPrinter.printPretty(pAutomaton);
   }
   
-  private Map<Automaton.State, String> mStateIds;
+  private Map<NondeterministicFiniteAutomaton.State, String> mStateIds;
   private Map<ECPEdgeSet, String> mEdgeSetIds;
   private Map<ECPNodeSet, String> mNodeSetIds;
   private Visitor mVisitor;
   
   public AutomatonPrettyPrinter() {
-    mStateIds = new HashMap<Automaton.State, String>();
+    mStateIds = new HashMap<NondeterministicFiniteAutomaton.State, String>();
     mEdgeSetIds = new HashMap<ECPEdgeSet, String>();
     mNodeSetIds = new HashMap<ECPNodeSet, String>();
     mVisitor = new Visitor();
   }
   
-  private String getId(Automaton.State pState) {
+  private String getId(NondeterministicFiniteAutomaton.State pState) {
     if (!mStateIds.containsKey(pState)) {
       mStateIds.put(pState, "S" + mStateIds.size());
     }
@@ -53,21 +53,21 @@ public class AutomatonPrettyPrinter {
     return mNodeSetIds.get(pNodeSet);
   }
   
-  public String printPretty(Automaton<? extends GuardedLabel>.Edge pEdge) {
+  public String printPretty(NondeterministicFiniteAutomaton<? extends GuardedLabel>.Edge pEdge) {
     return printPretty(pEdge.getSource()) + " -[" + pEdge.getLabel().accept(mVisitor) + "]> " + printPretty(pEdge.getTarget());
   }
   
-  public String printPretty(Automaton.State pState) {
+  public String printPretty(NondeterministicFiniteAutomaton.State pState) {
     return getId(pState);
   }
   
-  public String printPretty(Automaton<? extends GuardedLabel> pAutomaton) {
+  public String printPretty(NondeterministicFiniteAutomaton<? extends GuardedLabel> pAutomaton) {
     StringBuffer lBuffer = new StringBuffer();
     
     boolean lIsFirst = true;
     
     lBuffer.append("States: {");
-    for (Automaton.State lState : pAutomaton.getStates()) {
+    for (NondeterministicFiniteAutomaton.State lState : pAutomaton.getStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -86,7 +86,7 @@ public class AutomatonPrettyPrinter {
     
     lIsFirst = true;
     
-    for (Automaton.State lFinalState : pAutomaton.getFinalStates()) {
+    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -101,7 +101,7 @@ public class AutomatonPrettyPrinter {
     
     StringBuffer lTmpBuffer = new StringBuffer();
     
-    for (Automaton<? extends GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
+    for (NondeterministicFiniteAutomaton<? extends GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
       //lTmpBuffer.append(getId(lEdge.getSource()) + " -[" + lEdge.getLabel().accept(mVisitor) + "]> " + getId(lEdge.getTarget()));
       lTmpBuffer.append(printPretty(lEdge));
       lTmpBuffer.append("\n");

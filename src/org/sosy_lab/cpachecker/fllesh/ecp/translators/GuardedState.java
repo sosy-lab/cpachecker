@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.ecp.translators;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -9,27 +9,27 @@ import java.util.Set;
 
 public class GuardedState {
 
-  private Automaton.State mState;
+  private NondeterministicFiniteAutomaton.State mState;
   private Set<ECPGuard> mGuards;
   
-  public GuardedState(Automaton.State pCurrentState) {
+  public GuardedState(NondeterministicFiniteAutomaton.State pCurrentState) {
     mState = pCurrentState;
     mGuards = Collections.emptySet();
   }
   
-  public GuardedState(Automaton.State pState, Set<ECPGuard> pGuards) {
+  public GuardedState(NondeterministicFiniteAutomaton.State pState, Set<ECPGuard> pGuards) {
     mState = pState;
     mGuards = pGuards;
   }
   
-  public GuardedState(Automaton.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
+  public GuardedState(NondeterministicFiniteAutomaton.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
     mState = pState;
     mGuards = new HashSet<ECPGuard>();
     mGuards.addAll(pPreceedingState.mGuards);
     mGuards.addAll(pGuards);
   }
   
-  public Automaton.State getState() {
+  public NondeterministicFiniteAutomaton.State getState() {
     return mState;
   }
   

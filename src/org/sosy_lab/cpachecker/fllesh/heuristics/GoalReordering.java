@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.fllesh.Goal;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 import com.google.common.base.Preconditions;
 
@@ -45,7 +45,7 @@ public class GoalReordering {
       //lGoalWeight = Integer.MAX_VALUE;
       lGoalWeight = 0;
       
-      for (Automaton<GuardedEdgeLabel>.Edge lEdge : lGoal.getAutomaton().getEdges()) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : lGoal.getAutomaton().getEdges()) {
         GuardedEdgeLabel lLabel = lEdge.getLabel();
         
         if (lLabel.getClass().equals(GuardedEdgeLabel.class)) {

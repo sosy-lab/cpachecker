@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.PathPatternTranslator;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
@@ -302,7 +302,7 @@ public class ToGuardedAutomatonTranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    Automaton<GuardedLabel> lInitialAutomaton = ToGuardedAutomatonTranslator.translate(lPassing);
+    NondeterministicFiniteAutomaton<GuardedLabel> lInitialAutomaton = ToGuardedAutomatonTranslator.translate(lPassing);
     
     System.out.println(lInitialAutomaton);
     
@@ -311,10 +311,10 @@ public class ToGuardedAutomatonTranslatorTest {
     GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
     GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
     
-    Automaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
+    NondeterministicFiniteAutomaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
     
-    Automaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
   
@@ -367,7 +367,7 @@ public class ToGuardedAutomatonTranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    Automaton<GuardedLabel> lInitialAutomaton = ToGuardedAutomatonTranslator.translate(lPassing);
+    NondeterministicFiniteAutomaton<GuardedLabel> lInitialAutomaton = ToGuardedAutomatonTranslator.translate(lPassing);
     
     System.out.println(lInitialAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lInitialAutomaton));
@@ -377,10 +377,10 @@ public class ToGuardedAutomatonTranslatorTest {
     GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
     GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
     
-    Automaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
+    NondeterministicFiniteAutomaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
     
-    Automaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
   
