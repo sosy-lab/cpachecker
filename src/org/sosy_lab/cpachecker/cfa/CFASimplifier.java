@@ -24,36 +24,25 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
- * Used to simplify CPA by removing blank edges and combining block statements
+ * Used to simplify CPA by removing declarations
  * @author erkan
  */
 public class CFASimplifier {
 
-  private final boolean combineBlockStatements;
   private final boolean removeDeclarations;
 
-	public CFASimplifier(boolean combineBlockStatements, boolean removeDeclarations) {
-	  this.combineBlockStatements = combineBlockStatements;
+	public CFASimplifier(boolean removeDeclarations) {
 	  this.removeDeclarations = removeDeclarations;
 	}
 
@@ -89,12 +78,6 @@ public class CFASimplifier {
 				}
 			}
 
-			// The actual simplification part
-	    if (combineBlockStatements) {
-	      makeMultiStatement(node);
-	      makeMultiDeclaration(node);
-	    }
-
 	    if (removeDeclarations) {
 	      removeDeclarations(node);
 	    }
@@ -123,114 +106,5 @@ public class CFASimplifier {
 
 		BlankEdge be = new BlankEdge("removed declaration", leavingEdge.getLineNumber(), node, successor);
 		be.addToCFA(null);
-	}
-
-	private void makeMultiStatement (CFANode cfa)
-	{
-		if ((cfa.getNumEnteringEdges () != 1) || (cfa.getNumLeavingEdges () != 1) || (cfa.hasJumpEdgeLeaving ()))
-			return;
-
-		CFAEdge leavingEdge = cfa.getLeavingEdge (0);
-		if (leavingEdge.getEdgeType () != CFAEdgeType.StatementEdge)
-			return;
-
-		StatementEdge leavingStatementEdge = (StatementEdge) leavingEdge;
-
-		CFAEdge enteringEdge = cfa.getEnteringEdge (0);
-		if (enteringEdge.getEdgeType () == CFAEdgeType.StatementEdge)
-		{
-			List<IASTExpression> expressions = new ArrayList<IASTExpression> ();
-			expressions.add (((StatementEdge)enteringEdge).getExpression ());
-			expressions.add (leavingStatementEdge.getExpression ());
-
-			CFANode priorNode = enteringEdge.getPredecessor ();
-			CFANode afterNode = leavingEdge.getSuccessor ();
-
-			priorNode.removeLeavingEdge (enteringEdge);
-			afterNode.removeEnteringEdge (leavingEdge);
-
-			MultiStatementEdge msEdge = new MultiStatementEdge("multi-statement edge", enteringEdge.getLineNumber(), priorNode, afterNode, expressions);
-			msEdge.addToCFA(null);
-		}
-		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiStatementEdge)
-		{
-			MultiStatementEdge msEdge = (MultiStatementEdge) enteringEdge;
-			List<IASTExpression> expressions = msEdge.getExpressions ();
-			expressions.add (leavingStatementEdge.getExpression ());
-
-	    CFANode priorNode = enteringEdge.getPredecessor ();
-	    CFANode afterNode = leavingEdge.getSuccessor ();
-
-	    priorNode.removeLeavingEdge (enteringEdge);
-	    afterNode.removeEnteringEdge (leavingEdge);
-
-	    MultiStatementEdge newMsEdge = new MultiStatementEdge("multi-statement edge", enteringEdge.getLineNumber(), priorNode, afterNode, expressions);
-	    newMsEdge.addToCFA(null);
-		}
-	}
-
-	private void makeMultiDeclaration (CFANode cfa)
-	{
-		if ((cfa.getNumEnteringEdges () != 1) || (cfa.getNumLeavingEdges () != 1) || (cfa.hasJumpEdgeLeaving ()))
-			return;
-
-		CFAEdge leavingEdge = cfa.getLeavingEdge (0);
-		if (leavingEdge.getEdgeType () != CFAEdgeType.DeclarationEdge)
-			return;
-
-		DeclarationEdge leavingDeclarationEdge = (DeclarationEdge) leavingEdge;
-
-		CFAEdge enteringEdge = cfa.getEnteringEdge (0);
-		if (enteringEdge.getEdgeType () == CFAEdgeType.DeclarationEdge)
-		{
-		  DeclarationEdge enteringDeclarationEdge = (DeclarationEdge)enteringEdge;
-		  if (enteringDeclarationEdge.isGlobal() != leavingDeclarationEdge.isGlobal()) {
-		    return;
-		  }
-		  
-			List<IASTSimpleDeclaration> declarations = new ArrayList<IASTSimpleDeclaration>();
-			List<String> rawStatements = new ArrayList<String> ();
-
-			declarations.add(enteringDeclarationEdge.getRawAST());
-			declarations.add(leavingDeclarationEdge.getRawAST());
-
-			rawStatements.add (enteringEdge.getRawStatement ());
-			rawStatements.add (leavingDeclarationEdge.getRawStatement ());
-
-			CFANode priorNode = enteringEdge.getPredecessor ();
-			CFANode afterNode = leavingEdge.getSuccessor ();
-
-			priorNode.removeLeavingEdge (enteringEdge);
-			afterNode.removeEnteringEdge (leavingEdge);
-
-			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge("multi-declaration edge",
-			    enteringEdge.getLineNumber(), priorNode, afterNode, declarations,
-			    rawStatements, enteringDeclarationEdge.isGlobal());
-			mdEdge.addToCFA(null);
-		}
-		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiDeclarationEdge)
-		{
-			MultiDeclarationEdge mdEdge = (MultiDeclarationEdge) enteringEdge;
-      if (mdEdge.isGlobal() != leavingDeclarationEdge.isGlobal()) {
-        return;
-      }
-
-			List<IASTSimpleDeclaration> declarations = mdEdge.getDeclarators();
-			declarations.add(leavingDeclarationEdge.getRawAST());
-
-			List<String> rawStatements = mdEdge.getRawStatements ();
-			rawStatements.add (leavingDeclarationEdge.getRawStatement ());
-
-	    CFANode priorNode = enteringEdge.getPredecessor ();
-	    CFANode afterNode = leavingEdge.getSuccessor ();
-
-      priorNode.removeLeavingEdge (enteringEdge);
-	    afterNode.removeEnteringEdge (leavingEdge);
-
-      MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge("multi-declaration edge",
-          enteringEdge.getLineNumber(), priorNode, afterNode, declarations,
-          rawStatements, mdEdge.isGlobal());
-      newMdEdge.addToCFA(null);
-		}
 	}
 }

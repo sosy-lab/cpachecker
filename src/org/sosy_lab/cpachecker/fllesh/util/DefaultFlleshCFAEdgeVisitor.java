@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -68,18 +66,6 @@ public class DefaultFlleshCFAEdgeVisitor<T> extends AbstractCFAEdgeVisitor<T> {
 
   @Override
   public T visit(GlobalDeclarationEdge pEdge) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public T visit(MultiDeclarationEdge pEdge) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public T visit(MultiStatementEdge pEdge) {
     // TODO Auto-generated method stub
     return null;
   }

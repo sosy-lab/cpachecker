@@ -52,8 +52,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -445,28 +443,6 @@ assert(lDeclarators.length == 1);
 lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
        */
       break;
-    }
-
-    case MultiStatementEdge: {
-      MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)pCFAEdge;
-
-      String ret = "";
-
-      for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
-        ret = ret + (lExpression.getRawSignature() + ";");
-      }
-
-      return ret;
-    }
-    case MultiDeclarationEdge: {
-      MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)pCFAEdge;
-
-      return (lMultiDeclarationEdge.getRawStatement());
-
-      /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
-      lMultiDeclarationEdge.getRawStatement()
-      for (IASTDeclarator[] lDeclarators : lDecls) {
-      }*/
     }
     case CallToReturnEdge: {
       //          this should not have been taken

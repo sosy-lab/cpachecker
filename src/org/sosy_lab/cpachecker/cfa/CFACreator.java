@@ -50,9 +50,6 @@ public class CFACreator {
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
   private String mainFunctionName = "main";
 
-  @Option(name="cfa.combineBlockStatements")
-  private boolean combineBlockStatements = false;
-
   @Option(name="cfa.removeDeclarations")
   private boolean removeDeclarations = false;
 
@@ -132,8 +129,8 @@ public class CFACreator {
     }
   
     // simplify CFA
-    if (combineBlockStatements || removeDeclarations) {
-      CFASimplifier simplifier = new CFASimplifier(combineBlockStatements, removeDeclarations);
+    if (removeDeclarations) {
+      CFASimplifier simplifier = new CFASimplifier(removeDeclarations);
       simplifier.simplify(mainFunction);
     }
 

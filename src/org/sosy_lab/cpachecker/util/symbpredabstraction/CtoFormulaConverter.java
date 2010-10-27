@@ -52,7 +52,6 @@ import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IBinding;
@@ -73,8 +72,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -307,31 +304,10 @@ public class CtoFormulaConverter {
       }
       break;
     }
-
-    case MultiStatementEdge: {
-      MultiStatementEdge ms = (MultiStatementEdge)edge;
-      edgeFormula = smgr.makeTrue();
-      for (IASTExpression e : ms.getExpressions()) {
-        edgeFormula = smgr.makeAnd(edgeFormula,
-          edgeFormula = makeStatement(e, function, ssa));
-      }
-      
-      break;
-    }
     
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
       edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), d.isGlobal(), edge, function, ssa);
-      break;
-    }
-
-    case MultiDeclarationEdge: {
-      MultiDeclarationEdge md = (MultiDeclarationEdge)edge;
-      edgeFormula = smgr.makeTrue();
-      for (IASTSimpleDeclaration d : md.getDeclarators()) {
-        edgeFormula = smgr.makeAnd(edgeFormula,
-            makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), md.isGlobal(), edge, function, ssa));
-      }
       break;
     }
     

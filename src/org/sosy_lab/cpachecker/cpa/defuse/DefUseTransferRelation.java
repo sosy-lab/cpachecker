@@ -31,13 +31,10 @@ import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -119,30 +116,11 @@ public class DefUseTransferRelation implements TransferRelation
       defUseElement = handleExpression (defUseElement, expression, cfaEdge);
       break;
     }
-    case MultiStatementEdge:
-    {
-      MultiStatementEdge multiStatementEdge = (MultiStatementEdge) cfaEdge;
-
-      for (IASTExpression expression : multiStatementEdge.getExpressions ())
-        defUseElement = handleExpression (defUseElement, expression, cfaEdge);
-
-      break;
-    }
     case DeclarationEdge:
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
       defUseElement = handleDeclaration (defUseElement, declarators, cfaEdge);
-      break;
-    }
-
-    case MultiDeclarationEdge:
-    {
-      MultiDeclarationEdge multiDeclarationEdge = (MultiDeclarationEdge) cfaEdge;
-
-      for (IASTSimpleDeclaration d : multiDeclarationEdge.getDeclarators ())
-        defUseElement = handleDeclaration (defUseElement, d.getDeclarators(), cfaEdge);
-
       break;
     }
     }

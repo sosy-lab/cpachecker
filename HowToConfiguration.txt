@@ -121,9 +121,6 @@ analysis.programs =
 # C dialect for parser (GNUC or C99)
 parser.dialect = GNUC
 
-# combine series of simple statements in the CFA (currently not suppported)
-cfa.combineBlockStatements = false
-
 # remove all declarations from CFA
 cfa.removeDeclarations = false
 
