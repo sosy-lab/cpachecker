@@ -50,9 +50,6 @@ public class CFACreator {
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
   private String mainFunctionName = "main";
 
-  @Option(name="cfa.removeDeclarations")
-  private boolean removeDeclarations = false;
-
   @Option(name="analysis.noExternalCalls")
   private boolean noExternalCalls = true;
 
@@ -126,12 +123,6 @@ public class CFACreator {
     if (useGlobalVars){
       // add global variables at the beginning of main
       CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
-    }
-  
-    // simplify CFA
-    if (removeDeclarations) {
-      CFASimplifier simplifier = new CFASimplifier(removeDeclarations);
-      simplifier.simplify(mainFunction);
     }
 
     // check the CFA of each function

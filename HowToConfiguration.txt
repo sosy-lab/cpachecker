@@ -121,9 +121,6 @@ analysis.programs =
 # C dialect for parser (GNUC or C99)
 parser.dialect = GNUC
 
-# remove all declarations from CFA
-cfa.removeDeclarations = false
-
 # don't create interprocedural call/return edges for external function calls
 analysis.noExternalCalls = true
 
