@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA.AutomatonCPAFactory;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
@@ -206,6 +207,12 @@ public class CPABuilder {
     String childrenOptionName = cpaAlias + ".cpas";
     String childCpaName = config.getProperty(childOptionName);
     String childrenCpaNames = config.getProperty(childrenOptionName);
+
+    if (childrenCpaNames == null && childCpaName == null && cpaAlias.equals("CompositeCPA")
+        && cpas != null && !cpas.isEmpty()) {
+      // if a specification was given, but no CPAs, insert a LocationCPA
+      childrenCpaNames = LocationCPA.class.getCanonicalName();
+    }
 
     if (childCpaName != null) {
       // only one child CPA
