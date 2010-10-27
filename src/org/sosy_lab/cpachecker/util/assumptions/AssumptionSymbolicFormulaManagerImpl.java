@@ -217,6 +217,6 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
         }
       }
     }
-    return new Pair<SymbolicFormula, SSAMapBuilder>(smgr.makeTrue(), mapBuilder);
+    return new Pair<SymbolicFormula, SSAMapBuilder>(f, mapBuilder);
   }
 }
