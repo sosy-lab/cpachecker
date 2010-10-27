@@ -138,7 +138,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     formulaManager = new SymbPredAbsFormulaManagerImpl<Integer, Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
     transfer = new SymbPredAbsTransferRelation(this);
     
-    topElement = new SymbPredAbsAbstractElement(true, formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstraction(null));    
+    topElement = new SymbPredAbsAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstraction(null));    
     SymbPredAbsPartialOrder order = new SymbPredAbsPartialOrder(this);
     JoinOperator join = new EqualityJoinOperator(order, topElement);
     domain = new DefaultAbstractDomain(join, order);

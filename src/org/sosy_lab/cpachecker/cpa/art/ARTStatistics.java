@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
@@ -159,8 +160,8 @@ public class ARTStatistics implements Statistics {
         } else if (currentElement.isTarget()) {
           color = "red";
         } else {
-          SymbPredAbsAbstractElement symbpredabselem = currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-          if (symbpredabselem != null && symbpredabselem.isAbstractionNode()) {
+          AbstractElement abselem = currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.AbstractionElement.class);
+          if (abselem != null) {
             color = "blue";
           } else {
             color = "white";

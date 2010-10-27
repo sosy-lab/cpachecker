@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 
@@ -75,7 +76,7 @@ public final class SymbPredAbsPartialOrder implements PartialOrder {
   ++stats.numCoverageChecks;
      */
 
-    if (e1.isAbstractionNode() && e2.isAbstractionNode()) {
+    if (e1 instanceof AbstractionElement && e2 instanceof AbstractionElement) {
       numBddCoverageCheck++;
       long startCheck = System.currentTimeMillis();
       
@@ -85,7 +86,7 @@ public final class SymbPredAbsPartialOrder implements PartialOrder {
       bddCoverageCheckTime += System.currentTimeMillis() - startCheck;
       return result;
 
-    } else if (e2.isAbstractionNode()) {
+    } else if (e2 instanceof AbstractionElement) {
       if (symbolicCoverageCheck) {
         numSymbolicCoverageCheck++;
         long startCheck = System.currentTimeMillis();
@@ -99,7 +100,7 @@ public final class SymbPredAbsPartialOrder implements PartialOrder {
         return false; 
       }
       
-    } else if (e1.isAbstractionNode()) {
+    } else if (e1 instanceof AbstractionElement) {
       return false;
       
     } else {

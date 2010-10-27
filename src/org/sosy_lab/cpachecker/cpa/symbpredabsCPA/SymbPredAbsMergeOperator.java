@@ -29,6 +29,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
@@ -64,7 +65,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     // this will be the merged element
     SymbPredAbsAbstractElement merged;
 
-    if (elem1.isAbstractionNode() || elem2.isAbstractionNode()) {
+    if (elem1 instanceof AbstractionElement || elem2 instanceof AbstractionElement) {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
@@ -82,7 +83,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
                 
-        merged = new SymbPredAbsAbstractElement(false, pathFormula, elem1.getAbstraction());
+        merged = new SymbPredAbsAbstractElement(pathFormula, elem1.getAbstraction());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

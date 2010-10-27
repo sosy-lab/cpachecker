@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
@@ -76,7 +77,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       SymbPredAbsAbstractElement symbElement =
         artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-      if (symbElement.isAbstractionNode() && symbElement != lastElement) {
+      if (symbElement instanceof AbstractionElement && symbElement != lastElement) {
         path.add(symbElement);
       }
       lastElement = symbElement;
@@ -114,7 +115,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       ARTElement ae = artPair.getFirst();
       SymbPredAbsAbstractElement e = ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-      assert e.isAbstractionNode();
+      assert e instanceof AbstractionElement;
 
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       if (newpreds.size() == 0) {

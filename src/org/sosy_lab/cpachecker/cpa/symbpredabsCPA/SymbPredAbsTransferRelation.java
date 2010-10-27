@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
@@ -183,7 +184,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
-        new SymbPredAbsAbstractElement(false, pathFormula, abstraction));
+        new SymbPredAbsAbstractElement(pathFormula, abstraction));
   }
 
   /**
@@ -220,8 +221,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // create new empty path formula
     PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 
-    return Collections.singleton(
-        new SymbPredAbsAbstractElement(true, newPathFormula, newAbstraction));
+    return Collections.<SymbPredAbsAbstractElement>singleton(
+        new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstraction));
   }
 
   /**
@@ -319,7 +320,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
         
         try {
-          pElement = new SymbPredAbsAbstractElement(false,
+          pElement = new SymbPredAbsAbstractElement(
               convertEdgeToPathFormula(pElement.getPathFormula(), lEdge),
               pElement.getAbstraction());
         } catch (CPATransferException e) {
@@ -335,7 +336,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
     
     try {
-      pElement = new SymbPredAbsAbstractElement(false,
+      pElement = new SymbPredAbsAbstractElement(
           convertEdgeToPathFormula(pElement.getPathFormula(), lEdge),
           pElement.getAbstraction());
     } catch (CPATransferException e) {
@@ -369,7 +370,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
     }
     
-    if (element.isAbstractionNode()) {
+    if (element instanceof AbstractionElement ) {
       // TODO satisfiability check?
       if (element != pElement) {
         return Collections.singleton(element);
@@ -412,8 +413,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
         PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 
-        return Collections.singleton(new SymbPredAbsAbstractElement(true,
-            newPathFormula, abs));
+        return Collections.singleton(
+            new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, abs));
       }
     } else {
       if (element != pElement) {
@@ -467,6 +468,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pElement.getPathFormula());
 
     return Collections.singleton(
-        new SymbPredAbsAbstractElement(true, newPathFormula, newAbstraction));
+        new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstraction));
   }
 }
