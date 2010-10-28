@@ -24,19 +24,21 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.File;
-import java.io.PrintWriter;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -68,7 +70,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(name="assumptions.export")
-  private boolean exportAssumptions = false;
+  private boolean exportAssumptions = true;
 
   @Option(name="assumptions.file", type=Option.Type.OUTPUT_FILE)
   private File assumptionsFile = new File("assumptions.txt");
@@ -117,10 +119,9 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
+    AssumptionExtractor extractor = new AssumptionExtractor(resultAssumption);
     for (AbstractElement element : reached) {
-      AssumptionWithLocation assumption = extractAssumption(element);
-
-      resultAssumption.addAssumption(assumption);
+      extractor.visit(element);
     }
 
     // dump invariants to prevent going further with nodes in
@@ -130,52 +131,38 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
 
-    Appendable output;
     if (exportAssumptions && assumptionsFile != null) {
-      //if no filename is given, use default value
-
       try {
-        output = new PrintWriter(assumptionsFile);
-      } catch (Exception e) {
+        Files.writeFile(assumptionsFile, resultAssumption);
+      } catch (IOException e) {
         logger.log(Level.WARNING,
             "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
             ", (", e.getMessage(), ")");
-        output = null;
       }
-    } else {
-      output = System.out;
-    }
-    if (output != null) {
-      resultAssumption.dump(output);
-      if (output != System.out)
-        ((PrintWriter)output).close();
     }
   }
 
+  
   /**
-   * Returns the invariant(s) stored in the given abstract
-   * element
+   * Extracts the invariant(s) stored in abstract elements.
    */
-  private AssumptionWithLocation extractAssumption(AbstractElement element)
-  {
-    AssumptionWithLocation result = AssumptionWithLocation.TRUE;
-
-    // If it is a wrapper, add its sub-element's assertions
-    if (element instanceof AbstractWrapperElement)
-    {
-      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-        result = result.and(extractAssumption(subel));
+  private static class AssumptionExtractor extends AbstractWrappedElementVisitor {
+    
+    final AssumptionWithMultipleLocations result;
+    
+    public AssumptionExtractor(AssumptionWithMultipleLocations pResult) {
+      this.result = pResult;
     }
 
-    if (element instanceof AssumptionCollectorElement)
-    {
-      AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement) element).getCollectedAssumptions();
-      if (dumpedInvariant != null)
-        result = result.and(dumpedInvariant);
+    @Override
+    public void process(AbstractElement pElement) {
+      if (pElement instanceof AssumptionCollectorElement) {
+        AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumptions();
+        result.addAssumption(dumpedInvariant);
+      }
     }
-
-    return result;
   }
+  
 
   /**
    * Add to the given map the invariant required to
