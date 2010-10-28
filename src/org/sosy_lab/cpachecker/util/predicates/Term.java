@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.fql2.ast.terms;
+package org.sosy_lab.cpachecker.util.predicates;
 
 public interface Term {
 

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Term;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
+import org.sosy_lab.cpachecker.util.predicates.Term;
 
 public class Predicate implements Atom {
 

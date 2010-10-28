@@ -49,9 +49,9 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionEntry;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Line;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Constant;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Variable;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
+import org.sosy_lab.cpachecker.util.predicates.Constant;
+import org.sosy_lab.cpachecker.util.predicates.Variable;
 
 public class TargetGraphTest {
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";

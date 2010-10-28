@@ -1,15 +1,15 @@
-package org.sosy_lab.cpachecker.fllesh.fql2.ast.terms;
+package org.sosy_lab.cpachecker.util.predicates;
 
-public class Variable implements Term {
+public class Constant implements Term {
 
-  private String mName;
+  private int mValue;
   
-  public Variable(String pName) {
-    mName = pName;
+  public Constant(int pValue) {
+    mValue = pValue;
   }
   
-  public String getName() {
-    return mName;
+  public int getValue() {
+    return mValue;
   }
   
   @Override
@@ -26,19 +26,19 @@ public class Variable implements Term {
       return false;
     }
     
-    Variable lVariable = (Variable)pOther;
+    Constant lConstant = (Constant)pOther;
     
-    return mName.equals(lVariable.mName);
+    return (mValue == lConstant.mValue);
   }
   
   @Override
   public int hashCode() {
-    return mName.hashCode();
+    return mValue;
   }
   
   @Override
   public String toString() {
-    return mName;
+    return "" + mValue;
   }
   
   @Override

@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Constant;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.TermVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Variable;
+import org.sosy_lab.cpachecker.util.predicates.Constant;
+import org.sosy_lab.cpachecker.util.predicates.TermVisitor;
+import org.sosy_lab.cpachecker.util.predicates.Variable;
 
 public class PredicateTranslator {
 
