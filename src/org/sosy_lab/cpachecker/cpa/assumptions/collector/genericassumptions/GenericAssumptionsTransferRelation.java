@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -36,9 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Transfer relation for the generic assumption generator.
@@ -50,66 +48,46 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
    * List of interfaces used to build the default
    * assumptions made by the model checker for
    * program operations.
+   * 
+   * Modify this to register new kind of assumptions.
    */
-  protected final List<GenericAssumptionBuilder> assumptionBuilders;
-
-  /**
-   * Register the default set of assumption builders.
-   * Modify this method to register new kind of assumptions.
-   */
-  private void registerDefaultAssumptionBuilders()
-  {
-    // arithmetic overflows
-    assumptionBuilders.add(new ArithmeticOverflowAssumptionBuilder());
-  }
+  private final List<GenericAssumptionBuilder> assumptionBuilders =
+    ImmutableList.<GenericAssumptionBuilder>of(
+        new ArithmeticOverflowAssumptionBuilder());
 
   private final AssumptionSymbolicFormulaManager manager;
-  private final SymbolicFormulaManager smgr;
 
   /**
    * Constructor
    */
-  public GenericAssumptionsTransferRelation(AssumptionSymbolicFormulaManager manager, SymbolicFormulaManager smgr)
+  public GenericAssumptionsTransferRelation(AssumptionSymbolicFormulaManager manager)
   {
     this.manager = manager;
-    this.smgr = smgr;
-    assumptionBuilders = new LinkedList<GenericAssumptionBuilder>();
-    registerDefaultAssumptionBuilders();
-  }
-
-  private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
-  throws CPATransferException
-  {
-    String function = (edge.getSuccessor() != null) 
-    ? edge.getSuccessor().getFunctionName() : null;
-
-    SymbolicFormula assumptionFormula = smgr.makeTrue();
-    for (GenericAssumptionBuilder b : assumptionBuilders)
-    {
-      Pair<SymbolicFormula, SSAMapBuilder> pair = 
-        manager.makeAnd(assumptionFormula, edge, b.assumptionsForEdge(edge), function);
-      assumptionFormula = pair.getFirst(); 
-    }
-    return new GenericAssumptionsElement((new Assumption(assumptionFormula, true)).atLocation(edge.getPredecessor()));
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge cfaEdge)
-      throws CPATransferException
-      {
-    return Collections.singleton(getAbstractSuccessor(pElement, cfaEdge, pPrecision));
-      }
+  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement el, Precision p, CFAEdge edge)
+  throws CPATransferException
+  {
+    String function = (edge.getSuccessor() != null) ? edge.getSuccessor().getFunctionName() : null;
+
+    SymbolicFormula assumptionFormula = manager.makeTrue();
+    for (GenericAssumptionBuilder b : assumptionBuilders)
+    {
+      assumptionFormula = 
+        manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
+    }
+    return Collections.singleton(new GenericAssumptionsElement((new Assumption(assumptionFormula, true)).atLocation(edge.getPredecessor())));
+  }
 
   @Override
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement el, List<AbstractElement> otherElements,
       CFAEdge edge, Precision p)
-      throws CPATransferException
-      {
+      throws CPATransferException {
     // TODO Improve strengthening for assumptions so that they
     //      may be discharged online
     return null;
-      }
+  }
 
 }

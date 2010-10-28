@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -47,12 +46,14 @@ import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -82,7 +83,11 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     this.logger = logger;
     innerAlgorithm = algo;
-    symbolicManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
+    AssumptionCollectorCPA cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionCollectorCPA.class);
+    if (cpa == null) {
+      throw new InvalidConfigurationException("AssumptionCollectorCPA needed for AssumptionCollectionAlgorithm");
+    }
+    symbolicManager = cpa.getSymbolicFormulaManager();
   }
 
   @Override

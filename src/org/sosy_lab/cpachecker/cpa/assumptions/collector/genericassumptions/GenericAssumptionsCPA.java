@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -49,35 +49,20 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
-  private static class GenericAssumptionsCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new GenericAssumptionsCPA(getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new GenericAssumptionsCPAFactory();
+    return AutomaticCPAFactory.forType(GenericAssumptionsCPA.class);
   }
 
-  private GenericAssumptionsDomain abstractDomain;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private TransferRelation transferRelation;
-  private PrecisionAdjustment precisionAdjustment;
+  private final AbstractElement topElement;
+  private final AbstractDomain abstractDomain;
+  private final TransferRelation transferRelation;
 
-  private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
-  {
-    abstractDomain = new GenericAssumptionsDomain(this);
+  private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    topElement = new GenericAssumptionsElement(AssumptionWithLocation.TRUE);
+    abstractDomain = new GenericAssumptionsDomain(topElement);
 
-    mergeOperator = MergeSepOperator.getInstance();
-    stopOperator = StopNeverOperator.getInstance();
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
-    SymbolicFormulaManager symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
-    AssumptionSymbolicFormulaManager manager = new AssumptionSymbolicFormulaManagerImpl();
-    transferRelation = new GenericAssumptionsTransferRelation(manager, symbolicFormulaManager);
+    AssumptionSymbolicFormulaManager manager = new AssumptionSymbolicFormulaManagerImpl(config, logger);
+    transferRelation = new GenericAssumptionsTransferRelation(manager);
   }
 
   @Override
@@ -87,7 +72,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return abstractDomain.getTopElement();
+    return topElement;
   }
 
   @Override
@@ -97,17 +82,17 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return MergeSepOperator.getInstance();
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return StopNeverOperator.getInstance();
   }
 
   @Override

@@ -24,10 +24,7 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 /**
@@ -42,10 +39,13 @@ public interface AssumptionSymbolicFormulaManager {
   /**
    * Creates a formula representing an AND of the two argument
    * @param f1 a SymbolicFormula
-   * @param pEdge 
    * @param p an invariant predicate
    * @return The formula (f1 & e)
    */
-  public Pair<SymbolicFormula, SSAMapBuilder> makeAnd(SymbolicFormula f1, CFAEdge pEdge, IASTNode p, String function) throws UnrecognizedCCodeException;
+  public SymbolicFormula makeAnd(SymbolicFormula f1, IASTNode p, String function) throws UnrecognizedCCodeException;
 
+  /**
+   * @return a SymbolicFormula representing logical truth
+   */
+  public SymbolicFormula makeTrue();
 }

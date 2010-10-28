@@ -24,30 +24,18 @@
 
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class GenericAssumptionsDomain implements AbstractDomain {
+public class GenericAssumptionsDomain extends FlatLatticeDomain {
 
-  public GenericAssumptionsDomain(GenericAssumptionsCPA aCPA)
-  {
-  }
-
-  public AbstractElement getTopElement() {
-    return GenericAssumptionsElement.TOP;
+  public GenericAssumptionsDomain(AbstractElement top) {
+    super(top);
   }
 
   @Override
   public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
-    GenericAssumptionsElement iel1 = (GenericAssumptionsElement)el1;
-    GenericAssumptionsElement iel2 = (GenericAssumptionsElement)el2;
-    return iel1.makeAnd(iel2);
-  }
-
-  @Override
-  public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2) throws CPAException {
-    if (GenericAssumptionsElement.TOP.equals(el2)) return true;
-    return el1.equals(el2);
+    throw new UnsupportedOperationException();
   }
 }

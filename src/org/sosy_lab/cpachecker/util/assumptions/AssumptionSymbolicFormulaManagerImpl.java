@@ -36,7 +36,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
@@ -100,20 +99,13 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     
   }
 
-  private static SymbolicFormulaManager smgr = null;
-  private static Configuration config = null;
-  private static LogManager logger = null;
+  private static volatile SymbolicFormulaManager smgr = null;
 
   // TODO Ugly, probably better to remove singleton pattern here.
   public static SymbolicFormulaManager createSymbolicFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (smgr == null) {
       smgr = new MathsatSymbolicFormulaManager(pConfig, pLogger);
-      config = pConfig;
-      logger = pLogger;
-    } else {
-      //      assert config == pConfig;
-      //      assert logger == pLogger;
     }
     return smgr;
   }
@@ -128,12 +120,12 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     return smgr;
   }
 
-  public AssumptionSymbolicFormulaManagerImpl() throws InvalidConfigurationException {
-    super(config, getSymbolicFormulaManager(), logger);
+  public AssumptionSymbolicFormulaManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    super(pConfig, createSymbolicFormulaManager(pConfig, pLogger), pLogger);
   }
 //  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
 
-  private Pair<SymbolicFormula, SSAMapBuilder> buildSymbolicFormula(CFAEdge pEdge, IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
+  private Pair<SymbolicFormula, SSAMapBuilder> buildSymbolicFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
   {
     // first, check whether we have &&, ||, or !
     if (p instanceof IASTBinaryExpression) {
@@ -148,34 +140,34 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
       case IASTBinaryExpression.op_logicalAnd:
         if (sign){
           SymbolicFormula symbFor = smgr.makeAnd(
-              buildSymbolicFormula(pEdge, binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(pEdge, binop.getOperand2(), true, function, pSSAMap).getFirst());
+              buildSymbolicFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
+              buildSymbolicFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
         return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
         }
         else{
           SymbolicFormula symbFor = smgr.makeOr(
-              buildSymbolicFormula(pEdge, binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(pEdge, binop.getOperand2(), false, function, pSSAMap).getFirst());
+              buildSymbolicFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
+              buildSymbolicFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
           return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
         }
       case IASTBinaryExpression.op_logicalOr:
         if (sign){
           SymbolicFormula symbFor = smgr.makeOr(
-              buildSymbolicFormula(pEdge, binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(pEdge, binop.getOperand2(), true, function, pSSAMap).getFirst());
+              buildSymbolicFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
+              buildSymbolicFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
           return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
         }
         else{
           SymbolicFormula symbFor = smgr.makeAnd(
-              buildSymbolicFormula(pEdge, binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(pEdge, binop.getOperand2(), false, function, pSSAMap).getFirst());
+              buildSymbolicFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
+              buildSymbolicFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
           return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
           }
       }
     } else if (p instanceof IASTUnaryExpression) {
       IASTUnaryExpression unop = (IASTUnaryExpression) p;
       if (unop.getOperator() == IASTUnaryExpression.op_not)
-        return buildSymbolicFormula(pEdge, unop.getOperand(), !sign, function, pSSAMap);
+        return buildSymbolicFormula(unop.getOperand(), !sign, function, pSSAMap);
     }
 
     //    super.setNamespace(pEdge.getSuccessor().getFunctionName());
@@ -185,13 +177,12 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
   }
 
   @Override
-  public Pair<SymbolicFormula, SSAMapBuilder> makeAnd(SymbolicFormula f, CFAEdge pEdge, IASTNode p, String function) throws UnrecognizedCCodeException {
+  public SymbolicFormula makeAnd(SymbolicFormula f, IASTNode p, String function) throws UnrecognizedCCodeException {
     SSAMapBuilder mapBuilder = new DummySSAMap();
     
     if(p instanceof IASTExpression){
       
-      SymbolicFormula symbFor = smgr.makeAnd(f, buildSymbolicFormula(pEdge, (IASTExpression)p, true, function, mapBuilder).getFirst());
-      return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, mapBuilder);
+      return smgr.makeAnd(f, buildSymbolicFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
@@ -217,6 +208,11 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
         }
       }
     }
-    return new Pair<SymbolicFormula, SSAMapBuilder>(f, mapBuilder);
+    return f;
+  }
+  
+  @Override
+  public SymbolicFormula makeTrue() {
+    return smgr.makeTrue();
   }
 }
