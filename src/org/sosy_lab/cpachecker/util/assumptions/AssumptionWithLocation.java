@@ -47,11 +47,6 @@ import com.google.common.collect.Iterables;
 public abstract class AssumptionWithLocation {
 
   private AssumptionWithLocation() {  }
-  
-  /**
-   * Conjunct this assumption with the given assumption
-   */
-  public abstract AssumptionWithLocation and(AssumptionWithLocation other);
 
   /**
    * Return the assumption as a formula for a given node
@@ -76,6 +71,28 @@ public abstract class AssumptionWithLocation {
     }
   }
   
+  /**
+   * Conjunct two assumptions
+   */
+  public static AssumptionWithLocation and(AssumptionWithLocation pOne, AssumptionWithLocation pTwo) {
+    if (pOne == emptyAssumptionWithLocation) {
+      return pTwo;
+    }
+    if (pTwo == emptyAssumptionWithLocation) {
+      return pOne;
+    }
+    if (pOne instanceof AssumptionWithSingleLocation && pTwo instanceof AssumptionWithSingleLocation) {
+      AssumptionWithSingleLocation one = (AssumptionWithSingleLocation)pOne;
+      AssumptionWithSingleLocation two = (AssumptionWithSingleLocation)pTwo;
+      if (one.location.equals(two.location)) {
+        return new AssumptionWithSingleLocation(one.location, one.assumption.and(two.assumption));
+      }
+    }
+
+    // in all other cases
+    return new Builder().add(pOne).add(pTwo).build();
+  }
+  
   public static AssumptionWithLocation.Builder builder() {
     return new Builder();
   }
@@ -86,11 +103,6 @@ public abstract class AssumptionWithLocation {
    * @author g.theoduloz
    */
   private static final AssumptionWithLocation emptyAssumptionWithLocation = new AssumptionWithLocation() {
-
-    @Override
-    public AssumptionWithLocation and(AssumptionWithLocation other) {
-      return other;
-    }
 
     @Override
     public Assumption getAssumption(CFANode node) {
@@ -122,23 +134,6 @@ public abstract class AssumptionWithLocation {
       Preconditions.checkArgument(!pAssumption.isTrue());
       location = pLocation;
       assumption = pAssumption;
-    }
-
-    @Override
-    public AssumptionWithLocation and(AssumptionWithLocation other) {
-      if (other == emptyAssumptionWithLocation) {
-        return this;
-      }
-
-      if (other instanceof AssumptionWithSingleLocation) {
-        AssumptionWithSingleLocation singleOther = (AssumptionWithSingleLocation)other;
-        if (location == singleOther.location) {
-          return new AssumptionWithSingleLocation(location, assumption.and(singleOther.assumption));
-        }
-      }
-
-      // in all other cases
-      return new Builder().add(this).add(other).build();
     }
 
     @Override
@@ -202,14 +197,6 @@ public abstract class AssumptionWithLocation {
       } else {
         return result;
       }
-    }
-
-    @Override
-    public AssumptionWithLocation and(AssumptionWithLocation other) {
-      if (other == emptyAssumptionWithLocation) {
-        return this;
-      }
-      return new Builder().add(this).add(other).build();
     }
 
     @Override
