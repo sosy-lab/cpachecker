@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
@@ -118,18 +117,6 @@ public class Assumption {
     else
       return dischargeableAssumption.isFalse()
       || otherAssumption.isFalse();
-  }
-  
-  /**
-   * Return an assumption with location for the given
-   * location
-   */
-  public AssumptionWithLocation atLocation(CFANode node)
-  {
-    if (isTrue())
-      return AssumptionWithLocation.TRUE;
-    else
-      return new AssumptionWithSingleLocation(node, this);
   }
   
   @Override

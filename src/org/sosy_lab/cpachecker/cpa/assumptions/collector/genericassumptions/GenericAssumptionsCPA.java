@@ -58,7 +58,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
 
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    topElement = new GenericAssumptionsElement(AssumptionWithLocation.TRUE);
+    topElement = new GenericAssumptionsElement(AssumptionWithLocation.emptyAssumption());
     abstractDomain = new GenericAssumptionsDomain(topElement);
 
     AssumptionSymbolicFormulaManager manager = new AssumptionSymbolicFormulaManagerImpl(config, logger);

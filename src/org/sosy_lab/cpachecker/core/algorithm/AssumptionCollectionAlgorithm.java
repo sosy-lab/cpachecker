@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.assumptions.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -100,7 +99,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   @Override
   public void run(ReachedSet reached) throws CPAException {
 
-    AssumptionWithMultipleLocations resultAssumption = new AssumptionWithMultipleLocations();
+    AssumptionWithLocation.Builder resultAssumption = AssumptionWithLocation.builder();
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -133,7 +132,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     if (exportAssumptions && assumptionsFile != null) {
       try {
-        Files.writeFile(assumptionsFile, resultAssumption);
+        Files.writeFile(assumptionsFile, resultAssumption.build());
       } catch (IOException e) {
         logger.log(Level.WARNING,
             "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
@@ -148,9 +147,9 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    */
   private static class AssumptionExtractor extends AbstractWrappedElementVisitor {
     
-    final AssumptionWithMultipleLocations result;
+    final AssumptionWithLocation.Builder result;
     
-    public AssumptionExtractor(AssumptionWithMultipleLocations pResult) {
+    public AssumptionExtractor(AssumptionWithLocation.Builder pResult) {
       this.result = pResult;
     }
 
@@ -158,7 +157,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     public void process(AbstractElement pElement) {
       if (pElement instanceof AssumptionCollectorElement) {
         AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumptions();
-        result.addAssumption(dumpedInvariant);
+        result.add(dumpedInvariant);
       }
     }
   }
@@ -169,7 +168,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * avoid the given refinement failure
    */
   private void addAssumptionsForFailedRefinement(
-      AssumptionWithMultipleLocations invariant,
+      AssumptionWithLocation.Builder invariant,
       RefinementFailedException failedRefinement) {
     Path path = failedRefinement.getErrorPath();
 
@@ -180,7 +179,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.addAssumption(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
+    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
   }
 
   /**
@@ -188,11 +187,11 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * avoid nodes in the given set of states
    */
   private void addAssumptionsForWaitlist(
-      AssumptionWithMultipleLocations invariant,
+      AssumptionWithLocation.Builder invariant,
       List<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.addAssumption(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
+      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
     }
   }
 

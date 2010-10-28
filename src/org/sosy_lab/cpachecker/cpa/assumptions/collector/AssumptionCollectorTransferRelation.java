@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.assumptions.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -87,16 +86,16 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor();
       reportingVisitor.visit(unwrappedSuccessor);
 
-      AssumptionWithMultipleLocations assumption = reportingVisitor.assumptionResult;
+      AssumptionWithLocation.Builder assumption = reportingVisitor.assumptionBuilder;
       boolean forceStop = reportingVisitor.forceStop;
       
       if (forceStop) {
         SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
         Assumption dataAssumption = new Assumption(manager.makeNot(reportedFormula), false);
-        assumption.addAssumption(pCfaEdge.getPredecessor(), dataAssumption);
+        assumption.add(pCfaEdge.getPredecessor(), dataAssumption);
       }
 
-      successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption, forceStop));
+      successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption.build(), forceStop));
     }
     return successors;
   }
@@ -136,7 +135,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   private static final class AssumptionAndForceStopReportingVisitor
             extends AbstractWrappedElementVisitor {
 
-    private final AssumptionWithMultipleLocations assumptionResult = new AssumptionWithMultipleLocations();
+    private final AssumptionWithLocation.Builder assumptionBuilder = AssumptionWithLocation.builder();
     private boolean forceStop = false;
 
     @Override
@@ -144,7 +143,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
         AssumptionWithLocation otherInv = ((AssumptionReportingElement)element).getAssumptionWithLocation();
-        assumptionResult.addAssumption(otherInv);
+        assumptionBuilder.add(otherInv);
       }
 
       // process stop flag
