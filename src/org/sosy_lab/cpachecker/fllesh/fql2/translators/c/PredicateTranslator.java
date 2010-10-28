@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.util.predicates.Predicate;
 import org.sosy_lab.cpachecker.util.predicates.Constant;
 import org.sosy_lab.cpachecker.util.predicates.TermVisitor;
 import org.sosy_lab.cpachecker.util.predicates.Variable;
@@ -23,8 +23,8 @@ public class PredicateTranslator {
     Set<String> lVariables = new HashSet<String>();
     
     Visitor lVisitor = new Visitor();
-    lVariables.addAll(pPredicate.getPredicate().getLeftTerm().accept(lVisitor));
-    lVariables.addAll(pPredicate.getPredicate().getRightTerm().accept(lVisitor));
+    lVariables.addAll(pPredicate.getLeftTerm().accept(lVisitor));
+    lVariables.addAll(pPredicate.getRightTerm().accept(lVisitor));
     
     StringBuffer lResult = new StringBuffer();
     
@@ -44,12 +44,8 @@ public class PredicateTranslator {
       lResult.append(lVariable);
     }
     
-    String lPredicateString = pPredicate.toString();
-    
-    String lPredicate = lPredicateString.substring(2, lPredicateString.length() - 2);
-    
     lResult.append(") { (");
-    lResult.append(lPredicate);
+    lResult.append(pPredicate.toString());
     lResult.append("); }");
     
     mCache.put(pPredicate, lResult.toString());

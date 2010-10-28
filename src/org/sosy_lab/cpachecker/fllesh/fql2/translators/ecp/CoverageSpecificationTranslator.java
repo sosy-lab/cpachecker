@@ -213,7 +213,7 @@ public class CoverageSpecificationTranslator {
       Collection<ElementaryCoveragePattern> lResultSet = mResultCache.get(pPredicate);
       
       if (lResultSet == null) {
-        ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate);
+        ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate.getPredicate());
         lResultSet = Collections.singleton(lPattern);
         mResultCache.put(pPredicate, lResultSet);
         mCacheMisses++;

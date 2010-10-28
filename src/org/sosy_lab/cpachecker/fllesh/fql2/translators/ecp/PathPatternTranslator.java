@@ -134,10 +134,10 @@ public class PathPatternTranslator {
       throw new IllegalArgumentException();
     }
     
-    ElementaryCoveragePattern lPredicatePattern = new ECPPredicate(pPredicates.get(0));
+    ElementaryCoveragePattern lPredicatePattern = new ECPPredicate(pPredicates.get(0).getPredicate());
     
     for (int lIndex = 1; lIndex < pPredicates.size(); lIndex++) {
-      lPredicatePattern = new ECPConcatenation(new ECPPredicate(pPredicates.get(lIndex)), lPredicatePattern);
+      lPredicatePattern = new ECPConcatenation(new ECPPredicate(pPredicates.get(lIndex).getPredicate()), lPredicatePattern);
     }
     
     return lPredicatePattern;
@@ -322,7 +322,7 @@ public class PathPatternTranslator {
       ElementaryCoveragePattern lPattern = mResultCache.get(pPredicate);
       
       if (lPattern == null) {
-        lPattern = new ECPPredicate(pPredicate);
+        lPattern = new ECPPredicate(pPredicate.getPredicate());
         
         mResultCache.put(pPredicate, lPattern);
         mCacheMisses++;

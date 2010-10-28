@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.ecp;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.util.predicates.Predicate;
 
 public class ECPPredicate implements ECPGuard {
 
