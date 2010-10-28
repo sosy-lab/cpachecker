@@ -34,11 +34,10 @@ import org.sosy_lab.cpachecker.util.assumptions.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-
-import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -54,14 +53,12 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private final ConfigurableProgramAnalysis wrappedCPA;
   private final TransferRelation wrappedTransfer;
-  private final AssumptionAndForceStopReportingVisitor reportingVisitor;
   private final SymbolicFormulaManager manager;
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)
   {
     wrappedCPA = cpa.getWrappedCpa();
     wrappedTransfer = wrappedCPA.getTransferRelation();
-    reportingVisitor = new AssumptionAndForceStopReportingVisitor();
     manager = cpa.getSymbolicFormulaManager();
   }
 
@@ -87,19 +84,19 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     // Handle all inner-successors, one after the other, and produce
     // a corresponding wrapped successor
     for (AbstractElement unwrappedSuccessor : unwrappedSuccessors) {
-      Pair<AssumptionWithLocation,Boolean> pair = reportingVisitor.collect(unwrappedSuccessor);
-      AssumptionWithLocation assumption = pair.getFirst();
+      AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor();
+      reportingVisitor.visit(unwrappedSuccessor);
 
-      boolean forceStop = pair.getSecond();
+      AssumptionWithMultipleLocations assumption = reportingVisitor.assumptionResult;
+      boolean forceStop = reportingVisitor.forceStop;
+      
       if (forceStop) {
         SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
-        AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula), false)).atLocation(pCfaEdge.getPredecessor());
-        assumption = assumption.and(dataAssumption);
+        Assumption dataAssumption = new Assumption(manager.makeNot(reportedFormula), false);
+        assumption.addAssumption(pCfaEdge.getPredecessor(), dataAssumption);
       }
 
-      boolean isBottom = forceStop;
-
-      successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption, isBottom));
+      successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption, forceStop));
     }
     return successors;
   }
@@ -137,43 +134,26 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   }
 
   private static final class AssumptionAndForceStopReportingVisitor
-    extends AbstractWrappedElementVisitor
-  {
-    private AssumptionWithLocation assumptionResult;
-    private boolean forceStop;
+            extends AbstractWrappedElementVisitor {
+
+    private final AssumptionWithMultipleLocations assumptionResult = new AssumptionWithMultipleLocations();
+    private boolean forceStop = false;
 
     @Override
     public void process(AbstractElement element) {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
         AssumptionWithLocation otherInv = ((AssumptionReportingElement)element).getAssumptionWithLocation();
-        if (otherInv != null) {
-          if (assumptionResult == null)
-            assumptionResult = otherInv;
-          else
-            assumptionResult = assumptionResult.and(otherInv);
-        }
+        assumptionResult.addAssumption(otherInv);
       }
 
       // process stop flag
       if (element instanceof AvoidanceReportingElement) {
         boolean otherStop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
-        if (otherStop)
+        if (otherStop) {
           forceStop = true;
+        }
       }
-    }
-
-    public synchronized Pair<AssumptionWithLocation, Boolean> collect(AbstractElement element)
-    {
-      assumptionResult = null;
-      forceStop = false;
-
-      visit(element);
-
-      Pair<AssumptionWithLocation, Boolean> result = new Pair<AssumptionWithLocation, Boolean>(assumptionResult, forceStop);
-      assumptionResult = null;
-      forceStop = false;
-      return result;
     }
   }
 
