@@ -48,18 +48,8 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
   }
 
   @Override
-  public EdgeCountHeuristicsData getBottom() {
-    return EdgeCountHeuristicsData.BOTTOM;
-  }
-
-  @Override
   public EdgeCountHeuristicsData getInitialData(CFANode node) {
     return new EdgeCountHeuristicsData(node);
-  }
-
-  @Override
-  public EdgeCountHeuristicsData getTop() {
-    return EdgeCountHeuristicsData.TOP;
   }
 
   @Override

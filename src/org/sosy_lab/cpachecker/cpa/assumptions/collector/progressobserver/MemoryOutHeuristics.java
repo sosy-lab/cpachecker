@@ -105,20 +105,7 @@ public class MemoryOutHeuristics
   }
 
   @Override
-  public TrivialStopHeuristicsData getBottom() {
-    return TrivialStopHeuristicsData.BOTTOM;
-  }
-
-
-  @Override
   public TrivialStopHeuristicsData getInitialData(CFANode pNode) {
     return TrivialStopHeuristicsData.TOP;
   }
-
-
-  @Override
-  public TrivialStopHeuristicsData getTop() {
-    return TrivialStopHeuristicsData.TOP;
-  }
-
 }

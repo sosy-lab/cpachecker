@@ -41,26 +41,6 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
 
   private final List<StopHeuristicsData> data;
 
-  /** Bottom */
-  public static final ProgressObserverElement getBottom(ProgressObserverCPA cpa)
-  {
-    ArrayList<StopHeuristicsData> data = new ArrayList<StopHeuristicsData>(cpa.getEnabledHeuristics().size());
-    for (StopHeuristics<? extends StopHeuristicsData> h : cpa.getEnabledHeuristics()) {
-      data.add(h.getBottom());
-    }
-    return new ProgressObserverElement(data);
-  }
-
-  /** Top */
-  public static final ProgressObserverElement getTop(ProgressObserverCPA cpa)
-  {
-    ArrayList<StopHeuristicsData> data = new ArrayList<StopHeuristicsData>(cpa.getEnabledHeuristics().size());
-    for (StopHeuristics<? extends StopHeuristicsData> h : cpa.getEnabledHeuristics()) {
-      data.add(h.getTop());
-    }
-    return new ProgressObserverElement(data);
-  }
-
   /** Initial */
   public static final ProgressObserverElement getInitial(ProgressObserverCPA cpa, CFANode node)
   {
