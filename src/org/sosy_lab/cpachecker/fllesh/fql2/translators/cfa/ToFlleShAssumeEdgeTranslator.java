@@ -16,9 +16,9 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.fql2.translators.c.PredicateTranslator;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.util.predicates.translators.c.PredicateTranslator;
 
 public class ToFlleShAssumeEdgeTranslator {
 
