@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Abstract element for the Collector CPA. Encapsulate a
  * symbolic formula
@@ -38,28 +40,21 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
   private final AssumptionWithLocation assumption;
   private final boolean stop;
 
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop)
-  {
+  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop) {
     super(wrappedElement);
-    assumption = f;
+    assumption = Preconditions.checkNotNull(f);
     stop = forceStop;
   }
 
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f)
-  {
+  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f) {
     this(wrappedElement, f, false);
   }
 
   /**
-   * Return the invariant in this state. May return
-   * a null value in case no invariant is stored.
+   * Return the invariant in this state.
    */
-  public AssumptionWithLocation getCollectedAssumptions()
-  {
-    if (assumption != null)
-      return assumption;
-    else
-      return AssumptionWithLocation.TRUE;
+  public AssumptionWithLocation getCollectedAssumptions() {
+    return assumption;
   }
 
   @Override
@@ -70,13 +65,11 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    if (stop)
+    if (stop) {
       builder.append("<STOP> ");
+    }
     builder.append("assume: ");
-    if (assumption == null)
-      builder.append("(null)");
-    else
-      builder.append(assumption.toString());
+    builder.append(assumption.toString());
     builder.append('\n');
     builder.append(getWrappedElement().toString());
     return builder.toString();
@@ -88,16 +81,16 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof AssumptionCollectorElement)
-    {
+    if (other instanceof AssumptionCollectorElement) {
       AssumptionCollectorElement otherElement = (AssumptionCollectorElement) other;
-      if (otherElement.stop != stop) return false;
-      if (assumption == null) return (otherElement.assumption == null);
-      else return assumption.equals(otherElement.assumption);
+      return (otherElement.stop == stop) && assumption.equals(otherElement.assumption);
     } else {
       return false;
     }
   }
 
-  // FIXME hashCode() implementation missing!
+  @Override
+  public int hashCode() {
+    return assumption.hashCode();
+  }
 }
