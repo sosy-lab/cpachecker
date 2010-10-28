@@ -350,7 +350,7 @@ cpas.symbpredabs.errorPath.file = ErrorPathAssignment.txt
 cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
 
 # dump all interpolation problems
-cpas.symbpredabs.dumpInterpolationProblems = false
+cpas.symbpredabs.refinement.dumpInterpolationProblems = false
 
 # where to dump interpolation and abstraction problems (format string)
 cpas.symbpredabs.formulaDumpFilePattern = %s%04d-%s%03d.msat
