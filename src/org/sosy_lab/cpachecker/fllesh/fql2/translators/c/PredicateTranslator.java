@@ -23,8 +23,8 @@ public class PredicateTranslator {
     Set<String> lVariables = new HashSet<String>();
     
     Visitor lVisitor = new Visitor();
-    lVariables.addAll(pPredicate.getLeftTerm().accept(lVisitor));
-    lVariables.addAll(pPredicate.getRightTerm().accept(lVisitor));
+    lVariables.addAll(pPredicate.getPredicate().getLeftTerm().accept(lVisitor));
+    lVariables.addAll(pPredicate.getPredicate().getRightTerm().accept(lVisitor));
     
     StringBuffer lResult = new StringBuffer();
     

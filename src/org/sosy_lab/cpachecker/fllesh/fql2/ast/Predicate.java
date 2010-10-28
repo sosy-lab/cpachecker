@@ -25,101 +25,24 @@ package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
-import org.sosy_lab.cpachecker.util.predicates.Term;
 
 public class Predicate implements Atom {
 
-  public static enum Comparison {
-    GREATER_OR_EQUAL,
-    GREATER,
-    EQUAL,
-    LESS_OR_EQUAL,
-    LESS,
-    NOT_EQUAL
-  }
+  private org.sosy_lab.cpachecker.util.predicates.Predicate mPredicate;
 
-  private Comparison mComparison;
-  private Term mLeftTerm;
-  private Term mRightTerm;
-  private String mString;
+  public Predicate(org.sosy_lab.cpachecker.util.predicates.Predicate pPredicate) {
+    assert(pPredicate != null);
 
-  public Predicate(Term pLeftTerm, Comparison pComparison, Term pRightTerm) {
-    assert(pLeftTerm != null);
-    assert(pComparison != null);
-    assert(pRightTerm != null);
-
-    mLeftTerm = pLeftTerm;
-    mComparison = pComparison;
-    mRightTerm = pRightTerm;
-
-    String lComparisonString = null;
-
-    switch (mComparison) {
-    case GREATER_OR_EQUAL:
-      lComparisonString = ">=";
-      break;
-    case GREATER:
-      lComparisonString = ">";
-      break;
-    case EQUAL:
-      lComparisonString = "==";
-      break;
-    case LESS_OR_EQUAL:
-      lComparisonString = "<=";
-      break;
-    case LESS:
-      lComparisonString = "<";
-      break;
-    case NOT_EQUAL:
-      lComparisonString = "!=";
-      break;
-    }
-
-    mString = "{ " + mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString() + " }";
-  }
-
-  public Predicate negate() {
-    Comparison lComparison = null;
-    
-    switch (mComparison) {
-    case GREATER_OR_EQUAL:
-      lComparison = Comparison.LESS;
-      break;
-    case GREATER:
-      lComparison = Comparison.LESS_OR_EQUAL;
-      break;
-    case EQUAL:
-      lComparison = Comparison.NOT_EQUAL;
-      break;
-    case LESS_OR_EQUAL:
-      lComparison = Comparison.GREATER;
-      break;
-    case LESS:
-      lComparison = Comparison.GREATER_OR_EQUAL;
-      break;
-    case NOT_EQUAL:
-      lComparison = Comparison.EQUAL;
-      break;
-    }
-    
-    return new Predicate(mLeftTerm, lComparison, mRightTerm);
+    mPredicate = pPredicate;
   }
   
-  public Comparison getComparison() {
-    return mComparison;
-  }
-
-  public Term getLeftTerm() {
-    return mLeftTerm;
-  }
-
-  public Term getRightTerm() {
-    return mRightTerm;
+  public org.sosy_lab.cpachecker.util.predicates.Predicate getPredicate() {
+    return mPredicate;
   }
 
   @Override
   public String toString() {
-    return mString;
+    return "{ " + mPredicate.toString() + " }";
   }
 
   @Override
@@ -135,7 +58,7 @@ public class Predicate implements Atom {
     if (pOther.getClass() == getClass()) {
       Predicate lOther = (Predicate)pOther;
 
-      return (mLeftTerm.equals(lOther.mLeftTerm) && mRightTerm.equals(lOther.mRightTerm) && mComparison.equals(lOther.mComparison));
+      return mPredicate.equals(lOther.mPredicate);
     }
 
     return false;
@@ -143,7 +66,7 @@ public class Predicate implements Atom {
 
   @Override
   public int hashCode() {
-    return 3045820 + mLeftTerm.hashCode() + mComparison.hashCode() + mRightTerm.hashCode();
+    return 23423 + mPredicate.hashCode();
   }
 
   @Override

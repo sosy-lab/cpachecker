@@ -224,7 +224,7 @@ public class TargetGraphTest {
 
     Variable lX = new Variable("x");
     Constant l100 = new Constant(100);
-    Predicate lPredicate = new Predicate(lX, Predicate.Comparison.LESS, l100);
+    Predicate lPredicate = new Predicate(new org.sosy_lab.cpachecker.util.predicates.Predicate(lX, org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.LESS, l100));
     
     TargetGraph lPredicatedGraph = TargetGraphUtil.predicate(lFuncTargetGraph, lPredicate);
 

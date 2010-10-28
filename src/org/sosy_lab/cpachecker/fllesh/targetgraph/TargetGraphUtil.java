@@ -287,7 +287,7 @@ public class TargetGraphUtil {
       throw new IllegalArgumentException();
     }
     
-    Predicate lNegatedPredicate = pPredicate.negate();
+    Predicate lNegatedPredicate = new Predicate(pPredicate.getPredicate().negate());
     Builder lBuilder = new Builder();
     
     // 1) duplicate vertices
