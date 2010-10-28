@@ -91,7 +91,7 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     AbstractElement wrappedInitialElement = getWrappedCpa().getInitialElement(node);
-    return new AssumptionCollectorElement(this, wrappedInitialElement, AssumptionWithLocation.TRUE, false);
+    return new AssumptionCollectorElement(wrappedInitialElement, AssumptionWithLocation.TRUE, false);
   }
 
   @Override

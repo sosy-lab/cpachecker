@@ -99,7 +99,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
       boolean isBottom = forceStop;
 
-      successors.add(new AssumptionCollectorElement(element.getCpa(), unwrappedSuccessor, assumption, isBottom));
+      successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption, isBottom));
     }
     return successors;
   }
@@ -128,7 +128,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
        AssumptionWithLocation assumption = collectorElement.getCollectedAssumptions();
        boolean stop = collectorElement.isStop();
        for (AbstractElement wrappedReturnElement : wrappedList)
-         retList.add(new AssumptionCollectorElement(collectorElement.getCpa(), wrappedReturnElement, assumption, stop));
+         retList.add(new AssumptionCollectorElement(wrappedReturnElement, assumption, stop));
        return retList;
     } catch (CPATransferException e) {
       e.printStackTrace();
