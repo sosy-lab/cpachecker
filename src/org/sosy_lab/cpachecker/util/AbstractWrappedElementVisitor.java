@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 
-package org.sosy_lab.cpachecker.util.assumptions;
+package org.sosy_lab.cpachecker.util;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
@@ -37,7 +37,7 @@ public abstract class AbstractWrappedElementVisitor {
   /**
    * Operation to apply on an element when it is visited
    */
-  public abstract void process(AbstractElement element);
+  protected abstract void process(AbstractElement element);
 
   /**
    * Visit a given abstract element and all its sub-elements
