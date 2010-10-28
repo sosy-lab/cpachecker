@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -435,11 +434,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       AssumptionCollectorElement pElement2, Precision pPrecision, CFANode pLoc) {
     AssumptionWithLocation asmptwl = pElement2.getCollectedAssumptions();
     
-    Assumption asmpt = new Assumption();
-    for(Entry<CFANode, Assumption> e: asmptwl.getAssumptionsIterator()){
-      Assumption otherAssumption = e.getValue();
-      asmpt = asmpt.and(otherAssumption);
-    }
+    Assumption asmpt = asmptwl.getCombinedAssumption();
 
     if(asmpt.isTrue()){
 

@@ -28,9 +28,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.assumptions.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import java.util.Collections;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -54,10 +54,9 @@ public abstract class AssumptionWithLocation {
   public abstract Assumption getAssumption(CFANode node);
 
   /**
-   * Returns an iterator over assumptions per location
+   * Return the conjunction of all assumptions for all nodes.
    */
-  public abstract Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator();
-
+  public abstract Assumption getCombinedAssumption();
 
   public static AssumptionWithLocation emptyAssumption() {
     return emptyAssumptionWithLocation;
@@ -110,8 +109,8 @@ public abstract class AssumptionWithLocation {
     }
 
     @Override
-    public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
-      return Collections.emptySet();
+    public Assumption getCombinedAssumption() {
+      return Assumption.TRUE;
     }
     
     @Override
@@ -144,10 +143,10 @@ public abstract class AssumptionWithLocation {
         return Assumption.TRUE;
       }
     }
-
+    
     @Override
-    public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
-      return Collections.singletonMap(location, assumption).entrySet();
+    public Assumption getCombinedAssumption() {
+      return assumption;
     }
 
     @Override
@@ -168,7 +167,7 @@ public abstract class AssumptionWithLocation {
     
     @Override
     public String toString() {
-      return assumptionFormatter.apply(Iterables.getOnlyElement(getAssumptionsIterator()));
+      return assumptionFormatter.apply(new AbstractMap.SimpleEntry<CFANode, Assumption>(location, assumption));
     }
   }
 
@@ -198,10 +197,14 @@ public abstract class AssumptionWithLocation {
         return result;
       }
     }
-
+    
     @Override
-    public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
-      return Collections.unmodifiableSet(map.entrySet());
+    public Assumption getCombinedAssumption() {
+      Assumption assumption = new Assumption();
+      for (Assumption a : map.values()) {
+        assumption = assumption.and(a);
+      }
+      return assumption;
     }
     
     @Override
@@ -253,10 +256,13 @@ public abstract class AssumptionWithLocation {
         AssumptionWithSingleLocation singleLocAssumption = (AssumptionWithSingleLocation)assumption;
         add(singleLocAssumption.location, singleLocAssumption.assumption);
       
-      } else if (!(assumption == emptyAssumptionWithLocation)) {
-        for (Entry<CFANode, Assumption> otherEntry : assumption.getAssumptionsIterator()) {
+      } else if (assumption instanceof AssumptionWithMultipleLocations) {
+        AssumptionWithMultipleLocations multipleLocAssumption = (AssumptionWithMultipleLocations)assumption;
+        for (Entry<CFANode, Assumption> otherEntry : multipleLocAssumption.map.entrySet()) {
           add(otherEntry.getKey(), otherEntry.getValue());
         }
+      } else {
+        assert assumption == emptyAssumptionWithLocation;
       }
       return this;
     }

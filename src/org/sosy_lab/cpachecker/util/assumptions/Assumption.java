@@ -45,7 +45,7 @@ public class Assumption {
   private final SymbolicFormula dischargeableAssumption;
   private final SymbolicFormula otherAssumption;
 
-  public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
+  private Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
   {
     dischargeableAssumption = dischargeable;
     otherAssumption = rest;
@@ -84,7 +84,7 @@ public class Assumption {
    * Conjunct this invariant with an other invariant and
    * return the result
    */
-  public Assumption and(Assumption other)
+  Assumption and(Assumption other)
   {
     // shortcut
     if (this == TRUE)
