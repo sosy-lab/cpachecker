@@ -226,6 +226,9 @@ public abstract class AssumptionWithLocation {
       if (!disInv.isTrue()) {
         result.append("pc = ").append(nodeId).append("\t =(d)=>  ");
         result.append(disInv.toString());
+        if (!otherInv.isTrue()) {
+          result.append('\n');
+        }
       }
       if (!otherInv.isTrue()) {
         result.append("pc = ").append(nodeId).append("\t =====>  ");
