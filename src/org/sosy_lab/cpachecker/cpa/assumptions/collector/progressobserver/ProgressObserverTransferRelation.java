@@ -79,11 +79,8 @@ public class ProgressObserverTransferRelation implements TransferRelation {
       if (postD.isBottom()) {
         logger.log(Level.WARNING, "Giving up at edge", edge.toString(), "because of", h.getClass().getSimpleName());
         logger.log(Level.FINEST, "Observer element at the time was:", el.toString());
-        // 'squash' to bottom
-        return Collections.emptySet();
-      } else {
-        postData.add(postD);
       }
+      postData.add(postD);
     }
     return Collections.singleton(new ProgressObserverElement(postData));
   }
