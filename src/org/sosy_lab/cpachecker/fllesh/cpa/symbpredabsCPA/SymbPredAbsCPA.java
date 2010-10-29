@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.csi.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -62,7 +61,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.YicesTheoremProver;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -95,9 +93,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
   
-  @Option(name="interpolation.changesolverontimeout")
-  private boolean changeItpSolveOTF = false;
-  
   
   private final Configuration config;
   private final LogManager logger;
@@ -129,8 +124,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager);
-    } else if (whichProver.equals("YICES")) {
-      thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -139,14 +132,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
       itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
-      if(changeItpSolveOTF){
-        alternativeItpProver =  new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
-      }
-    } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
-      if(changeItpSolveOTF){
-        alternativeItpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
-      }
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
