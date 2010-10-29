@@ -1,12 +1,12 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
 
 public class GuardedEdgeLabel extends GuardedLabel {
 

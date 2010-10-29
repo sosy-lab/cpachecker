@@ -2,9 +2,9 @@ package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 
 import java.util.ArrayList;
 
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public abstract class GuardedEdgeAutomatonStateElement implements

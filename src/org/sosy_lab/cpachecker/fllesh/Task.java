@@ -6,8 +6,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 

@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,16 +9,16 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPAtom;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPNodeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPRepetition;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPUnion;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPVisitor;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.ECPAtom;
+import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.util.ecp.ECPNodeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.ecp.ECPRepetition;
+import org.sosy_lab.cpachecker.util.ecp.ECPUnion;
+import org.sosy_lab.cpachecker.util.ecp.ECPVisitor;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class ToGuardedAutomatonTranslator {

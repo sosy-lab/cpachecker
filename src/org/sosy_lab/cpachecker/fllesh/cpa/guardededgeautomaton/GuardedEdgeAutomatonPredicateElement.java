@@ -3,7 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 import java.util.Iterator;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class GuardedEdgeAutomatonPredicateElement extends GuardedEdgeAutomatonStateElement implements Iterable<ECPPredicate> {

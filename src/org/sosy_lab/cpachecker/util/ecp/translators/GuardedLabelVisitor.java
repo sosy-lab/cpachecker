@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
 public interface GuardedLabelVisitor<T> {
 

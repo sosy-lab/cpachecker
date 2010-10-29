@@ -1,11 +1,11 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
 
 public abstract class GuardedLabel implements Iterable<ECPGuard> {
 

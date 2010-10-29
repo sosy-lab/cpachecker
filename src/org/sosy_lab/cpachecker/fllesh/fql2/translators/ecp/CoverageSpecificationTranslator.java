@@ -8,9 +8,9 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Path;

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
 import java.io.File;
 import java.util.Collection;
@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.FlleSh;
 import org.sosy_lab.cpachecker.fllesh.Wrapper;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPPrettyPrinter;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.PathPatternTranslator;

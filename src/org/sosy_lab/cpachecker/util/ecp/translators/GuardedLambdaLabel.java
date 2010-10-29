@@ -1,6 +1,6 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
 
 public class GuardedLambdaLabel extends GuardedLabel {
 

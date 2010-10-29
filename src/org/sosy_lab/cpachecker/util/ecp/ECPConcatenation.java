@@ -1,17 +1,20 @@
-package org.sosy_lab.cpachecker.fllesh.ecp;
+package org.sosy_lab.cpachecker.util.ecp;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
-public class ECPUnion implements ElementaryCoveragePattern , Iterable<ElementaryCoveragePattern> {
+import com.google.common.base.Preconditions;
+
+public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<ElementaryCoveragePattern> {
 
   private LinkedList<ElementaryCoveragePattern> mSubpatterns;
   
-  public ECPUnion(ElementaryCoveragePattern pFirstSubpattern, ElementaryCoveragePattern pSecondSubpattern) {
+  public ECPConcatenation(ElementaryCoveragePattern pFirstSubpattern, ElementaryCoveragePattern pSecondSubpattern) {
     mSubpatterns = new LinkedList<ElementaryCoveragePattern>();
     
-    if (pFirstSubpattern instanceof ECPUnion) {
-      ECPUnion lFirstSubpattern = (ECPUnion)pFirstSubpattern;
+    if (pFirstSubpattern instanceof ECPConcatenation) {
+      ECPConcatenation lFirstSubpattern = (ECPConcatenation)pFirstSubpattern;
       
       mSubpatterns.addAll(lFirstSubpattern.mSubpatterns);
     }
@@ -19,8 +22,8 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
       mSubpatterns.add(pFirstSubpattern);
     }
     
-    if (pSecondSubpattern instanceof ECPUnion) {
-      ECPUnion lSecondSubpattern = (ECPUnion)pSecondSubpattern;
+    if (pSecondSubpattern instanceof ECPConcatenation) {
+      ECPConcatenation lSecondSubpattern = (ECPConcatenation)pSecondSubpattern;
       
       mSubpatterns.addAll(lSecondSubpattern.mSubpatterns);
     }
@@ -29,9 +32,30 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
     }
   }
   
+  public ECPConcatenation(List<ElementaryCoveragePattern> pSubpatterns) {
+    Preconditions.checkNotNull(pSubpatterns);
+    Preconditions.checkArgument(pSubpatterns.size() > 0);
+    
+    mSubpatterns = new LinkedList<ElementaryCoveragePattern>();
+    
+    for (ElementaryCoveragePattern lSubpattern : pSubpatterns) {
+      if (lSubpattern instanceof ECPConcatenation) {
+        ECPConcatenation lConcatenation = (ECPConcatenation)lSubpattern;
+        mSubpatterns.addAll(lConcatenation.mSubpatterns);
+      }
+      else {
+        mSubpatterns.add(lSubpattern);
+      }
+    }
+  }
+  
   @Override
   public Iterator<ElementaryCoveragePattern> iterator() {
     return mSubpatterns.iterator();
+  }
+  
+  public ElementaryCoveragePattern get(int lIndex) {
+    return mSubpatterns.get(lIndex);
   }
   
   public int size() {
@@ -40,10 +64,6 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
   
   public boolean isEmpty() {
     return mSubpatterns.isEmpty();
-  }
-  
-  public ElementaryCoveragePattern get(int lIndex) {
-    return mSubpatterns.get(lIndex);
   }
   
   @Override
@@ -57,7 +77,7 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
     }
     
     if (pOther.getClass().equals(getClass())) {
-      ECPUnion lOther = (ECPUnion)pOther;
+      ECPConcatenation lOther = (ECPConcatenation)pOther;
       
       return mSubpatterns.equals(lOther.mSubpatterns);
     }
@@ -81,7 +101,7 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
         isFirst = false;
       }
       else {
-        lResult.append(" + ");
+        lResult.append(".");
       }
       
       lResult.append(lSubpattern.toString());

@@ -1,7 +1,7 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.util.ecp.translators;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 
 public class InverseGuardedEdgeLabel extends GuardedEdgeLabel {
 
