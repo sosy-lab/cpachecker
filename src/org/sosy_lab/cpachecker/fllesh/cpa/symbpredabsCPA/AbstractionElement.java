@@ -45,6 +45,8 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
     mInitAbstractionFormula = pInitAbstractionFormula;
     //INSTANCES++;
     ID = pID;
+    
+    mPreviousAbstractionElement = pPreviousAbstractionElement;
   }
   
   public AbstractFormula getAbstractionFormula() {
