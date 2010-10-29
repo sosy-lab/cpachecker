@@ -29,28 +29,41 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 public class CillyTest {
 
+  private static LogManager logger;
+  
+  @BeforeClass
+  public static void setup() throws IOException, InvalidConfigurationException {
+    Configuration config = new Configuration(Collections.<String, String>emptyMap());
+    logger = new LogManager(config);
+  }
+  
   @Test
   public void test001() throws IOException {
-    Cilly lCilly = new Cilly();
+    Cilly lCilly = new Cilly(logger);
 
     lCilly.cillyfy("test/programs/simple/functionCall.c");
   }
 
   @Test
   public void test002() throws IOException {
-    Cilly lCilly = new Cilly();
+    Cilly lCilly = new Cilly(logger);
 
     assertFalse(lCilly.isCillyInvariant("test/programs/simple/functionCall.c"));
   }
 
   @Test
   public void test003() throws IOException {
-    Cilly lCilly = new Cilly();
+    Cilly lCilly = new Cilly(logger);
 
     File lCillyfiedFile = lCilly.cillyfy("test/programs/simple/functionCall.c");
 

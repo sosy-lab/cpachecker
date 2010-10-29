@@ -25,9 +25,13 @@ package org.sosy_lab.cpachecker.fllesh;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Cilly;
 
 public class Main {
@@ -45,11 +49,11 @@ public class Main {
   public static final String BASIC_BLOCK_NODES_2_COVERAGE = BASIC_BLOCK_NODES_COVERAGE + ".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   public static final String BASIC_BLOCK_NODES_3_COVERAGE = BASIC_BLOCK_NODES_2_COVERAGE + ".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   
-  public static void main(String[] pArguments) throws IOException {
+  public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
     run(pArguments);
   }
   
-  public static FlleShResult run(String[] pArguments) throws IOException {
+  public static FlleShResult run(String[] pArguments) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
     
@@ -65,7 +69,9 @@ public class Main {
     // TODO implement nicer mechanism for disabling cilly preprocessing
     if (pArguments.length <= 3) {  
       // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
-      Cilly lCilly = new Cilly();
+      Configuration lConfig = new Configuration(Collections.<String,String>emptyMap());
+      LogManager lLogger = new LogManager(lConfig);
+      Cilly lCilly = new Cilly(lLogger);
   
       if (!lCilly.isCillyInvariant(lSourceFileName)) {
         File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);

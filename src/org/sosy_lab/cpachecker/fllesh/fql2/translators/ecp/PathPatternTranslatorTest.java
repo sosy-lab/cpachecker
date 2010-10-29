@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Set;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.FlleSh;
@@ -42,15 +45,21 @@ import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class PathPatternTranslatorTest {
 
+  private Cilly lCilly;
+  
+  @Before
+  public void setup() throws InvalidConfigurationException {
+    Configuration config = new Configuration(Collections.<String,String>emptyMap());
+    LogManager logger = new LogManager(config);
+    lCilly = new Cilly(logger);
+  }
+
   @Test
   public void testMain001() throws Exception {
     /** process FQL query */
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -90,9 +99,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING EDGES(PRED(@CALL(f), {x < 7}))*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -132,9 +138,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING NODES(PRED(@CALL(f), {x < 7}))*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -174,9 +177,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING PATHS(ID, 1)*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 

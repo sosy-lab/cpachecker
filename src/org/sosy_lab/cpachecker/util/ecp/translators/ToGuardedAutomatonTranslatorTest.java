@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.util.ecp.translators;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.FlleSh;
@@ -45,15 +48,21 @@ import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class ToGuardedAutomatonTranslatorTest {
 
+  private Cilly lCilly;
+  
+  @Before
+  public void setup() throws InvalidConfigurationException {
+    Configuration config = new Configuration(Collections.<String,String>emptyMap());
+    LogManager logger = new LogManager(config);
+    lCilly = new Cilly(logger);
+  }
+  
   @Test
   public void testMain001() throws Exception {
     /** process FQL query */
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -103,9 +112,6 @@ public class ToGuardedAutomatonTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\"";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -155,9 +161,6 @@ public class ToGuardedAutomatonTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\" PASSING { x > 10 }";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -207,9 +210,6 @@ public class ToGuardedAutomatonTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*.{ x > 10 }";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -259,9 +259,6 @@ public class ToGuardedAutomatonTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*.{ x > 10 }.EDGES(@CALL(f))";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -324,9 +321,6 @@ public class ToGuardedAutomatonTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*.{ x > 10 }.NODES(@CALL(f))";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 

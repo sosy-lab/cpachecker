@@ -27,8 +27,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.fllesh.util.AutomaticStreamReader;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 /*
  * This class provides basic access to some functionality provided by the CIL infrastructure.
@@ -36,24 +41,28 @@ import org.sosy_lab.cpachecker.fllesh.util.AutomaticStreamReader;
 
 public class Cilly {
 
-  public static void main(String[] pArguments) throws IOException {
+  public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
 
-    if (pArguments.length == 0) {
-      throw new IllegalArgumentException("You have to specify a source file!");
+    Configuration config = new Configuration(Collections.<String, String>emptyMap());
+    LogManager logger = new LogManager(config);
+    
+    if (pArguments.length != 1) {
+      logger.log(Level.SEVERE, "You have to specify a source file!");
+    
+    } else {
+      String lNiceCILName = Cilly.getNiceCILName(pArguments[0]);
+  
+      Cilly lCilly = new Cilly(logger);
+  
+      lCilly.cillyfy(pArguments[0], lNiceCILName);
+      
+      logger.log(Level.INFO, "Wrote output to", lNiceCILName);
     }
-
-    String lNiceCILName = Cilly.getNiceCILName(pArguments[0]);
-
-    Cilly lCilly = new Cilly();
-
-    lCilly.cillyfy(pArguments[0], lNiceCILName);
-
-    System.out.println("Wrote output to " + lNiceCILName);
   }
 
-  //private File mCillyFile;
-  private String mCillyAsmExePath;
+  private static final String mCillyAsmExePath = "cilly.asm.exe";
+  private final LogManager logger;
 
   // TODO: make set flags explicit via method calls?
   private boolean mDoSimplify = true;
@@ -64,19 +73,8 @@ public class Cilly {
   private boolean mDoMakeCFG = true;
   private boolean mDoSimpleMem = false;
 
-  public Cilly() {
-    this("cilly.asm.exe");
-  }
-
-  public Cilly(String pCillyAsmExePath) {
-    assert(pCillyAsmExePath != null);
-
-    //mCillyFile = new File(pCillyAsmExePath);
-
-    mCillyAsmExePath = pCillyAsmExePath;
-
-    /*assert(mCillyFile.exists());
-    assert(mCillyFile.canExecute());*/
+  public Cilly(LogManager logger) {
+    this.logger = logger;
   }
 
   public void setDoSimplify(boolean pValue) {
@@ -261,34 +259,11 @@ public class Cilly {
 
     String lExecString = mCillyAsmExePath + lOptionsString.toString() + " " + pSourceFile.getAbsolutePath();
 
-    //System.out.println("EXEC STRING: " + lExecString);
-
-    Process lCillyProcess = Runtime.getRuntime().exec(lExecString);
-
-    AutomaticStreamReader lInputReader = new AutomaticStreamReader(lCillyProcess.getInputStream());
-    Thread lInputReaderThread = new Thread(lInputReader);
-    lInputReaderThread.start();
-
-    AutomaticStreamReader lErrorReader = new AutomaticStreamReader(lCillyProcess.getErrorStream());
-    Thread lErrorReaderThread = new Thread(lErrorReader);
-    lErrorReaderThread.start();
-
-    try {
-      int lExitValue = lCillyProcess.waitFor();
-      
-      lInputReaderThread.join();
-      lErrorReaderThread.join();
-      
-      if (lExitValue != 0) {
-        System.out.println(lInputReader.getInput());
-        System.out.println(lErrorReader.getInput());
-        
-        throw new RuntimeException("Cilly processing failed!");
-      }
-      
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    ProcessExecutor<IOException> lCillyProcess = new ProcessExecutor<IOException>(logger, IOException.class, lExecString.split(" "));
+    lCillyProcess.join();
+    int lExitValue = lCillyProcess.getExitCode();
+    if (lExitValue != 0) {
+      throw new RuntimeException("Cilly processing failed!");
     }
   }
-
 }
