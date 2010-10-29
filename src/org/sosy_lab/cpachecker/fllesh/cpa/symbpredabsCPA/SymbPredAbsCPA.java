@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -58,7 +53,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 
@@ -90,10 +84,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option
   private boolean symbolicCoverageCheck = false; 
 
-  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
-  private File predicatesFile = null;
-  
-  
   private final Configuration config;
   private final LogManager logger;
 
@@ -142,16 +132,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     stop = new StopSepOperator(domain);
     
     Set<Predicate> predicates = null;
-    if (predicatesFile != null) {
-      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
-      try {
-        InputStream file = new FileInputStream(predicatesFile);
-        predicates = p.parsePredicates(file);
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
-      }
-    }
     initialPrecision = new SymbPredAbsPrecision(predicates);
 
     stats = new SymbPredAbsCPAStatistics(this);

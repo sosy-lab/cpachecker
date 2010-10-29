@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaList;
 
 import com.google.common.base.Preconditions;
 
@@ -106,8 +108,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   // cache for replacing assignments
   private final Map<SymbolicFormula, SymbolicFormula> replaceAssignmentsCache = new HashMap<SymbolicFormula, SymbolicFormula>();
-
-  private final MathsatAbstractionPrinter absPrinter;  
   
   private final SymbolicFormula trueFormula;
   private final SymbolicFormula falseFormula;
@@ -132,9 +132,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, 2, msatVarType2);
 
     stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
-    
-    absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs", logger);
-    
+        
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
   }
@@ -500,10 +498,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   @Override
   public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
       SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
-    
-    absPrinter.printMsatFormat(curState, edgeFormula, predDef, importantPreds);
-    absPrinter.printNusmvFormat(curState, edgeFormula, predDef, importantPreds);
-    absPrinter.nextNum();
   }
 
   @Override
