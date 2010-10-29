@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -93,6 +94,9 @@ public class CPAchecker {
   private final LogManager logger;
   private final Configuration config;
   private final CPAcheckerOptions options;
+  
+  private Map<String, CFAFunctionDefinitionNode> mCFAMap = null;
+  private CFAFunctionDefinitionNode mMainFunction = null;
 
   private static volatile boolean requireStopAsap = false;
 
@@ -151,6 +155,9 @@ public class CPAchecker {
       cfaCreator.createCFA(ast);
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
+      
+      mCFAMap = cfas;
+      mMainFunction = mainFunction;
 
       if (cfas.isEmpty()) {
         // empty program, do nothing
@@ -297,5 +304,21 @@ public class CPAchecker {
 
     reached.add(initialElement, initialPrecision);
     return reached;
+  }
+
+  /**
+   * Return the function CFAs of the last run of CPAchecker.
+   * Returns null if it wasn't run before.
+   */
+  public Map<String, CFAFunctionDefinitionNode> getCFAMap() {
+    return Collections.unmodifiableMap(mCFAMap);
+  }
+
+  /**
+   * Return head of the main function CFA of the last run of CPAchecker.
+   * Returns null if it wasn't run before.
+   */
+  public CFAFunctionDefinitionNode getMainFunction() {
+    return mMainFunction;
   }
 }
