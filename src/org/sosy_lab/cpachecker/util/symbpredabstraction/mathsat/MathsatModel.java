@@ -8,7 +8,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
 
 import com.google.common.collect.ImmutableMap;
 
-class MathsatModel {
+public class MathsatModel {
 
   private static TermType toMathsatType(int pTypeId) {
     
@@ -101,7 +101,7 @@ class MathsatModel {
     }
   }
   
-  static Model createMathsatModel(long lMathsatEnvironmentID) {
+  public static Model createMathsatModel(long lMathsatEnvironmentID) {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
     
     long lModelIterator = mathsat.api.msat_create_model_iterator(lMathsatEnvironmentID);

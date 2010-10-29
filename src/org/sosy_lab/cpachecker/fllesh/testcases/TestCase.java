@@ -3,15 +3,13 @@ package org.sosy_lab.cpachecker.fllesh.testcases;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.c.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatAssignable;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatModel.MathsatValue;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 public abstract class TestCase {
@@ -136,11 +134,13 @@ public abstract class TestCase {
   }
   
   public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
-    return fromCounterexample((MathsatModel)pTraceInfo.getCounterexample(), pLogManager);
+    Model lModel = pTraceInfo.getCounterexample();
+    
+    return fromCounterexample(lModel, pLogManager);
   }
   
-  public static TestCase fromCounterexample(MathsatModel pCounterexample, LogManager pLogManager) {
-    Set<MathsatAssignable> lAssignables = pCounterexample.getAssignables();
+  public static TestCase fromCounterexample(Model pCounterexample, LogManager pLogManager) {
+    //Set<MathsatAssignable> lAssignables = pCounterexample.getAssignables();
     
     boolean lIsPrecise = true;
     
@@ -150,17 +150,17 @@ public abstract class TestCase {
     SortedMap<Integer, Double> lNondetMap = new TreeMap<Integer, Double>();
     SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<Integer, Boolean>();
     
-    for (MathsatAssignable lAssignable : lAssignables) {
-      String lName = lAssignable.getName();
+    for (Map.Entry<AssignableTerm, Object> lAssignment : pCounterexample.entrySet()) {
+      AssignableTerm lTerm = lAssignment.getKey();
+      
+      String lName = lTerm.getName();
       
       if (lName.startsWith(lNondetPrefix)) {
         String lNumberString = lName.substring(lNondetPrefix.length());
         
         Integer lIndex = Integer.valueOf(lNumberString);
         
-        MathsatValue lValue = pCounterexample.getValue(lAssignable);
-        
-        double lDoubleValue = Double.parseDouble(lValue.toString());
+        double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
         
         lNondetMap.put(lIndex, lDoubleValue);
       }
@@ -169,9 +169,7 @@ public abstract class TestCase {
         
         Integer lIndex = Integer.valueOf(lNumberString);
         
-        MathsatValue lValue = pCounterexample.getValue(lAssignable);
-        
-        double lDoubleValue = Double.parseDouble(lValue.toString());
+        double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
         
         if (lDoubleValue != 0.0) {
           lNondetFlagMap.put(lIndex, true);
