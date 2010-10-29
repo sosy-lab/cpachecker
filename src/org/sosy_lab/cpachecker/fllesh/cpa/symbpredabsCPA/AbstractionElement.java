@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 
 public class AbstractionElement implements SymbPredAbsAbstractElement {
 

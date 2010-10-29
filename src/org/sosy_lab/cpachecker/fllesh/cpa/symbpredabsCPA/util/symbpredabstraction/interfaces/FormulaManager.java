@@ -29,6 +29,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 public interface FormulaManager {
 

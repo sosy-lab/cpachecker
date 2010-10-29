@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 import java.util.List;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Preconditions;
 

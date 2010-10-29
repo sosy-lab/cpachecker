@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.bdd;
 
 import net.sf.javabdd.BDD;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 
 /**
  * Abstract formulas represented using BDDs

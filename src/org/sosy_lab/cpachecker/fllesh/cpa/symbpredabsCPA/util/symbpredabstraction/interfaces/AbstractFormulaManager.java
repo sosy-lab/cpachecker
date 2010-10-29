@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>

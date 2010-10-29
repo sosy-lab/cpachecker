@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;

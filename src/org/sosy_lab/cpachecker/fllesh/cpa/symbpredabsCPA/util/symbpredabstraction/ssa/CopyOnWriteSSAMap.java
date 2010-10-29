@@ -3,7 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 public class CopyOnWriteSSAMap extends SSAMap {
   
