@@ -28,33 +28,9 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class IntervalAnalysisDomain implements AbstractDomain
 {
-  private final static PartialOrder partialOrder = new IntervalAnalysisPartialOrder();
-
-  private final static JoinOperator joinOperator = new IntervalAnalysisJoinOperator();
-
-  public IntervalAnalysisDomain()
-  {
-  }
-
-  @Override
-  public JoinOperator getJoinOperator()
-  {
-    return joinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder()
-  {
-    return partialOrder;
-  }
-
-  private static class IntervalAnalysisPartialOrder implements PartialOrder
-  {
     @Override
     public boolean satisfiesPartialOrder(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {
@@ -77,10 +53,7 @@ public class IntervalAnalysisDomain implements AbstractDomain
       // return true if element1 < element2 on lattice
       return true;
     }
-  }
 
-  private static class IntervalAnalysisJoinOperator implements JoinOperator
-  {
     @Override
     public AbstractElement join(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {
@@ -123,5 +96,5 @@ System.out.println();
 
       return new IntervalAnalysisElement(newIntervals, newReferences, currentElement.getPreviousElement());
     }
-  }
+
 }

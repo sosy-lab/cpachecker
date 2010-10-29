@@ -80,9 +80,9 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
 
     abstractDomain      = new IntervalAnalysisDomain();
 
-    mergeOperator       = mergeType.equals("SEP") ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain.getJoinOperator());
+    mergeOperator       = mergeType.equals("SEP") ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
 
-    stopOperator        = new StopSepOperator(abstractDomain.getPartialOrder());
+    stopOperator        = new StopSepOperator(abstractDomain);
 
     transferRelation    = new IntervalAnalysisTransferRelation(config);
 
