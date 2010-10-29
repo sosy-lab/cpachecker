@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.Product
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.NonabstractionElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsRefiner;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;

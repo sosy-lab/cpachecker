@@ -10,7 +10,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.c.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
 public abstract class TestCase {
 
