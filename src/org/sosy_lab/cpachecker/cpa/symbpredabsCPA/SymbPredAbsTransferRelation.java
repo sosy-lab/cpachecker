@@ -343,8 +343,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
     
     PathFormula pf = 
-      ((CommonFormulaManager)formulaManager).makePathFormulaFromSymbolicFormula(
-          asmpt, pElement.getPathFormula().getSsa());
+      ((CommonFormulaManager)formulaManager).makePathFormulaAndAssumption(pElement.getPathFormula(), asmpt);
       
     return replacePathFormula(pElement, pf);
   }
