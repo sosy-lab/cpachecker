@@ -37,16 +37,31 @@ import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorTransferRelation;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final int size;
+  private int assumptionIndex = -1;
+  private int predicatesIndex = -1;
 
   public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations) {
     this.transferRelations = transferRelations;
     size = transferRelations.size();
+    
+    // prepare special case handling if both predicates and assumptions are used
+    for (int i = 0; i < size; i++) {
+      TransferRelation t = transferRelations.get(i);
+      if (t instanceof SymbPredAbsTransferRelation) {
+        predicatesIndex = i;
+      }
+      if (t instanceof AssumptionCollectorTransferRelation) {
+        assumptionIndex = i;
+      }
+    }
   }
 
   @Override
@@ -131,6 +146,19 @@ public class CompositeTransferRelation implements TransferRelation{
           
           lStrengthenResults.add(lResultsList);
         }
+      }
+      
+      // special case handling if we have predicate and assumption cpas
+      if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
+        AbstractElement predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
+        AbstractElement assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
+        Precision predPrecision = compositePrecision.get(predicatesIndex);
+        TransferRelation predTransfer = transferRelations.get(predicatesIndex);
+        
+        Collection<? extends AbstractElement> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+        resultCount *= predResult.size();
+        
+        lStrengthenResults.set(predicatesIndex, predResult);
       }
       
       // create cartesian product again

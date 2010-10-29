@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 
@@ -30,28 +30,24 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 /**
- * Stop operator for the assumption collector CPA. Stops if the stop flag is
- * true.
- *
- * @author g.theoduloz
+ * Standard stop operator, which always returns true
  */
-public class AssumptionCollectorStop implements StopOperator {
+public class StopAlwaysOperator implements StopOperator {
 
   @Override
-  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision precision) {
-    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    return !assumptionElement.isStop();
+  public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision) {
+    return true;
   }
 
   @Override
-  public boolean stop(AbstractElement element, AbstractElement reachedElement) {
-    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    return !assumptionElement.isStop();
+  public boolean stop(AbstractElement el, AbstractElement reachedElement) {
+    return true;
   }
+
+  private static final StopOperator instance = new StopAlwaysOperator();
+
+  public static StopOperator getInstance() {
+    return instance;
+  }
+
 }

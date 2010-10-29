@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -32,14 +31,16 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -53,29 +54,23 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  *
  * @author g.theoduloz
  */
-public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
+public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AssumptionCollectorCPA.class);
   }
 
   private final AbstractDomain abstractDomain;
-  private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final SymbolicFormulaManager symbolicFormulaManager;
-  private final PrecisionAdjustment precisionAdjustment;
 
-  private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa,
-            Configuration config, LogManager logger) throws InvalidConfigurationException
+  private AssumptionCollectorCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    super(cpa);
     symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
-    abstractDomain = new FlatLatticeDomain();
-    mergeOperator = new AssumptionCollectorMerge(getWrappedCpa());
-    stopOperator = new AssumptionCollectorStop(getWrappedCpa());
-    transferRelation = new AssumptionCollectorTransferRelation(this);
-    precisionAdjustment = new AssumptionCollectorPrecisionAdjustment(getWrappedCpa());
+    abstractDomain = new AssumptionCollectorDomain();
+    stopOperator = new AssumptionCollectorStop();
+    transferRelation = new AssumptionCollectorTransferRelation();
   }
 
   public SymbolicFormulaManager getSymbolicFormulaManager()
@@ -90,18 +85,17 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    AbstractElement wrappedInitialElement = getWrappedCpa().getInitialElement(node);
-    return new AssumptionCollectorElement(wrappedInitialElement, AssumptionWithLocation.emptyAssumption(), false);
+    return AssumptionCollectorElement.emptyElement;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return MergeSepOperator.getInstance();
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
@@ -112,5 +106,10 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    return SingletonPrecision.getInstance();
   }
 }

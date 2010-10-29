@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -92,7 +92,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public StopOperator getStopOperator() {
-    return StopNeverOperator.getInstance();
+    return StopAlwaysOperator.getInstance();
   }
 
   @Override

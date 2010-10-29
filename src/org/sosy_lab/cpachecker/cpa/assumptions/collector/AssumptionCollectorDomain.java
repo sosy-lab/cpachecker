@@ -23,35 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import java.util.Collection;
-
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 
-/**
- * Stop operator for the assumption collector CPA. Stops if the stop flag is
- * true.
- *
- * @author g.theoduloz
- */
-public class AssumptionCollectorStop implements StopOperator {
+public class AssumptionCollectorDomain implements AbstractDomain {
 
   @Override
-  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision precision) {
-    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
 
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    return !assumptionElement.isStop();
+    AssumptionCollectorElement collectorElement1= (AssumptionCollectorElement)pElement1;
+    AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)pElement2;
+
+    return new AssumptionCollectorElement(
+        AssumptionWithLocation.and(collectorElement1.getCollectedAssumptions(),
+                                   collectorElement2.getCollectedAssumptions()),
+        (collectorElement1.isStop() || collectorElement2.isStop()));
   }
 
   @Override
-  public boolean stop(AbstractElement element, AbstractElement reachedElement) {
-    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    return !assumptionElement.isStop();
+  public boolean satisfiesPartialOrder(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+    throw new UnsupportedOperationException();
   }
 }

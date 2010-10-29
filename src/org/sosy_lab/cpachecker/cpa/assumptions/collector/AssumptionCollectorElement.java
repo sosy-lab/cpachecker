@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
@@ -35,19 +34,16 @@ import com.google.common.base.Preconditions;
  *
  * @author g.theoduloz
  */
-public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
+public class AssumptionCollectorElement implements AbstractElement {
 
+  static AbstractElement emptyElement = new AssumptionCollectorElement(AssumptionWithLocation.emptyAssumption(), false);
+  
   private final AssumptionWithLocation assumption;
   private final boolean stop;
 
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop) {
-    super(wrappedElement);
+  public AssumptionCollectorElement(AssumptionWithLocation f, boolean forceStop) {
     assumption = Preconditions.checkNotNull(f);
     stop = forceStop;
-  }
-
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f) {
-    this(wrappedElement, f, false);
   }
 
   /**
@@ -58,21 +54,8 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
   }
 
   @Override
-  public boolean isTarget() {
-    return false;
-  }
-
-  @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    if (stop) {
-      builder.append("<STOP> ");
-    }
-    builder.append("assume: ");
-    builder.append(assumption.toString());
-    builder.append('\n');
-    builder.append(getWrappedElement().toString());
-    return builder.toString();
+    return (stop ? "<STOP> " : "") + "assume: " + assumption;
   }
 
   public boolean isStop() {
