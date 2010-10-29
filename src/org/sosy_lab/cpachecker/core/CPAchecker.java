@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -94,9 +93,6 @@ public class CPAchecker {
   private final LogManager logger;
   private final Configuration config;
   private final CPAcheckerOptions options;
-  
-  private Map<String, CFAFunctionDefinitionNode> mCFAMap = null;
-  private CFAFunctionDefinitionNode mMainFunction = null;
 
   private static volatile boolean requireStopAsap = false;
 
@@ -125,14 +121,6 @@ public class CPAchecker {
     config.inject(options);
   }
 
-  protected Configuration getConfiguration() {
-    return config;
-  }
-
-  protected LogManager getLogger() {
-    return logger;
-  }
-  
   public CPAcheckerResult run(String filename) {
 
     logger.log(Level.FINE, "Analysis Started");
@@ -145,19 +133,16 @@ public class CPAchecker {
       // parse code file
       IASTTranslationUnit ast = parse(filename);
 
-      stats = new MainCPAStatistics(getConfiguration(), logger);
+      stats = new MainCPAStatistics(config, logger);
 
       // start measuring time
       stats.startProgramTimer();
 
       // create CFA
-      CFACreator cfaCreator = new CFACreator(getConfiguration(), logger);
+      CFACreator cfaCreator = new CFACreator(config, logger);
       cfaCreator.createCFA(ast);
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
-      
-      mCFAMap = cfas;
-      mMainFunction = mainFunction;
 
       if (cfas.isEmpty()) {
         // empty program, do nothing
@@ -168,7 +153,7 @@ public class CPAchecker {
 
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
 
-      Set<String> unusedProperties = getConfiguration().getUnusedProperties();
+      Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
             Joiner.on("\n ").join(unusedProperties), "\n");
@@ -215,7 +200,7 @@ public class CPAchecker {
    * @throws IOException If file cannot be read.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  protected IASTTranslationUnit parse(String filename) throws IOException, CoreException {
+  private IASTTranslationUnit parse(String filename) throws IOException, CoreException {
     logger.log(Level.FINE, "Starting parsing of file");
     IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
     logger.log(Level.FINE, "Parser Finished");
@@ -247,7 +232,7 @@ public class CPAchecker {
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(getConfiguration(), logger);
+    CPABuilder builder = new CPABuilder(config, logger);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
     if (cpa instanceof StatisticsProvider) {
@@ -263,11 +248,11 @@ public class CPAchecker {
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
     if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, getConfiguration(), logger);
+      algorithm = new CEGARAlgorithm(algorithm, config, logger);
     }
 
     if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectionAlgorithm(algorithm, getConfiguration(), logger);
+      algorithm = new AssumptionCollectionAlgorithm(algorithm, config, logger);
     }
 
     if (options.useCBMC) {
@@ -304,21 +289,5 @@ public class CPAchecker {
 
     reached.add(initialElement, initialPrecision);
     return reached;
-  }
-
-  /**
-   * Return the function CFAs of the last run of CPAchecker.
-   * Returns null if it wasn't run before.
-   */
-  public Map<String, CFAFunctionDefinitionNode> getCFAMap() {
-    return Collections.unmodifiableMap(mCFAMap);
-  }
-
-  /**
-   * Return head of the main function CFA of the last run of CPAchecker.
-   * Returns null if it wasn't run before.
-   */
-  public CFAFunctionDefinitionNode getMainFunction() {
-    return mMainFunction;
   }
 }
