@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
@@ -64,6 +65,31 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     @Override
     public String toString() {
       return "Abstraction location: true, Abstraction: " + super.abstraction;
+    }
+  }
+  
+  
+  static class ComputeAbstractionElement extends SymbPredAbsAbstractElement {
+    
+    private final CFANode location;
+    
+    public ComputeAbstractionElement(PathFormula pf, Abstraction pA, CFANode pLoc) {
+      super(pf, pA);
+      location = pLoc;
+    }
+
+    @Override
+    public Object getPartitionKey() {
+      return this;
+    }
+    
+    @Override
+    public String toString() {
+      return "Abstraction location: true, Abstraction: <TO COMPUTE>";
+    }
+    
+    public CFANode getLocation() {
+      return location;
     }
   }
   

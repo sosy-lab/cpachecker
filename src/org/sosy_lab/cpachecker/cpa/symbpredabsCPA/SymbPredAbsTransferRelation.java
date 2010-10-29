@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -89,7 +89,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   long satCheckTime = 0;
   long pathFormulaTime = 0;
   long pathFormulaComputationTime = 0;
-  long computingAbstractionTime = 0;
   long strengthenTime = 0;
   long strengthenCheckTime = 0;
 
@@ -97,14 +96,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
-  int numAbstractions = 0;
-  int numAbstractionsFalse = 0;
   int numSatChecks = 0;
   int numSatChecksFalse = 0;
   int numStrengthenChecks = 0;
   int numStrengthenChecksFalse = 0;
-  int maxBlockSize = 0;
-  int maxPredsPerAbstraction = 0;
   int pathFormulaCacheHits = 0;
   
   private final LogManager logger;
@@ -144,9 +139,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // check whether to do abstraction
     boolean doAbstraction = isBlockEnd(loc, pathFormula);
     
-    Collection<SymbPredAbsAbstractElement> result;
+    Collection<? extends AbstractElement> result;
     if (doAbstraction) {
-      result = handleAbstraction(pathFormula, element.getAbstraction(), (SymbPredAbsPrecision) pPrecision, loc);
+      result = Collections.singleton(
+          new SymbPredAbsAbstractElement.ComputeAbstractionElement(
+              pathFormula, element.getAbstraction(), loc)); 
     } else {
       result = handleNonAbstractionLocation(pathFormula, element.getAbstraction());
     }
@@ -183,44 +180,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
         new SymbPredAbsAbstractElement(pathFormula, abstraction));
-  }
-
-  /**
-   * Compute an abstraction.
-   */
-  private Collection<SymbPredAbsAbstractElement> handleAbstraction(
-      PathFormula pathFormula, Abstraction abstraction,
-      SymbPredAbsPrecision precision, CFANode loc) {
-
-    numAbstractions++;
-    logger.log(Level.FINEST, "Computing abstraction on node", loc);
-
-    Collection<Predicate> preds = precision.getPredicates(loc);
-
-    maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
-    maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
-
-    long start = System.currentTimeMillis();
-
-    // compute new abstraction
-    Abstraction newAbstraction = formulaManager.buildAbstraction(
-        abstraction, pathFormula, preds);
-
-    long end = System.currentTimeMillis();
-    computingAbstractionTime += end - start;
-
-    // if the abstraction is false, return bottom (represented by empty set)
-    if (newAbstraction.isFalse()) {
-      numAbstractionsFalse++;
-      logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
-      return Collections.emptySet();
-    }
-
-    // create new empty path formula
-    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
-
-    return Collections.<SymbPredAbsAbstractElement>singleton(
-        new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstraction));
   }
 
   /**
@@ -320,11 +279,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
         if (lElement instanceof AssumptionCollectorElement) {
-          element = strengthen(element, (AssumptionCollectorElement)lElement, pPrecision, edge.getPredecessor());
-          if (element == null) {
-            // successor not reachable
-            return Collections.emptySet();
-          }
+          element = strengthen(element, (AssumptionCollectorElement)lElement, pPrecision);
         }
         
         if (lElement instanceof GuardedEdgeAutomatonPredicateElement) {
@@ -358,61 +313,53 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   private SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
+    PathFormula pf = pElement.getPathFormula();
     
     for (ECPPredicate lPredicate : pAutomatonElement) {
       FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
       
-      pElement = new SymbPredAbsAbstractElement(
-          convertEdgeToPathFormula(pElement.getPathFormula(), lEdge),
-          pElement.getAbstraction());
+      pf = convertEdgeToPathFormula(pf, lEdge);
     }
-    
-    return pElement;
+
+    return replacePathFormula(pElement, pf);
   }
   
   private SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
     FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
     
-    return new SymbPredAbsAbstractElement(
-        convertEdgeToPathFormula(pElement.getPathFormula(), lEdge),
-        pElement.getAbstraction());
+    PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge);
+    
+    return replacePathFormula(pElement, pf);
   }
   
-  /* Strengthen operator for handling assumptions, this only works when block size = 1
-   * I'll handle cases where block size is > 1 later - Erkan */
   private SymbPredAbsAbstractElement strengthen(SymbPredAbsAbstractElement pElement, 
-      AssumptionCollectorElement pElement2, Precision pPrecision, CFANode pLoc) {
+      AssumptionCollectorElement pElement2, Precision pPrecision) {
     AssumptionWithLocation asmptwl = pElement2.getCollectedAssumptions();
     
     Assumption asmpt = asmptwl.getCombinedAssumption();
 
-    if(asmpt.isTrue()){
-
+    if (asmpt.isTrue()) {
       return pElement;
     }
-
-    PathFormula pfOfAssumption = null;
     
-      pfOfAssumption = 
-        ((CommonFormulaManager)formulaManager).makePathFormulaFromSymbolicFormula(
-            asmpt, pElement.getPathFormula().getSsa());
-
-    Collection<Predicate> preds = ((SymbPredAbsPrecision)pPrecision).getPredicates(pLoc);
-
-    Abstraction newAbstraction = formulaManager.buildAbstraction(
-        pElement.getAbstraction(), pfOfAssumption, preds);
-
-    // if the abstraction is false, return bottom (represented by empty set)
-    if (newAbstraction.isFalse()) {
-      numAbstractionsFalse++;
-      logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
-      return null;
+    PathFormula pf = 
+      ((CommonFormulaManager)formulaManager).makePathFormulaFromSymbolicFormula(
+          asmpt, pElement.getPathFormula().getSsa());
+      
+    return replacePathFormula(pElement, pf);
+  }
+  
+  /**
+   * Returns a new element with a given pathFormula. All other fields stay equal.
+   */
+  private SymbPredAbsAbstractElement replacePathFormula(SymbPredAbsAbstractElement oldElement, PathFormula newPathFormula) {
+    if (oldElement instanceof ComputeAbstractionElement) {
+      CFANode loc = ((ComputeAbstractionElement) oldElement).getLocation();
+      return new ComputeAbstractionElement(newPathFormula, oldElement.getAbstraction(), loc);
+    } else {
+      assert !(oldElement instanceof AbstractionElement);
+      return new SymbPredAbsAbstractElement(newPathFormula, oldElement.getAbstraction());
     }
-
-    // create new empty path formula
-    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pElement.getPathFormula());
-
-    return new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstraction);
   }
   
   private SymbPredAbsAbstractElement strengthenSatCheck(SymbPredAbsAbstractElement pElement) {
@@ -432,8 +379,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       // although this is not an abstraction location, we fake an abstraction
       // because refinement code expects it to be like this
       logger.log(Level.FINEST, "Last part of the path is not infeasible.");
-      
-      maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
       // set abstraction to true (we don't know better)
       Abstraction abs = formulaManager.makeTrueAbstraction(pathFormula.getSymbolicFormula());

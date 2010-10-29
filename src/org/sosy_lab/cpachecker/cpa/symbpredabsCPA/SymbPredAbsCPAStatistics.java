@@ -59,11 +59,9 @@ class SymbPredAbsCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final SymbPredAbsCPA cpa;
-    private final SymbPredAbsAbstractDomain domain;
 
     public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsAbstractDomain pDomain) throws InvalidConfigurationException {
       this.cpa = cpa;
-      this.domain = pDomain;
       cpa.getConfiguration().inject(this);
     }
 
@@ -120,14 +118,16 @@ class SymbPredAbsCPAStatistics implements Statistics {
       int allDistinctPreds = (new HashSet<Predicate>(predicates.values())).size();
 
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
+      SymbPredAbsAbstractDomain domain = cpa.getAbstractDomain();
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
+      SymbPredAbsPrecisionAdjustment prec = cpa.getPrecisionAdjustment();
 
-      out.println("Number of abstractions:            " + trans.numAbstractions + " (" + toPercent(trans.numAbstractions, trans.numPosts) + " of all post computations)");
-      if (trans.numAbstractions > 0) {
-        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, trans.numAbstractions) + ")");
-        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, trans.numAbstractions) + ")");
-        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, trans.numAbstractions) + ")");
-        out.println("  Times result was 'false':        " + trans.numAbstractionsFalse + " (" + toPercent(trans.numAbstractionsFalse, trans.numAbstractions) + ")");
+      out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.numPosts) + " of all post computations)");
+      if (prec.numAbstractions > 0) {
+        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
+        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, prec.numAbstractions) + ")");
+        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, prec.numAbstractions) + ")");
+        out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
       }
       if (trans.numSatChecks > 0) {
         out.println("Number of satisfiability checks:   " + trans.numSatChecks);
@@ -141,12 +141,12 @@ class SymbPredAbsCPAStatistics implements Statistics {
       out.println("  BDD entailment checks:           " + domain.numBddCoverageCheck);
       out.println("  Symbolic coverage check:         " + domain.numSymbolicCoverageCheck);
       out.println();
-      out.println("Max ABE block size:                       " + trans.maxBlockSize);
+      out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
       out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
-      out.println("Max number of predicates per abstraction: " + trans.maxPredsPerAbstraction);
+      out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
       out.println("Total number of models for allsat:        " + bs.allSatCount);
       out.println("Max number of models for allsat:          " + bs.maxAllSatCount);
       if (bs.numCallsAbstraction > 0) {
@@ -164,11 +164,12 @@ class SymbPredAbsCPAStatistics implements Statistics {
       if (trans.numSatChecks > 0) {
         out.println("  Time for satisfiability checks:    " + toTime(trans.satCheckTime));
       }
-      out.println("  Time for abstraction:              " + toTime(trans.computingAbstractionTime));
-      out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
-      out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
       out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
       out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
+      out.println("Time for prec operator:             " + prec.totalPrecTime);
+      out.println("  Time for abstraction:              " + prec.computingAbstractionTime);
+      out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
+      out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
       out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
       out.println("Time for coverage check:             " + toTime(domain.coverageCheckTime));
       if (domain.numBddCoverageCheck > 0) {

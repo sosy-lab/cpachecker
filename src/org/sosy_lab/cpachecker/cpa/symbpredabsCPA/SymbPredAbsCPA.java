@@ -36,14 +36,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -92,6 +89,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
+  private final SymbPredAbsPrecisionAdjustment prec;
   private final StopOperator stop;
   private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
@@ -139,6 +137,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     domain = new SymbPredAbsAbstractDomain(this);
     
     merge = new SymbPredAbsMergeOperator(this);
+    prec = new SymbPredAbsPrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
     
     Collection<Predicate> predicates = null;
@@ -161,7 +160,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public SymbPredAbsAbstractDomain getAbstractDomain() {
     return domain;
   }
 
@@ -207,8 +206,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+  public SymbPredAbsPrecisionAdjustment getPrecisionAdjustment() {
+    return prec;
   }
 
   @Override
