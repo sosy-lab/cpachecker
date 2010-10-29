@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
@@ -360,7 +360,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       GuardedEdgeAutomatonPredicateElement lAutomatonElement = (GuardedEdgeAutomatonPredicateElement)pAutomatonElement;
       
       for (ECPPredicate lPredicate : lAutomatonElement) {
-        FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+        AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
         
         if (pElement instanceof AbstractionElement) {
           AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
@@ -421,19 +421,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
   
   public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement, SymbPredAbsPrecision pPrecision) {
-    FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
-    
-    /*if (true) {
-      // implement abstraction location handling
-      throw new RuntimeException();
-    }
-    
-    try {
-      pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
-    } catch (CPATransferException e) {
-      throw new RuntimeException(e);
-    }*/
-    
+    AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
     
     if (pElement instanceof AbstractionElement) {
       AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
