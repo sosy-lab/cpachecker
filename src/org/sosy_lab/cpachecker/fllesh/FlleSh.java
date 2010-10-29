@@ -17,6 +17,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -63,7 +64,6 @@ import org.sosy_lab.cpachecker.fllesh.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
-import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;

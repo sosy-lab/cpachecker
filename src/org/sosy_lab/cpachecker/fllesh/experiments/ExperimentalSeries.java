@@ -7,9 +7,9 @@ import java.util.Date;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.cpachecker.fllesh.FlleShResult;
 import org.sosy_lab.cpachecker.fllesh.Main;
-import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 
 import com.google.common.base.Preconditions;
 

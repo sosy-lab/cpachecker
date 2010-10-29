@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.util.profiling;
+package org.sosy_lab.common;
 
 import com.google.common.base.Preconditions;
 
