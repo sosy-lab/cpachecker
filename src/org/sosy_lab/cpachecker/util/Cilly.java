@@ -21,12 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.util;
+package org.sosy_lab.cpachecker.util;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+
+import org.sosy_lab.cpachecker.fllesh.util.AutomaticStreamReader;
 
 /*
  * This class provides basic access to some functionality provided by the CIL infrastructure.

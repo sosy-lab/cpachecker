@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.FlleSh;
 import org.sosy_lab.cpachecker.fllesh.Wrapper;
+import org.sosy_lab.cpachecker.util.Cilly;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.PathPatternTranslator;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class ToGuardedAutomatonTranslatorTest {
