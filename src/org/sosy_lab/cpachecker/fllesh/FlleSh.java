@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonAcceptingElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.cfa.Wrapper;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.NonabstractionElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsRefiner;
