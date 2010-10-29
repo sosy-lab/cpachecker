@@ -382,9 +382,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
   }
 
-  public PathFormula makePathFormulaFromSymbolicFormula(
-      Assumption pAssumption, SSAMap pSSAMap) {
-    SymbolicFormula instAssumptionFormula =  smgr.instantiate(pAssumption.getDischargeableFormula(), pSSAMap);
-    return new PathFormula(instAssumptionFormula, pSSAMap, 0, smgr.makeTrue(), 0);
+  public PathFormula makePathFormulaAndAssumption(PathFormula pPathFormula, Assumption pAssumption) {
+    SSAMap ssa = pPathFormula.getSsa();
+    SymbolicFormula assumptionFormula =  smgr.instantiate(pAssumption.getDischargeableFormula(), ssa);
+    SymbolicFormula resultFormula = smgr.makeAnd(pPathFormula.getSymbolicFormula(), assumptionFormula);
+    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
+        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
 }
