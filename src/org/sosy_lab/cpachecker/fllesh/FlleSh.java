@@ -15,11 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.NonabstractionElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
@@ -63,7 +66,6 @@ import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSp
 import org.sosy_lab.cpachecker.fllesh.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -83,7 +85,6 @@ public class FlleSh {
   
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
-  private final ModifiedCPAchecker mCPAchecker;
   private final Wrapper mWrapper;
   private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private final ConfigurableProgramAnalysis mLocationCPA;
@@ -101,16 +102,36 @@ public class FlleSh {
   
   private final Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>> mInfeasibleGoals;
   
+  public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+    // parse code file
+    IASTTranslationUnit lAst = null;
+    try {
+      lAst = CParser.parseFile(pSourceFileName, CParser.Dialect.GNUC);
+    } catch (Exception e) {
+      e.printStackTrace();
+      
+      throw new RuntimeException(e);
+    }
+
+    CFACreator lCFACreator = new CFACreator(pConfiguration, pLogManager);
+    lCFACreator.createCFA(lAst);
+
+    return lCFACreator.getFunctions();
+  }
+  
   public FlleSh(String pSourceFileName, String pEntryFunction) {
+    Map<String, CFAFunctionDefinitionNode> lCFAMap;
+    CFAFunctionDefinitionNode lMainFunction;
+    
     try {
       mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new LogManager(mConfiguration);
-      mCPAchecker = new ModifiedCPAchecker(mConfiguration, mLogManager);
+      
+      lCFAMap = FlleSh.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
-    CFAFunctionDefinitionNode lMainFunction = mCPAchecker.getMainFunction();
     
     /*
      * We have to instantiate mCoverageSpecificationTranslator before the wrapper
@@ -119,7 +140,7 @@ public class FlleSh {
      */
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
 
-    mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, mCPAchecker.getCFAMap(), mLogManager);
+    mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
     
     try {
       mWrapper.toDot("test/output/wrapper.dot");

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.ecp.translators;
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.PathPatternTranslator;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class ToGuardedAutomatonTranslatorTest {
 
@@ -74,14 +74,11 @@ public class ToGuardedAutomatonTranslatorTest {
 
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
-
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
-
+    
+    String lEntryFunction = "main";
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
         
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
@@ -124,13 +121,10 @@ public class ToGuardedAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
-
+    String lEntryFunction = "main";
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
@@ -173,13 +167,10 @@ public class ToGuardedAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
-
+    String lEntryFunction = "main";
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
@@ -222,13 +213,10 @@ public class ToGuardedAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
-
+    String lEntryFunction = "main";
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
@@ -271,13 +259,11 @@ public class ToGuardedAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
-
+    String lEntryFunction = "main";
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    Map<String, CFAFunctionDefinitionNode> lCFAMap = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager); 
+    CFAFunctionDefinitionNode lMainFunction = lCFAMap.get(lEntryFunction);
     
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
@@ -303,7 +289,7 @@ public class ToGuardedAutomatonTranslatorTest {
     
     System.out.println(lInitialAutomaton);
     
-    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
     
     GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
     GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
@@ -333,13 +319,11 @@ public class ToGuardedAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
-
+    String lEntryFunction = "main";
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    Map<String, CFAFunctionDefinitionNode> lCFAMap = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager); 
+    CFAFunctionDefinitionNode lMainFunction = lCFAMap.get(lEntryFunction);
     
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
@@ -366,7 +350,7 @@ public class ToGuardedAutomatonTranslatorTest {
     System.out.println(lInitialAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lInitialAutomaton));
     
-    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
     
     GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
     GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));

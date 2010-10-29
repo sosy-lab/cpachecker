@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
-import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class CoverageSpecificationTranslatorTest {
 
@@ -72,14 +71,14 @@ public class CoverageSpecificationTranslatorTest {
 
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
+    
+    String lEntryFunction = "main";
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -124,13 +123,13 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -175,13 +174,13 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -226,13 +225,13 @@ public class CoverageSpecificationTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     

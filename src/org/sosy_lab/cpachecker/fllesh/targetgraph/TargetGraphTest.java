@@ -30,15 +30,14 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fllesh.FlleSh;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.ConditionEdge;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
@@ -49,49 +48,48 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionEntry;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Line;
-import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.util.predicates.Constant;
 import org.sosy_lab.cpachecker.util.predicates.Variable;
 
 public class TargetGraphTest {
-  private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-
+  
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
-
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lSourceFileName = "test/programs/simple/functionCall.c";
+    
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     System.out.println(lTargetGraph);
   }
 
   @Test
   public void test_02() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
+    String lSourceFileName = "test/programs/simple/loop1.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     System.out.println(lTargetGraph);
   }
 
   @Test
   public void test_03() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     /*
      * Note: This analysis returns most of the time
@@ -99,21 +97,22 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     System.out.println(lTargetGraph);
   }
 
   @Test
   public void test_04() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     /*
      * Note: This analysis returns most of the time
@@ -121,13 +120,15 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     TargetGraph lFilteredTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "func");
 
@@ -136,8 +137,7 @@ public class TargetGraphTest {
 
   @Test
   public void test_05() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     /*
      * Note: This analysis returns most of the time
@@ -145,13 +145,15 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "func");
     TargetGraph lF2TargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "f2");
@@ -163,8 +165,7 @@ public class TargetGraphTest {
 
   @Test
   public void test_06() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     /*
      * Note: This analysis returns most of the time
@@ -172,13 +173,15 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "func");
 
@@ -189,16 +192,17 @@ public class TargetGraphTest {
 
   @Test
   public void test_07() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "f");
 
@@ -209,16 +213,17 @@ public class TargetGraphTest {
 
   @Test
   public void test_08() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "f");
 
@@ -233,17 +238,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_09() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -257,17 +261,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_10() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -300,17 +303,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_11() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -329,17 +331,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_12() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -363,17 +364,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_13() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -392,17 +392,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_14() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -426,17 +425,16 @@ public class TargetGraphTest {
 
   @Test
   public void test_15() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
+    String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -460,17 +458,16 @@ public class TargetGraphTest {
   
   @Test
   public void test_21() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -494,17 +491,16 @@ public class TargetGraphTest {
   
   @Test
   public void test_22() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -530,33 +526,33 @@ public class TargetGraphTest {
   
   @Test
   public void test_23() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
     
     System.out.println(lTargetGraph.getBoundedPaths(1));
   }
   
   @Test
   public void test_24() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
@@ -575,17 +571,16 @@ public class TargetGraphTest {
   
   @Test
   public void test_25() throws IOException, InvalidConfigurationException, CPAException {
-    ImmutableMap<String, String> lProperties =
-      ImmutableMap.of("analysis.programNames", "test/programs/fql/conditioncoverage.cil.c", "analysis.entryFunction", "foo");
-
-    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+    String lSourceFileName = "test/programs/fql/conditioncoverage.cil.c";
+    
+    String lEntryFunction = "foo";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFANode lInitialNode = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
