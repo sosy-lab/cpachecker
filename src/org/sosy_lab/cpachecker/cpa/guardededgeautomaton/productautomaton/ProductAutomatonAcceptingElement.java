@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton;
+package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 

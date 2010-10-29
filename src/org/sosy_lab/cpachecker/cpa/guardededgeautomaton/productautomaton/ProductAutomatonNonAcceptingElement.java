@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton;
+package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 public class ProductAutomatonNonAcceptingElement implements
     ProductAutomatonElement {

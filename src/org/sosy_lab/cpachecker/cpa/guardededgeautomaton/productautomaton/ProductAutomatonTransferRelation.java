@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.productautomaton;
+package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -10,7 +10,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
 
 public class ProductAutomatonTransferRelation implements TransferRelation {
   
