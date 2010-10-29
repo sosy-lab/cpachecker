@@ -27,6 +27,7 @@ import java.util.Collection;
 
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 
 /**
