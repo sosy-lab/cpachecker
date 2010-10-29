@@ -51,7 +51,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
@@ -720,7 +719,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         }
 
         if (itp.isTrue() || itp.isFalse()) {
-          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got no interpolant.");
+          logger.log(Level.ALL, "For step", i, "got no interpolant.");
 
         } else {
           foundPredicates = true;
@@ -730,7 +729,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           Collection<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
-          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got:",
+          logger.log(Level.ALL, "For step", i, "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
@@ -747,18 +746,20 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           
         }
 
+        // TODO wellScopedPredicates have been disabled
+        
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
 
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
-        if (wellScopedPredicates && e.getAbstractionElement().getLocation() instanceof CFAFunctionDefinitionNode) {
-          entryPoints.push(i);
-        }
+//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+//          entryPoints.push(i);
+//        }
         // TODO check we are returning from a function
-        if (wellScopedPredicates && e.getAbstractionElement().getLocation().getEnteringSummaryEdge() != null) {
-          entryPoints.pop();
-        }
+//        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+//          entryPoints.pop();
+//        }
       }
 
       if (!foundPredicates) {

@@ -307,7 +307,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
       numAbstractions++;
 
-      AbstractionElement lSuccessor = mAbstractionElementFactory.create(element.getAbstractionElement(), edge.getSuccessor(), newAbstraction, pathFormula);
+      AbstractionElement lSuccessor = mAbstractionElementFactory.create(element.getAbstractionElement(), newAbstraction, pathFormula);
       
       lSuccessors = Collections.singleton(lSuccessor);
       
@@ -393,7 +393,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
             numAbstractions++;
 
-            pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), pNode, newAbstraction, lPathFormula);
+            pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), newAbstraction, lPathFormula);
           } catch (CPATransferException e1) {
             throw new RuntimeException(e1);
           }
@@ -466,7 +466,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
         numAbstractions++;
 
-        pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), pNode, newAbstraction, lPathFormula);
+        pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), newAbstraction, lPathFormula);
       } catch (CPATransferException e1) {
         throw new RuntimeException(e1);
       }
@@ -562,7 +562,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         }
         
         return Collections.singleton(
-            mAbstractionElementFactory.create(element.getAbstractionElement(), edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
+            mAbstractionElementFactory.create(element.getAbstractionElement(), abstractFormulaManager.makeTrue(), lPathFormula)
             //new AbstractionElement(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
             /*new SymbPredAbsAbstractElement(
             // set 'abstractionLocation' to edge.getSuccessor()
