@@ -722,7 +722,23 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // need to ask solver for satisfiability again,
       // otherwise model doesn't contain new predicates
       boolean stillSatisfiable = !pItpProver.isUnsat();
-      assert stillSatisfiable;
+      if (!stillSatisfiable) {
+        pItpProver.reset();
+        pItpProver.init();
+        logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
+
+        int k = 0;
+        for (SymbolicFormula formula : f) {
+          pItpProver.addFormula(formula);
+          String dumpFile = String.format(formulaDumpFilePattern,
+                      "interpolation", stats.numCallsCexAnalysis, "formula", k++);
+          dumpFormulaToFile(formula, new File(dumpFile));
+        }
+        String dumpFile = String.format(formulaDumpFilePattern,
+            "interpolation", stats.numCallsCexAnalysis, "formula", k++);
+        dumpFormulaToFile(lastElement.getPathFormula().getReachingPathsFormula(), new File(dumpFile));
+        pItpProver.isUnsat();
+      }
       
       info = new CounterexampleTraceInfo(pItpProver.getModel());
     }
