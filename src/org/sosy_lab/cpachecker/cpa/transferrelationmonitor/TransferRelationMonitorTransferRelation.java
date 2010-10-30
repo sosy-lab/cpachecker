@@ -124,6 +124,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       successorElem.setNoOfNodesOnPath(element.getNoOfNodesOnPath()+1);
       if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
         successorElem.setNoOfBranches(element.getNoOfBranchesOnPath()+1);  
+      } else {
+        successorElem.setNoOfBranches(element.getNoOfBranchesOnPath());
       }
       if (element.getNoOfNodesOnPath() > maxSizeOfSinglePath) {
         maxSizeOfSinglePath = element.getNoOfNodesOnPath();
@@ -199,6 +201,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement);
     successorElement.setTransferTime(timeOfExecution);
     successorElement.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
+    successorElement.setNoOfBranches(element.getNoOfBranchesOnPath());
     retList.add(successorElement);
     if (   (timeLimitForPath > 0 && successorElement.getTotalTimeOnThePath() > timeLimitForPath)
         || (nodeLimitForPath > 0 && successorElement.getNoOfNodesOnPath() > nodeLimitForPath)
