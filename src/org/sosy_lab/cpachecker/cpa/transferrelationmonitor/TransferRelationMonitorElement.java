@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
-  private final TransferRelationMonitorCPA cpa;
   private boolean shouldStop = false;
 
   private long timeOfTranferToComputeElement;
@@ -44,17 +43,11 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   
   private int noOfNodesOnPath;
 
-  protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa,
-      AbstractElement pWrappedElement) {
+  protected TransferRelationMonitorElement(AbstractElement pWrappedElement) {
     super(pWrappedElement);
-    cpa = pCpa;
     timeOfTranferToComputeElement = 0;
     totalTimeOnThePath = 0;
     setNoOfNodesOnPath(0);
-  }
-
-  public TransferRelationMonitorCPA getCpa() {
-    return cpa;
   }
 
   protected void setTransferTime(long pTransferTime){

@@ -115,9 +115,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       return Collections.emptySet();
     }
 
-    Collection<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>();
+    List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
+      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
       successorElem.setNoOfNodesOnPath(element.getNoOfNodesOnPath()+1);
@@ -199,10 +199,10 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
 
       AbstractElement wrappedReturnElement = returnedElems.iterator().next();
-      TransferRelationMonitorElement retElem = new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement);
+      TransferRelationMonitorElement retElem = new TransferRelationMonitorElement(wrappedReturnElement);
       retElem.setTransferTime(timeOfExecution);
       retElem.setTotalTime(monitorElement.isIgnore(), monitorElement.getTotalTimeOnThePath());
-      retList.add(new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement));
+      retList.add(new TransferRelationMonitorElement(wrappedReturnElement));
       if(    (timeLimitForPath > 0 && retElem.getTotalTimeOnThePath() > timeLimitForPath)
           || (nodeLimitForPath > 0 && retElem.getNoOfNodesOnPath() > nodeLimitForPath)
           ){
