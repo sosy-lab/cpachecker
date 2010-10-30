@@ -41,7 +41,6 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   private final int branchesOnPath;
   private final int pathLength;
 
-  private boolean ignore = false;
   private boolean shouldStop = false;
   
   protected TransferRelationMonitorElement(AbstractElement pWrappedElement,
@@ -60,8 +59,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     }
   }
 
-  protected void setTotalTime(boolean pIsIgnore, long pTotalTime){
-    ignore = pIsIgnore;
+  protected void setTotalTime(long pTotalTime){
     totalTimeOnThePath = pTotalTime + timeOfTransferToComputeElement;
     if(totalTimeOnThePath > maxTotalTimeForPath){
       maxTotalTimeForPath = totalTimeOnThePath;
@@ -97,10 +95,6 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
     return shouldStop;
-  }
-
-  public boolean isIgnore() {
-    return ignore;
   }
 
   public int getNoOfNodesOnPath() {

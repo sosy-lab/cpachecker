@@ -62,7 +62,6 @@ public class TransferRelationMonitorMerge implements MergeOperator{
     TransferRelationMonitorElement mergedElement = new TransferRelationMonitorElement(retElement, pathLength, branchesOnPath);
 
     mergedElement.setTotalTime(
-        (transferRelationMonitorElement1.isIgnore() | transferRelationMonitorElement2.isIgnore()),
         Math.max(transferRelationMonitorElement1.getTotalTimeOnThePath(),
         transferRelationMonitorElement2.getTotalTimeOnThePath()));
 

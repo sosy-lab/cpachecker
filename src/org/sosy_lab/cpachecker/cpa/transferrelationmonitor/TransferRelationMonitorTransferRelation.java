@@ -147,7 +147,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     for (AbstractElement absElement : successors) {
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(absElement, pathLength, branchesOnPath);
       successorElem.setTransferTime(timeOfExecution);
-      successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
+      successorElem.setTotalTime(element.getTotalTimeOnThePath());
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
@@ -215,7 +215,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement,
         element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath());
     successorElement.setTransferTime(timeOfExecution);
-    successorElement.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
+    successorElement.setTotalTime(element.getTotalTimeOnThePath());
     return Collections.singleton(successorElement);
   }
 
