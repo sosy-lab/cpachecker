@@ -48,8 +48,12 @@ public class Timer {
     }
   }
 
-  /** stop the timer if it is not running, else do nothing */
-  public void stop() {
+  /**
+   * Stop the timer if it is not running, else do nothing.
+   * Returns the number of milliseconds since start() was called.
+   * Returns 0 if timer was not running. 
+   */
+  public long stop() {
     long endTime = System.currentTimeMillis();
 
     if (isRunning()) {
@@ -61,7 +65,9 @@ public class Timer {
       startTime = 0;
       // one more interval is finished
       numberOfIntervals++;
+      return intervallTime;
     }
+    return 0;
   }
 
   /**
