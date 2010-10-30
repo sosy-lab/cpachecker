@@ -31,32 +31,24 @@ import com.google.common.base.Preconditions;
 
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
-  static long maxTotalTimeForPath = 0;
-
-  private long totalTimeOnThePath = 0;
+  private final long totalTimeOnPath;
 
   private final int branchesOnPath;
   private final int pathLength;
 
-  private boolean shouldStop = false;
+  private final boolean shouldStop = false;
   
   protected TransferRelationMonitorElement(AbstractElement pWrappedElement,
-      int pathLength, int branchesOnPath) {
+      int pathLength, int branchesOnPath, long totalTimeOnPath) {
     super(pWrappedElement);
     Preconditions.checkArgument(pathLength > branchesOnPath);
     this.pathLength = pathLength;
     this.branchesOnPath = branchesOnPath;
+    this.totalTimeOnPath = totalTimeOnPath;
   }
 
-  protected void setTotalTime(long pTotalTime){
-    totalTimeOnThePath = pTotalTime;
-    if(totalTimeOnThePath > maxTotalTimeForPath){
-      maxTotalTimeForPath = totalTimeOnThePath;
-    }
-  }
-
-  public long getTotalTimeOnThePath() {
-    return totalTimeOnThePath;
+  public long getTotalTimeOnPath() {
+    return totalTimeOnPath;
   }
 
   @Override
@@ -76,10 +68,6 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     return getWrappedElement().hashCode();
   }
 
-  public void setAsStopElement(){
-    shouldStop = true;
-  }
-
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
@@ -93,7 +81,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   @Override
   public String toString() {
     return "No of nodes> " + this.pathLength
-    + "\n Total time> " + this.totalTimeOnThePath 
+    + "\n Total time> " + this.totalTimeOnPath 
     + "\n Number of Branches" + branchesOnPath;
   }
 

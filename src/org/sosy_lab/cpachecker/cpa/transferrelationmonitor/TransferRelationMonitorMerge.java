@@ -58,12 +58,11 @@ public class TransferRelationMonitorMerge implements MergeOperator{
                               transferRelationMonitorElement2.getNoOfNodesOnPath());
     int branchesOnPath = Math.max(transferRelationMonitorElement1.getNoOfBranchesOnPath(),
                                   transferRelationMonitorElement2.getNoOfBranchesOnPath());
+    long totalTimeOnPath = Math.max(transferRelationMonitorElement1.getTotalTimeOnPath(),
+                                    transferRelationMonitorElement2.getTotalTimeOnPath());
     
-    TransferRelationMonitorElement mergedElement = new TransferRelationMonitorElement(retElement, pathLength, branchesOnPath);
-
-    mergedElement.setTotalTime(
-        Math.max(transferRelationMonitorElement1.getTotalTimeOnThePath(),
-        transferRelationMonitorElement2.getTotalTimeOnThePath()));
+    TransferRelationMonitorElement mergedElement = new TransferRelationMonitorElement(
+        retElement, pathLength, branchesOnPath, totalTimeOnPath);
 
     return mergedElement;
   }
