@@ -29,50 +29,41 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
-  private boolean shouldStop = false;
-
-  private long timeOfTranferToComputeElement;
-  private long totalTimeOnThePath;
-  private int numberOfBranches = 0;
   public static long maxTimeOfTransfer = 0;
   public static long maxTotalTimeForPath = 0;
   public static long totalTimeOfTransfer = 0;
   public static long totalNumberOfTransfers = 0;
   public static long maxNumberOfBranches = 0;
+  
+  private boolean shouldStop = false;
+
+  private long timeOfTransferToComputeElement = 0;
+  private long totalTimeOnThePath = 0;
+  private int numberOfBranches = 0;
+
   private boolean ignore = false;
   
   private int noOfNodesOnPath;
 
   protected TransferRelationMonitorElement(AbstractElement pWrappedElement) {
     super(pWrappedElement);
-    timeOfTranferToComputeElement = 0;
-    totalTimeOnThePath = 0;
-    setNoOfNodesOnPath(0);
   }
 
   protected void setTransferTime(long pTransferTime){
-    timeOfTranferToComputeElement = pTransferTime;
+    timeOfTransferToComputeElement = pTransferTime;
     totalTimeOfTransfer = totalTimeOfTransfer + pTransferTime;
     totalNumberOfTransfers ++;
-    if(timeOfTranferToComputeElement > maxTimeOfTransfer){
-      maxTimeOfTransfer = timeOfTranferToComputeElement;
+    if(timeOfTransferToComputeElement > maxTimeOfTransfer){
+      maxTimeOfTransfer = timeOfTransferToComputeElement;
     }
   }
 
   protected void setTotalTime(boolean pIsIgnore, long pTotalTime){
     ignore = pIsIgnore;
-    totalTimeOnThePath = pTotalTime + timeOfTranferToComputeElement;
+    totalTimeOnThePath = pTotalTime + timeOfTransferToComputeElement;
     if(totalTimeOnThePath > maxTotalTimeForPath){
       maxTotalTimeForPath = totalTimeOnThePath;
     }
-  }
-
-  protected void resetTotalTime(){
-    totalTimeOnThePath = 0;
-  }
-
-  public long getTimeOfTranferToComputeElement() {
-    return timeOfTranferToComputeElement;
   }
 
   public long getTotalTimeOnThePath() {
@@ -103,17 +94,11 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
-    if (shouldStop)
-      return true;
-    return false;
+    return shouldStop;
   }
 
   public boolean isIgnore() {
     return ignore;
-  }
-
-  public void setIgnore() {
-    ignore = true;
   }
 
   public void setNoOfNodesOnPath(int noOfNodesOnPath) {
