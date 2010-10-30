@@ -19,12 +19,12 @@ public class TransferMonitorStatistics implements Statistics{
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    double averageTransferTime = ((new Long(TransferRelationMonitorElement.totalTimeOfTransfer)).doubleValue() /
+    double averageTransferTime = ((new Long(TransferRelationMonitorTransferRelation.totalTimeOfTransfer)).doubleValue() /
         (new Long(TransferRelationMonitorTransferRelation.totalNumberOfTransfers)).doubleValue());
     NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.getDefault());
     numberFormat.setMaximumFractionDigits(2);
 
-    pOut.println("Max. Post Time:            " + TransferRelationMonitorElement.maxTimeOfTransfer + "ms");
+    pOut.println("Max. Post Time:            " + TransferRelationMonitorTransferRelation.maxTimeOfTransfer + "ms");
     pOut.println("Av Post Time:              " + numberFormat.format(averageTransferTime) + "ms");
     pOut.println("Max Post time on a path:   " + TransferRelationMonitorElement.maxTotalTimeForPath + "ms" );
     pOut.println("Max size of a single path: " + TransferRelationMonitorTransferRelation.maxSizeOfSinglePath);

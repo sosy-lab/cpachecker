@@ -31,11 +31,8 @@ import com.google.common.base.Preconditions;
 
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
-  static long maxTimeOfTransfer = 0;
   static long maxTotalTimeForPath = 0;
-  static long totalTimeOfTransfer = 0;
 
-  private long timeOfTransferToComputeElement = 0;
   private long totalTimeOnThePath = 0;
 
   private final int branchesOnPath;
@@ -51,16 +48,8 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     this.branchesOnPath = branchesOnPath;
   }
 
-  protected void setTransferTime(long pTransferTime){
-    timeOfTransferToComputeElement = pTransferTime;
-    totalTimeOfTransfer = totalTimeOfTransfer + pTransferTime;
-    if(timeOfTransferToComputeElement > maxTimeOfTransfer){
-      maxTimeOfTransfer = timeOfTransferToComputeElement;
-    }
-  }
-
   protected void setTotalTime(long pTotalTime){
-    totalTimeOnThePath = pTotalTime + timeOfTransferToComputeElement;
+    totalTimeOnThePath = pTotalTime;
     if(totalTimeOnThePath > maxTotalTimeForPath){
       maxTotalTimeForPath = totalTimeOnThePath;
     }
@@ -105,7 +94,6 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   public String toString() {
     return "No of nodes> " + this.pathLength
     + "\n Total time> " + this.totalTimeOnThePath 
-    + "\n Max Single Operation Time> " + maxTimeOfTransfer
     + "\n Number of Branches" + branchesOnPath;
   }
 

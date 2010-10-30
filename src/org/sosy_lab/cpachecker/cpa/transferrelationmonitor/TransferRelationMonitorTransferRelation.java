@@ -58,6 +58,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   static long maxNumberOfBranches = 0;
   static long totalNumberOfTransfers = 0;
   static long maxTotalTimeForPath = 0;
+  static long maxTimeOfTransfer = 0;
+  static long totalTimeOfTransfer = 0;
 
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
@@ -136,6 +138,11 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     long timeOfExecution = System.currentTimeMillis() - start;
     long totalTimeOnPath = element.getTotalTimeOnThePath() + timeOfExecution;
 
+    totalTimeOfTransfer = totalTimeOfTransfer + timeOfExecution;
+    if (timeOfExecution > maxTimeOfTransfer) {
+      maxTimeOfTransfer = timeOfExecution;
+    }
+    
     if (   (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath)
         || (nodeLimitForPath > 0 && pathLength > nodeLimitForPath)
         || (limitForBranches > 0 && branchesOnPath > limitForBranches)
@@ -146,8 +153,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(absElement, pathLength, branchesOnPath);
-      successorElem.setTransferTime(timeOfExecution);
-      successorElem.setTotalTime(element.getTotalTimeOnThePath());
+      successorElem.setTotalTime(totalTimeOnPath);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
@@ -206,6 +212,11 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     long timeOfExecution = System.currentTimeMillis() - start;
     long totalTimeOnPath = element.getTotalTimeOnThePath() + timeOfExecution;
 
+    totalTimeOfTransfer = totalTimeOfTransfer + timeOfExecution;
+    if (timeOfExecution > maxTimeOfTransfer) {
+      maxTimeOfTransfer = timeOfExecution;
+    }
+    
     if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
       return Collections.emptySet();
     }
@@ -214,8 +225,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     AbstractElement absElement = Iterables.getOnlyElement(successors);
     TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement,
         element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath());
-    successorElement.setTransferTime(timeOfExecution);
-    successorElement.setTotalTime(element.getTotalTimeOnThePath());
+  
+    successorElement.setTotalTime(totalTimeOnPath);
     return Collections.singleton(successorElement);
   }
 
