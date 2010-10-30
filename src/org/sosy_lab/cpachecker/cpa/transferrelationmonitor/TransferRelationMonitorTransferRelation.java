@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,10 +57,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
   static long maxSizeOfSinglePath = 0;
   static long maxNumberOfBranches = 0;
-  static long totalNumberOfTransfers = 0;
   static long maxTotalTimeForPath = 0;
-  static long maxTimeOfTransfer = 0;
-  static long totalTimeOfTransfer = 0;
+  static final Timer totalTimeOfTransfer = new Timer();
 
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
@@ -87,7 +86,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
-    long start = System.currentTimeMillis();
+    totalTimeOfTransfer.start();
 
     int pathLength = element.getNoOfNodesOnPath() + 1;
     int branchesOnPath = element.getNoOfBranchesOnPath();
@@ -96,7 +95,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     }
     
     // statistics
-    totalNumberOfTransfers++;
     if (pathLength > maxSizeOfSinglePath) {
       maxSizeOfSinglePath = pathLength;
     }
@@ -135,13 +133,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       return Collections.emptySet();
     }
 
-    long timeOfExecution = System.currentTimeMillis() - start;
+    long timeOfExecution = totalTimeOfTransfer.stop();
     long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
-    totalTimeOfTransfer = totalTimeOfTransfer + timeOfExecution;
-    if (timeOfExecution > maxTimeOfTransfer) {
-      maxTimeOfTransfer = timeOfExecution;
-    }
     if (totalTimeOnPath > maxTotalTimeForPath) {
       maxTotalTimeForPath = totalTimeOnPath;
     }
@@ -170,7 +164,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
     Collection<? extends AbstractElement> successors;
     
-    long start = System.currentTimeMillis();
+    totalTimeOfTransfer.start();
 
     StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),
         otherElements, cfaEdge, precision);
@@ -213,13 +207,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       return Collections.emptySet();
     }
 
-    long timeOfExecution = System.currentTimeMillis() - start;
+    long timeOfExecution = totalTimeOfTransfer.stop();
     long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
-    totalTimeOfTransfer = totalTimeOfTransfer + timeOfExecution;
-    if (timeOfExecution > maxTimeOfTransfer) {
-      maxTimeOfTransfer = timeOfExecution;
-    }
     if (totalTimeOnPath > maxTotalTimeForPath) {
       maxTotalTimeForPath = totalTimeOnPath;
     }
