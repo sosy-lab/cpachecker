@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -145,27 +147,74 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)element;
     AbstractElement wrappedElement = monitorElement.getWrappedElement();
     List<AbstractElement> retList = new ArrayList<AbstractElement>();
+    Collection<? extends AbstractElement> returnedElems = null;
+    
+    long start = System.currentTimeMillis();
 
-    try {
-      Collection<? extends AbstractElement> wrappedList = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
+    StrengthenCallable sc = new StrengthenCallable(transferRelation, wrappedElement,
+        otherElements, cfaEdge, precision);
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();    
+    
+    if (timeLimit == 0) {
+      try {
+        returnedElems = sc.call();
+      } catch (CPATransferException e) {
+        e.printStackTrace();
+      }
+    } else {
+      Future<Collection<? extends AbstractElement>> future = executor.submit(sc);
+      try {
+        System.out.println("starting computation");
+        // here we get the result of the post computation but there is a time limit
+        // given to complete the task specified by timeLimit
+        returnedElems = future.get(timeLimit, TimeUnit.MILLISECONDS);
+        System.out.println("conputation ended");
+      } catch (TimeoutException e){
+        System.out.println("timed out");
+        executor.shutdown();
+        return Collections.emptySet();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        executor.shutdown();
+        return Collections.emptySet();
+      } catch (ExecutionException e) {
+        // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
+        executor.shutdown();
+        throw new AssertionError(e);
+      }
+    }
+    executor.shutdown();
+    
+    long timeOfExecution = System.currentTimeMillis() - start;
+    
+//    try {
+      //Collection<? extends AbstractElement> wrappedList = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
       // if the returned list is null return null
-      if(wrappedList == null)
+      if(returnedElems == null)
         return null;
       // TODO we assume that only one element is returned or empty set to represent bottom
-      assert(wrappedList.size() < 2);
+      assert(returnedElems.size() < 2);
       // if bottom return empty list
-      if(wrappedList.size() == 0){
+      if(returnedElems.size() == 0){
         return retList;
       }
 
-      AbstractElement wrappedReturnElement = wrappedList.iterator().next();
+      AbstractElement wrappedReturnElement = returnedElems.iterator().next();
+      TransferRelationMonitorElement retElem = new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement);
+      retElem.setTransferTime(timeOfExecution);
+      retElem.setTotalTime(monitorElement.isIgnore(), monitorElement.getTotalTimeOnThePath());
       retList.add(new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement));
+      if(    (timeLimitForPath > 0 && retElem.getTotalTimeOnThePath() > timeLimitForPath)
+          || (nodeLimitForPath > 0 && retElem.getNoOfNodesOnPath() > nodeLimitForPath)
+          ){
+        return Collections.emptySet();
+      }
       return retList;
-    } catch (CPATransferException e) {
-      e.printStackTrace();
-    }
+//    } catch (CPATransferException e) {
+//      e.printStackTrace();
+//    }
 
-    return null;
   }
 
   private static class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
@@ -186,6 +235,29 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     @Override
     public Collection<? extends AbstractElement> call() throws CPATransferException {
       return transferRelation.getAbstractSuccessors(abstractElement, precision, cfaEdge);
+    }
+  }
+  
+  private static class StrengthenCallable implements Callable<Collection<? extends AbstractElement>>{
+
+    private final TransferRelation transferRelation;
+    private final CFAEdge cfaEdge;
+    private final AbstractElement abstractElement;
+    private final List<AbstractElement> otherElements;
+    private final Precision precision;
+
+    private StrengthenCallable(TransferRelation transferRelation, AbstractElement abstractElement, 
+        List<AbstractElement> otherElements, CFAEdge cfaEdge, Precision precision) {
+      this.transferRelation = transferRelation;
+      this.cfaEdge = cfaEdge;
+      this.abstractElement = abstractElement;
+      this.otherElements = otherElements;
+      this.precision = precision;
+    }
+
+    @Override
+    public Collection<? extends AbstractElement> call() throws CPATransferException {
+      return transferRelation.strengthen(abstractElement, otherElements, cfaEdge, precision);
     }
   }
 }
