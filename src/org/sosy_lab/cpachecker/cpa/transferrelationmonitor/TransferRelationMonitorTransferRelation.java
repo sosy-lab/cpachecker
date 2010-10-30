@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
@@ -225,12 +224,15 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       return Collections.emptySet();
     }
 
-    // TODO we assume that only one element is returned or empty set to represent bottom
-    AbstractElement absElement = Iterables.getOnlyElement(successors);
-    TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement,
-        element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath);
-  
-    return Collections.singleton(successorElement);
+    // wrap elements
+    List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
+    for (AbstractElement absElement : successors) {
+      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(
+          absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath);
+      
+      wrappedSuccessors.add(successorElem);
+    }
+    return wrappedSuccessors;
   }
 
   private static class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
