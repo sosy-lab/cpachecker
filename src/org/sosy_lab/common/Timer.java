@@ -113,12 +113,12 @@ public class Timer {
   }
 
   /**
-   * formats a given time into a String with the format "12345.123s"
+   * formats a given time in milliseconds into a String with the format "12345.123s"
    * 
    * @param time
    * @return formated String
    */
-  private static String formatTime(long time) {
+  public static String formatTime(long time) {
     return String.format("%5d.%03ds", time / 1000, time % 1000);
   }
 
