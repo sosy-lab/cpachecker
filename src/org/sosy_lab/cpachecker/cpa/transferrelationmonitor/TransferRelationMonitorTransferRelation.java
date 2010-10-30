@@ -165,26 +165,24 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     } else {
       Future<Collection<? extends AbstractElement>> future = executor.submit(sc);
       try {
-        System.out.println("starting computation");
         // here we get the result of the post computation but there is a time limit
         // given to complete the task specified by timeLimit
         returnedElems = future.get(timeLimit, TimeUnit.MILLISECONDS);
-        System.out.println("conputation ended");
       } catch (TimeoutException e){
         System.out.println("timed out");
-        executor.shutdown();
+        executor.shutdownNow();
         return Collections.emptySet();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        executor.shutdown();
+        executor.shutdownNow();
         return Collections.emptySet();
       } catch (ExecutionException e) {
         // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
-        executor.shutdown();
+        executor.shutdownNow();
         throw new AssertionError(e);
       }
     }
-    executor.shutdown();
+    executor.shutdownNow();
     
     long timeOfExecution = System.currentTimeMillis() - start;
     
