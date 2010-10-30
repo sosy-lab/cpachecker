@@ -60,6 +60,11 @@ public class TransferRelationMonitorMerge implements MergeOperator{
         Math.max(transferRelationMonitorElement1.getTotalTimeOnThePath(),
         transferRelationMonitorElement2.getTotalTimeOnThePath()));
 
+    mergedElement.setNoOfNodesOnPath(Math.max(transferRelationMonitorElement1.getNoOfNodesOnPath(),
+                                              transferRelationMonitorElement2.getNoOfNodesOnPath()));
+    mergedElement.setNoOfBranches(Math.max(transferRelationMonitorElement1.getNoOfBranchesOnPath(),
+                                           transferRelationMonitorElement2.getNoOfBranchesOnPath()));
+    
     return mergedElement;
   }
 
