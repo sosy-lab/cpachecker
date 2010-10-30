@@ -129,12 +129,10 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
       if (element.getNoOfNodesOnPath() > maxSizeOfSinglePath) {
         maxSizeOfSinglePath = element.getNoOfNodesOnPath();
-        if(limitForBranches > 0 &&  successorElem.getNoOfBranchesOnPath() > limitForBranches) {
-          return Collections.emptySet();
-        }
       }
       if (   (timeLimitForPath > 0 && successorElem.getTotalTimeOnThePath() > timeLimitForPath)
           || (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)
+          || (limitForBranches > 0 &&  successorElem.getNoOfBranchesOnPath() > limitForBranches)
           ) {
         return Collections.emptySet();
       }
