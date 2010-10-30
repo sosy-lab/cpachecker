@@ -72,7 +72,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new TransferRelationMonitorElement(getWrappedCpa().getInitialElement(pNode));
+    return new TransferRelationMonitorElement(getWrappedCpa().getInitialElement(pNode), 1, 0);
   }
 
   @Override

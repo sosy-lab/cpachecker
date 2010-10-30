@@ -27,24 +27,29 @@ import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Preconditions;
+
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
   static long maxTimeOfTransfer = 0;
   static long maxTotalTimeForPath = 0;
   static long totalTimeOfTransfer = 0;
-  
-  private boolean shouldStop = false;
 
   private long timeOfTransferToComputeElement = 0;
   private long totalTimeOnThePath = 0;
-  private int numberOfBranches = 0;
+
+  private final int branchesOnPath;
+  private final int pathLength;
 
   private boolean ignore = false;
+  private boolean shouldStop = false;
   
-  private int noOfNodesOnPath;
-
-  protected TransferRelationMonitorElement(AbstractElement pWrappedElement) {
+  protected TransferRelationMonitorElement(AbstractElement pWrappedElement,
+      int pathLength, int branchesOnPath) {
     super(pWrappedElement);
+    Preconditions.checkArgument(pathLength > branchesOnPath);
+    this.pathLength = pathLength;
+    this.branchesOnPath = branchesOnPath;
   }
 
   protected void setTransferTime(long pTransferTime){
@@ -98,27 +103,19 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     return ignore;
   }
 
-  public void setNoOfNodesOnPath(int noOfNodesOnPath) {
-    this.noOfNodesOnPath = noOfNodesOnPath;
-  }
-
   public int getNoOfNodesOnPath() {
-    return noOfNodesOnPath;
+    return pathLength;
   }
   
   @Override
   public String toString() {
-    return "No of nodes> " + this.noOfNodesOnPath
+    return "No of nodes> " + this.pathLength
     + "\n Total time> " + this.totalTimeOnThePath 
     + "\n Max Single Operation Time> " + maxTimeOfTransfer
-    + "\n Number of Branches" + numberOfBranches;
+    + "\n Number of Branches" + branchesOnPath;
   }
 
   public int getNoOfBranchesOnPath() {
-    return numberOfBranches;
-  }
-
-  public void setNoOfBranches(int pI) {
-    numberOfBranches = pI;
+    return branchesOnPath;
   }
 }

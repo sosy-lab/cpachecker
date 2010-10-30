@@ -145,11 +145,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
     List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(absElement);
+      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(absElement, pathLength, branchesOnPath);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
-      successorElem.setNoOfNodesOnPath(pathLength);
-      successorElem.setNoOfBranches(branchesOnPath);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
@@ -214,11 +212,10 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
     // TODO we assume that only one element is returned or empty set to represent bottom
     AbstractElement absElement = Iterables.getOnlyElement(successors);
-    TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement);
+    TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement,
+        element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath());
     successorElement.setTransferTime(timeOfExecution);
     successorElement.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
-    successorElement.setNoOfBranches(element.getNoOfBranchesOnPath());
-    successorElement.setNoOfNodesOnPath(element.getNoOfNodesOnPath());
     return Collections.singleton(successorElement);
   }
 
