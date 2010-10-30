@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
@@ -49,7 +48,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+  private final TransferRelationMonitorTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
@@ -62,7 +61,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
     precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
     mergeOperator = new TransferRelationMonitorMerge(getWrappedCpa());
     stopOperator = new TransferRelationMonitorStop(getWrappedCpa());
-    stats = new TransferMonitorStatistics();
+    stats = new TransferRelationMonitorStatistics(this);
   }
 
   @Override
@@ -91,7 +90,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public TransferRelationMonitorTransferRelation getTransferRelation() {
     return this.transferRelation;
   }
 

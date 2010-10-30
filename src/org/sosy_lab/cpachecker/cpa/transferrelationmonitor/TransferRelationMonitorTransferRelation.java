@@ -54,10 +54,10 @@ import com.google.common.base.Throwables;
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
-  static long maxSizeOfSinglePath = 0;
-  static long maxNumberOfBranches = 0;
-  static long maxTotalTimeForPath = 0;
-  static final Timer totalTimeOfTransfer = new Timer();
+  long maxSizeOfSinglePath = 0;
+  long maxNumberOfBranches = 0;
+  long maxTotalTimeForPath = 0;
+  final Timer totalTimeOfTransfer = new Timer();
 
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
