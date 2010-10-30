@@ -200,6 +200,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     successorElement.setTransferTime(timeOfExecution);
     successorElement.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
     successorElement.setNoOfBranches(element.getNoOfBranchesOnPath());
+    successorElement.setNoOfNodesOnPath(element.getNoOfNodesOnPath());
     retList.add(successorElement);
     if (   (timeLimitForPath > 0 && successorElement.getTotalTimeOnThePath() > timeLimitForPath)
         || (nodeLimitForPath > 0 && successorElement.getNoOfNodesOnPath() > nodeLimitForPath)
