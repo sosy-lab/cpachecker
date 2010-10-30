@@ -88,20 +88,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
     totalTimeOfTransfer.start();
 
-    int pathLength = element.getNoOfNodesOnPath() + 1;
-    int branchesOnPath = element.getNoOfBranchesOnPath();
-    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
-      branchesOnPath++;  
-    }
-    
-    // statistics
-    if (pathLength > maxSizeOfSinglePath) {
-      maxSizeOfSinglePath = pathLength;
-    }
-    if(branchesOnPath > maxNumberOfBranches){
-      maxNumberOfBranches = branchesOnPath;
-    }
-
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
         element.getWrappedElement(), pPrecision);
 
@@ -128,18 +114,35 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
         throw new AssertionError(e);
       }
     }
-    
-    if (successors.isEmpty()) {
-      return Collections.emptySet();
-    }
 
+    // update time information
     long timeOfExecution = totalTimeOfTransfer.stop();
     long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
     if (totalTimeOnPath > maxTotalTimeForPath) {
       maxTotalTimeForPath = totalTimeOnPath;
     }
+    
+    // return if there are no successors
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
+    }
+    
+    // update path length information
+    int pathLength = element.getNoOfNodesOnPath() + 1;
+    int branchesOnPath = element.getNoOfBranchesOnPath();
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
+      branchesOnPath++;  
+    }
+    
+    if (pathLength > maxSizeOfSinglePath) {
+      maxSizeOfSinglePath = pathLength;
+    }
+    if(branchesOnPath > maxNumberOfBranches){
+      maxNumberOfBranches = branchesOnPath;
+    }
 
+    // check for violation of limits
     if (   (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath)
         || (nodeLimitForPath > 0 && pathLength > nodeLimitForPath)
         || (limitForBranches > 0 && branchesOnPath > limitForBranches)
@@ -147,6 +150,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       return Collections.emptySet();
     }
 
+    // wrap elements
     List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(
@@ -162,8 +166,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) throws CPATransferException {
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
-    Collection<? extends AbstractElement> successors;
-    
     totalTimeOfTransfer.start();
 
     StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),
@@ -171,6 +173,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
     ExecutorService executor = Executors.newSingleThreadExecutor();    
     
+    Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
       successors = sc.call();
     } else {
@@ -197,23 +200,27 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
     }
     executor.shutdownNow();
-    
-    // if the returned list is null return null
-    if (successors == null) {
-      return null;
-    }
-    // if bottom return empty list
-    if (successors.isEmpty()) {
-      return Collections.emptySet();
-    }
 
+    // update time information
     long timeOfExecution = totalTimeOfTransfer.stop();
     long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
     if (totalTimeOnPath > maxTotalTimeForPath) {
       maxTotalTimeForPath = totalTimeOnPath;
     }
+    
+    // if the returned list is null return null
+    if (successors == null) {
+      return null;
+    }
+    // return if there are no successors
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
+    }
 
+    // no need to update path length information here
+    
+    // check for violation of limits
     if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
       return Collections.emptySet();
     }
