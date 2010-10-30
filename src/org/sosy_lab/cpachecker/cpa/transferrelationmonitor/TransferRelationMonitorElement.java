@@ -29,11 +29,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
-  public static long maxTimeOfTransfer = 0;
-  public static long maxTotalTimeForPath = 0;
-  public static long totalTimeOfTransfer = 0;
-  public static long totalNumberOfTransfers = 0;
-  public static long maxNumberOfBranches = 0;
+  static long maxTimeOfTransfer = 0;
+  static long maxTotalTimeForPath = 0;
+  static long totalTimeOfTransfer = 0;
   
   private boolean shouldStop = false;
 
@@ -52,7 +50,6 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   protected void setTransferTime(long pTransferTime){
     timeOfTransferToComputeElement = pTransferTime;
     totalTimeOfTransfer = totalTimeOfTransfer + pTransferTime;
-    totalNumberOfTransfers ++;
     if(timeOfTransferToComputeElement > maxTimeOfTransfer){
       maxTimeOfTransfer = timeOfTransferToComputeElement;
     }
@@ -123,9 +120,5 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
 
   public void setNoOfBranches(int pI) {
     numberOfBranches = pI;
-    if(numberOfBranches > maxNumberOfBranches){
-      maxNumberOfBranches = numberOfBranches;
-    }
-    
   }
 }

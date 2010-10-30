@@ -20,7 +20,7 @@ public class TransferMonitorStatistics implements Statistics{
       ReachedSet pReached) {
 
     double averageTransferTime = ((new Long(TransferRelationMonitorElement.totalTimeOfTransfer)).doubleValue() /
-        (new Long(TransferRelationMonitorElement.totalNumberOfTransfers)).doubleValue());
+        (new Long(TransferRelationMonitorTransferRelation.totalNumberOfTransfers)).doubleValue());
     NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.getDefault());
     numberFormat.setMaximumFractionDigits(2);
 
@@ -28,7 +28,7 @@ public class TransferMonitorStatistics implements Statistics{
     pOut.println("Av Post Time:              " + numberFormat.format(averageTransferTime) + "ms");
     pOut.println("Max Post time on a path:   " + TransferRelationMonitorElement.maxTotalTimeForPath + "ms" );
     pOut.println("Max size of a single path: " + TransferRelationMonitorTransferRelation.maxSizeOfSinglePath);
-    pOut.println("Max number of branches:    " + TransferRelationMonitorElement.maxNumberOfBranches);
+    pOut.println("Max number of branches:    " + TransferRelationMonitorTransferRelation.maxNumberOfBranches);
   }
 
 }

@@ -54,8 +54,10 @@ import com.google.common.collect.Iterables;
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
-  private final TransferRelation transferRelation;
-  public static long maxSizeOfSinglePath = 0;
+  static long maxSizeOfSinglePath = 0;
+  static long maxNumberOfBranches = 0;
+  static long totalNumberOfTransfers = 0;
+  static long maxTotalTimeForPath = 0;
 
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
@@ -69,6 +71,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   @Option(name="brancheslimit")
   private long limitForBranches = 0;
   
+  private final TransferRelation transferRelation;
+
   public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -81,12 +85,27 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
-    Collection<? extends AbstractElement> successors;
     long start = System.currentTimeMillis();
+
+    int pathLength = element.getNoOfNodesOnPath() + 1;
+    int branchesOnPath = element.getNoOfBranchesOnPath();
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
+      branchesOnPath++;  
+    }
+    
+    // statistics
+    totalNumberOfTransfers++;
+    if (pathLength > maxSizeOfSinglePath) {
+      maxSizeOfSinglePath = pathLength;
+    }
+    if(branchesOnPath > maxNumberOfBranches){
+      maxNumberOfBranches = branchesOnPath;
+    }
 
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
         element.getWrappedElement(), pPrecision);
 
+    Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
       successors = tc.call();
     } else {
@@ -109,10 +128,18 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
         throw new AssertionError(e);
       }
     }
+    
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
+    }
 
     long timeOfExecution = System.currentTimeMillis() - start;
+    long totalTimeOnPath = element.getTotalTimeOnThePath() + timeOfExecution;
 
-    if (successors.isEmpty()) {
+    if (   (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath)
+        || (nodeLimitForPath > 0 && pathLength > nodeLimitForPath)
+        || (limitForBranches > 0 && branchesOnPath > limitForBranches)
+        ) {
       return Collections.emptySet();
     }
 
@@ -121,21 +148,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
-      successorElem.setNoOfNodesOnPath(element.getNoOfNodesOnPath()+1);
-      if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
-        successorElem.setNoOfBranches(element.getNoOfBranchesOnPath()+1);  
-      } else {
-        successorElem.setNoOfBranches(element.getNoOfBranchesOnPath());
-      }
-      if (element.getNoOfNodesOnPath() > maxSizeOfSinglePath) {
-        maxSizeOfSinglePath = element.getNoOfNodesOnPath();
-      }
-      if (   (timeLimitForPath > 0 && successorElem.getTotalTimeOnThePath() > timeLimitForPath)
-          || (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)
-          || (limitForBranches > 0 &&  successorElem.getNoOfBranchesOnPath() > limitForBranches)
-          ) {
-        return Collections.emptySet();
-      }
+      successorElem.setNoOfNodesOnPath(pathLength);
+      successorElem.setNoOfBranches(branchesOnPath);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
@@ -182,8 +196,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     }
     executor.shutdownNow();
     
-    long timeOfExecution = System.currentTimeMillis() - start;
-    
     // if the returned list is null return null
     if (successors == null) {
       return null;
@@ -193,7 +205,13 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       return Collections.emptySet();
     }
 
-    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+    long timeOfExecution = System.currentTimeMillis() - start;
+    long totalTimeOnPath = element.getTotalTimeOnThePath() + timeOfExecution;
+
+    if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+      return Collections.emptySet();
+    }
+
     // TODO we assume that only one element is returned or empty set to represent bottom
     AbstractElement absElement = Iterables.getOnlyElement(successors);
     TransferRelationMonitorElement successorElement = new TransferRelationMonitorElement(absElement);
@@ -201,13 +219,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     successorElement.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
     successorElement.setNoOfBranches(element.getNoOfBranchesOnPath());
     successorElement.setNoOfNodesOnPath(element.getNoOfNodesOnPath());
-    retList.add(successorElement);
-    if (   (timeLimitForPath > 0 && successorElement.getTotalTimeOnThePath() > timeLimitForPath)
-        || (nodeLimitForPath > 0 && successorElement.getNoOfNodesOnPath() > nodeLimitForPath)
-        ) {
-      return Collections.emptySet();
-    }
-    return retList;
+    return Collections.singleton(successorElement);
   }
 
   private static class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
