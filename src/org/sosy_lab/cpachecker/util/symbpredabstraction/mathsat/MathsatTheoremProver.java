@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
@@ -55,6 +56,13 @@ public class MathsatTheoremProver implements TheoremProver {
     pop();
     assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
+  }
+  
+  @Override
+  public Model getModel() {
+    Preconditions.checkState(curEnv != 0);
+    
+    return MathsatModel.createMathsatModel(curEnv);
   }
 
   @Override

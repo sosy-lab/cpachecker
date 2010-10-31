@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
@@ -416,5 +417,10 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public void reset() {}
+
+    @Override
+    public Model getModel() {
+      return new Model();
+    }
 
 }
