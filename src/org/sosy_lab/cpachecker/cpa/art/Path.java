@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 
 /**
- * Path contains a path throught the ART that starts at the root node.
+ * Path contains a path through the ART that starts at the root node.
  * It is implemented as a list of pairs of an ARTElement and a CFAEdge,
  * where the edge of a pair is the outgoing edge of the element.
  * The first pair contains the root node of the ART.
