@@ -136,4 +136,28 @@ public class SSAMap extends ReadableSSAMap {
     return new UnmodifiableSSAMap(this);
   }
   
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (pOther.getClass().equals(getClass())) {
+      SSAMap lSSAMap = (SSAMap)pOther;
+      
+      return lSSAMap.VARIABLES.equals(VARIABLES) && lSSAMap.FUNCTIONS.equals(FUNCTIONS);
+    }
+    
+    return false;
+  }
+  
+  @Override
+  public int hashCode() {
+    return 37 * VARIABLES.hashCode() + FUNCTIONS.hashCode();
+  }
+  
 }
