@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -59,10 +60,16 @@ class SymbPredAbsCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final SymbPredAbsCPA cpa;
+    private SymbPredAbsRefiner refiner = null;
 
     public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsAbstractDomain pDomain) throws InvalidConfigurationException {
       this.cpa = cpa;
       cpa.getConfiguration().inject(this);
+    }
+    
+    void addRefiner(SymbPredAbsRefiner ref) {
+      Preconditions.checkState(refiner == null);
+      refiner = ref;
     }
 
     @Override
@@ -178,12 +185,16 @@ class SymbPredAbsCPAStatistics implements Statistics {
       if (domain.numSymbolicCoverageCheck > 0) {
         out.println("  Time for symbolic coverage checks: " + toTime(domain.bddCoverageCheckTime));
       }
-      if (bs.numCallsCexAnalysis > 0) {
-        out.println("Time for counterexample analysis:    " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
-        out.println("  Solving time only:                 " + toTime(bs.cexAnalysisSolverTime) + " (Max: " + toTime(bs.cexAnalysisMaxSolverTime) + ")");
+      if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
+        out.println("Time for refinement:                 " + refiner.totalRefinement);
+        out.println("  Counterexample analysis:           " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
         if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
-          out.println("  Cex.focusing:                " + toTime(bs.cexAnalysisGetUsefulBlocksTime) + " (Max: " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime) + ")");
+          out.println("    Cex.focusing:                    " + toTime(bs.cexAnalysisGetUsefulBlocksTime) + " (Max: " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime) + ")");
         }
+        out.println("    Solving time only:               " + toTime(bs.cexAnalysisSolverTime) + " (Max: " + toTime(bs.cexAnalysisMaxSolverTime) + ")");
+        out.println("  Precision update:                  " + refiner.precisionUpdate);
+        out.println("  ART update:                        " + refiner.artUpdate);
+        out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
     }
 

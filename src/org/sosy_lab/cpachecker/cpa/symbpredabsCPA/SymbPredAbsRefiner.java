@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -77,6 +78,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
   private File dumpCexFile = new File("counterexample.msat");
 
+  final Timer totalRefinement = new Timer();
+  final Timer precisionUpdate = new Timer();
+  final Timer artUpdate = new Timer();
+  final Timer errorPathProcessing = new Timer();
+
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
@@ -94,11 +100,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     symbPredAbsCpa.getConfiguration().inject(this);
     logger = symbPredAbsCpa.getLogger();
     formulaManager = symbPredAbsCpa.getFormulaManager();
+    symbPredAbsCpa.getStats().addRefiner(this);
   }
 
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
-
+    totalRefinement.start();
     logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
 
     // create path with all abstraction location elements (excluding the initial element)
@@ -139,15 +146,21 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // if error is spurious refine
     if (info.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+      precisionUpdate.start();
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
               performRefinement(oldSymbPredAbsPrecision, path, artPath, info);
+      precisionUpdate.stop();
 
+      artUpdate.start();
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      artUpdate.stop();
+      totalRefinement.stop();
       return true;
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-
+      errorPathProcessing.start();
+      
       targetPath = null;
       boolean preciseInfo = false;
       NavigableMap<Integer, Map<Integer, Boolean>> preds = info.getBranchingPredicates();
@@ -172,7 +185,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
         }
       }
-
+      errorPathProcessing.stop();
+      
       if (exportErrorPath && exportFile != null) {
         if (!preciseInfo) {
           logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
@@ -186,6 +200,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
               + e.getMessage() + ")");
         }
       }
+      totalRefinement.stop();
       return false;
     }
   }

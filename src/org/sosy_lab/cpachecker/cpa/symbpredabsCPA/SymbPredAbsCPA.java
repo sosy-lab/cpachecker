@@ -214,4 +214,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
+  
+  SymbPredAbsCPAStatistics getStats() {
+    return stats;
+  }
 }
