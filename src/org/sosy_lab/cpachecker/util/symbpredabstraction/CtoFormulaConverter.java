@@ -94,6 +94,9 @@ public class CtoFormulaConverter {
 
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
+  
+  @Option
+  private boolean addBranchingInformation = true;
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
@@ -590,18 +593,23 @@ public class CtoFormulaConverter {
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
     
-    // add a unique predicate for each branching decision
-    String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
-
-    SymbolicFormula predFormula = smgr.makePredicateVariable(var, branchingIdx);
-    if (assume.getTruthAssumption() == false) {
-      predFormula = smgr.makeNot(predFormula);
+    SymbolicFormula branchingInformation;
+    if (addBranchingInformation) {
+      // add a unique predicate for each branching decision
+      String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
+  
+      SymbolicFormula predFormula = smgr.makePredicateVariable(var, branchingIdx);
+      if (assume.getTruthAssumption() == false) {
+        predFormula = smgr.makeNot(predFormula);
+      }
+      
+      branchingInformation = smgr.makeEquivalence(edgeFormula, predFormula);
+      branchingInformation = smgr.makeAnd(branchingInformation, predFormula);
+    } else {
+      branchingInformation = smgr.makeTrue();
     }
-    
-    SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
-    equivalence = smgr.makeAnd(equivalence, predFormula);
-    
-    return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, equivalence);
+
+    return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, branchingInformation);
   }
 
   private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)

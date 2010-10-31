@@ -252,6 +252,10 @@ cpas.symbpredabs.abstraction.initialPredicates =
 # cache queries to mathsat
 cpas.symbpredabs.mathsat.useCache = true
 
+# when transforming code to formula,
+# add predicates that help producing more precise error paths
+# (not necessary for SBE)
+cpas.symbpredabs.addBranchingInformation = true
 
 # initialize all variables to 0 when they are declared
 cpas.symbpredabs.initAllVars = false
