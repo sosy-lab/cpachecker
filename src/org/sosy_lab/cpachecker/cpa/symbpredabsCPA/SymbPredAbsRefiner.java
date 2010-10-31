@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -57,25 +55,16 @@ import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.Abs
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   private static final String IMPRECISE_ERROR_PATH_WARNING = "The produced error path is imprecise!";
-
-  private static Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -267,47 +256,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   @Override
   protected Path getTargetPath(Path pPath) {
-    Model model = mCounterexampleTraceInfo.getCounterexample();
-    if (model.isEmpty()) {
-      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
+    NavigableMap<Integer, Map<Integer, Boolean>> preds =
+                                mCounterexampleTraceInfo.getBranchingPredicates();
+    if (preds.isEmpty()) {
       logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
       return pPath;
     }
     
-    NavigableMap<Integer, Map<Integer, Boolean>> preds =
-                                getPredicateValuesFromModel(model);
-    
     return createPathFromPredicateValues(pPath, preds);
-  }
-
-  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(Model model) {
-
-    NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
-    for (AssignableTerm a : model.keySet()) {
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
-        
-        String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
-        if (!name.equals(a.getName())) {
-          // pattern matched, so it's a variable with __pc__ in it
-          
-          String[] parts = name.split("@");
-          assert parts.length == 2;
-          // no NumberFormatException because of RegExp match earlier
-          Integer edgeId = Integer.parseInt(parts[0]);
-          Integer idx = Integer.parseInt(parts[1]);          
-          
-          Map<Integer, Boolean> p = preds.get(idx);
-          if (p == null) {
-            p = new HashMap<Integer, Boolean>(2);
-            preds.put(idx, p);
-          }
-          
-          Boolean value = (Boolean)model.get(a);
-          p.put(edgeId, value);
-        }             
-      }
-    }
-    return preds;
   }
 
   private Path createPathFromPredicateValues(Path pPath,

@@ -33,12 +33,14 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -54,12 +56,16 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -71,6 +77,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -101,6 +108,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   private final InterpolatingTheoremProver<T2> secondItpProver;
 
   private static final int MAX_CACHE_SIZE = 100000;
+
+  private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
+      "^.*" + PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
 
   @Option(name="abstraction.cartesian")
   private boolean cartesianAbstraction = false;
@@ -707,7 +717,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // this way we can figure out which branches make a feasible path
       SymbPredAbsAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
       pItpProver.addFormula(lastElement.getPathFormula().getReachingPathsFormula());
-      
+      Model model;
+      NavigableMap<Integer, Map<Integer, Boolean>> preds;
+
       // need to ask solver for satisfiability again,
       // otherwise model doesn't contain new predicates
       boolean stillSatisfiable = !pItpProver.isUnsat();
@@ -727,9 +739,19 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             "interpolation", stats.numCallsCexAnalysis, "formula", k++);
         dumpFormulaToFile(lastElement.getPathFormula().getReachingPathsFormula(), new File(dumpFile));
         pItpProver.isUnsat();
+        model = pItpProver.getModel();
+        preds = Maps.newTreeMap();
+      } else {
+        model = pItpProver.getModel();
+        if (model.isEmpty()) {
+          logger.log(Level.WARNING, "No satisfying assignment given by solver!");
+          preds = Maps.newTreeMap();
+        } else {
+          preds = getPredicateValuesFromModel(model);
+        }
       }
-      
-      info = new CounterexampleTraceInfo(f, pItpProver.getModel());
+
+      info = new CounterexampleTraceInfo(f, pItpProver.getModel(), preds);
     }
 
     pItpProver.reset();
@@ -1014,7 +1036,37 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
     return preds;    
   }
-  
+
+  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(Model model) {
+
+    NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
+    for (AssignableTerm a : model.keySet()) {
+      if (a instanceof Variable && a.getType() == TermType.Boolean) {
+        
+        String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
+        if (!name.equals(a.getName())) {
+          // pattern matched, so it's a variable with __pc__ in it
+
+          String[] parts = name.split("@");
+          assert parts.length == 2;
+          // no NumberFormatException because of RegExp match earlier
+          Integer edgeId = Integer.parseInt(parts[0]);
+          Integer idx = Integer.parseInt(parts[1]);          
+          
+          Map<Integer, Boolean> p = preds.get(idx);
+          if (p == null) {
+            p = new HashMap<Integer, Boolean>(2);
+            preds.put(idx, p);
+          }
+          
+          Boolean value = (Boolean)model.get(a);
+          p.put(edgeId, value);
+        }             
+      }
+    }
+    return preds;
+  }
+
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
 
     private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;

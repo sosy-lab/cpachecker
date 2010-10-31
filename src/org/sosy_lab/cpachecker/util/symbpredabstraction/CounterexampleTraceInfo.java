@@ -26,13 +26,16 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -49,22 +52,25 @@ public class CounterexampleTraceInfo {
     private final Multimap<AbstractElement, Predicate> pmap;
     private final Model mCounterexampleModel;
     private final List<SymbolicFormula> mCounterexampleFormula;
+    private final NavigableMap<Integer, Map<Integer, Boolean>> branchingPreds;
 
     public CounterexampleTraceInfo() {
       mCounterexampleFormula = Collections.emptyList();
       mCounterexampleModel = null;
       spurious = true;
       pmap = ArrayListMultimap.create();
+      branchingPreds = Maps.newTreeMap();
     }
     
-    public CounterexampleTraceInfo(List<SymbolicFormula> pCounterexampleFormula, Model pModel) {
+    public CounterexampleTraceInfo(List<SymbolicFormula> pCounterexampleFormula, Model pModel, NavigableMap<Integer, Map<Integer, Boolean>> preds) {
       Preconditions.checkNotNull(pCounterexampleFormula);
       Preconditions.checkNotNull(pModel);
       
       mCounterexampleFormula = pCounterexampleFormula;
       mCounterexampleModel = pModel;
       spurious = false;
-      pmap = HashMultimap.create();
+      pmap = ImmutableMultimap.of();
+      branchingPreds = preds;
     }
     
     /**
@@ -115,4 +121,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleModel;
     }
     
+    public NavigableMap<Integer, Map<Integer, Boolean>> getBranchingPredicates() {
+      return branchingPreds;
+    }
 }

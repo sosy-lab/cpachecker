@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -747,7 +748,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     } else {
       // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(f, pItpProver.getModel());
+      info = new CounterexampleTraceInfo(f, pItpProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
