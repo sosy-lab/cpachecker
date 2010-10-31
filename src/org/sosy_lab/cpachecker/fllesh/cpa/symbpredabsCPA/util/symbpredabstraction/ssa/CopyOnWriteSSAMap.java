@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 public class CopyOnWriteSSAMap extends SSAMap {
@@ -17,7 +18,7 @@ public class CopyOnWriteSSAMap extends SSAMap {
   @Override
   public UnmodifiableSSAMap immutable() {
     Map<String, Integer> lVars = null;
-    Map<FuncKey, Integer> lFuncs = null;
+    Map<Pair<String, SymbolicFormulaList>, Integer> lFuncs = null;
     
     if (VARIABLES == mOriginalSSAMap.VARIABLES) {
       lVars = VARIABLES;
@@ -30,7 +31,7 @@ public class CopyOnWriteSSAMap extends SSAMap {
       lFuncs = FUNCTIONS;
     }
     else {
-      lFuncs = new HashMap<FuncKey, Integer>(FUNCTIONS);
+      lFuncs = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(FUNCTIONS);
     }
     
     return new UnmodifiableSSAMap(lVars, lFuncs);
@@ -58,7 +59,7 @@ public class CopyOnWriteSSAMap extends SSAMap {
   @Override
   public void setIndex(String name, SymbolicFormulaList args, int idx) {
     if (FUNCTIONS == mOriginalSSAMap.FUNCTIONS) {
-      FUNCTIONS = new HashMap<FuncKey, Integer>(FUNCTIONS);
+      FUNCTIONS = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(FUNCTIONS);
     }
     
     super.setIndex(name, args, idx);
@@ -71,7 +72,7 @@ public class CopyOnWriteSSAMap extends SSAMap {
     }
     
     if (FUNCTIONS == mOriginalSSAMap.FUNCTIONS) {
-      FUNCTIONS = new HashMap<FuncKey, Integer>(FUNCTIONS);
+      FUNCTIONS = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(FUNCTIONS);
     }
     
     super.update(other);

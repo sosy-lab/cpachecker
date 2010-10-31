@@ -8,7 +8,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 public abstract class ReadableSSAMap {
 
   protected Map<String, Integer> VARIABLES;
-  protected Map<FuncKey, Integer> FUNCTIONS;
+  protected Map<Pair<String, SymbolicFormulaList>, Integer> FUNCTIONS;
   
   /**
    * returns the index of the variable in the map

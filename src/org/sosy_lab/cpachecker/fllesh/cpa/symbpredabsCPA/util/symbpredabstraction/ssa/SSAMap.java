@@ -47,7 +47,7 @@ public class SSAMap extends ReadableSSAMap {
   
   public SSAMap() {
     VARIABLES = new HashMap<String, Integer>();
-    FUNCTIONS = new HashMap<FuncKey, Integer>();
+    FUNCTIONS = new HashMap<Pair<String, SymbolicFormulaList>, Integer>();
   }
   
   public SSAMap(ReadableSSAMap pSSAMap) {
@@ -57,7 +57,7 @@ public class SSAMap extends ReadableSSAMap {
     FUNCTIONS.putAll(pSSAMap.FUNCTIONS);
   }
   
-  protected SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
+  protected SSAMap(Map<String, Integer> vars, Map<Pair<String, SymbolicFormulaList>, Integer> funcs) {
     this.VARIABLES = vars;
     this.FUNCTIONS = funcs;
   }
@@ -79,7 +79,7 @@ public class SSAMap extends ReadableSSAMap {
 
   @Override
   public int getIndex(String name, SymbolicFormulaList args) {
-    Integer i = FUNCTIONS.get(new FuncKey(name, args));
+    Integer i = FUNCTIONS.get(new Pair<String, SymbolicFormulaList>(name, args));
     if (i != null) {
       return i;
     } else {
@@ -89,7 +89,7 @@ public class SSAMap extends ReadableSSAMap {
   }
 
   public void setIndex(String name, SymbolicFormulaList args, int idx) {
-    FUNCTIONS.put(new FuncKey(name, args), idx);
+    FUNCTIONS.put(new Pair<String, SymbolicFormulaList>(name, args), idx);
   }
 
   @Override
@@ -101,8 +101,8 @@ public class SSAMap extends ReadableSSAMap {
   public Collection<Pair<String, SymbolicFormulaList>> allFunctions() {
     List<Pair<String, SymbolicFormulaList>> ret = Lists.newArrayList();
 
-    for (FuncKey k : FUNCTIONS.keySet()) {
-      ret.add(new Pair<String, SymbolicFormulaList>(k.getName(), k.getArgs()));
+    for (Pair<String, SymbolicFormulaList> k : FUNCTIONS.keySet()) {
+      ret.add(new Pair<String, SymbolicFormulaList>(k.getFirst(), k.getSecond()));
     }
     return ret;
   }
@@ -124,7 +124,7 @@ public class SSAMap extends ReadableSSAMap {
         VARIABLES.put(k.getKey(), k.getValue());
       }
     }
-    for (Entry<FuncKey, Integer> k : other.FUNCTIONS.entrySet()) {
+    for (Entry<Pair<String, SymbolicFormulaList>, Integer> k : other.FUNCTIONS.entrySet()) {
       if (!FUNCTIONS.containsKey(k.getKey())) {
         FUNCTIONS.put(k.getKey(), k.getValue());
       }

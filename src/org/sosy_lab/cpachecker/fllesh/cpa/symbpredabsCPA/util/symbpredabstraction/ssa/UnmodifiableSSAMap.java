@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 public class UnmodifiableSSAMap extends SSAMap {
@@ -16,7 +17,7 @@ public class UnmodifiableSSAMap extends SSAMap {
     super(ssa);
   }
   
-  protected UnmodifiableSSAMap(Map<String, Integer> pVariables, Map<FuncKey, Integer> pFunctions) {
+  protected UnmodifiableSSAMap(Map<String, Integer> pVariables, Map<Pair<String, SymbolicFormulaList>, Integer> pFunctions) {
     super(pVariables, pFunctions);
   }
   
