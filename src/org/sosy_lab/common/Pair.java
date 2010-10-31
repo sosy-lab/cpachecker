@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.common;
 
+import com.google.common.base.Function;
+
 
 /**
  * A generic Pair class. Code borrowed from here:
@@ -65,5 +67,31 @@ public class Pair<A, B> {
         if (first == null) return (second == null) ? 0 : second.hashCode() + 1;
         else if (second == null) return first.hashCode() + 2;
         else return first.hashCode() * 17 + second.hashCode();
+    }
+    
+    private static final Function<?,?> PROJECTION_TO_FIRST = new Function<Pair<?, ?>, Object>() {
+      @Override
+      public Object apply(Pair<?, ?> pArg0) {
+        return pArg0.getFirst();
+      }
+    };
+    
+    public static <T> Function<Pair<T,?>,T> getProjectionToFirst() {
+      @SuppressWarnings("unchecked")
+      Function<Pair<T,?>,T> result = (Function<Pair<T,?>,T>)PROJECTION_TO_FIRST;
+      return result;
+    }
+    
+    private static final Function<?,?> PROJECTION_TO_SECOND = new Function<Pair<?, ?>, Object>() {
+      @Override
+      public Object apply(Pair<?, ?> pArg0) {
+        return pArg0.getSecond();
+      }
+    };
+    
+    public static <T,V> Function<Pair<V,T>,T> getProjectionToSecond() {
+      @SuppressWarnings("unchecked")
+      Function<Pair<V,T>,T> result = (Function<Pair<V,T>,T>)PROJECTION_TO_SECOND;
+      return result;
     }
 }

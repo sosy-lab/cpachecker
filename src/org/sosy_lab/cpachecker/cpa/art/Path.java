@@ -36,6 +36,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 /**
  * Path contains a path through the ART that starts at the root node.
  * It is implemented as a list of pairs of an ARTElement and a CFAEdge,
@@ -50,11 +53,11 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   public String toString() {
     StringBuilder sb = new StringBuilder();
 
-    for (Pair<ARTElement, CFAEdge> pair : this) {
+    for (CFAEdge edge : asEdgesList()) {
       sb.append("Line ");
-      sb.append(pair.getSecond().getLineNumber());
+      sb.append(edge.getLineNumber());
       sb.append(": ");
-      sb.append(pair.getSecond());
+      sb.append(edge);
       sb.append("\n");
     }
 
@@ -78,6 +81,11 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     return path;
   }
 
+  public List<CFAEdge> asEdgesList() {
+    Function<Pair<ARTElement, CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
+    return Lists.transform(this, projectionToSecond);
+  }
+  
   /**
    * This method returns the path as C source code, intended to be used with CBMC.
    *
@@ -87,7 +95,6 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   {
     StringBuilder sb = new StringBuilder();
 
-    CFAEdge currentEdge;
     CFAEdgeType currentEdgeType;
 
     sb.append("int main()");
@@ -95,9 +102,8 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     sb.append("{");
     sb.append("\n");
 
-    for(Pair<ARTElement, CFAEdge> pair : this)
+    for(CFAEdge currentEdge : asEdgesList())
     {
-      currentEdge     = pair.getSecond();
       currentEdgeType = currentEdge.getEdgeType();
 
       switch (currentEdgeType)
