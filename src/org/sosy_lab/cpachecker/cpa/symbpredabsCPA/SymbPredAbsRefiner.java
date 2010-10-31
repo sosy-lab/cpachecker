@@ -85,7 +85,10 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   
   @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File exportFile = new File("ErrorPathAssignment.txt");
-  
+
+  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
+  private File dumpCexFile = new File("counterexample.msat");
+
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
@@ -157,6 +160,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       logger.log(Level.FINEST, "Error trace is not spurious");
       
       if (exportErrorPath && exportFile != null) {
+        formulaManager.dumpCounterexampleToFile(info, dumpCexFile);
         try {
           Files.writeFile(exportFile, info.getCounterexample());
         } catch (IOException e) {

@@ -24,8 +24,11 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -44,18 +47,22 @@ import com.google.common.collect.Multimap;
 public class CounterexampleTraceInfo {
     private final boolean spurious;
     private final Multimap<AbstractElement, Predicate> pmap;
-    private final Model mCounterexample;
+    private final Model mCounterexampleModel;
+    private final List<SymbolicFormula> mCounterexampleFormula;
 
     public CounterexampleTraceInfo() {
-      mCounterexample = null;
+      mCounterexampleFormula = Collections.emptyList();
+      mCounterexampleModel = null;
       spurious = true;
       pmap = ArrayListMultimap.create();
     }
     
-    public CounterexampleTraceInfo(Model pModel) {
+    public CounterexampleTraceInfo(List<SymbolicFormula> pCounterexampleFormula, Model pModel) {
+      Preconditions.checkNotNull(pCounterexampleFormula);
       Preconditions.checkNotNull(pModel);
       
-      mCounterexample = pModel;
+      mCounterexampleFormula = pCounterexampleFormula;
+      mCounterexampleModel = pModel;
       spurious = false;
       pmap = HashMultimap.create();
     }
@@ -95,13 +102,17 @@ public class CounterexampleTraceInfo {
     }
     
     public boolean hasCounterexample() {
-      return (mCounterexample != null);
+      return (mCounterexampleModel != null);
+    }
+    
+    public List<SymbolicFormula> getCounterExampleFormulas() {
+      return mCounterexampleFormula;
     }
     
     public Model getCounterexample() {
       Preconditions.checkState(hasCounterexample());
       
-      return mCounterexample;
+      return mCounterexampleModel;
     }
     
 }

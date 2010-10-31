@@ -129,9 +129,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="refinement.addWellScopedPredicates")
   private boolean wellScopedPredicates = false;
 
-  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
-  private File dumpCexFile = new File("counterexample.msat");
-
   @Option(name="refinement.dumpInterpolationProblems")
   private boolean dumpInterpolationProblems = false;
 
@@ -704,17 +701,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     } else {
       // this is a real bug, notify the user
-      
-      // TODO - reconstruct counterexample
-      // For now, we dump the asserted formula to a user-specified file
-      if (dumpCexFile != null) {
-        SymbolicFormula cex = smgr.makeTrue();
-        for (SymbolicFormula part : f) {
-          cex = smgr.makeAnd(cex, part);
-        }
-        dumpFormulaToFile(cex, dumpCexFile);
-      }
-      
+
       // get the reachingPathsFormula and add it to the solver environment
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
@@ -742,7 +729,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         pItpProver.isUnsat();
       }
       
-      info = new CounterexampleTraceInfo(pItpProver.getModel());
+      info = new CounterexampleTraceInfo(f, pItpProver.getModel());
     }
 
     pItpProver.reset();
@@ -760,6 +747,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     return info;
 
+  }
+  
+  @Override
+  public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
+    SymbolicFormula f = smgr.makeTrue();
+    for (SymbolicFormula part : cex.getCounterExampleFormulas()) {
+      f = smgr.makeAnd(f, part);
+    }
+    dumpFormulaToFile(f, file);
   }
 
   /**

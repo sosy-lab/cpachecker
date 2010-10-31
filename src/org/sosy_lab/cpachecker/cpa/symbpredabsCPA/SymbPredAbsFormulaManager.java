@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -75,4 +76,6 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * Create predicates for all atoms in a formula.
      */
     List<Predicate> getAtomsAsPredicates(SymbolicFormula pF);
+
+    void dumpCounterexampleToFile(CounterexampleTraceInfo pCex, File pFile);
 }

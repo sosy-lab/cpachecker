@@ -747,7 +747,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     } else {
       // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(pItpProver.getModel());
+      info = new CounterexampleTraceInfo(f, pItpProver.getModel());
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
