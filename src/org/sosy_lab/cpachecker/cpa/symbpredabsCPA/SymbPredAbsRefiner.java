@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
@@ -63,8 +64,6 @@ import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
-
-  private static final String IMPRECISE_ERROR_PATH_WARNING = "The produced error path is imprecise!";
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -81,6 +80,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
+  private Path targetPath;
   private List<CFANode> lastErrorPath = null;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -147,8 +147,37 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      
+
+      targetPath = null;
+      boolean preciseInfo = false;
+      NavigableMap<Integer, Map<Integer, Boolean>> preds = info.getBranchingPredicates();
+      if (preds.isEmpty()) {
+        logger.log(Level.WARNING, "No information about ART branches available!");
+      } else {
+        targetPath = createPathFromPredicateValues(pPath, preds);
+        
+        // try to create a better satisfying assignment by replaying this single path
+        try {
+          info = formulaManager.checkPath(targetPath.asEdgesList());
+          if (info.isSpurious()) {
+            logger.log(Level.WARNING, "Inconsistent replayed error path!");
+            logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
+            info = mCounterexampleTraceInfo;
+          } else {
+            mCounterexampleTraceInfo = info;
+            preciseInfo = true;
+          }
+        } catch (CPATransferException e) {
+          // path is now suddenly a problem 
+          logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
+        }
+      }
+
       if (exportErrorPath && exportFile != null) {
+        if (!preciseInfo) {
+          logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
+        }
+
         formulaManager.dumpCounterexampleToFile(info, dumpCexFile);
         try {
           Files.writeFile(exportFile, info.getCounterexample());
@@ -256,14 +285,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   @Override
   protected Path getTargetPath(Path pPath) {
-    NavigableMap<Integer, Map<Integer, Boolean>> preds =
-                                mCounterexampleTraceInfo.getBranchingPredicates();
-    if (preds.isEmpty()) {
-      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+    if (targetPath == null) {
+      logger.log(Level.WARNING, "The produced error path is imprecise!");
       return pPath;
     }
-    
-    return createPathFromPredicateValues(pPath, preds);
+    return targetPath;
   }
 
   private Path createPathFromPredicateValues(Path pPath,
@@ -280,8 +306,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       
       case 0:
         logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
-        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-        return pPath;
+        return null;
         
       case 1: // only one successor, easy
         child = Iterables.getOnlyElement(children);
@@ -299,8 +324,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (!(currentEdge instanceof AssumeEdge)) {
             logger.log(Level.WARNING, "ART branches where there is no AssumeEdge!");
-            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-            return pPath;
+            return null;
           }
 
           if (((AssumeEdge)currentEdge).getTruthAssumption()) {
@@ -313,8 +337,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         }
         if (trueEdge == null || falseEdge == null) {
           logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
-          logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-          return pPath;
+          return null;
         }
         assert trueChild != null;
         assert falseChild != null;
@@ -326,8 +349,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
           if (nextEntry == null) {
             logger.log(Level.WARNING, "ART branches without direction information from solver!");
-            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-            return pPath;
+            return null;
           }
           
           currentIdx = nextEntry.getKey();
@@ -346,8 +368,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         
       default:
         logger.log(Level.WARNING, "ART splits with more than two branches!");
-        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-        return pPath;
+        return null;
       }
 
       result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
@@ -358,8 +379,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
     if (currentElement != lastPair.getFirst()) {
       logger.log(Level.WARNING, "ART target path reached the wrong target element!");
-      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-      return pPath;
+      return null;
     }
     result.add(lastPair);
     

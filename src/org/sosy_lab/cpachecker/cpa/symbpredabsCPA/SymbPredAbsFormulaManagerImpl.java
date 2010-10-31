@@ -48,8 +48,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -780,6 +782,28 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     dumpFormulaToFile(f, file);
   }
 
+  @Override
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
+    PathFormula pathFormula = makeEmptyPathFormula();
+    for (CFAEdge edge : pPath) {
+      pathFormula = makeAnd(pathFormula, edge);
+    }
+    SymbolicFormula f = pathFormula.getSymbolicFormula();
+    // ignore reachingPathsFormula here because it is just a simple path
+    
+    thmProver.init();
+    try {
+      thmProver.push(f);
+      if (thmProver.isUnsat(smgr.makeTrue())) {
+        return new CounterexampleTraceInfo();
+      } else {
+        return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
+      }
+    } finally {
+      thmProver.reset();
+    }
+  }
+  
   /**
    * Counterexample analysis and predicate discovery.
    * This method is just an helper to delegate the actual work
