@@ -421,10 +421,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
     thmProver.init();
-    boolean ret = thmProver.isUnsat(toCheck);
-    thmProver.reset();
-
-    return ret;
+    try {
+      return thmProver.isUnsat(toCheck);
+    } finally {
+      thmProver.reset();
+    }
   }
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
@@ -517,10 +518,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     thmProver.init();
-    boolean result = thmProver.isUnsat(f);
-    thmProver.reset();
-
-    return result;
+    try {
+      return thmProver.isUnsat(f);
+    } finally {
+      thmProver.reset();
+    }
   }
 
   /**
