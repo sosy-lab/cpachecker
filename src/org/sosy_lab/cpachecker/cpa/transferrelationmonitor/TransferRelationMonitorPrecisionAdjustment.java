@@ -42,6 +42,7 @@ public class TransferRelationMonitorPrecisionAdjustment implements PrecisionAdju
     totalTimeOfPrecAdj.start();
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
     long totalTimeOfExecution = totalTimeOfPrecAdj.stop();
+    // add total execution time to the total time of the previous element
     long updatedTotalTime = totalTimeOfExecution + element.getTotalTimeOnPath();
     
     AbstractElement newElement = unwrappedResult.getFirst();
@@ -52,13 +53,11 @@ public class TransferRelationMonitorPrecisionAdjustment implements PrecisionAdju
       // nothing has changed
       return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
     }
-      
+      // no. of nodes and no. of branches on the path does not change, just update the
+      // set the adjusted wrapped element and update the time
     TransferRelationMonitorElement resultElement = 
       new TransferRelationMonitorElement(newElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), updatedTotalTime);
 
     return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }
-
-  
-  
 }
