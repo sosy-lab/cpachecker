@@ -161,4 +161,9 @@ public class UnmodifiableSSAMap implements ISSAMap<UnmodifiableSSAMap> {
     return lSSAMapBuilder.build();
   }
   
+  @Override
+  public UnmodifiableSSAMap emptySSAMap() {
+    return UnmodifiableSSAMap.EMPTY_MAP;
+  }
+  
 }

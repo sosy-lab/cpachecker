@@ -110,7 +110,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     
 
     abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
-    MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
+    MathsatSymbolicFormulaManager<UnmodifiableSSAMap> symbolicFormulaManager = new MathsatSymbolicFormulaManager<UnmodifiableSSAMap>(config, logger, UnmodifiableSSAMap.EMPTY_MAP);
     
     TheoremProver<UnmodifiableSSAMap> thmProver;
     if (whichProver.equals("MATHSAT")) {
@@ -122,7 +122,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
+      itpProver = new MathsatInterpolatingProver<UnmodifiableSSAMap>(symbolicFormulaManager, false);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }

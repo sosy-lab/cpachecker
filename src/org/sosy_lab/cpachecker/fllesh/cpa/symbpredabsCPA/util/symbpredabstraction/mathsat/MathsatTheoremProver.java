@@ -41,10 +41,10 @@ import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver<T> {
 
-  private final MathsatSymbolicFormulaManager mgr;
+  private final MathsatSymbolicFormulaManager<T> mgr;
   private long curEnv;
 
-  public MathsatTheoremProver(MathsatSymbolicFormulaManager pMgr) {
+  public MathsatTheoremProver(MathsatSymbolicFormulaManager<T> pMgr) {
     mgr = pMgr;
     curEnv = 0;
   }
@@ -129,7 +129,7 @@ public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver
   static class MathsatAllSatCallback<T extends ISSAMap<T>> implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final FormulaManager<T> fmgr;
     private final AbstractFormulaManager amgr;
-    private final MathsatSymbolicFormulaManager mSymbolicFormulaManager;
+    private final MathsatSymbolicFormulaManager<T> mSymbolicFormulaManager;
     
     private long totalTime = 0;
     private int count = 0;
@@ -137,7 +137,7 @@ public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver
     private AbstractFormula formula;
     private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
 
-    MathsatAllSatCallback(FormulaManager<T> fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager pMathsatSymbolicFormulaManager) {
+    MathsatAllSatCallback(FormulaManager<T> fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager<T> pMathsatSymbolicFormulaManager) {
       this.fmgr = fmgr;
       this.amgr = amgr;
       this.formula = amgr.makeFalse();

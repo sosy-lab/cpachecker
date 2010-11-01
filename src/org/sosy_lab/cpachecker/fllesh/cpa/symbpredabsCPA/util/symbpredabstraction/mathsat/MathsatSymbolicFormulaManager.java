@@ -46,14 +46,14 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap.ISSAMapBuilder;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaList;
 
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<UnmodifiableSSAMap>  {
+public class MathsatSymbolicFormulaManager<T extends ISSAMap<T>> implements SymbolicFormulaManager<T>  {
 
   @Option
   private boolean useIntegers = false;
@@ -112,7 +112,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
   private final SymbolicFormula trueFormula;
   private final SymbolicFormula falseFormula;
   
-  public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private final T mEmptySSAMap;
+  
+  public MathsatSymbolicFormulaManager(Configuration config, LogManager logger, T pSSAMap) throws InvalidConfigurationException {
     config.inject(this, MathsatSymbolicFormulaManager.class);
     msatEnv = msat_create_env();
     msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
@@ -135,6 +137,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
         
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
+    
+    mEmptySSAMap = pSSAMap.emptySSAMap();
   }
 
   long getMsatEnv() {
@@ -510,12 +514,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
   }
 
   @Override
-  public SymbolicFormula instantiate(SymbolicFormula f, UnmodifiableSSAMap ssa) {
+  public SymbolicFormula instantiate(SymbolicFormula f, T ssa) {
     return instantiate(f, ssa, new HashMap<SymbolicFormula, SymbolicFormula>());
   }
 
   @Override
-  public SymbolicFormulaList instantiate(SymbolicFormulaList f, UnmodifiableSSAMap ssa) {
+  public SymbolicFormulaList instantiate(SymbolicFormulaList f, T ssa) {
     long[] args = getTerm(f);
     long[] result = new long[args.length];
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
@@ -526,7 +530,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
     return encapsulate(result);
   }
 
-  private SymbolicFormula instantiate(SymbolicFormula f, UnmodifiableSSAMap ssa,
+  private SymbolicFormula instantiate(SymbolicFormula f, T ssa,
                                       Map<SymbolicFormula, SymbolicFormula> cache) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
 
@@ -674,11 +678,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
    * to the formula.
    */
   @Override
-  public Pair<SymbolicFormula, UnmodifiableSSAMap> shift(SymbolicFormula f, UnmodifiableSSAMap ssa) {
+  public Pair<SymbolicFormula, T> shift(SymbolicFormula f, T ssa) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
 
-    ISSAMapBuilder<UnmodifiableSSAMap> lSSAMapBuilder = UnmodifiableSSAMap.EMPTY_MAP.builder();
+    ISSAMapBuilder<T> lSSAMapBuilder = mEmptySSAMap.builder();
     
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -782,7 +786,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
 
     SymbolicFormula result = cache.get(f);
     assert result != null;
-    return new Pair<SymbolicFormula, UnmodifiableSSAMap>(result, lSSAMapBuilder.build());
+    return new Pair<SymbolicFormula, T>(result, lSSAMapBuilder.build());
   }
   
   // returns a formula with some "static learning" about some bitwise
@@ -984,8 +988,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<Unm
    * returns an SSA map for the instantiated formula f
    */
   @Override
-  public UnmodifiableSSAMap extractSSA(SymbolicFormula f) {
-    ISSAMapBuilder<UnmodifiableSSAMap> lSSAMapBuilder = UnmodifiableSSAMap.EMPTY_MAP.builder();
+  public T extractSSA(SymbolicFormula f) {
+    ISSAMapBuilder<T> lSSAMapBuilder = mEmptySSAMap.builder();
     //SSAMap ssa = new SSAMap();
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();

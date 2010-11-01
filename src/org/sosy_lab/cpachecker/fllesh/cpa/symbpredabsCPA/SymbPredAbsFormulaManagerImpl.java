@@ -76,7 +76,7 @@ import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpas.symbpredabs")
-class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager implements SymbPredAbsFormulaManager {
+class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager<UnmodifiableSSAMap> implements SymbPredAbsFormulaManager {
 
   static class Stats {
     public long abstractionTime = 0;
@@ -169,7 +169,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager logger) throws InvalidConfigurationException {
-    super(pAmgr, pSmgr, config, logger);
+    super(pAmgr, pSmgr, config, logger, UnmodifiableSSAMap.EMPTY_MAP);
     config.inject(this);
 
     stats = new Stats();
