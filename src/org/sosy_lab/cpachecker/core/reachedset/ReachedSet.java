@@ -198,27 +198,18 @@ public class ReachedSet implements UnmodifiableReachedSet {
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    
-    switch (traversal) {
-    case BFS:
-    case DFS:
-      waitlist = new SimpleWaitlist(traversal);
-      break;
-    case RAND:
-      waitlist = new RandomWaitlist();
-      break;
-    case TOPSORT:
-      waitlist = new TopsortWaitlist();
-      break;
-    default:
-      throw new IllegalArgumentException("Unknown traversal method " + traversal);  
-    }
-    
+    waitlist = traversal.createWaitlistInstance();
   }
 
   //enumerator for traversal methods
   public enum TraversalMethod {
-    DFS, BFS, TOPSORT, RAND
+    DFS     { @Override Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
+    BFS     { @Override Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
+    TOPSORT { @Override Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
+    RAND    { @Override Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
+    ;
+    
+    abstract Waitlist createWaitlistInstance();
   }
 
   public void add(AbstractElement element, Precision precision) {
