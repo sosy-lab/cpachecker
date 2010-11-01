@@ -201,7 +201,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       } else {
         // no error
-        System.out.println("ERROR label NOT reached");
         stopAnalysis = true;
       }
     }
