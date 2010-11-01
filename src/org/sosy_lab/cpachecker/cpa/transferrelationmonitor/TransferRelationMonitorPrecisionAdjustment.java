@@ -12,8 +12,9 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 
 /**
- * @author erkan
- *
+ * Precision Adjustment for Monitoring.
+ * Simply delegates the operation to the wrapped CPA's precision adjustment operator
+ * and updates the {@link TransferRelationMonitorElement} based on this computation.
  */
 public class TransferRelationMonitorPrecisionAdjustment implements PrecisionAdjustment{
 
