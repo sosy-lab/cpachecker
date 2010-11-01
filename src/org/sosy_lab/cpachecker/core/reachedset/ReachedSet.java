@@ -33,17 +33,16 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -323,7 +322,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getWaitlist() {
+  public Iterable<AbstractElement> getWaitlist() {
     return waitlist.getList();
   }
 
