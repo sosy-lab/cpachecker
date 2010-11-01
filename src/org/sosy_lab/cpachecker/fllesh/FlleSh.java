@@ -833,7 +833,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
     
-    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false);
+    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false, false);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -977,7 +977,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false);
+    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false, false);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1044,7 +1044,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false);
+    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false, false);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {

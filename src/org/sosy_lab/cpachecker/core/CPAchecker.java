@@ -75,7 +75,10 @@ public class CPAchecker {
 
     @Option(name="analysis.traversal")
     ReachedSet.TraversalMethod traversalMethod = ReachedSet.TraversalMethod.DFS;
-    
+
+    @Option(name="analysis.traversal.useCallstack")
+    boolean useCallstack = false;
+
     @Option(name="analysis.traversal.useTopsort")
     boolean useTopSort = false;
 
@@ -280,14 +283,14 @@ public class CPAchecker {
     ReachedSet reached;
     switch (options.reachedSet) {
     case PARTITIONED:
-      reached = new PartitionedReachedSet(options.traversalMethod, options.useTopSort);
+      reached = new PartitionedReachedSet(options.traversalMethod, options.useCallstack, options.useTopSort);
       break;
     case LOCATIONMAPPED:
-      reached = new LocationMappedReachedSet(options.traversalMethod, options.useTopSort);
+      reached = new LocationMappedReachedSet(options.traversalMethod, options.useCallstack, options.useTopSort);
       break;
     case NORMAL:
     default:
-      reached = new ReachedSet(options.traversalMethod, options.useTopSort);
+      reached = new ReachedSet(options.traversalMethod, options.useCallstack, options.useTopSort);
     }
 
     reached.add(initialElement, initialPrecision);

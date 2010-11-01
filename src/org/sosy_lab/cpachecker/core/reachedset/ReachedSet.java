@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -275,6 +276,39 @@ public class ReachedSet implements UnmodifiableReachedSet {
     }
   }
   
+  private static class CallstackWaitlistWrapper extends SortedWaitlistWrapper<Integer> {
+    
+    public CallstackWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
+      super(pSecondaryStrategy);
+    }
+
+    @Override
+    protected Integer getSortKey(AbstractElement pElement) {
+      if (pElement instanceof AbstractWrapperElement) {
+        CallstackElement callstackElement =
+          ((AbstractWrapperElement)pElement).retrieveWrappedElement(CallstackElement.class);
+        if (callstackElement != null) {
+          return callstackElement.getDepth();
+        }
+      }
+      return 0;
+    }
+  }
+  
+  private static class CallstackWaitlistWrapperFactory implements WaitlistFactory {
+    
+    private final WaitlistFactory wrappedWaitlist;
+
+    public CallstackWaitlistWrapperFactory(WaitlistFactory pSecondaryStrategy) {
+      wrappedWaitlist = pSecondaryStrategy;
+    }
+
+    @Override
+    public Waitlist createWaitlistInstance() {
+      return new CallstackWaitlistWrapper(wrappedWaitlist);
+    }
+  }
+
   private static class TopsortWaitlistWrapper extends SortedWaitlistWrapper<Integer> {
     
     public TopsortWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
@@ -321,7 +355,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   };
 
-  public ReachedSet(TraversalMethod traversal, boolean useTopsort) {
+  public ReachedSet(TraversalMethod traversal, boolean useCallstack, boolean useTopsort) {
     Preconditions.checkNotNull(traversal);
 
     reached = new LinkedHashMap<AbstractElement, Precision>();
@@ -331,6 +365,9 @@ public class ReachedSet implements UnmodifiableReachedSet {
     WaitlistFactory factory = traversal;
     if (useTopsort) {
       factory = new TopsortWaitlistWrapperFactory(factory);
+    }
+    if (useCallstack) {
+      factory = new CallstackWaitlistWrapperFactory(factory);
     }
     waitlist = factory.createWaitlistInstance();
   }

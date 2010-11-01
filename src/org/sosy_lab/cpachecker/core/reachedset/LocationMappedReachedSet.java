@@ -36,8 +36,8 @@ public class LocationMappedReachedSet extends ReachedSet {
 
   private final LinkedHashMultimap<CFANode, AbstractElement> locationMappedReached = LinkedHashMultimap.create();
 
-  public LocationMappedReachedSet(TraversalMethod traversal, boolean useTopsort) {
-    super(traversal, useTopsort);
+  public LocationMappedReachedSet(TraversalMethod traversal, boolean useCallstack, boolean useTopsort) {
+    super(traversal, useCallstack, useTopsort);
   }
   
   @Override
