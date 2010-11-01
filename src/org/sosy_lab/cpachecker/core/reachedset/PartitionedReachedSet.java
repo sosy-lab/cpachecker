@@ -47,8 +47,8 @@ public class PartitionedReachedSet extends ReachedSet {
 
   private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
   
-  public PartitionedReachedSet(TraversalMethod traversal) {
-    super(traversal);
+  public PartitionedReachedSet(TraversalMethod traversal, boolean useTopsort) {
+    super(traversal, useTopsort);
   }
   
   @Override

@@ -30,8 +30,13 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
+
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -43,7 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -62,7 +66,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
     boolean contains(AbstractElement element);
     boolean isEmpty();
     AbstractElement pop();
-    void remove(AbstractElement element);
+    boolean remove(AbstractElement element);
     int size();
   }
   
@@ -99,8 +103,8 @@ public class ReachedSet implements UnmodifiableReachedSet {
     }
     
     @Override
-    public void remove(AbstractElement pElement) {
-      waitlist.remove(pElement);
+    public boolean remove(AbstractElement pElement) {
+      return waitlist.remove(pElement);
     }
     
     @Override
@@ -171,6 +175,103 @@ public class ReachedSet implements UnmodifiableReachedSet {
       return result;
     }
   }
+  
+  private static class TopsortWaitlistWrapper implements Waitlist {
+    
+    private final TraversalMethod secondaryStrategy;
+    
+    // invariant: all entries in this map are non-empty
+    private final NavigableMap<Integer, Waitlist> waitlist = new TreeMap<Integer, Waitlist>();
+    
+    private int size = 0;
+
+    public TopsortWaitlistWrapper(TraversalMethod pTraversal) {
+      Preconditions.checkArgument(pTraversal != TraversalMethod.TOPSORT);
+      secondaryStrategy = pTraversal;
+    }
+    
+    private static int getTopsortId(AbstractElement pElement) {
+      return getLocationFromElement(pElement).getTopologicalSortId();
+    }
+    
+    @Override
+    public void add(AbstractElement pElement) {
+      Integer id = getTopsortId(pElement);
+      Waitlist localWaitlist = waitlist.get(id);
+      if (localWaitlist == null) {
+        localWaitlist = secondaryStrategy.createWaitlistInstance();
+        waitlist.put(id, localWaitlist);
+      } else {
+        assert !localWaitlist.isEmpty();
+      }
+      localWaitlist.add(pElement);
+      size++;
+    }
+
+    @Override
+    public boolean contains(AbstractElement pElement) {
+      Integer id = getTopsortId(pElement);
+      Waitlist localWaitlist = waitlist.get(id);
+      if (localWaitlist == null) {
+        return false;
+      }
+      assert !localWaitlist.isEmpty();
+      return localWaitlist.contains(pElement);
+    }
+    
+    @Override
+    public void clear() {
+      waitlist.clear();
+      size = 0;
+    }
+    
+    @Override
+    public boolean isEmpty() {
+      assert waitlist.isEmpty() == (size == 0);
+      return waitlist.isEmpty();
+    }
+    
+    @Override
+    public Iterator<AbstractElement> iterator() {
+      return Iterables.concat(waitlist.values()).iterator();
+    }
+    
+    @Override
+    public AbstractElement pop() {
+      Entry<Integer, Waitlist> highestEntry = waitlist.lastEntry();
+      Waitlist localWaitlist = highestEntry.getValue();
+      assert !localWaitlist.isEmpty();
+      AbstractElement result = localWaitlist.pop();
+      if (localWaitlist.isEmpty()) {
+        waitlist.remove(highestEntry.getKey());
+      }
+      size--;
+      return result;
+    }
+
+    @Override
+    public boolean remove(AbstractElement pElement) {
+      Integer id = getTopsortId(pElement);
+      Waitlist localWaitlist = waitlist.get(id);
+      if (localWaitlist == null) {
+        return false;
+      }
+      assert !localWaitlist.isEmpty();
+      boolean result = localWaitlist.remove(pElement);
+      if (result) {
+        if (localWaitlist.isEmpty()) {
+          waitlist.remove(id);
+        }
+        size--;
+      }
+      return result;
+    }
+    
+    @Override
+    public int size() {
+      return size;
+    }
+  }
 
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
@@ -191,13 +292,18 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   };
 
-  public ReachedSet(TraversalMethod traversal) {
+  public ReachedSet(TraversalMethod traversal, boolean useTopsort) {
     Preconditions.checkNotNull(traversal);
 
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    waitlist = traversal.createWaitlistInstance();
+    
+    if (useTopsort) {
+      waitlist = new TopsortWaitlistWrapper(traversal);
+    } else {
+      waitlist = traversal.createWaitlistInstance();
+    }
   }
 
   //enumerator for traversal methods

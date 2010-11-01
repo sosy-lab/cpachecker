@@ -164,8 +164,15 @@ analysis.useCBMC = false
 # Which CPA to use?
 cpa = cpa.composite.CompositeCPA
 
-# which strategy to adopt for visiting states? dfs, bfs, or topsort
+# which strategy to adopt for visiting states? (DFS, BFS, RAND or TOPSORT)
 analysis.traversal = dfs
+
+# Use an implementation of topsort strategy that allows to select
+# a secondary strategy that is used if there are two elements with
+# the same topsort id.
+# The secondary strategy is selected with "analysis.traversal" (see above).
+# The secondary strategy may not be TOPSORT.
+analysis.traversal.useTopsort = false
 
 # print reached set to text file
 reachedSet.export = true
