@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
@@ -188,7 +187,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    */
   private void addAssumptionsForWaitlist(
       AssumptionWithLocation.Builder invariant,
-      List<AbstractElement> waitlist) {
+      Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
       invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));

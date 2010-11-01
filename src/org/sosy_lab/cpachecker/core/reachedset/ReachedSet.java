@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -53,14 +54,131 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  * All the collections returned from methods of this class ensure this ordering, too.
  */
 public class ReachedSet implements UnmodifiableReachedSet {
+  
+  private static interface Waitlist {
+    
+    void add(AbstractElement element);
+    void clear();
+    boolean contains(AbstractElement element);
+    Collection<AbstractElement> getList();
+    boolean isEmpty();
+    AbstractElement pop();
+    void remove(AbstractElement element);
+    int size();
+  }
+  
+  private static abstract class AbstractWaitlist<T extends Collection<AbstractElement>> implements Waitlist {
+    protected final T waitlist;
+
+    public AbstractWaitlist(T pWaitlist) {
+      waitlist = pWaitlist;
+    }
+
+    @Override
+    public void add(AbstractElement pElement) {
+      waitlist.add(pElement);
+    }
+    
+    @Override
+    public void clear() {
+      waitlist.clear();
+    }
+    
+    @Override
+    public boolean contains(AbstractElement pElement) {
+      return waitlist.contains(pElement);
+    }
+    
+    @Override
+    public Collection<AbstractElement> getList() {
+      return Collections.unmodifiableCollection(waitlist);
+    }
+    
+    @Override
+    public boolean isEmpty() {
+      return waitlist.isEmpty();
+    }
+    
+    @Override
+    public void remove(AbstractElement pElement) {
+      waitlist.remove(pElement);
+    }
+    
+    @Override
+    public int size() {
+      return waitlist.size();
+    }
+  }
+
+  private static class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractElement>> {
+    
+    private final TraversalMethod traversal;
+    
+    public SimpleWaitlist(TraversalMethod pTraversal) {
+      super(new ArrayDeque<AbstractElement>());
+      assert pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS;
+      traversal = pTraversal;
+    }
+    
+    @Override
+    public AbstractElement pop() {
+      switch(traversal) {
+      case BFS:
+        return waitlist.removeFirst();
+
+      case DFS:
+        return waitlist.removeLast();
+      }
+
+      assert false;
+      return null;
+    }
+  }
+  
+  private static class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
+
+    private final Random rand = new Random();
+
+    public RandomWaitlist() {
+      super(new LinkedList<AbstractElement>());
+    }
+    
+    @Override
+    public AbstractElement pop() {
+      int r = rand.nextInt(waitlist.size());
+      return waitlist.remove(r);
+    }
+  }
+  
+  private static class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
+    
+    public TopsortWaitlist() {
+      super(new LinkedList<AbstractElement>());
+    }
+    
+    @Override
+    public AbstractElement pop() {
+      AbstractElement result = null;
+      int resultTopSortId = Integer.MIN_VALUE;
+      for (AbstractElement currentElement : waitlist) {
+        if ((result == null)
+            || (getLocationFromElement(currentElement).getTopologicalSortId() >
+                resultTopSortId)) {
+          result = currentElement;
+          resultTopSortId = getLocationFromElement(result).getTopologicalSortId();
+        }
+      }
+      waitlist.remove(result);
+      return result;
+    }
+  }
 
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
   private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
   private AbstractElement lastElement = null;
   private AbstractElement firstElement = null;
-  private final LinkedList<AbstractElement> waitlist;
-  private final TraversalMethod traversal;
+  private final Waitlist waitlist;
 
   private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair =
     new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
@@ -80,8 +198,22 @@ public class ReachedSet implements UnmodifiableReachedSet {
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    waitlist = new LinkedList<AbstractElement>();
-    this.traversal = traversal;
+    
+    switch (traversal) {
+    case BFS:
+    case DFS:
+      waitlist = new SimpleWaitlist(traversal);
+      break;
+    case RAND:
+      waitlist = new RandomWaitlist();
+      break;
+    case TOPSORT:
+      waitlist = new TopsortWaitlist();
+      break;
+    default:
+      throw new IllegalArgumentException("Unknown traversal method " + traversal);  
+    }
+    
   }
 
   //enumerator for traversal methods
@@ -200,44 +332,12 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
   @Override
-  public List<AbstractElement> getWaitlist() {
-    return Collections.unmodifiableList(waitlist);
+  public Collection<AbstractElement> getWaitlist() {
+    return waitlist.getList();
   }
 
   public AbstractElement popFromWaitlist() {
-    AbstractElement result = null;
-
-    switch(traversal) {
-    case BFS:
-      result = waitlist.removeFirst();
-      break;
-
-    case DFS:
-      result = waitlist.removeLast();
-      break;
-
-    case RAND:
-      Random rand = new Random();
-      int randInd = rand.nextInt(waitlist.size());
-      result = waitlist.remove(randInd);
-      break;
-
-    case TOPSORT:
-    default:
-      int resultTopSortId = Integer.MIN_VALUE;
-      for (AbstractElement currentElement : waitlist) {
-        if ((result == null)
-            || (getLocationFromElement(currentElement).getTopologicalSortId() >
-                resultTopSortId)) {
-          result = currentElement;
-          resultTopSortId = getLocationFromElement(result).getTopologicalSortId();
-        }
-      }
-      waitlist.remove(result);
-      break;
-    }
-
-    return result;
+    return waitlist.pop();
   }
 
   @Override
@@ -273,7 +373,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
     return reached.keySet().toString();
   }
   
-  protected CFANode getLocationFromElement(AbstractElement element) {
+  protected static CFANode getLocationFromElement(AbstractElement element) {
     if (element instanceof AbstractWrapperElement) {
       AbstractElementWithLocation locationElement =
         ((AbstractWrapperElement)element).retrieveLocationElement();
