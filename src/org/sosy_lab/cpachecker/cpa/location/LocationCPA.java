@@ -38,11 +38,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
+  private static final LocationElementFactory elementFactory = new LocationElementFactory();
   private static final AbstractDomain abstractDomain = new FlatLatticeDomain();
-	private static final TransferRelation transferRelation = new LocationTransferRelation();
+	private static final TransferRelation transferRelation = new LocationTransferRelation(elementFactory);
 	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
 	public static CPAFactory factory() {
@@ -76,7 +78,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 
   @Override
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-	  return new LocationElement (node);
+    elementFactory.initialize(node);
+	  return elementFactory.getElement(node);
 	}
 
   @Override

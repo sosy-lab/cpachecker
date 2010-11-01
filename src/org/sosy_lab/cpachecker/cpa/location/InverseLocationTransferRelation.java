@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -41,6 +42,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  *
  */
 public class InverseLocationTransferRelation implements TransferRelation {
+
+  private final LocationElementFactory factory;
+
+  public InverseLocationTransferRelation(LocationElementFactory pFactory) {
+    factory = pFactory;
+  }
 
   private Collection<LocationElement> getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
   {
@@ -53,13 +60,13 @@ public class InverseLocationTransferRelation implements TransferRelation {
       CFAEdge testEdge = node.getEnteringEdge(edgeIdx);
 
       if (testEdge == cfaEdge) {
-        return Collections.singleton(new LocationElement(testEdge.getPredecessor()));
+        return Collections.singleton(factory.getElement(testEdge.getPredecessor()));
       }
     }
 
     if (node.getEnteringSummaryEdge() != null) {
       CallToReturnEdge summaryEdge = node.getEnteringSummaryEdge();
-      return Collections.singleton(new LocationElement(summaryEdge.getPredecessor()));
+      return Collections.singleton(factory.getElement(summaryEdge.getPredecessor()));
     }
 
     return Collections.emptySet();
@@ -80,7 +87,7 @@ public class InverseLocationTransferRelation implements TransferRelation {
     for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++)
     {
       CFAEdge tempEdge = node.getEnteringEdge(edgeIdx);
-      allSuccessors.add (new LocationElement(tempEdge.getPredecessor()));
+      allSuccessors.add(factory.getElement(tempEdge.getPredecessor()));
     }
 
     return allSuccessors;
