@@ -6,14 +6,14 @@ import java.util.Map;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
-public class CopyOnWriteSSAMap implements ISSAMap.ISSAMapBuilder {
+public class CopyOnWriteSSAMapBuilder implements ISSAMap.ISSAMapBuilder {
   
   private UnmodifiableSSAMap mOriginalSSAMap;
   
   Map<String, Integer> VARIABLES;
   Map<Pair<String, SymbolicFormulaList>, Integer> FUNCTIONS;
   
-  public CopyOnWriteSSAMap(UnmodifiableSSAMap pSSAMap) {
+  public CopyOnWriteSSAMapBuilder(UnmodifiableSSAMap pSSAMap) {
     VARIABLES = pSSAMap.VARIABLES;
     FUNCTIONS = pSSAMap.FUNCTIONS;
     mOriginalSSAMap = pSSAMap;
