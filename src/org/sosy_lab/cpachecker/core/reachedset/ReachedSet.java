@@ -219,7 +219,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
     case RAND:
       Random rand = new Random();
       int randInd = rand.nextInt(waitlist.size());
-      result = waitlist.get(randInd);
+      result = waitlist.remove(randInd);
       break;
 
     case TOPSORT:
