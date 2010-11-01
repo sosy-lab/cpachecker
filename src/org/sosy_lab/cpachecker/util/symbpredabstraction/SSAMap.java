@@ -147,7 +147,7 @@ public class SSAMap {
     }
     for (Entry<Pair<String, SymbolicFormulaList>> entry : s2.funcs.entrySet()) {
       Pair<String, SymbolicFormulaList> key = entry.getElement();
-      if (!s1.vars.contains(key)) {
+      if (!s1.funcs.contains(key)) {
         funcsBuilder.setCount(key, entry.getCount());
       }
     }
