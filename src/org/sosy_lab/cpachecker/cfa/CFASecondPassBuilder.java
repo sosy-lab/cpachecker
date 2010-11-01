@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
  * into one CFA by inserting the necessary function call and return edges.
  * @author erkan
  */
-public class CPASecondPassBuilder {
+public class CFASecondPassBuilder {
 
   private final Map<String, CFAFunctionDefinitionNode> cfas;
   private final boolean createCallEdgesForExternalCalls;
@@ -61,7 +61,7 @@ public class CPASecondPassBuilder {
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CPASecondPassBuilder(Map<String, CFAFunctionDefinitionNode> cfas,
+  public CFASecondPassBuilder(Map<String, CFAFunctionDefinitionNode> cfas,
       boolean noCallEdgesForExternalCalls) {
     this.cfas = cfas;
     createCallEdgesForExternalCalls = !noCallEdgesForExternalCalls;

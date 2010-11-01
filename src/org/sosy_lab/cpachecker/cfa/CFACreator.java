@@ -113,7 +113,7 @@ public class CFACreator {
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
   
-      CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExternalCalls);
+      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas, noExternalCalls);
       Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
   
       // remove all functions which are never reached from cfas
