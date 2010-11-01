@@ -167,6 +167,10 @@ cpa = cpa.composite.CompositeCPA
 # which strategy to adopt for visiting states? (DFS, BFS, RAND or TOPSORT)
 analysis.traversal = dfs
 
+# handle states with a deeper callstack first?
+# This needs the CallstackCPA to have any effect.
+analysis.traversal.useCallstack = false
+
 # Use an implementation of topsort strategy that allows to select
 # a secondary strategy that is used if there are two elements with
 # the same topsort id.
