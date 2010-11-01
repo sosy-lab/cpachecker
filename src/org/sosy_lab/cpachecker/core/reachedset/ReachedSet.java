@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -54,12 +55,11 @@ import com.google.common.collect.Collections2;
  */
 public class ReachedSet implements UnmodifiableReachedSet {
   
-  private static interface Waitlist {
+  private static interface Waitlist extends Iterable<AbstractElement>  {
     
     void add(AbstractElement element);
     void clear();
     boolean contains(AbstractElement element);
-    Collection<AbstractElement> getList();
     boolean isEmpty();
     AbstractElement pop();
     void remove(AbstractElement element);
@@ -89,13 +89,13 @@ public class ReachedSet implements UnmodifiableReachedSet {
     }
     
     @Override
-    public Collection<AbstractElement> getList() {
-      return Collections.unmodifiableCollection(waitlist);
+    public boolean isEmpty() {
+      return waitlist.isEmpty();
     }
     
     @Override
-    public boolean isEmpty() {
-      return waitlist.isEmpty();
+    public Iterator<AbstractElement> iterator() {
+      return waitlist.iterator();
     }
     
     @Override
@@ -323,7 +323,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   @Override
   public Iterable<AbstractElement> getWaitlist() {
-    return waitlist.getList();
+    return Iterables.unmodifiableIterable(waitlist);
   }
 
   public AbstractElement popFromWaitlist() {
