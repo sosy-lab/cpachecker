@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -224,7 +224,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
     
-    SSAMap ssa = pathFormula.getSSAMap();
+    ISSAMap ssa = pathFormula.getSSAMap();
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -843,21 +843,21 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     
     // handle first formula separately because we don't need to shift
     PathFormula p = it.next().getInitAbstractionFormula();
-    SSAMap ssa = new SSAMap(p.getSSAMap());
+    ISSAMap ssa = p.getSSAMap();
     result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
     
     while (it.hasNext()) {
       p = it.next().getInitAbstractionFormula();
 
       // don't need to call replaceAssignments because shift does the same trick
-      Pair<SymbolicFormula, SSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
+      Pair<SymbolicFormula, ISSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
       
       result.add(lPair.getFirst());
       
       // shift returns a new ssa map,
       // we need to add those variables that were not used by shift()
-      SSAMap newSsa = lPair.getSecond();
-      newSsa.update(ssa);
+      ISSAMap newSsa = lPair.getSecond();
+      ssa = newSsa.update(ssa);
       ssa = newSsa;
     }
     return result;

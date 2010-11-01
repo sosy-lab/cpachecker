@@ -6,17 +6,21 @@ import java.util.Map;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
-public class CopyOnWriteSSAMap extends SSAMap {
+public class CopyOnWriteSSAMap implements ISSAMap.ISSAMapBuilder {
   
   private UnmodifiableSSAMap mOriginalSSAMap;
   
+  Map<String, Integer> VARIABLES;
+  Map<Pair<String, SymbolicFormulaList>, Integer> FUNCTIONS;
+  
   public CopyOnWriteSSAMap(UnmodifiableSSAMap pSSAMap) {
-    super(pSSAMap.VARIABLES, pSSAMap.FUNCTIONS);
+    VARIABLES = pSSAMap.VARIABLES;
+    FUNCTIONS = pSSAMap.FUNCTIONS;
     mOriginalSSAMap = pSSAMap;
   }
   
   @Override
-  public UnmodifiableSSAMap immutable() {
+  public UnmodifiableSSAMap build() {
     Map<String, Integer> lVars = null;
     Map<Pair<String, SymbolicFormulaList>, Integer> lFuncs = null;
     
@@ -39,7 +43,13 @@ public class CopyOnWriteSSAMap extends SSAMap {
   
   @Override
   public int getIndex(String pVariable) {
-    return super.getIndex(pVariable);
+    Integer i = VARIABLES.get(pVariable);
+    if (i != null) {
+      return i;
+    } else {
+      // no index found, return -1
+      return -1;
+    }
   }
   
   @Override
@@ -48,25 +58,43 @@ public class CopyOnWriteSSAMap extends SSAMap {
       VARIABLES = new HashMap<String, Integer>(VARIABLES);
     }
     
-    super.setIndex(pVariable, pIndex);
+    VARIABLES.put(pVariable, pIndex);
   }
   
   @Override
   public int getIndex(String name, SymbolicFormulaList args) {
-    return super.getIndex(name, args);
+    return getIndex(new Pair<String, SymbolicFormulaList>(name, args));
+  }
+  
+  @Override
+  public int getIndex(Pair<String, SymbolicFormulaList> pFunction) {
+    Integer i = FUNCTIONS.get(pFunction);
+    
+    if (i != null) {
+      return i;
+    }
+    else {
+      return -1;
+    }
   }
     
   @Override
   public void setIndex(String name, SymbolicFormulaList args, int idx) {
+    setIndex(new Pair<String, SymbolicFormulaList>(name, args), idx);
+  }
+  
+
+  @Override
+  public void setIndex(Pair<String, SymbolicFormulaList> pFunction, int pIndex) {
     if (FUNCTIONS == mOriginalSSAMap.FUNCTIONS) {
       FUNCTIONS = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(FUNCTIONS);
     }
     
-    super.setIndex(name, args, idx);
+    FUNCTIONS.put(pFunction, pIndex);
   }
   
   @Override
-  public void update(SSAMap other) {
+  public void update(ISSAMap pSSAMap) {
     if (VARIABLES == mOriginalSSAMap.VARIABLES) {
       VARIABLES = new HashMap<String, Integer>(VARIABLES);
     }
@@ -75,7 +103,17 @@ public class CopyOnWriteSSAMap extends SSAMap {
       FUNCTIONS = new HashMap<Pair<String, SymbolicFormulaList>, Integer>(FUNCTIONS);
     }
     
-    super.update(other);
+    for (String lVariable : pSSAMap.allVariables()) {
+      if (!VARIABLES.containsKey(lVariable)) {
+        VARIABLES.put(lVariable, pSSAMap.getIndex(lVariable));
+      }
+    }
+    
+    for (Pair<String, SymbolicFormulaList> lFunction : pSSAMap.allFunctions()) {
+      if (!FUNCTIONS.containsKey(lFunction)) {
+        FUNCTIONS.put(lFunction, pSSAMap.getIndex(lFunction));
+      }
+    }
   }
   
 }

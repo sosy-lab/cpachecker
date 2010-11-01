@@ -28,8 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
@@ -187,12 +186,12 @@ public interface SymbolicFormulaManager {
      * @return a copy of f in which every "generic" variable is replaced by the
      * corresponding "SSA instance"
      */
-    public SymbolicFormula instantiate(SymbolicFormula f, ReadableSSAMap ssa);
+    public SymbolicFormula instantiate(SymbolicFormula f, ISSAMap ssa);
 
     /**
      * @see #instantiate(SymbolicFormula, SSAMap)
      */
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, ReadableSSAMap ssa);
+    public SymbolicFormulaList instantiate(SymbolicFormulaList f, ISSAMap ssa);
     
     /**
      * Given an "instantiated" formula, returns the corresponding formula in
@@ -212,7 +211,7 @@ public interface SymbolicFormulaManager {
      * @param ssa the SSAMap to use for shifting
      * @return the shifted formula and the new SSA map
      */
-    public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa);
+    public Pair<SymbolicFormula, ISSAMap> shift(SymbolicFormula f, ISSAMap ssa);
 
     /**
      * The path formulas have an uninterpreted function :=
@@ -240,7 +239,7 @@ public interface SymbolicFormulaManager {
     /**
      * Extracts the SSA indices from a formula. 
      */
-    public SSAMap extractSSA(SymbolicFormula f);
+    public ISSAMap extractSSA(SymbolicFormula f);
 
     /**
      * Collects all variables names and all lValues in a term.

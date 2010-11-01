@@ -51,7 +51,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap.ISSAMapBuilder;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 
@@ -235,19 +236,19 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    UnmodifiableSSAMap ssa1 = pF1.getSSAMap();
-    UnmodifiableSSAMap ssa2 = pF2.getSSAMap();
+    ISSAMap ssa1 = pF1.getSSAMap();
+    ISSAMap ssa2 = pF2.getSSAMap();
 
-    Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
+    Pair<Pair<SymbolicFormula, SymbolicFormula>, ISSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
     // do not swap these two lines, that makes a huge difference in performance!
     SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
     SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
 
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
-    SSAMap newSsa = pm.getSecond();
+    ISSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, newSsa.immutable());
+    return new PathFormula(newFormula, newSsa);
   }
 
   /**
@@ -262,10 +263,12 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @param ssa2 an SSAMap
    * @return A pair (SymbolicFormula, SSAMap)
    */
-  private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-      UnmodifiableSSAMap ssa1, UnmodifiableSSAMap ssa2) {
+  private Pair<Pair<SymbolicFormula, SymbolicFormula>, ISSAMap> mergeSSAMaps(
+      ISSAMap ssa1, ISSAMap ssa2) {
     
-    SSAMap result = new SSAMap();
+    UnmodifiableSSAMap lEmptyMap = UnmodifiableSSAMap.EMPTY_MAP;
+    ISSAMapBuilder lSSAMapBuilder = lEmptyMap.builder();
+    //SSAMap result = new SSAMap();
     //SSAMap result = new CopyOnWriteSSAMap(ssa1);
     
     SymbolicFormula mt1 = smgr.makeTrue();
@@ -292,8 +295,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
             mt2 = smgr.makeAnd(mt2, lAssignment);
           }
           
-          result.setIndex(NONDET_VARIABLE, i1);
-          result.setIndex(NONDET_FLAG_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(NONDET_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i1);
         }
         else if (i1 != i2) {
           if (i1 > i2) {
@@ -305,8 +308,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
               mt2 = smgr.makeAnd(mt2, lAssignment);
             }
             
-            result.setIndex(NONDET_VARIABLE, i1);
-            result.setIndex(NONDET_FLAG_VARIABLE, i1);
+            lSSAMapBuilder.setIndex(NONDET_VARIABLE, i1);
+            lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i1);
           }
           else {
             for (int lIndex = i1 + 1; lIndex < i2 + 1; lIndex++) {
@@ -317,13 +320,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
               mt1 = smgr.makeAnd(mt1, lAssignment);
             }
             
-            result.setIndex(NONDET_VARIABLE, i2);
-            result.setIndex(NONDET_FLAG_VARIABLE, i2);
+            lSSAMapBuilder.setIndex(NONDET_VARIABLE, i2);
+            lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i2);
           }
         }
         else {
-          result.setIndex(NONDET_VARIABLE, i1);
-          result.setIndex(NONDET_FLAG_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(NONDET_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i1);
         }
       }
       else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
@@ -332,7 +335,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       else {
         if (i2 > 0 && i2 != i1) {
           // we have to merge this variable assignment
-          result.setIndex(var, Math.max(i1, i2));
+          lSSAMapBuilder.setIndex(var, Math.max(i1, i2));
           Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
           mt1 = smgr.makeAnd(mt1, t.getFirst());
           mt2 = smgr.makeAnd(mt2, t.getSecond());
@@ -349,7 +352,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
               mt2 = smgr.makeAnd(mt2, e);
             }
           }
-          result.setIndex(var, i1);
+          lSSAMapBuilder.setIndex(var, i1);
         }
       }
     }
@@ -374,8 +377,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
             mt1 = smgr.makeAnd(mt1, lAssignment);
           }
           
-          result.setIndex(NONDET_VARIABLE, i2);
-          result.setIndex(NONDET_FLAG_VARIABLE, i2);
+          lSSAMapBuilder.setIndex(NONDET_VARIABLE, i2);
+          lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i2);
         }
       }
       else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
@@ -392,9 +395,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
             SymbolicFormula e = smgr.makeEqual(v, v1);
             mt1 = smgr.makeAnd(mt1, e);
           }
-          result.setIndex(var, i2);
+          lSSAMapBuilder.setIndex(var, i2);
         } else {
-          assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
+          assert(i1 == i2 || lSSAMapBuilder.getIndex(var) == Math.max(i1, i2));
         }
       }
     }
@@ -407,7 +410,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       assert(i1 > 0);
       if (i2 > 0 && i2 != i1) {
         // we have to merge this lvalue assignment
-        result.setIndex(f.getFirst(), f.getSecond(), Math.max(i1, i2));
+        lSSAMapBuilder.setIndex(f.getFirst(), f.getSecond(), Math.max(i1, i2));
         Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(f.getFirst(), f.getSecond(), i1, i2);
         mt1 = smgr.makeAnd(mt1, t.getFirst());
         mt2 = smgr.makeAnd(mt2, t.getSecond());
@@ -423,7 +426,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
             mt2 = smgr.makeAnd(mt2, e);
           }
         }
-        result.setIndex(f.getFirst(), f.getSecond(), i1);
+        lSSAMapBuilder.setIndex(f.getFirst(), f.getSecond(), i1);
       }
     }
     for (Pair<String, SymbolicFormulaList> f : ssa2.allFunctions()) {
@@ -440,18 +443,18 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           SymbolicFormula e = smgr.makeEqual(v, v1);
           mt1 = smgr.makeAnd(mt1, e);
         }
-        result.setIndex(f.getFirst(), f.getSecond(), i2);
+        lSSAMapBuilder.setIndex(f.getFirst(), f.getSecond(), i2);
       } else {
         assert(i1 == i2 ||
-            result.getIndex(f.getFirst(), f.getSecond()) ==
+            lSSAMapBuilder.getIndex(f.getFirst(), f.getSecond()) ==
               Math.max(i1, i2));
       }
     }
 
     Pair<SymbolicFormula, SymbolicFormula> sp =
       new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
-    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(
-        sp, result);
+    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, ISSAMap>(
+        sp, lSSAMapBuilder.build());
   }
 
   // creates the two mathsat terms
