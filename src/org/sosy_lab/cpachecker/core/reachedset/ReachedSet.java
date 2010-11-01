@@ -70,6 +70,11 @@ public class ReachedSet implements UnmodifiableReachedSet {
     int size();
   }
   
+  private static interface WaitlistFactory {
+    
+    Waitlist createWaitlistInstance();
+  }
+  
   private static abstract class AbstractWaitlist<T extends Collection<AbstractElement>> implements Waitlist {
     protected final T waitlist;
 
@@ -178,15 +183,15 @@ public class ReachedSet implements UnmodifiableReachedSet {
   
   private static abstract class SortedWaitlistWrapper<K extends Comparable<K>> implements Waitlist {
     
-    private final TraversalMethod secondaryStrategy;
+    private final WaitlistFactory wrappedWaitlist;
     
     // invariant: all entries in this map are non-empty
     private final NavigableMap<K, Waitlist> waitlist = new TreeMap<K, Waitlist>();
     
     private int size = 0;
 
-    protected SortedWaitlistWrapper(TraversalMethod pSecondaryStrategy) {
-      secondaryStrategy = Preconditions.checkNotNull(pSecondaryStrategy);
+    protected SortedWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
+      wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
     }
     
     protected abstract K getSortKey(AbstractElement pElement);
@@ -196,7 +201,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
       K key = getSortKey(pElement);
       Waitlist localWaitlist = waitlist.get(key);
       if (localWaitlist == null) {
-        localWaitlist = secondaryStrategy.createWaitlistInstance();
+        localWaitlist = wrappedWaitlist.createWaitlistInstance();
         waitlist.put(key, localWaitlist);
       } else {
         assert !localWaitlist.isEmpty();
@@ -272,7 +277,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   
   private static class TopsortWaitlistWrapper extends SortedWaitlistWrapper<Integer> {
     
-    public TopsortWaitlistWrapper(TraversalMethod pSecondaryStrategy) {
+    public TopsortWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
       super(pSecondaryStrategy);
       Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.TOPSORT);
     }
@@ -280,6 +285,20 @@ public class ReachedSet implements UnmodifiableReachedSet {
     @Override
     protected Integer getSortKey(AbstractElement pElement) {
       return getLocationFromElement(pElement).getTopologicalSortId();
+    }
+  }
+  
+  private static class TopsortWaitlistWrapperFactory implements WaitlistFactory {
+    
+    private final WaitlistFactory wrappedWaitlist;
+
+    public TopsortWaitlistWrapperFactory(WaitlistFactory pSecondaryStrategy) {
+      wrappedWaitlist = pSecondaryStrategy;
+    }
+
+    @Override
+    public Waitlist createWaitlistInstance() {
+      return new TopsortWaitlistWrapper(wrappedWaitlist);
     }
   }
 
@@ -309,22 +328,20 @@ public class ReachedSet implements UnmodifiableReachedSet {
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
     
+    WaitlistFactory factory = traversal;
     if (useTopsort) {
-      waitlist = new TopsortWaitlistWrapper(traversal);
-    } else {
-      waitlist = traversal.createWaitlistInstance();
+      factory = new TopsortWaitlistWrapperFactory(factory);
     }
+    waitlist = factory.createWaitlistInstance();
   }
 
   //enumerator for traversal methods
-  public enum TraversalMethod {
-    DFS     { @Override Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
-    BFS     { @Override Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
-    TOPSORT { @Override Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
-    RAND    { @Override Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
+  public enum TraversalMethod implements WaitlistFactory {
+    DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
+    BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
+    TOPSORT { @Override public Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
+    RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     ;
-    
-    abstract Waitlist createWaitlistInstance();
   }
 
   public void add(AbstractElement element, Precision precision) {
