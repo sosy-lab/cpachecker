@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
-public interface TheoremProver {
+public interface TheoremProver<T extends ISSAMap<T>> {
 
   void init();
   void push(SymbolicFormula f);
@@ -38,7 +39,7 @@ public interface TheoremProver {
   void reset();
 
   AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
-                      FormulaManager mgr, AbstractFormulaManager amgr);
+                      FormulaManager<T> mgr, AbstractFormulaManager amgr);
     
   interface AllSatResult {
       

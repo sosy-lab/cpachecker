@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 public class MergedElement extends NonabstractionElement {
 
@@ -11,7 +12,7 @@ public class MergedElement extends NonabstractionElement {
   private final NonabstractionElement mMergesInto;
   
   public MergedElement(AbstractionElement pAbstractionElement,
-      PathFormula pPathFormula, int pSizeSinceAbstraction,
+      PathFormula<UnmodifiableSSAMap> pPathFormula, int pSizeSinceAbstraction,
       NonabstractionElement pMergesInto) {
     super(pAbstractionElement, pPathFormula, pSizeSinceAbstraction);
     mMergesInto = pMergesInto;

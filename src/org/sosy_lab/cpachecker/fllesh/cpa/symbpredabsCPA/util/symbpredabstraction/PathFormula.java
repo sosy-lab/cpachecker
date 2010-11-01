@@ -27,12 +27,12 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 
 
-public class PathFormula {
+public class PathFormula<T extends ISSAMap<T>> {
 
   private final SymbolicFormula mPathFormula;
-  private final ISSAMap mSSAMap;
+  private final T mSSAMap;
   
-  public PathFormula(SymbolicFormula pPathFormula, ISSAMap pSSAMap) {
+  public PathFormula(SymbolicFormula pPathFormula, T pSSAMap) {
     mPathFormula = pPathFormula;
     mSSAMap = pSSAMap;
   }
@@ -41,7 +41,7 @@ public class PathFormula {
     return mPathFormula;
   }
 
-  public ISSAMap getSSAMap() {
+  public T getSSAMap() {
     return mSSAMap;
   }
 
@@ -61,7 +61,7 @@ public class PathFormula {
     }
     
     if (getClass().equals(pOther.getClass())) {
-      PathFormula lPathFormula = (PathFormula)pOther;
+      PathFormula<?> lPathFormula = getClass().cast(pOther);
       
       return mPathFormula.equals(lPathFormula.mPathFormula) && mSSAMap.equals(lPathFormula.mSSAMap);
     }

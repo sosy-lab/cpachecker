@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * A SymbolicFormulaManager is an object that can create/manipulate
  * SymbolicFormulas
  */
-public interface SymbolicFormulaManager {
+public interface SymbolicFormulaManager<T extends ISSAMap<T>> {
 
   // ----------------- Boolean formulas -----------------
 
@@ -186,12 +186,12 @@ public interface SymbolicFormulaManager {
      * @return a copy of f in which every "generic" variable is replaced by the
      * corresponding "SSA instance"
      */
-    public SymbolicFormula instantiate(SymbolicFormula f, ISSAMap ssa);
+    public SymbolicFormula instantiate(SymbolicFormula f, T ssa);
 
     /**
      * @see #instantiate(SymbolicFormula, SSAMap)
      */
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, ISSAMap ssa);
+    public SymbolicFormulaList instantiate(SymbolicFormulaList f, T ssa);
     
     /**
      * Given an "instantiated" formula, returns the corresponding formula in
@@ -211,7 +211,7 @@ public interface SymbolicFormulaManager {
      * @param ssa the SSAMap to use for shifting
      * @return the shifted formula and the new SSA map
      */
-    public Pair<SymbolicFormula, ISSAMap> shift(SymbolicFormula f, ISSAMap ssa);
+    public Pair<SymbolicFormula, T> shift(SymbolicFormula f, T ssa);
 
     /**
      * The path formulas have an uninterpreted function :=
@@ -239,7 +239,7 @@ public interface SymbolicFormulaManager {
     /**
      * Extracts the SSA indices from a formula. 
      */
-    public ISSAMap extractSSA(SymbolicFormula f);
+    public T extractSSA(SymbolicFormula f);
 
     /**
      * Collects all variables names and all lValues in a term.

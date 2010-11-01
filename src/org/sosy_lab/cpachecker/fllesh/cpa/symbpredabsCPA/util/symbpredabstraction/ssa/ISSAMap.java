@@ -8,9 +8,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * TODO: fix that.
  * 
  */
-public interface ISSAMap {
+public interface ISSAMap<T extends ISSAMap<T>> {
 
-  public interface ISSAMapBuilder {
+  public interface ISSAMapBuilder<T> {
     
     public int getIndex(String pVariable);
     public int getIndex(String pFunction, SymbolicFormulaList pArguments);
@@ -20,11 +20,11 @@ public interface ISSAMap {
     public void setIndex(String pFunction, SymbolicFormulaList pArguments, int pIndex);
     public void setIndex(Pair<String, SymbolicFormulaList> pFunction, int pIndex);
     
-    public ISSAMap build();
+    public T build();
     
   }
   
-  public ISSAMapBuilder builder();
+  public ISSAMapBuilder<T> builder();
   
   public int getIndex(String pVariable);
   public int getIndex(String pFunction, SymbolicFormulaList pArguments);
@@ -33,8 +33,8 @@ public interface ISSAMap {
   public Iterable<String> allVariables();
   public Iterable<Pair<String, SymbolicFormulaList>> allFunctions();
   
-  public ISSAMap merge(ISSAMap pSSAMap);
+  public T merge(T pSSAMap);
   
-  public ISSAMap update(ISSAMap pSSAMap);
+  public T update(T pSSAMap);
   
 }

@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -111,9 +112,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     
-    TheoremProver thmProver;
+    TheoremProver<UnmodifiableSSAMap> thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager);
+      thmProver = new MathsatTheoremProver<UnmodifiableSSAMap>(symbolicFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -185,7 +186,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     AbstractionElement lInitialElement = mInitialElementsCache.get(node);
     
     if (lInitialElement == null) {
-      PathFormula pf = formulaManager.makeEmptyPathFormula();
+      PathFormula<UnmodifiableSSAMap> pf = formulaManager.makeEmptyPathFormula();
       AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
       //lInitialElement = new AbstractionElement(node, initAbstraction, pf);
       lInitialElement = mAbstractionElementFactory.createInitialElement(initAbstraction, pf);

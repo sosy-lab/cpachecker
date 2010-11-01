@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap.ISSAMapBuilder;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 
@@ -65,9 +64,9 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
  * @author Philipp Wendler
  */
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
+public class CommonFormulaManager extends CtoFormulaConverter<UnmodifiableSSAMap> implements FormulaManager<UnmodifiableSSAMap> {
 
-  private final PathFormula mEmptyPathFormula;
+  private final PathFormula<UnmodifiableSSAMap> mEmptyPathFormula;
   
   protected final AbstractFormulaManager amgr;
 
@@ -83,7 +82,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   private final SymbolicFormula mZero;
 
-  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
+  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager<UnmodifiableSSAMap> pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
@@ -98,7 +97,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       toConcreteCache = null;
     }
     
-    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), UnmodifiableSSAMap.EMPTY_MAP);
+    mEmptyPathFormula = new PathFormula<UnmodifiableSSAMap>(smgr.makeTrue(), UnmodifiableSSAMap.EMPTY_MAP);
     
     mZero = smgr.makeNumber(0);
   }
@@ -218,7 +217,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   // the rest of this class is related only to symbolic formulas
   
   @Override
-  public PathFormula makeEmptyPathFormula() {
+  public PathFormula<UnmodifiableSSAMap> makeEmptyPathFormula() {
     return mEmptyPathFormula;
   }
   
@@ -233,22 +232,22 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return (pF1 | pF2)
    */
   @Override
-  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+  public PathFormula<UnmodifiableSSAMap> makeOr(PathFormula<UnmodifiableSSAMap> pF1, PathFormula<UnmodifiableSSAMap> pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    ISSAMap ssa1 = pF1.getSSAMap();
-    ISSAMap ssa2 = pF2.getSSAMap();
+    UnmodifiableSSAMap ssa1 = pF1.getSSAMap();
+    UnmodifiableSSAMap ssa2 = pF2.getSSAMap();
 
-    Pair<Pair<SymbolicFormula, SymbolicFormula>, ISSAMap> pm = mergeSSAMaps(ssa2, ssa1);
+    Pair<Pair<SymbolicFormula, SymbolicFormula>, UnmodifiableSSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
     // do not swap these two lines, that makes a huge difference in performance!
     SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
     SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
 
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
-    ISSAMap newSsa = pm.getSecond();
+    UnmodifiableSSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, newSsa);
+    return new PathFormula<UnmodifiableSSAMap>(newFormula, newSsa);
   }
 
   /**
@@ -263,11 +262,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @param ssa2 an SSAMap
    * @return A pair (SymbolicFormula, SSAMap)
    */
-  private Pair<Pair<SymbolicFormula, SymbolicFormula>, ISSAMap> mergeSSAMaps(
-      ISSAMap ssa1, ISSAMap ssa2) {
+  private Pair<Pair<SymbolicFormula, SymbolicFormula>, UnmodifiableSSAMap> mergeSSAMaps(
+      UnmodifiableSSAMap ssa1, UnmodifiableSSAMap ssa2) {
     
     UnmodifiableSSAMap lEmptyMap = UnmodifiableSSAMap.EMPTY_MAP;
-    ISSAMapBuilder lSSAMapBuilder = lEmptyMap.builder();
+    ISSAMapBuilder<UnmodifiableSSAMap> lSSAMapBuilder = lEmptyMap.builder();
     //SSAMap result = new SSAMap();
     //SSAMap result = new CopyOnWriteSSAMap(ssa1);
     
@@ -453,7 +452,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
     Pair<SymbolicFormula, SymbolicFormula> sp =
       new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
-    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, ISSAMap>(
+    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, UnmodifiableSSAMap>(
         sp, lSSAMapBuilder.build());
   }
 

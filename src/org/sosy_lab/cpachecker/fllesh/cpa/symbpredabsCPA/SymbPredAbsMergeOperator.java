@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 
 /**
@@ -48,7 +49,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
   private final LogManager logger;
-  private final FormulaManager formulaManager;
+  private final FormulaManager<UnmodifiableSSAMap> formulaManager;
   
   private ArrayList<Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>>> mMergeCache = new ArrayList<Map<NonabstractionElement, Map<NonabstractionElement, MergedElement>>>(); 
 
@@ -108,7 +109,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
       logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
-      PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
+      PathFormula<UnmodifiableSSAMap> pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
 
       logger.log(Level.ALL, "New path formula is", pathFormula);
 

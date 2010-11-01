@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPred
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
@@ -89,13 +90,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final SymbPredAbsFormulaManager formulaManager;
   
   // path formula cache
-  private final Map<PathFormula, Map<CFAEdge, PathFormula>> mCache;
+  private final Map<PathFormula<UnmodifiableSSAMap>, Map<CFAEdge, PathFormula<UnmodifiableSSAMap>>> mCache;
   
   // successor caches
   private final List<Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>> mNonabstractionElementsCache;
   private final Map<SymbPredAbsAbstractElement, Map<SymbPredAbsPrecision, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>> mAbstractionElementsCache;
   
-  private final PathFormula mEmptyPathFormula;
+  private final PathFormula<UnmodifiableSSAMap> mEmptyPathFormula;
   
   private final AbstractionElement.Factory mAbstractionElementFactory;
   
@@ -106,7 +107,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
     
-    mCache = new HashMap<PathFormula, Map<CFAEdge, PathFormula>>();
+    mCache = new HashMap<PathFormula<UnmodifiableSSAMap>, Map<CFAEdge, PathFormula<UnmodifiableSSAMap>>>();
     
     mEmptyPathFormula = formulaManager.makeEmptyPathFormula();
     mNonabstractionElementsCache = new ArrayList<Map<SymbPredAbsAbstractElement, Map<CFAEdge, Collection<? extends SymbPredAbsAbstractElement>>>>();
@@ -193,7 +194,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     lSuccessors = lLocalCache.get(pCFAEdge);
     
     if (lSuccessors == null) {
-      PathFormula lSuccessorPathFormula;
+      PathFormula<UnmodifiableSSAMap> lSuccessorPathFormula;
       
       if (element instanceof AbstractionElement) {
         lSuccessorPathFormula = convertEdgeToPathFormula(mEmptyPathFormula, pCFAEdge);
@@ -267,7 +268,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     lSuccessors = lCFAEdgeBasedCache.get(edge);
     
     if (lSuccessors == null) {
-      PathFormula pathFormula;
+      PathFormula<UnmodifiableSSAMap> pathFormula;
       
       if (element instanceof AbstractionElement) {
         pathFormula = convertEdgeToPathFormula(mEmptyPathFormula, edge);
@@ -326,14 +327,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
-  private PathFormula convertEdgeToPathFormula(PathFormula pCurrentPathFormula, CFAEdge pCFAEdge) throws CPATransferException {
+  private PathFormula<UnmodifiableSSAMap> convertEdgeToPathFormula(PathFormula<UnmodifiableSSAMap> pCurrentPathFormula, CFAEdge pCFAEdge) throws CPATransferException {
     final long start = System.currentTimeMillis();
-    PathFormula lSuccessorFormula = null;
+    PathFormula<UnmodifiableSSAMap> lSuccessorFormula = null;
     
-    Map<CFAEdge, PathFormula> lLocalCache = mCache.get(pCurrentPathFormula);
+    Map<CFAEdge, PathFormula<UnmodifiableSSAMap>> lLocalCache = mCache.get(pCurrentPathFormula);
     
     if (lLocalCache == null) {
-      lLocalCache = new HashMap<CFAEdge, PathFormula>();
+      lLocalCache = new HashMap<CFAEdge, PathFormula<UnmodifiableSSAMap>>();
       mCache.put(pCurrentPathFormula, lLocalCache);
     }
     
@@ -366,7 +367,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
           AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
           
           try {
-            PathFormula lPathFormula = convertEdgeToPathFormula(lCurrentAbstractionElement.getInitAbstractionFormula(), lEdge);
+            PathFormula<UnmodifiableSSAMap> lPathFormula = convertEdgeToPathFormula(lCurrentAbstractionElement.getInitAbstractionFormula(), lEdge);
             
             Collection<Predicate> preds = pPrecision.getPredicates(pNode);
 
@@ -427,7 +428,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
       
       try {
-        PathFormula lPathFormula = convertEdgeToPathFormula(lCurrentAbstractionElement.getInitAbstractionFormula(), lEdge);
+        PathFormula<UnmodifiableSSAMap> lPathFormula = convertEdgeToPathFormula(lCurrentAbstractionElement.getInitAbstractionFormula(), lEdge);
         
         Collection<Predicate> preds = pPrecision.getPredicates(pNode);
 
@@ -522,7 +523,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
       numSatChecks++;
 
-      PathFormula lPathFormula;
+      PathFormula<UnmodifiableSSAMap> lPathFormula;
       
       if (element instanceof AbstractionElement) {
         lPathFormula = mEmptyPathFormula;

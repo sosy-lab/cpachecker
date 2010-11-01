@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 
 public class AbstractionElement implements SymbPredAbsAbstractElement {
@@ -12,11 +13,11 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
       mNextId = 0;
     }
     
-    public AbstractionElement create(AbstractionElement pPreviousAbstractionElement, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
+    public AbstractionElement create(AbstractionElement pPreviousAbstractionElement, AbstractFormula pAbstractionFormula, PathFormula<UnmodifiableSSAMap> pInitAbstractionFormula) {
       return new AbstractionElement(pPreviousAbstractionElement, pAbstractionFormula, pInitAbstractionFormula, mNextId++);
     }
     
-    public AbstractionElement createInitialElement(AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula) {
+    public AbstractionElement createInitialElement(AbstractFormula pAbstractionFormula, PathFormula<UnmodifiableSSAMap> pInitAbstractionFormula) {
       return create(null, pAbstractionFormula, pInitAbstractionFormula);
     }
     
@@ -29,7 +30,7 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
    * otherwise this is the {@link PathFormula} of the last element before the
    * abstraction is computed. This formula is used by the refinement procedure
    * to build the formula to the error location */
-  private final PathFormula mInitAbstractionFormula;
+  private final PathFormula<UnmodifiableSSAMap> mInitAbstractionFormula;
     
   /** The abstraction which is updated only on abstraction locations */
   private AbstractFormula mAbstractionFormula;
@@ -40,7 +41,7 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
   
   private AbstractionElement mPreviousAbstractionElement;
   
-  private AbstractionElement(AbstractionElement pPreviousAbstractionElement, AbstractFormula pAbstractionFormula, PathFormula pInitAbstractionFormula, int pID) {
+  private AbstractionElement(AbstractionElement pPreviousAbstractionElement, AbstractFormula pAbstractionFormula, PathFormula<UnmodifiableSSAMap> pInitAbstractionFormula, int pID) {
     mAbstractionFormula = pAbstractionFormula;
     mInitAbstractionFormula = pInitAbstractionFormula;
     //INSTANCES++;
@@ -53,7 +54,7 @@ public class AbstractionElement implements SymbPredAbsAbstractElement {
     return mAbstractionFormula;
   }
   
-  public PathFormula getInitAbstractionFormula() {
+  public PathFormula<UnmodifiableSSAMap> getInitAbstractionFormula() {
     return mInitAbstractionFormula;
   }
   

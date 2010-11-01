@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
@@ -40,13 +41,13 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface SymbPredAbsFormulaManager extends FormulaManager {
+public interface SymbPredAbsFormulaManager extends FormulaManager<UnmodifiableSSAMap> {
 
     /**
      * Abstract post operation.
      */
     public AbstractFormula buildAbstraction(
-            AbstractFormula abs, PathFormula pathFormula,
+            AbstractFormula abs, PathFormula<UnmodifiableSSAMap> pathFormula,
             Collection<Predicate> predicates);
 
     /**
@@ -62,10 +63,10 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * @param pPathFormula the path formula
      * @return unsat(pAbstractionFormula & pPathFormula)
      */
-    boolean unsat(AbstractFormula pAbstractionFormula, PathFormula pPathFormula);
+    boolean unsat(AbstractFormula pAbstractionFormula, PathFormula<UnmodifiableSSAMap> pPathFormula);
     
     /**
      * Checks if (a1 & p1) => a2
      */
-    boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2);
+    boolean checkCoverage(AbstractFormula a1, PathFormula<UnmodifiableSSAMap> p1, AbstractFormula a2);
 }

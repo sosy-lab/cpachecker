@@ -45,7 +45,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap.ISSAMapBuilder;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormula;
@@ -54,7 +53,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicF
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
+public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager<UnmodifiableSSAMap>  {
 
   @Option
   private boolean useIntegers = false;
@@ -511,12 +510,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula instantiate(SymbolicFormula f, ISSAMap ssa) {
+  public SymbolicFormula instantiate(SymbolicFormula f, UnmodifiableSSAMap ssa) {
     return instantiate(f, ssa, new HashMap<SymbolicFormula, SymbolicFormula>());
   }
 
   @Override
-  public SymbolicFormulaList instantiate(SymbolicFormulaList f, ISSAMap ssa) {
+  public SymbolicFormulaList instantiate(SymbolicFormulaList f, UnmodifiableSSAMap ssa) {
     long[] args = getTerm(f);
     long[] result = new long[args.length];
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
@@ -527,7 +526,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return encapsulate(result);
   }
 
-  private SymbolicFormula instantiate(SymbolicFormula f, ISSAMap ssa,
+  private SymbolicFormula instantiate(SymbolicFormula f, UnmodifiableSSAMap ssa,
                                       Map<SymbolicFormula, SymbolicFormula> cache) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
 
@@ -675,11 +674,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
    * to the formula.
    */
   @Override
-  public Pair<SymbolicFormula, ISSAMap> shift(SymbolicFormula f, ISSAMap ssa) {
+  public Pair<SymbolicFormula, UnmodifiableSSAMap> shift(SymbolicFormula f, UnmodifiableSSAMap ssa) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
 
-    ISSAMapBuilder lSSAMapBuilder = UnmodifiableSSAMap.EMPTY_MAP.builder();
+    ISSAMapBuilder<UnmodifiableSSAMap> lSSAMapBuilder = UnmodifiableSSAMap.EMPTY_MAP.builder();
     
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -783,7 +782,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
     SymbolicFormula result = cache.get(f);
     assert result != null;
-    return new Pair<SymbolicFormula, ISSAMap>(result, lSSAMapBuilder.build());
+    return new Pair<SymbolicFormula, UnmodifiableSSAMap>(result, lSSAMapBuilder.build());
   }
   
   // returns a formula with some "static learning" about some bitwise
@@ -985,8 +984,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
    * returns an SSA map for the instantiated formula f
    */
   @Override
-  public ISSAMap extractSSA(SymbolicFormula f) {
-    ISSAMapBuilder lSSAMapBuilder = UnmodifiableSSAMap.EMPTY_MAP.builder();
+  public UnmodifiableSSAMap extractSSA(SymbolicFormula f) {
+    ISSAMapBuilder<UnmodifiableSSAMap> lSSAMapBuilder = UnmodifiableSSAMap.EMPTY_MAP.builder();
     //SSAMap ssa = new SSAMap();
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
     Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();

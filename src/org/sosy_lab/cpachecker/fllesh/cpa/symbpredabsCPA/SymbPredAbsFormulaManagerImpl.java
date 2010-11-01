@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -102,7 +102,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   }
   final Stats stats;
 
-  private final TheoremProver thmProver;
+  private final TheoremProver<UnmodifiableSSAMap> thmProver;
   private final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
 
@@ -163,8 +163,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   public SymbPredAbsFormulaManagerImpl(
       AbstractFormulaManager pAmgr,
-      SymbolicFormulaManager pSmgr,
-      TheoremProver pThmProver,
+      SymbolicFormulaManager<UnmodifiableSSAMap> pSmgr,
+      TheoremProver<UnmodifiableSSAMap> pThmProver,
       InterpolatingTheoremProver<T1> pItpProver,
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
@@ -205,7 +205,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public AbstractFormula buildAbstraction(
-      AbstractFormula abs, PathFormula pathFormula,
+      AbstractFormula abs, PathFormula<UnmodifiableSSAMap> pathFormula,
       Collection<Predicate> predicates) {
     stats.numCallsAbstraction++;
     if (cartesianAbstraction) {
@@ -217,14 +217,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private AbstractFormula buildCartesianAbstraction(
       AbstractFormula abs,
-      PathFormula pathFormula,
+      PathFormula<UnmodifiableSSAMap> pathFormula,
       Collection<Predicate> predicates) {
 
     long startTime = System.currentTimeMillis();
 
     final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
     
-    ISSAMap ssa = pathFormula.getSSAMap();
+    UnmodifiableSSAMap ssa = pathFormula.getSSAMap();
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -403,7 +403,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * Checks if (a1 & p1) => a2
    */
   @Override
-  public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
+  public boolean checkCoverage(AbstractFormula a1, PathFormula<UnmodifiableSSAMap> p1, AbstractFormula a2) {
     SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
 
     SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSSAMap());
@@ -420,7 +420,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   //private Map<Triple<AbstractFormula, PathFormula, Collection<Predicate>>, AbstractFormula> mAbstractionCache = new HashMap<Triple<AbstractFormula, PathFormula, Collection<Predicate>>, AbstractFormula>();
 
   private AbstractFormula buildBooleanAbstraction(
-      AbstractFormula abstractionFormula, PathFormula pathFormula,
+      AbstractFormula abstractionFormula, PathFormula<UnmodifiableSSAMap> pathFormula,
       Collection<Predicate> predicates) {
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
@@ -544,7 +544,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   @Override
-  public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
+  public boolean unsat(AbstractFormula abstractionFormula, PathFormula<UnmodifiableSSAMap> pathFormula) {
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
     logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
 
@@ -842,21 +842,21 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     assert it.hasNext();
     
     // handle first formula separately because we don't need to shift
-    PathFormula p = it.next().getInitAbstractionFormula();
-    ISSAMap ssa = p.getSSAMap();
+    PathFormula<UnmodifiableSSAMap> p = it.next().getInitAbstractionFormula();
+    UnmodifiableSSAMap ssa = p.getSSAMap();
     result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
     
     while (it.hasNext()) {
       p = it.next().getInitAbstractionFormula();
 
       // don't need to call replaceAssignments because shift does the same trick
-      Pair<SymbolicFormula, ISSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
+      Pair<SymbolicFormula, UnmodifiableSSAMap> lPair = smgr.shift(p.getSymbolicFormula(), ssa);
       
       result.add(lPair.getFirst());
       
       // shift returns a new ssa map,
       // we need to add those variables that were not used by shift()
-      ISSAMap newSsa = lPair.getSecond();
+      UnmodifiableSSAMap newSsa = lPair.getSecond();
       ssa = newSsa.update(ssa);
       ssa = newSsa;
     }

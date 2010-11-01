@@ -13,7 +13,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.Lists;
 
-public class UnmodifiableSSAMap implements ISSAMap {
+public class UnmodifiableSSAMap implements ISSAMap<UnmodifiableSSAMap> {
   
   protected Map<String, Integer> VARIABLES;
   protected Map<Pair<String, SymbolicFormulaList>, Integer> FUNCTIONS;
@@ -114,8 +114,8 @@ public class UnmodifiableSSAMap implements ISSAMap {
   }
 
   @Override
-  public ISSAMap merge(ISSAMap pSSAMap) {
-    ISSAMapBuilder lSSAMapBuilder = builder();
+  public UnmodifiableSSAMap merge(UnmodifiableSSAMap pSSAMap) {
+    ISSAMapBuilder<UnmodifiableSSAMap> lSSAMapBuilder = builder();
     
     for (String lVariable : allVariables()) {
       int lIndex1 = getIndex(lVariable); // lIndex1 >= 0
@@ -153,7 +153,7 @@ public class UnmodifiableSSAMap implements ISSAMap {
   }
 
   @Override
-  public ISSAMap update(ISSAMap pSSAMap) {
+  public UnmodifiableSSAMap update(UnmodifiableSSAMap pSSAMap) {
     CopyOnWriteSSAMapBuilder lSSAMapBuilder = builder();
     
     lSSAMapBuilder.update(pSSAMap);
