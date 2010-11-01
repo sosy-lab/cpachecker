@@ -123,36 +123,61 @@ public class SSAMap {
    * If there are conflicting indices, the maximum of both is used.
    */
   public static SSAMap merge(SSAMap s1, SSAMap s2) {
+    // This method uses some optimizations to avoid work when parts of both SSAMaps
+    // are equal. These checks use == instead of equals() because it is much faster
+    // and we create sets lazily (so when they are not identical, they are
+    // probably not equal, too).
+    // We don't bother checking the vars set for emptiness, because this will
+    // probably never be the case on a merge.
     
-    ImmutableMultiset.Builder<String> varsBuilder = ImmutableMultiset.builder();
-    for (Entry<String> entry : s1.vars.entrySet()) {
-      String name = entry.getElement();
-      int i1 = entry.getCount();
-      int i2 = s2.vars.count(name);
-      varsBuilder.setCount(name, Math.max(i1, i2));
-    }
-    for (Entry<String> entry : s2.vars.entrySet()) {
-      String name = entry.getElement();
-      if (!s1.vars.contains(name)) {
-        varsBuilder.setCount(name, entry.getCount());
+    ImmutableMultiset<String> vars;
+    if (s1.vars == s2.vars) {
+      if (s1.funcs == s2.funcs) {
+        // both are absolutely identical
+        return s1;
       }
-    }
-    
-    ImmutableMultiset.Builder<Pair<String, SymbolicFormulaList>> funcsBuilder = ImmutableMultiset.builder();
-    for (Entry<Pair<String, SymbolicFormulaList>> entry : s1.funcs.entrySet()) {
-      Pair<String, SymbolicFormulaList> key = entry.getElement();
-      int i1 = entry.getCount();
-      int i2 = s2.funcs.count(key);
-      funcsBuilder.setCount(key, Math.max(i1, i2));
-    }
-    for (Entry<Pair<String, SymbolicFormulaList>> entry : s2.funcs.entrySet()) {
-      Pair<String, SymbolicFormulaList> key = entry.getElement();
-      if (!s1.funcs.contains(key)) {
-        funcsBuilder.setCount(key, entry.getCount());
+      vars = s1.vars;
+      
+    } else {
+      ImmutableMultiset.Builder<String> varsBuilder = ImmutableMultiset.builder();
+      for (Entry<String> entry : s1.vars.entrySet()) {
+        String name = entry.getElement();
+        int i1 = entry.getCount();
+        int i2 = s2.vars.count(name);
+        varsBuilder.setCount(name, Math.max(i1, i2));
       }
+      for (Entry<String> entry : s2.vars.entrySet()) {
+        String name = entry.getElement();
+        if (!s1.vars.contains(name)) {
+          varsBuilder.setCount(name, entry.getCount());
+        }
+      }
+      vars = varsBuilder.build();
     }
     
-    return new SSAMap(varsBuilder.build(), funcsBuilder.build());
+    ImmutableMultiset<Pair<String, SymbolicFormulaList>> funcs;
+    if ((s1.funcs == s2.funcs) || s2.funcs.isEmpty()) {
+      funcs = s1.funcs;
+    } else if (s1.funcs.isEmpty()) {
+      funcs = s2.funcs;
+    } else {
+      ImmutableMultiset.Builder<Pair<String, SymbolicFormulaList>> funcsBuilder = ImmutableMultiset.builder();
+      for (Entry<Pair<String, SymbolicFormulaList>> entry : s1.funcs.entrySet()) {
+        Pair<String, SymbolicFormulaList> key = entry.getElement();
+        int i1 = entry.getCount();
+        int i2 = s2.funcs.count(key);
+        funcsBuilder.setCount(key, Math.max(i1, i2));
+      }
+      for (Entry<Pair<String, SymbolicFormulaList>> entry : s2.funcs.entrySet()) {
+        Pair<String, SymbolicFormulaList> key = entry.getElement();
+        if (!s1.funcs.contains(key)) {
+          funcsBuilder.setCount(key, entry.getCount());
+        }
+      }
+      funcs = funcsBuilder.build();
+    }
+    
+    return new SSAMap(vars, funcs);
   }
   
   /**
