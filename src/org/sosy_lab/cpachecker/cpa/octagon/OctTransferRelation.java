@@ -176,18 +176,6 @@ public class OctTransferRelation implements TransferRelation{
       assert(false);
       break;
     }
-
-    case MultiStatementEdge:
-    {
-      assert(false);
-      break;
-    }
-
-    case MultiDeclarationEdge:
-    {
-      assert(false);
-      break;
-    }
     }
 
     if(octElement.isEmpty()){
