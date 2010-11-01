@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -58,7 +57,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new TransferRelationMonitorTransferRelation(getWrappedCpa(), config);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
+    precisionAdjustment = new TransferRelationMonitorPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     mergeOperator = new TransferRelationMonitorMerge(getWrappedCpa());
     stopOperator = new TransferRelationMonitorStop(getWrappedCpa());
     stats = new TransferRelationMonitorStatistics(this);
