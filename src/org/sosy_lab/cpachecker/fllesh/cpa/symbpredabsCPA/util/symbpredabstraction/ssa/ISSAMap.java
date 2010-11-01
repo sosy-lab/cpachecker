@@ -22,8 +22,6 @@ public interface ISSAMap {
     
     public ISSAMap build();
     
-    public void update(ISSAMap pSSAMap);
-    
   }
   
   public ISSAMapBuilder builder();

@@ -94,7 +94,7 @@ public class UnmodifiableSSAMap implements ISSAMap {
   }
 
   @Override
-  public ISSAMapBuilder builder() {
+  public CopyOnWriteSSAMapBuilder builder() {
     return new CopyOnWriteSSAMapBuilder(this);
   }
 
@@ -154,7 +154,7 @@ public class UnmodifiableSSAMap implements ISSAMap {
 
   @Override
   public ISSAMap update(ISSAMap pSSAMap) {
-    ISSAMapBuilder lSSAMapBuilder = builder();
+    CopyOnWriteSSAMapBuilder lSSAMapBuilder = builder();
     
     lSSAMapBuilder.update(pSSAMap);
     
