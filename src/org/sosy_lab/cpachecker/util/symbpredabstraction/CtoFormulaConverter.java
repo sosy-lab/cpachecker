@@ -624,21 +624,20 @@ public class CtoFormulaConverter {
       String num = lexp.getRawSignature();
       switch (lexp.getKind()) {
       case IASTLiteralExpression.lk_integer_constant:
+        // this might have some modifiers attached (e.g. 0UL), we
+        // have to get rid of them
+        int pos = num.length()-1;
+        while (!Character.isDigit(num.charAt(pos))) {
+          --pos;
+        }
+        num = num.substring(0, pos+1);
         if (num.startsWith("0x")) {
           // this should be in hex format
-          // remove "0x" and optionally "UL" from the string
-          num = num.substring(2).replace("UL", "");
+          // remove "0x" from the string
+          num = num.substring(2);
           // we use Long instead of Integer to avoid getting negative
           // numbers (e.g. for 0xffffff we would get -1)
           num = Long.valueOf(num, 16).toString();
-        } else {
-          // this might have some modifiers attached (e.g. 0UL), we
-          // have to get rid of them
-          int pos = num.length()-1;
-          while (!Character.isDigit(num.charAt(pos))) {
-            --pos;
-          }
-          num = num.substring(0, pos+1);
         }
         
         // TODO here we assume 32 bit integers!!! This is because CIL
