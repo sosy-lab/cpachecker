@@ -83,6 +83,8 @@ public class SSAMap {
     
     public void setIndex(String var, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
+      Preconditions.checkArgument(idx > ssa.getIndex(var), "SSAMap updates need to be strictly monotone!");
+
       if (varsBuilder == null) {
         varsBuilder = ImmutableMultiset.builder();
         for (Entry<String> entry : ssa.vars.entrySet()) {
@@ -98,6 +100,9 @@ public class SSAMap {
     
     public void setIndex(String func, SymbolicFormulaList args, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
+      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);
+      Preconditions.checkArgument(idx > ssa.getIndex(key), "SSAMap updates need to be strictly monotone!");
+
       if (funcsBuilder == null) {
         funcsBuilder = ImmutableMultiset.builder();
         for (Entry<Pair<String, SymbolicFormulaList>> entry : ssa.funcs.entrySet()) {
@@ -107,7 +112,6 @@ public class SSAMap {
       if (local == null) {
         local = HashMultiset.create(1);
       }
-      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);
       funcsBuilder.setCount(key, idx);
       local.setCount(key, idx);
     }
