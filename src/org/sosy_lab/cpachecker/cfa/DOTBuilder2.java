@@ -31,10 +31,10 @@ import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.json.simple.JSONObject;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -43,10 +43,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 
-import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -157,39 +156,25 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends CFAVisitor {
     
-    private final Map<String, List<CFANode>> func2nodes = Maps.newHashMap();
-    private final Map<String, List<CFAEdge>> func2edges = Maps.newHashMap();
-    private final ListMultimap<String, List<CFAEdge>> func2comboedge = LinkedListMultimap.create();
+    private final ListMultimap<String, CFANode> func2nodes = ArrayListMultimap.create();
+    private final ListMultimap<String, CFAEdge> func2edges = ArrayListMultimap.create();
+    private final ListMultimap<String, List<CFAEdge>> func2comboedge = ArrayListMultimap.create();
     private final Set<CFANode> visitedNodes = Sets.newHashSet();    
     private final JSONObject node2combo = new JSONObject();
     private final JSONObject virtFuncCallEdges = new JSONObject();    
     private int virtFuncCallNodeIdCounter = 100000;
     
-    List<CFAEdge> combo = null;
-    boolean comboQualified;
-    CFANode toAdd = null;
+    private List<CFAEdge> combo = null;
+    private boolean comboQualified;
+    private CFANode toAdd = null;
     
     private void flushNode() {
       comboQualified = false;
       combo = null;
       if (toAdd != null) {
-        List<CFANode> nodes = func2nodes.get(toAdd.getFunctionName());
-        if (nodes == null) { 
-          nodes = Lists.newArrayList();
-          func2nodes.put(toAdd.getFunctionName(), nodes);
-        }
-        nodes.add(toAdd);
+        func2nodes.put(toAdd.getFunctionName(), toAdd);
         toAdd = null;
       }
-    }
-
-    private void addEdge(CFAEdge edge) {
-      List<CFAEdge> edges = func2edges.get(edge.getPredecessor().getFunctionName());
-      if (edges == null) { 
-        edges = Lists.newArrayList();
-        func2edges.put(edge.getPredecessor().getFunctionName(), edges);
-      }
-      edges.add(edge);
     }
     
     void visitNode(CFANode node) {
@@ -214,7 +199,7 @@ public final class DOTBuilder2 {
           || (edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall())) {
         
         flushNode();
-        addEdge(edge);
+        func2edges.put(edge.getPredecessor().getFunctionName(), edge);
       } else {
         // add combo edge
         if (combo == null) {
@@ -274,20 +259,8 @@ public final class DOTBuilder2 {
           out.close();
         }
         
-        Writer json = new OutputStreamWriter(new FileOutputStream(new File(outdir, "combinednodes.json")), "UTF-8");
-        try {
-          json.write(node2combo.toJSONString());
-        } finally {
-          json.close();
-        }
-        
-        json = new OutputStreamWriter(new FileOutputStream(new File(outdir, "fcalledges.json")), "UTF-8");
-        try {
-          json.write(virtFuncCallEdges.toJSONString());
-        } finally {
-          json.close();
-        }
-        
+        Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
+        Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString());        
       }
     }
     
