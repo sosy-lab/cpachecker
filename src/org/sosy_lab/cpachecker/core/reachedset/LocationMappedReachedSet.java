@@ -23,60 +23,30 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
-import com.google.common.collect.LinkedHashMultimap;
-
-public class LocationMappedReachedSet extends ReachedSet {
-
-  private final LinkedHashMultimap<CFANode, AbstractElement> locationMappedReached = LinkedHashMultimap.create();
+public class LocationMappedReachedSet extends PartitionedReachedSet {
 
   public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
   }
-  
-  @Override
-  public void add(AbstractElement pElement, Precision pPrecision) {
-    super.add(pElement, pPrecision);
-    
-    CFANode location = getLocationFromElement(pElement);
-    assert location != null : "Location information necessary for LocationMappedReachedSet";
-    locationMappedReached.put(location, pElement);
-  }
-  
-  @Override
-  public void remove(AbstractElement pElement) {
-    super.remove(pElement);
-    
-    CFANode location = getLocationFromElement(pElement);
-    assert location != null : "Location information necessary for LocationMappedReachedSet";
-    locationMappedReached.remove(location, pElement);
-  }
-  
-  @Override
-  public void clear() {
-    super.clear();
-    
-    locationMappedReached.clear();
-  }
-  
-  @Override
-  public Set<AbstractElement> getReached(AbstractElement element) {
-    CFANode loc = getLocationFromElement(element);
-    return getReached(loc);
-  }
 
   @Override
   public Set<AbstractElement> getReached(CFANode location) {
-    return Collections.unmodifiableSet(locationMappedReached.get(location));
+    return getReachedForKey(location);
+  }
+  
+  @Override
+  protected Object getPartitionKey(AbstractElement pElement) {
+    CFANode location = getLocationFromElement(pElement);
+    assert location != null : "Location information necessary for LocationMappedReachedSet";
+    return location;
   }
   
   public static CFANode getLocationFromElement(AbstractElement element) {
