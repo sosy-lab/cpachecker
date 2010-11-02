@@ -133,7 +133,7 @@ public class CPAchecker {
 
   public CPAcheckerResult run(String filename) {
 
-    logger.log(Level.FINE, "Analysis Started");
+    logger.log(Level.INFO, "CPAchecker started");
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
