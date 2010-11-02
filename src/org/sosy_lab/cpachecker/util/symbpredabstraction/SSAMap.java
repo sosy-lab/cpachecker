@@ -29,6 +29,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
@@ -81,6 +82,7 @@ public class SSAMap {
     }
     
     public void setIndex(String var, int idx) {
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
       if (varsBuilder == null) {
         varsBuilder = ImmutableMultiset.builder();
         for (Entry<String> entry : ssa.vars.entrySet()) {
@@ -95,6 +97,7 @@ public class SSAMap {
     }
     
     public void setIndex(String func, SymbolicFormulaList args, int idx) {
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
       if (funcsBuilder == null) {
         funcsBuilder = ImmutableMultiset.builder();
         for (Entry<Pair<String, SymbolicFormulaList>> entry : ssa.funcs.entrySet()) {
