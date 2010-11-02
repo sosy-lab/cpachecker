@@ -164,54 +164,56 @@ public final class DOTBuilder2 {
     private final JSONObject virtFuncCallEdges = new JSONObject();    
     private int virtFuncCallNodeIdCounter = 100000;
     
-    private List<CFAEdge> combo = null;
+    private List<CFAEdge> currentComboEdge = null;
     private boolean comboQualified;
     private CFANode toAdd = null;
     
-    private void flushNode() {
+    private void reset() {
       comboQualified = false;
-      combo = null;
-      if (toAdd != null) {
-        func2nodes.put(toAdd.getFunctionName(), toAdd);
-        toAdd = null;
-      }
+      currentComboEdge = null;
+      toAdd = null;
     }
     
-    void visitNode(CFANode node) {
-      toAdd = node;      
-      comboQualified = !node.isLoopStart() 
-          && node.getNumEnteringEdges() == 1 && node.getNumLeavingEdges() == 1 
-          && node.getLeavingSummaryEdge() == null;
-      if (!comboQualified) {
-        flushNode();
-      }
-    }
-
     @Override
     void visitEdge(CFAEdge edge) {
+      // first, handle predecessor if necessary
       CFANode predecessor = edge.getPredecessor();
       if (!visitedNodes.contains(predecessor)) {
-        visitNode(predecessor);
+        // source node
+        toAdd = predecessor;      
+        comboQualified = !predecessor.isLoopStart() 
+            && predecessor.getNumEnteringEdges() == 1 && predecessor.getNumLeavingEdges() == 1 
+            && predecessor.getLeavingSummaryEdge() == null;
+
       } else {
-        combo = null;
+        currentComboEdge = null;
       }
+
       if (!comboQualified || edge instanceof ReturnEdge || edge instanceof AssumeEdge 
           || (edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall())) {
         
-        flushNode();
+        // flush node
+        if (toAdd != null) {
+          func2nodes.put(toAdd.getFunctionName(), toAdd);
+        }
         func2edges.put(edge.getPredecessor().getFunctionName(), edge);
+        reset();
+
       } else {
         // add combo edge
-        if (combo == null) {
-          combo = Lists.newArrayList();
-          func2comboedge.put(edge.getPredecessor().getFunctionName(), combo);
+        if (currentComboEdge == null) {
+          currentComboEdge = Lists.newArrayList();
+          func2comboedge.put(edge.getPredecessor().getFunctionName(), currentComboEdge);
         }
-        combo.add(edge);
+        currentComboEdge.add(edge);
       }
+
+      // last, handle successor if necessary
       CFANode successor = edge.getSuccessor();
       if (successor.getNumLeavingEdges() == 0 && successor.getLeavingSummaryEdge() == null) {
-        visitNode(successor);
-        flushNode();
+        func2nodes.put(successor.getFunctionName(), successor);
+
+        reset();
       }
     }
     
@@ -264,7 +266,7 @@ public final class DOTBuilder2 {
       }
     }
     
-    private String nodeToDot(CFANode node) {
+    private static String nodeToDot(CFANode node) {
       String shape = "circle";
     
       if(node.isLoopStart()){
