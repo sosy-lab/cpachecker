@@ -1044,6 +1044,8 @@ public class CtoFormulaConverter {
       // this is a function of arity 0. We create a fresh global variable
       // for it (instantiated at 1 because we need an index but it never
       // increases)
+      // TODO better use variables without index (this piece of code prevents
+      // SSAMapBuilder from checking for strict monotony)
       globalVars.add(func);
       ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
       return smgr.makeVariable(func, 1);
