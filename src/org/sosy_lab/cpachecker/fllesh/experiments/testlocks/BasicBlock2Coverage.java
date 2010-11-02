@@ -49,6 +49,22 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
   }
   
   @Test
+  public void test_locks_200_2() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_2.c",
+                                        "main",
+                                        true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(289, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(157, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(132, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(12, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
   public void test_locks_201() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_5.c",
