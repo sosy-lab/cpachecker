@@ -29,7 +29,9 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
 /**
@@ -42,10 +44,9 @@ public class SSAMap {
 
   /**
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
-   * changed later. It supports read access, but changes made to the builder are
-   * NOT visible until {@link #build()} has been called! Thus it is
-   * NOT recommended to use instances of this class except for the short period
-   * of time while creating a new SSAMap. 
+   * changed later. It supports read access, but it is not recommended to use
+   * instances of this class except for the short period of time
+   * while creating a new SSAMap. 
    * 
    * This class is not thread-safe.
    */
@@ -55,16 +56,28 @@ public class SSAMap {
     private ImmutableMultiset.Builder<String> varsBuilder = null;
     private ImmutableMultiset.Builder<Pair<String, SymbolicFormulaList>> funcsBuilder = null;
     
+    // temporary storage of indices that were explicitly set on this instance
+    private Multiset<Object> local = null;
+    
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
     }
     
     public int getIndex(String variable) {
-      return ssa.getIndex(variable);
+      int result = 0;
+      if (local != null) {
+        result = local.count(variable);
+      }
+      return (result > 0) ? result : ssa.getIndex(variable);
     }
     
     public int getIndex(String func, SymbolicFormulaList args) {
-      return ssa.getIndex(func, args);
+      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);   
+      int result = 0;
+      if (local != null) {
+        result = local.count(key);
+      }
+      return (result > 0) ? result : ssa.getIndex(key);
     }
     
     public void setIndex(String var, int idx) {
@@ -74,7 +87,11 @@ public class SSAMap {
           varsBuilder.setCount(entry.getElement(), entry.getCount());
         }
       }
+      if (local == null) {
+        local = HashMultiset.create(1);
+      }
       varsBuilder.setCount(var, idx);
+      local.setCount(var, idx);
     }
     
     public void setIndex(String func, SymbolicFormulaList args, int idx) {
@@ -84,14 +101,19 @@ public class SSAMap {
           funcsBuilder.setCount(entry.getElement(), entry.getCount());
         }
       }
-      funcsBuilder.setCount(new Pair<String, SymbolicFormulaList>(func, args), idx);
+      if (local == null) {
+        local = HashMultiset.create(1);
+      }
+      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);
+      funcsBuilder.setCount(key, idx);
+      local.setCount(key, idx);
     }
     
     /**
      * Returns an immutable SSAMap with all the changes made to the builder.
      */
     public SSAMap build() {
-      if (varsBuilder == null && funcsBuilder == null) {
+      if (local == null) {
         return ssa;
       }
       
@@ -103,6 +125,7 @@ public class SSAMap {
       ssa = new SSAMap(newVars, newFuncs);
       varsBuilder  = null;
       funcsBuilder = null;
+      local = null;
       return ssa;
     }
   }
