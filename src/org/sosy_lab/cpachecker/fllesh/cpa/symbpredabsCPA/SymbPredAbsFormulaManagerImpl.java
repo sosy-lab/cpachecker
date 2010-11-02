@@ -858,7 +858,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager<Unmodif
       // we need to add those variables that were not used by shift()
       UnmodifiableSSAMap newSsa = lPair.getSecond();
       ssa = newSsa.update(ssa);
-      ssa = newSsa;
     }
     return result;
   }
