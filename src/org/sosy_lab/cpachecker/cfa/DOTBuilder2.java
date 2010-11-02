@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -155,12 +157,12 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends CFAVisitor {
     
-    Map<String, List<CFANode>> func2nodes = Maps.newHashMap();
-    Map<String, List<CFAEdge>> func2edges = Maps.newHashMap();
-    Map<String, List<List<CFAEdge>>> func2comboedge = Maps.newHashMap();
-    Set<CFANode> visitedNodes = Sets.newHashSet();    
-    JSONObject node2combo = new JSONObject();
-    JSONObject virtFuncCallEdges = new JSONObject();    
+    private final Map<String, List<CFANode>> func2nodes = Maps.newHashMap();
+    private final Map<String, List<CFAEdge>> func2edges = Maps.newHashMap();
+    private final ListMultimap<String, List<CFAEdge>> func2comboedge = LinkedListMultimap.create();
+    private final Set<CFANode> visitedNodes = Sets.newHashSet();    
+    private final JSONObject node2combo = new JSONObject();
+    private final JSONObject virtFuncCallEdges = new JSONObject();    
     private int virtFuncCallNodeIdCounter = 100000;
     
     List<CFAEdge> combo = null;
@@ -190,19 +192,6 @@ public final class DOTBuilder2 {
       edges.add(edge);
     }
     
-    private void addComboEdge(CFAEdge edge) {
-      if (combo == null) {
-        List<List<CFAEdge>> combos = func2comboedge.get(edge.getPredecessor().getFunctionName());
-        if (combos == null) {          
-          combos = Lists.newArrayList();          
-          func2comboedge.put(edge.getPredecessor().getFunctionName(), combos);
-        }
-        combo = Lists.newArrayList();
-        combos.add(combo);
-      }
-      combo.add(edge);
-    }
-    
     void visitNode(CFANode node) {
       toAdd = node;      
       comboQualified = !node.isLoopStart() 
@@ -227,7 +216,12 @@ public final class DOTBuilder2 {
         flushNode();
         addEdge(edge);
       } else {
-        addComboEdge(edge);
+        // add combo edge
+        if (combo == null) {
+          combo = Lists.newArrayList();
+          func2comboedge.put(edge.getPredecessor().getFunctionName(), combo);
+        }
+        combo.add(edge);
       }
       CFANode successor = edge.getSuccessor();
       if (successor.getNumLeavingEdges() == 0 && successor.getLeavingSummaryEdge() == null) {
@@ -241,27 +235,24 @@ public final class DOTBuilder2 {
       for (String funcname: func2nodes.keySet()) {
         List<CFANode> nodes = func2nodes.get(funcname);
         List<CFAEdge> edges = func2edges.get(funcname);
-        List<List<CFAEdge>> combos = func2comboedge.get(funcname);
         
         Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
         try {
           out.write("digraph " + funcname + " {\n");
           StringBuffer outb = new StringBuffer();
           //write comboedges
-          if (combos != null) {
-            for (List<CFAEdge> combo: combos) {
-              if (combo.size() == 1) {
-                edges.add(combo.get(0));
-                nodes.add(combo.get(0).getPredecessor());
-              } else {
-                outb.append(comboToDot(combo));
-                CFAEdge first = combo.get(0);
-                CFAEdge last = combo.get(combo.size() - 1);
-                outb.append("" + first.getPredecessor().getNodeNumber());
-                outb.append(" -> ");
-                outb.append("" + last.getSuccessor().getNodeNumber());
-                outb.append("[label=\"\" ];\n");
-              }
+          for (List<CFAEdge> combo: func2comboedge.get(funcname)) {
+            if (combo.size() == 1) {
+              edges.add(combo.get(0));
+              nodes.add(combo.get(0).getPredecessor());
+            } else {
+              outb.append(comboToDot(combo));
+              CFAEdge first = combo.get(0);
+              CFAEdge last = combo.get(combo.size() - 1);
+              outb.append("" + first.getPredecessor().getNodeNumber());
+              outb.append(" -> ");
+              outb.append("" + last.getSuccessor().getNodeNumber());
+              outb.append("[label=\"\" ];\n");
             }
           }
 
