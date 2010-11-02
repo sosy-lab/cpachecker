@@ -58,8 +58,8 @@ def run_single(benchmark, config, time_limit, mem_limit):
     with open('%s.%s.log' % (benchmark, configname(config))) as f:
         for line in f:
             if tot_time is None and line.startswith(
-                'Total Time Elapsed including CFA construction:'):
-                tot_time = line[46:].strip()[:-1]
+                'Total time for CPAchecker:'):
+                tot_time = line[line.find(':')+1:].strip()
             elif reached is None and line.startswith('Size of reached set:'):
                 reached = (line[line.find(':')+1:line.find('(')-1].strip())
             elif abstractions is None and line.startswith('Number of abstractions:'):

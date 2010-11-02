@@ -33,6 +33,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,30 +56,19 @@ class MainCPAStatistics implements Statistics {
 
     private final LogManager logger;
     private final Collection<Statistics> subStats;
-    private long programStartingTime;
-    private long analysisStartingTime;
-    private long analysisEndingTime;
+    
+    final Timer programTime = new Timer();
+    final Timer parseTime = new Timer();
+    final Timer cfaCreationTime = new Timer();
+    final Timer cpaCreationTime = new Timer();
+    final Timer analysisTime = new Timer();
 
     public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
         config.inject(this);
 
         this.logger = logger;
         subStats = new ArrayList<Statistics>();
-        programStartingTime = 0;
-        analysisStartingTime = 0;
-        analysisEndingTime = 0;
-    }
-
-    public void startProgramTimer() {
-        programStartingTime = System.currentTimeMillis();
-    }
-
-    public void startAnalysisTimer() {
-        analysisStartingTime = System.currentTimeMillis();
-    }
-
-    public void stopAnalysisTimer() {
-        analysisEndingTime = System.currentTimeMillis();
+        programTime.start();
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -92,9 +82,9 @@ class MainCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-        if (analysisEndingTime == 0) {
-          stopAnalysisTimer();
-        }
+        // call stop again in case CPAchecker was terminated abnormally
+        analysisTime.stop();
+        programTime.stop();
 
         if (exportReachedSet && outputFile != null) {
           try {
@@ -108,9 +98,6 @@ class MainCPAStatistics implements Statistics {
           }
         }
 
-        long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
-        long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
-
         out.println("\nCPAchecker general statistics:");
         out.println("------------------------------");
         if (reached instanceof PartitionedReachedSet) {
@@ -120,9 +107,11 @@ class MainCPAStatistics implements Statistics {
         } else {
           out.println("Size of reached set: " + reached.size());
         }
-        out.println("Total Time Elapsed: " + toTime(totalTimeInMillis));
-        out.println("Total Time Elapsed including CFA construction: " +
-                toTime(totalAbsoluteTimeMillis));
+        out.println("Time for parsing C file:   " + parseTime);
+        out.println("Time for CFA construction: " + cfaCreationTime);
+        out.println("Time for CPA instantiaton: " + cpaCreationTime);
+        out.println("Time for Analysis:         " + analysisTime);
+        out.println("Total time for CPAchecker: " + programTime);
 
         for (Statistics s : subStats) {
             String name = s.getName();
@@ -156,9 +145,5 @@ class MainCPAStatistics implements Statistics {
           out.println("UNKNOWN result: " + result);
         }
         out.flush();
-    }
-
-    private String toTime(long timeMillis) {
-        return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }
 }

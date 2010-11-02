@@ -140,25 +140,25 @@ public class CPAchecker {
     Result result = Result.UNKNOWN;
 
     try {
-      // parse code file
-      IASTTranslationUnit ast = parse(filename);
-
       stats = new MainCPAStatistics(config, logger);
 
-      // start measuring time
-      stats.startProgramTimer();
+      // parse code file
+      IASTTranslationUnit ast = parse(filename, stats);
 
       // create CFA
+      stats.cfaCreationTime.start();
       CFACreator cfaCreator = new CFACreator(config, logger);
       cfaCreator.createCFA(ast);
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
-
+      stats.cfaCreationTime.stop();
+      
       if (cfas.isEmpty()) {
         // empty program, do nothing
         return new CPAcheckerResult(Result.UNKNOWN, null, null);
       }
 
+      stats.cpaCreationTime.start();
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
@@ -171,7 +171,8 @@ public class CPAchecker {
 
       if (!requireStopAsap) {
         reached = createInitialReachedSet(cpa, mainFunction);
-
+        stats.cpaCreationTime.stop();
+        
         result = runAlgorithm(algorithm, reached, stats);
       }
 
@@ -210,9 +211,13 @@ public class CPAchecker {
    * @throws IOException If file cannot be read.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  private IASTTranslationUnit parse(String filename) throws IOException, CoreException {
+  private IASTTranslationUnit parse(String filename, final MainCPAStatistics stats) throws IOException, CoreException {
     logger.log(Level.FINE, "Starting parsing of file");
+    stats.parseTime.start();
+
     IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
+    
+    stats.parseTime.stop();
     logger.log(Level.FINE, "Parser Finished");
     return ast;
   }
@@ -222,11 +227,12 @@ public class CPAchecker {
           final MainCPAStatistics stats) throws CPAException {
 
     logger.log(Level.INFO, "Starting analysis...");
-    stats.startAnalysisTimer();
+    stats.analysisTime.start();
 
     algorithm.run(reached);
 
-    stats.stopAnalysisTimer();
+    stats.analysisTime.stop();
+    stats.programTime.stop();
     logger.log(Level.INFO, "Analysis finished.");
 
     for (AbstractElement reachedElement : reached) {
