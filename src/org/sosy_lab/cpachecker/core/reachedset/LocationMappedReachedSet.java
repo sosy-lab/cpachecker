@@ -28,7 +28,10 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.collect.LinkedHashMultimap;
 
@@ -36,8 +39,8 @@ public class LocationMappedReachedSet extends ReachedSet {
 
   private final LinkedHashMultimap<CFANode, AbstractElement> locationMappedReached = LinkedHashMultimap.create();
 
-  public LocationMappedReachedSet(TraversalMethod traversal, boolean useCallstack, boolean useTopsort) {
-    super(traversal, useCallstack, useTopsort);
+  public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {
+    super(waitlistFactory);
   }
   
   @Override
@@ -74,5 +77,20 @@ public class LocationMappedReachedSet extends ReachedSet {
   @Override
   public Set<AbstractElement> getReached(CFANode location) {
     return Collections.unmodifiableSet(locationMappedReached.get(location));
+  }
+  
+  public static CFANode getLocationFromElement(AbstractElement element) {
+    if (element instanceof AbstractWrapperElement) {
+      AbstractElementWithLocation locationElement =
+        ((AbstractWrapperElement)element).retrieveLocationElement();
+      assert locationElement != null;
+      return locationElement.getLocationNode();
+
+    } else if (element instanceof AbstractElementWithLocation) {
+      return ((AbstractElementWithLocation)element).getLocationNode();
+
+    } else {
+      return null;
+    }
   }
 }

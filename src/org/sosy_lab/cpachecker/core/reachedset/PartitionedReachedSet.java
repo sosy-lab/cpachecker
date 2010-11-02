@@ -29,6 +29,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
@@ -47,8 +48,8 @@ public class PartitionedReachedSet extends ReachedSet {
 
   private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
   
-  public PartitionedReachedSet(TraversalMethod traversal, boolean useCallstack, boolean useTopsort) {
-    super(traversal, useCallstack, useTopsort);
+  public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
+    super(waitlistFactory);
   }
   
   @Override

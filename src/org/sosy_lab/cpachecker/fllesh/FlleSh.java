@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathCPA;
@@ -833,7 +834,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
     
-    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false, false);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -977,7 +978,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false, false);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1044,7 +1045,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(ReachedSet.TraversalMethod.TOPSORT, false, false);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {

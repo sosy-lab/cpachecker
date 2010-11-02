@@ -51,6 +51,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
@@ -74,7 +78,7 @@ public class CPAchecker {
     // algorithm options
 
     @Option(name="analysis.traversal")
-    ReachedSet.TraversalMethod traversalMethod = ReachedSet.TraversalMethod.DFS;
+    Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
     @Option(name="analysis.traversal.useCallstack")
     boolean useCallstack = false;
@@ -280,17 +284,25 @@ public class CPAchecker {
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
     
+    WaitlistFactory waitlistFactory = options.traversalMethod;
+    if (options.useTopSort) {
+      waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
+    }
+    if (options.useCallstack) {
+      waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
+    }
+    
     ReachedSet reached;
     switch (options.reachedSet) {
     case PARTITIONED:
-      reached = new PartitionedReachedSet(options.traversalMethod, options.useCallstack, options.useTopSort);
+      reached = new PartitionedReachedSet(waitlistFactory);
       break;
     case LOCATIONMAPPED:
-      reached = new LocationMappedReachedSet(options.traversalMethod, options.useCallstack, options.useTopSort);
+      reached = new LocationMappedReachedSet(waitlistFactory);
       break;
     case NORMAL:
     default:
-      reached = new ReachedSet(options.traversalMethod, options.useCallstack, options.useTopSort);
+      reached = new ReachedSet(waitlistFactory);
     }
 
     reached.add(initialElement, initialPrecision);

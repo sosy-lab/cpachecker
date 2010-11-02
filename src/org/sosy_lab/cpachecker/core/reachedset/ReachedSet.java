@@ -23,28 +23,20 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Random;
 import java.util.Set;
-import java.util.TreeMap;
 
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -59,282 +51,6 @@ import com.google.common.collect.Collections2;
  * All the collections returned from methods of this class ensure this ordering, too.
  */
 public class ReachedSet implements UnmodifiableReachedSet {
-  
-  private static interface Waitlist extends Iterable<AbstractElement>  {
-    
-    void add(AbstractElement element);
-    void clear();
-    boolean contains(AbstractElement element);
-    boolean isEmpty();
-    AbstractElement pop();
-    boolean remove(AbstractElement element);
-    int size();
-  }
-  
-  private static interface WaitlistFactory {
-    
-    Waitlist createWaitlistInstance();
-  }
-  
-  private static abstract class AbstractWaitlist<T extends Collection<AbstractElement>> implements Waitlist {
-    protected final T waitlist;
-
-    public AbstractWaitlist(T pWaitlist) {
-      waitlist = pWaitlist;
-    }
-
-    @Override
-    public void add(AbstractElement pElement) {
-      waitlist.add(pElement);
-    }
-    
-    @Override
-    public void clear() {
-      waitlist.clear();
-    }
-    
-    @Override
-    public boolean contains(AbstractElement pElement) {
-      return waitlist.contains(pElement);
-    }
-    
-    @Override
-    public boolean isEmpty() {
-      return waitlist.isEmpty();
-    }
-    
-    @Override
-    public Iterator<AbstractElement> iterator() {
-      return waitlist.iterator();
-    }
-    
-    @Override
-    public boolean remove(AbstractElement pElement) {
-      return waitlist.remove(pElement);
-    }
-    
-    @Override
-    public int size() {
-      return waitlist.size();
-    }
-  }
-
-  private static class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractElement>> {
-    
-    private final TraversalMethod traversal;
-    
-    public SimpleWaitlist(TraversalMethod pTraversal) {
-      super(new ArrayDeque<AbstractElement>());
-      assert pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS;
-      traversal = pTraversal;
-    }
-    
-    @Override
-    public AbstractElement pop() {
-      switch(traversal) {
-      case BFS:
-        return waitlist.removeFirst();
-
-      case DFS:
-        return waitlist.removeLast();
-      }
-
-      assert false;
-      return null;
-    }
-  }
-  
-  private static class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
-
-    private final Random rand = new Random();
-
-    public RandomWaitlist() {
-      super(new LinkedList<AbstractElement>());
-    }
-    
-    @Override
-    public AbstractElement pop() {
-      int r = rand.nextInt(waitlist.size());
-      return waitlist.remove(r);
-    }
-  }
-  
-  private static class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
-    
-    public TopsortWaitlist() {
-      super(new LinkedList<AbstractElement>());
-    }
-    
-    @Override
-    public AbstractElement pop() {
-      AbstractElement result = null;
-      int resultTopSortId = Integer.MIN_VALUE;
-      for (AbstractElement currentElement : waitlist) {
-        if ((result == null)
-            || (getLocationFromElement(currentElement).getTopologicalSortId() >
-                resultTopSortId)) {
-          result = currentElement;
-          resultTopSortId = getLocationFromElement(result).getTopologicalSortId();
-        }
-      }
-      waitlist.remove(result);
-      return result;
-    }
-  }
-  
-  private static abstract class SortedWaitlistWrapper<K extends Comparable<K>> implements Waitlist {
-    
-    private final WaitlistFactory wrappedWaitlist;
-    
-    // invariant: all entries in this map are non-empty
-    private final NavigableMap<K, Waitlist> waitlist = new TreeMap<K, Waitlist>();
-    
-    private int size = 0;
-
-    protected SortedWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
-      wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
-    }
-    
-    protected abstract K getSortKey(AbstractElement pElement);
-    
-    @Override
-    public void add(AbstractElement pElement) {
-      K key = getSortKey(pElement);
-      Waitlist localWaitlist = waitlist.get(key);
-      if (localWaitlist == null) {
-        localWaitlist = wrappedWaitlist.createWaitlistInstance();
-        waitlist.put(key, localWaitlist);
-      } else {
-        assert !localWaitlist.isEmpty();
-      }
-      localWaitlist.add(pElement);
-      size++;
-    }
-
-    @Override
-    public boolean contains(AbstractElement pElement) {
-      K key = getSortKey(pElement);
-      Waitlist localWaitlist = waitlist.get(key);
-      if (localWaitlist == null) {
-        return false;
-      }
-      assert !localWaitlist.isEmpty();
-      return localWaitlist.contains(pElement);
-    }
-    
-    @Override
-    public void clear() {
-      waitlist.clear();
-      size = 0;
-    }
-    
-    @Override
-    public boolean isEmpty() {
-      assert waitlist.isEmpty() == (size == 0);
-      return waitlist.isEmpty();
-    }
-    
-    @Override
-    public Iterator<AbstractElement> iterator() {
-      return Iterables.concat(waitlist.values()).iterator();
-    }
-    
-    @Override
-    public AbstractElement pop() {
-      Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
-      Waitlist localWaitlist = highestEntry.getValue();
-      assert !localWaitlist.isEmpty();
-      AbstractElement result = localWaitlist.pop();
-      if (localWaitlist.isEmpty()) {
-        waitlist.remove(highestEntry.getKey());
-      }
-      size--;
-      return result;
-    }
-
-    @Override
-    public boolean remove(AbstractElement pElement) {
-      K key = getSortKey(pElement);
-      Waitlist localWaitlist = waitlist.get(key);
-      if (localWaitlist == null) {
-        return false;
-      }
-      assert !localWaitlist.isEmpty();
-      boolean result = localWaitlist.remove(pElement);
-      if (result) {
-        if (localWaitlist.isEmpty()) {
-          waitlist.remove(key);
-        }
-        size--;
-      }
-      return result;
-    }
-    
-    @Override
-    public int size() {
-      return size;
-    }
-  }
-  
-  private static class CallstackWaitlistWrapper extends SortedWaitlistWrapper<Integer> {
-    
-    public CallstackWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
-      super(pSecondaryStrategy);
-    }
-
-    @Override
-    protected Integer getSortKey(AbstractElement pElement) {
-      if (pElement instanceof AbstractWrapperElement) {
-        CallstackElement callstackElement =
-          ((AbstractWrapperElement)pElement).retrieveWrappedElement(CallstackElement.class);
-        if (callstackElement != null) {
-          return callstackElement.getDepth();
-        }
-      }
-      return 0;
-    }
-  }
-  
-  private static class CallstackWaitlistWrapperFactory implements WaitlistFactory {
-    
-    private final WaitlistFactory wrappedWaitlist;
-
-    public CallstackWaitlistWrapperFactory(WaitlistFactory pSecondaryStrategy) {
-      wrappedWaitlist = pSecondaryStrategy;
-    }
-
-    @Override
-    public Waitlist createWaitlistInstance() {
-      return new CallstackWaitlistWrapper(wrappedWaitlist);
-    }
-  }
-
-  private static class TopsortWaitlistWrapper extends SortedWaitlistWrapper<Integer> {
-    
-    public TopsortWaitlistWrapper(WaitlistFactory pSecondaryStrategy) {
-      super(pSecondaryStrategy);
-      Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.TOPSORT);
-    }
-
-    @Override
-    protected Integer getSortKey(AbstractElement pElement) {
-      return getLocationFromElement(pElement).getTopologicalSortId();
-    }
-  }
-  
-  private static class TopsortWaitlistWrapperFactory implements WaitlistFactory {
-    
-    private final WaitlistFactory wrappedWaitlist;
-
-    public TopsortWaitlistWrapperFactory(WaitlistFactory pSecondaryStrategy) {
-      wrappedWaitlist = pSecondaryStrategy;
-    }
-
-    @Override
-    public Waitlist createWaitlistInstance() {
-      return new TopsortWaitlistWrapper(wrappedWaitlist);
-    }
-  }
 
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
@@ -355,30 +71,11 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   };
 
-  public ReachedSet(TraversalMethod traversal, boolean useCallstack, boolean useTopsort) {
-    Preconditions.checkNotNull(traversal);
-
+  public ReachedSet(WaitlistFactory waitlistFactory) {
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    
-    WaitlistFactory factory = traversal;
-    if (useTopsort) {
-      factory = new TopsortWaitlistWrapperFactory(factory);
-    }
-    if (useCallstack) {
-      factory = new CallstackWaitlistWrapperFactory(factory);
-    }
-    waitlist = factory.createWaitlistInstance();
-  }
-
-  //enumerator for traversal methods
-  public enum TraversalMethod implements WaitlistFactory {
-    DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
-    BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
-    TOPSORT { @Override public Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
-    RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
-    ;
+    waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   public void add(AbstractElement element, Precision precision) {
@@ -531,20 +228,5 @@ public class ReachedSet implements UnmodifiableReachedSet {
   @Override
   public String toString() {
     return reached.keySet().toString();
-  }
-  
-  protected static CFANode getLocationFromElement(AbstractElement element) {
-    if (element instanceof AbstractWrapperElement) {
-      AbstractElementWithLocation locationElement =
-        ((AbstractWrapperElement)element).retrieveLocationElement();
-      assert locationElement != null;
-      return locationElement.getLocationNode();
-
-    } else if (element instanceof AbstractElementWithLocation) {
-      return ((AbstractElementWithLocation)element).getLocationNode();
-
-    } else {
-      return null;
-    }
   }
 }
