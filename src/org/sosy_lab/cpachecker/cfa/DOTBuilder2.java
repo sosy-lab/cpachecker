@@ -82,7 +82,7 @@ public final class DOTBuilder2 {
     CFAVisitor vis = new CompositeCFAVisitor(jsoner, dotter);
     traverse(cfa, vis);
     dotter.writeFiles(outdir);
-    jsoner.writeJSON(outdir);
+    Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
   }
  
   private static void addLeavingEdges(CFANode node, Deque<CFAEdge> waitingEdgeList) {
@@ -241,10 +241,10 @@ public final class DOTBuilder2 {
         } finally {
           out.close();
         }
-        
-        Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
-        Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString());        
       }
+      
+      Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
+      Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString()); 
     }
     
     private static String nodeToDot(CFANode node) {
@@ -321,9 +321,9 @@ public final class DOTBuilder2 {
    *
    */
   private static class CFAJSONBuilder extends CFAVisitor {
-    JSONObject nodes = new JSONObject();
-    JSONObject edges = new JSONObject();
-    Set<CFANode> visited = Sets.newHashSet();
+    private final JSONObject nodes = new JSONObject();
+    private final JSONObject edges = new JSONObject();
+    private final Set<CFANode> visited = Sets.newHashSet();
     
     @SuppressWarnings("unchecked")
     void visitNode(CFANode node) {
@@ -352,15 +352,6 @@ public final class DOTBuilder2 {
       jedge.put("type", edge.getEdgeType().toString());
 
       edges.put("" + src + "->" + target, jedge);    
-    }
-    
-    void writeJSON(File outdir) throws IOException {
-      Writer json = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfainfo.json")), "UTF-8");
-      try {
-        json.write(getJSON().toJSONString());
-      } finally {
-        json.close();
-      }      
     }
     
     @SuppressWarnings("unchecked")
