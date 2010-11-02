@@ -159,51 +159,35 @@ public final class DOTBuilder2 {
     private final ListMultimap<String, CFANode> func2nodes = ArrayListMultimap.create();
     private final ListMultimap<String, CFAEdge> func2edges = ArrayListMultimap.create();
     private final ListMultimap<String, List<CFAEdge>> func2comboedge = ArrayListMultimap.create();
-    private final Set<CFANode> visitedNodes = Sets.newHashSet();    
     private final JSONObject node2combo = new JSONObject();
     private final JSONObject virtFuncCallEdges = new JSONObject();    
     private int virtFuncCallNodeIdCounter = 100000;
     
     private List<CFAEdge> currentComboEdge = null;
-    private boolean comboQualified;
-    private CFANode toAdd = null;
-    
-    private void reset() {
-      comboQualified = false;
-      currentComboEdge = null;
-      toAdd = null;
-    }
     
     @Override
     void visitEdge(CFAEdge edge) {
-      // first, handle predecessor if necessary
-      CFANode predecessor = edge.getPredecessor();
-      if (!visitedNodes.contains(predecessor)) {
-        // source node
-        toAdd = predecessor;      
-        comboQualified = !predecessor.isLoopStart() 
-            && predecessor.getNumEnteringEdges() == 1 && predecessor.getNumLeavingEdges() == 1 
-            && predecessor.getLeavingSummaryEdge() == null;
+      CFANode predecessor = edge.getPredecessor();      
 
-      } else {
-        currentComboEdge = null;
-      }
-
-      if (!comboQualified || edge instanceof ReturnEdge || edge instanceof AssumeEdge 
+      // check if it qualifies for a comboEdge
+      if (    predecessor.isLoopStart() 
+          || (predecessor.getNumEnteringEdges() != 1)
+          || (predecessor.getNumLeavingEdges() != 1)
+          || (predecessor.getLeavingSummaryEdge() != null)
+          || (edge instanceof ReturnEdge)
+          || (edge instanceof AssumeEdge)
           || (edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall())) {
+        // no, it does not
         
-        // flush node
-        if (toAdd != null) {
-          func2nodes.put(toAdd.getFunctionName(), toAdd);
-        }
-        func2edges.put(edge.getPredecessor().getFunctionName(), edge);
-        reset();
+        func2nodes.put(predecessor.getFunctionName(), predecessor);
+        func2edges.put(predecessor.getFunctionName(), edge);
+        currentComboEdge = null;
 
       } else {
         // add combo edge
         if (currentComboEdge == null) {
           currentComboEdge = Lists.newArrayList();
-          func2comboedge.put(edge.getPredecessor().getFunctionName(), currentComboEdge);
+          func2comboedge.put(predecessor.getFunctionName(), currentComboEdge);
         }
         currentComboEdge.add(edge);
       }
@@ -212,8 +196,7 @@ public final class DOTBuilder2 {
       CFANode successor = edge.getSuccessor();
       if (successor.getNumLeavingEdges() == 0 && successor.getLeavingSummaryEdge() == null) {
         func2nodes.put(successor.getFunctionName(), successor);
-
-        reset();
+        currentComboEdge = null;
       }
     }
     
@@ -226,7 +209,7 @@ public final class DOTBuilder2 {
         Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
         try {
           out.write("digraph " + funcname + " {\n");
-          StringBuffer outb = new StringBuffer();
+          StringBuilder outb = new StringBuilder();
           //write comboedges
           for (List<CFAEdge> combo: func2comboedge.get(funcname)) {
             if (combo.size() == 1) {
@@ -251,10 +234,8 @@ public final class DOTBuilder2 {
           out.write(outb.toString());
           
           //write edges
-          if (edges != null) {
-            for (CFAEdge edge: edges) {
-              out.write(edgeToDot(edge));
-            }
+          for (CFAEdge edge: edges) {
+            out.write(edgeToDot(edge));
           }
           out.write("}");
         } finally {
@@ -314,7 +295,7 @@ public final class DOTBuilder2 {
     @SuppressWarnings("unchecked")
     private String comboToDot(List<CFAEdge> combo) {
       CFAEdge first = combo.get(0);      
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
       sb.append(" [style=\"filled,bold\" penwidth=1 fillcolor=\"white\" fontname=\"Courier New\" shape=\"Mrecord\" label=");
