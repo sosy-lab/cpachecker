@@ -109,7 +109,7 @@ public class CtoFormulaConverter {
   
   // list of non-deterministic functions
   private static final Set<String> NONDET_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("int_nondet", "malloc", "random");
+      = ImmutableSet.of("int_nondet", "malloc", "nondet_int", "random");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -1020,6 +1020,7 @@ public class CtoFormulaConverter {
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
+    IASTExpression pexp = fexp.getParameterExpression();
     String func;
     if (fn instanceof IASTIdExpression) {
       func = ((IASTIdExpression)fn).getName().getRawSignature();
@@ -1031,14 +1032,18 @@ public class CtoFormulaConverter {
         return smgr.makeVariable(func, idx);
         
       } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
-        log(Level.INFO, "Assuming external function to be a pure function", fn);
+        if (pexp == null) {
+          // function of arity 0
+          log(Level.INFO, "Assuming external function to be a constant function", fn);
+        } else {
+          log(Level.INFO, "Assuming external function to be a pure function", fn);
+        }
       }
     } else {
       log(Level.WARNING, "Ignoring function call through function pointer", fexp);
       func = "<func>{" + fn.getRawSignature() + "}";
     }
 
-    IASTExpression pexp = fexp.getParameterExpression();
     if (pexp == null) {
       // this is a function of arity 0. We create a fresh global variable
       // for it (instantiated at 1 because we need an index but it never
