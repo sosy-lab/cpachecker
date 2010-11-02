@@ -37,6 +37,22 @@ import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 public class BasicBlockCoverage extends ExperimentalSeries {
   
   @Test
+  public void test_locks_100() throws Exception {
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+                                        "test/programs/fql/locks/test_locks_1.c",
+                                        "main",
+                                        true);
+    
+    FlleShResult lResult = execute(lArguments);
+    
+    Assert.assertEquals(11, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(3, lResult.getNumberOfTestCases()); // TODO was 6, 7
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+  }
+  
+  @Test
   public void test_locks_101() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/locks/test_locks_5.c",
