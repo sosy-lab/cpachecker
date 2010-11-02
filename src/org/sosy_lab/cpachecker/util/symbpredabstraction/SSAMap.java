@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
@@ -54,85 +56,57 @@ public class SSAMap {
   public static class SSAMapBuilder {
     
     private SSAMap ssa;
-    private ImmutableMultiset.Builder<String> varsBuilder = null;
-    private ImmutableMultiset.Builder<Pair<String, SymbolicFormulaList>> funcsBuilder = null;
-    
-    // temporary storage of indices that were explicitly set on this instance
-    private Multiset<Object> local = null;
-    
+    private Multiset<String> varsBuilder = null;
+    private Multiset<Pair<String, SymbolicFormulaList>> funcsBuilder = null;
+        
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
     }
     
     public int getIndex(String variable) {
-      int result = 0;
-      if (local != null) {
-        result = local.count(variable);
-      }
-      return (result > 0) ? result : ssa.getIndex(variable);
+      return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
     }
     
     public int getIndex(String func, SymbolicFormulaList args) {
-      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);   
-      int result = 0;
-      if (local != null) {
-        result = local.count(key);
-      }
-      return (result > 0) ? result : ssa.getIndex(key);
+      return SSAMap.getIndex(new Pair<String, SymbolicFormulaList>(func, args),
+                             Objects.firstNonNull(funcsBuilder, ssa.funcs));
     }
     
     public void setIndex(String var, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
-      Preconditions.checkArgument(idx >= ssa.getIndex(var), "SSAMap updates need to be monotone!");
 
       if (varsBuilder == null) {
-        varsBuilder = ImmutableMultiset.builder();
-        for (Entry<String> entry : ssa.vars.entrySet()) {
-          varsBuilder.setCount(entry.getElement(), entry.getCount());
-        }
+        varsBuilder = LinkedHashMultiset.create(ssa.vars);
       }
-      if (local == null) {
-        local = HashMultiset.create(1);
-      }
+
+      Preconditions.checkArgument(idx >= varsBuilder.count(var), "SSAMap updates need to be strictly monotone!");
       varsBuilder.setCount(var, idx);
-      local.setCount(var, idx);
     }
     
     public void setIndex(String func, SymbolicFormulaList args, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
-      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);
-      Preconditions.checkArgument(idx >= ssa.getIndex(key), "SSAMap updates need to be monotone!");
 
       if (funcsBuilder == null) {
-        funcsBuilder = ImmutableMultiset.builder();
-        for (Entry<Pair<String, SymbolicFormulaList>> entry : ssa.funcs.entrySet()) {
-          funcsBuilder.setCount(entry.getElement(), entry.getCount());
-        }
+        funcsBuilder = LinkedHashMultiset.create(ssa.funcs);
       }
-      if (local == null) {
-        local = HashMultiset.create(1);
-      }
+      
+      Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);
+      Preconditions.checkArgument(idx >= funcsBuilder.count(key), "SSAMap updates need to be strictly monotone!");
       funcsBuilder.setCount(key, idx);
-      local.setCount(key, idx);
     }
     
     /**
      * Returns an immutable SSAMap with all the changes made to the builder.
      */
     public SSAMap build() {
-      if (local == null) {
+      if (varsBuilder == null && funcsBuilder == null) {
         return ssa;
       }
       
-      ImmutableMultiset<String> newVars
-                     = (varsBuilder  == null ? ssa.vars  : varsBuilder.build());
-      ImmutableMultiset<Pair<String, SymbolicFormulaList>> newFuncs
-                     = (funcsBuilder == null ? ssa.funcs : funcsBuilder.build());
-      
-      ssa = new SSAMap(newVars, newFuncs);
+      ssa = new SSAMap(Objects.firstNonNull(varsBuilder, ssa.vars),
+                       Objects.firstNonNull(funcsBuilder, ssa.funcs));
       varsBuilder  = null;
       funcsBuilder = null;
-      local = null;
       return ssa;
     }
   }
@@ -160,7 +134,7 @@ public class SSAMap {
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
     
-    ImmutableMultiset<String> vars;
+    Multiset<String> vars;
     if (s1.vars == s2.vars) {
       if (s1.funcs == s2.funcs) {
         // both are absolutely identical
@@ -169,61 +143,50 @@ public class SSAMap {
       vars = s1.vars;
       
     } else {
-      ImmutableMultiset.Builder<String> varsBuilder = ImmutableMultiset.builder();
-      for (Entry<String> entry : s1.vars.entrySet()) {
-        String name = entry.getElement();
-        int i1 = entry.getCount();
-        int i2 = s2.vars.count(name);
-        varsBuilder.setCount(name, Math.max(i1, i2));
-      }
-      for (Entry<String> entry : s2.vars.entrySet()) {
-        String name = entry.getElement();
-        if (!s1.vars.contains(name)) {
-          varsBuilder.setCount(name, entry.getCount());
-        }
-      }
-      vars = varsBuilder.build();
+      vars = merge(s1.vars, s2.vars);
     }
     
-    ImmutableMultiset<Pair<String, SymbolicFormulaList>> funcs;
+    Multiset<Pair<String, SymbolicFormulaList>> funcs;
     if ((s1.funcs == s2.funcs) || s2.funcs.isEmpty()) {
       funcs = s1.funcs;
     } else if (s1.funcs.isEmpty()) {
       funcs = s2.funcs;
     } else {
-      ImmutableMultiset.Builder<Pair<String, SymbolicFormulaList>> funcsBuilder = ImmutableMultiset.builder();
-      for (Entry<Pair<String, SymbolicFormulaList>> entry : s1.funcs.entrySet()) {
-        Pair<String, SymbolicFormulaList> key = entry.getElement();
-        int i1 = entry.getCount();
-        int i2 = s2.funcs.count(key);
-        funcsBuilder.setCount(key, Math.max(i1, i2));
-      }
-      for (Entry<Pair<String, SymbolicFormulaList>> entry : s2.funcs.entrySet()) {
-        Pair<String, SymbolicFormulaList> key = entry.getElement();
-        if (!s1.funcs.contains(key)) {
-          funcsBuilder.setCount(key, entry.getCount());
-        }
-      }
-      funcs = funcsBuilder.build();
+      funcs = merge(s1.funcs, s2.funcs);
     }
     
     return new SSAMap(vars, funcs);
   }
   
-  /**
+  private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
+    Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.size(), s2.size()));
+    for (Entry<T> entry : s1.entrySet()) {
+      T key = entry.getElement();
+      int i1 = entry.getCount();
+      int i2 = s2.count(key);
+      result.setCount(key, Math.max(i1, i2));
+    }
+    for (Entry<T> entry : s2.entrySet()) {
+      T key = entry.getElement();
+      if (!s1.contains(key)) {
+        result.setCount(key, entry.getCount());
+      }
+    }
+    return result;
+  }
+  
+  /*
    * Use Multiset<String> instead of Map<String, Integer> because it is more
    * efficient. The integer value is stored as the number of instances of any
    * element in the Multiset. So instead of calling map.get(key) we just use
    * Multiset.count(key). This is better because the Multiset internally uses
-   * modifiable integers instead of the immutable Integer class. Also, the
-   * builder class for ImmutableMultiset is more flexible than the one for the
-   * ImmutableMap, which makes using a SSAMapBuilder possible. 
+   * modifiable integers instead of the immutable Integer class.
    */
-  private final ImmutableMultiset<String> vars;
-  private final ImmutableMultiset<Pair<String, SymbolicFormulaList>> funcs;
+  private final Multiset<String> vars;
+  private final Multiset<Pair<String, SymbolicFormulaList>> funcs;
   
-  private SSAMap(ImmutableMultiset<String> vars,
-                 ImmutableMultiset<Pair<String, SymbolicFormulaList>> funcs) {
+  private SSAMap(Multiset<String> vars,
+                 Multiset<Pair<String, SymbolicFormulaList>> funcs) {
     this.vars = vars;
     this.funcs = funcs;
   }
@@ -235,7 +198,7 @@ public class SSAMap {
     return new SSAMapBuilder(this);
   }
   
-  private static <T> int getIndex(T key, ImmutableMultiset<T> map) {
+  private static <T> int getIndex(T key, Multiset<T> map) {
     int i = map.count(key);
     if (i != 0) {
       return i;
@@ -261,11 +224,11 @@ public class SSAMap {
   }
 
   protected Set<String> allVariables() {
-    return vars.elementSet();
+    return Collections.unmodifiableSet(vars.elementSet());
   }
 
   protected Set<Pair<String, SymbolicFormulaList>> allFunctions() {
-    return funcs.elementSet();
+    return Collections.unmodifiableSet(funcs.elementSet());
   }
 
   private static final Joiner joiner = Joiner.on(" ");
