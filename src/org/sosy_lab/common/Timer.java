@@ -25,8 +25,8 @@ package org.sosy_lab.common;
 
 /**
  * This Class represents a timer like a chronograph. It can be started and
- * stopped several times. It can return the sum, the average and the maximum 
- * of those intervals.
+ * stopped several times. It can return the sum, the average, the maximum and 
+ * the number of those intervals.
  * 
  * @author Karlheinz Friedberger
  */
