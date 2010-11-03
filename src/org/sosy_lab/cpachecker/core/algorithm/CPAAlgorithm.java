@@ -53,12 +53,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
 
-    private Timer totalTime         = new Timer();
-    private Timer chooseTime        = new Timer();
-    private Timer precisionTime     = new Timer();
-    private Timer transferTime      = new Timer();
-    private Timer mergeTime         = new Timer();
-    private Timer stopTime          = new Timer();
+    private Timer totalTimer         = new Timer();
+    private Timer chooseTimer        = new Timer();
+    private Timer precisionTimer     = new Timer();
+    private Timer transferTimer      = new Timer();
+    private Timer mergeTimer         = new Timer();
+    private Timer stopTimer          = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -87,12 +87,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:   " + totalTime);
-      out.println("Time for choose from waitlist:  " + chooseTime);
-      out.println("Time for precision adjustment:  " + precisionTime);
-      out.println("Time for transfer relation:     " + transferTime);
-      out.println("Time for merge operator:        " + mergeTime);
-      out.println("Time for stop operator:         " + stopTime);
+      out.println("Total time for CPA algorithm:   " + totalTimer);
+      out.println("Time for choose from waitlist:  " + chooseTimer);
+      out.println("Time for precision adjustment:  " + precisionTimer);
+      out.println("Time for transfer relation:     " + transferTimer);
+      out.println("Time for merge operator:        " + mergeTimer);
+      out.println("Time for stop operator:         " + stopTimer);
     }
   }
 
@@ -109,7 +109,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void run(final ReachedSet reachedSet) throws CPAException {
-    stats.totalTime.start();
+    stats.totalTimer.start();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -129,19 +129,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
       stats.countWaitlistSize += size;
 
-      stats.chooseTime.start();
+      stats.chooseTimer.start();
       final AbstractElement element = reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
-      stats.chooseTime.stop();
+      stats.chooseTimer.stop();
 
       logger.log(Level.FINER, "Retrieved element from waitlist");
       logger.log(Level.ALL, "Current element is", element, "with precision",
           precision);
 
-      stats.transferTime.start();
+      stats.transferTimer.start();
       Collection<? extends AbstractElement> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
-      stats.transferTime.stop();
+      stats.transferTimer.stop();
       // TODO When we have a nice way to mark the analysis result as incomplete, 
       // we could continue analysis on a CPATransferException with the next element from waitlist.
 
@@ -155,10 +155,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
-        stats.precisionTime.start();
+        stats.precisionTimer.start();
         Triple<AbstractElement, Precision, Action> precAdjustmentResult =
             precisionAdjustment.prec(successor, precision, reachedSet);
-        stats.precisionTime.stop();
+        stats.precisionTimer.stop();
 
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
@@ -171,7 +171,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           reachedSet.add(element, precision);
           reachedSet.add(successor, successorPrecision);
 
-          stats.totalTime.stop();
+          stats.totalTimer.stop();
           return;
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
@@ -181,7 +181,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
         if (mergeOperator != null && !reached.isEmpty()) {
-          stats.mergeTime.start();
+          stats.mergeTimer.start();
 
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
           List<Pair<AbstractElement, Precision>> toAdd =
@@ -209,13 +209,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           reachedSet.removeAll(toRemove);
           reachedSet.addAll(toAdd);
 
-          stats.mergeTime.stop();
+          stats.mergeTimer.stop();
         }
 
-        stats.stopTime.start();
+        stats.stopTimer.start();
         boolean stop =
             stopOperator.stop(successor, reached, successorPrecision);
-        stats.stopTime.stop();
+        stats.stopTimer.stop();
 
         if (stop) {
           logger.log(Level.FINER,
@@ -230,7 +230,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
     }
-    stats.totalTime.stop();
+    stats.totalTimer.stop();
   }
 
   @Override

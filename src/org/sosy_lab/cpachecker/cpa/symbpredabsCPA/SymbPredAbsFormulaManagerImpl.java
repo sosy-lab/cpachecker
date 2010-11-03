@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -291,7 +292,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       }
     }
 
-    long solveStartTime = System.currentTimeMillis();
+    Timer solveTimer = new Timer();
+    solveTimer.start();
 
     thmProver.init();
     try {
@@ -312,7 +314,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       thmProver.push(f);
       try {
-        long totBddTime = 0;
+        Timer totBddTimer = new Timer();
 
         AbstractFormula absbdd = amgr.makeTrue();
 
@@ -322,7 +324,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         for (Predicate p : predicates) {
           ++predIndex;
           if (useCache && predVals[predIndex] != NO_VALUE) {
-            long startBddTime = System.currentTimeMillis();
+            
+            totBddTimer.start();
             AbstractFormula v = p.getAbstractVariable();
             if (predVals[predIndex] == -1) { // pred is false
               v = amgr.makeNot(v);
@@ -330,8 +333,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             } else if (predVals[predIndex] == 1) { // pred is true
               absbdd = amgr.makeAnd(absbdd, v);
             }
-            long endBddTime = System.currentTimeMillis();
-            totBddTime += (endBddTime - startBddTime);
+            totBddTimer.stop();
+            
             //++stats.abstractionNumCachedQueries;
           } else {            
             logger.log(Level.ALL, "DEBUG_1",
@@ -349,11 +352,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             boolean isTrue = thmProver.isUnsat(predFalse);
 
             if (isTrue) {
-              long startBddTime = System.currentTimeMillis();
+              totBddTimer.start();
               AbstractFormula v = p.getAbstractVariable();
               absbdd = amgr.makeAnd(absbdd, v);
-              long endBddTime = System.currentTimeMillis();
-              totBddTime += (endBddTime - startBddTime);
+              totBddTimer.stop();
 
               predVal = 1;
             } else {
@@ -362,12 +364,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
               boolean isFalse = thmProver.isUnsat(predTrue);
 
               if (isFalse) {
-                long startBddTime = System.currentTimeMillis();
+                totBddTimer.start();
                 AbstractFormula v = p.getAbstractVariable();
                 v = amgr.makeNot(v);
                 absbdd = amgr.makeAnd(absbdd, v);
-                long endBddTime = System.currentTimeMillis();
-                totBddTime += (endBddTime - startBddTime);
+                totBddTimer.stop();
 
                 predVal = -1;
               }
@@ -379,14 +380,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
               cartesianAbstractionCache.put(key, predVal);
             }
           }
-        }
-        long solveEndTime = System.currentTimeMillis();
+        }     
+        solveTimer.stop();
 
         // update statistics
-        long solveTime = (solveEndTime - solveStartTime) - totBddTime;
+        
+        long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
         stats.abstractionMaxBddTime =
-          Math.max(totBddTime, stats.abstractionMaxBddTime);
-        stats.abstractionBddTime += totBddTime;
+          Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
+        stats.abstractionBddTime += totBddTimer.getSumTime();
         stats.abstractionSolveTime += solveTime;
         stats.abstractionMaxSolveTime =
           Math.max(solveTime, stats.abstractionMaxSolveTime);
@@ -544,7 +546,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
-    long startTime = System.currentTimeMillis();
+    Timer totTimer = new Timer();
+    totTimer.start();
+    
     stats.numCallsCexAnalysis++;
 
     logger.log(Level.FINEST, "Building counterexample trace");
@@ -758,11 +762,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     pItpProver.reset();
 
+    totTimer.stop();
+
     // update stats
-    long endTime = System.currentTimeMillis();
-    long totTime = endTime - startTime;
-    stats.cexAnalysisTime += totTime;
-    stats.cexAnalysisMaxTime = Math.max(totTime, stats.cexAnalysisMaxTime);
+    stats.cexAnalysisTime += totTimer.getSumTime();
+    stats.cexAnalysisMaxTime = Math.max(totTimer.getSumTime(), stats.cexAnalysisMaxTime);
     stats.cexAnalysisSolverTime += msatSolveTime;
     stats.cexAnalysisMaxSolverTime =
       Math.max(msatSolveTime, stats.cexAnalysisMaxSolverTime);

@@ -56,9 +56,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CEGARStatistics implements Statistics {
 
-    private Timer totalTime = new Timer();
-    private Timer refinementTime = new Timer();
-    private Timer gcTime = new Timer();
+    private Timer totalTimer = new Timer();
+    private Timer refinementTimer = new Timer();
+    private Timer gcTimer = new Timer();
     
     private int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
@@ -76,11 +76,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       if (countRefinements > 0) {
         out.println("");
-        out.println("Total time for CEGAR algorithm: " + totalTime);
-        out.println("Time for refinements:           " + refinementTime);
-        out.println("Average time for refinement:    " + refinementTime.printAvgTime());
-        out.println("Max time for refinement:        " + refinementTime.printMaxTime());
-        out.println("Time for garbage collection:    " + gcTime);
+        out.println("Total time for CEGAR algorithm: " + totalTimer);
+        out.println("Time for refinements:           " + refinementTimer);
+        out.println("Average time for refinement:    " + refinementTimer.printAvgTime());
+        out.println("Max time for refinement:        " + refinementTimer.printMaxTime());
+        out.println("Time for garbage collection:    " + gcTimer);
       }
     }
   }
@@ -157,7 +157,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void run(ReachedSet reached) throws CPAException {
-    stats.totalTime.start();
+    stats.totalTimer.start();
 
     boolean stopAnalysis = false;
     while (!stopAnalysis) {
@@ -172,9 +172,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
 
-        stats.refinementTime.start();
+        stats.refinementTimer.start();
         boolean refinementResult = mRefiner.performRefinement(reached);
-        stats.refinementTime.stop();
+        stats.refinementTimer.stop();
         
         if (refinementResult) {
           // successful refinement
@@ -206,15 +206,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
     executor.shutdownNow();
 
-    stats.totalTime.stop();
+    stats.totalTimer.stop();
   }
 
   private void runGC() {
     if ((++gcCounter % GC_PERIOD) == 0) {
-      stats.gcTime.start();
+      stats.gcTimer.start();
       System.gc();
       gcCounter = 0;
-      stats.gcTime.stop();
+      stats.gcTimer.stop();
     }
   }
 
