@@ -119,7 +119,7 @@ public class UnmodifiableSSAMap implements ISSAMap<UnmodifiableSSAMap> {
     
     for (String lVariable : allVariables()) {
       int lIndex1 = getIndex(lVariable); // lIndex1 >= 0
-      int lIndex2 = getIndex(lVariable);
+      int lIndex2 = pSSAMap.getIndex(lVariable);
       
       if (lIndex1 != lIndex2) {
         lSSAMapBuilder.setIndex(lVariable, Math.max(lIndex1, lIndex2));
