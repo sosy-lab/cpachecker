@@ -187,11 +187,11 @@ class SymbPredAbsCPAStatistics implements Statistics {
       }
       if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
         out.println("Time for refinement:                 " + refiner.totalRefinement);
-        out.println("  Counterexample analysis:           " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
-        if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
-          out.println("    Cex.focusing:                    " + toTime(bs.cexAnalysisGetUsefulBlocksTime) + " (Max: " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime) + ")");
+        out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ")");
+        if (bs.cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
+          out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
         }
-        out.println("    Solving time only:               " + toTime(bs.cexAnalysisSolverTime) + " (Max: " + toTime(bs.cexAnalysisMaxSolverTime) + ")");
+        out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ")");
         out.println("  Precision update:                  " + refiner.precisionUpdate);
         out.println("  ART update:                        " + refiner.artUpdate);
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);

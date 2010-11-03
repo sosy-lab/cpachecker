@@ -91,19 +91,17 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     public int numCallsAbstractionCached = 0;
     public long abstractionSolveTime = 0;
     public long abstractionMaxSolveTime = 0;
+    
     public long abstractionBddTime = 0;
     public long abstractionMaxBddTime = 0;
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
 
-    public int numCallsCexAnalysis = 0;
-    public long cexAnalysisTime = 0;
-    public long cexAnalysisMaxTime = 0;
-    public long cexAnalysisSolverTime = 0;
-    public long cexAnalysisMaxSolverTime = 0;
-    public long cexAnalysisGetUsefulBlocksTime = 0;
-    public long cexAnalysisGetUsefulBlocksMaxTime = 0;
+    public final Timer cexAnalysisTimer = new Timer();
+    public final Timer cexAnalysisSolverTimer = new Timer();
+    public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   }
+  
   final Stats stats;
 
   private final TheoremProver thmProver;
@@ -386,9 +384,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         // update statistics
         
         long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
+        
         stats.abstractionMaxBddTime =
           Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
         stats.abstractionBddTime += totBddTimer.getSumTime();
+        
         stats.abstractionSolveTime += solveTime;
         stats.abstractionMaxSolveTime =
           Math.max(solveTime, stats.abstractionMaxSolveTime);
@@ -546,10 +546,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
-    Timer totTimer = new Timer();
-    totTimer.start();
-    
-    stats.numCallsCexAnalysis++;
+    stats.cexAnalysisTimer.start();
 
     logger.log(Level.FINEST, "Building counterexample trace");
 
@@ -585,7 +582,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     // create a working environment
     pItpProver.init();
 
-    long msatSolveTimeStart = System.currentTimeMillis();
+    stats.cexAnalysisSolverTimer.start();
 
     if (shortestTrace && getUsefulBlocks) {
       f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
@@ -595,7 +592,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       int k = 0;
       for (SymbolicFormula formula : f) {
         String dumpFile = String.format(formulaDumpFilePattern,
-                    "interpolation", stats.numCallsCexAnalysis, "formula", k++);
+                    "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
         dumpFormulaToFile(formula, new File(dumpFile));
       }
     }
@@ -622,8 +619,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     assert itpGroupsIds.size() == f.size();
     assert !itpGroupsIds.contains(null); // has to be filled completely
 
-    long msatSolveTimeEnd = System.currentTimeMillis();
-    long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
+    stats.cexAnalysisSolverTimer.stop();
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
@@ -656,14 +652,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         logger.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
 
-        msatSolveTimeStart = System.currentTimeMillis();
+        stats.cexAnalysisSolverTimer.start();
         SymbolicFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-        msatSolveTimeEnd = System.currentTimeMillis();
-        msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
-
+        stats.cexAnalysisSolverTimer.stop();
+        
         if (dumpInterpolationProblems) {
           String dumpFile = String.format(formulaDumpFilePattern,
-                  "interpolation", stats.numCallsCexAnalysis, "interpolant", i);
+                  "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
           dumpFormulaToFile(itp, new File(dumpFile));
         }
 
@@ -683,7 +678,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
           if (dumpInterpolationProblems) {
             String dumpFile = String.format(formulaDumpFilePattern,
-                        "interpolation", stats.numCallsCexAnalysis, "atoms", i);
+                        "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
             Collection<SymbolicFormula> atoms = Collections2.transform(preds,
                 new Function<Predicate, SymbolicFormula>(){
                       @Override
@@ -737,16 +732,19 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         int k = 0;
         for (SymbolicFormula formula : f) {
           pItpProver.addFormula(formula);
-          String dumpFile = String.format(formulaDumpFilePattern,
-                      "interpolation", stats.numCallsCexAnalysis, "formula", k++);
+          String dumpFile =
+              String.format(formulaDumpFilePattern, "interpolation",
+                      stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
           dumpFormulaToFile(formula, new File(dumpFile));
         }
-        String dumpFile = String.format(formulaDumpFilePattern,
-            "interpolation", stats.numCallsCexAnalysis, "formula", k++);
-        dumpFormulaToFile(lastElement.getPathFormula().getReachingPathsFormula(), new File(dumpFile));
+        String dumpFile =
+            String.format(formulaDumpFilePattern, "interpolation",
+                stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
+        dumpFormulaToFile(lastElement.getPathFormula()
+            .getReachingPathsFormula(), new File(dumpFile));
         pItpProver.isUnsat();
         model = pItpProver.getModel();
-        preds = Maps.newTreeMap();
+  preds = Maps.newTreeMap();
       } else {
         model = pItpProver.getModel();
         if (model.isEmpty()) {
@@ -762,14 +760,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     pItpProver.reset();
 
-    totTimer.stop();
-
     // update stats
-    stats.cexAnalysisTime += totTimer.getSumTime();
-    stats.cexAnalysisMaxTime = Math.max(totTimer.getSumTime(), stats.cexAnalysisMaxTime);
-    stats.cexAnalysisSolverTime += msatSolveTime;
-    stats.cexAnalysisMaxSolverTime =
-      Math.max(msatSolveTime, stats.cexAnalysisMaxSolverTime);
+    stats.cexAnalysisTimer.stop();
 
     logger.log(Level.ALL, "Counterexample information:", info);
 
@@ -938,7 +930,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,
       boolean suffixTrace, boolean zigZag) {
-    long gubStart = System.currentTimeMillis();
+    
+    stats.cexAnalysisGetUsefulBlocksTimer.start();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
@@ -1040,10 +1033,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
-    long gubEnd = System.currentTimeMillis();
-    stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
-    stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
-        stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
+    stats.cexAnalysisGetUsefulBlocksTimer.stop();
 
     return f;
   }
