@@ -37,15 +37,14 @@ public class Timer {
   private long maxTime           = 0;
   private int  numberOfIntervals = 0;
 
-  /** start the timer if it is not running, else start new interval */
+  /** start the timer if it is not running, else start after stopping */
   public void start() {
     if (!isRunning()) {
-      startTime = System.currentTimeMillis();
-    } else {
-      // new interval
       this.stop();
-      this.start();
     }
+    startTime = System.currentTimeMillis();
+    // one more interval is started
+    numberOfIntervals++;
   }
 
   /**
@@ -63,8 +62,6 @@ public class Timer {
 
       // reset startTime for isRunning()
       startTime = 0;
-      // one more interval is finished
-      numberOfIntervals++;
       return intervallTime;
     }
     return 0;
@@ -86,16 +83,16 @@ public class Timer {
     return maxTime;
   }
 
+  public int getNumberOfIntervals() {
+    return numberOfIntervals;
+  }
+
   /**
    * returns the average of all intervals. if timer is running, it returns the average
    * of the intervals plus one interval with the time since the timer has been started
    */
   public long getAvgTime() {
-    if (isRunning()) {
-      return getSumTime() / (numberOfIntervals + 1);
-    } else {
-      return getSumTime() / numberOfIntervals;
-    }
+    return getSumTime() / numberOfIntervals;
   }
 
   /**some methods for printing*/
