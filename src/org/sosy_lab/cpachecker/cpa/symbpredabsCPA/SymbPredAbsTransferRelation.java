@@ -32,6 +32,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -85,12 +86,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private int satCheckBlockSize = 0;
 
   // statistics
-  long postTime = 0;
-  long satCheckTime = 0;
-  long pathFormulaTime = 0;
-  long pathFormulaComputationTime = 0;
-  long strengthenTime = 0;
-  long strengthenCheckTime = 0;
+  public Timer postTimer = new Timer();
+  public Timer satCheckTimer = new Timer();
+  public Timer pathFormulaTimer = new Timer();
+  public Timer pathFormulaComputationTimer = new Timer();
+  public Timer strengthenTimer = new Timer();
+  public Timer strengthenCheckTimer = new Timer();
 
   int numPosts = 0;
   int numBlkFunctions = 0;
@@ -121,8 +122,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
       Precision pPrecision, CFAEdge edge) throws CPATransferException {
 
-    long start = System.currentTimeMillis();
+    postTimer.start();
     numPosts++;
+    
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     CFANode loc = edge.getSuccessor();
 
@@ -147,7 +149,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     } else {
       result = handleNonAbstractionLocation(pathFormula, element.getAbstraction());
     }
-    postTime += System.currentTimeMillis() - start;
+    postTimer.stop();
     return result;
   }
 
@@ -163,12 +165,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         (satCheck ? "with satisfiability check" : ""));
 
     if (satCheck) {
+      satCheckTimer.start(); 
       numSatChecks++;
-      long start = System.currentTimeMillis(); 
 
       boolean unsat = formulaManager.unsat(abstraction, pathFormula);
       
-      satCheckTime += System.currentTimeMillis() - start;
+      satCheckTimer.stop();
       
       if (unsat) {
         numSatChecksFalse++;
@@ -194,30 +196,31 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @throws UnrecognizedCFAEdgeException
    */
   private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
-    final long start = System.currentTimeMillis();
+    pathFormulaTimer.start();
     PathFormula pf;
 
     if (!useCache) {
-      long startComp = System.currentTimeMillis();
+      pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
       pf = formulaManager.makeAnd(pathFormula, edge);
-      pathFormulaComputationTime += System.currentTimeMillis() - startComp;
+      pathFormulaComputationTimer.stop();
 
     } else {
       final Pair<PathFormula, CFAEdge> formulaCacheKey = new Pair<PathFormula, CFAEdge>(pathFormula, edge);
       pf = pathFormulaCache.get(formulaCacheKey);
       if (pf == null) {
-        long startComp = System.currentTimeMillis();
+        pathFormulaComputationTimer.start();
         // compute new pathFormula with the operation on the edge
         pf = formulaManager.makeAnd(pathFormula, edge);
-        pathFormulaComputationTime += System.currentTimeMillis() - startComp;
+        pathFormulaComputationTimer.stop();
         pathFormulaCache.put(formulaCacheKey, pf);
+        
       } else {
         pathFormulaCacheHits++;
       }
     }
     assert pf != null;
-    pathFormulaTime += System.currentTimeMillis() - start;
+    pathFormulaTimer.stop();
     return pf;
   }
 
@@ -272,7 +275,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException {
 
-    long start = System.currentTimeMillis();
+    strengthenTimer.start();
     try {
     
       SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
@@ -308,7 +311,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       return Collections.singleton(element);
     
     } finally {
-      strengthenTime += System.currentTimeMillis() - start;
+      strengthenTimer.stop();
     }
   }
 
@@ -364,11 +367,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private SymbPredAbsAbstractElement strengthenSatCheck(SymbPredAbsAbstractElement pElement) {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
     numStrengthenChecks++;
-    long startCheck = System.currentTimeMillis(); 
+    strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
-    
     boolean unsat = formulaManager.unsat(pElement.getAbstraction(), pathFormula);
-    strengthenCheckTime += System.currentTimeMillis() - startCheck;
+    strengthenCheckTimer.stop();
 
     if (unsat) {
       numStrengthenChecksFalse++;
