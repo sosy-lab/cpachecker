@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -103,13 +104,13 @@ public class CtoFormulaConverter {
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
   
+  @Option(name="nondetFunctions")
+  private String[] nondetFunctionsArray = {"int_nondet", "malloc", "nondet_int", "random"};
+  private final Set<String> nondetFunctions;
+  
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("__assert_fail", "printf", "puts");
-  
-  // list of non-deterministic functions
-  private static final Set<String> NONDET_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("int_nondet", "malloc", "nondet_int", "random");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -135,6 +136,7 @@ public class CtoFormulaConverter {
   public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
+    nondetFunctions = new HashSet<String>(Arrays.asList(nondetFunctionsArray));
     this.smgr = smgr;
     this.logger = logger;
   }
@@ -1024,7 +1026,7 @@ public class CtoFormulaConverter {
     String func;
     if (fn instanceof IASTIdExpression) {
       func = ((IASTIdExpression)fn).getName().getRawSignature();
-      if (NONDET_EXTERNAL_FUNCTIONS.contains(func)) {
+      if (nondetFunctions.contains(func)) {
         // function call like "random()"
         // ignore parameters and just create a fresh variable for it  
         globalVars.add(func);
