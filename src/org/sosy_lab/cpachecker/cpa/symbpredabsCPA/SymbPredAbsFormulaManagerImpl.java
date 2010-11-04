@@ -473,18 +473,20 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    long solveStartTime = System.currentTimeMillis();
+    final Timer solveTimer = new Timer();
+    solveTimer.start();
     AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, amgr);
-    long solveEndTime = System.currentTimeMillis();
-
+    solveTimer.stop();
+    
     // update statistics
     int numModels = allSatResult.getCount();
     if (numModels < Integer.MAX_VALUE) {
       stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
       stats.allSatCount += numModels;
     }
+    
     long bddTime   = allSatResult.getTotalTime();
-    long solveTime = (solveEndTime - solveStartTime) - bddTime;
+    long solveTime = solveTimer.getSumTime() - bddTime;
 
     stats.abstractionSolveTime += solveTime;
     stats.abstractionBddTime   += bddTime;
