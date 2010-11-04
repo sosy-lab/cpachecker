@@ -93,13 +93,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
 
-  int numPosts = 0;
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
-  int numSatChecks = 0;
   int numSatChecksFalse = 0;
-  int numStrengthenChecks = 0;
   int numStrengthenChecksFalse = 0;
   int pathFormulaCacheHits = 0;
   
@@ -123,7 +120,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       Precision pPrecision, CFAEdge edge) throws CPATransferException {
 
     postTimer.start();
-    numPosts++;
     
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     CFANode loc = edge.getSuccessor();
@@ -166,7 +162,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (satCheck) {
       satCheckTimer.start(); 
-      numSatChecks++;
 
       boolean unsat = formulaManager.unsat(abstraction, pathFormula);
       
@@ -366,7 +361,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   
   private SymbPredAbsAbstractElement strengthenSatCheck(SymbPredAbsAbstractElement pElement) {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
-    numStrengthenChecks++;
+
     strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
     boolean unsat = formulaManager.unsat(pElement.getAbstraction(), pathFormula);

@@ -129,20 +129,20 @@ class SymbPredAbsCPAStatistics implements Statistics {
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
       SymbPredAbsPrecisionAdjustment prec = cpa.getPrecisionAdjustment();
 
-      out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.numPosts) + " of all post computations)");
+      out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
       if (prec.numAbstractions > 0) {
         out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
         out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, prec.numAbstractions) + ")");
         out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, prec.numAbstractions) + ")");
         out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
       }
-      if (trans.numSatChecks > 0) {
-        out.println("Number of satisfiability checks:   " + trans.numSatChecks);
-        out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.numSatChecks) + ")");
+      if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());
+        out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.satCheckTimer.getNumberOfIntervals()) + ")");
       }
-      out.println("Number of strengthen sat checks:   " + trans.numStrengthenChecks);
-      if (trans.numStrengthenChecks > 0) {
-        out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
+      out.println("Number of strengthen sat checks:   " + trans.strengthenCheckTimer.getNumberOfIntervals());
+      if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.strengthenCheckTimer.getNumberOfIntervals()) + ")");
       }
       out.println("Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
       out.println("  BDD entailment checks:           " + domain.bddCoverageCheckTimer.getNumberOfIntervals());
@@ -160,7 +160,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
         out.println("Avg number of models for allsat:          " + bs.allSatCount / bs.numCallsAbstraction);
       }
       out.println();
-      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.numPosts) + ")");
+      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.postTimer.getNumberOfIntervals()) + ")");
       if (bs.numCallsAbstraction > 0) {
         out.println("Number of abstraction cache hits:    " + bs.numCallsAbstractionCached + " (" + toPercent(bs.numCallsAbstractionCached, bs.numCallsAbstraction) + ")");
       }
@@ -168,7 +168,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Time for post operator:              " + trans.postTimer);
       out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
       out.println("    Actual computation:              " + trans.pathFormulaComputationTimer);
-      if (trans.numSatChecks > 0) {
+      if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
       }
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
