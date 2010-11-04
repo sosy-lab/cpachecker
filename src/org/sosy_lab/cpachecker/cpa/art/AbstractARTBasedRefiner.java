@@ -53,8 +53,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   private final ARTCPA mArtCpa;
   private final LogManager logger;
 
-  private final Set<Path> seenCounterexamples = Sets.newHashSet();
-
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     if (!(pCpa instanceof ARTCPA)) {
       throw new CPAException("ARTCPA needed for refinement");
@@ -97,8 +95,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       logger.log(Level.ALL, "Function calls on Error path:\n",
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
-
-    assert seenCounterexamples.add(path);
 
     boolean result;
     try {
