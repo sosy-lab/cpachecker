@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.logging.Level;
 
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -98,8 +98,19 @@ class MainCPAStatistics implements Statistics {
           }
         }
 
-        out.println("\nCPAchecker general statistics:");
-        out.println("------------------------------");
+        for (Statistics s : subStats) {
+            String name = s.getName();
+            if (name != null && !name.isEmpty()) {
+              name = name + " statistics";
+              out.println("");
+              out.println(name);
+              out.println(Strings.repeat("-", name.length()));
+            }
+            s.printStatistics(out, result, reached);
+        }
+
+        out.println("\nCPAchecker general statistics");
+        out.println("-----------------------------");
         if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
           out.println("Size of reached set: " + reached.size()
@@ -112,18 +123,6 @@ class MainCPAStatistics implements Statistics {
         out.println("Time for CPA instantiaton: " + cpaCreationTime);
         out.println("Time for Analysis:         " + analysisTime);
         out.println("Total time for CPAchecker: " + programTime);
-
-        for (Statistics s : subStats) {
-            String name = s.getName();
-            if (name != null && !name.isEmpty()) {
-              out.println("");
-              out.println(name);
-              char[] c = new char[name.length()];
-              Arrays.fill(c, '-');
-              out.println(String.copyValueOf(c));
-            }
-            s.printStatistics(out, result, reached);
-        }
 
         out.println("");
         out.print("Error location(s) reached? ");
