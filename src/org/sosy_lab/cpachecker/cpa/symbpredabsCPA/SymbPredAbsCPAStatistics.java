@@ -165,14 +165,14 @@ class SymbPredAbsCPAStatistics implements Statistics {
         out.println("Number of abstraction cache hits:    " + bs.numCallsAbstractionCached + " (" + toPercent(bs.numCallsAbstractionCached, bs.numCallsAbstraction) + ")");
       }
       out.println();
-      out.println("Time for post operator:              " + toTime(trans.postTime));
-      out.println("  Time for path formula creation:    " + toTime(trans.pathFormulaTime));
-      out.println("    Actual computation:              " + toTime(trans.pathFormulaComputationTime));
+      out.println("Time for post operator:              " + trans.postTimer);
+      out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
+      out.println("    Actual computation:              " + trans.pathFormulaComputationTimer);
       if (trans.numSatChecks > 0) {
-        out.println("  Time for satisfiability checks:    " + toTime(trans.satCheckTime));
+        out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
       }
-      out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
-      out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
+      out.println("Time for strengthen operator:        " + trans.strengthenTimer);
+      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);        
       out.println("Time for prec operator:             " + prec.totalPrecTime);
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime);
       out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");

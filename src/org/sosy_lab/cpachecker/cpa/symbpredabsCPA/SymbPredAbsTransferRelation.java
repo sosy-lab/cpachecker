@@ -86,12 +86,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private int satCheckBlockSize = 0;
 
   // statistics
-  public Timer postTimer = new Timer();
-  public Timer satCheckTimer = new Timer();
-  public Timer pathFormulaTimer = new Timer();
-  public Timer pathFormulaComputationTimer = new Timer();
-  public Timer strengthenTimer = new Timer();
-  public Timer strengthenCheckTimer = new Timer();
+  final Timer postTimer = new Timer();
+  final Timer satCheckTimer = new Timer();
+  final Timer pathFormulaTimer = new Timer();
+  final Timer pathFormulaComputationTimer = new Timer();
+  final Timer strengthenTimer = new Timer();
+  final Timer strengthenCheckTimer = new Timer();
 
   int numPosts = 0;
   int numBlkFunctions = 0;
