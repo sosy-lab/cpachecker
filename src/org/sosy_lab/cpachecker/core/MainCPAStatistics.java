@@ -26,10 +26,12 @@ package org.sosy_lab.cpachecker.core;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -166,6 +168,16 @@ class MainCPAStatistics implements Statistics {
         out.println("Time for CPA instantiaton: " + cpaCreationTime);
         out.println("Time for Analysis:         " + analysisTime);
         out.println("Total time for CPAchecker: " + programTime);
+        
+        out.println("");
+        List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        long gcTime = 0;
+        int gcCount = 0;
+        for (GarbageCollectorMXBean gcBean : gcBeans) {
+          gcTime += gcBean.getCollectionTime();
+          gcCount += gcBean.getCollectionCount();
+        }
+        out.println("Time for Garbage Collector:" + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
         try {
           memStats.join(); // thread should have terminated already,
                            // but wait for it to ensure memory visibility
