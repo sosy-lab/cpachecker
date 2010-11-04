@@ -87,7 +87,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:   " + totalTimer);
+      out.println("Total time for CPA algorithm:   " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
       out.println("Time for choose from waitlist:  " + chooseTimer);
       out.println("Time for precision adjustment:  " + precisionTimer);
       out.println("Time for transfer relation:     " + transferTimer);

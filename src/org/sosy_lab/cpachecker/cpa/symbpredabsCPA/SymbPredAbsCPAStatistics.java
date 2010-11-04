@@ -174,7 +174,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);        
       out.println("Time for prec operator:             " + prec.totalPrecTime);
-      out.println("  Time for abstraction:              " + prec.computingAbstractionTime);
+      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ")");
       out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
       out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
       out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
