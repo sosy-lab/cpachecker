@@ -144,9 +144,9 @@ class SymbPredAbsCPAStatistics implements Statistics {
       if (trans.numStrengthenChecks > 0) {
         out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
       }
-      out.println("Number of coverage checks:         " + domain.numCoverageCheck);
-      out.println("  BDD entailment checks:           " + domain.numBddCoverageCheck);
-      out.println("  Symbolic coverage check:         " + domain.numSymbolicCoverageCheck);
+      out.println("Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
+      out.println("  BDD entailment checks:           " + domain.bddCoverageCheckTimer.getNumberOfIntervals());
+      out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
@@ -178,12 +178,12 @@ class SymbPredAbsCPAStatistics implements Statistics {
       out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
       out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
       out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
-      out.println("Time for coverage check:             " + toTime(domain.coverageCheckTime));
-      if (domain.numBddCoverageCheck > 0) {
-        out.println("  Time for BDD entailment checks:    " + toTime(domain.bddCoverageCheckTime));
+      out.println("Time for coverage check:             " + domain.coverageCheckTimer);
+      if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);
       }
-      if (domain.numSymbolicCoverageCheck > 0) {
-        out.println("  Time for symbolic coverage checks: " + toTime(domain.bddCoverageCheckTime));
+      if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for symbolic coverage checks: " + domain.bddCoverageCheckTimer);
       }
       if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
         out.println("Time for refinement:                 " + refiner.totalRefinement);

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -39,12 +40,9 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
   private boolean symbolicCoverageCheck = false; 
   
   // statistics
-  int numCoverageCheck = 0;
-  int numBddCoverageCheck = 0;
-  int numSymbolicCoverageCheck = 0;
-  long coverageCheckTime = 0;
-  long bddCoverageCheckTime = 0;
-  long symbolicCoverageCheckTime = 0;
+  public final Timer coverageCheckTimer = new Timer();
+  public final Timer bddCoverageCheckTimer = new Timer();
+  public final Timer symbolicCoverageCheckTimer = new Timer();
   
   private final AbstractFormulaManager mAbstractFormulaManager;
   private final SymbPredAbsFormulaManager mgr;
@@ -58,8 +56,7 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
   @Override
   public boolean satisfiesPartialOrder(AbstractElement element1,
                                        AbstractElement element2) throws CPAException {
-    numCoverageCheck++;
-    long start = System.currentTimeMillis();
+    coverageCheckTimer.start();
     try {
     
     SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
@@ -77,23 +74,21 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
      */
 
     if (e1 instanceof AbstractionElement && e2 instanceof AbstractionElement) {
-      numBddCoverageCheck++;
-      long startCheck = System.currentTimeMillis();
+      bddCoverageCheckTimer.start();
       
       // if e1's predicate abstraction entails e2's pred. abst.
       boolean result = mAbstractFormulaManager.entails(e1.getAbstraction().asAbstractFormula(), e2.getAbstraction().asAbstractFormula());
       
-      bddCoverageCheckTime += System.currentTimeMillis() - startCheck;
+      bddCoverageCheckTimer.stop();
       return result;
 
     } else if (e2 instanceof AbstractionElement) {
       if (symbolicCoverageCheck) {
-        numSymbolicCoverageCheck++;
-        long startCheck = System.currentTimeMillis();
-
+        symbolicCoverageCheckTimer.start();
+        
         boolean result = mgr.checkCoverage(e1.getAbstraction(), e1.getPathFormula(), e2.getAbstraction());
       
-        symbolicCoverageCheckTime += System.currentTimeMillis() - startCheck;
+        symbolicCoverageCheckTimer.stop();
         return result;
         
       } else {
@@ -109,7 +104,7 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
     
     } finally {
-      coverageCheckTime += System.currentTimeMillis() - start;
+      coverageCheckTimer.stop();
     }
   }
 
