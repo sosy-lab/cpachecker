@@ -141,6 +141,9 @@ cfa.file = cfa.dot
 statistics.export = true
 statistics.file = Statistics.txt
 
+# track memory usage of JVM during runtime
+statistics.memory = true
+
 # entry function
 analysis.entryFunction = main
 

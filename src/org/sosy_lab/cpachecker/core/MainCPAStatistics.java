@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -47,15 +49,53 @@ import com.google.common.base.Strings;
 
 @Options
 class MainCPAStatistics implements Statistics {
+  
+  private class MemoryStatistics extends Thread {
+    
+    private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
+    
+    private long maxHeap = 0;
+    private long sumHeap = 0;
+    private long maxNonHeap = 0;
+    private long sumNonHeap = 0;
+    private long count = 0;
+    
+    @Override
+    public void run() {
+      MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
+      while (monitorMemoryUsage) {
+        count++;
+        long currentHeapUsed = mxBean.getHeapMemoryUsage().getUsed();
+        maxHeap = Math.max(maxHeap, currentHeapUsed);
+        sumHeap += currentHeapUsed;
+        
+        long currentNonHeapUsed = mxBean.getNonHeapMemoryUsage().getUsed();
+        maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
+        sumNonHeap += currentNonHeapUsed;
+        
+        try {
+          sleep(MEMORY_CHECK_INTERVAL);
+        } catch (InterruptedException e) {
+          this.interrupt();
+          monitorMemoryUsage = false;
+        }
+      }
+    }
+    
+  }
 
     @Option(name="reachedSet.export")
     private boolean exportReachedSet = true;
 
     @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE)
     private File outputFile = new File("reached.txt");
+    
+    @Option(name="statistics.memory")
+    private volatile boolean monitorMemoryUsage = true;
 
     private final LogManager logger;
     private final Collection<Statistics> subStats;
+    private final MemoryStatistics memStats = new MemoryStatistics();
     
     final Timer programTime = new Timer();
     final Timer parseTime = new Timer();
@@ -68,6 +108,8 @@ class MainCPAStatistics implements Statistics {
 
         this.logger = logger;
         subStats = new ArrayList<Statistics>();
+        memStats.setDaemon(true);
+        memStats.start();
         programTime.start();
     }
 
@@ -85,6 +127,7 @@ class MainCPAStatistics implements Statistics {
         // call stop again in case CPAchecker was terminated abnormally
         analysisTime.stop();
         programTime.stop();
+        monitorMemoryUsage = false;
 
         if (exportReachedSet && outputFile != null) {
           try {
@@ -123,7 +166,17 @@ class MainCPAStatistics implements Statistics {
         out.println("Time for CPA instantiaton: " + cpaCreationTime);
         out.println("Time for Analysis:         " + analysisTime);
         out.println("Total time for CPAchecker: " + programTime);
-
+        try {
+          memStats.join(); // thread should have terminated already,
+                           // but wait for it to ensure memory visibility
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        if (memStats.count > 0) {
+          out.println("Heap memory usage:         " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
+          out.println("Non-Heap memory usage:     " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+        }
+          
         out.println("");
         out.print("Error location(s) reached? ");
         switch (result) {
@@ -144,5 +197,9 @@ class MainCPAStatistics implements Statistics {
           out.println("UNKNOWN result: " + result);
         }
         out.flush();
+    }
+    
+    private static String formatMem(long mem) {
+      return String.format("%,9dMB", mem >> 20);
     }
 }
