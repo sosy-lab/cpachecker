@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.util.Collections;
 import java.util.Set;
 
-import org.sosy_lab.common.MyMultiset;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
@@ -34,6 +33,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
@@ -76,7 +76,7 @@ public class SSAMap {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (varsBuilder == null) {
-        varsBuilder = MyMultiset.create(ssa.vars);
+        varsBuilder = LinkedHashMultiset.create(ssa.vars);
       }
 
       Preconditions.checkArgument(idx >= varsBuilder.count(var), "SSAMap updates need to be strictly monotone!");
@@ -87,7 +87,7 @@ public class SSAMap {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (funcsBuilder == null) {
-        funcsBuilder = MyMultiset.create(ssa.funcs);
+        funcsBuilder = LinkedHashMultiset.create(ssa.funcs);
       }
       
       Pair<String, SymbolicFormulaList> key = new Pair<String, SymbolicFormulaList>(func, args);
@@ -159,7 +159,7 @@ public class SSAMap {
   }
   
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
-    Multiset<T> result = MyMultiset.create(Math.max(s1.size(), s2.size()));
+    Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.size(), s2.size()));
     for (Entry<T> entry : s1.entrySet()) {
       T key = entry.getElement();
       int i1 = entry.getCount();
