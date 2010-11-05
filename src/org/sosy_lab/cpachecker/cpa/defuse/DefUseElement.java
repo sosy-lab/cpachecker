@@ -54,6 +54,7 @@ public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition
       this.definitions = builder.build();
     }
 
+    @Override
     public Iterator<DefUseDefinition> iterator()
     {
         return definitions.iterator ();
