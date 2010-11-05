@@ -175,12 +175,14 @@ public class Task {
 	 */
 	public IFolder getOutputDirectory(boolean create) {
 		Properties properties = new Properties();
-	    try {
-			properties.load(this.configFile.getContents());
-		} catch (IOException e1) {
-			CPAclipse.logError("Could not load the configFile", e1);
-		} catch (CoreException e1) {
-			CPAclipse.logError("Could not load the configFile", e1);
+		if (hasConfigurationFile()) {
+		    try {
+				properties.load(this.configFile.getContents());
+			} catch (IOException e1) {
+				CPAclipse.logError("Could not load the configFile", e1);
+			} catch (CoreException e1) {
+				CPAclipse.logError("Could not load the configFile", e1);
+			}
 		}
 		String projectRelativePath = properties.getProperty("output.path", DEFAULT_OUTPUT_DIR);
 		
