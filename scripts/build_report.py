@@ -138,7 +138,8 @@ def main():
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
         artfile = os.path.basename(artfilepath)
-        call_dot(os.path.dirname(artfilepath), artfile, os.path.join(reportdir, 'ART'))
+        artpath = os.path.dirname(artfilepath) or './'
+        call_dot(artpath, artfile, os.path.join(reportdir, 'ART'))
     
     shutil.copy(cilinput, cilfile)
     
