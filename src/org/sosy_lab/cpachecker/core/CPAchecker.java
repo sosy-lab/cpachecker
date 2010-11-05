@@ -24,9 +24,14 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
@@ -67,6 +72,31 @@ public class CPAchecker {
 
   private static enum ReachedSetType {
     NORMAL, LOCATIONMAPPED, PARTITIONED
+  }
+  
+  public static interface CPAcheckerMXBean {
+    public int getReachedSetSize();
+    
+    public void stop();
+  }
+  
+  private class CPAcheckerBean implements CPAcheckerMXBean {
+    private final ReachedSet reached;
+    
+    public CPAcheckerBean(ReachedSet pReached) {
+      reached = pReached;
+    }
+
+    @Override
+    public int getReachedSetSize() {
+      return reached.size();
+    }
+    
+    @Override
+    public void stop() {
+      CPAchecker.requireStopAsap();
+    }
+    
   }
   
   @Options
@@ -171,9 +201,30 @@ public class CPAchecker {
 
       if (!requireStopAsap) {
         reached = createInitialReachedSet(cpa, mainFunction);
+
+        // register management interface for CPAchecker
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        ObjectName name = null;
+        try {
+          name = new ObjectName("org.sosy_lab.cpachecker:type=CPAchecker");
+          CPAcheckerMXBean mxbean = new CPAcheckerBean(reached);
+          mbs.registerMBean(mxbean, name);
+        } catch (JMException e) {
+          logger.logException(Level.WARNING, e, "Error during registration of management interface");
+        }
+
         stats.cpaCreationTime.stop();
         
         result = runAlgorithm(algorithm, reached, stats);
+        
+        // unregister management interface for CPAchecker
+        if (name != null) {
+          try {
+            mbs.unregisterMBean(name);
+          } catch (JMException e) {
+            logger.logException(Level.WARNING, e, "Error during unregistration of management interface");
+          }
+        }
       }
 
     } catch (IOException e) {
