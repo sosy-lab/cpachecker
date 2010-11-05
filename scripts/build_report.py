@@ -174,8 +174,7 @@ def main():
 
 
     def gen_stats():
-        sep = 'CPAchecker general statistics:'
-        return lambda: sep + filecontents(statsfile, encode=True)().split(sep)[1]
+        return filecontents(statsfile, encode=True)
 
     def format_cil():
         if not os.path.isfile(cilfile):
