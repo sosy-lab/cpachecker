@@ -63,8 +63,9 @@ def errorpath2list(errpathfile):
     return jsonpath
 
 def call_dot(path, filename, out=None):
-    out = out or filename
-    os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s.svg %s.dot' % (path, out, filename))
+    (basefilename, ext) = os.path.splitext(filename)
+    out = (out or basefilename) + '.svg'
+    os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (path, out, filename))
 
 def main():
 
@@ -137,7 +138,7 @@ def main():
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
         artfile = os.path.basename(artfilepath)
-        call_dot(os.path.dirname(artfilepath), 'ART', os.path.join(reportdir, 'ART'))
+        call_dot(os.path.dirname(artfilepath), artfile, os.path.join(reportdir, 'ART'))
     
     shutil.copy(cilinput, cilfile)
     
@@ -169,7 +170,7 @@ def main():
         funclist = [x[5:-4] for x in os.listdir(reportdir) if x.startswith('cfa__') and x.endswith('.dot')]
         print 'Generating SVGs for CFA'
         for func in funclist:
-            call_dot(reportdir, 'cfa__' + func)
+            call_dot(reportdir, 'cfa__' + func + '.dot')
         return json.dumps(funclist, indent=4)
 
 
