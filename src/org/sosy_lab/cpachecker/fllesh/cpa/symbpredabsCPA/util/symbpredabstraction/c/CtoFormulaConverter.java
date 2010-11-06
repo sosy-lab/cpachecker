@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
@@ -281,7 +281,7 @@ public class CtoFormulaConverter {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
-    SSAMapBuilder lSSAMapBuilder = pCurrentPathFormula.getSSAMap().builder();
+    SSAMapBuilder lSSAMapBuilder = pCurrentPathFormula.getSsa().builder();
     
     if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
       // function start
@@ -341,7 +341,8 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    return new PathFormula(f, lSSAMapBuilder.build());
+    // TODO replace with more meaningful initialization
+    return new PathFormula(f, lSSAMapBuilder.build(), -1, smgr.makeTrue(), -1);
   }
 
   private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,

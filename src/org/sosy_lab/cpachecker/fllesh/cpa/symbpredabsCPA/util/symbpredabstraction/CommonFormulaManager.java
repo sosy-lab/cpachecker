@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
@@ -97,7 +98,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       toConcreteCache = null;
     }
     
-    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    // TODO replace with more meaningful initialization
+    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), -1, smgr.makeTrue(), -1);
     
     mZero = smgr.makeNumber(0);
   }
@@ -235,8 +237,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    SSAMap ssa1 = pF1.getSSAMap();
-    SSAMap ssa2 = pF2.getSSAMap();
+    SSAMap ssa1 = pF1.getSsa();
+    SSAMap ssa2 = pF2.getSsa();
 
     Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
@@ -247,7 +249,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, newSsa);
+    return new PathFormula(newFormula, newSsa, -1, smgr.makeTrue(), -1);
   }
 
   /**

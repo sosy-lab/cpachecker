@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.CommonFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
@@ -226,7 +226,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
     
-    SSAMap ssa = pathFormula.getSSAMap();
+    SSAMap ssa = pathFormula.getSsa();
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -408,7 +408,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
     SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
 
-    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSSAMap());
+    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSsa());
 
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
@@ -458,7 +458,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // get propositional variable and definition of predicate
       SymbolicFormula var = p.getSymbolicVariable();
       SymbolicFormula def = p.getSymbolicAtom();
-      def = smgr.instantiate(def, pathFormula.getSSAMap());
+      def = smgr.instantiate(def, pathFormula.getSsa());
 
       // build the formula (var <-> def) and add it to the list of definitions
       SymbolicFormula equiv = smgr.makeEquivalence(var, def);
@@ -845,7 +845,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     
     // handle first formula separately because we don't need to shift
     PathFormula p = it.next().getInitAbstractionFormula();
-    SSAMap ssa = p.getSSAMap();
+    SSAMap ssa = p.getSsa();
     result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
     
     while (it.hasNext()) {

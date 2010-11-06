@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 
 public class MergedElement extends NonabstractionElement {
 
