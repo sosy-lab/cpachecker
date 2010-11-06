@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -110,11 +109,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     
 
     abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
-    MathsatSymbolicFormulaManager<UnmodifiableSSAMap> symbolicFormulaManager = new MathsatSymbolicFormulaManager<UnmodifiableSSAMap>(config, logger, UnmodifiableSSAMap.EMPTY_MAP);
+    MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     
-    TheoremProver<UnmodifiableSSAMap> thmProver;
+    TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver<UnmodifiableSSAMap>(symbolicFormulaManager);
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -122,7 +121,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver<UnmodifiableSSAMap>(symbolicFormulaManager, false);
+      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -186,7 +185,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     AbstractionElement lInitialElement = mInitialElementsCache.get(node);
     
     if (lInitialElement == null) {
-      PathFormula<UnmodifiableSSAMap> pf = formulaManager.makeEmptyPathFormula();
+      PathFormula pf = formulaManager.makeEmptyPathFormula();
       AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
       //lInitialElement = new AbstractionElement(node, initAbstraction, pf);
       lInitialElement = mAbstractionElementFactory.createInitialElement(initAbstraction, pf);

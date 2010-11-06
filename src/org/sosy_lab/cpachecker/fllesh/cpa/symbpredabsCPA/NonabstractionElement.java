@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 public class NonabstractionElement implements SymbPredAbsAbstractElement {
 
@@ -13,20 +12,20 @@ public class NonabstractionElement implements SymbPredAbsAbstractElement {
   /** The path formula for the path from the last abstraction node to this node.
    * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
-  protected final PathFormula<UnmodifiableSSAMap> mPathFormula;
+  protected final PathFormula mPathFormula;
   
   protected int mSizeSinceAbstraction;
   
   public static int INSTANCES = 0;
   
-  public NonabstractionElement(AbstractionElement pAbstractionElement, PathFormula<UnmodifiableSSAMap> pPathFormula, int pSizeSinceAbstraction) {
+  public NonabstractionElement(AbstractionElement pAbstractionElement, PathFormula pPathFormula, int pSizeSinceAbstraction) {
     mAbstractionElement = pAbstractionElement;
     mPathFormula = pPathFormula;
     mSizeSinceAbstraction = pSizeSinceAbstraction;
     INSTANCES++;
   }
   
-  public PathFormula<UnmodifiableSSAMap> getPathFormula() {
+  public PathFormula getPathFormula() {
     return mPathFormula;
   }
   

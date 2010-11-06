@@ -28,12 +28,11 @@ import java.io.File;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
-public interface FormulaManager<T extends ISSAMap<T>> {
+public interface FormulaManager {
 
   /**
    * @return a concrete representation of an abstract formula
@@ -50,7 +49,7 @@ public interface FormulaManager<T extends ISSAMap<T>> {
    * @return The formula (f1 & e), and the new/updated SSAMap
    * @throws CPATransferException 
    */
-  public PathFormula<T> makeAnd(PathFormula<T> pCurrentPathFormula, CFAEdge e)
+  public PathFormula makeAnd(PathFormula pCurrentPathFormula, CFAEdge e)
       throws CPATransferException;
 
   /**
@@ -63,12 +62,12 @@ public interface FormulaManager<T extends ISSAMap<T>> {
    * @param pF2 a PathFormula
    * @return (pF1 | pF2)
    */
-  public PathFormula<T> makeOr(PathFormula<T> pF1, PathFormula<T> pF2);
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
   /**
    * Creates a new empty path formula.
    */
-  public PathFormula<T> makeEmptyPathFormula();
+  public PathFormula makeEmptyPathFormula();
   
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and

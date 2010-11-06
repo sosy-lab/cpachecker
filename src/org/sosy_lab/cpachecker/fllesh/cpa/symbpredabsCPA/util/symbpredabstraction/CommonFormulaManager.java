@@ -48,11 +48,11 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap.ISSAMapBuilder;
 
 
 /**
@@ -64,9 +64,9 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
  * @author Philipp Wendler
  */
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConverter<T> implements FormulaManager<T> {
+public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
 
-  private final PathFormula<T> mEmptyPathFormula;
+  private final PathFormula mEmptyPathFormula;
   
   protected final AbstractFormulaManager amgr;
 
@@ -82,10 +82,8 @@ public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConver
   
   private final SymbolicFormula mZero;
   
-  private final T mEmptySSAMap;
-
-  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager<T> pSmgr,
-                    Configuration config, LogManager pLogger, T pSSAMap) throws InvalidConfigurationException {
+  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
+                    Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
@@ -99,9 +97,7 @@ public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConver
       toConcreteCache = null;
     }
     
-    mEmptySSAMap = pSSAMap.emptySSAMap();
-    
-    mEmptyPathFormula = new PathFormula<T>(smgr.makeTrue(), mEmptySSAMap);
+    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
     
     mZero = smgr.makeNumber(0);
   }
@@ -221,7 +217,7 @@ public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConver
   // the rest of this class is related only to symbolic formulas
   
   @Override
-  public PathFormula<T> makeEmptyPathFormula() {
+  public PathFormula makeEmptyPathFormula() {
     return mEmptyPathFormula;
   }
   
@@ -236,22 +232,22 @@ public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConver
    * @return (pF1 | pF2)
    */
   @Override
-  public PathFormula<T> makeOr(PathFormula<T> pF1, PathFormula<T> pF2) {
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    T ssa1 = pF1.getSSAMap();
-    T ssa2 = pF2.getSSAMap();
+    SSAMap ssa1 = pF1.getSSAMap();
+    SSAMap ssa2 = pF2.getSSAMap();
 
-    Pair<Pair<SymbolicFormula, SymbolicFormula>, T> pm = mergeSSAMaps(ssa2, ssa1);
+    Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
     // do not swap these two lines, that makes a huge difference in performance!
     SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
     SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
 
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
-    T newSsa = pm.getSecond();
+    SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula<T>(newFormula, newSsa);
+    return new PathFormula(newFormula, newSsa);
   }
 
   /**
@@ -266,10 +262,10 @@ public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConver
    * @param ssa2 an SSAMap
    * @return A pair (SymbolicFormula, SSAMap)
    */
-  private Pair<Pair<SymbolicFormula, SymbolicFormula>, T> mergeSSAMaps(
-      T ssa1, T ssa2) {
+  private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
+      SSAMap ssa1, SSAMap ssa2) {
     
-    ISSAMapBuilder<T> lSSAMapBuilder = mEmptySSAMap.builder();
+    SSAMapBuilder lSSAMapBuilder = SSAMap.emptySSAMap().builder();
     
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
@@ -453,7 +449,7 @@ public class CommonFormulaManager<T extends ISSAMap<T>> extends CtoFormulaConver
 
     Pair<SymbolicFormula, SymbolicFormula> sp =
       new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
-    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, T>(
+    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(
         sp, lSSAMapBuilder.build());
   }
 

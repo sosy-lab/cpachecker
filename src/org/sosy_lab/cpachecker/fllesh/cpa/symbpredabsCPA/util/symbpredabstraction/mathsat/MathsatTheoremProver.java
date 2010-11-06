@@ -35,16 +35,15 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 
 import com.google.common.base.Preconditions;
 
-public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver<T> {
+public class MathsatTheoremProver implements TheoremProver {
 
-  private final MathsatSymbolicFormulaManager<T> mgr;
+  private final MathsatSymbolicFormulaManager mgr;
   private long curEnv;
 
-  public MathsatTheoremProver(MathsatSymbolicFormulaManager<T> pMgr) {
+  public MathsatTheoremProver(MathsatSymbolicFormulaManager pMgr) {
     mgr = pMgr;
     curEnv = 0;
   }
@@ -92,7 +91,7 @@ public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver
   
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
-                             FormulaManager<T> fmgr, AbstractFormulaManager amgr) {
+                             FormulaManager fmgr, AbstractFormulaManager amgr) {
     long formula = getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -102,7 +101,7 @@ public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver
     for (SymbolicFormula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback<T> callback = new MathsatAllSatCallback<T>(fmgr, amgr, mgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr, mgr);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -126,10 +125,10 @@ public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver
    * callback used to build the predicate abstraction of a formula
    * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
    */
-  static class MathsatAllSatCallback<T extends ISSAMap<T>> implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
-    private final FormulaManager<T> fmgr;
+  static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
+    private final FormulaManager fmgr;
     private final AbstractFormulaManager amgr;
-    private final MathsatSymbolicFormulaManager<T> mSymbolicFormulaManager;
+    private final MathsatSymbolicFormulaManager mSymbolicFormulaManager;
     
     private long totalTime = 0;
     private int count = 0;
@@ -137,7 +136,7 @@ public class MathsatTheoremProver<T extends ISSAMap<T>> implements TheoremProver
     private AbstractFormula formula;
     private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
 
-    MathsatAllSatCallback(FormulaManager<T> fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager<T> pMathsatSymbolicFormulaManager) {
+    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager pMathsatSymbolicFormulaManager) {
       this.fmgr = fmgr;
       this.amgr = amgr;
       this.formula = amgr.makeFalse();

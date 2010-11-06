@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormula;
@@ -34,16 +33,16 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 
 import com.google.common.base.Preconditions;
 
-public class MathsatInterpolatingProver<T extends ISSAMap<T>> implements InterpolatingTheoremProver<Integer> {
+public class MathsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
 
-    private final MathsatSymbolicFormulaManager<T> mgr;
+    private final MathsatSymbolicFormulaManager mgr;
     private long env;
     
     private final boolean useSharedEnv;
     
     private Model mModel = null;
 
-    public MathsatInterpolatingProver(MathsatSymbolicFormulaManager<T> pMgr, boolean shared) {
+    public MathsatInterpolatingProver(MathsatSymbolicFormulaManager pMgr, boolean shared) {
         mgr = pMgr;
         env = 0;
         useSharedEnv = shared;

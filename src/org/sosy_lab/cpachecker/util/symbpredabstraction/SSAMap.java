@@ -223,11 +223,11 @@ public class SSAMap {
     return getIndex(key, funcs);
   }
 
-  protected Set<String> allVariables() {
+  public Set<String> allVariables() {
     return Collections.unmodifiableSet(vars.elementSet());
   }
 
-  protected Set<Pair<String, SymbolicFormulaList>> allFunctions() {
+  public Set<Pair<String, SymbolicFormulaList>> allFunctions() {
     return Collections.unmodifiableSet(funcs.elementSet());
   }
 

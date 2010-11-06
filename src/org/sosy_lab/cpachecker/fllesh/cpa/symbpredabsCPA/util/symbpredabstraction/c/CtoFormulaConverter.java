@@ -75,18 +75,17 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ISSAMap.ISSAMapBuilder;
 
 /**
  * Class containing all the code that converts C code into a formula.
  */
 @Options(prefix="cpas.symbpredabs")
-public class CtoFormulaConverter<T extends ISSAMap<T>> {
+public class CtoFormulaConverter {
 
   @Option
   private boolean initAllVars = false;
@@ -116,12 +115,12 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   private final Map<String, SymbolicFormula> stringLitToFormula = new HashMap<String, SymbolicFormula>();
   private int nextStringLitIndex = 0;
   
-  protected final SymbolicFormulaManager<T> smgr;
+  protected final SymbolicFormulaManager smgr;
   protected final LogManager logger;
   
   private final SymbolicFormula mOne;
   
-  public CtoFormulaConverter(Configuration config, SymbolicFormulaManager<T> smgr, LogManager logger) throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
     this.smgr = smgr;
@@ -182,7 +181,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, ISSAMapBuilder<T> ssa) {
+  private int makeLvalIndex(String name, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name);
     if (idx > 0) {
       idx = idx+1;
@@ -197,7 +196,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
     return idx;
   }
   
-  private int getIndex(String var, ISSAMapBuilder<T> ssa) {
+  private int getIndex(String var, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
@@ -208,7 +207,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
     return idx;
   }
 
-  private int getIndex(String name, SymbolicFormulaList args, ISSAMapBuilder<T> ssa, boolean autoInstantiate) {
+  private int getIndex(String name, SymbolicFormulaList args, SSAMapBuilder ssa, boolean autoInstantiate) {
     int idx = ssa.getIndex(name, args);
     if (idx <= 0) {
       if (!autoInstantiate) {
@@ -223,7 +222,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
     return idx;
   }
   
-  private SymbolicFormula makeNondetVariable(ISSAMapBuilder<T> pSSAMap) {
+  private SymbolicFormula makeNondetVariable(SSAMapBuilder pSSAMap) {
     int lIndex = pSSAMap.getIndex(NONDET_VARIABLE);
     
     if (lIndex < 0) {
@@ -242,7 +241,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   /*
    * This method has to be called after makeNondetVariable
    */
-  private SymbolicFormula makeNondetFlagVariable(ISSAMapBuilder<T> pSSAMap) {
+  private SymbolicFormula makeNondetFlagVariable(SSAMapBuilder pSSAMap) {
     int lIndex = pSSAMap.getIndex(NONDET_FLAG_VARIABLE);
     
     if (lIndex < 0) {
@@ -252,7 +251,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
     return smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
   }
   
-  private SymbolicFormula makeVariable(String var, String function, ISSAMapBuilder<T> ssa) {
+  private SymbolicFormula makeVariable(String var, String function, SSAMapBuilder ssa) {
     if (isNondetVariable(var)) {
       throw new RuntimeException();
     }
@@ -264,7 +263,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
 //  @Override
-  public PathFormula<T> makeAnd(PathFormula<T> pCurrentPathFormula, CFAEdge edge)
+  public PathFormula makeAnd(PathFormula pCurrentPathFormula, CFAEdge edge)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
@@ -282,9 +281,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
-    //SSAMap ssa = new SSAMap(pCurrentPathFormula.getSSAMap());
-    //SSAMap ssa = new CopyOnWriteSSAMap(pCurrentPathFormula.getSSAMap());
-    ISSAMapBuilder<T> lSSAMapBuilder = pCurrentPathFormula.getSSAMap().builder();
+    SSAMapBuilder lSSAMapBuilder = pCurrentPathFormula.getSSAMap().builder();
     
     if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
       // function start
@@ -344,11 +341,11 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    return new PathFormula<T>(f, lSSAMapBuilder.build());
+    return new PathFormula(f, lSSAMapBuilder.build());
   }
 
   private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,
-      DeclarationEdge declarationEdge, String function, ISSAMapBuilder<T> ssa)
+      DeclarationEdge declarationEdge, String function, SSAMapBuilder ssa)
       throws CPATransferException {
 
     IASTDeclarator[] decls = declarationEdge.getDeclarators();
@@ -471,7 +468,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeAndEnterFunction(SymbolicFormula m1,
-      FunctionDefinitionNode fn, String function, ISSAMapBuilder<T> pSSAMapBuilder)
+      FunctionDefinitionNode fn, String function, SSAMapBuilder pSSAMapBuilder)
       throws UnrecognizedCFAEdgeException {
     List<IASTParameterDeclaration> params = fn.getFunctionParameters();
     if (params.isEmpty()) {
@@ -504,7 +501,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeAndExitFunction(SymbolicFormula m1,
-      CallToReturnEdge ce, String function, ISSAMapBuilder<T> ssa)
+      CallToReturnEdge ce, String function, SSAMapBuilder ssa)
       throws CPATransferException {
     IASTExpression retExp = ce.getExpression();
     if (retExp instanceof IASTFunctionCallExpression) {
@@ -531,7 +528,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeAndFunctionCall(SymbolicFormula m1,
-      FunctionCallEdge edge, String function, ISSAMapBuilder<T> ssa)
+      FunctionCallEdge edge, String function, SSAMapBuilder ssa)
       throws CPATransferException {
     if (edge.isExternalCall()) {
       throw new UnrecognizedCFAEdgeException(
@@ -578,7 +575,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeAndReturn(SymbolicFormula m1, StatementEdge edge,
-      String function, ISSAMapBuilder<T> ssa)
+      String function, SSAMapBuilder ssa)
       throws CPATransferException {
     IASTExpression exp = edge.getExpression();
     if (exp == null) {
@@ -603,7 +600,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeAndStatement(SymbolicFormula f1, StatementEdge stmt,
-      String function, ISSAMapBuilder<T> ssa) throws CPATransferException {
+      String function, SSAMapBuilder ssa) throws CPATransferException {
     IASTExpression expr = stmt.getExpression();
 
     SymbolicFormula f2 = null;
@@ -661,14 +658,14 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeAndAssume(SymbolicFormula f1,
-      AssumeEdge assume, String function, ISSAMapBuilder<T> ssa) throws CPATransferException {
+      AssumeEdge assume, String function, SSAMapBuilder ssa) throws CPATransferException {
     SymbolicFormula f2 = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
 
     return smgr.makeAnd(f1, f2);
   }
 
-  private SymbolicFormula buildTerm(IASTExpression exp, String function, ISSAMapBuilder<T> ssa)
+  private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)
         throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression) {
       // this is a variable: get the right index for the SSA
@@ -987,7 +984,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
     throw new UnrecognizedCCodeException("Unknown expression", null, exp);
   }
 
-  private SymbolicFormula buildsatLvalueTerm(IASTExpression pExpression, String pCurrentFunction, ISSAMapBuilder<T> pSSAMap) {
+  private SymbolicFormula buildsatLvalueTerm(IASTExpression pExpression, String pCurrentFunction, SSAMapBuilder pSSAMap) {
     if (pExpression instanceof IASTIdExpression) {
       String lVariable = ((IASTIdExpression)pExpression).getName().getRawSignature();
       
@@ -1006,7 +1003,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
-        String function, ISSAMapBuilder<T> ssa) throws UnrecognizedCCodeException {
+        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
     String func;
     if (fn instanceof IASTIdExpression) {
@@ -1042,7 +1039,7 @@ public class CtoFormulaConverter<T extends ISSAMap<T>> {
   }
 
   protected SymbolicFormula makePredicate(IASTExpression exp, boolean isTrue,
-        String function, ISSAMapBuilder<T> ssa) throws UnrecognizedCCodeException {
+        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     
     SymbolicFormula result = null;
     
