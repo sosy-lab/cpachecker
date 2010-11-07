@@ -23,19 +23,15 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -44,16 +40,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.c.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 
 /**
@@ -66,8 +63,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
  */
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
-
-  private final PathFormula mEmptyPathFormula;
   
   protected final AbstractFormulaManager amgr;
 
@@ -97,9 +92,6 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     } else {
       toConcreteCache = null;
     }
-    
-    // TODO replace with more meaningful initialization
-    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), -1, smgr.makeTrue(), -1);
     
     mZero = smgr.makeNumber(0);
   }
@@ -216,11 +208,25 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       return result;
   }
 
-  // the rest of this class is related only to symbolic formulas
+  @Override
+  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula) {
+    if (previousBlockFormula == null) {
+      previousBlockFormula = smgr.makeTrue();
+    }
+    return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
+  }
   
+  // the rest of this class is related only to symbolic formulas
+
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return mEmptyPathFormula;
+    return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue(), 0);
+  }
+  
+  @Override
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
+    return new PathFormula(smgr.makeTrue(), oldFormula.getSsa(), 0,
+        oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
   
   /**
@@ -505,21 +511,4 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     return new Pair<SymbolicFormula, SymbolicFormula>(e1, e2);
   }
 
-
-  @Override
-  public void dumpFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
-    Iterator<SymbolicFormula> it = f.iterator();
-    SymbolicFormula t = it.next();
-    
-    while (it.hasNext()) { 
-      t = smgr.makeAnd(t, it.next());
-    }
-    
-    try {
-      Files.writeFile(outputFile, smgr.dumpFormula(t));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
-  }
 }

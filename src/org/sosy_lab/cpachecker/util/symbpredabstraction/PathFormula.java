@@ -63,7 +63,7 @@ public class PathFormula {
     return reachingPathsFormula;
   }
   
-  protected int getBranchingCounter() {
+  public int getBranchingCounter() {
     return branchingCounter;
   }
   

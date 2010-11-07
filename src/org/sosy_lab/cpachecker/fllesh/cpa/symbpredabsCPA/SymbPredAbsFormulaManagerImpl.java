@@ -154,7 +154,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   
   // controls whether counterexamples should be dumped to a file
   // for testing it is disabled
-  private static final boolean dumpCEXToFile = false;
+  //private static final boolean dumpCEXToFile = false;
   
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
@@ -622,7 +622,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
     }
 
-    if (dumpInterpolationProblems) {
+    /*if (dumpInterpolationProblems) {
       int refinement = stats.numCallsCexAnalysis;
       logger.log(Level.FINEST, "Dumping", f.size(), "formulas of refinement number", refinement);
 
@@ -631,7 +631,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         dumpFormulasToFile(Collections.singleton(formula), 
             new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".f" + k++));
       }
-    }
+    }*/
 
     List<T> itpGroupsIds = new ArrayList<T>(f.size());
     for (int i = 0; i < f.size(); i++) {
@@ -695,10 +695,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
-        if (dumpInterpolationProblems) {
+        /*if (dumpInterpolationProblems) {
           dumpFormulasToFile(Collections.singleton(itp), 
               new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".itp" + i));
-        }
+        }*/
 
         if (itp.isTrue() || itp.isFalse()) {
           logger.log(Level.ALL, "For step", i, "got no interpolant.");
@@ -754,9 +754,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      if (dumpCEXToFile) {
+      /*if (dumpCEXToFile) {
         dumpFormulasToFile(f, msatCexFile);
-      }
+      }*/
     }
 
     pItpProver.reset();
