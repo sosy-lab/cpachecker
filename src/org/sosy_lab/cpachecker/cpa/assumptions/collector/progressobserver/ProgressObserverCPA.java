@@ -23,15 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -69,13 +72,12 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
   @Option(name="analysis.useAssumptionCollector")
-  private boolean useAssumptionCollector = false;
+  private boolean useAssumptionCollector = true;
 
   @Option(name="heuristics", required=true)
   private String[] heuristicsNames = {};
-
+  
   private final ProgressObserverDomain abstractDomain;
-  private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
@@ -93,32 +95,23 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   {
     ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
 
+    Class<?>[] argsTypes = {Configuration.class, LogManager.class}; 
     for (String heuristicsName : heuristicsNames) {
-      if (!heuristicsName.contains("."))
+      if (!heuristicsName.contains(".")) {
         heuristicsName = "org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver." + heuristicsName;
+      }
       try {
         Class<?> cls = Class.forName(heuristicsName);
-        Constructor<?> constructor = cls.getConstructor(Configuration.class, LogManager.class);
         Configuration localConfig = new Configuration(config, cls.getSimpleName());
-        Object obj = constructor.newInstance(localConfig, logger);
-
-        // Convert object to StopHeuristics
-        StopHeuristics<?> newHeuristics = (StopHeuristics<?>)obj;
+        Object[] localArgs = {localConfig, logger};
+        StopHeuristics<?> newHeuristics = Classes.createInstance(heuristicsName, null, argsTypes, localArgs, StopHeuristics.class);
         builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {
         logger.logException(Level.WARNING, e, "ClassNotFoundException");
-      } catch (SecurityException e) {
-        logger.logException(Level.WARNING, e, "SecurityException");
-      } catch (IllegalArgumentException e) {
-        logger.logException(Level.WARNING, e, "IllegalArgumentException");
-      } catch (InstantiationException e) {
-        logger.logException(Level.WARNING, e, "InstantiationException");
-      } catch (IllegalAccessException e) {
-        logger.logException(Level.WARNING, e, "IllegalAccessException");
-      } catch (NoSuchMethodException e) {
-        logger.logException(Level.WARNING, e, "NoSuchMethodException");
       } catch (InvocationTargetException e) {
         logger.logException(Level.WARNING, e, "InvocationTargetException");
+      } catch (ClassInstantiationException e) {
+        logger.logException(Level.WARNING, e, "ClassInstantiationException");
       }
     }
 
@@ -137,8 +130,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
     enabledHeuristics = createEnabledHeuristics(cfg);
 
-    abstractDomain = new ProgressObserverDomain(this);
-    mergeOperator = MergeSepOperator.getInstance();
+    abstractDomain = new ProgressObserverDomain();
     stopOperator = new ProgressObserverStop();
     transferRelation = new ProgressObserverTransferRelation(this);
     precisionAdjustment = new ProgressObserverPrecisionAdjustment(this);
@@ -151,7 +143,11 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public ProgressObserverElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return ProgressObserverElement.getInitial(this, node);
+    List<StopHeuristicsData> data = new ArrayList<StopHeuristicsData>(enabledHeuristics.size());
+    for (StopHeuristics<? extends StopHeuristicsData> h : enabledHeuristics) {
+      data.add(h.getInitialData(node));
+    }
+    return new ProgressObserverElement(data);
   }
 
   @Override
@@ -161,7 +157,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return MergeSepOperator.getInstance();
   }
 
   @Override

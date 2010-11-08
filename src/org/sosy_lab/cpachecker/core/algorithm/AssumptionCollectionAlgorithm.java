@@ -24,20 +24,19 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.File;
-import java.io.PrintWriter;
+import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithMultipleLocations;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,12 +46,14 @@ import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -67,7 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(name="assumptions.export")
-  private boolean exportAssumptions = false;
+  private boolean exportAssumptions = true;
 
   @Option(name="assumptions.file", type=Option.Type.OUTPUT_FILE)
   private File assumptionsFile = new File("assumptions.txt");
@@ -82,7 +83,11 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     this.logger = logger;
     innerAlgorithm = algo;
-    symbolicManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
+    AssumptionCollectorCPA cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionCollectorCPA.class);
+    if (cpa == null) {
+      throw new InvalidConfigurationException("AssumptionCollectorCPA needed for AssumptionCollectionAlgorithm");
+    }
+    symbolicManager = cpa.getSymbolicFormulaManager();
   }
 
   @Override
@@ -93,7 +98,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   @Override
   public void run(ReachedSet reached) throws CPAException {
 
-    AssumptionWithMultipleLocations resultAssumption = new AssumptionWithMultipleLocations();
+    AssumptionWithLocation.Builder resultAssumption = AssumptionWithLocation.builder();
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -112,10 +117,9 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
+    AssumptionExtractor extractor = new AssumptionExtractor(resultAssumption);
     for (AbstractElement element : reached) {
-      AssumptionWithLocation assumption = extractAssumption(element);
-
-      resultAssumption.addAssumption(assumption);
+      extractor.visit(element);
     }
 
     // dump invariants to prevent going further with nodes in
@@ -125,59 +129,45 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
 
-    Appendable output;
-    if (exportAssumptions) {
-      //if no filename is given, use default value
-
+    if (exportAssumptions && assumptionsFile != null) {
       try {
-        output = new PrintWriter(assumptionsFile);
-      } catch (Exception e) {
+        Files.writeFile(assumptionsFile, resultAssumption.build());
+      } catch (IOException e) {
         logger.log(Level.WARNING,
             "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
             ", (", e.getMessage(), ")");
-        output = null;
       }
-    } else {
-      output = System.out;
-    }
-    if (output != null) {
-      resultAssumption.dump(output);
-      if (output != System.out)
-        ((PrintWriter)output).close();
     }
   }
 
+  
   /**
-   * Returns the invariant(s) stored in the given abstract
-   * element
+   * Extracts the invariant(s) stored in abstract elements.
    */
-  private AssumptionWithLocation extractAssumption(AbstractElement element)
-  {
-    AssumptionWithLocation result = AssumptionWithLocation.TRUE;
-
-    // If it is a wrapper, add its sub-element's assertions
-    if (element instanceof AbstractWrapperElement)
-    {
-      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-        result = result.and(extractAssumption(subel));
+  private static class AssumptionExtractor extends AbstractWrappedElementVisitor {
+    
+    final AssumptionWithLocation.Builder result;
+    
+    public AssumptionExtractor(AssumptionWithLocation.Builder pResult) {
+      this.result = pResult;
     }
 
-    if (element instanceof AssumptionCollectorElement)
-    {
-      AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement) element).getCollectedAssumptions();
-      if (dumpedInvariant != null)
-        result = result.and(dumpedInvariant);
+    @Override
+    public void process(AbstractElement pElement) {
+      if (pElement instanceof AssumptionCollectorElement) {
+        AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumptions();
+        result.add(dumpedInvariant);
+      }
     }
-
-    return result;
   }
+  
 
   /**
    * Add to the given map the invariant required to
    * avoid the given refinement failure
    */
   private void addAssumptionsForFailedRefinement(
-      AssumptionWithMultipleLocations invariant,
+      AssumptionWithLocation.Builder invariant,
       RefinementFailedException failedRefinement) {
     Path path = failedRefinement.getErrorPath();
 
@@ -188,7 +178,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.addAssumption(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
+    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
   }
 
   /**
@@ -196,11 +186,11 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * avoid nodes in the given set of states
    */
   private void addAssumptionsForWaitlist(
-      AssumptionWithMultipleLocations invariant,
-      List<AbstractElement> waitlist) {
+      AssumptionWithLocation.Builder invariant,
+      Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.addAssumption(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
+      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
     }
   }
 

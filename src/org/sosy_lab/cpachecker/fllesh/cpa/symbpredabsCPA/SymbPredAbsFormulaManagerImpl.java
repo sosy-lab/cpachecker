@@ -32,11 +32,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -51,31 +49,32 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.CommonFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.Cache.FeasibilityCacheKey;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.Cache.TimeStampCache;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -155,7 +154,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   
   // controls whether counterexamples should be dumped to a file
   // for testing it is disabled
-  private static final boolean dumpCEXToFile = false;
+  //private static final boolean dumpCEXToFile = false;
   
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
@@ -227,8 +226,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     final SymbolicFormula f = buildSymbolicFormula(abs, pathFormula.getSymbolicFormula());
     
-    // clone ssa map because we might change it
-    SSAMap ssa = new SSAMap(pathFormula.getSSAMap());
+    SSAMap ssa = pathFormula.getSsa();
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -285,16 +283,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         AbstractFormula absbdd = amgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
-        Set<String> predvars = new HashSet<String>();
-        Set<Pair<String, SymbolicFormulaList>> predlvals =
-          new HashSet<Pair<String, SymbolicFormulaList>>();
-
+ 
         int predIndex = -1;
         for (Predicate p : predicates) {
           ++predIndex;
           if (useCache && predVals[predIndex] != NO_VALUE) {
             long startBddTime = System.currentTimeMillis();
-            AbstractFormula v = p.getFormula();
+            AbstractFormula v = p.getAbstractVariable();
             if (predVals[predIndex] == -1) { // pred is false
               v = amgr.makeNot(v);
               absbdd = amgr.makeAnd(absbdd, v);
@@ -305,35 +300,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             totBddTime += (endBddTime - startBddTime);
             //++stats.abstractionNumCachedQueries;
           } else {
-            Pair<? extends SymbolicFormula, ? extends SymbolicFormula> pi =
-              getPredicateVarAndAtom(p);
-
-            // update the SSA map, by instantiating all the uninstantiated
-            // variables that occur in the predicates definitions
-            // (at index 1)
-            predvars.clear();
-            predlvals.clear();
-            smgr.collectVarNames(pi.getSecond(), predvars, predlvals);
-            
-            for (String var : predvars) {
-              if (ssa.getIndex(var) < 0) {
-                ssa.setIndex(var, 1);
-              }
-            }
-            
-            for (Pair<String, SymbolicFormulaList> pp : predlvals) {
-              SymbolicFormulaList args = smgr.instantiate(pp.getSecond(), ssa);
-              if (ssa.getIndex(pp.getFirst(), args) < 0) {
-                ssa.setIndex(pp.getFirst(), args, 1);
-              }
-            }
-
 
             logger.log(Level.ALL, "DEBUG_1",
-                "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
+                "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
             // instantiate the definition of the predicate
-            SymbolicFormula predTrue = smgr.instantiate(pi.getSecond(), ssa);
+            SymbolicFormula predTrue = smgr.instantiate(p.getSymbolicAtom(), ssa);
             SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
             // check whether this predicate has a truth value in the next
@@ -345,7 +317,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
             if (isTrue) {
               long startBddTime = System.currentTimeMillis();
-              AbstractFormula v = p.getFormula();
+              AbstractFormula v = p.getAbstractVariable();
               absbdd = amgr.makeAnd(absbdd, v);
               long endBddTime = System.currentTimeMillis();
               totBddTime += (endBddTime - startBddTime);
@@ -358,7 +330,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
               if (isFalse) {
                 long startBddTime = System.currentTimeMillis();
-                AbstractFormula v = p.getFormula();
+                AbstractFormula v = p.getAbstractVariable();
                 v = amgr.makeNot(v);
                 absbdd = amgr.makeAnd(absbdd, v);
                 long endBddTime = System.currentTimeMillis();
@@ -436,7 +408,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
     SymbolicFormula a = buildSymbolicFormula(a1, p1.getSymbolicFormula());
 
-    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSSAMap());
+    SymbolicFormula b = smgr.instantiate(toConcrete(a2), p1.getSsa());
 
     SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
@@ -477,17 +449,26 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
 
     // build the definition of the predicates, and instantiate them
-    SymbolicFormula predDef = buildPredicateFormula(predicates, pathFormula.getSSAMap());
+    // also collect all predicate variables so that the solver knows for which
+    // variables we want to have the satisfying assignments
+    SymbolicFormula predDef = smgr.makeTrue();
+    List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
+
+    for (Predicate p : predicates) {
+      // get propositional variable and definition of predicate
+      SymbolicFormula var = p.getSymbolicVariable();
+      SymbolicFormula def = p.getSymbolicAtom();
+      def = smgr.instantiate(def, pathFormula.getSsa());
+
+      // build the formula (var <-> def) and add it to the list of definitions
+      SymbolicFormula equiv = smgr.makeEquivalence(var, def);
+      predDef = smgr.makeAnd(predDef, equiv);
+
+      predVars.add(var);
+    }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
-    
-    // collect all predicate variables so that the solver knows for which
-    // variables we want to have the satisfying assignments
-    List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
-    for (Predicate p : predicates) {
-      predVars.add(getPredicateVarAndAtom(p).getFirst());
-    }
 
     logger.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
@@ -641,7 +622,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
     }
 
-    if (dumpInterpolationProblems) {
+    /*if (dumpInterpolationProblems) {
       int refinement = stats.numCallsCexAnalysis;
       logger.log(Level.FINEST, "Dumping", f.size(), "formulas of refinement number", refinement);
 
@@ -650,7 +631,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         dumpFormulasToFile(Collections.singleton(formula), 
             new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".f" + k++));
       }
-    }
+    }*/
 
     List<T> itpGroupsIds = new ArrayList<T>(f.size());
     for (int i = 0; i < f.size(); i++) {
@@ -714,13 +695,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
-        if (dumpInterpolationProblems) {
+        /*if (dumpInterpolationProblems) {
           dumpFormulasToFile(Collections.singleton(itp), 
               new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".itp" + i));
-        }
+        }*/
 
         if (itp.isTrue() || itp.isFalse()) {
-          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got no interpolant.");
+          logger.log(Level.ALL, "For step", i, "got no interpolant.");
 
         } else {
           foundPredicates = true;
@@ -730,7 +711,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           Collection<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
-          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got:",
+          logger.log(Level.ALL, "For step", i, "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
@@ -747,18 +728,20 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           
         }
 
+        // TODO wellScopedPredicates have been disabled
+        
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
 
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
-        if (wellScopedPredicates && e.getAbstractionElement().getLocation() instanceof CFAFunctionDefinitionNode) {
-          entryPoints.push(i);
-        }
+//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+//          entryPoints.push(i);
+//        }
         // TODO check we are returning from a function
-        if (wellScopedPredicates && e.getAbstractionElement().getLocation().getEnteringSummaryEdge() != null) {
-          entryPoints.pop();
-        }
+//        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+//          entryPoints.pop();
+//        }
       }
 
       if (!foundPredicates) {
@@ -767,13 +750,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     } else {
       // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(pItpProver.getModel());
+      info = new CounterexampleTraceInfo(f, pItpProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      if (dumpCEXToFile) {
+      /*if (dumpCEXToFile) {
         dumpFormulasToFile(f, msatCexFile);
-      }
+      }*/
     }
 
     pItpProver.reset();
@@ -862,7 +845,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     
     // handle first formula separately because we don't need to shift
     PathFormula p = it.next().getInitAbstractionFormula();
-    SSAMap ssa = new SSAMap(p.getSSAMap());
+    SSAMap ssa = p.getSsa();
     result.add(smgr.replaceAssignments(p.getSymbolicFormula()));
     
     while (it.hasNext()) {
@@ -876,8 +859,22 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // shift returns a new ssa map,
       // we need to add those variables that were not used by shift()
       SSAMap newSsa = lPair.getSecond();
-      newSsa.update(ssa);
-      ssa = newSsa;
+      
+      SSAMapBuilder lSSAMapBuilder = newSsa.builder();
+      
+      for (String lVariable : ssa.allVariables()) {
+        if (newSsa.getIndex(lVariable) == -1) {
+          lSSAMapBuilder.setIndex(lVariable, ssa.getIndex(lVariable));
+        }
+      }
+      
+      for (Pair<String, SymbolicFormulaList> lFunction : ssa.allFunctions()) {
+        if (newSsa.getIndex(lFunction.getFirst(), lFunction.getSecond()) == -1) {
+          lSSAMapBuilder.setIndex(lFunction.getFirst(), lFunction.getSecond(), ssa.getIndex(lFunction.getFirst(), lFunction.getSecond()));
+        }
+      }
+      
+      ssa = lSSAMapBuilder.build();
     }
     return result;
   }

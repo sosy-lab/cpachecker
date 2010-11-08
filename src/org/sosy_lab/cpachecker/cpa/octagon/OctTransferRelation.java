@@ -39,7 +39,6 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -74,8 +73,8 @@ public class OctTransferRelation implements TransferRelation{
     LibraryAccess.initOctEnvironment();
   }
 
-  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws OctagonTransferException
-  {
+  @Override
+  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws OctagonTransferException {
 
 //  if(cfaEdge.getSuccessor().isLoopStart()){
 //  System.out.println(" looping ");
@@ -177,42 +176,24 @@ public class OctTransferRelation implements TransferRelation{
       assert(false);
       break;
     }
-
-    case MultiStatementEdge:
-    {
-      assert(false);
-      break;
-    }
-
-    case MultiDeclarationEdge:
-    {
-      assert(false);
-      break;
-    }
     }
 
     if(octElement.isEmpty()){
-      octElement.setBottom();
+      return Collections.emptySet();
     }
 
-    if(cfaEdge.getSuccessor() instanceof CFAErrorNode &&
-        !octElement.isBottom()){
-      System.out.println(" ERROR NODE REACHED ");
-      System.out.println(" ============================= ");
-      System.out.println(octElement);
-      System.out.println("Error location(s) reached? YES, there is a BUG!");
-      System.exit(0);
-    }
+//    if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
+//      System.out.println(" ERROR NODE REACHED ");
+//      System.out.println(" ============================= ");
+//      System.out.println(octElement);
+//      System.out.println("Error location(s) reached? YES, there is a BUG!");
+//      System.exit(0);
+//    }
 
 //  System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
 //  System.out.println(octElement);
 //  System.out.println();
-    return octElement;
-  }
-
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws OctagonTransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
+    return Collections.singleton(octElement);
   }
 
   /**

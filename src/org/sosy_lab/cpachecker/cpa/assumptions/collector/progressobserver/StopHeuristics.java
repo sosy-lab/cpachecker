@@ -39,12 +39,6 @@ public interface StopHeuristics <D extends StopHeuristicsData> {
   /** Get the initial data */
   public D getInitialData(CFANode node);
 
-  /** Get top */
-  public D getTop();
-
-  /** Get bottom */
-  public D getBottom();
-
   /** Collect data with respect to the given set of reached states */
   public D collectData(StopHeuristicsData data, ReachedHeuristicsDataSetView reached);
 

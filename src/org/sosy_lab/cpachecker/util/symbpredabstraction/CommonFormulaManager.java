@@ -39,13 +39,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-
 import com.google.common.base.Joiner;
 
 /**
@@ -72,7 +72,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
-                    Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
@@ -98,7 +98,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       AbstractFormula absVar = amgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
-                     "from variable", var, "and atom", atom);
+          "from variable", var, "and atom", atom);
 
       result = new Predicate(absVar, var, atom);
       symbVarToPredicate.put(var, result);
@@ -120,7 +120,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     return result;
   }
-  
+
   /**
    * Given an abstract formula (which is a BDD over the predicates), build
    * its concrete representation (which is a MathSAT formula corresponding
@@ -129,62 +129,62 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   @Override
   public SymbolicFormula toConcrete(AbstractFormula af) {
 
-      Map<AbstractFormula, SymbolicFormula> cache;
-      if (useCache) {
-          cache = toConcreteCache;
+    Map<AbstractFormula, SymbolicFormula> cache;
+    if (useCache) {
+      cache = toConcreteCache;
+    } else {
+      cache = new HashMap<AbstractFormula, SymbolicFormula>();
+    }
+    Deque<AbstractFormula> toProcess = new ArrayDeque<AbstractFormula>();
+
+    cache.put(amgr.makeTrue(), smgr.makeTrue());
+    cache.put(amgr.makeFalse(), smgr.makeFalse());
+
+    toProcess.push(af);
+    while (!toProcess.isEmpty()) {
+      AbstractFormula n = toProcess.peek();
+      if (cache.containsKey(n)) {
+        toProcess.pop();
+        continue;
+      }
+      boolean childrenDone = true;
+      SymbolicFormula m1 = null;
+      SymbolicFormula m2 = null;
+
+      Triple<AbstractFormula, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
+      AbstractFormula c1 = parts.getSecond();
+      AbstractFormula c2 = parts.getThird();
+      if (!cache.containsKey(c1)) {
+        toProcess.push(c1);
+        childrenDone = false;
       } else {
-          cache = new HashMap<AbstractFormula, SymbolicFormula>();
+        m1 = cache.get(c1);
       }
-      Deque<AbstractFormula> toProcess = new ArrayDeque<AbstractFormula>();
-
-      cache.put(amgr.makeTrue(), smgr.makeTrue());
-      cache.put(amgr.makeFalse(), smgr.makeFalse());
-
-      toProcess.push(af);
-      while (!toProcess.isEmpty()) {
-          AbstractFormula n = toProcess.peek();
-          if (cache.containsKey(n)) {
-              toProcess.pop();
-              continue;
-          }
-          boolean childrenDone = true;
-          SymbolicFormula m1 = null;
-          SymbolicFormula m2 = null;
-
-          Triple<AbstractFormula, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
-          AbstractFormula c1 = parts.getSecond();
-          AbstractFormula c2 = parts.getThird();
-          if (!cache.containsKey(c1)) {
-              toProcess.push(c1);
-              childrenDone = false;
-          } else {
-              m1 = cache.get(c1);
-          }
-          if (!cache.containsKey(c2)) {
-              toProcess.push(c2);
-              childrenDone = false;
-          } else {
-              m2 = cache.get(c2);
-          }
-          if (childrenDone) {
-              assert m1 != null;
-              assert m2 != null;
-
-              toProcess.pop();
-              AbstractFormula var = parts.getFirst();
-              assert(absVarToPredicate.containsKey(var));
-
-              SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();
-
-              SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
-              cache.put(n, ite);
-          }
+      if (!cache.containsKey(c2)) {
+        toProcess.push(c2);
+        childrenDone = false;
+      } else {
+        m2 = cache.get(c2);
       }
+      if (childrenDone) {
+        assert m1 != null;
+        assert m2 != null;
 
-      SymbolicFormula result = cache.get(af);
-      assert result != null;
+        toProcess.pop();
+        AbstractFormula var = parts.getFirst();
+        assert(absVarToPredicate.containsKey(var));
 
-      return result;
+        SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();
+
+        SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
+        cache.put(n, ite);
+      }
+    }
+
+    SymbolicFormula result = cache.get(af);
+    assert result != null;
+
+    return result;
   }
 
   @Override
@@ -194,20 +194,20 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
   }
-  
+
   // the rest of this class is related only to symbolic formulas
-  
+
   @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap(), 0, smgr.makeTrue(), 0);
   }
-  
+
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
     return new PathFormula(smgr.makeTrue(), oldFormula.getSsa(), 0,
         oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
-  
+
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
    * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
@@ -236,11 +236,38 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
     SymbolicFormula newReachingPathsFormula
-        = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
+    = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
     int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
-    
+
     return new PathFormula(newFormula, newSsa, newLength,
-                           newReachingPathsFormula, newBranchingCounter);
+        newReachingPathsFormula, newBranchingCounter);
+  }
+
+  /**
+   * Used for computing an abstraction using an assumption formula
+   * formula of the assumption is updated accordingly based on the {@link SSAMap} of
+   * the path formula for the edge.
+   * Then the conjunction of these two formulas is computed and a new path formula
+   * constructed using the this conjunction and a merged ssa map is returned.
+   * @param pPathFormula a PathFormula
+   * @param pAssumptionFormula a PathFormula
+   * @return an updated path formula which appends assumption to the path formula
+   */
+  public PathFormula makeAnd(PathFormula pPathFormula, PathFormula pAssumptionFormula) {
+
+    SSAMap ssaMapOfPf = pPathFormula.getSsa();
+//    SSAMap ssaMapOfAsmpt = pAssumptionFormula.getSsa();
+    
+    SymbolicFormula formulaOfPf = pPathFormula.getSymbolicFormula();
+    SymbolicFormula formulaOfAsmpt = pAssumptionFormula.getSymbolicFormula();
+    
+    //SSAMap mergedSSAMap = SSAMap.merge(ssaMapOfPf, ssaMapOfAsmpt);
+    // update the assumption formula with the new ssa index
+    //SymbolicFormula updatedAsmptFormula = smgr.instantiate(smgr.uninstantiate(formulaOfAsmpt), mergedSSAMap);
+    
+    SymbolicFormula retFormula = smgr.makeAnd(formulaOfPf, formulaOfAsmpt);
+    return new PathFormula(retFormula, ssaMapOfPf, pPathFormula.getLength(), 
+        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
 
   /**
@@ -260,17 +287,17 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
-    
+
     for (String var : result.allVariables()) {
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
-      
+
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
         SymbolicFormula t = makeSSAMerger(var, Math.max(i2, 1), i1);
         mt2 = smgr.makeAnd(mt2, t);
-              
+
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
@@ -278,19 +305,19 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         mt1 = smgr.makeAnd(mt1, t); 
       }
     }
-    
+
     for (Pair<String, SymbolicFormulaList> f : result.allFunctions()) {
       String name = f.getFirst();
       SymbolicFormulaList args = f.getSecond();
       int i1 = ssa1.getIndex(f);
       int i2 = ssa2.getIndex(f);
-      
+
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
         SymbolicFormula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
         mt2 = smgr.makeAnd(mt2, t);
-              
+
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
@@ -308,10 +335,10 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
   private SymbolicFormula makeSSAMerger(String var, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
-    
+
     SymbolicFormula initialVar = smgr.makeVariable(var, iSmaller);
     SymbolicFormula result = smgr.makeTrue();
-    
+
     for (int i = iSmaller+1; i <= iBigger; ++i) {
       SymbolicFormula currentVar = smgr.makeVariable(var, i);
       SymbolicFormula e = smgr.makeEqual(currentVar, initialVar);
@@ -323,7 +350,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   private SymbolicFormula makeSSAMerger(String name,
       SymbolicFormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
-    
+
     SymbolicFormula intialFunc = smgr.makeUIF(name, args, iSmaller);
     SymbolicFormula result = smgr.makeTrue();
 
@@ -345,7 +372,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
-  
+
   protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
     try {
       Files.writeFile(outputFile, LINE_JOINER.join(f));
@@ -353,5 +380,13 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
     }
+  }
+
+  public PathFormula makePathFormulaAndAssumption(PathFormula pPathFormula, Assumption pAssumption) {
+    SSAMap ssa = pPathFormula.getSsa();
+    SymbolicFormula assumptionFormula =  smgr.instantiate(pAssumption.getDischargeableFormula(), ssa);
+    SymbolicFormula resultFormula = smgr.makeAnd(pPathFormula.getSymbolicFormula(), assumptionFormula);
+    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
+        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
 }

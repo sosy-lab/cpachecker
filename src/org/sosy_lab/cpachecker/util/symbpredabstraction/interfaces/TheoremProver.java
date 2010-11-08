@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
+
 public interface TheoremProver {
 
   void init();
   void push(SymbolicFormula f);
   void pop();
   boolean isUnsat(SymbolicFormula f);
+  Model getModel();
   void reset();
 
   AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,

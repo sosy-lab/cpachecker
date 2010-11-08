@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.pointeranalysis;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -34,24 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class PointerAnalysisDomain implements AbstractDomain {
 
-  private static class PointerAnalysisBottomElement implements AbstractElement {
-
-    @Override
-    public String toString() {
-      return "<PointerAnalysis BOTTOM>";
-    }
-  }
-
-  private static class PointerAnalysisTopElement implements AbstractElement {
-
-    @Override
-    public String toString() {
-      return "<PointerAnalysis TOP>";
-    }
-  }
-
-  private static class PointerAnalysisJoinOperator implements JoinOperator {
-    @Override
+  private static class PointerAnalysisJoinOperator {
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
 
@@ -88,22 +69,10 @@ public class PointerAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static class PointerAnalysisPartialOrder implements PartialOrder {
-    @Override
+  private static class PointerAnalysisPartialOrder {
     public boolean satisfiesPartialOrder(AbstractElement newElement,
                                          AbstractElement reachedElement)
                                          throws CPAException {
-      if (newElement == bottomElement) {
-        return true;
-      } else if (reachedElement == topElement) {
-        return true;
-      } else if (reachedElement == bottomElement) {
-        assert false : "Bottom element should never be in the reached set";
-        return false;
-      } else if (newElement == topElement) {
-        return false;
-      }
-
       PointerAnalysisElement newPointerElement = (PointerAnalysisElement)newElement;
       PointerAnalysisElement reachedPointerElement = (PointerAnalysisElement)reachedElement;
 
@@ -111,28 +80,18 @@ public class PointerAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
-  private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
-  private static final AbstractElement bottomElement = new PointerAnalysisBottomElement();
-  private static final AbstractElement topElement = new PointerAnalysisTopElement();
+  private static final PointerAnalysisJoinOperator joinOperator = new PointerAnalysisJoinOperator();
+  private static final PointerAnalysisPartialOrder partialOrder = new PointerAnalysisPartialOrder();
 
   @Override
-  public JoinOperator getJoinOperator() {
-    return joinOperator;
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return joinOperator.join(pElement1, pElement2);
   }
 
   @Override
-  public PartialOrder getPartialOrder() {
-    return partialOrder;
-  }
-
-  @Override
-  public AbstractElement getBottomElement() {
-    return bottomElement;
-  }
-
-  @Override
-  public AbstractElement getTopElement() {
-    return topElement;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

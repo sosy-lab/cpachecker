@@ -38,7 +38,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
     """
     cn = configname(config)
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -config $config $benchmark > '
+                       '(scripts/cpa.sh -setprop output.disable=true -config $config $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
@@ -58,10 +58,10 @@ def run_single(benchmark, config, time_limit, mem_limit):
     with open('%s.%s.log' % (benchmark, configname(config))) as f:
         for line in f:
             if tot_time is None and line.startswith(
-                'Total Time Elapsed including CFA construction:'):
-                tot_time = line[46:].strip()[:-1]
+                'Total time for CPAchecker:'):
+                tot_time = line[line.find(':')+1:].strip()
             elif reached is None and line.startswith('Size of reached set:'):
-                reached = line[20:].strip()
+                reached = (line[line.find(':')+1:line.find('(')-1].strip())
             elif abstractions is None and line.startswith('Number of abstractions:'):
                 abstractions = (line[line.find(':')+1:line.find('(')-1].strip())
             elif refinements is None and line.startswith('Number of refinements:'):

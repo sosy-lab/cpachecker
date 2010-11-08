@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
@@ -50,30 +48,10 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     symbolicCoverageCheck = pSymbolicCoverageCheck;
   }
 
-  private final static class SymbPredAbsJoinOperator implements JoinOperator {
-    @Override
-    public SymbPredAbsTopElement join(AbstractElement element1,
-                                AbstractElement element2) throws CPAException {
-      return SymbPredAbsTopElement.INSTANCE;
-    }
-  }
-
-  private final class SymbPredAbsPartialOrder implements PartialOrder {
-    @Override
+  private final class SymbPredAbsPartialOrder {
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2) throws CPAException {
       
-      if (element1 == SymbPredAbsBottomElement.INSTANCE) {
-        return true;
-      } else if (element2 == SymbPredAbsTopElement.INSTANCE) {
-        return true;
-      } else if (element2 == SymbPredAbsBottomElement.INSTANCE) {
-        // we should not put this in the reached set
-        throw new RuntimeException();
-      } else if (element1 == SymbPredAbsTopElement.INSTANCE) {
-        return false;
-      }
-
       if (element1 instanceof AbstractionElement && element2 instanceof AbstractionElement) {
         AbstractionElement lElement1 = (AbstractionElement)element1;
         AbstractionElement lElement2 = (AbstractionElement)element2;
@@ -107,26 +85,17 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
   }
 
-  private final static JoinOperator join = new SymbPredAbsJoinOperator();
-  private final PartialOrder partial = new SymbPredAbsPartialOrder();
+  private final SymbPredAbsPartialOrder partial = new SymbPredAbsPartialOrder();
 
   @Override
-  public SymbPredAbsBottomElement getBottomElement() {
-    return SymbPredAbsBottomElement.INSTANCE;
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
-  public JoinOperator getJoinOperator() {
-    return join;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder() {
-    return partial;
-  }
-
-  @Override
-  public SymbPredAbsTopElement getTopElement() {
-    return SymbPredAbsTopElement.INSTANCE;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return partial.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

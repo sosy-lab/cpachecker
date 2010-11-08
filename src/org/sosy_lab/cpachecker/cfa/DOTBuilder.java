@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -139,12 +138,7 @@ public final class DOTBuilder {
 
 			visitedNodes.add (node);
 
-			// AG - give a shape also to error nodes
-			if (node instanceof CFAErrorNode) {
-			    nodeWriter.add(node.getNodeNumber(),
-			            "tripleoctagon");
-			}
-			else if(node.isLoopStart()){
+			if(node.isLoopStart()){
 				nodeWriter.add(node.getNodeNumber(), "doublecircle");
 			}
 

@@ -7,9 +7,10 @@ import java.util.Date;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.sosy_lab.common.TimeAccumulator;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.fllesh.FlleShResult;
 import org.sosy_lab.cpachecker.fllesh.Main;
-import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
 
 import com.google.common.base.Preconditions;
 
@@ -36,7 +37,7 @@ public abstract class ExperimentalSeries {
     mExperiment = null;
   }
   
-  public FlleShResult execute(String[] lArguments) throws IOException {
+  public FlleShResult execute(String[] lArguments) throws IOException, InvalidConfigurationException {
     Preconditions.checkNotNull(lArguments);
     Preconditions.checkArgument(lArguments.length == 3 || lArguments.length == 4);
     

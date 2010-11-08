@@ -50,12 +50,6 @@ public class CFACreator {
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
   private String mainFunctionName = "main";
 
-  @Option(name="cfa.combineBlockStatements")
-  private boolean combineBlockStatements = false;
-
-  @Option(name="cfa.removeDeclarations")
-  private boolean removeDeclarations = false;
-
   @Option(name="analysis.noExternalCalls")
   private boolean noExternalCalls = true;
 
@@ -119,7 +113,7 @@ public class CFACreator {
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
   
-      CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExternalCalls);
+      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas, noExternalCalls);
       Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
   
       // remove all functions which are never reached from cfas
@@ -129,12 +123,6 @@ public class CFACreator {
     if (useGlobalVars){
       // add global variables at the beginning of main
       CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
-    }
-  
-    // simplify CFA
-    if (combineBlockStatements || removeDeclarations) {
-      CFASimplifier simplifier = new CFASimplifier(combineBlockStatements, removeDeclarations);
-      simplifier.simplify(mainFunction);
     }
 
     // check the CFA of each function
@@ -162,7 +150,7 @@ public class CFACreator {
     assert CFACheck.check(mainFunction);
   
     // write CFA to file
-    if (exportCfa) {
+    if (exportCfa && exportCfaFile != null) {
       try {
         Files.writeFile(exportCfaFile,
             DOTBuilder.generateDOT(cfas.values(), mainFunction));
@@ -175,7 +163,7 @@ public class CFACreator {
     }
     
     // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction) {
+    if (exportCfaPerFunction && exportCfaFile != null) {
       try {
         File outdir = exportCfaFile.getParentFile();        
         DOTBuilder2.writeReport(mainFunction, outdir);

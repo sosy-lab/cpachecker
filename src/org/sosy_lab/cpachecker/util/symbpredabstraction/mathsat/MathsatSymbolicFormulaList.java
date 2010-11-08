@@ -27,14 +27,14 @@ import java.util.Arrays;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
-class MathsatSymbolicFormulaList implements SymbolicFormulaList {
+public class MathsatSymbolicFormulaList implements SymbolicFormulaList {
 
   private final long[] terms;
   
   /**
    * Do not modify the terms array afterwards, for performance reasons it's not copied!
    */
-  MathsatSymbolicFormulaList(long... terms) {
+  public MathsatSymbolicFormulaList(long... terms) {
     for (long t : terms) {
       if (mathsat.api.MSAT_ERROR_TERM(t)) {
         throw new IllegalArgumentException("Error term is not a valid formula");
@@ -46,7 +46,7 @@ class MathsatSymbolicFormulaList implements SymbolicFormulaList {
   /**
    * Do not modify the returned array, for performance reasons it's not copied!
    */
-  long[] getTerms() {
+  public long[] getTerms() {
     return terms;
   }
   

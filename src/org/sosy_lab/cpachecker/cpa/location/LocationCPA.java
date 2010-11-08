@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -37,12 +38,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
-	private static final LocationDomain abstractDomain = new LocationDomain();
-	private static final TransferRelation transferRelation = new LocationTransferRelation();
-	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+  private final LocationElementFactory elementFactory = new LocationElementFactory();
+  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
+	private final TransferRelation transferRelation = new LocationTransferRelation(elementFactory);
+	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
 	public static CPAFactory factory() {
 	  return new LocationCPAFactory(false);
@@ -75,7 +78,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 
   @Override
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-	  return new LocationElement (node);
+    elementFactory.initialize(node);
+	  return elementFactory.getElement(node);
 	}
 
   @Override

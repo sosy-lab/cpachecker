@@ -63,12 +63,19 @@ def errorpath2list(errpathfile):
     return jsonpath
 
 def call_dot(path, filename, out=None):
-    out = out or filename
-    os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s.svg %s.dot' % (path, out, filename))
+    (basefilename, ext) = os.path.splitext(filename)
+    out = (out or basefilename) + '.svg'
+    os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (path, out, filename))
 
 def main():
 
-    parser = optparse.OptionParser()
+    parser = optparse.OptionParser('%prog [options] sourcefile')
+    parser.add_option("-r", "--reportpath", 
+        action="store", 
+        type="string", 
+        dest="reportdir",
+        help="Directory for report"
+    )
     parser.add_option("-o", "--outputpath", 
         action="store", 
         type="string", 
@@ -105,21 +112,17 @@ def main():
         dest="conffile",
         help="path to CPAChecker config file"
     )
-    parser.add_option("-i", "--cilfile",
-        action="store", 
-        type="string", 
-        dest="cilfile",
-        help="path to CIL file that has been used as input"
-    )
     
     options, args = parser.parse_args()
-
+    if len(args) != 1:
+         parser.error('Incorrect number of arguments, you need to specify the source code file')
     
     print 'generating report'
-    cwd = os.getcwd()
-    cpaoutdir = options.outdir or os.path.join(cwd, 'test', 'output')
-    reportdir = cpaoutdir
-    tplfilepath = os.path.join(os.path.dirname(__file__), 'report_template.html')
+    scriptdir = os.path.dirname(__file__)
+    cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
+    cpaoutdir = options.outdir or os.path.join(cpacheckerdir, 'test', 'output')
+    reportdir = options.reportdir or cpaoutdir
+    tplfilepath = os.path.join(scriptdir, 'report_template.html')
     outfilepath = os.path.join(reportdir, 'index.html')
     artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
@@ -128,8 +131,8 @@ def main():
     fcalledges = os.path.join(reportdir, 'fcalledges.json')
     logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
     statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
-    conffile = options.conffile or os.path.join(os.environ['CPACHECKER_DIR'], 'test/config/symbpredabsCPA.properties')
-    cilinput = options.cilfile or os.path.join(cwd, 'cil', 'a.cil.c')
+    conffile = options.conffile or os.path.join(cpacheckerdir, 'test', 'config', 'symbpredabsCPA.properties')
+    cilinput = args[0]
     time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
     cilfile = os.path.join(reportdir, 'a.cil.c')
     
@@ -137,7 +140,8 @@ def main():
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
         artfile = os.path.basename(artfilepath)
-        call_dot(os.path.dirname(artfilepath), 'ART', os.path.join(reportdir, 'ART'))
+        artpath = os.path.dirname(artfilepath) or './'
+        call_dot(artpath, artfile, os.path.join(reportdir, 'ART'))
     
     shutil.copy(cilinput, cilfile)
     
@@ -169,13 +173,12 @@ def main():
         funclist = [x[5:-4] for x in os.listdir(reportdir) if x.startswith('cfa__') and x.endswith('.dot')]
         print 'Generating SVGs for CFA'
         for func in funclist:
-            call_dot(reportdir, 'cfa__' + func)
+            call_dot(reportdir, 'cfa__' + func + '.dot')
         return json.dumps(funclist, indent=4)
 
 
     def gen_stats():
-        sep = 'CPAchecker general statistics:'
-        return lambda: sep + filecontents(statsfile, encode=True)().split(sep)[1]
+        return filecontents(statsfile, encode=True)
 
     def format_cil():
         if not os.path.isfile(cilfile):

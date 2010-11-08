@@ -58,9 +58,9 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Intersection;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Complement;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Predication;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Term;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Variable;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Constant;
+import org.sosy_lab.cpachecker.util.predicates.Term;
+import org.sosy_lab.cpachecker.util.predicates.Variable;
+import org.sosy_lab.cpachecker.util.predicates.Constant;
 
 import java.io.Reader;
 import java.io.InputStream;
@@ -471,10 +471,10 @@ Predicate			::=
 							assert(rightterm != null);
 
 							assert(leftterm instanceof Term);
-							assert(comparison instanceof Predicate.Comparison);
+							assert(comparison instanceof org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison);
 							assert(rightterm instanceof Term);
 
-							RESULT = new Predicate((Term)leftterm, (Predicate.Comparison)comparison, (Term)rightterm);
+							RESULT = new Predicate(new org.sosy_lab.cpachecker.util.predicates.Predicate((Term)leftterm, (org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison)comparison, (Term)rightterm));
 						:}
 					;
 
@@ -492,26 +492,26 @@ Term				::=
 Comparison			::=
 						TOK_GREATER_OR_EQ
 						{:
-							RESULT = Predicate.Comparison.GREATER_OR_EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.GREATER_OR_EQUAL;
 						:}
 					| 	TOK_GREATER
 						{:
-							RESULT = Predicate.Comparison.GREATER;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.GREATER;
 						:}
 					| 	TOK_EQ
 						{:
-							RESULT = Predicate.Comparison.EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.EQUAL;
 						:}
 					| 	TOK_LESS_OR_EQ
 						{:
-							RESULT = Predicate.Comparison.LESS_OR_EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.LESS_OR_EQUAL;
 						:}
 					| 	TOK_LESS
 						{:
-							RESULT = Predicate.Comparison.LESS;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.LESS;
 						:}
 					| 	TOK_NEQ
 						{:
-							RESULT = Predicate.Comparison.NOT_EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.NOT_EQUAL;
 						:}
 					;

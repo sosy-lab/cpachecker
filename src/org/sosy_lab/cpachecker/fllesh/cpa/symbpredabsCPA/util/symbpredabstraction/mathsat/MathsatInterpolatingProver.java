@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatModel;
 
 import com.google.common.base.Preconditions;
 
@@ -37,7 +40,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     
     private final boolean useSharedEnv;
     
-    private MathsatModel mModel = null;
+    private Model mModel = null;
 
     public MathsatInterpolatingProver(MathsatSymbolicFormulaManager pMgr, boolean shared) {
         mgr = pMgr;
@@ -80,7 +83,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         }
         
         if (res == mathsat.api.MSAT_SAT) {
-          mModel = new MathsatModel(env);
+          mModel = MathsatModel.createMathsatModel(env);
         }
         else {
           mModel = null;
@@ -115,7 +118,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     }
 
     @Override
-    public MathsatModel getModel() {
+    public Model getModel() {
       return mModel;
     }
     

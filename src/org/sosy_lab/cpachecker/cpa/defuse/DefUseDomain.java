@@ -23,109 +23,62 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseDomain implements AbstractDomain
 {
-    private static class DefUseBottomElement extends DefUseElement
+    private static class DefUsePartialOrder
     {
-        public DefUseBottomElement ()
-        {
-            super (null);
-        }
-    }
-
-    private static class DefUseTopElement extends DefUseElement
-    {
-      public DefUseTopElement ()
-      {
-          super (null);
-      }
-    }
-
-    private static class DefUsePartialOrder implements PartialOrder
-    {
-        @Override
         public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
-
-            int numDefs = defUseElement1.getNumDefinitions ();
-            for (int idx = 0; idx < numDefs; idx++)
-            {
-                DefUseDefinition definition = defUseElement1.getDefinition (idx);
-                if (!defUseElement2.containsDefinition (definition))
-                    return false;
-            }
-
-            return true;
+            
+            return defUseElement2.containsAllOf(defUseElement1);
         }
     }
 
-    private static class DefUseJoinOperator implements JoinOperator
+    private static class DefUseJoinOperator
     {
-        @Override
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
         {
             // Useless code, but helps to catch bugs by causing cast exceptions
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
 
-            List<DefUseDefinition> joined = new ArrayList<DefUseDefinition> ();
-            for (int idx = 0; idx < defUseElement1.getNumDefinitions (); idx++)
-                joined.add (defUseElement1.getDefinition (idx));
+            Set<DefUseDefinition> joined = new HashSet<DefUseDefinition> ();
+            for (DefUseDefinition definition : defUseElement1)
+                joined.add(definition);
 
-            for (int idx = 0; idx < defUseElement2.getNumDefinitions (); idx++)
+            for (DefUseDefinition definition : defUseElement2)
             {
-                DefUseDefinition def = defUseElement2.getDefinition (idx);
-                if (!joined.contains (def))
-                    joined.add (def);
+                if (!joined.contains(definition))
+                    joined.add (definition);
             }
 
             return new DefUseElement (joined);
         }
     }
 
-    private final static DefUseBottomElement bottomElement = new DefUseBottomElement ();
-    private final static DefUseTopElement topElement = new DefUseTopElement ();
-    private final static PartialOrder partialOrder = new DefUsePartialOrder ();
-    private final static JoinOperator joinOperator = new DefUseJoinOperator ();
-
-    public DefUseDomain ()
-    {
-
+    private final static DefUsePartialOrder partialOrder = new DefUsePartialOrder ();
+    private final static DefUseJoinOperator joinOperator = new DefUseJoinOperator ();
+    
+    @Override
+    public AbstractElement join(AbstractElement pElement1,
+        AbstractElement pElement2) throws CPAException {
+      return joinOperator.join(pElement1, pElement2);
     }
 
     @Override
-    public AbstractElement getBottomElement ()
-    {
-        return bottomElement;
-    }
-
-    @Override
-    public AbstractElement getTopElement ()
-    {
-        return topElement;
-    }
-
-    @Override
-    public JoinOperator getJoinOperator ()
-    {
-        return joinOperator;
-    }
-
-    @Override
-    public PartialOrder getPartialOrder ()
-    {
-        return partialOrder;
+    public boolean satisfiesPartialOrder(AbstractElement pElement1,
+        AbstractElement pElement2) throws CPAException {
+      return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
     }
 }

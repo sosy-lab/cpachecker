@@ -27,62 +27,28 @@ import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Preconditions;
+
 public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
-  private final TransferRelationMonitorCPA cpa;
-  private boolean shouldStop = false;
+  private final long totalTimeOnPath;
 
-  private long timeOfTranferToComputeElement;
-  private long totalTimeOnThePath;
-  private int numberOfBranches = 0;
-  public static long maxTimeOfTransfer = 0;
-  public static long maxTotalTimeForPath = 0;
-  public static long totalTimeOfTransfer = 0;
-  public static long totalNumberOfTransfers = 0;
-  private boolean ignore = false;
+  private final int branchesOnPath;
+  private final int pathLength;
+
+  private final boolean shouldStop = false;
   
-  private int noOfNodesOnPath;
-
-  protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa,
-      AbstractElement pWrappedElement) {
+  protected TransferRelationMonitorElement(AbstractElement pWrappedElement,
+      int pathLength, int branchesOnPath, long totalTimeOnPath) {
     super(pWrappedElement);
-    cpa = pCpa;
-    timeOfTranferToComputeElement = 0;
-    totalTimeOnThePath = 0;
-    setNoOfNodesOnPath(0);
+    Preconditions.checkArgument(pathLength > branchesOnPath);
+    this.pathLength = pathLength;
+    this.branchesOnPath = branchesOnPath;
+    this.totalTimeOnPath = totalTimeOnPath;
   }
 
-  public TransferRelationMonitorCPA getCpa() {
-    return cpa;
-  }
-
-  protected void setTransferTime(long pTransferTime){
-    timeOfTranferToComputeElement = pTransferTime;
-    totalTimeOfTransfer = totalTimeOfTransfer + pTransferTime;
-    totalNumberOfTransfers ++;
-    if(timeOfTranferToComputeElement > maxTimeOfTransfer){
-      maxTimeOfTransfer = timeOfTranferToComputeElement;
-    }
-  }
-
-  protected void setTotalTime(boolean pIsIgnore, long pTotalTime){
-    ignore = pIsIgnore;
-    totalTimeOnThePath = pTotalTime + timeOfTranferToComputeElement;
-    if(totalTimeOnThePath > maxTotalTimeForPath){
-      maxTotalTimeForPath = totalTimeOnThePath;
-    }
-  }
-
-  protected void resetTotalTime(){
-    totalTimeOnThePath = 0;
-  }
-
-  public long getTimeOfTranferToComputeElement() {
-    return timeOfTranferToComputeElement;
-  }
-
-  public long getTotalTimeOnThePath() {
-    return totalTimeOnThePath;
+  public long getTotalTimeOnPath() {
+    return totalTimeOnPath;
   }
 
   @Override
@@ -102,48 +68,24 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     return getWrappedElement().hashCode();
   }
 
-  public void setAsStopElement(){
-    shouldStop = true;
-  }
-
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
-    if (shouldStop)
-      return true;
-    return false;
-  }
-
-  public boolean isIgnore() {
-    return ignore;
-  }
-
-  public void setIgnore() {
-    ignore = true;
-  }
-
-  public void setNoOfNodesOnPath(int noOfNodesOnPath) {
-    this.noOfNodesOnPath = noOfNodesOnPath;
+    return shouldStop;
   }
 
   public int getNoOfNodesOnPath() {
-    return noOfNodesOnPath;
+    return pathLength;
   }
   
   @Override
   public String toString() {
-    // TODO Auto-generated method stub
-    return "No of nodes> " + this.noOfNodesOnPath
-    + "/n Total time> " + this.totalTimeOnThePath 
-    + "/n Max Single Operation Time> " + maxTimeOfTransfer
-    + "/n Number of Branches" + numberOfBranches;
+    return "No of nodes> " + this.pathLength
+    + "\n Total time> " + this.totalTimeOnPath 
+    + "\n Number of Branches" + branchesOnPath;
   }
 
   public int getNoOfBranchesOnPath() {
-    return numberOfBranches;
-  }
-
-  public void setNoOfBranches(int pI) {
-    numberOfBranches = pI;
+    return branchesOnPath;
   }
 }

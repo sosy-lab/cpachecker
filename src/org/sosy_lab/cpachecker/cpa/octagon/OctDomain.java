@@ -31,32 +31,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class OctDomain implements AbstractDomain{
 
   public static long totaltime = 0;
 
-  private static class OctBottomElement extends OctElement
+  private static class OctPartialOrder
   {
-    public OctBottomElement ()
-    {
-      super ();
-    }
-  }
-
-  private static class OctTopElement extends OctElement
-  {
-    public OctTopElement ()
-    {
-      //super (LibraryAccess.universe(Variables.numOfVars));
-    }
-  }
-
-  private static class OctPartialOrder implements PartialOrder
-  {
-    @Override
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
     {
 
@@ -104,9 +86,8 @@ public class OctDomain implements AbstractDomain{
     }
   }
 
-  private static class OctJoinOperator implements JoinOperator
+  private static class OctJoinOperator
   {
-    @Override
     public AbstractElement join (AbstractElement element1, AbstractElement element2)
     {
       // TODO fix
@@ -116,37 +97,18 @@ public class OctDomain implements AbstractDomain{
     }
   }
 
-  private final static OctBottomElement bottomElement = new OctBottomElement ();
-  private final static OctTopElement topElement = new OctTopElement ();
-  private final static PartialOrder partialOrder = new OctPartialOrder ();
-  private final static JoinOperator joinOperator = new OctJoinOperator ();
+  private final static OctPartialOrder partialOrder = new OctPartialOrder ();
+  private final static OctJoinOperator joinOperator = new OctJoinOperator ();
 
-  public OctDomain ()
-  {
-
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return joinOperator.join(pElement1, pElement2);
   }
 
   @Override
-  public AbstractElement getBottomElement ()
-  {
-    return bottomElement;
-  }
-
-  @Override
-  public AbstractElement getTopElement ()
-  {
-    return topElement;
-  }
-
-  @Override
-  public JoinOperator getJoinOperator ()
-  {
-    return joinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder ()
-  {
-    return partialOrder;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

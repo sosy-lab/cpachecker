@@ -37,23 +37,22 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
-import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.PredicateMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case
@@ -307,7 +306,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
       numAbstractions++;
 
-      AbstractionElement lSuccessor = mAbstractionElementFactory.create(element.getAbstractionElement(), edge.getSuccessor(), newAbstraction, pathFormula);
+      AbstractionElement lSuccessor = mAbstractionElementFactory.create(element.getAbstractionElement(), newAbstraction, pathFormula);
       
       lSuccessors = Collections.singleton(lSuccessor);
       
@@ -361,7 +360,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       GuardedEdgeAutomatonPredicateElement lAutomatonElement = (GuardedEdgeAutomatonPredicateElement)pAutomatonElement;
       
       for (ECPPredicate lPredicate : lAutomatonElement) {
-        FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+        AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
         
         if (pElement instanceof AbstractionElement) {
           AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
@@ -393,7 +392,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
             numAbstractions++;
 
-            pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), pNode, newAbstraction, lPathFormula);
+            pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), newAbstraction, lPathFormula);
           } catch (CPATransferException e1) {
             throw new RuntimeException(e1);
           }
@@ -422,19 +421,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
   
   public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement, SymbPredAbsPrecision pPrecision) {
-    FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
-    
-    /*if (true) {
-      // implement abstraction location handling
-      throw new RuntimeException();
-    }
-    
-    try {
-      pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
-    } catch (CPATransferException e) {
-      throw new RuntimeException(e);
-    }*/
-    
+    AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
     
     if (pElement instanceof AbstractionElement) {
       AbstractionElement lCurrentAbstractionElement = (AbstractionElement)pElement;
@@ -466,7 +453,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
         numAbstractions++;
 
-        pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), pNode, newAbstraction, lPathFormula);
+        pElement = mAbstractionElementFactory.create(lCurrentAbstractionElement.getPreviousAbstractionElement(), newAbstraction, lPathFormula);
       } catch (CPATransferException e1) {
         throw new RuntimeException(e1);
       }
@@ -562,7 +549,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         }
         
         return Collections.singleton(
-            mAbstractionElementFactory.create(element.getAbstractionElement(), edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
+            mAbstractionElementFactory.create(element.getAbstractionElement(), abstractFormulaManager.makeTrue(), lPathFormula)
             //new AbstractionElement(edge.getSuccessor(), abstractFormulaManager.makeTrue(), lPathFormula)
             /*new SymbPredAbsAbstractElement(
             // set 'abstractionLocation' to edge.getSuccessor()

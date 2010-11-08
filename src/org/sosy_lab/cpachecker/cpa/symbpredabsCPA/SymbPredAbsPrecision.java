@@ -86,11 +86,6 @@ public class SymbPredAbsPrecision implements Precision {
   public String toString() {
     return predicateMap.toString();
   }
-  
-  @Override
-  public boolean isBreak() {
-    return false;
-  }
 }
 
 

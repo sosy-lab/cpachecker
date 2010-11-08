@@ -38,7 +38,7 @@ public class PathFormula {
   // number of branching locations we saw on the paths (used for reachingPathsFormula)
   private final int branchingCounter; 
   
-  protected PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength,
+  public PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength,
         SymbolicFormula pReachingPathsFormula, int pBranchingCounter) {
     this.formula = pf;
     this.ssa = ssa;    
@@ -63,7 +63,7 @@ public class PathFormula {
     return reachingPathsFormula;
   }
   
-  protected int getBranchingCounter() {
+  public int getBranchingCounter() {
     return branchingCounter;
   }
   

@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
@@ -55,6 +56,13 @@ public class MathsatTheoremProver implements TheoremProver {
     pop();
     assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
+  }
+  
+  @Override
+  public Model getModel() {
+    Preconditions.checkState(curEnv != 0);
+    
+    return MathsatModel.createMathsatModel(curEnv);
   }
 
   @Override
@@ -121,7 +129,7 @@ public class MathsatTheoremProver implements TheoremProver {
    * callback used to build the predicate abstraction of a formula
    * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
    */
-  static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
+  public static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final FormulaManager fmgr;
     private final AbstractFormulaManager amgr;
     
@@ -131,13 +139,13 @@ public class MathsatTheoremProver implements TheoremProver {
     private AbstractFormula formula;
     private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
 
-    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
+    public MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
       this.fmgr = fmgr;
       this.amgr = amgr;
       this.formula = amgr.makeFalse();
     }
 
-    void setInfiniteNumberOfModels() {
+    public void setInfiniteNumberOfModels() {
       count = Integer.MAX_VALUE;
       cubes.clear();
       formula = amgr.makeTrue();

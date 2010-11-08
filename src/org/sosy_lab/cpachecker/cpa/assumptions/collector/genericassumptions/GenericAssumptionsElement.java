@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Abstract element for the generic assumption generator CPA;
  * encapsulate a symbolic formula that represents the
@@ -41,31 +43,14 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
 
   public GenericAssumptionsElement(AssumptionWithLocation anAssumption)
   {
+    Preconditions.checkNotNull(anAssumption);
     assumption = anAssumption;
   }
 
   @Override
   public AssumptionWithLocation getAssumptionWithLocation()
   {
-    if (assumption == null)
-      return AssumptionWithLocation.TRUE;
-    else
-      return assumption;
-  }
-
-  /**
-   * @param other an other abstract element <b>with the same manager</b>
-   * @return an abstract element representing the conjunction of
-   *         the formula of this element with the other element
-   */
-  public GenericAssumptionsElement makeAnd(GenericAssumptionsElement other)
-  {
-    // Special cases
-    if (this == TOP) return other;
-    if (other == TOP) return this;
-    if ((this == BOTTOM) || (other == BOTTOM)) return BOTTOM;
-
-    return new GenericAssumptionsElement(assumption.and(other.assumption));
+    return assumption;
   }
 
   @Override
@@ -80,7 +65,4 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
   public String toString() {
     return assumption.toString();
   }
-
-  public static final GenericAssumptionsElement TOP = new GenericAssumptionsElement(AssumptionWithLocation.TRUE);
-  public static final GenericAssumptionsElement BOTTOM = new GenericAssumptionsElement(AssumptionWithLocation.FALSE);
 }

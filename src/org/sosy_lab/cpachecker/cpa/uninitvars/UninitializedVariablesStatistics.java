@@ -60,6 +60,8 @@ public class UninitializedVariablesStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
+    int noOfWarnings = 0;
+    
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
@@ -79,6 +81,7 @@ public class UninitializedVariablesStatistics implements Statistics {
               if (!warningsDisplayed.contains(warningIndex)) {
                 warningsDisplayed.add(warningIndex);
                 pOut.println(warning.getThird());
+                noOfWarnings++;
               }
             }
           }
@@ -86,6 +89,9 @@ public class UninitializedVariablesStatistics implements Statistics {
       }
       if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");
+      }
+      else{
+        pOut.println("No of uninitialized vars : " + noOfWarnings);
       }
     } else {
       pOut.println("Output deactivated by configuration option");

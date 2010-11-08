@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.testcases;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 
 public class ImpreciseExecutionException extends Exception {
 

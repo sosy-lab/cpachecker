@@ -30,8 +30,6 @@ import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -39,32 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class UninitializedVariablesDomain implements AbstractDomain {
 
-  private static class UninitializedVariablesBottomElement extends UninitializedVariablesElement {
-
-    public UninitializedVariablesBottomElement() {
-      super("<BOTTOM>");
-    }
-
-    @Override
-    public String toString() {
-      return "<UninitializedVariables BOTTOM>";
-    }
-  }
-
-  private static class UninitializedVariablesTopElement extends UninitializedVariablesElement {
-
-    public UninitializedVariablesTopElement() {
-      super("<TOP>");
-    }
-
-    @Override
-    public String toString() {
-      return "<UninitializedVariables TOP>";
-    }
-  }
-
-  private static class UninitializedVariablesJoinOperator implements JoinOperator {
-    @Override
+  private static class UninitializedVariablesJoinOperator {
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
@@ -81,8 +54,7 @@ public class UninitializedVariablesDomain implements AbstractDomain {
     }
   }
 
-  private static class UninitializedVariablesPartialOrder implements PartialOrder {
-    @Override
+  private static class UninitializedVariablesPartialOrder {
     // returns true if element1 < element2 on lattice
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2)
@@ -90,13 +62,6 @@ public class UninitializedVariablesDomain implements AbstractDomain {
 
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
-
-      if (element1 == bottomElement || element2 == topElement) {
-        return true;
-      }
-      if (element2 == bottomElement || element1 == topElement) {
-        return false;
-      }
 
       if (!uninitVarsElement1.getGlobalVariables().containsAll(
                               uninitVarsElement2.getGlobalVariables())) {
@@ -125,28 +90,18 @@ public class UninitializedVariablesDomain implements AbstractDomain {
     }
   }
 
-  private static final JoinOperator joinOperator = new UninitializedVariablesJoinOperator();
-  private static final PartialOrder partialOrder = new UninitializedVariablesPartialOrder();
-  private static final AbstractElement bottomElement = new UninitializedVariablesBottomElement();
-  private static final AbstractElement topElement = new UninitializedVariablesTopElement();
+  private static final UninitializedVariablesJoinOperator joinOperator = new UninitializedVariablesJoinOperator();
+  private static final UninitializedVariablesPartialOrder partialOrder = new UninitializedVariablesPartialOrder();
 
   @Override
-  public JoinOperator getJoinOperator() {
-    return joinOperator;
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return joinOperator.join(pElement1, pElement2);
   }
 
   @Override
-  public PartialOrder getPartialOrder() {
-    return partialOrder;
-  }
-
-  @Override
-  public AbstractElement getBottomElement() {
-    return bottomElement;
-  }
-
-  @Override
-  public AbstractElement getTopElement() {
-    return topElement;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

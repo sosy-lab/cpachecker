@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +34,11 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -53,27 +52,19 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
-
-  private static final String IMPRECISE_ERROR_PATH_WARNING = "The produced error path is imprecise!";
-
-  private static Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -83,10 +74,20 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   
   @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File exportFile = new File("ErrorPathAssignment.txt");
-  
+
+  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
+  private File dumpCexFile = new File("counterexample.msat");
+
+  final Timer totalRefinement = new Timer();
+  final Timer precisionUpdate = new Timer();
+  final Timer artUpdate = new Timer();
+  final Timer errorPathProcessing = new Timer();
+
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
+  private Path targetPath;
+  private List<CFANode> lastErrorPath = null;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -99,11 +100,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     symbPredAbsCpa.getConfiguration().inject(this);
     logger = symbPredAbsCpa.getLogger();
     formulaManager = symbPredAbsCpa.getFormulaManager();
+    symbPredAbsCpa.getStats().addRefiner(this);
   }
 
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
-
+    totalRefinement.start();
     logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
 
     // create path with all abstraction location elements (excluding the initial element)
@@ -118,7 +120,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       SymbPredAbsAbstractElement symbElement =
         ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-      if (symbElement.isAbstractionNode()) {
+      if (symbElement instanceof AbstractionElement) {
         path.add(symbElement);
         artPath.add(ae);
       }
@@ -144,16 +146,53 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // if error is spurious refine
     if (info.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+      precisionUpdate.start();
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
               performRefinement(oldSymbPredAbsPrecision, path, artPath, info);
+      precisionUpdate.stop();
 
+      artUpdate.start();
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      artUpdate.stop();
+      totalRefinement.stop();
       return true;
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
+      errorPathProcessing.start();
       
-      if (exportErrorPath) {
+      targetPath = null;
+      boolean preciseInfo = false;
+      NavigableMap<Integer, Map<Integer, Boolean>> preds = info.getBranchingPredicates();
+      if (preds.isEmpty()) {
+        logger.log(Level.WARNING, "No information about ART branches available!");
+      } else {
+        targetPath = createPathFromPredicateValues(pPath, preds);
+        
+        // try to create a better satisfying assignment by replaying this single path
+        try {
+          info = formulaManager.checkPath(targetPath.asEdgesList());
+          if (info.isSpurious()) {
+            logger.log(Level.WARNING, "Inconsistent replayed error path!");
+            logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
+            info = mCounterexampleTraceInfo;
+          } else {
+            mCounterexampleTraceInfo = info;
+            preciseInfo = true;
+          }
+        } catch (CPATransferException e) {
+          // path is now suddenly a problem 
+          logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
+        }
+      }
+      errorPathProcessing.stop();
+      
+      if (exportErrorPath && exportFile != null) {
+        if (!preciseInfo) {
+          logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
+        }
+
+        formulaManager.dumpCounterexampleToFile(info, dumpCexFile);
         try {
           Files.writeFile(exportFile, info.getCounterexample());
         } catch (IOException e) {
@@ -161,6 +200,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
               + e.getMessage() + ")");
         }
       }
+      totalRefinement.stop();
       return false;
     }
   }
@@ -180,6 +220,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     ARTElement firstInterpolationARTElement = null;
     boolean newPredicatesFound = false;
     
+    List<CFANode> absLocations = new ArrayList<CFANode>(pArtPath.size());
     ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
@@ -191,6 +232,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       SymbPredAbsAbstractElement e = pPath.get(i);
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       CFANode loc = ae.retrieveLocationElement().getLocationNode();
+      absLocations.add(loc);
       
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
@@ -232,6 +274,10 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       root = firstInterpolationARTElement;
 
     } else {
+      if (absLocations.equals(lastErrorPath)) {
+        throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
+      }
+      
       CFANode loc = firstInterpolationARTElement.retrieveLocationElement().getLocationNode();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
@@ -248,52 +294,17 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         throw new CPAException("Inconsistent ART, did not find element for " + loc);
       }
     }
+    lastErrorPath = absLocations;
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
 
   @Override
   protected Path getTargetPath(Path pPath) {
-    Model model = mCounterexampleTraceInfo.getCounterexample();
-    if (model.isEmpty()) {
-      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
+    if (targetPath == null) {
+      logger.log(Level.WARNING, "The produced error path is imprecise!");
       return pPath;
     }
-    
-    NavigableMap<Integer, Map<Integer, Boolean>> preds =
-                                getPredicateValuesFromModel(model);
-    
-    return createPathFromPredicateValues(pPath, preds);
-  }
-
-  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(Model model) {
-
-    NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
-    for (AssignableTerm a : model.keySet()) {
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
-        
-        String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
-        if (!name.equals(a.getName())) {
-          // pattern matched, so it's a variable with __pc__ in it
-          
-          String[] parts = name.split("@");
-          assert parts.length == 2;
-          // no NumberFormatException because of RegExp match earlier
-          Integer edgeId = Integer.parseInt(parts[0]);
-          Integer idx = Integer.parseInt(parts[1]);          
-          
-          Map<Integer, Boolean> p = preds.get(idx);
-          if (p == null) {
-            p = new HashMap<Integer, Boolean>(2);
-            preds.put(idx, p);
-          }
-          
-          Boolean value = (Boolean)model.get(a);
-          p.put(edgeId, value);
-        }             
-      }
-    }
-    return preds;
+    return targetPath;
   }
 
   private Path createPathFromPredicateValues(Path pPath,
@@ -310,8 +321,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       
       case 0:
         logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
-        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-        return pPath;
+        return null;
         
       case 1: // only one successor, easy
         child = Iterables.getOnlyElement(children);
@@ -329,8 +339,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (!(currentEdge instanceof AssumeEdge)) {
             logger.log(Level.WARNING, "ART branches where there is no AssumeEdge!");
-            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-            return pPath;
+            return null;
           }
 
           if (((AssumeEdge)currentEdge).getTruthAssumption()) {
@@ -343,8 +352,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         }
         if (trueEdge == null || falseEdge == null) {
           logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
-          logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-          return pPath;
+          return null;
         }
         assert trueChild != null;
         assert falseChild != null;
@@ -356,8 +364,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
           if (nextEntry == null) {
             logger.log(Level.WARNING, "ART branches without direction information from solver!");
-            logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-            return pPath;
+            return null;
           }
           
           currentIdx = nextEntry.getKey();
@@ -376,8 +383,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         
       default:
         logger.log(Level.WARNING, "ART splits with more than two branches!");
-        logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-        return pPath;
+        return null;
       }
 
       result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
@@ -388,8 +394,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
     if (currentElement != lastPair.getFirst()) {
       logger.log(Level.WARNING, "ART target path reached the wrong target element!");
-      logger.log(Level.WARNING, IMPRECISE_ERROR_PATH_WARNING);
-      return pPath;
+      return null;
     }
     result.add(lastPair);
     

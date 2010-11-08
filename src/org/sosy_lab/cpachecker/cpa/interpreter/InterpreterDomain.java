@@ -27,31 +27,17 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class InterpreterDomain implements AbstractDomain {
 
-  private static class InterpreterPartialOrder implements PartialOrder
+  private static class InterpreterPartialOrder
   {
     // returns true if element1 < element2 on lattice
-    @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
     {
       InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
       InterpreterElement explicitAnalysisElementReached = (InterpreterElement) reachedElement;
-
-      if (newElement == sBottomElement) {
-        return true;
-      } else if (reachedElement == sTopElement) {
-        return true;
-      } else if (reachedElement == sBottomElement) {
-        // we should not put this in the reached set
-        assert(false);
-        return false;
-      } else if (newElement == sTopElement) {
-        return false;
-      }
 
       Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
@@ -74,9 +60,8 @@ public class InterpreterDomain implements AbstractDomain {
     }
   }
 
-  private static class InterpreterJoinOperator implements JoinOperator
+  private static class InterpreterJoinOperator
   {
-    @Override
     public AbstractElement join(AbstractElement element1, AbstractElement element2)
     {
       /*InterpreterElement explicitAnalysisElement1 = (InterpreterElement) element1;
@@ -102,37 +87,18 @@ public class InterpreterDomain implements AbstractDomain {
     }
   }
 
-  private final static InterpreterBottomElement sBottomElement = InterpreterBottomElement.INSTANCE;
-  private final static InterpreterTopElement sTopElement = InterpreterTopElement.INSTANCE;
-  private final static PartialOrder sPartialOrder = new InterpreterPartialOrder ();
-  private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
+  private final static InterpreterPartialOrder sPartialOrder = new InterpreterPartialOrder ();
+  private final static InterpreterJoinOperator sJoinOperator = new InterpreterJoinOperator ();
 
-  public InterpreterDomain()
-  {
-
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return sJoinOperator.join(pElement1, pElement2);
   }
 
   @Override
-  public InterpreterBottomElement getBottomElement ()
-  {
-    return sBottomElement;
-  }
-
-  @Override
-  public InterpreterTopElement getTopElement ()
-  {
-    return sTopElement;
-  }
-
-  @Override
-  public JoinOperator getJoinOperator ()
-  {
-    return sJoinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder ()
-  {
-    return sPartialOrder;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return sPartialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

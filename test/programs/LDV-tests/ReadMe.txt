@@ -1,8 +1,6 @@
 Info about this folder:
 
 The original files are in "CPAchecker/test/original-sources". 
-The modified files are in "c-files".
-The CIL-files are in "cil.c-files".
 
 -----------------------------------------------------------------
 

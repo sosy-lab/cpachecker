@@ -25,60 +25,33 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
 import java.util.Collection;
 
-import com.google.common.collect.Collections2;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Stop operator for the assumption collector CPA. Stops if the stop flag is
- * true; otherwise rely on the stop operator of the wrapped CPA.
+ * true.
  *
  * @author g.theoduloz
  */
 public class AssumptionCollectorStop implements StopOperator {
 
-  private final StopOperator wrappedStop;
-
-  public AssumptionCollectorStop(ConfigurableProgramAnalysis wrappedCPA)
-  {
-    wrappedStop = wrappedCPA.getStopOperator();
-  }
-
   @Override
-  public boolean stop(AbstractElement element,
-      Collection<AbstractElement> reached, Precision precision)
-      throws CPAException
-  {
+  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision precision) {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
 
     // if stop, then do not stop to make sure the state is
     // added to the reached set
-    if (assumptionElement.isStop())
-      return false;
-
-    Collection<AbstractElement> wrappedReached = Collections2.transform(reached, AssumptionCollectorElement.getUnwrapFunction());
-
-    return wrappedStop.stop(assumptionElement.getWrappedElement(), wrappedReached, precision);
+    return !assumptionElement.isStop();
   }
 
   @Override
-  public boolean stop(AbstractElement element, AbstractElement reachedElement)
-      throws CPAException
-  {
+  public boolean stop(AbstractElement element, AbstractElement reachedElement) {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
 
     // if stop, then do not stop to make sure the state is
     // added to the reached set
-    if (assumptionElement.isStop())
-      return false;
-
-    AssumptionCollectorElement reachedAssumptionElement = (AssumptionCollectorElement) reachedElement;
-    return wrappedStop.stop(assumptionElement.getWrappedElement(), reachedAssumptionElement.getWrappedElement());
-
+    return !assumptionElement.isStop();
   }
-
 }

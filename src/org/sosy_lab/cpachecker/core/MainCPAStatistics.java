@@ -26,58 +26,93 @@ package org.sosy_lab.cpachecker.core;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 @Options
 class MainCPAStatistics implements Statistics {
+  
+  private class MemoryStatistics extends Thread {
+    
+    private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
+    
+    private long maxHeap = 0;
+    private long sumHeap = 0;
+    private long maxNonHeap = 0;
+    private long sumNonHeap = 0;
+    private long count = 0;
+    
+    @Override
+    public void run() {
+      MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
+      while (monitorMemoryUsage) {
+        count++;
+        long currentHeapUsed = mxBean.getHeapMemoryUsage().getUsed();
+        maxHeap = Math.max(maxHeap, currentHeapUsed);
+        sumHeap += currentHeapUsed;
+        
+        long currentNonHeapUsed = mxBean.getNonHeapMemoryUsage().getUsed();
+        maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
+        sumNonHeap += currentNonHeapUsed;
+        
+        try {
+          sleep(MEMORY_CHECK_INTERVAL);
+        } catch (InterruptedException e) {
+          this.interrupt();
+          monitorMemoryUsage = false;
+        }
+      }
+    }
+    
+  }
 
     @Option(name="reachedSet.export")
     private boolean exportReachedSet = true;
 
     @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE)
     private File outputFile = new File("reached.txt");
+    
+    @Option(name="statistics.memory")
+    private volatile boolean monitorMemoryUsage = true;
 
     private final LogManager logger;
     private final Collection<Statistics> subStats;
-    private long programStartingTime;
-    private long analysisStartingTime;
-    private long analysisEndingTime;
+    private final MemoryStatistics memStats = new MemoryStatistics();
+    
+    final Timer programTime = new Timer();
+    final Timer parseTime = new Timer();
+    final Timer cfaCreationTime = new Timer();
+    final Timer cpaCreationTime = new Timer();
+    final Timer analysisTime = new Timer();
 
     public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
         config.inject(this);
 
         this.logger = logger;
         subStats = new ArrayList<Statistics>();
-        programStartingTime = 0;
-        analysisStartingTime = 0;
-        analysisEndingTime = 0;
-    }
-
-    public void startProgramTimer() {
-        programStartingTime = System.currentTimeMillis();
-    }
-
-    public void startAnalysisTimer() {
-        analysisStartingTime = System.currentTimeMillis();
-    }
-
-    public void stopAnalysisTimer() {
-        analysisEndingTime = System.currentTimeMillis();
+        memStats.setDaemon(true);
+        memStats.start();
+        programTime.start();
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -91,11 +126,12 @@ class MainCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-        if (analysisEndingTime == 0) {
-          stopAnalysisTimer();
-        }
+        // call stop again in case CPAchecker was terminated abnormally
+        analysisTime.stop();
+        programTime.stop();
+        monitorMemoryUsage = false;
 
-        if (exportReachedSet) {
+        if (exportReachedSet && outputFile != null) {
           try {
             Files.writeFile(outputFile, Joiner.on('\n').join(reached));
           } catch (IOException e) {
@@ -107,28 +143,52 @@ class MainCPAStatistics implements Statistics {
           }
         }
 
-        long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
-        long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
-
-        out.println("\nCPAchecker general statistics:");
-        out.println("------------------------------");
-        out.println("Size of reached set: " + reached.size());
-        out.println("Total Time Elapsed: " + toTime(totalTimeInMillis));
-        out.println("Total Time Elapsed including CFA construction: " +
-                toTime(totalAbsoluteTimeMillis));
-
         for (Statistics s : subStats) {
             String name = s.getName();
             if (name != null && !name.isEmpty()) {
+              name = name + " statistics";
               out.println("");
               out.println(name);
-              char[] c = new char[name.length()];
-              Arrays.fill(c, '-');
-              out.println(String.copyValueOf(c));
+              out.println(Strings.repeat("-", name.length()));
             }
             s.printStatistics(out, result, reached);
         }
 
+        out.println("\nCPAchecker general statistics");
+        out.println("-----------------------------");
+        if (reached instanceof PartitionedReachedSet) {
+          PartitionedReachedSet p = (PartitionedReachedSet)reached;
+          out.println("Size of reached set: " + reached.size()
+              + " (in " + p.getNumberOfPartitions() + " partitions)");
+        } else {
+          out.println("Size of reached set: " + reached.size());
+        }
+        out.println("Time for parsing C file:   " + parseTime);
+        out.println("Time for CFA construction: " + cfaCreationTime);
+        out.println("Time for CPA instantiaton: " + cpaCreationTime);
+        out.println("Time for Analysis:         " + analysisTime);
+        out.println("Total time for CPAchecker: " + programTime);
+        
+        out.println("");
+        List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        long gcTime = 0;
+        int gcCount = 0;
+        for (GarbageCollectorMXBean gcBean : gcBeans) {
+          gcTime += gcBean.getCollectionTime();
+          gcCount += gcBean.getCollectionCount();
+        }
+        out.println("Time for Garbage Collector:" + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+        try {
+          memStats.join(); // thread should have terminated already,
+                           // but wait for it to ensure memory visibility
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        if (memStats.count > 0) {
+          out.println("Heap memory usage:         " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
+          out.println("Non-Heap memory usage:     " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+        }
+          
         out.println("");
         out.print("Error location(s) reached? ");
         switch (result) {
@@ -150,8 +210,8 @@ class MainCPAStatistics implements Statistics {
         }
         out.flush();
     }
-
-    private String toTime(long timeMillis) {
-        return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    
+    private static String formatMem(long mem) {
+      return String.format("%,9dMB", mem >> 20);
     }
 }

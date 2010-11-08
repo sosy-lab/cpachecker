@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.EqualityPartialOrder;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -45,14 +45,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
 
@@ -107,42 +104,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(ControlAutomatonCPA.this);
 
 
-  private final AutomatonDomain automatonDomain = new AutomatonDomain();
-  private final PartialOrder partialOrder = new EqualityPartialOrder(automatonDomain);
-  private final StopOperator stopOperator = new StopSepOperator(partialOrder);
-  private final JoinOperator joinOperator = new JoinOperator() {
-    @Override
-    public AbstractElement join(AbstractElement pElement1,
-                                AbstractElement pElement2) throws CPAException {
-      if (pElement1 == pElement2) {
-        return pElement1;
-      } else {
-        return topState;
-      }
-    }
-  };
-
-  private class AutomatonDomain implements AbstractDomain {
-    @Override
-    public AbstractElement getTopElement() {
-      return topState;
-    }
-
-    @Override
-    public PartialOrder getPartialOrder() {
-      return partialOrder;
-    }
-
-    @Override
-    public JoinOperator getJoinOperator() {
-      return joinOperator;
-    }
-
-    @Override
-    public AbstractElement getBottomElement() {
-      return bottomState;
-    }
-  };
+  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
+  private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
 
   private ControlAutomatonCPA(Automaton automaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
@@ -150,7 +113,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new AutomatonTransferRelation(automaton, logger);
 
-    if (export) {
+    if (export && exportFile != null) {
       try {
         this.automaton.writeDotFile(new PrintStream(exportFile));
       } catch (FileNotFoundException e) {

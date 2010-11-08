@@ -219,7 +219,7 @@ public class LogManager {
     setupHandler(consoleOutputHandler, new ConsoleLogFormatter(), logConsoleLevel, excludeLevelsConsoleStr);
 
     // create file logger
-    if (logFileLevel != Level.OFF) {
+    if (logFileLevel != Level.OFF && outputFile != null) {
       try {
         Files.createParentDirs(outputFile);
 

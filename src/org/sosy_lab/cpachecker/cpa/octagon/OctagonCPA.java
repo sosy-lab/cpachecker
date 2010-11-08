@@ -73,7 +73,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
       octagonMergeOp = new OctMergeJoin ();
     }
 
-    StopOperator octagonStopOp = new StopSepOperator(octagonDomain.getPartialOrder());
+    StopOperator octagonStopOp = new StopSepOperator(octagonDomain);
 
     this.abstractDomain = octagonDomain;
     this.mergeOperator = octagonMergeOp;

@@ -28,8 +28,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 
 
 /**
@@ -185,12 +186,12 @@ public interface SymbolicFormulaManager {
      * @return a copy of f in which every "generic" variable is replaced by the
      * corresponding "SSA instance"
      */
-    public SymbolicFormula instantiate(SymbolicFormula f, ReadableSSAMap ssa);
+    public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa);
 
     /**
      * @see #instantiate(SymbolicFormula, SSAMap)
      */
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, ReadableSSAMap ssa);
+    public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
     
     /**
      * Given an "instantiated" formula, returns the corresponding formula in

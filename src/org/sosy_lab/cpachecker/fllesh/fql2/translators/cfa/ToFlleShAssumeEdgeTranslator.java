@@ -14,17 +14,17 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.fql2.translators.c.PredicateTranslator;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.util.predicates.translators.c.PredicateTranslator;
 
 public class ToFlleShAssumeEdgeTranslator {
 
   private static Map<String, IASTExpression> mExpressionCache = new HashMap<String, IASTExpression>();
   
-  public static FlleShAssumeEdge translate(CFANode pNode, ECPPredicate pPredicate) {
+  public static AssumeEdge translate(CFANode pNode, ECPPredicate pPredicate) {
     String lPredicateFunction = PredicateTranslator.translate(pPredicate.getPredicate());
 
     IASTExpression lPredicateExpression;
@@ -48,7 +48,7 @@ public class ToFlleShAssumeEdgeTranslator {
       mExpressionCache.put(lPredicateFunction, lPredicateExpression);
     }
     
-    return new FlleShAssumeEdge(pNode, lPredicateExpression);
+    return new AssumeEdge(lPredicateExpression.getRawSignature(), pNode.getLineNumber(), pNode, pNode, lPredicateExpression, true);
   }
   
   private static void checkForASTProblems(IASTNode pAST) {

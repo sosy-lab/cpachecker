@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,19 +45,16 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.csi.CSIsatInterpolatingProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.YicesTheoremProver;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -92,13 +84,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option
   private boolean symbolicCoverageCheck = false; 
 
-  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
-  private File predicatesFile = null;
-  
-  @Option(name="interpolation.changesolverontimeout")
-  private boolean changeItpSolveOTF = false;
-  
-  
   private final Configuration config;
   private final LogManager logger;
 
@@ -123,14 +108,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     mAbstractionElementFactory = new AbstractionElement.Factory();
     
 
-    abstractFormulaManager = new BDDAbstractFormulaManager(config);
+    abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager);
-    } else if (whichProver.equals("YICES")) {
-      thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -139,14 +122,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
       itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
-      if(changeItpSolveOTF){
-        alternativeItpProver =  new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
-      }
-    } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
-      if(changeItpSolveOTF){
-        alternativeItpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
-      }
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -154,19 +129,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
-    stop = new StopSepOperator(domain.getPartialOrder());
+    stop = new StopSepOperator(domain);
     
     Set<Predicate> predicates = null;
-    if (predicatesFile != null) {
-      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
-      try {
-        InputStream file = new FileInputStream(predicatesFile);
-        predicates = p.parsePredicates(file);
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
-      }
-    }
     initialPrecision = new SymbPredAbsPrecision(predicates);
 
     stats = new SymbPredAbsCPAStatistics(this);
@@ -223,7 +188,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       PathFormula pf = formulaManager.makeEmptyPathFormula();
       AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
       //lInitialElement = new AbstractionElement(node, initAbstraction, pf);
-      lInitialElement = mAbstractionElementFactory.createInitialElement(node, initAbstraction, pf);
+      lInitialElement = mAbstractionElementFactory.createInitialElement(initAbstraction, pf);
       
       mInitialElementsCache.put(node, lInitialElement);
     }

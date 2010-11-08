@@ -46,13 +46,9 @@ import java.util.logging.Level;
   	  logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
   	  return null;
   	}
-  	String rootPrefix = null;
-  	if (config != null && config.getRootDirectory() != null) {
-  	  rootPrefix = config.getRootDirectory();
-  	}
   	File file = new File(fileName);
-  	if (rootPrefix != null && !file.isAbsolute()) {
-      file = new File(rootPrefix, file.getPath());    
+  	if (!file.isAbsolute()) {
+      file = new File(config.getRootDirectory(), file.getPath());    
     }
   	
   	Files.checkReadableFile(file);

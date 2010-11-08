@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Intersection;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Complement;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Predication;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Term;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Variable;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Constant;
+import org.sosy_lab.cpachecker.util.predicates.Term;
+import org.sosy_lab.cpachecker.util.predicates.Variable;
+import org.sosy_lab.cpachecker.util.predicates.Constant;
 import java.io.Reader;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -388,7 +388,7 @@ import java.io.StringReader;
             {
               Object RESULT =null;
 		
-							RESULT = Predicate.Comparison.NOT_EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.NOT_EQUAL;
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Comparison",11, RESULT);
             }
@@ -399,7 +399,7 @@ import java.io.StringReader;
             {
               Object RESULT =null;
 		
-							RESULT = Predicate.Comparison.LESS;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.LESS;
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Comparison",11, RESULT);
             }
@@ -410,7 +410,7 @@ import java.io.StringReader;
             {
               Object RESULT =null;
 		
-							RESULT = Predicate.Comparison.LESS_OR_EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.LESS_OR_EQUAL;
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Comparison",11, RESULT);
             }
@@ -421,7 +421,7 @@ import java.io.StringReader;
             {
               Object RESULT =null;
 		
-							RESULT = Predicate.Comparison.EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.EQUAL;
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Comparison",11, RESULT);
             }
@@ -432,7 +432,7 @@ import java.io.StringReader;
             {
               Object RESULT =null;
 		
-							RESULT = Predicate.Comparison.GREATER;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.GREATER;
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Comparison",11, RESULT);
             }
@@ -443,7 +443,7 @@ import java.io.StringReader;
             {
               Object RESULT =null;
 		
-							RESULT = Predicate.Comparison.GREATER_OR_EQUAL;
+							RESULT = org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.GREATER_OR_EQUAL;
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Comparison",11, RESULT);
             }
@@ -486,10 +486,10 @@ import java.io.StringReader;
 							assert(rightterm != null);
 
 							assert(leftterm instanceof Term);
-							assert(comparison instanceof Predicate.Comparison);
+							assert(comparison instanceof org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison);
 							assert(rightterm instanceof Term);
 
-							RESULT = new Predicate((Term)leftterm, (Predicate.Comparison)comparison, (Term)rightterm);
+							RESULT = new Predicate(new org.sosy_lab.cpachecker.util.predicates.Predicate((Term)leftterm, (org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison)comparison, (Term)rightterm));
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("Predicate",9, RESULT);
             }

@@ -70,10 +70,10 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     if (mergeType.equals("SEP")){
       explicitAnalysisMergeOp = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")){
-      explicitAnalysisMergeOp = new MergeJoinOperator(explicitAnalysisDomain.getJoinOperator());
+      explicitAnalysisMergeOp = new MergeJoinOperator(explicitAnalysisDomain);
     }
 
-    StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain.getPartialOrder());
+    StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain);
 
     TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation(config);
 

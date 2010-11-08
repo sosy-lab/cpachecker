@@ -24,23 +24,34 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Set;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.FlleSh;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.Cilly;
+import org.sosy_lab.cpachecker.util.ecp.ECPPrettyPrinter;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
-import org.sosy_lab.cpachecker.fllesh.util.Cilly;
-import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class PathPatternTranslatorTest {
+
+  private Cilly lCilly;
+  
+  @Before
+  public void setup() throws InvalidConfigurationException {
+    Configuration config = new Configuration(Collections.<String,String>emptyMap());
+    LogManager logger = new LogManager(config);
+    lCilly = new Cilly(logger);
+  }
 
   @Test
   public void testMain001() throws Exception {
@@ -48,9 +59,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -63,13 +71,13 @@ public class PathPatternTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -90,9 +98,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING EDGES(PRED(@CALL(f), {x < 7}))*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -105,14 +110,14 @@ public class PathPatternTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
@@ -132,9 +137,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING NODES(PRED(@CALL(f), {x < 7}))*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -147,14 +149,14 @@ public class PathPatternTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
@@ -174,9 +176,6 @@ public class PathPatternTranslatorTest {
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING PATHS(ID, 1)*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
-    
-    /** process source code */
-    Cilly lCilly = new Cilly();
 
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
@@ -189,14 +188,14 @@ public class PathPatternTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, "main");
+    String lEntryFunction = "main";
+    
+    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);

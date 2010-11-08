@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,7 +53,6 @@ import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IBinding;
@@ -73,8 +73,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -97,15 +95,22 @@ public class CtoFormulaConverter {
 
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
+  
+  @Option
+  private boolean addBranchingInformation = true;
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
   
+  @Option(name="nondetFunctions")
+  private String[] nondetFunctionsArray = {"int_nondet", "malloc", "nondet_int", "random"};
+  private final Set<String> nondetFunctions;
+  
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("printf", "puts");
+      = ImmutableSet.of("__assert_fail", "printf", "puts");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -131,6 +136,7 @@ public class CtoFormulaConverter {
   public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
+    nondetFunctions = new HashSet<String>(Arrays.asList(nondetFunctionsArray));
     this.smgr = smgr;
     this.logger = logger;
   }
@@ -151,7 +157,7 @@ public class CtoFormulaConverter {
   }
 
   // looks up the variable in the current namespace
-  private String scoped(String var, String function) {
+  protected String scoped(String var, String function) {
     if (globalVars.contains(var)) {
       return var;
     } else {
@@ -303,31 +309,10 @@ public class CtoFormulaConverter {
       }
       break;
     }
-
-    case MultiStatementEdge: {
-      MultiStatementEdge ms = (MultiStatementEdge)edge;
-      edgeFormula = smgr.makeTrue();
-      for (IASTExpression e : ms.getExpressions()) {
-        edgeFormula = smgr.makeAnd(edgeFormula,
-          edgeFormula = makeStatement(e, function, ssa));
-      }
-      
-      break;
-    }
     
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
       edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), d.isGlobal(), edge, function, ssa);
-      break;
-    }
-
-    case MultiDeclarationEdge: {
-      MultiDeclarationEdge md = (MultiDeclarationEdge)edge;
-      edgeFormula = smgr.makeTrue();
-      for (IASTSimpleDeclaration d : md.getDeclarators()) {
-        edgeFormula = smgr.makeAnd(edgeFormula,
-            makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), md.isGlobal(), edge, function, ssa));
-      }
       break;
     }
     
@@ -610,18 +595,23 @@ public class CtoFormulaConverter {
     SymbolicFormula edgeFormula = makePredicate(assume.getExpression(),
         assume.getTruthAssumption(), function, ssa);
     
-    // add a unique predicate for each branching decision
-    String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
-
-    SymbolicFormula predFormula = smgr.makePredicateVariable(var, branchingIdx);
-    if (assume.getTruthAssumption() == false) {
-      predFormula = smgr.makeNot(predFormula);
+    SymbolicFormula branchingInformation;
+    if (addBranchingInformation) {
+      // add a unique predicate for each branching decision
+      String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
+  
+      SymbolicFormula predFormula = smgr.makePredicateVariable(var, branchingIdx);
+      if (assume.getTruthAssumption() == false) {
+        predFormula = smgr.makeNot(predFormula);
+      }
+      
+      branchingInformation = smgr.makeEquivalence(edgeFormula, predFormula);
+      branchingInformation = smgr.makeAnd(branchingInformation, predFormula);
+    } else {
+      branchingInformation = smgr.makeTrue();
     }
-    
-    SymbolicFormula equivalence = smgr.makeEquivalence(edgeFormula, predFormula);
-    equivalence = smgr.makeAnd(equivalence, predFormula);
-    
-    return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, equivalence);
+
+    return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, branchingInformation);
   }
 
   private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)
@@ -636,19 +626,20 @@ public class CtoFormulaConverter {
       String num = lexp.getRawSignature();
       switch (lexp.getKind()) {
       case IASTLiteralExpression.lk_integer_constant:
+        // this might have some modifiers attached (e.g. 0UL), we
+        // have to get rid of them
+        int pos = num.length()-1;
+        while (!Character.isDigit(num.charAt(pos))) {
+          --pos;
+        }
+        num = num.substring(0, pos+1);
         if (num.startsWith("0x")) {
           // this should be in hex format
+          // remove "0x" from the string
+          num = num.substring(2);
           // we use Long instead of Integer to avoid getting negative
           // numbers (e.g. for 0xffffff we would get -1)
           num = Long.valueOf(num, 16).toString();
-        } else {
-          // this might have some modifiers attached (e.g. 0UL), we
-          // have to get rid of them
-          int pos = num.length()-1;
-          while (!Character.isDigit(num.charAt(pos))) {
-            --pos;
-          }
-          num = num.substring(0, pos+1);
         }
         
         // TODO here we assume 32 bit integers!!! This is because CIL
@@ -1031,23 +1022,38 @@ public class CtoFormulaConverter {
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
+    IASTExpression pexp = fexp.getParameterExpression();
     String func;
     if (fn instanceof IASTIdExpression) {
       func = ((IASTIdExpression)fn).getName().getRawSignature();
-      if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
-        log(Level.INFO, "Assuming external function to be a pure function", fn);
+      if (nondetFunctions.contains(func)) {
+        // function call like "random()"
+        // ignore parameters and just create a fresh variable for it  
+        globalVars.add(func);
+        int idx = makeLvalIndex(func, ssa);
+        return smgr.makeVariable(func, idx);
+        
+      } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
+        if (pexp == null) {
+          // function of arity 0
+          log(Level.INFO, "Assuming external function to be a constant function", fn);
+        } else {
+          log(Level.INFO, "Assuming external function to be a pure function", fn);
+        }
       }
     } else {
       log(Level.WARNING, "Ignoring function call through function pointer", fexp);
       func = "<func>{" + fn.getRawSignature() + "}";
     }
 
-    IASTExpression pexp = fexp.getParameterExpression();
     if (pexp == null) {
       // this is a function of arity 0. We create a fresh global variable
       // for it (instantiated at 1 because we need an index but it never
       // increases)
+      // TODO better use variables without index (this piece of code prevents
+      // SSAMapBuilder from checking for strict monotony)
       globalVars.add(func);
+      ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
       return smgr.makeVariable(func, 1);
     } else {
       IASTExpression[] args;
@@ -1135,5 +1141,9 @@ public class CtoFormulaConverter {
       result = smgr.makeNot(result);
     }
     return result;
+  }
+  
+  protected void addToGlobalVars(String pVar){
+    globalVars.add(pVar);
   }
 }

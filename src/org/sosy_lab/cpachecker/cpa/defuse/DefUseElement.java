@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -33,60 +32,36 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
 
-public class DefUseElement implements AbstractElement
+import com.google.common.collect.ImmutableSet;
+
+public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition>
 {
-    private List<DefUseDefinition> definitions;
+    private final Set<DefUseDefinition> definitions;
 
-    public DefUseElement (List<DefUseDefinition> definitions)
+    public DefUseElement (Set<DefUseDefinition> definitions)
     {
-        this.definitions = definitions;
-
-        if (this.definitions == null)
-            this.definitions = new ArrayList<DefUseDefinition> ();
+      this.definitions = ImmutableSet.copyOf(definitions);
+    }
+    
+    public DefUseElement(DefUseElement definitions, DefUseDefinition newDefinition) {
+      ImmutableSet.Builder<DefUseDefinition> builder = ImmutableSet.builder();
+      builder.add(newDefinition);
+      for(DefUseDefinition def : definitions.definitions) {
+        if (!def.getVariableName().equals(newDefinition.getVariableName())) {
+          builder.add(def);
+        }
+      }
+      this.definitions = builder.build();
     }
 
     @Override
-    public DefUseElement clone ()
-    {
-        DefUseElement newElement = new DefUseElement (null);
-        for (DefUseDefinition def : definitions)
-            newElement.definitions.add (def);
-
-        return newElement;
-    }
-
-    public int getNumDefinitions ()
-    {
-        return definitions.size ();
-    }
-
-    public Iterator<DefUseDefinition> getIterator ()
+    public Iterator<DefUseDefinition> iterator()
     {
         return definitions.iterator ();
     }
-
-    public DefUseDefinition getDefinition (int index)
-    {
-        return definitions.get (index);
-    }
-
-    public boolean containsDefinition (DefUseDefinition def)
-    {
-        return definitions.contains (def);
-    }
-
-    public void update (DefUseDefinition def)
-    {
-    	System.out.println("Update: " + def.getVariableName() + " + "+ def.getAssigningEdge().getPredecessor().getNodeNumber());
-        String testVarName = def.getVariableName ();
-        for (int defIdx = definitions.size () - 1; defIdx >= 0; defIdx--)
-        {
-            DefUseDefinition otherDef = definitions.get (defIdx);
-            if (otherDef.getVariableName ().equals (testVarName))
-                definitions.remove (defIdx);
-        }
-
-        definitions.add (def);
+    
+    public boolean containsAllOf(DefUseElement other) {
+      return definitions.containsAll(other.definitions);
     }
 
     @Override
@@ -99,16 +74,12 @@ public class DefUseElement implements AbstractElement
             return false;
 
         DefUseElement otherDefUse = (DefUseElement) other;
-        if (otherDefUse.definitions.size () != this.definitions.size ())
-            return false;
-
-        for (DefUseDefinition def : definitions)
-        {
-            if (!otherDefUse.definitions.contains (def))
-                return false;
-        }
-
-        return true;
+        return otherDefUse.definitions.equals(this.definitions);
+    }
+    
+    @Override
+    public int hashCode() {
+      return definitions.hashCode();
     }
 
     @Override

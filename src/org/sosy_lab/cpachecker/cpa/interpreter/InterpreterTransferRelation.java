@@ -61,10 +61,9 @@ import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
-import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 
 public class InterpreterTransferRelation implements TransferRelation {
@@ -188,12 +187,10 @@ public class InterpreterTransferRelation implements TransferRelation {
         throw new RuntimeException();
       }
       
-      if (!InterpreterBottomElement.INSTANCE.equals(successor)) {
-        InterpreterElement lSuccessor = (InterpreterElement)successor;
-        
-        if (lSuccessor.getInputIndex() != explicitElement.getInputIndex()) {
-          throw new RuntimeException();
-        }
+      InterpreterElement lSuccessor = (InterpreterElement)successor;
+      
+      if (lSuccessor.getInputIndex() != explicitElement.getInputIndex()) {
+        throw new RuntimeException();
       }
       
       break;
@@ -746,28 +743,11 @@ public class InterpreterTransferRelation implements TransferRelation {
         // a == b
         if(opType == IASTBinaryExpression.op_equals)
         {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                !newElement.contains(getvarName(rightVarName, functionName))){
-              newElement.assignConstant(getvarName(rightVarName, functionName),
-                  newElement.getValueFor(getvarName(leftVarName, functionName)));
-              
-              throw new RuntimeException();
-            }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                !newElement.contains(getvarName(leftVarName, functionName))){
-              newElement.assignConstant(getvarName(leftVarName, functionName),
-                  newElement.getValueFor(getvarName(rightVarName, functionName)));
-              
-              throw new RuntimeException();
-            }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
-                newElement.getValueFor(getvarName(leftVarName, functionName))) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
+              newElement.getValueFor(getvarName(leftVarName, functionName))) {
                 
-                return InterpreterBottomElement.INSTANCE;
-              }
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else{
@@ -781,22 +761,15 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a != b
-        else if(opType == IASTBinaryExpression.op_notequals)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
-                newElement.getValueFor(getvarName(leftVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_notequals) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
+              newElement.getValueFor(getvarName(leftVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
+          else {
             AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue); 
             
             if (lSuccessor == null) {
@@ -807,19 +780,12 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a > b
-        else if(opType == IASTBinaryExpression.op_greaterThan)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
-                newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_greaterThan) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else {
@@ -833,19 +799,12 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a >= b
-        else if(opType == IASTBinaryExpression.op_greaterEqual)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
-                  newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_greaterEqual) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else {
@@ -859,22 +818,15 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a < b
-        else if(opType == IASTBinaryExpression.op_lessThan)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
-                newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_lessThan) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
+          else {
             AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue); 
             
             if (lSuccessor == null) {
@@ -885,22 +837,15 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a <= b
-        else if(opType == IASTBinaryExpression.op_lessEqual)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
-              newElement.getValueFor(getvarName(rightVarName, functionName))){
-                throw new RuntimeException();
-                //return null;
-              }
-            }
-            else{
-
+        else if(opType == IASTBinaryExpression.op_lessEqual) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
+                
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
+          else {
             AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
             
             if (lSuccessor == null) {
@@ -1921,7 +1866,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     AbstractElement lResultElement = pElement;
     
     for (ECPPredicate lPredicate : pAutomatonElement) {
-      FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
         
       try {
         Collection<? extends AbstractElement> lResult = getAbstractSuccessors(lResultElement, pPrecision, lEdge);
@@ -1946,7 +1891,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
   
   public Collection<? extends AbstractElement> strengthen(CFANode pNode, InterpreterElement pElement, ConstrainedAssumeElement pAssumeElement, Precision pPrecision) {
-    FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
+    AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
     
     try {
       Collection<? extends AbstractElement> lResult = getAbstractSuccessors(pElement, pPrecision, lEdge);

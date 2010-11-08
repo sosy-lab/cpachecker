@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
-import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
 
 public class OctMergeJoin implements MergeOperator{
 
@@ -62,11 +60,5 @@ public class OctMergeJoin implements MergeOperator{
 //  System.out.println();
     return ret;
     //}
-  }
-
-  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                           AbstractElementWithLocation pElement2,
-                                           Precision prec) throws CPAException {
-    throw new CPAException ("Cannot return element with location information");
   }
 }

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -83,18 +84,16 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
-    }
-    if(mergeType.equals("join")) {
-      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
+    } else if(mergeType.equals("join")) {
+      mergeOp = new MergeJoinOperator(domain);
     }
 
     StopOperator stopOp = null;
 
     if(stopType.equals("sep")) {
-      stopOp = new StopSepOperator(domain.getPartialOrder());
-    }
-    if(stopType.equals("join")){
-      stopOp = new UninitializedVariablesStopJoin(domain);
+      stopOp = new StopSepOperator(domain);
+    } else if(stopType.equals("join")){
+      stopOp = new StopJoinOperator(domain);
     }
 
     this.abstractDomain = domain;

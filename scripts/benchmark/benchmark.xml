@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cbmc">
+  <test>
+    <sourcefiles>ntdrivers-simplified/cdaudio*.cil.c</sourcefiles>
+    <sourcefiles>ntdrivers-simplified/floppy*.cil.c</sourcefiles>
+    <sourcefiles>ntdrivers-simplified/kbfiltr*.cil.c</sourcefiles>
+    <options>
+      <option name="--32"/>
+      <option name="--error-label">ERROR</option>
+      <option name="--xml-ui"/>
+    </options>
+  </test>
+  <test>
+    <sourcefiles>ntdrivers-simplified/diskperf_simpl1.cil.c</sourcefiles>
+    <sourcefiles>locks/*.c</sourcefiles>
+    <options>
+      <option name="--32"/>
+      <option name="--unwind">1</option>
+      <option name="--no-unwinding-assertions"/>
+      <option name="--error-label">ERROR</option>
+      <option name="--xml-ui"/>
+    </options>
+  </test>
+  <test>
+    <sourcefiles>ssh-simplified/*.*.c</sourcefiles>
+    <options>
+      <option name="--32"/>
+      <option name="--unwind">10</option>
+      <option name="--no-unwinding-assertions"/>
+      <option name="--error-label">ERROR</option>
+      <option name="--xml-ui"/>
+    </options>
+  </test>
+</benchmark>

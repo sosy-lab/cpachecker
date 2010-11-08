@@ -23,63 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 
-/**
- * @author g.theoduloz
- */
 public class AssumptionCollectorDomain implements AbstractDomain {
 
-  private final AbstractElement top;
-  private final AbstractElement bottom;
+  @Override
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
 
-  public AssumptionCollectorDomain(AbstractDomain wrappedDomain) {
-    top = new AssumptionCollectorElement(wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE, false);
-    bottom = new AssumptionCollectorElement(wrappedDomain.getBottomElement(), AssumptionWithLocation.TRUE, true);
+    AssumptionCollectorElement collectorElement1= (AssumptionCollectorElement)pElement1;
+    AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)pElement2;
+
+    return new AssumptionCollectorElement(
+        AssumptionWithLocation.and(collectorElement1.getCollectedAssumptions(),
+                                   collectorElement2.getCollectedAssumptions()),
+        (collectorElement1.isStop() || collectorElement2.isStop()));
   }
 
   @Override
-  public AbstractElement getBottomElement() {
-    return bottom;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+    throw new UnsupportedOperationException();
   }
-
-  @Override
-  public JoinOperator getJoinOperator() {
-    return new JoinOperator() {
-      @Override
-      public AbstractElement join(AbstractElement el1, AbstractElement el2)
-        throws CPAException
-      {
-        if (el1 == el2)
-          return el1;
-        else
-          return top;
-      }
-    };
-  }
-
-  @Override
-  public PartialOrder getPartialOrder() {
-    return new PartialOrder() {
-      @Override
-      public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
-        throws CPAException
-      {
-        return (el1.equals(el2))
-          || (top.equals(el2))
-          || (bottom.equals(el1));
-      }
-    };
-  }
-
-  @Override
-  public AbstractElement getTopElement() {
-    return top;
-  }
-
 }

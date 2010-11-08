@@ -8,13 +8,13 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPNodeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPRepetition;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPUnion;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPNodeSet;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.ecp.ECPRepetition;
+import org.sosy_lab.cpachecker.util.ecp.ECPUnion;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.FilterEvaluator;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
@@ -134,10 +134,10 @@ public class PathPatternTranslator {
       throw new IllegalArgumentException();
     }
     
-    ElementaryCoveragePattern lPredicatePattern = new ECPPredicate(pPredicates.get(0));
+    ElementaryCoveragePattern lPredicatePattern = new ECPPredicate(pPredicates.get(0).getPredicate());
     
     for (int lIndex = 1; lIndex < pPredicates.size(); lIndex++) {
-      lPredicatePattern = new ECPConcatenation(new ECPPredicate(pPredicates.get(lIndex)), lPredicatePattern);
+      lPredicatePattern = new ECPConcatenation(new ECPPredicate(pPredicates.get(lIndex).getPredicate()), lPredicatePattern);
     }
     
     return lPredicatePattern;
@@ -322,7 +322,7 @@ public class PathPatternTranslator {
       ElementaryCoveragePattern lPattern = mResultCache.get(pPredicate);
       
       if (lPattern == null) {
-        lPattern = new ECPPredicate(pPredicate);
+        lPattern = new ECPPredicate(pPredicate.getPredicate());
         
         mResultCache.put(pPredicate, lPattern);
         mCacheMisses++;

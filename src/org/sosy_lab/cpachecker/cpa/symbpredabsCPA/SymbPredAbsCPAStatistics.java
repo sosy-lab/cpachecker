@@ -46,11 +46,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs.predmap")
-public class SymbPredAbsCPAStatistics implements Statistics {
+class SymbPredAbsCPAStatistics implements Statistics {
 
     @Option
     private boolean export = true;
@@ -59,10 +60,16 @@ public class SymbPredAbsCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final SymbPredAbsCPA cpa;
+    private SymbPredAbsRefiner refiner = null;
 
-    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa) throws InvalidConfigurationException {
+    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsAbstractDomain pDomain) throws InvalidConfigurationException {
       this.cpa = cpa;
       cpa.getConfiguration().inject(this);
+    }
+    
+    void addRefiner(SymbPredAbsRefiner ref) {
+      Preconditions.checkState(refiner == null);
+      refiner = ref;
     }
 
     @Override
@@ -86,7 +93,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       }
 
       // check if/where to dump the predicate map
-      if (result == Result.SAFE && export) {
+      if (result == Result.SAFE && export && file != null) {
         TreeMap<CFANode, Collection<Predicate>> sortedPredicates
               = new TreeMap<CFANode, Collection<Predicate>>(predicates.asMap());
         StringBuilder sb = new StringBuilder();
@@ -118,70 +125,76 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       int allDistinctPreds = (new HashSet<Predicate>(predicates.values())).size();
 
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
+      SymbPredAbsAbstractDomain domain = cpa.getAbstractDomain();
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
-      SymbPredAbsAbstractDomain d = cpa.getAbstractDomain();
+      SymbPredAbsPrecisionAdjustment prec = cpa.getPrecisionAdjustment();
 
-      out.println("Number of abstractions:            " + trans.numAbstractions + " (" + toPercent(trans.numAbstractions, trans.numPosts) + " of all post computations)");
-      if (trans.numAbstractions > 0) {
-        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, trans.numAbstractions) + ")");
-        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, trans.numAbstractions) + ")");
-        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, trans.numAbstractions) + ")");
-        out.println("  Times result was 'false':        " + trans.numAbstractionsFalse + " (" + toPercent(trans.numAbstractionsFalse, trans.numAbstractions) + ")");
+      out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
+      if (prec.numAbstractions > 0) {
+        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
+        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, prec.numAbstractions) + ")");
+        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, prec.numAbstractions) + ")");
+        out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
       }
-      if (trans.numSatChecks > 0) {
-        out.println("Number of satisfiability checks:   " + trans.numSatChecks);
-        out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.numSatChecks) + ")");
+      if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());
+        out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.satCheckTimer.getNumberOfIntervals()) + ")");
       }
-      out.println("Number of strengthen sat checks:   " + trans.numStrengthenChecks);
-      if (trans.numStrengthenChecks > 0) {
-        out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
+      out.println("Number of strengthen sat checks:   " + trans.strengthenCheckTimer.getNumberOfIntervals());
+      if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.strengthenCheckTimer.getNumberOfIntervals()) + ")");
       }
-      out.println("Number of coverage checks:         " + d.numCoverageCheck);
-      out.println("  BDD entailment checks:           " + d.numBddCoverageCheck);
-      out.println("  Symbolic coverage check:         " + d.numSymbolicCoverageCheck);
+      out.println("Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
+      out.println("  BDD entailment checks:           " + domain.bddCoverageCheckTimer.getNumberOfIntervals());
+      out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
       out.println();
-      out.println("Max ABE block size:                       " + trans.maxBlockSize);
+      out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
       out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
-      out.println("Max number of predicates per abstraction: " + trans.maxPredsPerAbstraction);
+      out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
       out.println("Total number of models for allsat:        " + bs.allSatCount);
       out.println("Max number of models for allsat:          " + bs.maxAllSatCount);
       if (bs.numCallsAbstraction > 0) {
         out.println("Avg number of models for allsat:          " + bs.allSatCount / bs.numCallsAbstraction);
       }
       out.println();
-      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.numPosts) + ")");
+      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.postTimer.getNumberOfIntervals()) + ")");
       if (bs.numCallsAbstraction > 0) {
         out.println("Number of abstraction cache hits:    " + bs.numCallsAbstractionCached + " (" + toPercent(bs.numCallsAbstractionCached, bs.numCallsAbstraction) + ")");
       }
       out.println();
-      out.println("Time for post operator:              " + toTime(trans.postTime));
-      out.println("  Time for path formula creation:    " + toTime(trans.pathFormulaTime));
-      out.println("    Actual computation:              " + toTime(trans.pathFormulaComputationTime));
-      if (trans.numSatChecks > 0) {
-        out.println("  Time for satisfiability checks:    " + toTime(trans.satCheckTime));
+      out.println("Time for post operator:              " + trans.postTimer);
+      out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
+      out.println("    Actual computation:              " + trans.pathFormulaComputationTimer);
+      if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
       }
-      out.println("  Time for abstraction:              " + toTime(trans.computingAbstractionTime));
+      out.println("Time for strengthen operator:        " + trans.strengthenTimer);
+      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);        
+      out.println("Time for prec operator:             " + prec.totalPrecTime);
+      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ")");
       out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
       out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
-      out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
-      out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
       out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
-      out.println("Time for coverage check:             " + toTime(d.coverageCheckTime));
-      if (d.numBddCoverageCheck > 0) {
-        out.println("  Time for BDD entailment checks:    " + toTime(d.bddCoverageCheckTime));
+      out.println("Time for coverage check:             " + domain.coverageCheckTimer);
+      if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);
       }
-      if (d.numSymbolicCoverageCheck > 0) {
-        out.println("  Time for symbolic coverage checks: " + toTime(d.bddCoverageCheckTime));
+      if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for symbolic coverage checks: " + domain.bddCoverageCheckTimer);
       }
-      if (bs.numCallsCexAnalysis > 0) {
-        out.println("Time for counterexample analysis:    " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
-        out.println("  Solving time only:                 " + toTime(bs.cexAnalysisSolverTime) + " (Max: " + toTime(bs.cexAnalysisMaxSolverTime) + ")");
-        if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
-          out.println("  Cex.focusing:                " + toTime(bs.cexAnalysisGetUsefulBlocksTime) + " (Max: " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime) + ")");
+      if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
+        out.println("Time for refinement:                 " + refiner.totalRefinement);
+        out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ")");
+        if (bs.cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
+          out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
         }
+        out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ")");
+        out.println("  Precision update:                  " + refiner.precisionUpdate);
+        out.println("  ART update:                        " + refiner.artUpdate);
+        out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
     }
 

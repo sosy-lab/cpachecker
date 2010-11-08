@@ -48,12 +48,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class ProgressObserverTransferRelation implements TransferRelation {
 
   private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> heuristics;
-  private final ProgressObserverElement bottom;
   private final LogManager logger;
 
   public ProgressObserverTransferRelation(ProgressObserverCPA aCPA) {
     heuristics = aCPA.getEnabledHeuristics();
-    bottom = aCPA.getAbstractDomain().getBottomElement();
     logger = aCPA.getLogger();
   }
 
@@ -81,11 +79,8 @@ public class ProgressObserverTransferRelation implements TransferRelation {
       if (postD.isBottom()) {
         logger.log(Level.WARNING, "Giving up at edge", edge.toString(), "because of", h.getClass().getSimpleName());
         logger.log(Level.FINEST, "Observer element at the time was:", el.toString());
-        // 'squash' to bottom
-        return ImmutableList.<ProgressObserverElement>of(bottom);
-      } else {
-        postData.add(postD);
       }
+      postData.add(postD);
     }
     return Collections.singleton(new ProgressObserverElement(postData));
   }

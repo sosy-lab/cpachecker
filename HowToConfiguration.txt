@@ -75,6 +75,14 @@ specification = test/config/automata/ErrorLocationAutomaton.txt
 Valid configuration options and default values
 ----------------------------------------------
 
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = .
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
 # directory to put all output files in
 output.path = test/output/
 
@@ -113,12 +121,6 @@ analysis.programs =
 # C dialect for parser (GNUC or C99)
 parser.dialect = GNUC
 
-# combine series of simple statements in the CFA (currently not suppported)
-cfa.combineBlockStatements = false
-
-# remove all declarations from CFA
-cfa.removeDeclarations = false
-
 # don't create interprocedural call/return edges for external function calls
 analysis.noExternalCalls = true
 
@@ -134,6 +136,13 @@ cfa.removeIrrelevantForErrorLocations = false
 # export CFA as .dot file
 cfa.export = true
 cfa.file = cfa.dot
+
+# write some statistics to disk
+statistics.export = true
+statistics.file = Statistics.txt
+
+# track memory usage of JVM during runtime
+statistics.memory = true
 
 # entry function
 analysis.entryFunction = main
@@ -158,8 +167,19 @@ analysis.useCBMC = false
 # Which CPA to use?
 cpa = cpa.composite.CompositeCPA
 
-# which strategy to adopt for visiting states? dfs, bfs, or topsort
+# which strategy to adopt for visiting states? (DFS, BFS, RAND or TOPSORT)
 analysis.traversal = dfs
+
+# handle states with a deeper callstack first?
+# This needs the CallstackCPA to have any effect.
+analysis.traversal.useCallstack = false
+
+# Use an implementation of topsort strategy that allows to select
+# a secondary strategy that is used if there are two elements with
+# the same topsort id.
+# The secondary strategy is selected with "analysis.traversal" (see above).
+# The secondary strategy may not be TOPSORT.
+analysis.traversal.useTopsort = false
 
 # print reached set to text file
 reachedSet.export = true
@@ -195,6 +215,9 @@ ART.file = ART.dot
 # export error path to file, if one is found
 cpas.art.errorPath.export = true
 cpas.art.errorPath.file = ErrorPath.txt
+
+# which merge operator to use for DefUseCPA (join or sep)
+cpas.defuse.merge = sep
 
 # which merge operator to use for ExplicitAnalysisCPA (join or sep)
 cpas.explicit.merge = sep
@@ -243,6 +266,10 @@ cpas.symbpredabs.abstraction.initialPredicates =
 # cache queries to mathsat
 cpas.symbpredabs.mathsat.useCache = true
 
+# when transforming code to formula,
+# add predicates that help producing more precise error paths
+# (not necessary for SBE)
+cpas.symbpredabs.addBranchingInformation = true
 
 # initialize all variables to 0 when they are declared
 cpas.symbpredabs.initAllVars = false
@@ -251,6 +278,15 @@ cpas.symbpredabs.initAllVars = false
 # desirable. If the following property is set to a non-empty value, all
 # variables starting with this prefix will not be initialized automatically
 cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET
+
+# list of functions that should be considered as giving a non-deterministic
+# return value
+# Only predicate analysis honors this option.
+# If you specify this option, the default values are not added automatically
+# to the list, so you need to specify them explicitly if you need them.
+# Mentioning a function in this list has only an effect, if it is an
+# "external function", i.e., no source is given in the code for this function.
+cpas.symbpredabs.nondetFunctions = int_nondet, malloc, nondet_int, random
 
 # use uninterpreted functions for *, & and array access
 cpas.symbpredabs.mathsat.lvalsAsUif = false
@@ -309,6 +345,10 @@ cpas.symbpredabs.shortestCexTraceUseZigZag = false
 # whether to use Boolean (false) or Cartesian (true) abstraction
 cpas.symbpredabs.abstraction.cartesian = false
 
+# only use the atoms from the interpolants as predicates,
+# and not the whole interpolant
+cpas.symbpredabs.refinement.atomicPredicates = true
+
 # split arithmetic equalities when extracting predicates from interpolants
 cpas.symbpredabs.refinement.splitItpAtoms = false
 
@@ -337,7 +377,7 @@ cpas.symbpredabs.errorPath.file = ErrorPathAssignment.txt
 cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
 
 # dump all interpolation problems
-cpas.symbpredabs.dumpInterpolationProblems = false
+cpas.symbpredabs.refinement.dumpInterpolationProblems = false
 
 # where to dump interpolation and abstraction problems (format string)
 cpas.symbpredabs.formulaDumpFilePattern = %s%04d-%s%03d.msat

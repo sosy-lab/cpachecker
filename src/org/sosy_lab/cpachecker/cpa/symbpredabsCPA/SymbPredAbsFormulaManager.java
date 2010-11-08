@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
@@ -75,4 +78,8 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * Create predicates for all atoms in a formula.
      */
     List<Predicate> getAtomsAsPredicates(SymbolicFormula pF);
+
+    CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException;
+
+    void dumpCounterexampleToFile(CounterexampleTraceInfo pCex, File pFile);
 }

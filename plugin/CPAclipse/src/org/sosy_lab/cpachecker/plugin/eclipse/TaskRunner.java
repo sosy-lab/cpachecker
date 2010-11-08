@@ -20,8 +20,7 @@ import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.IConsoleView;
-import org.eclipse.ui.console.MessageConsole;
-import org.eclipse.ui.console.MessageConsoleStream;
+import org.eclipse.ui.console.IOConsole;
 import org.eclipse.ui.part.IPageBookViewPage;
 import org.eclipse.ui.progress.IProgressService;
 import org.sosy_lab.common.LogManager;
@@ -146,7 +145,7 @@ public class TaskRunner {
 	}*/
 
 	private static class TaskRun implements IRunnableWithProgress {
-		private MessageConsoleStream consoleStream;
+		private PrintStream consoleStream;
 		private LogManager logger;
 		private Task task;
 
@@ -159,7 +158,7 @@ public class TaskRunner {
 				public void run() {
 					ConsolePlugin plugin = ConsolePlugin.getDefault();
 					final IConsoleManager conMan = plugin.getConsoleManager();
-					final MessageConsole console = new MessageConsole(task.getName(), null) {
+					final IOConsole console = new IOConsole(task.getName(), null) {
 						@Override
 						public IPageBookViewPage createPage(IConsoleView view) {
 							IToolBarManager toolBarManager = view.getViewSite().getActionBars().getToolBarManager();
@@ -178,7 +177,7 @@ public class TaskRunner {
 					};
 					conMan.addConsoles(new IConsole[] { console });
 					//myConsole.activate();
-					consoleStream = console.newMessageStream();
+					consoleStream = new PrintStream(console.newOutputStream());
 				}
 			});
 		}
@@ -207,10 +206,10 @@ public class TaskRunner {
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
 					if (CPAclipse.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
-						results.printStatistics(new PrintStream(consoleStream, true));					
+						results.printStatistics(consoleStream);					
 					} else {
 						// cannot avoid this, because i have to generate the (log)- files
-						results.printStatistics(new PrintStream(consoleStream, true));
+						results.printStatistics(consoleStream);
 						switch (results.getResult()) {
 						case SAFE:
 							//color: green, doesnt work, threading issues
@@ -255,7 +254,7 @@ public class TaskRunner {
 				} catch (Exception e) {
 					if (consoleStream!= null) {
 						consoleStream.println("Evaluation of Task "+ task.getName() + " has thrown an exception");
-						e.printStackTrace(new PrintStream(consoleStream));
+						e.printStackTrace(consoleStream);
 						/*try {
 							consoleStream.close();
 						} catch (IOException e1) {

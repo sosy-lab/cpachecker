@@ -45,7 +45,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -53,8 +52,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -114,6 +111,9 @@ public class AbstractPathToCTranslator {
       ret = ret + lProgramString + "\n";
     }
 
+    // replace nondet keyword with cbmc nondet keyword
+    ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
+    ret = ret.replaceAll("__BLAST_NONDET", "nondet_int()");
     return ret;
   }
 
@@ -217,6 +217,10 @@ public class AbstractPathToCTranslator {
       if(sizeOfChildsParents == 1){
         CBMCStackElement lastStackElement = stack.peek().peek();
 
+        if (childElement.isTarget()) {
+          lastStackElement.write("assert(0); // target state ");
+        }
+        
         if(edge instanceof BlankEdge){
           lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
         }
@@ -237,17 +241,7 @@ public class AbstractPathToCTranslator {
           stack.push(newFunctionStack);
         }
         else if(edge instanceof ReturnEdge){
-          lastStackElement.write("}");
           stack.pop();
-        }
-        else if(edge.getSuccessor() instanceof CFAErrorNode){
-          lastStackElement.write("assert(0); // error location ");
-//        lastStackElement.write("}");
-
-          while(stack.size() > 0){
-            CBMCStackElement stackElem = stack.pop().firstElement();
-            stackElem.write("}");
-          }
         }
         else{
           lastStackElement.write(processSimpleEdge(edge));
@@ -379,11 +373,12 @@ public class AbstractPathToCTranslator {
         }
       }
     }
-
+    
+    
     List<StringBuffer> retList = new ArrayList<StringBuffer>();
 
     for(CBMCStackElement stackElem: functions){
-      retList.add(stackElem.getCode());
+      retList.add(stackElem.getCode().append("\n}"));
     }
 
     return retList;
@@ -411,7 +406,8 @@ public class AbstractPathToCTranslator {
         lAssumptionString = "!(" + lExpressionString + ")";
       }
 
-      return ("__CPROVER_assume(" + lAssumptionString + ");");
+      //return ("__CPROVER_assume(" + lAssumptionString + ");");
+      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
@@ -447,28 +443,6 @@ assert(lDeclarators.length == 1);
 lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
        */
       break;
-    }
-
-    case MultiStatementEdge: {
-      MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)pCFAEdge;
-
-      String ret = "";
-
-      for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
-        ret = ret + (lExpression.getRawSignature() + ";");
-      }
-
-      return ret;
-    }
-    case MultiDeclarationEdge: {
-      MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)pCFAEdge;
-
-      return (lMultiDeclarationEdge.getRawStatement());
-
-      /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
-      lMultiDeclarationEdge.getRawStatement()
-      for (IASTDeclarator[] lDeclarators : lDecls) {
-      }*/
     }
     case CallToReturnEdge: {
       //          this should not have been taken

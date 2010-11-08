@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -35,22 +35,22 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class MergeJoinOperator implements MergeOperator {
 
-  private final JoinOperator joinOperator;
+  private final AbstractDomain domain;
 
   /**
    * Creates a merge-join operator, based on the given join
    * operator
    */
-  public MergeJoinOperator(JoinOperator op)
+  public MergeJoinOperator(AbstractDomain d)
   {
-    joinOperator = op;
+    this.domain = d;
   }
 
   @Override
   public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
     throws CPAException
   {
-    return joinOperator.join(el1, el2);
+    return domain.join(el1, el2);
   }
 
 }

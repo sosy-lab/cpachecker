@@ -15,10 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -30,42 +33,41 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathCPA;
+import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
+import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonAcceptingElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.art.ARTStatistics;
-import org.sosy_lab.cpachecker.fllesh.cpa.assume.AssumeCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.cfapath.CFAPathStandardElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.fllesh.cpa.location.LocationElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonAcceptingElement;
-import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.cfa.Wrapper;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.NonabstractionElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.SymbPredAbsRefiner;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.InverseGuardedEdgeLabel;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
-import org.sosy_lab.cpachecker.fllesh.util.Automaton;
-import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
-import org.sosy_lab.cpachecker.fllesh.util.profiling.TimeAccumulator;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.CParser;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -74,8 +76,6 @@ import com.google.common.collect.Multimap;
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time 
  * measurements when invoking FlleSh several times in a unit test.
- * 
- * TODO Passing predicates from one reachability analysis to the next.
  * 
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
  * parts of the reached set?) This requires a change in the coverage check.
@@ -87,7 +87,6 @@ public class FlleSh {
   
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
-  private final ModifiedCPAchecker mCPAchecker;
   private final Wrapper mWrapper;
   private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private final ConfigurableProgramAnalysis mLocationCPA;
@@ -103,19 +102,38 @@ public class FlleSh {
   private final GuardedEdgeLabel mInverseAlphaLabel;
   private final Map<TestCase, CFAEdge[]> mGeneratedTestCases;
   
-  private final Map<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>> mInfeasibleGoals;
+  private final Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>> mInfeasibleGoals;
+  
+  public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+    // parse code file
+    IASTTranslationUnit lAst = null;
+    try {
+      lAst = CParser.parseFile(pSourceFileName, CParser.Dialect.GNUC);
+    } catch (Exception e) {
+      e.printStackTrace();
+      
+      throw new RuntimeException(e);
+    }
+
+    CFACreator lCFACreator = new CFACreator(pConfiguration, pLogManager);
+    lCFACreator.createCFA(lAst);
+
+    return lCFACreator.getFunctions();
+  }
   
   public FlleSh(String pSourceFileName, String pEntryFunction) {
-    mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
+    Map<String, CFAFunctionDefinitionNode> lCFAMap;
+    CFAFunctionDefinitionNode lMainFunction;
     
     try {
+      mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new LogManager(mConfiguration);
-      mCPAchecker = new ModifiedCPAchecker(mConfiguration, mLogManager);
+      
+      lCFAMap = FlleSh.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
-    CFAFunctionDefinitionNode lMainFunction = mCPAchecker.getMainFunction();
     
     /*
      * We have to instantiate mCoverageSpecificationTranslator before the wrapper
@@ -124,7 +142,7 @@ public class FlleSh {
      */
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
 
-    mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, mCPAchecker.getCFAMap(), mLogManager);
+    mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
     
     try {
       mWrapper.toDot("test/output/wrapper.dot");
@@ -141,7 +159,13 @@ public class FlleSh {
      * Initialize shared CPAs.
      */
     // location CPA
-    mLocationCPA = new LocationCPA();
+    try {
+      mLocationCPA = LocationCPA.factory().createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
     
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
@@ -181,7 +205,7 @@ public class FlleSh {
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
     
-    mInfeasibleGoals = new HashMap<Automaton<GuardedEdgeLabel>, Collection<Automaton.State>>();
+    mInfeasibleGoals = new HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>>();
   }
   
   public FlleShResult run(String pFQLSpecification) {
@@ -228,7 +252,7 @@ public class FlleSh {
     
     if (pFQLSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -255,7 +279,7 @@ public class FlleSh {
       throw new RuntimeException(e1);
     }
     ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
-    Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
     GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     
     while (lGoalIterator.hasNext()) {
@@ -266,7 +290,7 @@ public class FlleSh {
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
       
       boolean lIsCovered = false;
       
@@ -341,8 +365,6 @@ public class FlleSh {
   }
   
   public FlleShResult run_incremental(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
-    
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -368,7 +390,7 @@ public class FlleSh {
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lPassingClause != null) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -392,29 +414,6 @@ public class FlleSh {
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
-    
-    /*try {
-      int[] lAInputs = { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-      
-      PreciseInputsTestCase lATestCase = new PreciseInputsTestCase(lAInputs);
-        
-      FQLSpecification lTmpFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
-      
-      ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lTmpFQLSpecification.getPathPattern());
-      
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
-      
-      CFAEdge[] lAPath = reconstructPath(lATestCase, mWrapper.getEntry(), lIdStarCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
-      
-      mGeneratedTestCases.put(lATestCase, lAPath);
-      
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-      
-      throw new RuntimeException(e);
-    }*/
     
     int lRemovedByInfeasibilityPropagation = 0;
     
@@ -449,7 +448,7 @@ public class FlleSh {
             break;
           }
           else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<Automaton.State>());
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -519,7 +518,7 @@ public class FlleSh {
       }
       
       // TODO remove
-      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
+      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
       
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
       
@@ -592,7 +591,6 @@ public class FlleSh {
       }
     }
     
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
@@ -619,8 +617,6 @@ public class FlleSh {
   }
   
   public FlleShResult run2(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
-    
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -644,7 +640,7 @@ public class FlleSh {
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lTask.hasPassingClause()) {
-      Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
     }
     
@@ -682,7 +678,7 @@ public class FlleSh {
       int lCurrentGoalNumber = ++lIndex;
       System.out.println("Goal #" + lCurrentGoalNumber);
       
-      HashSet<Automaton.State> mReachedAutomatonStates = new HashSet<Automaton.State>();
+      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
       
       //System.out.println(lGoal.getAutomaton());
       
@@ -746,7 +742,6 @@ public class FlleSh {
       }
     }
     
-    System.out.println("#Location instances: " + LocationElement.NUMBER_OF_INSTANCES);
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
@@ -768,30 +763,21 @@ public class FlleSh {
      * the computational effort necessary to determine that there are no successors.
      */
     
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
-    
-    lCompoundCPAFactory.push(mCallStackCPA, true);
-    
-    if (pPassingCPA != null) {
-      lCompoundCPAFactory.push(pPassingCPA, true);
-    }
-    
-    lCompoundCPAFactory.push(pAutomatonCPA, true);
-    
-    lCompoundCPAFactory.push(mSymbPredAbsCPA);
-    lCompoundCPAFactory.push(mProductAutomatonCPA);
-    
-    lCompoundCPAFactory.push(mAssumeCPA);
-    
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
-    try {
-      lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
+    
+    lComponentAnalyses.add(mCallStackCPA);
+    
+    if (pPassingCPA != null) {
+      lComponentAnalyses.add(pPassingCPA);
     }
+    
+    lComponentAnalyses.add(pAutomatonCPA);
+    
+    lComponentAnalyses.add(mSymbPredAbsCPA);
+    lComponentAnalyses.add(mProductAutomatonCPA);
+    
+    lComponentAnalyses.add(mAssumeCPA);
 
     ARTCPA lARTCPA;
     try {
@@ -837,7 +823,7 @@ public class FlleSh {
 
     Statistics lARTStatistics;
     try {
-      lARTStatistics = new ARTStatistics(mConfiguration, mLogManager);
+      lARTStatistics = new ARTStatistics(mConfiguration, lARTCPA);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
@@ -848,7 +834,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
     
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -862,22 +848,22 @@ public class FlleSh {
     return lRefiner.getCounterexampleTraceInfo();
   }
   
-  private static ThreeValuedAnswer accepts(Automaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
-    Set<Automaton.State> lCurrentStates = new HashSet<Automaton.State>();
-    Set<Automaton.State> lNextStates = new HashSet<Automaton.State>();
+  private static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
     
     lCurrentStates.add(pAutomaton.getInitialState());
     
     boolean lHasPredicates = false;
     
     for (CFAEdge lCFAEdge : pCFAPath) {
-      for (Automaton.State lCurrentState : lCurrentStates) {
+      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
         // Automaton accepts as soon as it sees a final state (implicit self-loop)
         if (pAutomaton.getFinalStates().contains(lCurrentState)) {
           return ThreeValuedAnswer.ACCEPT;
         }
         
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
           GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
           
           if (lLabel.hasGuards()) {
@@ -893,12 +879,12 @@ public class FlleSh {
       
       lCurrentStates.clear();
       
-      Set<Automaton.State> lTmp = lCurrentStates;
+      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
       lCurrentStates = lNextStates;
       lNextStates = lTmp;
     }
     
-    for (Automaton.State lCurrentState : lCurrentStates) {
+    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
       // Automaton accepts as soon as it sees a final state (implicit self-loop)
       if (pAutomaton.getFinalStates().contains(lCurrentState)) {
         return ThreeValuedAnswer.ACCEPT;
@@ -956,32 +942,30 @@ public class FlleSh {
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
     
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
-      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+      lComponentAnalyses.add(pPassingAutomatonCPA);
     }
     
-    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    lComponentAnalyses.add(pCoverAutomatonCPA);
     
     // call stack CPA
-    lCompoundCPAFactory.push(mCallStackCPA, true);
+    lComponentAnalyses.add(mCallStackCPA);
     
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
-    lCompoundCPAFactory.push(lInterpreterCPA);
+    lComponentAnalyses.add(lInterpreterCPA);
     
     // product automaton CPA
-    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mProductAutomatonCPA);
     
     // assume CPA
-    lCompoundCPAFactory.push(mAssumeCPA);
+    lComponentAnalyses.add(mAssumeCPA);
     
-    
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-    lComponentAnalyses.add(mLocationCPA);
-    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
     
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
@@ -994,7 +978,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1003,53 +987,52 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
-    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
+    // TODO sanity check by assertion
+    CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
     
-    if (lEndNodes.size() == 0) {
+    if (lEndNode == null) {
       return false;
     }
-    else if (lEndNodes.size() == 1) {
-      CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
-      
-      CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
-      
-      return lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance());
-    }
     else {
-      throw new RuntimeException();
+      if (((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
+        // location of last element is at end node
+
+        return lEndNode.get(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance());
+      }
+      
+      return false;
     }
   }
   
   private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
     
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
-      lCompoundCPAFactory.push(pPassingAutomatonCPA, true);  
+      lComponentAnalyses.add(pPassingAutomatonCPA);
     }
     
-    lCompoundCPAFactory.push(pCoverAutomatonCPA, true);
+    lComponentAnalyses.add(pCoverAutomatonCPA);
     
     // call stack CPA
-    lCompoundCPAFactory.push(mCallStackCPA, true);
+    lComponentAnalyses.add(mCallStackCPA);
     
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
-    lCompoundCPAFactory.push(lInterpreterCPA);
+    lComponentAnalyses.add(lInterpreterCPA);
     
     // CFA path CPA
-    int lCFAPathCPAIndex = lCompoundCPAFactory.push(mCFAPathCPA);
+    int lCFAPathCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mCFAPathCPA);
     
     // product automaton CPA
-    int lProductAutomatonCPAIndex = lCompoundCPAFactory.push(mProductAutomatonCPA);
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mProductAutomatonCPA);
     
     // assume CPA
-    lCompoundCPAFactory.push(mAssumeCPA);
+    lComponentAnalyses.add(mAssumeCPA);
     
-    
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-    lComponentAnalyses.add(mLocationCPA);
-    lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
     
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
@@ -1062,7 +1045,7 @@ public class FlleSh {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new LocationMappedReachedSet(ReachedSet.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1071,32 +1054,32 @@ public class FlleSh {
       throw new RuntimeException(e);
     }
     
-    Set<AbstractElement> lEndNodes = lReachedSet.getReached(pEndNode);
+    // TODO sanity check by assertion
+    CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
     
-    if (lEndNodes.size() != 1) {
-      System.out.println(lEndNodes);
+    if (lEndNode == null) {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
     
-    CompositeElement lEndNode = (CompositeElement)lEndNodes.iterator().next();
+    if (!((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
+      throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
+    }
     
-    CompoundElement lDataElement = (CompoundElement)lEndNode.get(1);
-    
-    if (!lDataElement.getSubelement(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
+    if (!lEndNode.get(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
       throw new RuntimeException();
     }
     
-    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lDataElement.getSubelement(lCFAPathCPAIndex);
+    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
     
     return lPathElement.toArray();
   }
   
-  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) {
+  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
     File lPropertiesFile = FlleSh.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
   
-  private static Configuration createConfiguration(List<String> pSourceFiles, String pPropertiesFile) {
+  private static Configuration createConfiguration(List<String> pSourceFiles, String pPropertiesFile) throws InvalidConfigurationException {
     Map<String, String> lCommandLineOptions = new HashMap<String, String>();
 
     lCommandLineOptions.put("analysis.programNames", Joiner.on(", ").join(pSourceFiles));
@@ -1156,24 +1139,24 @@ public class FlleSh {
     return lPropertiesFile;
   }
   
-  private boolean isTransitivelyInfeasible(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton, Collection<Automaton.State> pReachedAutomatonStates) {
+  private boolean isTransitivelyInfeasible(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pOtherAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
     // When all reached states are contained in the similar states than pOtherAutomaton has to be infeasible, too.
     return getSimilarStates(pInfeasibleAutomaton, pOtherAutomaton).containsAll(pReachedAutomatonStates);
   }
   
-  private Collection<Automaton.State> getSimilarStates(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Automaton<GuardedEdgeLabel> pOtherAutomaton) {
-    Pair<Automaton.State, Automaton.State> lInitialPair = new Pair<Automaton.State, Automaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
+  private Collection<NondeterministicFiniteAutomaton.State> getSimilarStates(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pOtherAutomaton) {
+    Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lInitialPair = new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
     
-    LinkedList<Pair<Automaton.State, Automaton.State>> lWorklist = new LinkedList<Pair<Automaton.State, Automaton.State>>();
+    LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lWorklist = new LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
     lWorklist.add(lInitialPair);
     
-    Multimap<Automaton.State, Automaton.State> lCore = HashMultimap.create();
-    Multimap<Automaton.State, Automaton.State> lFrontier = HashMultimap.create();
+    Multimap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lCore = HashMultimap.create();
+    Multimap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lFrontier = HashMultimap.create();
     
     //HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
     
     while (!lWorklist.isEmpty()) {
-      Pair<Automaton.State, Automaton.State> lCurrentPair = lWorklist.removeFirst();
+      Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lCurrentPair = lWorklist.removeFirst();
       
       if (lCore.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())
           || lFrontier.containsEntry(lCurrentPair.getFirst(), lCurrentPair.getSecond())) {
@@ -1183,14 +1166,14 @@ public class FlleSh {
       boolean lSimilar = true;
       
       //lPotentialWork.clear();
-      HashSet<Pair<Automaton.State, Automaton.State>> lPotentialWork = new HashSet<Pair<Automaton.State, Automaton.State>>();
+      HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lPotentialWork = new HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
       
-      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
         boolean lOneDirectionSimilar = false;
         
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
+            lPotentialWork.add(new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -1200,12 +1183,12 @@ public class FlleSh {
         }
       }
       
-      for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
         boolean lOneDirectionSimilar = false;
         
-        for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<Automaton.State, Automaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
+            lPotentialWork.add(new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -1243,7 +1226,7 @@ public class FlleSh {
     return lSimilarStates;*/
   }
   
-  private void removeTransitiveInfeasibleGoals(Automaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<Automaton.State> pReachedAutomatonStates) {
+  private void removeTransitiveInfeasibleGoals(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, Deque<Goal> pGoals, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
     HashSet<Goal> lSubsumedGoals = new HashSet<Goal>();
     
     //System.out.println(pAutomaton.toString());

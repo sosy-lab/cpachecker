@@ -72,16 +72,6 @@ public class CompositePrecision implements WrapperPrecision {
   public String toString() {
     return precisions.toString();
   }
-  
-  @Override
-  public boolean isBreak() {
-    for (Precision p : precisions) {
-      if (p.isBreak()) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   @Override
   public <T extends Precision> T retrieveWrappedPrecision(Class<T> pType) {

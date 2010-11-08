@@ -47,18 +47,8 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   }
 
   @Override
-  public TimeOutHeuristicsData getBottom() {
-    return TimeOutHeuristicsData.BOTTOM;
-  }
-
-  @Override
   public TimeOutHeuristicsData getInitialData(CFANode pNode) {
     return new TimeOutHeuristicsData(System.currentTimeMillis(), false);
-  }
-
-  @Override
-  public TimeOutHeuristicsData getTop() {
-    return new TimeOutHeuristicsData(0, false);
   }
 
   @Override

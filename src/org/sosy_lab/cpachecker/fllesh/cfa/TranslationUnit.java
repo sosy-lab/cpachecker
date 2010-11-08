@@ -16,7 +16,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
-import org.sosy_lab.cpachecker.cfa.CPASecondPassBuilder;
+import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -177,7 +177,7 @@ public class TranslationUnit {
   }
   
   public Map<CallToReturnEdge, CFAEdge> insertCallEdgesRecursively(String pEntryFunction) {
-    CPASecondPassBuilder lBuilder = new CPASecondPassBuilder(mCFAs, true);
+    CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs, true);
     lBuilder.insertCallEdgesRecursively(pEntryFunction);
     return lBuilder.getMappingToReplacedEdges();
   }

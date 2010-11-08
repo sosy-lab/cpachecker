@@ -54,7 +54,7 @@ public class RefinementFailedException extends CPAException {
   private static final long serialVersionUID = 2353178323706458175L;
 
   private final Reason reason;
-  private final Path path;
+  private Path path;
   private final int failurePoint;
 
   public RefinementFailedException(Reason r, Path p, int pFailurePoint)
@@ -81,6 +81,10 @@ public class RefinementFailedException extends CPAException {
     return path;
   }
 
+  public void setErrorPath(Path pPath) {
+    path = pPath;
+  }
+  
   /**
    * Returns the position of the node in the past where
    * the failure occurred (or -1 if the failure cannot

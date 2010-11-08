@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -41,10 +41,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 public class StaticPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement element,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement element,
         Precision precision, UnmodifiableReachedSet elements) {
 
-    return new Pair<AbstractElement, Precision>(element, precision);
+    return new Triple<AbstractElement, Precision, Action>(element, precision, Action.CONTINUE);
   }
 
   private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();

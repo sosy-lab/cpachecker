@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
@@ -48,7 +47,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+  private final TransferRelationMonitorTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
@@ -56,12 +55,12 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
   private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config) throws InvalidConfigurationException {
     super(pCpa);
-    abstractDomain = new TransferRelationMonitorDomain(this);
+    abstractDomain = new FlatLatticeDomain();
     transferRelation = new TransferRelationMonitorTransferRelation(getWrappedCpa(), config);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
+    precisionAdjustment = new TransferRelationMonitorPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     mergeOperator = new TransferRelationMonitorMerge(getWrappedCpa());
     stopOperator = new TransferRelationMonitorStop(getWrappedCpa());
-    stats = new TransferMonitorStatistics();
+    stats = new TransferRelationMonitorStatistics(this);
   }
 
   @Override
@@ -71,7 +70,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new TransferRelationMonitorElement(this, getWrappedCpa().getInitialElement(pNode));
+    return new TransferRelationMonitorElement(getWrappedCpa().getInitialElement(pNode), 1, 0, 0L);
   }
 
   @Override
@@ -90,7 +89,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public TransferRelationMonitorTransferRelation getTransferRelation() {
     return this.transferRelation;
   }
 

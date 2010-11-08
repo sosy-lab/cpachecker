@@ -23,14 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -45,32 +50,24 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+@Options(prefix="cpas.defuse")
 public class DefUseCPA implements ConfigurableProgramAnalysis{
 
-  private static class DefUseCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      Configuration config = getConfiguration();
-      String mergeType = config.getProperty("cpas.defuse.merge");
-      String stopType = config.getProperty("cpas.defuse.stop");
-      return new DefUseCPA(mergeType, stopType);
-    }
-  }
-
   public static CPAFactory factory() {
-    return new DefUseCPAFactory();
+    return AutomaticCPAFactory.forType(DefUseCPA.class);
   }
 
+  @Option(name="merge", values={"sep", "join"})
+  private String mergeType = "sep";
+  
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private PrecisionAdjustment precisionAdjustment;
 
-  private DefUseCPA (String mergeType, String stopType) {
-    DefUseDomain defUseDomain = new DefUseDomain ();
-    this.abstractDomain = defUseDomain;
+  private DefUseCPA (Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    this.abstractDomain = new DefUseDomain();
 
     this.transferRelation = new DefUseTransferRelation ();
 
@@ -78,17 +75,10 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     if(mergeType.equals("sep")){
       this.mergeOperator = MergeSepOperator.getInstance();
     } else if(mergeType.equals("join")){
-      this.mergeOperator = new DefUseMergeJoin ();
+      this.mergeOperator = new MergeJoinOperator(abstractDomain);
     }
 
-    this.stopOperator = null;
-    if(stopType.equals("sep")){
-      this.stopOperator = new StopSepOperator(defUseDomain.getPartialOrder());
-    } else if(stopType.equals("join")){
-      this.stopOperator = new DefUseStopJoin ();
-    }
-
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.stopOperator = new StopSepOperator(abstractDomain);
   }
 
   @Override
@@ -117,18 +107,17 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisionAdjustment.getInstance();
   }
 
 
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
   {
-    List<DefUseDefinition> defUseDefinitions = null;
+    Set<DefUseDefinition> defUseDefinitions = new HashSet<DefUseDefinition>();
     if (node instanceof FunctionDefinitionNode)
     {
       List<String> parameterNames = ((FunctionDefinitionNode)node).getFunctionParameterNames ();
-      defUseDefinitions = new ArrayList<DefUseDefinition> ();
 
       for (String parameterName : parameterNames)
       {

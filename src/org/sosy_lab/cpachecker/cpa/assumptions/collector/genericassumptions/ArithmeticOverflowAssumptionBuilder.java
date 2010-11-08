@@ -23,27 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
+import java.util.List;
+
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
+import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.c.CASTVisitor;
-
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTBinaryExpression;
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTNumericalLiteralExpression;
-
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-
-import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.util.assumptions.DummyASTBinaryExpression;
+import org.sosy_lab.cpachecker.util.assumptions.DummyASTIdExpression;
+import org.sosy_lab.cpachecker.util.assumptions.DummyASTNumericalLiteralExpression;
 
 /**
  * Class to generate assumptions related to over/underflow
@@ -52,49 +56,57 @@ import org.sosy_lab.common.Pair;
  * @author g.theoduloz
  */
 public class ArithmeticOverflowAssumptionBuilder
-  implements GenericAssumptionBuilder
+implements GenericAssumptionBuilder
 {
+
+  public static boolean isDeclGlobal = false;
+
   private static Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> boundsForType(IType typ)
   {
     try {
       if (typ instanceof IBasicType) {
         IBasicType btyp = (IBasicType) typ;
+
         switch (btyp.getType()) {
         case IBasicType.t_int:
-          if (btyp.isLong())
-            if (btyp.isUnsigned())
-              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-                (DummyASTNumericalLiteralExpression.ULONG_MIN, DummyASTNumericalLiteralExpression.ULONG_MAX);
-            else
-              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-                (DummyASTNumericalLiteralExpression.LONG_MIN, DummyASTNumericalLiteralExpression.LONG_MAX);
-          else if (btyp.isShort())
-            if (btyp.isUnsigned())
-              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-                (DummyASTNumericalLiteralExpression.USHRT_MIN, DummyASTNumericalLiteralExpression.USHRT_MAX);
-            else
-              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-                (DummyASTNumericalLiteralExpression.SHRT_MIN, DummyASTNumericalLiteralExpression.SHRT_MAX);
-          else
-            if (btyp.isUnsigned())
-              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-                (DummyASTNumericalLiteralExpression.UINT_MIN, DummyASTNumericalLiteralExpression.UINT_MAX);
-            else
-              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-                (DummyASTNumericalLiteralExpression.INT_MIN, DummyASTNumericalLiteralExpression.INT_MAX);
-        case IBasicType.t_char:
-          if (btyp.isUnsigned())
-            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-              (DummyASTNumericalLiteralExpression.UCHAR_MIN, DummyASTNumericalLiteralExpression.UCHAR_MAX);
-          else
-            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-              (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
+          // TODO not handled yet by mathsat so we assume all vars are signed integers for now
+          // will enable later
+          return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          (DummyASTNumericalLiteralExpression.INT_MIN, DummyASTNumericalLiteralExpression.INT_MAX);
+          //          if (btyp.isLong())
+          //            if (btyp.isUnsigned())
+          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.ULONG_MIN, DummyASTNumericalLiteralExpression.ULONG_MAX);
+          //            else
+          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.LONG_MIN, DummyASTNumericalLiteralExpression.LONG_MAX);
+          //          else if (btyp.isShort())
+          //            if (btyp.isUnsigned())
+          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.USHRT_MIN, DummyASTNumericalLiteralExpression.USHRT_MAX);
+          //            else
+          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.SHRT_MIN, DummyASTNumericalLiteralExpression.SHRT_MAX);
+          //          else
+          //            if (btyp.isUnsigned())
+          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.UINT_MIN, DummyASTNumericalLiteralExpression.UINT_MAX);
+          //            else
+          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.INT_MIN, DummyASTNumericalLiteralExpression.INT_MAX);
+          //        case IBasicType.t_char:
+          //          if (btyp.isUnsigned())
+          //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.UCHAR_MIN, DummyASTNumericalLiteralExpression.UCHAR_MAX);
+          //          else
+          //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
         }
       }
     } catch (DOMException e) { /* oops... just ignore, and return (null, null) */ }
-      return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-        (null, null);
-    }
+    return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+    (null, null);
+  }
 
   /**
    * Visitor to produce the invariant.
@@ -104,10 +116,10 @@ public class ArithmeticOverflowAssumptionBuilder
    * @author g.theoduloz
    */
   private class CustomASTVisitor
-    extends CASTVisitor
+  extends CASTVisitor
   {
     // Fields to accumulate the built invariants
-    private IASTExpression result;
+    private IASTNode result;
 
     /**
      * Default constructor. The result is initially reseted.
@@ -116,16 +128,21 @@ public class ArithmeticOverflowAssumptionBuilder
     {
       reset();
       shouldVisitExpressions = true;
+      shouldVisitDeclarations = true;
     }
 
     /**
      * Returns the invariant accumulated so far
      * @return A non-null predicate
      */
-    public IASTExpression getResult()
+    public IASTNode getResult()
     {
       return result;
     }
+
+    //    public IASTDeclaration getDecl(){
+    //      return declaration;
+    //    }
 
     /**
      * Reset the visitor by dropping the invariant computed so far
@@ -137,22 +154,12 @@ public class ArithmeticOverflowAssumptionBuilder
 
     /**
      * Compute and conjunct the assumption for the given arithmetic
-     * expression. The method does not check that the expression is
-     * indeed an arithmetic expression.
-     */
-    private void conjunctPredicateForArithmeticExpression(IASTExpression exp)
-    {
-      conjunctPredicateForArithmeticExpression(exp, false, false);
-    }
-
-    /**
-     * Compute and conjunct the assumption for the given arithmetic
      * expression, ignoring bounds if applicable. The method does
      * not check that the expression is indeed an arithmetic expression.
      */
-    private void conjunctPredicateForArithmeticExpression(IASTExpression exp, boolean ignoreLower, boolean ignoreUpper)
+    private void conjunctPredicateForArithmeticExpression(IASTExpression exp)
     {
-      conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, ignoreLower, ignoreUpper);
+      conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp);
     }
 
     /**
@@ -162,198 +169,71 @@ public class ArithmeticOverflowAssumptionBuilder
      * lower and/or upper bounds predicates.
      */
     private void conjunctPredicateForArithmeticExpression(
-        IType typ, IASTExpression exp,
-        boolean ignoreLower, boolean ignoreUpper)
+        IType typ, IASTExpression exp)
     {
       Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds = boundsForType(typ);
-      if ((!ignoreLower) && (bounds.getFirst() != null))
+      if (bounds.getFirst() != null){
         result = new DummyASTBinaryExpression(
             IASTBinaryExpression.op_logicalAnd,
-            result,
+            (IASTExpression)result,
             new DummyASTBinaryExpression(
                 IASTBinaryExpression.op_greaterEqual,
                 exp,
                 bounds.getFirst()));
-
-      if ((!ignoreUpper) && (bounds.getSecond() != null))
+      }
+      if (bounds.getSecond() != null){
         result = new DummyASTBinaryExpression(
             IASTBinaryExpression.op_logicalAnd,
-            result,
+            (IASTExpression)result,
             new DummyASTBinaryExpression(
                 IASTBinaryExpression.op_lessEqual,
                 exp,
                 bounds.getSecond()));
+      }
     }
 
-    /**
-     * Analyse a term to determine whether we can immediately
-     * say whether it is positive, null, or negative
-     * @return a pair <n,p> s.t. n => t <= 0, p => t >= 0
-     */
-    private Pair<Boolean, Boolean> analyzeTermSign(IASTExpression t)
-    {
-      boolean isNegative = false;
-      boolean isNull = false;
-      boolean isPositive = false;
-
-      if (t instanceof IASTLiteralExpression)
-      {
-        IASTLiteralExpression lit = (IASTLiteralExpression)t;
-        switch (lit.getKind())
-        {
-        case (IASTLiteralExpression.lk_integer_constant):
-        case (IASTLiteralExpression.lk_float_constant):
-          String repr = lit.getRawSignature();
-          if (repr.charAt(0) == '-')
-            isNegative = true;
-          else
-            isPositive = true;
-
-          isNull = true;
-          for (char c : repr.toCharArray()) {
-            if ((c != '0') && Character.isDigit(c)) {
-              isNull = false;
-              break;
-            }
-          }
-        }
-      }
-      else
-      {
-        IType typ = t.getExpressionType();
-        if (typ instanceof IBasicType) {
-          try {
-            if (((IBasicType)typ).isUnsigned())
-              isPositive = true;
-          } catch (DOMException e) { }
-        }
-      }
-
-      return new Pair<Boolean, Boolean>(isNegative || isNull, isPositive || isNull);
+    @SuppressWarnings("static-access")
+    @Override
+    public int visit(IASTDeclaration pDeclaration) {
+      result = pDeclaration;
+      return super.PROCESS_ABORT;
     }
 
+    @SuppressWarnings("static-access")
     @Override
     public int visit(IASTExpression pExpression) {
+      if(pExpression instanceof IASTIdExpression){
+        conjunctPredicateForArithmeticExpression(pExpression);
+      }
       if (pExpression instanceof IASTBinaryExpression)
       {
         IASTBinaryExpression binexp = (IASTBinaryExpression)pExpression;
-        int op = binexp.getOperator();
-
-        // Sign analysis
-        Pair<Boolean, Boolean> signs1 = analyzeTermSign(binexp.getOperand1());
-        Pair<Boolean, Boolean> signs2 = analyzeTermSign(binexp.getOperand2());
-        boolean ignoreLower = false;
-        boolean ignoreUpper = false;
-        switch (op)
-        {
-        case IASTBinaryExpression.op_plus:
-        case IASTBinaryExpression.op_multiply:
-          ignoreLower = signs2.getSecond() || signs1.getSecond();
-          ignoreUpper = signs2.getFirst() || signs1.getFirst();
-          break;
-        case IASTBinaryExpression.op_plusAssign:
-        case IASTBinaryExpression.op_multiplyAssign:
-          ignoreLower = signs2.getSecond();
-          ignoreUpper = signs2.getFirst();
-          break;
-        case IASTBinaryExpression.op_minus:
-          ignoreLower = signs2.getFirst() || signs1.getFirst();
-          ignoreUpper = signs2.getSecond() || signs1.getSecond();
-          break;
-        case IASTBinaryExpression.op_minusAssign:
-          ignoreLower = signs2.getFirst();
-          ignoreUpper = signs2.getSecond();
-          break;
-        }
-
-        switch (op) {
-        case IASTBinaryExpression.op_plus:
-        case IASTBinaryExpression.op_minus:
-        case IASTBinaryExpression.op_multiply:
-          conjunctPredicateForArithmeticExpression(binexp, ignoreLower, ignoreUpper);
-          break;
-        case IASTBinaryExpression.op_plusAssign: {
-          conjunctPredicateForArithmeticExpression(
-              binexp.getExpressionType(),
-              new DummyASTBinaryExpression(
-                    IASTBinaryExpression.op_plus,
-                    binexp.getOperand1(),
-                    binexp.getOperand2()),
-              ignoreLower, ignoreUpper);
-          break;
-        }
-        case IASTBinaryExpression.op_minusAssign:
-          conjunctPredicateForArithmeticExpression(
-              binexp.getExpressionType(),
-              new DummyASTBinaryExpression(
-                    IASTBinaryExpression.op_minus,
-                    binexp.getOperand1(),
-                    binexp.getOperand2()),
-              ignoreLower, ignoreUpper);
-          break;
-        case IASTBinaryExpression.op_multiplyAssign:
-          conjunctPredicateForArithmeticExpression(
-              binexp.getExpressionType(),
-              new DummyASTBinaryExpression(
-                    IASTBinaryExpression.op_multiply,
-                    binexp.getOperand1(),
-                    binexp.getOperand2()),
-              ignoreLower, ignoreUpper);
-          break;
+        IASTExpression op1 = binexp.getOperand1();
+        // Only variables for now, ignoring * & operators
+        if(op1 instanceof IASTIdExpression){
+          conjunctPredicateForArithmeticExpression(op1);
         }
       }
       else if (pExpression instanceof IASTUnaryExpression)
       {
         IASTUnaryExpression unexp = (IASTUnaryExpression)pExpression;
-        switch (unexp.getOperator()) {
-        case IASTUnaryExpression.op_minus:
-          conjunctPredicateForArithmeticExpression(unexp);
-          break;
-        case IASTUnaryExpression.op_prefixIncr:
-        case IASTUnaryExpression.op_postFixIncr:
-          conjunctPredicateForArithmeticExpression(
-              unexp.getExpressionType(),
-              new DummyASTBinaryExpression(
-                    IASTBinaryExpression.op_plus,
-                    unexp.getOperand(),
-                    DummyASTNumericalLiteralExpression.ONE),
-              true, false);
-          break;
-        case IASTUnaryExpression.op_prefixDecr:
-        case IASTUnaryExpression.op_postFixDecr:
-          conjunctPredicateForArithmeticExpression(
-              unexp.getExpressionType(),
-              new DummyASTBinaryExpression(
-                    IASTBinaryExpression.op_minus,
-                    unexp.getOperand(),
-                    DummyASTNumericalLiteralExpression.ONE),
-              false, true);
-          break;
+        IASTExpression op1 = unexp.getOperand();
+        // Only variables. Ignoring * & operators for now
+        if(op1 instanceof IASTIdExpression){
+          conjunctPredicateForArithmeticExpression(op1);
         }
       }
       else if (pExpression instanceof IASTCastExpression)
       {
         IASTCastExpression castexp = (IASTCastExpression)pExpression;
-        IType fromType = castexp.getOperand().getExpressionType();
         IType toType = castexp.getExpressionType();
-
-        Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> fromBounds = boundsForType(fromType);
-        Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> toBounds = boundsForType(toType);
-
-        boolean ignoreLower = true;
-        boolean ignoreUpper = true;
-
-        if ((fromBounds.getFirst() != null) && (toBounds.getFirst() != null))
-          if (fromBounds.getFirst().compareTo(toBounds.getFirst()) < 0)
-            ignoreLower = false;
-
-        if ((fromBounds.getSecond() != null) && (toBounds.getSecond() != null))
-          if (fromBounds.getSecond().compareTo(toBounds.getSecond()) > 0)
-            ignoreUpper = false;
-
-        conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), ignoreLower, ignoreUpper);
+        conjunctPredicateForArithmeticExpression(toType, castexp.getOperand());
       }
-      return super.visit(pExpression);
+      // we don't want to continue, the assumption talks only
+      // about the left-hand side of the statement
+      // if we want to analyze rhs, call super.visit
+      //      return super.visit(pExpression);
+      return super.PROCESS_ABORT;
     }
   }
 
@@ -361,33 +241,47 @@ public class ArithmeticOverflowAssumptionBuilder
   private CustomASTVisitor visitor = new CustomASTVisitor();
 
   @Override
-  public IASTExpression assumptionsForEdge(CFAEdge pEdge) {
+  public IASTNode assumptionsForEdge(CFAEdge pEdge) {
     visitor.reset();
     switch (pEdge.getEdgeType()) {
+    case DeclarationEdge:
+      isDeclGlobal = false;
+      DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
+      declarationEdge.getRawAST().accept(visitor);
+      if(declarationEdge instanceof GlobalDeclarationEdge){
+        isDeclGlobal = true;
+      }
+      break;
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
       assumeEdge.getExpression().accept(visitor);
       break;
     case FunctionCallEdge:
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
-      for (IASTExpression arg : fcallEdge.getArguments())
-      {
-        arg.accept(visitor);
+      if(fcallEdge.getArguments() != null){
+        FunctionDefinitionNode fdefnode = (FunctionDefinitionNode)fcallEdge.getSuccessor();
+        List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
+        for (IASTParameterDeclaration paramdecl : formalParams)
+        {
+          DummyASTIdExpression exp = new DummyASTIdExpression(paramdecl.getDeclarator().getName());
+          exp.accept(visitor);
+        }
       }
       break;
     case StatementEdge:
       StatementEdge stmtEdge = (StatementEdge) pEdge;
-      stmtEdge.getExpression().accept(visitor);
-      break;
-    case MultiStatementEdge:
-      MultiStatementEdge mstmtEdge = (MultiStatementEdge) pEdge;
-      for (IASTExpression exp : mstmtEdge.getExpressions())
-      {
-        exp.accept(visitor);
+
+      IASTExpression iastExp = stmtEdge.getExpression();
+      // TODO replace with a global nondet variable
+      if(iastExp != null && iastExp.getRawSignature().contains("__BLAST_NONDET")){
+        break;
+      }
+
+      if(stmtEdge.getExpression() != null){
+        stmtEdge.getExpression().accept(visitor);
       }
       break;
     }
     return visitor.getResult();
   }
-
 }

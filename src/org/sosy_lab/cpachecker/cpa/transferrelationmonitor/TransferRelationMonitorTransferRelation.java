@@ -29,18 +29,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,9 +54,10 @@ import com.google.common.base.Throwables;
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
-  private final AbstractDomain domain;
-  private final TransferRelation transferRelation;
-  public static long maxSizeOfSinglePath = 0;
+  long maxSizeOfSinglePath = 0;
+  long maxNumberOfBranches = 0;
+  long maxTotalTimeForPath = 0;
+  final Timer totalTimeOfTransfer = new Timer();
 
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
@@ -68,12 +71,13 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   @Option(name="brancheslimit")
   private long limitForBranches = 0;
   
+  private final TransferRelation transferRelation;
+
   public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     transferRelation = pWrappedCPA.getTransferRelation();
-    domain = pWrappedCPA.getAbstractDomain();
   }
 
   @Override
@@ -81,12 +85,12 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
-    Collection<? extends AbstractElement> successors;
-    long start = System.currentTimeMillis();
+    totalTimeOfTransfer.start();
 
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
         element.getWrappedElement(), pPrecision);
 
+    Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
       successors = tc.call();
     } else {
@@ -96,7 +100,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
         // here we get the result of the post computation but there is a time limit
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
-      } catch (TimeoutException e){
+      } catch (TimeoutException e) {
         return Collections.emptySet();
         
       } catch (InterruptedException e) {
@@ -110,69 +114,125 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
     }
 
-    long timeOfExecution = System.currentTimeMillis() - start;
+    // update time information
+    long timeOfExecution = totalTimeOfTransfer.stop();
+    long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
+    if (totalTimeOnPath > maxTotalTimeForPath) {
+      maxTotalTimeForPath = totalTimeOnPath;
+    }
+    
+    // return if there are no successors
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
+    
+    // update path length information
+    int pathLength = element.getNoOfNodesOnPath() + 1;
+    int branchesOnPath = element.getNoOfBranchesOnPath();
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
+      branchesOnPath++;  
+    }
+    
+    if (pathLength > maxSizeOfSinglePath) {
+      maxSizeOfSinglePath = pathLength;
+    }
+    if(branchesOnPath > maxNumberOfBranches){
+      maxNumberOfBranches = branchesOnPath;
+    }
 
-    Collection<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>();
+    // check for violation of limits
+    if (   (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath)
+        || (nodeLimitForPath > 0 && pathLength > nodeLimitForPath)
+        || (limitForBranches > 0 && branchesOnPath > limitForBranches)
+        ) {
+      return Collections.emptySet();
+    }
+
+    // wrap elements
+    List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      if (absElement.equals(domain.getBottomElement())) {
-        // omit bottom element from successors list
-        continue;
-      }
-      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
-      successorElem.setTransferTime(timeOfExecution);
-      successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
-      successorElem.setNoOfNodesOnPath(element.getNoOfNodesOnPath()+1);
-      if(pCfaEdge instanceof AssumeEdge){
-        successorElem.setNoOfBranches(element.getNoOfBranchesOnPath()+1);  
-      }
-      if(element.getNoOfNodesOnPath() > maxSizeOfSinglePath){
-        maxSizeOfSinglePath = element.getNoOfNodesOnPath();
-        if(limitForBranches > 0 &&  successorElem.getNoOfBranchesOnPath() > limitForBranches){
-          return Collections.emptySet();
-        }
-      }
-      if(    (timeLimitForPath > 0 && successorElem.getTotalTimeOnThePath() > timeLimitForPath)
-          || (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)
-          ){
-        return Collections.emptySet();
-      }
+      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(
+          absElement, pathLength, branchesOnPath, totalTimeOnPath);
+      
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
-      Precision precision) {
-    TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)element;
-    AbstractElement wrappedElement = monitorElement.getWrappedElement();
-    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+      Precision precision) throws CPATransferException {
+    TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
+    totalTimeOfTransfer.start();
 
-    try {
-      Collection<? extends AbstractElement> wrappedList = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
-      // if the returned list is null return null
-      if(wrappedList == null)
-        return null;
-      // TODO we assume that only one element is returned or empty set to represent bottom
-      assert(wrappedList.size() < 2);
-      // if bottom return empty list
-      if(wrappedList.size() == 0){
-        return retList;
+    StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),
+        otherElements, cfaEdge, precision);
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();    
+    
+    Collection<? extends AbstractElement> successors;
+    if (timeLimit == 0) {
+      successors = sc.call();
+    } else {
+      Future<Collection<? extends AbstractElement>> future = executor.submit(sc);
+      try {
+        // here we get the result of the post computation but there is a time limit
+        // given to complete the task specified by timeLimit
+        successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
+      } catch (TimeoutException e) {
+        System.out.println("timed out");
+        executor.shutdownNow();
+        return Collections.emptySet();
+
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        executor.shutdownNow();
+        return Collections.emptySet();
+
+      } catch (ExecutionException e) {
+        executor.shutdownNow();
+        Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
+        // TransferRelation.strengthen() threw unexpected checked exception!
+        throw new AssertionError(e);
       }
+    }
+    executor.shutdownNow();
 
-      AbstractElement wrappedReturnElement = wrappedList.iterator().next();
-      retList.add(new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement));
-      return retList;
-    } catch (CPATransferException e) {
-      e.printStackTrace();
+    // update time information
+    long timeOfExecution = totalTimeOfTransfer.stop();
+    long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
+
+    if (totalTimeOnPath > maxTotalTimeForPath) {
+      maxTotalTimeForPath = totalTimeOnPath;
+    }
+    
+    // if the returned list is null return null
+    if (successors == null) {
+      return null;
+    }
+    // return if there are no successors
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
     }
 
-    return null;
+    // no need to update path length information here
+    
+    // check for violation of limits
+    if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+      return Collections.emptySet();
+    }
+
+    // wrap elements
+    List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
+    for (AbstractElement absElement : successors) {
+      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(
+          absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath);
+      
+      wrappedSuccessors.add(successorElem);
+    }
+    return wrappedSuccessors;
   }
 
   private static class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
@@ -193,6 +253,29 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     @Override
     public Collection<? extends AbstractElement> call() throws CPATransferException {
       return transferRelation.getAbstractSuccessors(abstractElement, precision, cfaEdge);
+    }
+  }
+  
+  private static class StrengthenCallable implements Callable<Collection<? extends AbstractElement>>{
+
+    private final TransferRelation transferRelation;
+    private final CFAEdge cfaEdge;
+    private final AbstractElement abstractElement;
+    private final List<AbstractElement> otherElements;
+    private final Precision precision;
+
+    private StrengthenCallable(TransferRelation transferRelation, AbstractElement abstractElement, 
+        List<AbstractElement> otherElements, CFAEdge cfaEdge, Precision precision) {
+      this.transferRelation = transferRelation;
+      this.cfaEdge = cfaEdge;
+      this.abstractElement = abstractElement;
+      this.otherElements = otherElements;
+      this.precision = precision;
+    }
+
+    @Override
+    public Collection<? extends AbstractElement> call() throws CPATransferException {
+      return transferRelation.strengthen(abstractElement, otherElements, cfaEdge, precision);
     }
   }
 }

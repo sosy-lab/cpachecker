@@ -48,7 +48,6 @@ public class OctElement implements AbstractElement{
 	private HashMap<String, Integer> variables;
 	private long elemId;
   private static long nextAvailableId = 0;
-  private boolean isBottom = false;
 
 	/**
 	 * Class constructor creating a new octagon and an empty variables list.
@@ -300,14 +299,6 @@ public class OctElement implements AbstractElement{
 		variables = newVariablesMap;
 
 	}
-
-  public boolean isBottom() {
-    return isBottom;
-  }
-
-  public void setBottom() {
-    isBottom = true;
-  }
 
 	// TODO fix this
 //	public void addVariablesFrom(OctElement octEl1) {

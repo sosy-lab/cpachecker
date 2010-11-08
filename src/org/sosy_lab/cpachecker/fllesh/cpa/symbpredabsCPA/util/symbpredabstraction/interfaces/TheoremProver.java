@@ -25,6 +25,11 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
+
 public interface TheoremProver {
 
   void init();
@@ -35,23 +40,5 @@ public interface TheoremProver {
 
   AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
                       FormulaManager mgr, AbstractFormulaManager amgr);
-    
-  interface AllSatResult {
-      
-    /**
-     * The result of an allSat call as an abstract formula.
-     */
-    public AbstractFormula getResult();
-    
-    /**
-     * The number of satisfying assignments contained in the result, of
-     * {@link Integer#MAX_VALUE} if this number is infinite.
-     */
-    public int getCount();
-    
-    /**
-     * The time spent for creating the abstract formula.
-     */
-    public long getTotalTime();
-  }
+  
 }

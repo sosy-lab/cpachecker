@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Class to represent the abstract element of the analysis controller.
@@ -39,50 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  */
 public class ProgressObserverElement implements AbstractElement, AvoidanceReportingElement {
 
-  private final List<StopHeuristicsData> data;
+  private final ImmutableList<StopHeuristicsData> data;
 
-  /** Bottom */
-  public static final ProgressObserverElement getBottom(ProgressObserverCPA cpa)
-  {
-    ArrayList<StopHeuristicsData> data = new ArrayList<StopHeuristicsData>(cpa.getEnabledHeuristics().size());
-    for (StopHeuristics<? extends StopHeuristicsData> h : cpa.getEnabledHeuristics()) {
-      data.add(h.getBottom());
-    }
-    return new ProgressObserverElement(data);
+  ProgressObserverElement(List<StopHeuristicsData> d) {
+    data = ImmutableList.copyOf(d);
   }
 
-  /** Top */
-  public static final ProgressObserverElement getTop(ProgressObserverCPA cpa)
-  {
-    ArrayList<StopHeuristicsData> data = new ArrayList<StopHeuristicsData>(cpa.getEnabledHeuristics().size());
-    for (StopHeuristics<? extends StopHeuristicsData> h : cpa.getEnabledHeuristics()) {
-      data.add(h.getTop());
-    }
-    return new ProgressObserverElement(data);
-  }
-
-  /** Initial */
-  public static final ProgressObserverElement getInitial(ProgressObserverCPA cpa, CFANode node)
-  {
-    return new ProgressObserverElement(cpa, node);
-  }
-
-  public ProgressObserverElement(ProgressObserverCPA a, CFANode node)
-  {
-    this(new ArrayList<StopHeuristicsData>(a.getEnabledHeuristics().size()));
-
-    for (StopHeuristics<? extends StopHeuristicsData> h : a.getEnabledHeuristics()) {
-      data.add(h.getInitialData(node));
-    }
-  }
-
-  ProgressObserverElement(List<StopHeuristicsData> d)
-  {
-    data = d;
-  }
-
-  public List<StopHeuristicsData> getComponents()
-  {
+  public ImmutableList<StopHeuristicsData> getComponents() {
     return data;
   }
 

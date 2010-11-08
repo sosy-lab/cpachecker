@@ -48,18 +48,8 @@ public class RepetitionsInPathHeuristics
   }
 
   @Override
-  public RepetitionsInPathHeuristicsData getBottom() {
-    return RepetitionsInPathHeuristicsData.BOTTOM;
-  }
-
-  @Override
   public RepetitionsInPathHeuristicsData getInitialData(CFANode pNode) {
     return new RepetitionsInPathHeuristicsData();
-  }
-
-  @Override
-  public RepetitionsInPathHeuristicsData getTop() {
-    return RepetitionsInPathHeuristicsData.TOP;
   }
 
   @Override

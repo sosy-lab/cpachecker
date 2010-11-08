@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -35,49 +33,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class ProgressObserverDomain implements AbstractDomain {
 
-  private final ProgressObserverElement bottom;
-  private final ProgressObserverElement top;
-
-  public ProgressObserverDomain(ProgressObserverCPA a) {
-    bottom = ProgressObserverElement.getBottom(a);
-    top = ProgressObserverElement.getTop(a);
-  }
-
   // Join is not supported
-  private final JoinOperator joinOperator = new JoinOperator() {
-    @Override
-    public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
-      return null;
-    }
-  };
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    throw new UnsupportedOperationException();
+  }
 
   // Partial order: flat
-  private final PartialOrder partialOrder = new PartialOrder() {
-    @Override
-    public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2) throws CPAException {
-      return (el1.equals(bottom))
-          || (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
-    }
-  };
-
   @Override
-  public ProgressObserverElement getBottomElement() {
-    return bottom;
+  public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2) throws CPAException {
+    return (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
   }
-
-  @Override
-  public JoinOperator getJoinOperator() {
-    return joinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder() {
-    return partialOrder;
-  }
-
-  @Override
-  public ProgressObserverElement getTopElement() {
-    return top;
-  }
-
 }

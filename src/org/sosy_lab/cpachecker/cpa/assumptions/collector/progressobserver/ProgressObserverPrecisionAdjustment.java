@@ -30,7 +30,7 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -68,7 +68,7 @@ public class ProgressObserverPrecisionAdjustment implements
   }
 
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement el,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement el,
       Precision p, UnmodifiableReachedSet reached) {
     ProgressObserverElement element = (ProgressObserverElement) el;
 
@@ -86,7 +86,7 @@ public class ProgressObserverPrecisionAdjustment implements
       idx++;
     }
 
-    return new Pair<AbstractElement, Precision>(new ProgressObserverElement(postData), p);
+    return new Triple<AbstractElement, Precision, Action>(new ProgressObserverElement(postData), p, Action.CONTINUE);
   }
 
 }

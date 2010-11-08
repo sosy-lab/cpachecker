@@ -28,67 +28,13 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
 
-  private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement
-  {
-    @Override
-    public String toString() {
-      return "<ExplicitAnalysis BOTTOM>";
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      return (getClass().equals(pOther.getClass()));
-    }
-    
-    @Override
-    public int hashCode() {
-      return Integer.MIN_VALUE;
-    }
-  }
-
-  private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement
-  {
-    @Override
-    public String toString() {
-      return "<ExplicitAnalysis TOP>";
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      return (getClass().equals(pOther.getClass()));
-    }
-    
-    @Override
-    public int hashCode() {
-      return Integer.MAX_VALUE;
-    }
-  }
-
-  private static class ExplicitAnalysisPartialOrder implements PartialOrder
+  private static class ExplicitAnalysisPartialOrder
   {
     // returns true if element1 < element2 on lattice
-    @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
     {
       ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
@@ -100,18 +46,6 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 //      SystemSystem.out.println.out.println(explicitAnalysisElementReached);
 //      System.out.println("===============");
 //      System.exit(0);
-
-      if (explicitAnalysisElementNew == bottomElement) {
-        return true;
-      } else if (explicitAnalysisElementReached == topElement) {
-        return true;
-      } else if (explicitAnalysisElementReached == bottomElement) {
-        // we should not put this in the reached set
-        assert(false);
-        return false;
-      } else if (explicitAnalysisElementNew == topElement) {
-        return false;
-      }
 
       Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
@@ -134,9 +68,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static class ExplicitAnalysisJoinOperator implements JoinOperator
+  private static class ExplicitAnalysisJoinOperator
   {
-    @Override
     public AbstractElement join(AbstractElement element1, AbstractElement element2)
     {
       ExplicitAnalysisElement explicitAnalysisElement1 = (ExplicitAnalysisElement) element1;
@@ -172,37 +105,18 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private final static ExplicitAnalysisBottomElement bottomElement = new ExplicitAnalysisBottomElement ();
-  private final static ExplicitAnalysisTopElement topElement = new ExplicitAnalysisTopElement ();
-  private final static PartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
-  private final static JoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
+  private final static ExplicitAnalysisPartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
+  private final static ExplicitAnalysisJoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
 
-  public ExplicitAnalysisDomain ()
-  {
-
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return joinOperator.join(pElement1, pElement2);
   }
 
   @Override
-  public ExplicitAnalysisElement getBottomElement ()
-  {
-    return bottomElement;
-  }
-
-  @Override
-  public ExplicitAnalysisElement getTopElement ()
-  {
-    return topElement;
-  }
-
-  @Override
-  public JoinOperator getJoinOperator ()
-  {
-    return joinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder ()
-  {
-    return partialOrder;
+  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

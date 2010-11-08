@@ -24,22 +24,20 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat;
 
 import static mathsat.api.*;
-import static org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.*;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
 
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver implements TheoremProver {
-
+  
   private final MathsatSymbolicFormulaManager mgr;
   private long curEnv;
 
@@ -53,11 +51,7 @@ public class MathsatTheoremProver implements TheoremProver {
     push(f);
     int res = msat_solve(curEnv);
     pop();
-    
-    if (res == MSAT_UNKNOWN) {
-      throw new RuntimeException();
-    }
-    
+    assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
   }
 
@@ -72,7 +66,7 @@ public class MathsatTheoremProver implements TheoremProver {
   public void push(SymbolicFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
-    msat_assert_formula(curEnv, getTerm(f));
+    msat_assert_formula(curEnv, org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f));
   }
 
   @Override
@@ -92,16 +86,16 @@ public class MathsatTheoremProver implements TheoremProver {
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
                              FormulaManager fmgr, AbstractFormulaManager amgr) {
-    long formula = getTerm(f);
+    long formula = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
     
     long[] imp = new long[important.size()];
     int i = 0;
     for (SymbolicFormula impF : important) {
-      imp[i++] = getTerm(impF);
+      imp[i++] = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr, mgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -113,108 +107,11 @@ public class MathsatTheoremProver implements TheoremProver {
       callback.setInfiniteNumberOfModels();
 
     } else {
-      assert numModels == callback.count;
+      assert numModels == callback.getCount();
     }
 
     msat_destroy_env(allsatEnv);
 
     return callback;
-  }
-    
-  /**
-   * callback used to build the predicate abstraction of a formula
-   * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
-   */
-  static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
-    private final FormulaManager fmgr;
-    private final AbstractFormulaManager amgr;
-    private final MathsatSymbolicFormulaManager mSymbolicFormulaManager;
-    
-    private long totalTime = 0;
-    private int count = 0;
-
-    private AbstractFormula formula;
-    private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
-
-    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager pMathsatSymbolicFormulaManager) {
-      this.fmgr = fmgr;
-      this.amgr = amgr;
-      this.formula = amgr.makeFalse();
-      
-      mSymbolicFormulaManager = pMathsatSymbolicFormulaManager;
-    }
-
-    void setInfiniteNumberOfModels() {
-      count = Integer.MAX_VALUE;
-      cubes.clear();
-      formula = amgr.makeTrue();
-    }
-    
-    @Override
-    public long getTotalTime() {
-      return totalTime;
-    }
-
-    @Override
-    public int getCount() {
-      return count;
-    }
-
-    @Override
-    public AbstractFormula getResult() {
-      if (cubes.size() > 0) {
-        buildBalancedOr();
-      }
-      return formula;
-    }
-
-    private void buildBalancedOr() {
-      cubes.add(formula);
-      while (cubes.size() > 1) {
-        AbstractFormula b1 = cubes.remove();
-        AbstractFormula b2 = cubes.remove();
-        cubes.add(amgr.makeOr(b1, b2));
-      }
-      assert(cubes.size() == 1);
-      formula = cubes.remove();
-    }
-
-    @Override
-    public void callback(long[] model) {
-      long start = System.currentTimeMillis();
-
-      // the abstraction is created simply by taking the disjunction
-      // of all the models found by msat_all_sat, and storing them
-      // in a BDD
-      // first, let's create the BDD corresponding to the model
-      Deque<AbstractFormula> curCube = new ArrayDeque<AbstractFormula>(model.length + 1);
-      AbstractFormula m = amgr.makeTrue();
-      for (long t : model) {
-        AbstractFormula v;
-        if (msat_term_is_not(t) != 0) {
-          t = msat_term_get_arg(t, 0);
-          v = fmgr.getPredicate(mSymbolicFormulaManager.encapsulate(t)).getFormula();
-          v = amgr.makeNot(v);
-        } else {
-          v = fmgr.getPredicate(mSymbolicFormulaManager.encapsulate(t)).getFormula();
-        }
-        curCube.add(v);
-      }
-      // now, add the model to the bdd
-      curCube.add(m);
-      while (curCube.size() > 1) {
-        AbstractFormula v1 = curCube.remove();
-        AbstractFormula v2 = curCube.remove();
-        curCube.add(amgr.makeAnd(v1, v2));
-      }
-      assert(curCube.size() == 1);
-      m = curCube.remove();
-      cubes.add(m);
-
-      count++;
-
-      long end = System.currentTimeMillis();
-      totalTime += (end - start);
-    }
   }
 }

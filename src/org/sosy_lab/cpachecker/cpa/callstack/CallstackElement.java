@@ -29,16 +29,22 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 
-class CallstackElement implements AbstractElement, Partitionable {
+public class CallstackElement implements AbstractElement, Partitionable {
   
   private final CallstackElement previousElement;
   private final String currentFunction;
   private final CFANode callerNode;
+  private final int depth;
   
   public CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
     this.previousElement = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
+    if (previousElement == null) {
+      depth = 1;
+    } else {
+      depth = previousElement.getDepth() + 1;
+    }
   }
   
   public CallstackElement getPreviousElement() {
@@ -53,6 +59,10 @@ class CallstackElement implements AbstractElement, Partitionable {
     return callerNode;
   }
   
+  public int getDepth() {
+    return depth;
+  }
+  
   @Override
   public Object getPartitionKey() {
     return this;
@@ -62,9 +72,27 @@ class CallstackElement implements AbstractElement, Partitionable {
   public String toString() {
     return "Function " + getCurrentFunction()
          + " called from node " + getCallNode()
+         + ", stack depth " + getDepth()
          + " [" + Integer.toHexString(super.hashCode()) + "]";
   }
   
-  // no equals and hashCode because each instance represents a unique abstract state!
-  
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (!(obj instanceof CallstackElement)) {
+      return false;
+    }
+
+    CallstackElement other = (CallstackElement)obj;
+    return (this.previousElement == other.previousElement)
+        && (this.currentFunction.equals(other.currentFunction))
+        && (this.callerNode.equals(other.callerNode));
+  }
+
+  @Override
+  public int hashCode() {
+    return callerNode.hashCode();
+  }  
 }

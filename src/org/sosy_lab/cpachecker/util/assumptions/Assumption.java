@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
@@ -46,7 +45,7 @@ public class Assumption {
   private final SymbolicFormula dischargeableAssumption;
   private final SymbolicFormula otherAssumption;
 
-  public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
+  private Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
   {
     dischargeableAssumption = dischargeable;
     otherAssumption = rest;
@@ -85,16 +84,16 @@ public class Assumption {
    * Conjunct this invariant with an other invariant and
    * return the result
    */
-  public Assumption and(Assumption other)
+  Assumption and(Assumption other)
   {
     // shortcut
     if (this == TRUE)
       return other;
     else if (other == TRUE)
       return this;
-
+    
     SymbolicFormula newDischargeable = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
-    SymbolicFormula newOther = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
+    SymbolicFormula newOther = manager.makeAnd(otherAssumption, other.otherAssumption);
     return new Assumption(newDischargeable, newOther);
   }
 
@@ -107,7 +106,7 @@ public class Assumption {
       return true;
     else
       return dischargeableAssumption.isTrue()
-          && otherAssumption.isTrue();
+      && otherAssumption.isTrue();
   }
 
   public boolean isFalse() {
@@ -117,18 +116,30 @@ public class Assumption {
       return false;
     else
       return dischargeableAssumption.isFalse()
-          || otherAssumption.isFalse();
+      || otherAssumption.isFalse();
   }
-
-  /**
-   * Return an assumption with location for the given
-   * location
-   */
-  public AssumptionWithLocation atLocation(CFANode node)
-  {
-    if (isTrue())
-      return AssumptionWithLocation.TRUE;
-    else
-      return new AssumptionWithSingleLocation(node, this);
+  
+  @Override
+  public String toString() {
+    return "Formula: " + dischargeableAssumption;
   }
+  
+  @Override
+  public int hashCode() {
+    return (31 + dischargeableAssumption.hashCode()) * 31 + otherAssumption.hashCode();
+  }  
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    } else if (!(obj instanceof Assumption)) {
+      return false;
+    } else {
+      Assumption other = (Assumption)obj;
+      return dischargeableAssumption.equals(other.dischargeableAssumption) && 
+              otherAssumption.equals(other.otherAssumption);
+    }
+  }
+  
 }

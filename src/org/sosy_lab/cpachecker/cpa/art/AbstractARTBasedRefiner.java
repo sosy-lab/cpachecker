@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -46,13 +45,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 public abstract class AbstractARTBasedRefiner implements Refiner {
 
   private final ARTCPA mArtCpa;
   private final LogManager logger;
-
-  private final Set<Path> seenCounterexamples = Sets.newHashSet();
 
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     if (!(pCpa instanceof ARTCPA)) {
@@ -97,9 +95,19 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
 
-    assert seenCounterexamples.add(path);
-
-    boolean result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+    boolean result;
+    try {
+      result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+    } catch (RefinementFailedException e) {
+      if (e.getErrorPath() == null) {
+        e.setErrorPath(path);
+      }
+      
+      // set the path from the exception as the target path
+      // so it can be used for debugging
+      mArtCpa.setTargetPath(e.getErrorPath());
+      throw e;
+    }
 
     assert checkART(pReached);
 

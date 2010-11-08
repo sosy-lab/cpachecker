@@ -36,13 +36,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -80,9 +78,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
   private String whichItpProver = "MATHSAT";
 
-  @Option
-  private boolean symbolicCoverageCheck = false; 
-
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
   
@@ -99,11 +94,13 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
+  private final SymbPredAbsPrecisionAdjustment prec;
   private final StopOperator stop;
   private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
+  private final AbstractElement topElement;
 
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -139,10 +136,14 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       throw new InternalError("Update list of allowed solvers!");
     }
     formulaManager = new SymbPredAbsFormulaManagerImpl<Integer, Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
-    domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
+    
+    topElement = new SymbPredAbsAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstraction(null));    
+    domain = new SymbPredAbsAbstractDomain(this);
+    
     merge = new SymbPredAbsMergeOperator(this);
-    stop = new StopSepOperator(domain.getPartialOrder());
+    prec = new SymbPredAbsPrecisionAdjustment(this);
+    stop = new StopSepOperator(domain);
     
     Collection<Predicate> predicates = null;
     if (predicatesFile != null) {
@@ -170,7 +171,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     initialPrecision = new SymbPredAbsPrecision(predicates);
 
-    stats = new SymbPredAbsCPAStatistics(this);
+    stats = new SymbPredAbsCPAStatistics(this, domain);
   }
 
   @Override
@@ -211,9 +212,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return new SymbPredAbsAbstractElement(true,
-        formulaManager.makeEmptyPathFormula(),
-        formulaManager.makeTrueAbstraction(null));
+    return topElement;
   }
 
   @Override
@@ -222,12 +221,16 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+  public SymbPredAbsPrecisionAdjustment getPrecisionAdjustment() {
+    return prec;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+  
+  SymbPredAbsCPAStatistics getStats() {
+    return stats;
   }
 }

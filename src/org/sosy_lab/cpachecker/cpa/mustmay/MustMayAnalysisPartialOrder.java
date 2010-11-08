@@ -23,24 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MustMayAnalysisPartialOrder implements PartialOrder {
+public class MustMayAnalysisPartialOrder {
 
-  PartialOrder mMustPartialOrder;
-  PartialOrder mMayPartialOrder;
+  AbstractDomain mMustDomain;
+  AbstractDomain mMayDomain;
 
-  public MustMayAnalysisPartialOrder(PartialOrder pMustPartialOrder, PartialOrder pMayPartialOrder) {
-    assert(pMustPartialOrder != null);
-    assert(pMayPartialOrder != null);
+  public MustMayAnalysisPartialOrder(AbstractDomain pMustDomain, AbstractDomain pMayDomain) {
+    assert(pMustDomain != null);
+    assert(pMayDomain != null);
 
-    mMustPartialOrder = pMustPartialOrder;
-    mMayPartialOrder = pMayPartialOrder;
+    mMustDomain = pMustDomain;
+    mMayDomain = pMayDomain;
   }
 
-  @Override
   public boolean satisfiesPartialOrder(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     assert(pElement1 != null);
@@ -52,7 +51,17 @@ public class MustMayAnalysisPartialOrder implements PartialOrder {
     MustMayAnalysisElement lElement1 = (MustMayAnalysisElement)pElement1;
     MustMayAnalysisElement lElement2 = (MustMayAnalysisElement)pElement2;
 
-    return (mMustPartialOrder.satisfiesPartialOrder(lElement1.getMustElement(), lElement2.getMustElement()) && mMayPartialOrder.satisfiesPartialOrder(lElement1.getMayElement(), lElement2.getMayElement()));
+    boolean mustSatisfies;
+    if (lElement1.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      mustSatisfies = true;
+    } else if (lElement2.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      mustSatisfies = false;
+    } else {
+      mustSatisfies = mMustDomain.satisfiesPartialOrder(lElement1.getMustElement(), lElement2.getMustElement());
+    }
+    
+    boolean maySatisfies = mMayDomain.satisfiesPartialOrder(lElement1.getMayElement(), lElement2.getMayElement()); 
+    return (mustSatisfies && maySatisfies);
   }
 
 }

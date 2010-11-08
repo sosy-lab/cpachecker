@@ -26,18 +26,21 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 
 /**
  * Perform a (very) simple cone-of-influence reduction on the given CFA.
  * That is, get rid of all the nodes/edges that are not reachable from the
- * error location(s).
+ * error location(s) and assert(s).
  *
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
@@ -46,15 +49,43 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  */
 public class CFAReduction {
 
-  public CFAReduction() {}
-
+  private static final String ASSERT_FUNCTION = "__assert_fail";
+  private static final String ERROR_LABEL = "error";
+  
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
     Map<CFANode, Integer> dfsMap = new HashMap<CFANode, Integer>();
     Map<CFANode, Integer> dfsMapFromError = new HashMap<CFANode, Integer>();
+    Set<CFANode> errorNodes = new HashSet<CFANode>();
+    
     dfs(cfa, dfsMap, false);
     for (CFANode n : dfsMap.keySet()) {
-      if (n instanceof CFAErrorNode) {
+      if (dfsMapFromError.containsKey(n)) {
+        // this node has already been determined to be necessary
+        continue;
+      }
+      
+      boolean errorLocation = false;
+      // first, check for label "ERROR"
+      if (n instanceof CFALabelNode) {
+        CFALabelNode l = (CFALabelNode)n;
+        errorLocation = l.getLabel().toLowerCase().startsWith(ERROR_LABEL);
+      }
+      
+      // second, check for assert
+      if (!errorLocation) {
+        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
+          CFAEdge e = n.getEnteringEdge(i);
+          if ((e.getEdgeType() == CFAEdgeType.StatementEdge)
+              && (e.getRawStatement().trim().startsWith(ASSERT_FUNCTION))) {
+            errorLocation = true;
+            break;
+          }
+        }
+      }
+      
+      if (errorLocation) {
         dfs(n, dfsMapFromError, true);
+        errorNodes.add(n);
       }
     }
     // now detach all the nodes not visited
@@ -64,7 +95,8 @@ public class CFAReduction {
         while (n.getNumEnteringEdges() > edgeIndex) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
-          if(!(prevNode instanceof CFAErrorNode)){
+          if(!(errorNodes.contains(prevNode))) {
+            // do not remove the direct successors of error nodes
             prevNode.removeLeavingEdge(removedEdge);
             n.removeEnteringEdge(removedEdge);
           } else {

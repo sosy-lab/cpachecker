@@ -32,6 +32,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,10 +56,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CEGARStatistics implements Statistics {
 
-    private long totalTime = 0;
-    private long refinementTime = 0;
-    private long gcTime = 0;
-
+    private Timer totalTimer = new Timer();
+    private Timer refinementTimer = new Timer();
+    private Timer gcTimer = new Timer();
+    
     private int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
 
@@ -75,15 +76,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       if (countRefinements > 0) {
         out.println("");
-        out.println("Total time for CEGAR algorithm: " + toTime(totalTime));
-        out.println("Time for refinements:           " + toTime(refinementTime));
-        out.println("Average time for refinement:    " + toTime(refinementTime/countRefinements));
-        out.println("Time for garbage collection:    " + toTime(gcTime));
+        out.println("Total time for CEGAR algorithm: " + totalTimer);
+        out.println("Time for refinements:           " + refinementTimer);
+        out.println("Average time for refinement:    " + refinementTimer.printAvgTime());
+        out.println("Max time for refinement:        " + refinementTimer.printMaxTime());
+        out.println("Time for garbage collection:    " + gcTimer);
       }
-    }
-
-    private String toTime(long timeMillis) {
-      return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }
   }
 
@@ -159,7 +157,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void run(ReachedSet reached) throws CPAException {
-    long start = System.currentTimeMillis();
+    stats.totalTimer.start();
 
     boolean stopAnalysis = false;
     while (!stopAnalysis) {
@@ -174,10 +172,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
 
-        long startRefinement = System.currentTimeMillis();
+        stats.refinementTimer.start();
         boolean refinementResult = mRefiner.performRefinement(reached);
-        stats.refinementTime += (System.currentTimeMillis() - startRefinement);
-
+        stats.refinementTimer.stop();
+        
         if (refinementResult) {
           // successful refinement
 
@@ -203,21 +201,20 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       } else {
         // no error
-        System.out.println("ERROR label NOT reached");
         stopAnalysis = true;
       }
     }
     executor.shutdownNow();
 
-    stats.totalTime += (System.currentTimeMillis() - start);
+    stats.totalTimer.stop();
   }
 
   private void runGC() {
     if ((++gcCounter % GC_PERIOD) == 0) {
-      long start = System.currentTimeMillis();
+      stats.gcTimer.start();
       System.gc();
       gcCounter = 0;
-      stats.gcTime += (System.currentTimeMillis() - start);
+      stats.gcTimer.stop();
     }
   }
 
@@ -228,10 +225,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
+    pStatsCollection.add(stats);
   }
 
 }
