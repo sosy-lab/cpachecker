@@ -129,7 +129,7 @@ public class MathsatTheoremProver implements TheoremProver {
    * callback used to build the predicate abstraction of a formula
    * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
    */
-  static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
+  public static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final FormulaManager fmgr;
     private final AbstractFormulaManager amgr;
     
@@ -139,13 +139,13 @@ public class MathsatTheoremProver implements TheoremProver {
     private AbstractFormula formula;
     private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
 
-    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
+    public MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
       this.fmgr = fmgr;
       this.amgr = amgr;
       this.formula = amgr.makeFalse();
     }
 
-    void setInfiniteNumberOfModels() {
+    public void setInfiniteNumberOfModels() {
       count = Integer.MAX_VALUE;
       cubes.clear();
       formula = amgr.makeTrue();
