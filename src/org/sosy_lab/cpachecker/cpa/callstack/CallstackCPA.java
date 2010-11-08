@@ -25,22 +25,14 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 public class CallstackCPA extends AbstractCPA {
-
-  private static class CallstackCPAFactory extends AbstractCPAFactory {
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new CallstackCPA();
-    }    
-  }
   
   public static CPAFactory factory() {
-    return new CallstackCPAFactory();
+    return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
   
   public CallstackCPA() {

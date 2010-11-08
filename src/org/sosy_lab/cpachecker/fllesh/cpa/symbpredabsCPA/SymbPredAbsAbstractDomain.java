@@ -42,7 +42,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   private final SymbPredAbsFormulaManager mgr;
   
   private final boolean symbolicCoverageCheck;
-
+  
   public SymbPredAbsAbstractDomain(AbstractFormulaManager pAbstractFormulaManager,
         SymbPredAbsFormulaManager pMgr, boolean pSymbolicCoverageCheck) {
     mAbstractFormulaManager = pAbstractFormulaManager;
@@ -50,24 +50,11 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     symbolicCoverageCheck = pSymbolicCoverageCheck;
   }
 
-  private final static class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
-    @Override
-    public String toString() {
-      return "<BOTTOM>";
-    }
-  }
-  private final static class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
-    @Override
-    public String toString() {
-      return "<TOP>";
-    }
-  }
-
   private final static class SymbPredAbsJoinOperator implements JoinOperator {
     @Override
-    public AbstractElement join(AbstractElement element1,
+    public SymbPredAbsTopElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
-      return top;
+      return SymbPredAbsTopElement.INSTANCE;
     }
   }
 
@@ -75,62 +62,57 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     @Override
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2) throws CPAException {
-      SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
-      SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;
-
-      // TODO time statistics (previously in formula manager)
-      /*
-    long start = System.currentTimeMillis();
-    entails(f1, f2);
-    long end = System.currentTimeMillis();
-    stats.bddCoverageCheckMaxTime = Math.max(stats.bddCoverageCheckMaxTime,
-        (end - start));
-    stats.bddCoverageCheckTime += (end - start);
-    ++stats.numCoverageChecks;
-       */
-
-      if (e1 == bottom) {
+      
+      if (element1 == SymbPredAbsBottomElement.INSTANCE) {
         return true;
-      } else if (e2 == top) {
+      } else if (element2 == SymbPredAbsTopElement.INSTANCE) {
         return true;
-      } else if (e2 == bottom) {
+      } else if (element2 == SymbPredAbsBottomElement.INSTANCE) {
         // we should not put this in the reached set
-        assert(false);
-        return false;
-      } else if (e1 == top) {
+        throw new RuntimeException();
+      } else if (element1 == SymbPredAbsTopElement.INSTANCE) {
         return false;
       }
 
-      if (e1.isAbstractionNode() && e2.isAbstractionNode()) {
+      if (element1 instanceof AbstractionElement && element2 instanceof AbstractionElement) {
+        AbstractionElement lElement1 = (AbstractionElement)element1;
+        AbstractionElement lElement2 = (AbstractionElement)element2;
+        
         // if e1's predicate abstraction entails e2's pred. abst.
-        return mAbstractFormulaManager.entails(e1.getAbstraction(), e2.getAbstraction());
-
-      } else if (e2.isAbstractionNode()) {
+        return mAbstractFormulaManager.entails(lElement1.getAbstractionFormula(), lElement2.getAbstractionFormula());
+      }
+      else if (element2 instanceof AbstractionElement) {
         if (symbolicCoverageCheck) {
-          return mgr.checkCoverage(e1.getAbstraction(), e1.getPathFormula(), e2.getAbstraction());
+          NonabstractionElement e1 = (NonabstractionElement)element1;
+          AbstractionElement e2 = (AbstractionElement)element2;
+          
+          return mgr.checkCoverage(e1.getAbstractionElement().getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
         
         } else {
           return false; 
         }
-        
-      } else if (e1.isAbstractionNode()) {
+      }
+      else if (element1 instanceof AbstractionElement) {
         return false;
+      }
+      else {
+        if (element2 instanceof MergedElement) {
+          MergedElement lMergedElement = (MergedElement)element2;
+          
+          return (lMergedElement.getMergesInto() == element1);
+        }
         
-      } else {
-        // only the fast check which returns true if a merge occurred for this element
-        return e1.getMergedInto() == e2;
+        return false;
       }
     }
   }
 
-  private final static SymbPredAbsBottomElement bottom = new SymbPredAbsBottomElement();
-  private final static SymbPredAbsTopElement top = new SymbPredAbsTopElement();
   private final static JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
   @Override
-  public SymbPredAbsAbstractElement getBottomElement() {
-    return bottom;
+  public SymbPredAbsBottomElement getBottomElement() {
+    return SymbPredAbsBottomElement.INSTANCE;
   }
 
   @Override
@@ -144,7 +126,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement getTopElement() {
-    return top;
+  public SymbPredAbsTopElement getTopElement() {
+    return SymbPredAbsTopElement.INSTANCE;
   }
 }

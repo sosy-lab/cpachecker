@@ -23,37 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.bdd;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
  *
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
- *
- * TODO perhaps introduce caching for BDD -> BDDAbstractFormulas
  */
-@Options
 public class BDDAbstractFormulaManager implements AbstractFormulaManager {
-
-  @Option(name="cpas.symbpredabs.mathsat.useCache")
-  private boolean useCache = true;
-
-  private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
 
   // static because init() may be called only once!
   private static final String BDD_PACKAGE = "cudd";
@@ -68,11 +51,6 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
     factory.setVarNum(varcount);
   }
 
-  public BDDAbstractFormulaManager(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
-    entailsCache = useCache ? new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>() : null;
-  }
-
   private static BDD createNewVar() {
     if (nextvar >= varcount) {
       varcount *= 1.5;
@@ -83,26 +61,18 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
     return ret;
   }
 
+  private static AbstractFormulaManager instance = new BDDAbstractFormulaManager();
+  
+  public static AbstractFormulaManager getInstance() { return instance; }
+  
   @Override
   public boolean entails(AbstractFormula pF1, AbstractFormula pF2) {
       // check entailment using BDDs: create the BDD representing
       // the implication, and check that it is the TRUE formula
-      Pair<AbstractFormula, AbstractFormula> key = null;
-      if (useCache) {
-          key = new Pair<AbstractFormula, AbstractFormula>(pF1, pF2);
-          if (entailsCache.containsKey(key)) {
-              return entailsCache.get(key);
-          }
-      }
       BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
       BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
       BDD imp = f1.getBDD().imp(f2.getBDD());
-      boolean yes = imp.isOne();
-      if (useCache) {
-          assert(key != null);
-          entailsCache.put(key, yes);
-      }
-      return yes;
+      return imp.isOne();
   }
 
   @Override
@@ -144,21 +114,20 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   }
 
   @Override
-  public Predicate createPredicate() {
+  public AbstractFormula createPredicate() {
     BDD bddVar = createNewVar();
 
-    return new BDDPredicate(bddVar);
+    return new BDDAbstractFormula(bddVar);
   }
 
   @Override
-  public Triple<Predicate, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
-    BDDAbstractFormula f = (BDDAbstractFormula)pF;
+  public Triple<AbstractFormula, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
+    BDD f = ((BDDAbstractFormula)pF).getBDD();
 
-    int varIndex = f.getBDD().var();
-    BDDPredicate predicate = new BDDPredicate(factory.ithVar(varIndex));
-    BDDAbstractFormula fThen = new BDDAbstractFormula(f.getBDD().high());
-    BDDAbstractFormula fElse = new BDDAbstractFormula(f.getBDD().low());
+    BDDAbstractFormula predicate = new BDDAbstractFormula(factory.ithVar(f.var()));
+    BDDAbstractFormula fThen = new BDDAbstractFormula(f.high());
+    BDDAbstractFormula fElse = new BDDAbstractFormula(f.low());
 
-    return new Triple<Predicate, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
+    return new Triple<AbstractFormula, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
   }
 }

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.fllesh.ecp.translators;
 
 import java.io.File;
-import java.util.Set;
+import java.util.Collection;
 
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
@@ -77,7 +77,7 @@ public class ToGuardedAutomatonTranslatorTest {
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -129,7 +129,7 @@ public class ToGuardedAutomatonTranslatorTest {
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -181,7 +181,7 @@ public class ToGuardedAutomatonTranslatorTest {
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -233,7 +233,7 @@ public class ToGuardedAutomatonTranslatorTest {
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -285,7 +285,7 @@ public class ToGuardedAutomatonTranslatorTest {
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
@@ -350,7 +350,7 @@ public class ToGuardedAutomatonTranslatorTest {
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();

@@ -1,7 +1,0 @@
-CSIsat
-------
-Homepage: http://www.sosy-lab.org/~dbeyer/CSIsat/
-
-Version: SVN revision 157 (2009-10-19 22:42:25 +0200)
-
-License: Apache 2.0 (see License_Apache-2.0.txt in project root directory)

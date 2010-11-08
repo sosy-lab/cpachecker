@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -37,7 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -49,19 +47,20 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Files;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -71,15 +70,8 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
-  private static class SymbPredAbsCPAFactory extends AbstractCPAFactory {
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new SymbPredAbsCPA(getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new SymbPredAbsCPAFactory();
+    return AutomaticCPAFactory.forType(SymbPredAbsCPA.class);
   }
 
   @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})
@@ -119,7 +111,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.config = config;
     this.logger = logger;
 
-    abstractFormulaManager = new BDDAbstractFormulaManager(config);
+    abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
 
     TheoremProver thmProver;
@@ -152,12 +144,15 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
     
-    Set<Predicate> predicates = null;
+    Collection<Predicate> predicates = null;
     if (predicatesFile != null) {
-      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
       try {
-        InputStream file = new FileInputStream(predicatesFile);
-        predicates = p.parsePredicates(file);
+        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
+        SymbolicFormula f = symbolicFormulaManager.parse(fileContent);
+        predicates = formulaManager.getAtomsAsPredicates(f);
+      } catch (IllegalArgumentException e) {
+        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
+            "(" + e.getMessage() + ")");
       } catch (IOException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");

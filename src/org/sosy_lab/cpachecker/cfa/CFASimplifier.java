@@ -30,8 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -183,11 +183,16 @@ public class CFASimplifier {
 		CFAEdge enteringEdge = cfa.getEnteringEdge (0);
 		if (enteringEdge.getEdgeType () == CFAEdgeType.DeclarationEdge)
 		{
-			List<IASTDeclarator[]> declarators = new ArrayList<IASTDeclarator[]> ();
+		  DeclarationEdge enteringDeclarationEdge = (DeclarationEdge)enteringEdge;
+		  if (enteringDeclarationEdge.isGlobal() != leavingDeclarationEdge.isGlobal()) {
+		    return;
+		  }
+		  
+			List<IASTSimpleDeclaration> declarations = new ArrayList<IASTSimpleDeclaration>();
 			List<String> rawStatements = new ArrayList<String> ();
 
-			declarators.add (((DeclarationEdge)enteringEdge).getDeclarators ());
-			declarators.add (leavingDeclarationEdge.getDeclarators ());
+			declarations.add(enteringDeclarationEdge.getRawAST());
+			declarations.add(leavingDeclarationEdge.getRawAST());
 
 			rawStatements.add (enteringEdge.getRawStatement ());
 			rawStatements.add (leavingDeclarationEdge.getRawStatement ());
@@ -198,15 +203,20 @@ public class CFASimplifier {
 			priorNode.removeLeavingEdge (enteringEdge);
 			afterNode.removeEnteringEdge (leavingEdge);
 
-			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge ("multi-declaration edge", enteringEdge.getLineNumber(), priorNode, afterNode, declarators, rawStatements);
+			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge("multi-declaration edge",
+			    enteringEdge.getLineNumber(), priorNode, afterNode, declarations,
+			    rawStatements, enteringDeclarationEdge.isGlobal());
 			mdEdge.addToCFA(null);
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiDeclarationEdge)
 		{
 			MultiDeclarationEdge mdEdge = (MultiDeclarationEdge) enteringEdge;
+      if (mdEdge.isGlobal() != leavingDeclarationEdge.isGlobal()) {
+        return;
+      }
 
-			List<IASTDeclarator[]> declarators = mdEdge.getDeclarators ();
-			declarators.add (leavingDeclarationEdge.getDeclarators ());
+			List<IASTSimpleDeclaration> declarations = mdEdge.getDeclarators();
+			declarations.add(leavingDeclarationEdge.getRawAST());
 
 			List<String> rawStatements = mdEdge.getRawStatements ();
 			rawStatements.add (leavingDeclarationEdge.getRawStatement ());
@@ -217,7 +227,9 @@ public class CFASimplifier {
       priorNode.removeLeavingEdge (enteringEdge);
 	    afterNode.removeEnteringEdge (leavingEdge);
 
-      MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge ("multi-declaration edge", enteringEdge.getLineNumber(), priorNode, afterNode, declarators, rawStatements);
+      MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge("multi-declaration edge",
+          enteringEdge.getLineNumber(), priorNode, afterNode, declarations,
+          rawStatements, mdEdge.isGlobal());
       newMdEdge.addToCFA(null);
 		}
 	}

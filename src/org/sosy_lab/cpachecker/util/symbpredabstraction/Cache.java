@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 /**

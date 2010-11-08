@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Throwables;
+
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -115,7 +117,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
-      Classes.throwExceptionIfPossible(t, CPAException.class);
+      Throwables.propagateIfPossible(t, CPAException.class);
       
       logger.logException(Level.FINE, t, "Unexpected exception during refiner instantiation!");
       throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during refiner instantiation (" + t.getMessage() + ")!");

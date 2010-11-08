@@ -53,8 +53,9 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ReadableSSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.CopyOnWriteSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 
 /**
@@ -82,6 +83,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   protected boolean useCache = true;
 
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
+  
+  private final SymbolicFormula mZero;
 
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -98,7 +101,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       toConcreteCache = null;
     }
     
-    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), SSAMap.emptySSAMap());
+    mEmptyPathFormula = new PathFormula(smgr.makeTrue(), UnmodifiableSSAMap.EMPTY_MAP);
+    
+    mZero = smgr.makeNumber(0);
   }
 
   /**
@@ -166,8 +171,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return The above formula.
    */
   protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
-                                                  ReadableSSAMap pSSAMap) {
-    SSAMap ssa = new SSAMap(pSSAMap); // clone ssa map because we need to change it
+                                                  UnmodifiableSSAMap pSSAMap) {
+    //SSAMap ssa = new SSAMap(pSSAMap); // clone ssa map because we need to change it
+    SSAMap ssa = new CopyOnWriteSSAMap(pSSAMap);
     
     Set<String> allvars = new HashSet<String>();
     Set<Pair<String, SymbolicFormulaList>> allfuncs = new HashSet<Pair<String, SymbolicFormulaList>>();
@@ -291,8 +297,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
-    ReadableSSAMap ssa1 = pF1.getSSAMap();
-    ReadableSSAMap ssa2 = pF2.getSSAMap();
+    UnmodifiableSSAMap ssa1 = pF1.getSSAMap();
+    UnmodifiableSSAMap ssa2 = pF2.getSSAMap();
 
     Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
@@ -303,7 +309,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa));
+    return new PathFormula(newFormula, newSsa.immutable());
   }
 
   /**
@@ -319,54 +325,143 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return A pair (SymbolicFormula, SSAMap)
    */
   private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-      ReadableSSAMap ssa1, ReadableSSAMap ssa2) {
+      UnmodifiableSSAMap ssa1, UnmodifiableSSAMap ssa2) {
+    
     SSAMap result = new SSAMap();
+    //SSAMap result = new CopyOnWriteSSAMap(ssa1);
+    
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
+    
+    // variables
+    
     for (String var : ssa1.allVariables()) {
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
-      assert(i1 > 0);
-      if (i2 > 0 && i2 != i1) {
-        // we have to merge this variable assignment
-        result.setIndex(var, Math.max(i1, i2));
-        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
-        mt1 = smgr.makeAnd(mt1, t.getFirst());
-        mt2 = smgr.makeAnd(mt2, t.getSecond());
-      } else {
+      
+      if (i1 <= 0) {
+        throw new RuntimeException();
+      }
+      
+      if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
         if (i2 <= 0) {
+          
+          for (int lIndex = 1; lIndex < i1 + 1; lIndex++) {
+            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+            SymbolicFormula lZero = mZero;
+            SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+            
+            mt2 = smgr.makeAnd(mt2, lAssignment);
+          }
+          
+          result.setIndex(NONDET_VARIABLE, i1);
+          result.setIndex(NONDET_FLAG_VARIABLE, i1);
+        }
+        else if (i1 != i2) {
+          if (i1 > i2) {
+            for (int lIndex = i2 + 1; lIndex < i1 + 1; lIndex++) {
+              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+              SymbolicFormula lZero = mZero;
+              SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+              
+              mt2 = smgr.makeAnd(mt2, lAssignment);
+            }
+            
+            result.setIndex(NONDET_VARIABLE, i1);
+            result.setIndex(NONDET_FLAG_VARIABLE, i1);
+          }
+          else {
+            for (int lIndex = i1 + 1; lIndex < i2 + 1; lIndex++) {
+              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+              SymbolicFormula lZero = mZero;
+              SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+              
+              mt1 = smgr.makeAnd(mt1, lAssignment);
+            }
+            
+            result.setIndex(NONDET_VARIABLE, i2);
+            result.setIndex(NONDET_FLAG_VARIABLE, i2);
+          }
+        }
+        else {
+          result.setIndex(NONDET_VARIABLE, i1);
+          result.setIndex(NONDET_FLAG_VARIABLE, i1);
+        }
+      }
+      else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        // we handle everything in the NONDET_VARIABLE case
+      }
+      else {
+        if (i2 > 0 && i2 != i1) {
+          // we have to merge this variable assignment
+          result.setIndex(var, Math.max(i1, i2));
+          Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
+          mt1 = smgr.makeAnd(mt1, t.getFirst());
+          mt2 = smgr.makeAnd(mt2, t.getSecond());
+        } 
+        else {
+          if (i2 <= 0) {
+            // it's not enough to set the SSA index. We *must* also
+            // generate a formula saying that the var does not change
+            // in this branch!
+            SymbolicFormula v1 = smgr.makeVariable(var, 1);
+            for (int i = 2; i <= i1; ++i) {
+              SymbolicFormula v = smgr.makeVariable(var, i);
+              SymbolicFormula e = smgr.makeEqual(v, v1);
+              mt2 = smgr.makeAnd(mt2, e);
+            }
+          }
+          result.setIndex(var, i1);
+        }
+      }
+    }
+    
+    
+    for (String var : ssa2.allVariables()) {
+      int i2 = ssa2.getIndex(var);
+      int i1 = ssa1.getIndex(var);
+      
+      if (i2 <= 0) {
+        throw new RuntimeException();
+      }
+      
+      if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+        if (i1 <= 0) {
+          
+          for (int lIndex = 1; lIndex < i2 + 1; lIndex++) {
+            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+            SymbolicFormula lZero = smgr.makeNumber(0);
+            SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
+            
+            mt1 = smgr.makeAnd(mt1, lAssignment);
+          }
+          
+          result.setIndex(NONDET_VARIABLE, i2);
+          result.setIndex(NONDET_FLAG_VARIABLE, i2);
+        }
+      }
+      else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        // we handle everything in the NONDET_VARIABLE case
+      }
+      else {
+        if (i1 <= 0) {
           // it's not enough to set the SSA index. We *must* also
           // generate a formula saying that the var does not change
           // in this branch!
           SymbolicFormula v1 = smgr.makeVariable(var, 1);
-          for (int i = 2; i <= i1; ++i) {
+          for (int i = 2; i <= i2; ++i) {
             SymbolicFormula v = smgr.makeVariable(var, i);
             SymbolicFormula e = smgr.makeEqual(v, v1);
-            mt2 = smgr.makeAnd(mt2, e);
+            mt1 = smgr.makeAnd(mt1, e);
           }
+          result.setIndex(var, i2);
+        } else {
+          assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
         }
-        result.setIndex(var, i1);
       }
     }
-    for (String var : ssa2.allVariables()) {
-      int i2 = ssa2.getIndex(var);
-      int i1 = ssa1.getIndex(var);
-      assert(i2 > 0);
-      if (i1 <= 0) {
-        // it's not enough to set the SSA index. We *must* also
-        // generate a formula saying that the var does not change
-        // in this branch!
-        SymbolicFormula v1 = smgr.makeVariable(var, 1);
-        for (int i = 2; i <= i2; ++i) {
-          SymbolicFormula v = smgr.makeVariable(var, i);
-          SymbolicFormula e = smgr.makeEqual(v, v1);
-          mt1 = smgr.makeAnd(mt1, e);
-        }
-        result.setIndex(var, i2);
-      } else {
-        assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
-      }
-    }
+    
+    // functions
 
     for (Pair<String, SymbolicFormulaList> f : ssa1.allFunctions()) {
       int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
@@ -482,7 +577,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     
     try {
-      Files.writeFile(outputFile, smgr.dumpFormula(t), false);
+      Files.writeFile(outputFile, smgr.dumpFormula(t));
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");

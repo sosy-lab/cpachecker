@@ -1017,7 +1017,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     sb.append("[<global:");
     for (String var : getGlobalPointers().keySet()) {
       sb.append(" " + var + "=" + getGlobalPointers().get(var) + " ");

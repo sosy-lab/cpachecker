@@ -24,15 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -85,60 +85,64 @@ public class SymbPredAbsCPAStatistics implements Statistics {
         }
       }
 
-      Set<Predicate> allPreds = new HashSet<Predicate>(predicates.values());
-      Collection<CFANode> allLocs = predicates.keySet();
-      int maxPredsPerLocation = 0;
-      int totPredsUsed = 0;
-
-      for (CFANode l : allLocs) {
-        Collection<Predicate> p = predicates.get(l);
-        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
-        totPredsUsed += p.size();
-      }
-      int avgPredsPerLocation = allLocs.size() > 0 ? totPredsUsed/allLocs.size() : 0;
-
       // check if/where to dump the predicate map
       if (result == Result.SAFE && export) {
-
+        TreeMap<CFANode, Collection<Predicate>> sortedPredicates
+              = new TreeMap<CFANode, Collection<Predicate>>(predicates.asMap());
+        StringBuilder sb = new StringBuilder();
+        
+        for (Entry<CFANode, Collection<Predicate>> e : sortedPredicates.entrySet()) {
+          sb.append("LOCATION: ");
+          sb.append(e.getKey());
+          sb.append('\n');
+          Joiner.on('\n').appendTo(sb, e.getValue());
+          sb.append("\n\n");
+        }
+        
         try {
-          PrintWriter pw = new PrintWriter(file);
-          pw.println("ALL PREDICATES:");
-          for (Predicate p : allPreds) {
-            Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
-            pw.format("%s ==> %s <-> %s\n", p, d.getFirst(), d.getSecond());
-          }
-
-          pw.println("\nFOR EACH LOCATION:");
-          for (CFANode l : allLocs) {
-            Collection<Predicate> c = predicates.get(l);
-            pw.println("\nLOCATION: " + l);
-            for (Predicate p : c) {
-              pw.println(p);
-            }
-          }
-          pw.flush();
-          pw.close();
-          if (pw.checkError()) {
-            cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file);
-          }
-        } catch (FileNotFoundException e) {
+          Files.writeFile(file, sb);
+        } catch (IOException e) {
           cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file,
               (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
         }
       }
 
+      int maxPredsPerLocation = 0;
+      for (Collection<Predicate> p : predicates.asMap().values()) {
+        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
+      }
+
+      int allLocs = predicates.keySet().size();
+      int totPredsUsed = predicates.size();
+      int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
+      int allDistinctPreds = (new HashSet<Predicate>(predicates.values())).size();
+
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
+      SymbPredAbsAbstractDomain d = cpa.getAbstractDomain();
 
-      out.println("Number of abstraction steps:       " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");
-      out.println("Max LBE block size:                " + trans.maxBlockSize);
-      out.println("Number of abstractions:            " + trans.numAbstractions);
-      out.println("Number of satisfiability checks:   " + trans.numSatChecks);
-      out.println("Number of refinement steps:        " + bs.numCallsCexAnalysis);
-      out.println("Number of coverage checks:         " + bs.numCoverageChecks);
+      out.println("Number of abstractions:            " + trans.numAbstractions + " (" + toPercent(trans.numAbstractions, trans.numPosts) + " of all post computations)");
+      if (trans.numAbstractions > 0) {
+        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, trans.numAbstractions) + ")");
+        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, trans.numAbstractions) + ")");
+        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, trans.numAbstractions) + ")");
+        out.println("  Times result was 'false':        " + trans.numAbstractionsFalse + " (" + toPercent(trans.numAbstractionsFalse, trans.numAbstractions) + ")");
+      }
+      if (trans.numSatChecks > 0) {
+        out.println("Number of satisfiability checks:   " + trans.numSatChecks);
+        out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.numSatChecks) + ")");
+      }
+      out.println("Number of strengthen sat checks:   " + trans.numStrengthenChecks);
+      if (trans.numStrengthenChecks > 0) {
+        out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.numStrengthenChecks) + ")");
+      }
+      out.println("Number of coverage checks:         " + d.numCoverageCheck);
+      out.println("  BDD entailment checks:           " + d.numBddCoverageCheck);
+      out.println("  Symbolic coverage check:         " + d.numSymbolicCoverageCheck);
       out.println();
-      out.println("Number of predicates discovered:          " + allPreds.size());
-      out.println("Number of abstraction locations:          " + allLocs.size());
+      out.println("Max ABE block size:                       " + trans.maxBlockSize);
+      out.println("Number of predicates discovered:          " + allDistinctPreds);
+      out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
       out.println("Max number of predicates per abstraction: " + trans.maxPredsPerAbstraction);
@@ -148,34 +152,44 @@ public class SymbPredAbsCPAStatistics implements Statistics {
         out.println("Avg number of models for allsat:          " + bs.allSatCount / bs.numCallsAbstraction);
       }
       out.println();
-      out.println("Time for merge:                " + toTime(cpa.getMergeOperator().totalMergeTime));
-      out.println("Time for abstraction post:     " + toTime(trans.abstractionTime));
-      out.println("  initial abstraction formula: " + toTime(trans.initAbstractionFormulaTime));
-      out.println("  computing abstraction:       " + toTime(trans.computingAbstractionTime));
-      out.println("    Time for All-SMT: ");
-      out.println("      Total:                   " + toTime(bs.abstractionTime));
-      out.println("      Max:                     " + toTime(bs.abstractionMaxTime));
-      out.println("      Solving time only:       " + toTime(bs.abstractionSolveTime));
-      out.println("    Time for BDD construction: ");
-      out.println("      Total:                   " + toTime(bs.abstractionBddTime));
-      out.println("      Max:                     " + toTime(bs.abstractionMaxBddTime));
-      out.println("    Time for coverage check: ");
-      out.println("      Total:                   " + toTime(bs.bddCoverageCheckTime));
-      out.println("      Max:                     " + toTime(bs.bddCoverageCheckMaxTime));
-      out.println("Time for non-abstraction post: " + toTime(trans.nonAbstractionTime));
-      out.println("Time for finding path formula: " + toTime(trans.pathFormulaTime));
-      out.println("  actual computation of PF:    " + toTime(trans.pathFormulaComputationTime));
-      out.println("Time for counterexample analysis/abstraction refinement: ");
-      out.println("  Total:                       " + toTime(bs.cexAnalysisTime));
-      out.println("  Max:                         " + toTime(bs.cexAnalysisMaxTime));
-      out.println("  Solving time only:           " + toTime(bs.cexAnalysisSolverTime));
-      if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
-        out.println("  Cex.focusing total:          " + toTime(bs.cexAnalysisGetUsefulBlocksTime));
-        out.println("  Cex.focusing max:            " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
+      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.numPosts) + ")");
+      if (bs.numCallsAbstraction > 0) {
+        out.println("Number of abstraction cache hits:    " + bs.numCallsAbstractionCached + " (" + toPercent(bs.numCallsAbstractionCached, bs.numCallsAbstraction) + ")");
+      }
+      out.println();
+      out.println("Time for post operator:              " + toTime(trans.postTime));
+      out.println("  Time for path formula creation:    " + toTime(trans.pathFormulaTime));
+      out.println("    Actual computation:              " + toTime(trans.pathFormulaComputationTime));
+      if (trans.numSatChecks > 0) {
+        out.println("  Time for satisfiability checks:    " + toTime(trans.satCheckTime));
+      }
+      out.println("  Time for abstraction:              " + toTime(trans.computingAbstractionTime));
+      out.println("    Solving time:                    " + toTime(bs.abstractionSolveTime) + " (Max: " + toTime(bs.abstractionMaxSolveTime) + ")");
+      out.println("    Time for BDD construction:       " + toTime(bs.abstractionBddTime)   + " (Max: " + toTime(bs.abstractionMaxBddTime) + ")");
+      out.println("Time for strengthen operator:        " + toTime(trans.strengthenTime));
+      out.println("  Time for satisfiability checks:    " + toTime(trans.strengthenCheckTime));        
+      out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
+      out.println("Time for coverage check:             " + toTime(d.coverageCheckTime));
+      if (d.numBddCoverageCheck > 0) {
+        out.println("  Time for BDD entailment checks:    " + toTime(d.bddCoverageCheckTime));
+      }
+      if (d.numSymbolicCoverageCheck > 0) {
+        out.println("  Time for symbolic coverage checks: " + toTime(d.bddCoverageCheckTime));
+      }
+      if (bs.numCallsCexAnalysis > 0) {
+        out.println("Time for counterexample analysis:    " + toTime(bs.cexAnalysisTime) + " (Max: " + toTime(bs.cexAnalysisMaxTime) + ")");
+        out.println("  Solving time only:                 " + toTime(bs.cexAnalysisSolverTime) + " (Max: " + toTime(bs.cexAnalysisMaxSolverTime) + ")");
+        if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
+          out.println("  Cex.focusing:                " + toTime(bs.cexAnalysisGetUsefulBlocksTime) + " (Max: " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime) + ")");
+        }
       }
     }
 
     private String toTime(long timeMillis) {
       return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    }
+    
+    private String toPercent(double val, double full) {
+      return String.format("%1.0f", val/full*100) + "%";
     }
 }

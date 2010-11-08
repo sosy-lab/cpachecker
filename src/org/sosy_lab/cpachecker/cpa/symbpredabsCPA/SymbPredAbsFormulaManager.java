@@ -25,14 +25,16 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 
 /**
@@ -68,4 +70,9 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * Checks if (a1 & p1) => a2
      */
     boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2);
+
+    /**
+     * Create predicates for all atoms in a formula.
+     */
+    List<Predicate> getAtomsAsPredicates(SymbolicFormula pF);
 }

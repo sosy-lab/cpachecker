@@ -32,38 +32,7 @@ import java.lang.reflect.InvocationTargetException;
 public final class Classes {
 
   private Classes() { }
-  
-  /**
-   * This method is thought to make handling of exceptions with wrapped exceptions
-   * (like InvocationTargetException) easier. If it is possible to throw the
-   * passed exception (which should be the cause of the wrapper exception), it
-   * throws it.
-   * Normally one type of exception is expected. This type has to be passed to
-   * this method. Exceptions of this type are thrown in a type-safe way.
-   * 
-   * If the passed exception is a checked exception, but not of the passed type,
-   * it is not possible to throw it. Then this method does nothing and returns
-   * normally. The caller should not ignore this, but handle it himself.
-   * 
-   * @param <T> The type of (checked) exception that the caller expects.
-   * @param t The exception to handle (normally a cause of another exception). 
-   * @param c The class for T.
-   * @throws Error If t is an Error, it is thrown.
-   * @throws RuntimeException If t is a RuntimeException, it is thrown. 
-   * @throws T If t is a T exception, it is thrown.
-   */
-  public static <T extends Throwable> void throwExceptionIfPossible(Throwable t, Class<T> c) throws T {
-    if (t instanceof Error) {
-      throw (Error)t;
-    
-    } else if (t instanceof RuntimeException) {
-      throw (RuntimeException)t;
-    
-    } else if (c.isAssignableFrom(t.getClass())) {
-      throw c.cast(t);
-    }
-  }
-  
+
   /**
    * Exception thrown by {@link Classes#createInstance(String, String, Class[], Object[], Class)}.
    */

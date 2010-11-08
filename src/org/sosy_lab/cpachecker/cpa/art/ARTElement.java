@@ -116,7 +116,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     if (destroyed) {
       sb.append("Destroyed ");
     }

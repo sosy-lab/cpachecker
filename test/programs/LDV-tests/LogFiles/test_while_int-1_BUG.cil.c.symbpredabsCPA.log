@@ -1,0 +1,78 @@
+Starting analysis... (CPAchecker.runAlgorithm, INFO)
+
+Line 38: Assuming external function to be a pure function: __assert_fail (CtoFormulaConverter.makeExternalFunctionCall, INFO)
+
+Analysis finished. (CPAchecker.runAlgorithm, INFO)
+
+
+CPAchecker general statistics:
+------------------------------
+Size of reached set: 41
+Total Time Elapsed:     0.075s
+Total Time Elapsed including CFA construction:     0.421s
+
+Summary Predicate Abstraction CPA
+---------------------------------
+Number of abstractions:            6 (8% of all post computations)
+  Times result was 'false':        0 (0%)
+Number of strengthen sat checks:   6
+  Times result was 'false':        3 (50%)
+Number of coverage checks:         0
+  BDD entailment checks:           4
+  Symbolic coverage check:         0
+
+Max ABE block size:                       4
+Number of predicates discovered:          2
+Number of abstraction locations:          1
+Max number of predicates per location:    2
+Avg number of predicates per location:    2
+Max number of predicates per abstraction: 2
+Total number of models for allsat:        10
+Max number of models for allsat:          3
+Avg number of models for allsat:          1
+
+Number of path formula cache hits:   34 (45%)
+Number of abstraction cache hits:    0 (0%)
+
+Time for post operator:                  0.024s
+  Time for path formula creation:        0.016s
+    Actual computation:                  0.014s
+  Time for abstraction:                  0.007s
+    Solving time:                        0.004s (Max:     0.002s)
+    Time for BDD construction:           0.001s (Max:     0.001s)
+Time for strengthen operator:            0.004s
+  Time for satisfiability checks:        0.004s
+Time for merge operator:                 0.000s
+Time for coverage check:                 0.000s
+  Time for BDD entailment checks:        0.000s
+Time for counterexample analysis:        0.012s (Max:     0.007s)
+  Solving time only:                     0.002s (Max:     0.001s)
+
+CEGAR algorithm
+---------------
+Number of refinements:          3 (2 successful)
+
+Total time for CEGAR algorithm:     0.075s
+Time for refinements:               0.025s
+Average time for refinement:        0.008s
+Time for garbage collection:        0.000s
+
+CPA algorithm
+-------------
+Number of iterations:            70
+Average size of waitlist:        1
+Number of computed successors:   73
+Max successors for one element:  2
+Unreachable elements after prec: 0
+Number of times merged:          0
+Number of times stopped:         0
+Number of times breaked:         3
+
+Total time for CPA algorithm:       0.050s
+Time for choose from waitlist:      0.001s
+Time for precision adjustment:      0.005s
+Time for transfer relation:         0.037s
+Time for merge operator:            0.001s
+Time for stop operator:             0.002s
+
+Error location(s) reached? YES, there is a BUG!

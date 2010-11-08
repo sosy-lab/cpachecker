@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -49,16 +49,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpas.explicit")
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
-  private static class ExplicitAnalysisCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new ExplicitAnalysisCPA(getConfiguration());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new ExplicitAnalysisCPAFactory();
+    return AutomaticCPAFactory.forType(ExplicitAnalysisCPA.class);
   }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})

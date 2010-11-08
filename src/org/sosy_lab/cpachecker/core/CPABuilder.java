@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 @Options
@@ -186,7 +187,7 @@ public class CPABuilder {
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
-      Classes.throwExceptionIfPossible(cause, CPAException.class);
+      Throwables.propagateIfPossible(cause, CPAException.class);
       
       logger.logException(Level.FINE, cause, "CPA factory methods should never throw an exception!");
       throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
@@ -213,8 +214,9 @@ public class CPABuilder {
             + childOptionName + " and " + childrenOptionName + " are specified!");
       }
 
+      ConfigurableProgramAnalysis child = buildCPAs(childCpaName, childOptionName, usedAliases, cpas);
       try {
-        factory.setChild(buildCPAs(childCpaName, childOptionName, usedAliases, cpas));
+        factory.setChild(child);
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!");
       }

@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.CopyOnWriteSSAMap;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.SSAMap;
 
 /**
@@ -104,12 +105,11 @@ public class CtoFormulaConverter {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  private static final String NONDET_VARIABLE = "__nondet__";
+  public static final String NONDET_VARIABLE = "__nondet__";
+  public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
-
-  private int nondetCounter = 0;
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -119,14 +119,17 @@ public class CtoFormulaConverter {
   protected final SymbolicFormulaManager smgr;
   protected final LogManager logger;
   
+  private final SymbolicFormula mOne;
+  
   public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
     this.smgr = smgr;
     this.logger = logger;
+    
+    mOne = smgr.makeNumber(1);
   }
   
-
   private void warnUnsafeVar(IASTExpression exp) {
     log(Level.WARNING, "Unhandled expression treated as free variable", exp);
   }
@@ -220,35 +223,43 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  /**
-   * Produces a fresh new SSA index for the left-hand side of an assignment
-   * and updates the SSA map.
-   */
-  private int makeLvalIndex(String name, SymbolicFormulaList args, SSAMap ssa) {
-    int idx = ssa.getIndex(name, args);
-    if (idx > 0) {
-      idx = idx+1;
-    } else {
-      idx = 2; // AG - IMPORTANT!!! We must start from 2 and
-      // not from 1, because this is an assignment,
-      // so the SSA index must be fresh. If we use 1
-      // here, we will have troubles later when
-      // shifting indices
+  private SymbolicFormula makeNondetVariable(SSAMap pSSAMap) {
+    int lIndex = pSSAMap.getIndex(NONDET_VARIABLE);
+    
+    if (lIndex < 0) {
+      lIndex = 1;
     }
-    ssa.setIndex(name, args, idx);
-    return idx;
+    
+    lIndex++;
+    
+    // We have to keep nondet variable and its flag in sync.
+    pSSAMap.setIndex(NONDET_VARIABLE, lIndex);
+    pSSAMap.setIndex(NONDET_FLAG_VARIABLE, lIndex);
+    
+    return smgr.makeVariable(NONDET_VARIABLE, lIndex);
+  }
+  
+  /*
+   * This method has to be called after makeNondetVariable
+   */
+  private SymbolicFormula makeNondetFlagVariable(SSAMap pSSAMap) {
+    int lIndex = pSSAMap.getIndex(NONDET_FLAG_VARIABLE);
+    
+    if (lIndex < 0) {
+      throw new RuntimeException();
+    }
+    
+    return smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
   }
   
   private SymbolicFormula makeVariable(String var, String function, SSAMap ssa) {
-    int idx;
     if (isNondetVariable(var)) {
-      // on every read access to special non-determininism variable, increase index
-      var = NONDET_VARIABLE;
-      idx = nondetCounter++;
-    } else {
-      var = scoped(var, function);
-      idx = getIndex(var, ssa);
+      throw new RuntimeException();
     }
+    
+    var = scoped(var, function);
+    int idx = getIndex(var, ssa);
+    
     return smgr.makeVariable(var, idx);
   }
 
@@ -271,7 +282,8 @@ public class CtoFormulaConverter {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     // copy SSAMap in all cases to ensure we never modify the old SSAMap accidentally
-    SSAMap ssa = new SSAMap(pCurrentPathFormula.getSSAMap());
+    //SSAMap ssa = new SSAMap(pCurrentPathFormula.getSSAMap());
+    SSAMap ssa = new CopyOnWriteSSAMap(pCurrentPathFormula.getSSAMap());
     
     if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
       // function start
@@ -331,7 +343,7 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    return new PathFormula(f, SSAMap.unmodifiableSSAMap(ssa));
+    return new PathFormula(f, ssa.immutable());
   }
 
   private SymbolicFormula makeAndDeclaration(SymbolicFormula m1,
@@ -593,7 +605,44 @@ public class CtoFormulaConverter {
       String function, SSAMap ssa) throws CPATransferException {
     IASTExpression expr = stmt.getExpression();
 
-    SymbolicFormula f2 = buildTerm(expr, function, ssa);
+    SymbolicFormula f2 = null;
+    
+    // check for nondet special case
+    if (expr instanceof IASTBinaryExpression) {
+      IASTBinaryExpression lBinaryExpression = (IASTBinaryExpression)expr;
+      
+      if (lBinaryExpression.getOperator() == IASTBinaryExpression.op_assign) {
+        IASTExpression lOperand1Expression = ((IASTBinaryExpression)expr).getOperand1();
+        IASTExpression lOperand2Expression = ((IASTBinaryExpression)expr).getOperand2();
+        
+        if (lOperand1Expression instanceof IASTIdExpression 
+            && lOperand2Expression instanceof IASTIdExpression) {
+          IASTIdExpression lRVariable = (IASTIdExpression)lOperand2Expression;
+          String lRVariableName = lRVariable.getName().getRawSignature();
+          
+          if (isNondetVariable(lRVariableName)) {
+            // special case handling
+            
+            SymbolicFormula lNondetVariable = makeNondetVariable(ssa);
+            SymbolicFormula lLValueVariable = buildsatLvalueTerm(lOperand1Expression, function, ssa);
+            
+            f2 = smgr.makeAssignment(lLValueVariable, lNondetVariable);
+            
+            // TODO store lOne only once
+            SymbolicFormula lNondetFlagVariable = makeNondetFlagVariable(ssa);
+            SymbolicFormula lOne = mOne;
+            
+            SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lOne);
+            
+            f2 = smgr.makeAnd(f2, lAssignment);
+          }
+        }
+      }
+    }
+    
+    if (f2 == null) {
+      f2 = buildTerm(expr, function, ssa);
+    }
 
     //SymbolicFormula d = mathsat.api.msat_term_get_decl(f2);
     //if (mathsat.api.msat_decl_get_return_type(d) != mathsat.api.MSAT_BOOL) {
@@ -937,83 +986,22 @@ public class CtoFormulaConverter {
     throw new UnrecognizedCCodeException("Unknown expression", null, exp);
   }
 
-  private SymbolicFormula buildsatLvalueTerm(IASTExpression exp,
-        String function, SSAMap ssa) throws UnrecognizedCCodeException {
-    if (exp instanceof IASTIdExpression || !lvalsAsUif) {
-      String var;
-      if (exp instanceof IASTIdExpression) {
-        var = ((IASTIdExpression)exp).getName().getRawSignature();
-      } else {
-        var = exprToVarName(exp);
-      }
-      if (isNondetVariable(var)) {
-        logger.log(Level.WARNING, "Assignment to special non-determinism variable",
-            exp.getRawSignature(), "will be ignored.");
-      }
-      var = scoped(var, function);
-      int idx = makeLvalIndex(var, ssa);
-
-      SymbolicFormula mvar = smgr.makeVariable(var, idx);
-      return mvar;
-    } else if (exp instanceof IASTUnaryExpression) {
-      int op = ((IASTUnaryExpression)exp).getOperator();
-      IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
-      String opname;
-      switch (op) {
-      case IASTUnaryExpression.op_amper:
-        opname = OP_ADDRESSOF_NAME;
-        break;
-      case IASTUnaryExpression.op_star:
-        opname = OP_STAR_NAME;
-        break;
-      default:
-        throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, exp);
-      }
-      SymbolicFormula term = buildTerm(operand, function, ssa);
-
-      // PW make SSA index of * independent from argument
-      int idx = makeLvalIndex(opname, ssa);
-      //int idx = makeLvalIndex(opname, term, ssa, absoluteSSAIndices);
-
-      // build the "updated" function corresponding to this operation.
-      // what we do is the following:
-      // C            |     MathSAT
-      // *x = 1       |     <ptr_*>::2(x) = 1
-      // ...
-      // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return smgr.makeUIF(opname, smgr.makeList(term), idx);
+  private SymbolicFormula buildsatLvalueTerm(IASTExpression pExpression, String pCurrentFunction, SSAMap pSSAMap) {
+    if (pExpression instanceof IASTIdExpression) {
+      String lVariable = ((IASTIdExpression)pExpression).getName().getRawSignature();
       
-    } else if (exp instanceof IASTFieldReference) {
-      IASTFieldReference fexp = (IASTFieldReference)exp;
-      String field = fexp.getFieldName().getRawSignature();
-      IASTExpression owner = fexp.getFieldOwner();
-      SymbolicFormula term = buildTerm(owner, function, ssa);
-
-      String tpname = getTypeName(owner.getExpressionType());
-      String ufname =
-        (fexp.isPointerDereference() ? "->{" : ".{") +
-        tpname + "," + field + "}";
-      SymbolicFormulaList args = smgr.makeList(term);
-      int idx = makeLvalIndex(ufname, args, ssa);
-
-      // see above for the case of &x and *x
-      return smgr.makeUIF(ufname, args, idx);
-
-    } else if (exp instanceof IASTArraySubscriptExpression) {
-      IASTArraySubscriptExpression aexp =
-        (IASTArraySubscriptExpression)exp;
-      IASTExpression arrexp = aexp.getArrayExpression();
-      IASTExpression subexp = aexp.getSubscriptExpression();
-      SymbolicFormula aterm = buildTerm(arrexp, function, ssa);
-      SymbolicFormula sterm = buildTerm(subexp, function, ssa);
-
-      String ufname = OP_ARRAY_SUBSCRIPT;
-      SymbolicFormulaList args = smgr.makeList(aterm, sterm);
-      int idx = makeLvalIndex(ufname, args, ssa);
-
-      return smgr.makeUIF(ufname, args, idx);
+      if (isNondetVariable(lVariable)) {
+        throw new RuntimeException("Do not assign values to nondeterministic variables! (Line " + pExpression.getFileLocation().getStartingLineNumber() + ")");
+      }
+      
+      String lScopedVariable = scoped(lVariable, pCurrentFunction);
+      int lIndex = makeLvalIndex(lScopedVariable, pSSAMap);
+      
+      return smgr.makeVariable(lScopedVariable, lIndex);
     }
-    throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
+    else {
+      throw new RuntimeException("We only support test generation for assignments to variables!");
+    }
   }
 
   private SymbolicFormula makeExternalFunctionCall(IASTFunctionCallExpression fexp,

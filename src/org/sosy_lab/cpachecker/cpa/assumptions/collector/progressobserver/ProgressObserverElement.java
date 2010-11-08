@@ -148,7 +148,7 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
 
   @Override
   public String toString() {
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
     boolean first = true;
     for (StopHeuristicsData d : data) {
       if (first)

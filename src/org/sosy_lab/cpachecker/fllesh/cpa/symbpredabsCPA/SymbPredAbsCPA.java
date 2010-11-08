@@ -28,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -37,10 +39,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -104,20 +106,26 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
   private final StopOperator stop;
-  private final SymbPredAbsPrecision initialPrecision;
+  private SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
+  private final AbstractionElement.Factory mAbstractionElementFactory; 
+  
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.config = config;
     this.logger = logger;
+    
+
+    mAbstractionElementFactory = new AbstractionElement.Factory();
+    
 
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
-
+    
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager);
@@ -163,6 +171,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
     stats = new SymbPredAbsCPAStatistics(this);
   }
+  
+  public AbstractionElement.Factory getAbstractionElementFactory() {
+    return mAbstractionElementFactory;
+  }
 
   @Override
   public SymbPredAbsAbstractDomain getAbstractDomain() {
@@ -200,15 +212,29 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return logger;
   }
 
+  private Map<CFANode, AbstractionElement> mInitialElementsCache = 
+    new HashMap<CFANode, AbstractionElement>();
+  
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    PathFormula pf = formulaManager.makeEmptyPathFormula();
-    AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
-
-    return new SymbPredAbsAbstractElement(node,
-        pf, pf, initAbstraction);
+  public AbstractionElement getInitialElement(CFAFunctionDefinitionNode node) {
+    AbstractionElement lInitialElement = mInitialElementsCache.get(node);
+    
+    if (lInitialElement == null) {
+      PathFormula pf = formulaManager.makeEmptyPathFormula();
+      AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
+      //lInitialElement = new AbstractionElement(node, initAbstraction, pf);
+      lInitialElement = mAbstractionElementFactory.createInitialElement(node, initAbstraction, pf);
+      
+      mInitialElementsCache.put(node, lInitialElement);
+    }
+    
+    return lInitialElement;
   }
 
+  public void updateInitialPrecision(SymbPredAbsPrecision pPrecision) {
+    initialPrecision = initialPrecision.update(pPrecision);
+  }
+  
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return initialPrecision;

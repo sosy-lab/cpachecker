@@ -70,11 +70,13 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
+  
+  private SymbPredAbsCPA symbPredAbsCpa;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    SymbPredAbsCPA symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
+    symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
     if (symbPredAbsCpa == null) {
       throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
     }
@@ -93,14 +95,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // element, which is not in pPath)
     // the last element is the element corresponding to the error location
     // (which is twice in pPath)
-    ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
+    ArrayList<AbstractionElement> path = new ArrayList<AbstractionElement>();
     SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
       SymbPredAbsAbstractElement symbElement =
         artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-      if (symbElement.isAbstractionNode() && symbElement != lastElement) {
-        path.add(symbElement);
+      if (symbElement instanceof AbstractionElement && symbElement != lastElement) {
+        path.add((AbstractionElement)symbElement);
       }
       lastElement = symbElement;
     }
@@ -129,6 +131,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
               performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
 
       pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      
+      System.out.println("New precision: " + refinementResult.getSecond());
+      
+      symbPredAbsCpa.updateInitialPrecision(refinementResult.getSecond());
+      
       return true;
     } else {
       // we have a real error
@@ -136,7 +143,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       
       if (exportErrorPath) {
         try {
-          Files.writeFile(exportFile, info.getCounterexample(), false);
+          Files.writeFile(exportFile, info.getCounterexample());
         } catch (IOException e) {
           logger.log(Level.WARNING, "Could not write satisfying assignment for error path to file! ("
               + e.getMessage() + ")");
@@ -147,20 +154,20 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
-      ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
-
+      ArrayList<AbstractionElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
+    
     Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<Predicate> globalPredicates = oldPrecision.getGlobalPredicates();
     SymbPredAbsAbstractElement symbPredRootElement = null;
-    SymbPredAbsAbstractElement firstInterpolationElement = null;
+    AbstractionElement firstInterpolationElement = null;
 
     ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
-    for (SymbPredAbsAbstractElement e : pPath) {
+    for (AbstractionElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
-      CFANode loc = e.getAbstractionLocation();
+      CFANode loc = e.getLocation();
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
       }
@@ -200,7 +207,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
 
     } else {
-      CFANode loc = firstInterpolationElement.getAbstractionLocation();
+      CFANode loc = firstInterpolationElement.getLocation();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", loc, "from ART.");

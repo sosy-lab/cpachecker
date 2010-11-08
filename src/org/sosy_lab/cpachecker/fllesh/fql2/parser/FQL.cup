@@ -155,6 +155,7 @@ terminal Integer TOK_NAT_NUMBER;
 non terminal FQLSpecification;
 non terminal CoveragePattern;
 non terminal PathPattern;
+non terminal PathPatternBlock;
 non terminal Atom;
 non terminal Cover;
 non terminal Passing;
@@ -250,15 +251,28 @@ CoveragePattern 	::= Atom:atom
 						:}
 					;
 
-PathPattern			::= Atom:atom
+PathPatternBlock	::= Atom:atom
 						{:
 							RESULT = atom;
 						:}
-					| 	TOK_L_PARENTHESIS PathPattern:pattern TOK_R_PARENTHESIS
+					|	TOK_L_PARENTHESIS PathPattern:pattern TOK_R_PARENTHESIS
 						{:
 							RESULT = pattern;
 						:}
-					|	PathPattern:leftPattern TOK_CONCAT PathPattern:rightPattern
+					|   PathPatternBlock:pattern TOK_KLEENE
+						{:
+							assert(pattern != null);
+							assert(pattern instanceof PathPattern);
+							
+							RESULT = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition((PathPattern)pattern);
+						:}
+					;
+
+PathPattern			::= PathPatternBlock:pattern
+						{:
+							RESULT = pattern;
+						:}
+					|	PathPatternBlock:leftPattern TOK_CONCAT PathPattern:rightPattern
 						{:
 							assert(leftPattern != null);
 							assert(leftPattern instanceof PathPattern);
@@ -267,7 +281,7 @@ PathPattern			::= Atom:atom
 							
 							RESULT = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Concatenation((PathPattern)leftPattern, (PathPattern)rightPattern);
 						:}
-					|	PathPattern:leftPattern TOK_ALTERNATIVE PathPattern:rightPattern
+					|	PathPatternBlock:leftPattern TOK_ALTERNATIVE PathPattern:rightPattern
 						{:
 							assert(leftPattern != null);
 							assert(leftPattern instanceof PathPattern);
@@ -275,13 +289,6 @@ PathPattern			::= Atom:atom
 							assert(rightPattern instanceof PathPattern);
 							
 							RESULT = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Union((PathPattern)leftPattern, (PathPattern)rightPattern);
-						:}
-					|	PathPattern:pattern TOK_KLEENE
-						{:
-							assert(pattern != null);
-							assert(pattern instanceof PathPattern);
-							
-							RESULT = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition((PathPattern)pattern);
 						:}
 					;
 				

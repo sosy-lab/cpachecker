@@ -62,12 +62,12 @@ def run_single(benchmark, config, time_limit, mem_limit):
                 tot_time = line[46:].strip()[:-1]
             elif reached is None and line.startswith('Size of reached set:'):
                 reached = line[20:].strip()
-            elif abstractions is None and line.startswith('Number of abstraction steps:'):
-                abstractions = line[28:].strip()
-            elif refinements is None and line.startswith('Number of refinement steps:'):
-                refinements = line[27:].strip()
-            elif blocksize is None and line.startswith('Max LBE block size: '):
-                blocksize = line[19:].strip()   
+            elif abstractions is None and line.startswith('Number of abstractions:'):
+                abstractions = (line[line.find(':')+1:line.find('(')-1].strip())
+            elif refinements is None and line.startswith('Number of refinements:'):
+                refinements = (line[line.find(':')+1:line.find('(')-1].strip())
+            elif blocksize is None and line.startswith('Max ABE block size: '):
+                blocksize = line[19:].strip()
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
             elif line.find('SIGSEGV') != -1:

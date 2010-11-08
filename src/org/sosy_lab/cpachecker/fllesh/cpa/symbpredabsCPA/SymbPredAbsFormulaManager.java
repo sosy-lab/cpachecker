@@ -54,7 +54,7 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * @throws CPAException
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException;
+            ArrayList<AbstractionElement> abstractTrace) throws CPAException;
 
     /**
      * Checks if an abstraction formula and a pathFormula are unsatisfiable.

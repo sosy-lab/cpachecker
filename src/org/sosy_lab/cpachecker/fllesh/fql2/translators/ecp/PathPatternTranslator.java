@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -292,8 +291,7 @@ public class PathPatternTranslator {
         Set<Path> lPaths = lFilteredTargetGraph.getBoundedPaths(pPaths.getBound());
         
         if (lPaths.size() == 0) {
-          Set<CFANode> lEmptySet = Collections.emptySet();
-          return new ECPNodeSet(lEmptySet);
+          return ECPNodeSet.EMPTY_NODE_SET;
         }
         
         ArrayList<ElementaryCoveragePattern> lToBeUnited = new ArrayList<ElementaryCoveragePattern>(lPaths.size());

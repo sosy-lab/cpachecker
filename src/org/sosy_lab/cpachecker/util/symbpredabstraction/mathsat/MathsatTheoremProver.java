@@ -186,10 +186,10 @@ public class MathsatTheoremProver implements TheoremProver {
         AbstractFormula v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
-          v = fmgr.getPredicate(encapsulate(t)).getFormula();
+          v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
           v = amgr.makeNot(v);
         } else {
-          v = fmgr.getPredicate(encapsulate(t)).getFormula();
+          v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
         }
         curCube.add(v);
       }

@@ -3,6 +3,7 @@ CPAchecker configuration
 
 Configuration of CPAchecker is done via command-line arguments and
 configuration files in the syntax of Java properties files.
+Standard configuration files with explanations can be found in test/config/.
 
 
 Command-line options
@@ -13,6 +14,7 @@ following arguments (see below to learn what the options mean):
 -help			print list of command-line argumments and exit
 -config <FILE>		sets configuration file name
 -cpas <CPAS>		sets "cpa = cpa.composite.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
+-spec <FILE>		sets "specification = <FILE>"
 -outputpath <DIR>	sets "output.path = <DIR>"
 -logfile <FILE>		sets "log.file = <FILE>"
 -nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
@@ -29,8 +31,8 @@ If an option appears on the command line as well as in the configuration file,
 the value from the command line overrides the one from the file.
 
 All other arguments to CPAchecker are interpreted as code files that should be
-analyzed (option analysis.programs). However, currently only one such file has
-to be specified.
+analyzed (option analysis.programs). However, currently only one such file may
+be specified.
 
 
 Specifying the CPA(s)
@@ -58,7 +60,16 @@ explicitCPA.cpas.explicit.threshold = 10
 A more complex example:
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
-composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA cpa.symbpredabs.SymbPredAbsCPA
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automatonanalysis.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.symbpredabs.SymbPredAbsCPA
+ErrorLocationAutomaton.automatonAnalysis.inputFile = test/config/automata/ErrorLocationAutomaton.txt
+
+Note that instead of manually specifying an ObserverAutomatonCPA, you can
+use the option "specification". The following example is identical to the last one:
+
+cpa = cpa.art.ARTCPA art
+art.cpa = cpa.composite.CompositeCPA composite
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.symbpredabs.SymbPredAbsCPA
+specification = test/config/automata/ErrorLocationAutomaton.txt
 
 
 Valid configuration options and default values
@@ -66,6 +77,10 @@ Valid configuration options and default values
 
 # directory to put all output files in
 output.path = test/output/
+
+# file with a specification that should be checked
+# (see test/config/automata/ for examples)
+specification =
 
 # name of the log file
 log.file = CPALog.txt
@@ -146,9 +161,6 @@ cpa = cpa.composite.CompositeCPA
 # which strategy to adopt for visiting states? dfs, bfs, or topsort
 analysis.traversal = dfs
 
-# stop after the first error has been found
-analysis.stopAfterError = true
-
 # print reached set to text file
 reachedSet.export = true
 reachedSet.file = reached.txt
@@ -219,29 +231,16 @@ uninitVars.printWarnings = true
 # Options for Predicate Abstraction
 #------------------------------------------------------------------------------
 
-# collect and print detailed statistics (at the moment, only the
-# number of abstraction steps for each location)
-cpas.symbpredabs.explicit.extendedStats = false
-
 # which solver to use? (mathsat, yices)
 cpas.symbpredabs.explicit.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
 cpas.symbpredabs.interpolatingProver = mathsat
 
-# don't use abstraction refinement, but read predicates from the map specified
-# with fixedPredMap option
-cpas.symbpredabs.abstraction.norefinement = false
-
-# when not using refinement, where to get the list of predicates from
-# (in MSAT format, for PredicateAbstractionCPA)
-cpas.symbpredabs.abstraction.fixedPredMap =
-
-# when not using refinement, where to get the list of predicates from
-# (in MSAT format, for SymbPredAbsCPA)
+# get an initial set of predicates from a file in MSAT format
 cpas.symbpredabs.abstraction.initialPredicates =
 
-# cache queries to mathsat and BDD entailment checks
+# cache queries to mathsat
 cpas.symbpredabs.mathsat.useCache = true
 
 
@@ -313,11 +312,6 @@ cpas.symbpredabs.abstraction.cartesian = false
 # split arithmetic equalities when extracting predicates from interpolants
 cpas.symbpredabs.refinement.splitItpAtoms = false
 
-# mimick the behaviour of Blast on refinement: collect all the predicates from
-# all the cuts of the abstract counterexample, and add all of them to all relevant
-# locations
-cpas.symbpredabs.refinement.useBlastWay = false
-
 # refinement will try to build "well-scoped" predicates, by cutting spurious
 # traces as explained in Section 5.2 of the paper "Abstractions From Proofs"
 # (this does not work with function inlining)
@@ -327,16 +321,11 @@ cpas.symbpredabs.refinement.addWellScopedPredicates = false
 # refinement will add all discovered predicates to all the locations in the abstract trace
 cpas.symbpredabs.refinement.addPredicatesGlobally = false
 
-cpas.symbpredabs.abstraction.explicit.nonAtomicPredicates = false
-
 
 # where to dump the counterexample formula in case the error location is reached
-cpas.symbpredabs.refinement.msatCexFile = cex.msat
+cpas.symbpredabs.refinement.msatCexFile = counterexample.msat
 
-# where to dump the final predicate map in case the error location is not reached (for PredicateAbstractionCPA)
-cpas.symbpredabs.refinement.finalPredMapFile = predmap.txt
-
-# export final predicate map, if the error location is not reached (for SymbPredAbsCPA)
+# export final predicate map, if the error location is not reached
 cpas.symbpredabs.predmap.export = true
 cpas.symbpredabs.predmap.file = predmap.txt
 
@@ -344,8 +333,11 @@ cpas.symbpredabs.predmap.file = predmap.txt
 cpas.symbpredabs.errorPath.export = true
 cpas.symbpredabs.errorPath.file = ErrorPathAssignment.txt
 
-# dump the abstraction formulas in both .msat and .smv formats if they took to long
+# dump the abstraction formulas if they took to long
 cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
 
 # dump all interpolation problems
 cpas.symbpredabs.dumpInterpolationProblems = false
+
+# where to dump interpolation and abstraction problems (format string)
+cpas.symbpredabs.formulaDumpFilePattern = %s%04d-%s%03d.msat

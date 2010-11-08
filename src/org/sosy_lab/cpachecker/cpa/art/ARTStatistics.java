@@ -59,6 +59,9 @@ public class ARTStatistics implements Statistics {
   @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
 
+  @Option(name="cpas.art.errorPath.json", type=Option.Type.OUTPUT_FILE)
+  private File errorPathJson = new File("ErrorPath.json");  
+  
   private final ARTCPA cpa;
 
   public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
@@ -81,13 +84,17 @@ public class ARTStatistics implements Statistics {
     if (exportErrorPath) {
       ARTElement lastElement = (ARTElement)pReached.getLastElement();
       if (lastElement != null && lastElement.isTarget()) {
+
         Path targetPath = cpa.getTargetPath();
         assert targetPath != null;
         // target path has to be the path to the current target element
         assert targetPath.getLast().getFirst() == lastElement;
-        
+
         try {
-          Files.writeFile(errorPathFile, targetPath, false);
+
+          Files.writeFile(errorPathFile, targetPath);
+          Files.writeFile(errorPathJson, targetPath.toJSON());
+
         } catch (IOException e) {
           cpa.getLogger().log(Level.WARNING,
               "Could not write error path to file (", e.getMessage(), ")");
@@ -102,11 +109,11 @@ public class ARTStatistics implements Statistics {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
-    StringBuffer sb = new StringBuffer();
-    StringBuffer edges = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
+    StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
-    sb.append("style=filled; color=lightgrey; \n");
+    sb.append("style=filled; color=\"#ccc\"; fontsize=10.0; fontname=\"Courier New\"; \n");
 
     worklist.add(firstElement);
 
@@ -133,7 +140,8 @@ public class ARTStatistics implements Statistics {
 
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
         String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
-        sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";\n");
+        
+        sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +" id=\"" + currentElement.getElementId() + "\"] " + currentElement.getElementId() + ";\n");
 
         nodesList.add(currentElement.getElementId());
       }
@@ -146,13 +154,18 @@ public class ARTStatistics implements Statistics {
       }
 
       for(ARTElement child : currentElement.getChildren()){
-        CFAEdge edge = currentElement.getEdgeToChild(child);
+        CFAEdge edge = currentElement.getEdgeToChild(child);        
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
         edges.append(" [label = \"");
-        edges.append(edge != null ? edge.toString().replace('"', '\'') : "");
-        edges.append("\"];\n");
+        edges.append(edge != null ? edge.toString().replace('"', '\'') : "");        
+        edges.append("\"");
+        if (edge != null) {
+          String id = "" + currentElement.getElementId() + "->" + child.getElementId();
+          edges.append(" id=\"" + id + "\"");
+        }
+        edges.append("];\n");
         if(!worklist.contains(child)){
           worklist.add(child);
         }
@@ -162,7 +175,7 @@ public class ARTStatistics implements Statistics {
     sb.append("}\n");
 
     try {
-      Files.writeFile(artFile, sb, false);
+      Files.writeFile(artFile, sb);
     } catch (IOException e) {
       cpa.getLogger().log(Level.WARNING,
           "Could not write ART to file (", e.getMessage(), ")");

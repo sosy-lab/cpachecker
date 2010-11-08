@@ -4,7 +4,6 @@
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
-    <path id="org.eclipse.pde.core.requiredPlugins.libraryclasspath"/>
     <path id="CPAchecker.classpath">
         <pathelement location="bin"/>
         <fileset dir="lib" includes="**/*.jar"/>

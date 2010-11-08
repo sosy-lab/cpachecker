@@ -2,12 +2,11 @@ package org.sosy_lab.common;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.nio.charset.Charset;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 /**
  * Provides helper functions for file access.
@@ -35,76 +34,27 @@ public final class Files {
     File file = File.createTempFile(prefix, suffix);
     file.deleteOnExit();
     
-    if (content != null && !content.isEmpty()) {
-      Writer writer = new OutputStreamWriter(new FileOutputStream(file));
+    if (!Strings.isNullOrEmpty(content)) {
       try {
-        writer.write(content);
-      
-      } catch (Exception e) {
+        com.google.common.io.Files.write(content.toString(), file, Charset.defaultCharset());
+      } catch (IOException e) {
         file.delete();
-        
-      } finally {
-        try {
-          writer.close();
-        } catch (IOException e) {
-          // ignore here
-        }
+ 
+        throw e;
       }
     }
     return file;
-  }
-    
-  /**
-   * Checks if the parent directory of a file exists and creates it if necessary.
-   * @param file The file whose directory should be checked.
-   * @throws IOException If the directory does not exist and it's creation fails.
-   */
-  public static void ensureParentDirectoryExists(File file) throws IOException {
-    File directory = file.getParentFile();
-    if ((directory != null) && !directory.exists()) {
-      if (!directory.mkdirs()) {
-        throw new IOException("Could not create directory " + directory + " for output file!");
-      }
-    }
   }
   
   /**
    * Writes content to a file.
    * @param file The file.
    * @param content The content which shall be written.
-   * @param append Whether to append or to overwrite.
    * @throws IOException
    */
-  public static void writeFile(File file, Object content, boolean append) throws IOException {
-    Preconditions.checkNotNull(file);
-    Preconditions.checkNotNull(content);
-    
-    ensureParentDirectoryExists(file);
-
-    Writer writer = new OutputStreamWriter(new FileOutputStream(file, append));
-    try {
-      writer.write(content.toString());
-          
-    } finally {
-      try {
-        writer.close();
-      } catch (IOException e) {
-        // ignore here
-      }
-    }
-  }
-  
-  /**
-   * Verifies if a file exists, is a normal file and is readable. If this is not
-   * the case, a FileNotFoundException with a nice message is thrown.
-   * 
-   * @param path The path (may be null).
-   * @param name The name.
-   * @throws FileNotFoundException If one of the conditions is not true.
-   */
-  public static void checkReadableFile(String path, String name) throws FileNotFoundException {
-    Preconditions.checkNotNull(name);
-    checkReadableFile(new File(path, name));
+  public static void writeFile(File file, Object content) throws IOException {
+    com.google.common.io.Files.createParentDirs(file);
+    com.google.common.io.Files.write(content.toString(), file, Charset.defaultCharset());
   }
     
   /**

@@ -38,6 +38,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
+  // statistics
+  int numCoverageCheck = 0;
+  int numBddCoverageCheck = 0;
+  int numSymbolicCoverageCheck = 0;
+  long coverageCheckTime = 0;
+  long bddCoverageCheckTime = 0;
+  long symbolicCoverageCheckTime = 0;
+  
   private final AbstractFormulaManager mAbstractFormulaManager;
   private final SymbPredAbsFormulaManager mgr;
   
@@ -75,6 +83,9 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     @Override
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2) throws CPAException {
+      long start = System.currentTimeMillis();
+      try {
+      
       SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
       SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;
 
@@ -102,13 +113,25 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       }
 
       if (e1.isAbstractionNode() && e2.isAbstractionNode()) {
+        numBddCoverageCheck++;
+        long startCheck = System.currentTimeMillis();
+        
         // if e1's predicate abstraction entails e2's pred. abst.
-        return mAbstractFormulaManager.entails(e1.getAbstraction().asAbstractFormula(), e2.getAbstraction().asAbstractFormula());
+        boolean result = mAbstractFormulaManager.entails(e1.getAbstraction().asAbstractFormula(), e2.getAbstraction().asAbstractFormula());
+        
+        bddCoverageCheckTime += System.currentTimeMillis() - startCheck;
+        return result;
 
       } else if (e2.isAbstractionNode()) {
         if (symbolicCoverageCheck) {
-          return mgr.checkCoverage(e1.getAbstraction(), e1.getPathFormula(), e2.getAbstraction());
+          numSymbolicCoverageCheck++;
+          long startCheck = System.currentTimeMillis();
+
+          boolean result = mgr.checkCoverage(e1.getAbstraction(), e1.getPathFormula(), e2.getAbstraction());
         
+          symbolicCoverageCheckTime += System.currentTimeMillis() - startCheck;
+          return result;
+          
         } else {
           return false; 
         }
@@ -119,6 +142,10 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       } else {
         // only the fast check which returns true if a merge occurred for this element
         return e1.getMergedInto() == e2;
+      }
+      
+      } finally {
+        coverageCheckTime += System.currentTimeMillis() - start;
       }
     }
   }

@@ -1,9 +1,9 @@
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
@@ -13,15 +13,15 @@ import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecification
 
 public class Task implements Iterable<ElementaryCoveragePattern> {
 
-  private Set<ElementaryCoveragePattern> mTestGoals;
+  private Collection<ElementaryCoveragePattern> mTestGoals;
   private ElementaryCoveragePattern mPassingClause;
   
-  public Task(Set<ElementaryCoveragePattern> pTestGoals) {
+  public Task(Collection<ElementaryCoveragePattern> pTestGoals) {
     mTestGoals = pTestGoals;
     mPassingClause = null;
   }
   
-  public Task(Set<ElementaryCoveragePattern> pTestGoals, ElementaryCoveragePattern pPassingClause) {
+  public Task(Collection<ElementaryCoveragePattern> pTestGoals, ElementaryCoveragePattern pPassingClause) {
     this(pTestGoals);
     mPassingClause = pPassingClause;
   }
@@ -48,7 +48,7 @@ public class Task implements Iterable<ElementaryCoveragePattern> {
   }
   
   public static Task create(FQLSpecification pSpecification, CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
-    Set<ElementaryCoveragePattern> lGoals = pCoverageSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
+    Collection<ElementaryCoveragePattern> lGoals = pCoverageSpecificationTranslator.translate(pSpecification.getCoverageSpecification());
     
     if (pSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassing = pCoverageSpecificationTranslator.translate(pSpecification.getPathPattern());

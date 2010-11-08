@@ -24,15 +24,15 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction;
 
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.ImmutableSSAMap;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.ssa.UnmodifiableSSAMap;
 
 
 public class PathFormula {
 
   private final SymbolicFormula mPathFormula;
-  private final ImmutableSSAMap mSSAMap;
+  private final UnmodifiableSSAMap mSSAMap;
   
-  public PathFormula(SymbolicFormula pPathFormula, ImmutableSSAMap pSSAMap) {
+  public PathFormula(SymbolicFormula pPathFormula, UnmodifiableSSAMap pSSAMap) {
     mPathFormula = pPathFormula;
     mSSAMap = pSSAMap;
   }
@@ -41,7 +41,7 @@ public class PathFormula {
     return mPathFormula;
   }
 
-  public ImmutableSSAMap getSSAMap() {
+  public UnmodifiableSSAMap getSSAMap() {
     return mSSAMap;
   }
 

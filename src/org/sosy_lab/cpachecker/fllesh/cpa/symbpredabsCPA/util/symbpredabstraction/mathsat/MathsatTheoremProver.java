@@ -101,7 +101,7 @@ public class MathsatTheoremProver implements TheoremProver {
     for (SymbolicFormula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr, mgr);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -128,6 +128,7 @@ public class MathsatTheoremProver implements TheoremProver {
   static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final FormulaManager fmgr;
     private final AbstractFormulaManager amgr;
+    private final MathsatSymbolicFormulaManager mSymbolicFormulaManager;
     
     private long totalTime = 0;
     private int count = 0;
@@ -135,10 +136,12 @@ public class MathsatTheoremProver implements TheoremProver {
     private AbstractFormula formula;
     private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
 
-    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
+    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager pMathsatSymbolicFormulaManager) {
       this.fmgr = fmgr;
       this.amgr = amgr;
       this.formula = amgr.makeFalse();
+      
+      mSymbolicFormulaManager = pMathsatSymbolicFormulaManager;
     }
 
     void setInfiniteNumberOfModels() {
@@ -190,10 +193,10 @@ public class MathsatTheoremProver implements TheoremProver {
         AbstractFormula v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
-          v = fmgr.getPredicate(encapsulate(t)).getFormula();
+          v = fmgr.getPredicate(mSymbolicFormulaManager.encapsulate(t)).getFormula();
           v = amgr.makeNot(v);
         } else {
-          v = fmgr.getPredicate(encapsulate(t)).getFormula();
+          v = fmgr.getPredicate(mSymbolicFormulaManager.encapsulate(t)).getFormula();
         }
         curCube.add(v);
       }

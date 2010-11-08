@@ -1,11 +1,13 @@
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.fllesh.testcases.TestCase;
 
 import com.google.common.base.Preconditions;
 
@@ -13,14 +15,12 @@ public class FlleShResult {
 
   public static class Factory {
     
-    private Task mTask;
     private Set<ElementaryCoveragePattern> mFeasibleTestGoals;
     private Set<ElementaryCoveragePattern> mInfeasibleTestGoals;
     private Map<TestCase, Set<ElementaryCoveragePattern>> mTestSuite;
     private Set<TestCase> mImpreciseTestCases;
     
-    private Factory(Task pTask) {
-      mTask = pTask;
+    private Factory() {
       mFeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
       mInfeasibleTestGoals = new HashSet<ElementaryCoveragePattern>();
       mTestSuite = new HashMap<TestCase, Set<ElementaryCoveragePattern>>();
@@ -66,17 +66,25 @@ public class FlleShResult {
       }
     }
     
+    public Collection<TestCase> getTestCases() {
+      Set<TestCase> lTestCases = new HashSet<TestCase>();
+      
+      lTestCases.addAll(mTestSuite.keySet());
+      lTestCases.addAll(mImpreciseTestCases);
+      
+      return lTestCases;
+    }
+    
     public FlleShResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
-      return new FlleShResult(mTask, mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
+      return new FlleShResult(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
     }
     
   }
   
-  public static Factory factory(Task pTask) {
-    return new Factory(pTask);
+  public static Factory factory() {
+    return new Factory();
   }
   
-  private Task mTask;
   private int mNumberOfFeasibleTestGoals;
   private int mNumberOfInfeasibleTestGoals;
   private int mNumberOfTestCases;
@@ -86,8 +94,7 @@ public class FlleShResult {
   private double mTimeInReach; // seconds
   private double mTimeInCover; // seconds
   
-  private FlleShResult(Task pTask, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
-    mTask = pTask;
+  private FlleShResult(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
     mNumberOfTestCases = pNumberOfTestCases;
@@ -98,8 +105,8 @@ public class FlleShResult {
     mTimeInCover = pTimeInCover;
   }
   
-  public Task getTask() {
-    return mTask;
+  public int getNumberOfTestGoals() {
+    return mNumberOfFeasibleTestGoals + mNumberOfInfeasibleTestGoals + mNumberOfImpreciseTestCases;
   }
   
   public int getNumberOfFeasibleTestGoals() {

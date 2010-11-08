@@ -24,10 +24,7 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 
@@ -175,29 +172,29 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula parseInfix(String s) throws IllegalArgumentException;
 
     /**
+     * Parse a formula given as a String in a solver-specific file format.
+     * @return The same formula in the internal representation.
+     * @throws IllegalArgumentException If the string cannot be parsed.
+     */
+    public SymbolicFormula parse(String s) throws IllegalArgumentException;
+    
+    /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
-     * This is used by AbstractFormulaManager.toConcrete().
      * 
-     * If the parameter ssa is null, every variable is instantiated with index 1.
-     *
      * @param f the generic SymbolicFormula to instantiate
-     * @param ssa the SSAMap to use (may be null)
+     * @param ssa the SSAMap to use
      * @return a copy of f in which every "generic" variable is replaced by the
      * corresponding "SSA instance"
      */
     public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa);
 
     /**
-     * @see #instantiate(SymbolicFormula, SSAMap)
-     */
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
-    
-    /**
      * Given an "instantiated" formula, returns the corresponding formula in
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
      */
+    @Deprecated
     public SymbolicFormula uninstantiate(SymbolicFormula pF);
 
     /**
@@ -216,20 +213,6 @@ public interface SymbolicFormulaManager {
              boolean splitArithEqualities, boolean conjunctionsOnly);
 
     /**
-     * Extracts the SSA indices from a formula. 
-     */
-    public SSAMap extractSSA(SymbolicFormula f);
-
-    /**
-     * Collects all variables names and all lValues in a term.
-     * @param term  the symbolic formula to analyze
-     * @param vars  the set were all variable names are stored
-     * @param lvals the set where all lValue UIFs and their arguments are stored
-     */
-    public void collectVarNames(SymbolicFormula term, Set<String> vars,
-                                Set<Pair<String, SymbolicFormulaList>> lvals);
-    
-    /**
      * Create string representation of a formula in a format which may be dumped
      * to a file.
      */
@@ -241,12 +224,6 @@ public interface SymbolicFormulaManager {
      */
     public SymbolicFormula getBitwiseAxioms(SymbolicFormula f);
 
-    /**
-     * Dump an abstraction problem to a file so that the user can look at this problem later.
-     */
-    public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
-        SymbolicFormula predDef, List<SymbolicFormula> importantPreds);
-    
     /**
      * Create the variable representing a predicate for the given atom. There won't
      * be any tracking of the correspondence between the atom and the variable,

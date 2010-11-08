@@ -42,17 +42,20 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
@@ -103,8 +106,6 @@ public class CFABuilder extends ASTVisitor
 	// Data structure for storing global declarations
 	private List<IASTDeclaration> globalDeclarations;
 
-	private int nextAssumeEdgeId = 0;
-	
 	private final LogManager logger;
 
 	public CFABuilder (LogManager logger) {
@@ -197,9 +198,33 @@ public class CFABuilder extends ASTVisitor
 			IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
 			String nameOfFunction = fdef.getDeclarator().getName().toString();
 
+	    IASTFunctionDeclarator decl = fdef.getDeclarator();
+      if (!(decl instanceof IASTStandardFunctionDeclarator)) {
+        throw new CFAGenerationRuntimeException("Unknown non-standard function definition", decl);
+      }
+  
+      IASTParameterDeclaration[] params = ((IASTStandardFunctionDeclarator)decl).getParameters();
+      List<IASTParameterDeclaration> parameters = new ArrayList<IASTParameterDeclaration>(params.length);
+      List<String> parameterNames = new ArrayList<String>(params.length);
+      
+      for (IASTParameterDeclaration param : params) {
+        String name = param.getDeclarator().getName().toString();
+
+        if (name.isEmpty() &&
+            param.getDeclarator().getNestedDeclarator() != null) {
+          name = param.getDeclarator().getNestedDeclarator().getName().toString();
+        }
+
+        // function may have the parameter "void", so we need this check
+        if (!name.isEmpty()) {
+          parameters.add(param);
+          parameterNames.add(name);
+        }
+      }
+			
 			CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
 
-			currentCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode);
+			currentCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode, parameters, parameterNames);
 
 			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), currentCFA, functionStartDummyNode);
@@ -393,12 +418,11 @@ public class CFABuilder extends ASTVisitor
 		}
 		    break;
 		case NORMAL: {
-		    int currentAssumeEdgeId = nextAssumeEdgeId++;
 		    CFANode ifStartTrue = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
 		            fileloc.getStartingLineNumber(), prevNode, ifStartTrue,
 		            ifStatement.getConditionExpression (),
-		            true, currentAssumeEdgeId);
+		            true);
 
 		    assumeEdgeTrue.addToCFA(logger);
 		    locStack.push (ifStartTrue);
@@ -408,7 +432,7 @@ public class CFABuilder extends ASTVisitor
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, ifStartFalse,
 		                ifStatement.getConditionExpression (),
-		                false, currentAssumeEdgeId);
+		                false);
 
 		        assumeEdgeFalse.addToCFA(logger);
 		        elseStack.push (ifStartFalse);
@@ -416,7 +440,7 @@ public class CFABuilder extends ASTVisitor
 		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
 		                fileloc.getStartingLineNumber(), prevNode, postIfNode,
 		                ifStatement.getConditionExpression (),
-		                false, currentAssumeEdgeId);
+		                false);
 
 		        assumeEdgeFalse.addToCFA(logger);
 		    }

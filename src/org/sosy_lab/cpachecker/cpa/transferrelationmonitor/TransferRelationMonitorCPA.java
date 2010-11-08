@@ -29,6 +29,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -42,16 +43,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
-  private static class TransferRelationMonitorCPAFactory extends AbstractSingleWrapperCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new TransferRelationMonitorCPA(getChild(), getConfiguration());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new TransferRelationMonitorCPAFactory();
+    return AutomaticCPAFactory.forType(TransferRelationMonitorCPA.class);
   }
 
   private final AbstractDomain abstractDomain;

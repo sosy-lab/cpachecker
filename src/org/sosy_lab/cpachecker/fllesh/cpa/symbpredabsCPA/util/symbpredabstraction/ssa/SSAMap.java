@@ -43,141 +43,28 @@ import com.google.common.collect.Lists;
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable
  */
-public class SSAMap implements ReadableSSAMap {
-
-  private static class UnmodifiableSSAMap extends SSAMap implements ImmutableSSAMap {
-    
-    private UnmodifiableSSAMap(SSAMap ssa) {
-      super(ssa.vars, ssa.funcs);
-    }
-    
-    @Override
-    public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
-      throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void setIndex(String pVariable, int pIdx) {
-      throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void update(SSAMap pOther) {
-      throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      if (getClass().equals(pOther.getClass())) {
-        UnmodifiableSSAMap lSSAMap = (UnmodifiableSSAMap)pOther;
-        
-        return vars.equals(lSSAMap.vars) && funcs.equals(lSSAMap.funcs);
-      }
-      
-      return false;
-    }
-    
-    @Override
-    public int hashCode() {
-      return 31 * vars.hashCode() + funcs.hashCode() + 243;
-    }
-    
-  }
+public class SSAMap extends ReadableSSAMap {
   
-  public static ImmutableSSAMap unmodifiableSSAMap(SSAMap ssa) {
-    if (ssa instanceof ImmutableSSAMap) {
-      return (ImmutableSSAMap)ssa;
-    } else {
-      return new UnmodifiableSSAMap(ssa);
-    }
-  }
-  
-  private static final ImmutableSSAMap EMPTY_SSA_MAP = new UnmodifiableSSAMap(new SSAMap());
-  
-  public static ImmutableSSAMap emptySSAMap() {
-    return EMPTY_SSA_MAP;
-  }
-  
-  private static class FuncKey {
-    private final String name;
-    private final SymbolicFormulaList args;
-
-    public FuncKey(String n, SymbolicFormulaList a) {
-        name = n;
-        args = a;
-    }
-
-    public String getName() { return name; }
-    public SymbolicFormulaList getArgs() { return args; }
-
-    @Override
-    public int hashCode() {
-        return 31 * name.hashCode() + args.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      } else if (o instanceof FuncKey) {
-          FuncKey f = (FuncKey)o;
-          return name.equals(f.name) && args.equals(f.args);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return name + "(" + args + ")";
-    }
-  }
-
-  protected final Map<String, Integer> vars;
-  protected final Map<FuncKey, Integer> funcs;
-
   public SSAMap() {
-    vars = new HashMap<String, Integer>();
-    funcs = new HashMap<FuncKey, Integer>();
+    VARIABLES = new HashMap<String, Integer>();
+    FUNCTIONS = new HashMap<FuncKey, Integer>();
   }
   
   public SSAMap(ReadableSSAMap pSSAMap) {
     this();
     
-    if (pSSAMap instanceof SSAMap) {
-      SSAMap lSSAMap = (SSAMap)pSSAMap;
-      vars.putAll(lSSAMap.vars);
-      funcs.putAll(lSSAMap.funcs);
-    }
-    else {
-      for (String lVariable : pSSAMap.allVariables()) {
-        setIndex(lVariable, pSSAMap.getIndex(lVariable));
-      }
-      
-      for (Pair<String, SymbolicFormulaList> lFunc : pSSAMap.allFunctions()) {
-        String lName = lFunc.getFirst();
-        SymbolicFormulaList lFormula = lFunc.getSecond();
-        setIndex(lName, lFormula, pSSAMap.getIndex(lName, lFormula));
-      }
-    }
+    VARIABLES.putAll(pSSAMap.VARIABLES);
+    FUNCTIONS.putAll(pSSAMap.FUNCTIONS);
   }
   
-  private SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
-    this.vars = vars;
-    this.funcs = funcs;
+  protected SSAMap(Map<String, Integer> vars, Map<FuncKey, Integer> funcs) {
+    this.VARIABLES = vars;
+    this.FUNCTIONS = funcs;
   }
 
   @Override
   public int getIndex(String variable) {
-    Integer i = vars.get(variable);
+    Integer i = VARIABLES.get(variable);
     if (i != null) {
       return i;
     } else {
@@ -187,12 +74,12 @@ public class SSAMap implements ReadableSSAMap {
   }
 
   public void setIndex(String variable, int idx) {
-    vars.put(variable, idx);
+    VARIABLES.put(variable, idx);
   }
 
   @Override
   public int getIndex(String name, SymbolicFormulaList args) {
-    Integer i = funcs.get(new FuncKey(name, args));
+    Integer i = FUNCTIONS.get(new FuncKey(name, args));
     if (i != null) {
       return i;
     } else {
@@ -202,19 +89,19 @@ public class SSAMap implements ReadableSSAMap {
   }
 
   public void setIndex(String name, SymbolicFormulaList args, int idx) {
-    funcs.put(new FuncKey(name, args), idx);
+    FUNCTIONS.put(new FuncKey(name, args), idx);
   }
 
   @Override
   public Collection<String> allVariables() {
-    return Collections.unmodifiableSet(vars.keySet());
+    return Collections.unmodifiableSet(VARIABLES.keySet());
   }
 
   @Override
   public Collection<Pair<String, SymbolicFormulaList>> allFunctions() {
     List<Pair<String, SymbolicFormulaList>> ret = Lists.newArrayList();
 
-    for (FuncKey k : funcs.keySet()) {
+    for (FuncKey k : FUNCTIONS.keySet()) {
       ret.add(new Pair<String, SymbolicFormulaList>(k.getName(), k.getArgs()));
     }
     return ret;
@@ -224,7 +111,7 @@ public class SSAMap implements ReadableSSAMap {
   
   @Override
   public String toString() {
-    return joiner.join(vars) + " " + joiner.join(funcs);
+    return joiner.join(VARIABLES) + " " + joiner.join(FUNCTIONS);
   }
 
   /**
@@ -232,15 +119,21 @@ public class SSAMap implements ReadableSSAMap {
    * all the variables present in other but not in this
    */
   public void update(SSAMap other) {
-    for (Entry<String, Integer> k : other.vars.entrySet()) {
-      if (!vars.containsKey(k.getKey())) {
-        vars.put(k.getKey(), k.getValue());
+    for (Entry<String, Integer> k : other.VARIABLES.entrySet()) {
+      if (!VARIABLES.containsKey(k.getKey())) {
+        VARIABLES.put(k.getKey(), k.getValue());
       }
     }
-    for (Entry<FuncKey, Integer> k : other.funcs.entrySet()) {
-      if (!funcs.containsKey(k.getKey())) {
-        funcs.put(k.getKey(), k.getValue());
+    for (Entry<FuncKey, Integer> k : other.FUNCTIONS.entrySet()) {
+      if (!FUNCTIONS.containsKey(k.getKey())) {
+        FUNCTIONS.put(k.getKey(), k.getValue());
       }
     }
   }
+  
+  @Override
+  public UnmodifiableSSAMap immutable() {
+    return new UnmodifiableSSAMap(this);
+  }
+  
 }

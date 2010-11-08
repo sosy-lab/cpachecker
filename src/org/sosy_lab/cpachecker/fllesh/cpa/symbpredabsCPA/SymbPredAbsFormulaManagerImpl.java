@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -76,6 +75,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 
 
 @Options(prefix="cpas.symbpredabs")
@@ -152,6 +152,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   @Option
   private boolean useBitwiseAxioms = false;
+  
+  // controls whether counterexamples should be dumped to a file
+  // for testing it is disabled
+  private static final boolean dumpCEXToFile = false;
   
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
@@ -442,6 +446,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     return ret;
   }
+  
+  //private Map<Triple<AbstractFormula, PathFormula, Collection<Predicate>>, AbstractFormula> mAbstractionCache = new HashMap<Triple<AbstractFormula, PathFormula, Collection<Predicate>>, AbstractFormula>();
 
   private AbstractFormula buildBooleanAbstraction(
       AbstractFormula abstractionFormula, PathFormula pathFormula,
@@ -450,6 +456,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
+    
+    /*Triple<AbstractFormula, PathFormula, Collection<Predicate>> lCacheKey = new Triple<AbstractFormula, PathFormula, Collection<Predicate>>(abstractionFormula, pathFormula, predicates); 
+    
+    AbstractFormula lAbstraction = this.mAbstractionCache.get(lCacheKey);
+    
+    if (lAbstraction == null) {*/
+      
+    
 
     long startTime = System.currentTimeMillis();
 
@@ -481,7 +495,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     Pair<SymbolicFormula, List<SymbolicFormula>> absKey =
       new Pair<SymbolicFormula, List<SymbolicFormula>>(fm, predVars);
     AbstractFormula result;
-    if (useCache && abstractionCache.containsKey(absKey)) {
+    
+    //if (useCache && abstractionCache.containsKey(absKey)) {
+    if (abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
 
@@ -494,9 +510,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       result = allSatResult.getResult();
 
-      if (useCache) {
+      //if (useCache) {
         abstractionCache.put(absKey, result);
-      }
+      //}
 
       // update statistics
       int numModels = allSatResult.getCount();
@@ -530,7 +546,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     stats.abstractionTime += abstractionSolverTime;
     stats.abstractionMaxTime =
       Math.max(abstractionSolverTime, stats.abstractionMaxTime);
-
+    
+      /*mAbstractionCache.put(lCacheKey, result);
+      lAbstraction = result;
+    }
+    
+    //return result;
+    
+    return lAbstraction;*/
+    
     return result;
   }
 
@@ -542,7 +566,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
-
     SymbolicFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula.getSymbolicFormula());
     logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula);
 
@@ -560,14 +583,26 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * @return counterexample info with predicated information
    * @throws CPAException
    */
+  
+  //Map<List<SymbPredAbsAbstractElement>, List<SymbolicFormula>> mCache = new HashMap<List<SymbPredAbsAbstractElement>, List<SymbolicFormula>>();
+  
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
+      ArrayList<AbstractionElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
 
     logger.log(Level.FINEST, "Building counterexample trace");
 
+    /*List<SymbolicFormula> lTraceFormulas = mCache.get(pAbstractTrace);
+    
+    if (lTraceFormulas == null) {
+      lTraceFormulas = getFormulasForTrace(pAbstractTrace);
+      mCache.put(pAbstractTrace, lTraceFormulas);
+    }
+    
+    List<SymbolicFormula> f = lTraceFormulas;*/
+    
     List<SymbolicFormula> f = getFormulasForTrace(pAbstractTrace);
 
     if (useBitwiseAxioms) {
@@ -685,7 +720,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         }
 
         if (itp.isTrue() || itp.isFalse()) {
-          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
+          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got no interpolant.");
 
         } else {
           foundPredicates = true;
@@ -695,7 +730,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           Collection<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
-          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
+          logger.log(Level.ALL, "For location", e.getAbstractionElement().getLocation(), "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
@@ -703,7 +738,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           if (dumpInterpolationProblems) {
             try {
               Files.writeFile(new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".atoms" + i),
-                  Joiner.on('\n').join(atoms) + '\n', false);
+                  Joiner.on('\n').join(atoms) + '\n');
             } catch (IOException ex) {
               logger.log(Level.WARNING, "Could not dump interpolant atoms to file! ("
                   + ex.getMessage() + ")");
@@ -717,11 +752,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
-        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+        if (wellScopedPredicates && e.getAbstractionElement().getLocation() instanceof CFAFunctionDefinitionNode) {
           entryPoints.push(i);
         }
         // TODO check we are returning from a function
-        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+        if (wellScopedPredicates && e.getAbstractionElement().getLocation().getEnteringSummaryEdge() != null) {
           entryPoints.pop();
         }
       }
@@ -736,7 +771,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      dumpFormulasToFile(f, msatCexFile);
+      if (dumpCEXToFile) {
+        dumpFormulasToFile(f, msatCexFile);
+      }
     }
 
     pItpProver.reset();
@@ -764,7 +801,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    */
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ArrayList<SymbPredAbsAbstractElement> pAbstractTrace) throws CPAException {
+      ArrayList<AbstractionElement> pAbstractTrace) throws CPAException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
@@ -805,22 +842,22 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       
       } catch (ExecutionException e) {
         Throwable t = e.getCause();
-        Classes.throwExceptionIfPossible(t, CPAException.class);
+        Throwables.propagateIfPossible(t, CPAException.class);
         
         logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
         throw new ForceStopCPAException();
       }
     }
   }
-
+  
   private List<SymbolicFormula> getFormulasForTrace(
-      List<SymbPredAbsAbstractElement> abstractTrace) {
+      List<AbstractionElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
-    Iterator<SymbPredAbsAbstractElement> it = abstractTrace.iterator();
+    Iterator<AbstractionElement> it = abstractTrace.iterator();
     assert it.hasNext();
     
     // handle first formula separately because we don't need to shift
@@ -1017,10 +1054,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
 
-    private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;
+    private final ArrayList<AbstractionElement> abstractTrace;
     private final InterpolatingTheoremProver<T> currentItpProver;
 
-    public TransferCallable(ArrayList<SymbPredAbsAbstractElement> pAbstractTrace,
+    public TransferCallable(ArrayList<AbstractionElement> pAbstractTrace,
         InterpolatingTheoremProver<T> pItpProver) {
       abstractTrace = pAbstractTrace;
       currentItpProver = pItpProver;

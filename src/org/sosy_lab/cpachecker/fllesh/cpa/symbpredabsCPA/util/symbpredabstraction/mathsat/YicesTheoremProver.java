@@ -43,7 +43,6 @@ import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 
@@ -57,7 +56,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int curVarIndex;
     private int yicesContext;
     private yices.YicesLite yicesManager;
-    private SymbolicFormulaManager smgr;
+    private MathsatSymbolicFormulaManager smgr;
 
     private Stack<Collection<String>> declStack;
     private Set<String> globalDecls;
@@ -69,7 +68,7 @@ public class YicesTheoremProver implements TheoremProver {
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(SymbolicFormulaManager mgr) {
+    public YicesTheoremProver(MathsatSymbolicFormulaManager mgr) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();
@@ -284,7 +283,7 @@ public class YicesTheoremProver implements TheoremProver {
     @Override
     public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
             FormulaManager fmgr, AbstractFormulaManager amgr) {
-        MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
+        MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr, smgr);
         
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);

@@ -26,15 +26,9 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -48,11 +42,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
+import com.google.common.base.Joiner;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -67,10 +61,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
   protected final AbstractFormulaManager amgr;
 
-  // Here we keep the mapping abstract predicate ->
-  // (symbolic formula representing the variable, symbolic formula representing the atom)
-  private final Map<Predicate, Pair<SymbolicFormula, SymbolicFormula>> predicateToVarAndAtom;
-  // and the reverse mapping symbolic variable -> predicate
+  // Here we keep the mapping abstract predicate variable -> predicate
+  private final Map<AbstractFormula, Predicate> absVarToPredicate;
+  // and the mapping symbolic variable -> predicate
   private final Map<SymbolicFormula, Predicate> symbVarToPredicate;
 
   @Option
@@ -84,7 +77,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
 
-    predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
+    absVarToPredicate = new HashMap<AbstractFormula, Predicate>();
     symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
 
     if (useCache) {
@@ -95,46 +88,23 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
 
   /**
-   * Generates the predicates corresponding to the given atoms.
-   */
-  protected List<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
-    List<Predicate> ret = new ArrayList<Predicate>(atoms.size());
-
-    for (SymbolicFormula atom : atoms) {
-      ret.add(makePredicate(smgr.createPredicateVariable(atom), atom));
-    }
-    return ret;
-  }
-
-  /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
    */
   @Override
   public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom) {
-    if (symbVarToPredicate.containsKey(var)) {
-      return symbVarToPredicate.get(var);
-    } else {
-      Predicate result = amgr.createPredicate();
+    Predicate result = symbVarToPredicate.get(var);
+    if (result == null) {
+      AbstractFormula absVar = amgr.createPredicate();
 
-      logger.log(Level.FINEST, "Created predicate", result,
+      logger.log(Level.FINEST, "Created predicate", absVar,
                      "from variable", var, "and atom", atom);
 
-      predicateToVarAndAtom.put(result, new Pair<SymbolicFormula, SymbolicFormula>(var, atom));
+      result = new Predicate(absVar, var, atom);
       symbVarToPredicate.put(var, result);
-      return result;
+      absVarToPredicate.put(absVar, result);
     }
-  }
-
-  /**
-   * Get the symbolic formulas for the variable and the atom which belong to a
-   * predicate.
-   * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
-   * @return The values passed to the makePredicate call (symbolic formula for var and atom)
-   */
-  @Override
-  public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
-    return predicateToVarAndAtom.get(p);
+    return result;
   }
 
   /**
@@ -149,55 +119,6 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
-  }
-  
-  /**
-   * Create the formula \bigwedge (predvar <-> preddef)
-   * All variables will be instantiated with the indices from the given SSAMap.
-   * @param predicates The predicates to include in the formula.
-   * @param ssa The SSAMap for the instantiation of the formula.
-   * @return The above formula.
-   */
-  protected SymbolicFormula buildPredicateFormula(Collection<Predicate> predicates,
-                                                  SSAMap ssa) {
-    ssa = new SSAMap(ssa); // clone ssa map because we need to change it
-    
-    Set<String> allvars = new HashSet<String>();
-    Set<Pair<String, SymbolicFormulaList>> allfuncs = new HashSet<Pair<String, SymbolicFormulaList>>();
-    SymbolicFormula preddef = smgr.makeTrue();
-
-    for (Predicate p : predicates) {
-        SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
-        SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
-        if (def.isTrue()) {
-          continue;
-        }
-        smgr.collectVarNames(def, allvars, allfuncs);
-        
-        // build the formula (var <-> def)
-        SymbolicFormula equiv = smgr.makeEquivalence(var, def);
-
-        // and add it to the list of definitions
-        preddef = smgr.makeAnd(preddef, equiv);
-    }
-    
-    // update the SSA map, by instantiating all the uninstantiated
-    // variables that occur in the predicates definitions (at index 1)
-    for (String var : allvars) {
-      if (ssa.getIndex(var) < 0) {
-        ssa.setIndex(var, 1);
-      }
-    }
-
-    for (Pair<String, SymbolicFormulaList> p : allfuncs) {
-      SymbolicFormulaList args = smgr.instantiate(p.getSecond(), ssa);
-      if (ssa.getIndex(p.getFirst(), args) < 0) {
-        ssa.setIndex(p.getFirst(), args, 1);
-      }
-    }
-
-    // instantiate the definitions with the right SSA
-    return smgr.instantiate(preddef, ssa);
   }
   
   /**
@@ -230,7 +151,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
           SymbolicFormula m1 = null;
           SymbolicFormula m2 = null;
 
-          Triple<Predicate, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
+          Triple<AbstractFormula, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
           AbstractFormula c1 = parts.getSecond();
           AbstractFormula c2 = parts.getThird();
           if (!cache.containsKey(c1)) {
@@ -250,10 +171,10 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
               assert m2 != null;
 
               toProcess.pop();
-              Predicate var = parts.getFirst();
-              assert(predicateToVarAndAtom.containsKey(var));
+              AbstractFormula var = parts.getFirst();
+              assert(absVarToPredicate.containsKey(var));
 
-              SymbolicFormula atom = predicateToVarAndAtom.get(var).getSecond();
+              SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();
 
               SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
               cache.put(n, ite);
@@ -318,7 +239,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
     int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
     
-    return new PathFormula(newFormula, SSAMap.unmodifiableSSAMap(newSsa), newLength,
+    return new PathFormula(newFormula, newSsa, newLength,
                            newReachingPathsFormula, newBranchingCounter);
   }
 
@@ -336,169 +257,98 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    */
   private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
-    SSAMap result = new SSAMap();
+    SSAMap result = SSAMap.merge(ssa1, ssa2);
     SymbolicFormula mt1 = smgr.makeTrue();
     SymbolicFormula mt2 = smgr.makeTrue();
-    for (String var : ssa1.allVariables()) {
+    
+    for (String var : result.allVariables()) {
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
-      assert(i1 > 0);
-      if (i2 > 0 && i2 != i1) {
-        // we have to merge this variable assignment
-        result.setIndex(var, Math.max(i1, i2));
-        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(var, i1, i2);
-        mt1 = smgr.makeAnd(mt1, t.getFirst());
-        mt2 = smgr.makeAnd(mt2, t.getSecond());
-      } else {
-        if (i2 <= 0) {
-          // it's not enough to set the SSA index. We *must* also
-          // generate a formula saying that the var does not change
-          // in this branch!
-          SymbolicFormula v1 = smgr.makeVariable(var, 1);
-          for (int i = 2; i <= i1; ++i) {
-            SymbolicFormula v = smgr.makeVariable(var, i);
-            SymbolicFormula e = smgr.makeEqual(v, v1);
-            mt2 = smgr.makeAnd(mt2, e);
-          }
-        }
-        result.setIndex(var, i1);
+      
+      if (i1 > i2 && i1 > 1) {
+        // i2:smaller, i1:bigger
+        // => need correction term for i2
+        SymbolicFormula t = makeSSAMerger(var, Math.max(i2, 1), i1);
+        mt2 = smgr.makeAnd(mt2, t);
+              
+      } else if (i1 < i2 && i2 > 1) {
+        // i1:smaller, i2:bigger
+        // => need correction term for i1
+        SymbolicFormula t = makeSSAMerger(var, Math.max(i1, 1), i2); 
+        mt1 = smgr.makeAnd(mt1, t); 
       }
     }
-    for (String var : ssa2.allVariables()) {
-      int i2 = ssa2.getIndex(var);
-      int i1 = ssa1.getIndex(var);
-      assert(i2 > 0);
-      if (i1 <= 0) {
-        // it's not enough to set the SSA index. We *must* also
-        // generate a formula saying that the var does not change
-        // in this branch!
-        SymbolicFormula v1 = smgr.makeVariable(var, 1);
-        for (int i = 2; i <= i2; ++i) {
-          SymbolicFormula v = smgr.makeVariable(var, i);
-          SymbolicFormula e = smgr.makeEqual(v, v1);
-          mt1 = smgr.makeAnd(mt1, e);
-        }
-        result.setIndex(var, i2);
-      } else {
-        assert(i1 == i2 || result.getIndex(var) == Math.max(i1, i2));
-      }
-    }
-
-    for (Pair<String, SymbolicFormulaList> f : ssa1.allFunctions()) {
-      int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
-      int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
-      assert(i1 > 0);
-      if (i2 > 0 && i2 != i1) {
-        // we have to merge this lvalue assignment
-        result.setIndex(f.getFirst(), f.getSecond(), Math.max(i1, i2));
-        Pair<SymbolicFormula, SymbolicFormula> t = makeSSAMerger(f.getFirst(), f.getSecond(), i1, i2);
-        mt1 = smgr.makeAnd(mt1, t.getFirst());
-        mt2 = smgr.makeAnd(mt2, t.getSecond());
-      } else {
-        if (i2 <= 0) {
-          // it's not enough to set the SSA index. We *must* also
-          // generate a formula saying that the var does not change
-          // in this branch!
-          SymbolicFormula v1 = smgr.makeUIF(f.getFirst(), f.getSecond(), 1);
-          for (int i = 2; i <= i1; ++i) {
-            SymbolicFormula v = smgr.makeUIF(f.getFirst(), f.getSecond(), i);
-            SymbolicFormula e = smgr.makeEqual(v, v1);
-            mt2 = smgr.makeAnd(mt2, e);
-          }
-        }
-        result.setIndex(f.getFirst(), f.getSecond(), i1);
-      }
-    }
-    for (Pair<String, SymbolicFormulaList> f : ssa2.allFunctions()) {
-      int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
-      int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
-      assert(i2 > 0);
-      if (i1 <= 0) {
-        // it's not enough to set the SSA index. We *must* also
-        // generate a formula saying that the var does not change
-        // in this branch!
-        SymbolicFormula v1 = smgr.makeUIF(f.getFirst(), f.getSecond(), 1);
-        for (int i = 2; i <= i2; ++i) {
-          SymbolicFormula v = smgr.makeUIF(f.getFirst(), f.getSecond(), i);
-          SymbolicFormula e = smgr.makeEqual(v, v1);
-          mt1 = smgr.makeAnd(mt1, e);
-        }
-        result.setIndex(f.getFirst(), f.getSecond(), i2);
-      } else {
-        assert(i1 == i2 ||
-            result.getIndex(f.getFirst(), f.getSecond()) ==
-              Math.max(i1, i2));
+    
+    for (Pair<String, SymbolicFormulaList> f : result.allFunctions()) {
+      String name = f.getFirst();
+      SymbolicFormulaList args = f.getSecond();
+      int i1 = ssa1.getIndex(f);
+      int i2 = ssa2.getIndex(f);
+      
+      if (i1 > i2 && i1 > 1) {
+        // i2:smaller, i1:bigger
+        // => need correction term for i2
+        SymbolicFormula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
+        mt2 = smgr.makeAnd(mt2, t);
+              
+      } else if (i1 < i2 && i2 > 1) {
+        // i1:smaller, i2:bigger
+        // => need correction term for i1
+        SymbolicFormula t = makeSSAMerger(name, args, Math.max(i1, 1), i2); 
+        mt1 = smgr.makeAnd(mt1, t); 
       }
     }
 
     Pair<SymbolicFormula, SymbolicFormula> sp =
       new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
-    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(
-        sp, result);
+    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(sp, result);
   }
 
-  // creates the two mathsat terms
-  // (var@newidx = var@i1) and (var@newidx = var@i2)
-  // used by mergeSSAMaps (where newidx = max(i1, i2))
-  private Pair<SymbolicFormula, SymbolicFormula> makeSSAMerger(String var, int i1, int i2) {
-    // retrieve the mathsat terms corresponding to the two variables
-    SymbolicFormula v1 = smgr.makeVariable(var, i1);
-    SymbolicFormula v2 = smgr.makeVariable(var, i2);
-    SymbolicFormula e1 = smgr.makeTrue();
-    SymbolicFormula e2 = smgr.makeTrue();
-    if (i1 < i2) {
-      for (int i = i1+1; i <= i2; ++i) {
-        SymbolicFormula v = smgr.makeVariable(var, i);
-        SymbolicFormula e = smgr.makeEqual(v, v1);
-        e1 = smgr.makeAnd(e1, e);
-      }
-    } else {
-      assert(i2 < i1);
-      for (int i = i2+1; i <= i1; ++i) {
-        SymbolicFormula v = smgr.makeVariable(var, i);
-        SymbolicFormula e = smgr.makeEqual(v, v2);
-        e2 = smgr.makeAnd(e2, e);
-      }
-    }
-    return new Pair<SymbolicFormula, SymbolicFormula>(e1, e2);
-  }
-
-  private Pair<SymbolicFormula, SymbolicFormula> makeSSAMerger(String name,
-      SymbolicFormulaList args, int i1, int i2) {
-    // retrieve the mathsat terms corresponding to the two variables
-    SymbolicFormula v1 = smgr.makeUIF(name, args, i1);
-    SymbolicFormula v2 = smgr.makeUIF(name, args, i2);
-    SymbolicFormula e1 = smgr.makeTrue();
-    SymbolicFormula e2 = smgr.makeTrue();
-    if (i1 < i2) {
-      for (int i = i1+1; i <= i2; ++i) {
-        SymbolicFormula v = smgr.makeUIF(name, args, i);
-        SymbolicFormula e = smgr.makeEqual(v, v1);
-        e1 = smgr.makeAnd(e1, e);
-      }
-    } else {
-      assert(i2 < i1);
-      for (int i = i2+1; i <= i1; ++i) {
-        SymbolicFormula v = smgr.makeUIF(name, args, i);
-        SymbolicFormula e = smgr.makeEqual(v, v2);
-        e2 = smgr.makeAnd(e2, e);
-      }
-    }
-    return new Pair<SymbolicFormula, SymbolicFormula>(e1, e2);
-  }
-
-
-  @Override
-  public void dumpFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
-    Iterator<SymbolicFormula> it = f.iterator();
-    SymbolicFormula t = it.next();
+  // creates the mathsat terms
+  // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
+  private SymbolicFormula makeSSAMerger(String var, int iSmaller, int iBigger) {
+    assert iSmaller < iBigger;
     
-    while (it.hasNext()) { 
-      t = smgr.makeAnd(t, it.next());
-    }
+    SymbolicFormula initialVar = smgr.makeVariable(var, iSmaller);
+    SymbolicFormula result = smgr.makeTrue();
     
+    for (int i = iSmaller+1; i <= iBigger; ++i) {
+      SymbolicFormula currentVar = smgr.makeVariable(var, i);
+      SymbolicFormula e = smgr.makeEqual(currentVar, initialVar);
+      result = smgr.makeAnd(result, e);
+    }
+    return result;
+  }
+
+  private SymbolicFormula makeSSAMerger(String name,
+      SymbolicFormulaList args, int iSmaller, int iBigger) {
+    assert iSmaller < iBigger;
+    
+    SymbolicFormula intialFunc = smgr.makeUIF(name, args, iSmaller);
+    SymbolicFormula result = smgr.makeTrue();
+
+    for (int i = iSmaller+1; i <= iBigger; ++i) {
+      SymbolicFormula currentFunc = smgr.makeUIF(name, args, i);
+      SymbolicFormula e = smgr.makeEqual(currentFunc, intialFunc);
+      result = smgr.makeAnd(result, e);
+    }
+    return result;
+  }
+
+  protected void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
     try {
-      Files.writeFile(outputFile, smgr.dumpFormula(t), false);
+      Files.writeFile(outputFile, smgr.dumpFormula(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+
+  private static final Joiner LINE_JOINER = Joiner.on('\n');
+  
+  protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, LINE_JOINER.join(f));
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
