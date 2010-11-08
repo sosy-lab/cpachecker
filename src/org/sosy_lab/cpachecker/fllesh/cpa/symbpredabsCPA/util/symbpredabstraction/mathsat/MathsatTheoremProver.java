@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat;
 
 import static mathsat.api.*;
-import static org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -72,7 +71,7 @@ public class MathsatTheoremProver implements TheoremProver {
   public void push(SymbolicFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
-    msat_assert_formula(curEnv, getTerm(f));
+    msat_assert_formula(curEnv, org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f));
   }
 
   @Override
@@ -92,14 +91,14 @@ public class MathsatTheoremProver implements TheoremProver {
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
                              FormulaManager fmgr, AbstractFormulaManager amgr) {
-    long formula = getTerm(f);
+    long formula = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
     
     long[] imp = new long[important.size()];
     int i = 0;
     for (SymbolicFormula impF : important) {
-      imp[i++] = getTerm(impF);
+      imp[i++] = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(impF);
     }
     MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr, mgr);
     msat_assert_formula(allsatEnv, formula);

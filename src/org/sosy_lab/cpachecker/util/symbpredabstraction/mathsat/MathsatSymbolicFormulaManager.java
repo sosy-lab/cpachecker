@@ -121,11 +121,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     falseFormula = encapsulate(msat_make_false(msatEnv));
   }
 
-  long getMsatEnv() {
+  public long getMsatEnv() {
     return msatEnv;
   }
 
-  long createEnvironment(boolean shared, boolean ghostFilter) {
+  public long createEnvironment(boolean shared, boolean ghostFilter) {
     long env;
     if (shared) {
       env = msat_create_shared_env(msatEnv);
@@ -154,27 +154,27 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return env;
   }
   
-  static long getTerm(SymbolicFormula f) {
+  public static long getTerm(SymbolicFormula f) {
     return ((MathsatSymbolicFormula)f).getTerm();
   }
   
-  private static long[] getTerm(SymbolicFormulaList f) {
+  public static long[] getTerm(SymbolicFormulaList f) {
     return ((MathsatSymbolicFormulaList)f).getTerms();
   }
   
-  static SymbolicFormula encapsulate(long t) {
+  public static SymbolicFormula encapsulate(long t) {
     return new MathsatSymbolicFormula(t);
   }
 
-  private static SymbolicFormulaList encapsulate(long[] t) {
+  public static SymbolicFormulaList encapsulate(long[] t) {
     return new MathsatSymbolicFormulaList(t);
   }
   
-  private String makeName(String name, int idx) {
+  public String makeName(String name, int idx) {
     return name + INDEX_SEPARATOR + idx;
   }
   
-  private Pair<String, Integer> parseName(String var) {
+  public Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
     if (s.length != 2) {
       throw new IllegalArgumentException("Not an instantiated variable: " + var);
@@ -365,7 +365,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   // ----------------- Uninterpreted functions -----------------
  
-  private long buildMsatUF(String name, long[] args) {
+  public long buildMsatUF(String name, long[] args) {
     int[] tp = new int[args.length];
     Arrays.fill(tp, msatVarType);
     long decl = msat_declare_uif(msatEnv, name, msatVarType, tp.length, tp);
@@ -402,11 +402,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         stringLitUfDecl, new long[]{n}));
   }
 
-  private long buildMsatVariable(String var, int idx) {
+  public long buildMsatVariable(String var, int idx) {
     return buildMsatVariable(makeName(var, idx));
   }
   
-  private long buildMsatVariable(String var) {
+  public long buildMsatVariable(String var) {
     long decl = msat_declare_variable(msatEnv, var, msatVarType);
     return msat_make_variable(msatEnv, decl);
   }
@@ -590,7 +590,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return result;
   }
 
-  private boolean ufCanBeLvalue(String name) {
+  public boolean ufCanBeLvalue(String name) {
     return name.startsWith(".{") || name.startsWith("->{");
   }
 
