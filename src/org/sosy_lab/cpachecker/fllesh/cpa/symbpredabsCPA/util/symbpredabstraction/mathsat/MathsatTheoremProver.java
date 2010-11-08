@@ -34,11 +34,12 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
+import static org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.*;
 
 import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver implements TheoremProver {
-
+  
   private final MathsatSymbolicFormulaManager mgr;
   private long curEnv;
 
@@ -52,11 +53,7 @@ public class MathsatTheoremProver implements TheoremProver {
     push(f);
     int res = msat_solve(curEnv);
     pop();
-    
-    if (res == MSAT_UNKNOWN) {
-      throw new RuntimeException();
-    }
-    
+    assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
   }
 
@@ -100,7 +97,7 @@ public class MathsatTheoremProver implements TheoremProver {
     for (SymbolicFormula impF : important) {
       imp[i++] = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr, mgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -127,7 +124,6 @@ public class MathsatTheoremProver implements TheoremProver {
   static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final FormulaManager fmgr;
     private final AbstractFormulaManager amgr;
-    private final MathsatSymbolicFormulaManager mSymbolicFormulaManager;
     
     private long totalTime = 0;
     private int count = 0;
@@ -135,12 +131,10 @@ public class MathsatTheoremProver implements TheoremProver {
     private AbstractFormula formula;
     private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
 
-    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr, MathsatSymbolicFormulaManager pMathsatSymbolicFormulaManager) {
+    MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
       this.fmgr = fmgr;
       this.amgr = amgr;
       this.formula = amgr.makeFalse();
-      
-      mSymbolicFormulaManager = pMathsatSymbolicFormulaManager;
     }
 
     void setInfiniteNumberOfModels() {
@@ -192,10 +186,10 @@ public class MathsatTheoremProver implements TheoremProver {
         AbstractFormula v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
-          v = fmgr.getPredicate(mSymbolicFormulaManager.encapsulate(t)).getAbstractVariable();
+          v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
           v = amgr.makeNot(v);
         } else {
-          v = fmgr.getPredicate(mSymbolicFormulaManager.encapsulate(t)).getAbstractVariable();
+          v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
         }
         curCube.add(v);
       }
