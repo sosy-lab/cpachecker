@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
-  private final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager mInternalSFM;
+  final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager mInternalSFM;
   
   @Option
   private boolean useIntegers = false;

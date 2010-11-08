@@ -23,95 +23,56 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat;
 
-import static mathsat.api.*;
-
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
-
-import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver implements TheoremProver {
   
-  private final MathsatSymbolicFormulaManager mgr;
-  private long curEnv;
+  private final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver mInternalSFM;
 
   public MathsatTheoremProver(MathsatSymbolicFormulaManager pMgr) {
-    mgr = pMgr;
-    curEnv = 0;
+    mInternalSFM = new org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver(pMgr.mInternalSFM);
   }
 
   @Override
   public boolean isUnsat(SymbolicFormula f) {
-    push(f);
-    int res = msat_solve(curEnv);
-    pop();
-    assert(res != MSAT_UNKNOWN);
-    return res == MSAT_UNSAT;
+    return mInternalSFM.isUnsat(f);
   }
 
   @Override
   public void pop() {
-    Preconditions.checkState(curEnv != 0);
-    int ok = msat_pop_backtrack_point(curEnv);
-    assert(ok == 0);
+    mInternalSFM.pop();
   }
 
   @Override
   public void push(SymbolicFormula f) {
-    Preconditions.checkState(curEnv != 0);
-    msat_push_backtrack_point(curEnv);
-    msat_assert_formula(curEnv, org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f));
+    mInternalSFM.push(f);
   }
 
   @Override
   public void init() {
-    Preconditions.checkState(curEnv == 0);
-
-    curEnv = mgr.createEnvironment(true, true);
+    mInternalSFM.init();
   }
   
   @Override
   public void reset() {
-    Preconditions.checkState(curEnv != 0);
-    msat_destroy_env(curEnv);
-    curEnv = 0;
+    mInternalSFM.reset();
   }
   
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
                              FormulaManager fmgr, AbstractFormulaManager amgr) {
-    long formula = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f);
-    
-    long allsatEnv = mgr.createEnvironment(true, true);
-    
-    long[] imp = new long[important.size()];
-    int i = 0;
-    for (SymbolicFormula impF : important) {
-      imp[i++] = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(impF);
-    }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
-    msat_assert_formula(allsatEnv, formula);
-    int numModels = msat_all_sat(allsatEnv, imp, callback);
-    
-    if (numModels == -1) {
-      throw new RuntimeException("Error occurred during Mathsat allsat");
-    
-    } else if (numModels == -2) {
-      // infinite models
-      callback.setInfiniteNumberOfModels();
+    return mInternalSFM.allSat(f, important, fmgr, amgr);
+  }
 
-    } else {
-      assert numModels == callback.getCount();
-    }
-
-    msat_destroy_env(allsatEnv);
-
-    return callback;
+  @Override
+  public Model getModel() {
+    return mInternalSFM.getModel();
   }
 }

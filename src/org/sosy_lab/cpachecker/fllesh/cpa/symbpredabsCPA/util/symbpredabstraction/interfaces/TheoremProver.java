@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstracti
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
@@ -36,6 +37,7 @@ public interface TheoremProver {
   void push(SymbolicFormula f);
   void pop();
   boolean isUnsat(SymbolicFormula f);
+  Model getModel();
   void reset();
 
   AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
