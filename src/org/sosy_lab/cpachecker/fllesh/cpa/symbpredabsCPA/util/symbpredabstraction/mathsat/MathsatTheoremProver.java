@@ -29,10 +29,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.TheoremProver;
 
-public class MathsatTheoremProver implements TheoremProver {
+public class MathsatTheoremProver implements org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver {
   
   private final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver mInternalSFM;
 
