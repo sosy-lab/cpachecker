@@ -467,6 +467,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // get propositional variable and definition of predicate
       SymbolicFormula var = p.getSymbolicVariable();
       SymbolicFormula def = p.getSymbolicAtom();
+      if (def.isTrue()) {
+        continue;
+      }
       def = smgr.instantiate(def, ssa);
       
       // build the formula (var <-> def) and add it to the list of definitions
