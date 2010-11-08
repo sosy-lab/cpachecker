@@ -90,6 +90,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   static class Stats {
     public int numCallsAbstraction = 0;
+    public int numSymbolicAbstractions = 0;
     public int numCallsAbstractionCached = 0;
     public long abstractionSolveTime = 0;
     public long abstractionMaxSolveTime = 0;
@@ -218,11 +219,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       Abstraction abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
 
+    stats.numCallsAbstraction++;
+
     if (predicates.isEmpty()) {
+      stats.numSymbolicAbstractions++;
       return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
     }
-
-    stats.numCallsAbstraction++;
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
