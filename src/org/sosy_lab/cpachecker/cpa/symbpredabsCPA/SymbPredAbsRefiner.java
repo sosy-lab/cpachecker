@@ -174,7 +174,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           info = formulaManager.checkPath(targetPath.asEdgesList());
           if (info.isSpurious()) {
             logger.log(Level.WARNING, "Inconsistent replayed error path!");
-            logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
             info = mCounterexampleTraceInfo;
           } else {
             mCounterexampleTraceInfo = info;
