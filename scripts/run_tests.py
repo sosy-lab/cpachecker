@@ -38,8 +38,9 @@ def run_single(benchmark, config, time_limit, mem_limit):
     """
     cn = configname(config)
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop output.disable=true -config $config $benchmark > '
-                       '$benchmark.$cn.log 2>&1)').substitute(locals())
+                       '(scripts/cpa.sh -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '"$benchmark.$cn.log" 2>&1)').substitute(locals())
+    sys.stdout.write(cmdline);
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
     tot_time, outcome, reached, refinements, abstractions, blocksize = None, None, None, None, None, None
