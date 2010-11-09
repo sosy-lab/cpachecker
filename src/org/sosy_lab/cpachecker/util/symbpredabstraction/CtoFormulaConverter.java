@@ -662,16 +662,46 @@ public class CtoFormulaConverter {
       case IASTLiteralExpression.lk_char_constant: {
         // we convert to a byte, and take the integer value
         String s = exp.getRawSignature();
-        int length = s.length();
         assert(s.charAt(0) == '\'');
-        assert(s.charAt(length-1) == '\'');
+        assert(s.charAt(s.length()-1) == '\'');
+        s = s.substring(1, s.length()-1); // remove ''
+        assert s.length() > 0;
+        char c = s.charAt(0); // always the first character of s
         int n;
 
-        if (s.charAt(1) == '\\') {
-          n = Integer.parseInt(s.substring(2, length-1));
+        if (c == '\\') {
+          s = s.substring(1); // remove leading \
+          assert s.length() >= 1 && s.length() <= 3;
+          c = s.charAt(0);
+          try {
+            if (s.length() == 1 && !Character.isDigit(c)) {
+              // something like '\n'
+              switch (c) {
+              case 'b' : n = '\b'; break;
+              case 't' : n = '\t'; break;
+              case 'n' : n = '\n'; break;
+              case 'f' : n = '\f'; break;
+              case 'r' : n = '\r'; break;
+              case '"' : n = '\"'; break;
+              case '\'' : n = '\''; break;
+              case '\\' : n = '\\'; break;
+              default:
+                throw new UnrecognizedCCodeException("unknown character literal", null, exp);
+              }
+            } else if (c == 'x') {
+              // something like '\xFF'
+              n = Integer.parseInt(s.substring(1), 16);
+            } else {
+              // something like '\000'
+              n = Integer.parseInt(s, 8);
+            }
+          } catch (NumberFormatException e) {
+            throw new UnrecognizedCCodeException("character with illegal number", null, exp);
+          }
         } else {
-          assert (exp.getRawSignature().length() == 3);
-          n = exp.getRawSignature().charAt(1);
+          // something like 'a'
+          assert s.length() == 1;
+          n = c;
         }
         return smgr.makeNumber("" + n);
       }
