@@ -79,7 +79,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
         manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
     }
     Assumption assumption = new Assumption(assumptionFormula, true);
-    AssumptionWithLocation assumptionWithLoc = AssumptionWithLocation.forLocation(edge.getPredecessor(), assumption);
+    AssumptionWithLocation assumptionWithLoc = AssumptionWithLocation.forLocation(edge.getSuccessor(), assumption);
     return Collections.singleton(new GenericAssumptionsElement(assumptionWithLoc));
   }
 
