@@ -25,55 +25,41 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import org.sosy_lab.cpachecker.util.predicates.Term;
 
+import com.google.common.base.Preconditions;
+
 public class Predicate {
 
   public static enum Comparison {
-    GREATER_OR_EQUAL,
-    GREATER,
-    EQUAL,
-    LESS_OR_EQUAL,
-    LESS,
-    NOT_EQUAL
+    GREATER_OR_EQUAL(">="),
+    GREATER         (">"),
+    EQUAL           ("=="),
+    LESS_OR_EQUAL   ("<="),
+    LESS            ("<"),
+    NOT_EQUAL       ("!="),
+    ;
+    
+    private final String symbol;
+    
+    private Comparison(String pSymbol) {
+      symbol = pSymbol;
+    }
+    
+    public String operatorSymbol() {
+      return symbol;
+    }
   }
 
-  private Comparison mComparison;
-  private Term mLeftTerm;
-  private Term mRightTerm;
-  private String mString;
+  private final Comparison mComparison;
+  private final Term mLeftTerm;
+  private final Term mRightTerm;
+  private final String mString;
 
   public Predicate(Term pLeftTerm, Comparison pComparison, Term pRightTerm) {
-    assert(pLeftTerm != null);
-    assert(pComparison != null);
-    assert(pRightTerm != null);
+    mLeftTerm = Preconditions.checkNotNull(pLeftTerm);
+    mComparison = Preconditions.checkNotNull(pComparison);
+    mRightTerm = Preconditions.checkNotNull(pRightTerm);
 
-    mLeftTerm = pLeftTerm;
-    mComparison = pComparison;
-    mRightTerm = pRightTerm;
-
-    String lComparisonString = null;
-
-    switch (mComparison) {
-    case GREATER_OR_EQUAL:
-      lComparisonString = ">=";
-      break;
-    case GREATER:
-      lComparisonString = ">";
-      break;
-    case EQUAL:
-      lComparisonString = "==";
-      break;
-    case LESS_OR_EQUAL:
-      lComparisonString = "<=";
-      break;
-    case LESS:
-      lComparisonString = "<";
-      break;
-    case NOT_EQUAL:
-      lComparisonString = "!=";
-      break;
-    }
-
-    mString = mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString();
+    mString = mLeftTerm.toString() + " " + mComparison.operatorSymbol() + " " + mRightTerm.toString();
   }
 
   public Predicate negate() {
