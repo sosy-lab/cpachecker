@@ -88,14 +88,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   public org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager getInternalSFM() {
     return mInternalSFM;
   }
-  
-  long getMsatEnv() {
-    return mInternalSFM.getMsatEnv();
-  }
-
-  long createEnvironment(boolean shared, boolean ghostFilter) {
-    return mInternalSFM.createEnvironment(shared, ghostFilter);
-  }
 
   // ----------------- Boolean formulas -----------------
   
