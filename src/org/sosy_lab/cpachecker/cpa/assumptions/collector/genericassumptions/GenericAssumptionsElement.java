@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
@@ -39,16 +39,16 @@ import com.google.common.base.Preconditions;
 public class GenericAssumptionsElement implements AbstractElement, AssumptionReportingElement {
 
   // The inner representation is a formula.
-  private final AssumptionWithLocation assumption;
+  private final Assumption assumption;
 
-  public GenericAssumptionsElement(AssumptionWithLocation anAssumption)
+  public GenericAssumptionsElement(Assumption anAssumption)
   {
     Preconditions.checkNotNull(anAssumption);
     assumption = anAssumption;
   }
 
   @Override
-  public AssumptionWithLocation getAssumptionWithLocation()
+  public Assumption getAssumption()
   {
     return assumption;
   }

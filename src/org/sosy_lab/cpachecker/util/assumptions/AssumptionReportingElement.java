@@ -40,6 +40,6 @@ public interface AssumptionReportingElement {
    *         for the given element, or the value null representing
    *         the assumption true.
    */
-  public AssumptionWithLocation getAssumptionWithLocation();
+  public Assumption getAssumption();
 
 }

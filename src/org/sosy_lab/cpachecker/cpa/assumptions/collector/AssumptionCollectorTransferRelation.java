@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,7 +64,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     
-    AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor();
+    AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor(edge.getSuccessor());
     for (AbstractElement e : others) {
       reportingVisitor.visit(e);
     }
@@ -88,15 +89,20 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private static final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {
 
+    private final CFANode location;
     private final AssumptionWithLocation.Builder assumptionBuilder = AssumptionWithLocation.builder();
     private boolean forceStop = false;
 
+    public AssumptionAndForceStopReportingVisitor(CFANode location) {
+      this.location = location;
+    }
+    
     @Override
     public void process(AbstractElement element) {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
-        AssumptionWithLocation inv = ((AssumptionReportingElement)element).getAssumptionWithLocation();
-        assumptionBuilder.add(inv);
+        Assumption inv = ((AssumptionReportingElement)element).getAssumption();
+        assumptionBuilder.add(location, inv);
       }
 
       // process stop flag

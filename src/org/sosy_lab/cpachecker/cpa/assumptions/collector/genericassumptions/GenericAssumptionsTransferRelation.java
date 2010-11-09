@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.collect.ImmutableList;
@@ -79,8 +78,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
         manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
     }
     Assumption assumption = new Assumption(assumptionFormula, true);
-    AssumptionWithLocation assumptionWithLoc = AssumptionWithLocation.forLocation(edge.getSuccessor(), assumption);
-    return Collections.singleton(new GenericAssumptionsElement(assumptionWithLoc));
+    return Collections.singleton(new GenericAssumptionsElement(assumption));
   }
 
   @Override

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
 
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
@@ -58,7 +58,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
 
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    topElement = new GenericAssumptionsElement(AssumptionWithLocation.emptyAssumption());
+    topElement = new GenericAssumptionsElement(Assumption.TRUE);
     abstractDomain = new GenericAssumptionsDomain(topElement);
 
     AssumptionSymbolicFormulaManager manager = new AssumptionSymbolicFormulaManagerImpl(config, logger);
