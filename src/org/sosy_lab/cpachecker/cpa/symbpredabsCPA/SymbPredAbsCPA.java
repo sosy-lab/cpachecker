@@ -160,8 +160,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     
     if (checkBlockFeasibility) {
-      SymbolicFormula trueFormula = symbolicFormulaManager.makeTrue();
-      Predicate truePredicate = formulaManager.makePredicate(symbolicFormulaManager.createPredicateVariable(trueFormula), trueFormula);
+      Predicate truePredicate = formulaManager.makeTruePredicate();
       if (predicates == null) {
         predicates = ImmutableSet.of(truePredicate);
       } else {

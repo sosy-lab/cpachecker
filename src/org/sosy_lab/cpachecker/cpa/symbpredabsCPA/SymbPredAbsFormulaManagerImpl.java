@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -686,9 +685,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           // path is not feasible here but we have no interpolant, force satisfiability check
           foundPredicates = true;
 
-          SymbolicFormula trueFormula = smgr.makeTrue();
-          Set<Predicate> preds = ImmutableSet.of(makePredicate(smgr.createPredicateVariable(trueFormula), trueFormula));
-          info.addPredicatesForRefinement(e, preds);
+          info.addPredicatesForRefinement(e, ImmutableSet.of(makeTruePredicate()));
           
           logger.log(Level.ALL, "For step", i, "got: interpolant false, predicates [true]");
           

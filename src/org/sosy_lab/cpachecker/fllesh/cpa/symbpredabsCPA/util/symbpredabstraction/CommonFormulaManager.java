@@ -127,6 +127,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }   
     return result;
   }
+  
+  @Override
+  public Predicate makeTruePredicate() {
+    return makePredicate(smgr.createPredicateVariable(smgr.makeTrue()), smgr.makeTrue());
+  }
 
   /**
    * Get predicate corresponding to a variable.
