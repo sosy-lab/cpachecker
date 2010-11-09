@@ -317,6 +317,8 @@ cpas.symbpredabs.blk.requiredThresholdAndLBE = false
 # (non-negative number, 0 means never, if positive should be smaller than blocksize)
 cpas.symbpredabs.satCheckBlockSize = 0
 
+# always check satisfiability at end of block, even if precision is empty
+cpas.symbpredabs.checkBlockFeasibility = true
 
 # whether to include the symbolic path formula in the coverage checks or do only the fast abstract checks
 cpas.symbpredabs.symbolicCoverageCheck = false

@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicF
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 
 /**
@@ -78,6 +79,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
+  
+  @Option
+  private boolean checkBlockFeasibility = true;
   
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
@@ -152,6 +156,15 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       } catch (IOException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");
+      }
+    }
+    
+    if (checkBlockFeasibility) {
+      Predicate p = formulaManager.makeFalsePredicate();
+      if (predicates == null) {
+        predicates = ImmutableSet.of(p);
+      } else {
+        predicates.add(p);
       }
     }
     initialPrecision = new SymbPredAbsPrecision(predicates);

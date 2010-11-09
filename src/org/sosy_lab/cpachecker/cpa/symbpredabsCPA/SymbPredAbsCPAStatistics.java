@@ -134,6 +134,8 @@ class SymbPredAbsCPAStatistics implements Statistics {
         out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
         out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, prec.numAbstractions) + ")");
         out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, prec.numAbstractions) + ")");
+        out.println("  Times precision was empty:       " + bs.numSymbolicAbstractions + " (" + toPercent(bs.numSymbolicAbstractions, bs.numCallsAbstraction) + ")");
+        out.println("  Times precision was only {true}: " + bs.numSatCheckAbstractions + " (" + toPercent(bs.numSatCheckAbstractions, bs.numCallsAbstraction) + ")");
         out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
       }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {

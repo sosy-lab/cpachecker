@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 
@@ -88,6 +89,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   static class Stats {
     public int numCallsAbstraction = 0;
+    public int numSymbolicAbstractions = 0;
+    public int numSatCheckAbstractions = 0;
     public int numCallsAbstractionCached = 0;
     public long abstractionSolveTime = 0;
     public long abstractionMaxSolveTime = 0;
@@ -217,6 +220,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       Collection<Predicate> predicates) {
 
     stats.numCallsAbstraction++;
+
+    if (predicates.isEmpty()) {
+      stats.numSymbolicAbstractions++;
+      return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
+    }
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
@@ -459,6 +467,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // get propositional variable and definition of predicate
       SymbolicFormula var = p.getSymbolicVariable();
       SymbolicFormula def = p.getSymbolicAtom();
+      if (def.isFalse()) {
+        continue;
+      }
       def = smgr.instantiate(def, ssa);
       
       // build the formula (var <-> def) and add it to the list of definitions
@@ -466,6 +477,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       predDef = smgr.makeAnd(predDef, equiv);
 
       predVars.add(var);
+    }
+    if (predVars.isEmpty()) {
+      stats.numSatCheckAbstractions++;
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
@@ -664,13 +678,18 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           dumpFormulaToFile(itp, new File(dumpFile));
         }
 
-        if (itp.isTrue() || itp.isFalse()) {
+        if (itp.isTrue()) {
           logger.log(Level.ALL, "For step", i, "got no interpolant.");
 
         } else {
           foundPredicates = true;
-
-          Collection<Predicate> preds = getAtomsAsPredicates(itp);
+          Collection<Predicate> preds;
+          
+          if (itp.isFalse()) {
+            preds = ImmutableSet.of(makeFalsePredicate());
+          } else {
+            preds = getAtomsAsPredicates(itp);
+          }
           assert !preds.isEmpty();
           info.addPredicatesForRefinement(e, preds);
 
@@ -1052,7 +1071,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     List<Predicate> preds = new ArrayList<Predicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {
-      preds.add(makePredicate(smgr.createPredicateVariable(atom), atom));
+      preds.add(makePredicate(atom));
     }
     return preds;    
   }
