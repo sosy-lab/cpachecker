@@ -81,7 +81,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private File predicatesFile = null;
   
   @Option
-  private boolean checkBlockFeasibility = false;
+  private boolean checkBlockFeasibility = true;
   
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
