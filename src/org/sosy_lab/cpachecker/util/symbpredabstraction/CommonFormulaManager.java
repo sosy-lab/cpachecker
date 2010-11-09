@@ -109,8 +109,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
   
   @Override
-  public Predicate makeTruePredicate() {
-    return makePredicate(smgr.makeTrue());
+  public Predicate makeFalsePredicate() {
+    return makePredicate(smgr.makeFalse());
   }
 
   /**

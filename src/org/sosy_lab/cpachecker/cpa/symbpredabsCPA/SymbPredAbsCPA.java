@@ -160,11 +160,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     
     if (checkBlockFeasibility) {
-      Predicate truePredicate = formulaManager.makeTruePredicate();
+      Predicate p = formulaManager.makeFalsePredicate();
       if (predicates == null) {
-        predicates = ImmutableSet.of(truePredicate);
+        predicates = ImmutableSet.of(p);
       } else {
-        predicates.add(truePredicate);
+        predicates.add(p);
       }
     }
     initialPrecision = new SymbPredAbsPrecision(predicates);

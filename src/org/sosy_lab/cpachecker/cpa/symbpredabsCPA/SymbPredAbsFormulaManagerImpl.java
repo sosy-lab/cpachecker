@@ -467,7 +467,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // get propositional variable and definition of predicate
       SymbolicFormula var = p.getSymbolicVariable();
       SymbolicFormula def = p.getSymbolicAtom();
-      if (def.isTrue()) {
+      if (def.isFalse()) {
         continue;
       }
       def = smgr.instantiate(def, ssa);
@@ -681,18 +681,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         if (itp.isTrue()) {
           logger.log(Level.ALL, "For step", i, "got no interpolant.");
 
-        } else if (itp.isFalse()) {
-          // path is not feasible here but we have no interpolant, force satisfiability check
-          foundPredicates = true;
-
-          info.addPredicatesForRefinement(e, ImmutableSet.of(makeTruePredicate()));
-          
-          logger.log(Level.ALL, "For step", i, "got: interpolant false, predicates [true]");
-          
         } else {
           foundPredicates = true;
-
-          Collection<Predicate> preds = getAtomsAsPredicates(itp);
+          Collection<Predicate> preds;
+          
+          if (itp.isFalse()) {
+            preds = ImmutableSet.of(makeFalsePredicate());
+          } else {
+            preds = getAtomsAsPredicates(itp);
+          }
           assert !preds.isEmpty();
           info.addPredicatesForRefinement(e, preds);
 

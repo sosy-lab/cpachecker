@@ -81,9 +81,9 @@ public interface FormulaManager {
   public Predicate makePredicate(SymbolicFormula atom);
   
   /**
-   * Creates a Predicate for the atom "true".
+   * Creates a Predicate for the atom "false".
    */
-  public Predicate makeTruePredicate();
+  public Predicate makeFalsePredicate();
   
   /**
    * Get predicate corresponding to a variable.
