@@ -117,7 +117,7 @@ public class CtoFormulaConverter {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  private static final String NONDET_VARIABLE = "__nondet__";
+  protected static final String NONDET_VARIABLE = "__nondet__";
   public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
   // global variables (do not live in any namespace)
