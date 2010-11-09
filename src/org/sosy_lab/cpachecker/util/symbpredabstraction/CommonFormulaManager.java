@@ -295,6 +295,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula mt2 = smgr.makeTrue();
 
     for (String var : result.allVariables()) {
+      if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+        continue; // do not add index adjustment terms for __nondet__
+      }
       int i1 = ssa1.getIndex(var);
       int i2 = ssa2.getIndex(var);
 

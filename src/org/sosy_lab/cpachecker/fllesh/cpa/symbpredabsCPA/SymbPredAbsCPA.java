@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -113,7 +113,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager);
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager.getInternalSFM());
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -121,7 +121,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
+      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager.getInternalSFM(), false);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }

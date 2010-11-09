@@ -117,13 +117,11 @@ public class CtoFormulaConverter {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  private static final String NONDET_VARIABLE = "__nondet__";
+  protected static final String NONDET_VARIABLE = "__nondet__";
   public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
-
-  private int nondetCounter = 0;
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -244,7 +242,7 @@ public class CtoFormulaConverter {
     if (isNondetVariable(var)) {
       // on every read access to special non-determininism variable, increase index
       var = NONDET_VARIABLE;
-      idx = nondetCounter++;
+      idx = makeLvalIndex(var, ssa);
     } else {
       var = scoped(var, function);
       idx = getIndex(var, ssa);

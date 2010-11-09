@@ -85,12 +85,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     assignUfDecl = msat_declare_uif(mInternalSFM.getMsatEnv(), ":=", MSAT_BOOL, 2, msatVarType2);
   }
 
-  long getMsatEnv() {
-    return mInternalSFM.getMsatEnv();
-  }
-
-  long createEnvironment(boolean shared, boolean ghostFilter) {
-    return mInternalSFM.createEnvironment(shared, ghostFilter);
+  public org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager getInternalSFM() {
+    return mInternalSFM;
   }
 
   // ----------------- Boolean formulas -----------------
