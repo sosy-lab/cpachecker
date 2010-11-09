@@ -92,7 +92,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * the atom that defines it
    */
   @Override
-  public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom) {
+  public Predicate makePredicate(SymbolicFormula atom) {
+    SymbolicFormula var = smgr.createPredicateVariable(atom);
     Predicate result = symbVarToPredicate.get(var);
     if (result == null) {
       AbstractFormula absVar = amgr.createPredicate();
@@ -109,7 +110,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   @Override
   public Predicate makeTruePredicate() {
-    return makePredicate(smgr.createPredicateVariable(smgr.makeTrue()), smgr.makeTrue());
+    return makePredicate(smgr.makeTrue());
   }
 
   /**

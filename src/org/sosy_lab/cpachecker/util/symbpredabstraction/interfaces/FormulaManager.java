@@ -74,13 +74,12 @@ public interface FormulaManager {
    * and branchingCounter from oldFormula.
    */
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula);
-  
-  /**
-   * creates a Predicate from the Boolean symbolic variable (var) and
-   * the atom that defines it
-   */
-  public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom);
 
+  /**
+   * creates a Predicate for an atom that defines it
+   */
+  public Predicate makePredicate(SymbolicFormula atom);
+  
   /**
    * Creates a Predicate for the atom "true".
    */

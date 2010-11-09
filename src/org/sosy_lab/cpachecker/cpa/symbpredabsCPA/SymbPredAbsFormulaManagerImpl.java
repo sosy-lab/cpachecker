@@ -1074,7 +1074,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     List<Predicate> preds = new ArrayList<Predicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {
-      preds.add(makePredicate(smgr.createPredicateVariable(atom), atom));
+      preds.add(makePredicate(atom));
     }
     return preds;    
   }
