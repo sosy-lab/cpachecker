@@ -91,6 +91,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   static class Stats {
     public int numCallsAbstraction = 0;
     public int numSymbolicAbstractions = 0;
+    public int numSatCheckAbstractions = 0;
     public int numCallsAbstractionCached = 0;
     public long abstractionSolveTime = 0;
     public long abstractionMaxSolveTime = 0;
@@ -477,6 +478,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       predDef = smgr.makeAnd(predDef, equiv);
 
       predVars.add(var);
+    }
+    if (predVars.isEmpty()) {
+      stats.numSatCheckAbstractions++;
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
