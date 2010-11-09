@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   
-  private final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager mInternalSFM;
+  final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager mInternalSFM;
   
   @Option
   private boolean useIntegers = false;
@@ -82,7 +82,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     
     msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
     final int[] msatVarType2 = {msatVarType, msatVarType};
-    assignUfDecl = msat_declare_uif(getMsatEnv(), ":=", MSAT_BOOL, 2, msatVarType2);
+    assignUfDecl = msat_declare_uif(mInternalSFM.getMsatEnv(), ":=", MSAT_BOOL, 2, msatVarType2);
   }
 
   long getMsatEnv() {
@@ -265,7 +265,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   public SymbolicFormula makeAssignment(SymbolicFormula f1, SymbolicFormula f2) {
     long[] args = {org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f1), org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f2)};
 
-    return org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(msat_make_uif(getMsatEnv(), assignUfDecl, args));
+    return org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(msat_make_uif(mInternalSFM.getMsatEnv(), assignUfDecl, args));
   }
 
   private boolean isAssignment(long term) {
@@ -375,7 +375,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           if (isAssignment(t)) {
             // now we replace our "fake" assignment with an equality
             assert newargs.length == 2;
-            newt = msat_make_equal(getMsatEnv(), newargs[0], newargs[1]);
+            newt = msat_make_equal(mInternalSFM.getMsatEnv(), newargs[0], newargs[1]);
           
           } else if (msat_term_is_uif(t) != 0) {
             String name = msat_decl_get_name(msat_term_get_decl(t));
@@ -387,13 +387,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = mInternalSFM.buildMsatUF(mInternalSFM.makeName(name, idx), newargs);
               } else {
-                newt = msat_replace_args(getMsatEnv(), t, newargs);
+                newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
               }
             } else {
-              newt = msat_replace_args(getMsatEnv(), t, newargs);
+              newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
             }
           } else {
-            newt = msat_replace_args(getMsatEnv(), t, newargs);
+            newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
           }
           
           cache.put(tt, org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(newt));
@@ -475,7 +475,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           toProcess.pop();
           long newt;
           if (isAssignment(t)) {
-            newt = msat_make_equal(getMsatEnv(), newargs[0], newargs[1]);
+            newt = msat_make_equal(mInternalSFM.getMsatEnv(), newargs[0], newargs[1]);
 
           } else {
             if (msat_term_is_uif(t) != 0) {
@@ -498,7 +498,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
                     idx = ssaidx + idx-1; // calculate new index
                     newt = mInternalSFM.buildMsatUF(mInternalSFM.makeName(name, idx), newargs);
                   } else {
-                    newt = msat_replace_args(getMsatEnv(), t, newargs);
+                    newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
                   }
 
                   if (lSSAMapBuilder.getIndex(name, a) < idx) {
@@ -507,13 +507,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
                   
                 } else {
                   // the UF is not instantiated, keep it as is
-                  newt = msat_replace_args(getMsatEnv(), t, newargs);
+                  newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
                 }
               } else {
-                newt = msat_replace_args(getMsatEnv(), t, newargs);
+                newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
               }
             } else { // "normal" non-variable term
-              newt = msat_replace_args(getMsatEnv(), t, newargs);
+              newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
             }
           }
           
@@ -584,9 +584,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           toProcess.pop();
           long newt;
           if (isAssignment(t)) {
-            newt = msat_make_equal(getMsatEnv(), newargs[0], newargs[1]);
+            newt = msat_make_equal(mInternalSFM.getMsatEnv(), newargs[0], newargs[1]);
           } else {
-            newt = msat_replace_args(getMsatEnv(), t, newargs);
+            newt = msat_replace_args(mInternalSFM.getMsatEnv(), t, newargs);
           }
           cache.put(tt, org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(newt));
         }
