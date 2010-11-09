@@ -666,11 +666,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 
   @Override
   public SymbolicFormula makePredicateVariable(String pVar, int pIdx) {
-    throw new UnsupportedOperationException();
+    return mInternalSFM.makePredicateVariable(pVar, pIdx);
   }
 
   @Override
   public SymbolicFormula parse(String pS) throws IllegalArgumentException {
-    throw new UnsupportedOperationException();
+    return mInternalSFM.parse(pS);
   }
 }
