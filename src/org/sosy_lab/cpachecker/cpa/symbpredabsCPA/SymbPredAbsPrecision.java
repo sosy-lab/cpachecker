@@ -36,8 +36,8 @@ import com.google.common.collect.SetMultimap;
 
 public class SymbPredAbsPrecision implements Precision {
 
-  private final SetMultimap<CFANode, Predicate> predicateMap;
-  private final Set<Predicate> globalPredicates;
+  private final ImmutableSetMultimap<CFANode, Predicate> predicateMap;
+  private final ImmutableSet<Predicate> globalPredicates;
 
   public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap, Collection<Predicate> globalPredicates) {
     assert predicateMap != null;
@@ -60,7 +60,7 @@ public class SymbPredAbsPrecision implements Precision {
   
   public Set<Predicate> getPredicates(CFANode loc) {
     Set<Predicate> result = predicateMap.get(loc);
-    if (result == null) {
+    if (result.isEmpty()) {
       result = globalPredicates;
     }
     return result;
