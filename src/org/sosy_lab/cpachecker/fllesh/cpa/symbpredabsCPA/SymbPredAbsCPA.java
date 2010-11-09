@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat.MathsatShiftingSymbolicFormulaManager;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -109,11 +109,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     
 
     abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
-    MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
+    MathsatShiftingSymbolicFormulaManager symbolicFormulaManager = new MathsatShiftingSymbolicFormulaManager(config, logger);
     
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager.getInternalSFM());
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -121,7 +121,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager.getInternalSFM(), false);
+      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
