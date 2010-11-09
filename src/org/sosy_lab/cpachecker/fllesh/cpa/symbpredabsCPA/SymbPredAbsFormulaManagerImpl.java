@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.ShiftingSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 
@@ -165,7 +165,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   public SymbPredAbsFormulaManagerImpl(
       AbstractFormulaManager pAmgr,
-      SymbolicFormulaManager pSmgr,
+      ShiftingSymbolicFormulaManager pSmgr,
       TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver,
       InterpolatingTheoremProver<T2> pAltItpProver,

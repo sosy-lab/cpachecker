@@ -44,10 +44,10 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.ShiftingSymbolicFormulaManager;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
+public class MathsatSymbolicFormulaManager implements ShiftingSymbolicFormulaManager  {
   
   final org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager mInternalSFM;
   

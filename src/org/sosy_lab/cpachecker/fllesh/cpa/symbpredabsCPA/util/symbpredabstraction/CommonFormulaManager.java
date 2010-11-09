@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.c.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.ShiftingSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
@@ -78,7 +78,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   private final SymbolicFormula mZero;
   
-  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
+  public CommonFormulaManager(AbstractFormulaManager pAmgr, ShiftingSymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
@@ -237,7 +237,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
+   * from {@link ShiftingSymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
    * it also merges the SSA maps and creates the necessary adjustments to the
    * formulas if the two SSA maps contain different values for the same variables.
    *

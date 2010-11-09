@@ -30,6 +30,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 
 /**
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * A SymbolicFormulaManager is an object that can create/manipulate
  * SymbolicFormulas
  */
-public interface SymbolicFormulaManager extends org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager {
+public interface ShiftingSymbolicFormulaManager extends SymbolicFormulaManager {
 
     /**
      * @see #instantiate(SymbolicFormula, SSAMap)
