@@ -123,8 +123,6 @@ public class CtoFormulaConverter {
   // global variables (do not live in any namespace)
   private final Set<String> globalVars = new HashSet<String>();
 
-  private int nondetCounter = 0;
-
   private final Set<String> printedWarnings = new HashSet<String>();
 
   private final Map<String, SymbolicFormula> stringLitToFormula = new HashMap<String, SymbolicFormula>();
@@ -244,7 +242,7 @@ public class CtoFormulaConverter {
     if (isNondetVariable(var)) {
       // on every read access to special non-determininism variable, increase index
       var = NONDET_VARIABLE;
-      idx = nondetCounter++;
+      idx = makeLvalIndex(var, ssa);
     } else {
       var = scoped(var, function);
       idx = getIndex(var, ssa);
