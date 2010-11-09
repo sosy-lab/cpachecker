@@ -87,6 +87,8 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 @Options(prefix="cpas.symbpredabs")
 public class CtoFormulaConverter {
 
+  //private final org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter mInternalFC;
+  
   @Option
   private boolean initAllVars = false;
 
@@ -127,6 +129,8 @@ public class CtoFormulaConverter {
     this.logger = logger;
     
     mOne = smgr.makeNumber(1);
+    
+    //mInternalFC = new org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter(config, smgr, logger);
   }
   
   private void warnUnsafeVar(IASTExpression exp) {
@@ -1108,5 +1112,9 @@ public class CtoFormulaConverter {
       result = smgr.makeNot(result);
     }
     return result;
+  }
+  
+  protected void addToGlobalVars(String pVar){
+    globalVars.add(pVar);
   }
 }

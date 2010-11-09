@@ -663,4 +663,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         }
     }
   }
+
+  @Override
+  public SymbolicFormula makePredicateVariable(String pVar, int pIdx) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public SymbolicFormula parse(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
+  }
 }
