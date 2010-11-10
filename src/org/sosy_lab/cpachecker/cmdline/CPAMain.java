@@ -114,9 +114,10 @@ public class CPAMain {
         PrintStream stream = System.out; 
         if (exportStatistics && exportStatisticsFile != null) {
           try {
+            com.google.common.io.Files.createParentDirs(exportStatisticsFile);
             FileOutputStream file = new FileOutputStream(exportStatisticsFile);
             stream = new PrintStream(new DuplicateOutputStream(stream, file));
-          } catch (FileNotFoundException e) {
+          } catch (IOException e) {
             logManager.log(Level.WARNING, "Could not write statistics to file ("
                 + e.getMessage() + ")");
           }
