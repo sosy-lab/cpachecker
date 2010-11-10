@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,6 +40,18 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -55,8 +70,15 @@ public class CFAReduction {
   @Option
   private boolean markOnly = false;
   
-  public CFAReduction(Configuration config) throws InvalidConfigurationException {
+  @Option
+  private boolean useCPA = false;
+  
+  private final LogManager logger;
+  
+  public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+    
+    this.logger = logger;
   }
 
   private static final String ASSERT_FUNCTION = "__assert_fail";
@@ -67,12 +89,39 @@ public class CFAReduction {
     
     dfs(cfa, allNodes, false);
 
-    Set<CFANode> errorNodes = getErrorNodes(allNodes);
+    Set<CFANode> errorNodes = useCPA ? getErrorNodesWithCPA(cfa, allNodes)
+                                     : getErrorNodes(allNodes);
+    
+    if (errorNodes.isEmpty()) {
+      // shortcut, all nodes are irrelevant
+      if (markOnly) {
+        for (CFANode n : allNodes) {
+          n.setIrrelevant();
+        }
+      } else {
+        // remove all outgoing edges of first node
+        for (int i = cfa.getNumLeavingEdges(); i >= 0; i--) {
+          cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
+        }
+        cfa.addLeavingSummaryEdge(null);
+      }
+      return;
+    }
+    
+    if (errorNodes.size() == allNodes.size()) {
+      // shortcut, no node is irrelevant
+      return;
+    }
     
     // backwards search to determine all relevant nodes
     Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
       dfs(n, relevantNodes, true);
+    }
+    
+    if (relevantNodes.size() == allNodes.size()) {
+      // shortcut, no node is irrelevant
+      return;
     }
 
     // now detach all the nodes not visited
@@ -109,6 +158,41 @@ public class CFAReduction {
     return errorNodes;
   }
 
+  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) {      
+    Map<String, String> lProperties = ImmutableMap.of(
+        "output.disable", "true",
+        "specification", "test/config/automata/ErrorLocationAutomaton.txt");
+    
+    try {
+      Configuration lConfig = new Configuration(lProperties);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
+      PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
+      lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
+      
+      lAlgorithm.run(lReached);
+
+      Set<CFANode> errorNodes = new HashSet<CFANode>();
+      for (AbstractElement e : lReached) {
+        if (((Targetable)e).isTarget()) {
+          errorNodes.add(((AbstractWrapperElement)e).retrieveLocationElement().getLocationNode());
+        }
+      }
+
+      return errorNodes;
+
+    } catch (CPAException e) {
+      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
+      logger.logException(Level.ALL, e, "");
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
+      logger.logException(Level.ALL, e, "");
+    }
+    return allNodes;
+  }
+
+    
   private void pruneIrrelevantNodes(Set<CFANode> allNodes,
       Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
     for (CFANode n : allNodes) {

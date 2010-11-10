@@ -138,7 +138,7 @@ public class CFACreator {
     // remove irrelevant locations
     if (removeIrrelevantForErrorLocations) {
       pruningTime.start();
-      CFAReduction coi =  new CFAReduction(config);
+      CFAReduction coi =  new CFAReduction(config, logger);
       coi.removeIrrelevantForErrorLocations(mainFunction);
       pruningTime.stop();
   
