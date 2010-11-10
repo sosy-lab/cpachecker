@@ -243,13 +243,17 @@ public class CFABuilder extends ASTVisitor
 		  // TODO Assembler code is ignored here
 		  logger.log(Level.WARNING, "Ignoring inline assembler code at line " + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
 
-		  CFANode prevNode = locStack.pop();
-		  CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+		  // locStack may be empty here, which happens when there is assembler code
+		  // outside of a function
+		  if (!locStack.isEmpty()) {
+  		  CFANode prevNode = locStack.pop();
+  		  CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+  
+  		  BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
+  		  edge.addToCFA(logger);
 
-		  BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
-		  edge.addToCFA(logger);
-
-		  locStack.push(nextNode);
+  		  locStack.push(nextNode);
+		  }
 
 		} else {
       throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(),  declaration);
