@@ -522,21 +522,65 @@ public class CFABuilder extends ASTVisitor
 		if (labelNode != null)
 		{
 			BlankEdge gotoEdge = new BlankEdge("Goto: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode, true);
-			gotoEdge.addToCFA(logger);
-		}
-		else
-		{
-			List<CFANode> labelsNeeded = gotoLabelNeeded.get (labelName);
-			if (labelsNeeded == null)
-			{
-				labelsNeeded = new ArrayList<CFANode> ();
-				gotoLabelNeeded.put (labelName, labelsNeeded);
-			}
+			
+      /* labelNode was analyzed before, so it is in the labelMap, 
+       * then there can be a jump backwards and this can create a loop.
+       * The Node labelNode can be the start of a loop, so check if there is a path 
+       * from labelNode to the current Node through DFS-search */
+      ArrayList<Integer> visitedNodes = new ArrayList<Integer>();
+      if (isPathFromTo(visitedNodes, labelNode, prevNode)) {
+        labelNode.setLoopStart();
+      }
 
-			labelsNeeded.add (prevNode);
-		}
+      gotoEdge.addToCFA(logger);
+    } else {
+      List<CFANode> labelsNeeded = gotoLabelNeeded.get(labelName);
+      if (labelsNeeded == null) {
+        labelsNeeded = new ArrayList<CFANode>();
+        gotoLabelNeeded.put(labelName, labelsNeeded);
+      }
+
+      labelsNeeded.add(prevNode);
+    }
 	}
 
+  /** isPathFromTo() makes a DSF-search from a given Node to search 
+   * if there is a way to the target Node. 
+   * the condition for this function is, that every Node has another NodeNumber
+   * 
+   * The code for this function was taken from CFATopologicalSort.java and is modified.
+   * 
+   * @param pVisitedNodes needed for DSF-search
+   * @param fromNode starting node for DSF-search
+   * @param toNode target node for isPath
+   */
+  private boolean isPathFromTo(ArrayList<Integer> pVisitedNodes,
+      CFANode fromNode, CFANode toNode) {
+
+    // add current node to visited nodes
+    pVisitedNodes.add(fromNode.getNodeNumber());
+    boolean isPath = false;
+
+    // check if the target is reached
+    if (fromNode.getNodeNumber() == toNode.getNodeNumber()) {
+      isPath = true;
+
+    } else {
+      // BSF-search with the children of current node
+      for (int i = 0; i < fromNode.getNumLeavingEdges(); i++) {
+        CFANode successor = fromNode.getLeavingEdge(i).getSuccessor();
+        if (!pVisitedNodes.contains(successor.getNodeNumber())) {
+          isPath = isPathFromTo(pVisitedNodes, successor, toNode);
+        }
+        // if there is a path, break the search and return isPath (=true)
+        if (isPath) {
+          break;
+        }
+      }
+    }
+    return isPath;
+  }
+	
 	private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.peek ();
