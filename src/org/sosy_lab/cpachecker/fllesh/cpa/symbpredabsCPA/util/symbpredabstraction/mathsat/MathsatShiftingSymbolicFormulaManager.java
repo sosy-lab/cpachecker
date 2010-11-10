@@ -29,7 +29,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,7 +59,6 @@ public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormul
   
   public MathsatShiftingSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(config, logger);
-    config.inject(this, MathsatShiftingSymbolicFormulaManager.class);
     
     final int[] msatVarType2 = {super.msatVarType, super.msatVarType};
     assignUfDecl = msat_declare_uif(getMsatEnv(), ":=", MSAT_BOOL, 2, msatVarType2);
@@ -78,11 +76,6 @@ public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormul
   }
   
   // ----------------- Complex formula manipulation -----------------
-
-  @Override
-  public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
-      SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
-  }
 
   @Override
   public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {

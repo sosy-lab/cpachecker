@@ -143,6 +143,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="refinement.dumpInterpolationProblems")
   private boolean dumpInterpolationProblems = false;
 
+  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE)
+  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
+  private final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
+  
   @Option(name="interpolation.timelimit")
   private long itpTimeLimit = 0;
 
@@ -173,6 +177,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       LogManager logger) throws InvalidConfigurationException {
     super(pAmgr, pSmgr, config, logger);
     config.inject(this);
+    
+    if (formulaDumpFile != null) {
+      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
+    } else {
+      dumpHardAbstractions = false;
+      formulaDumpFilePattern = null;
+    }
 
     stats = new Stats();
     thmProver = pThmProver;
@@ -516,7 +527,17 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       // TODO dump hard abst
       if (solveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, predVars);
+        String dumpFile = String.format(formulaDumpFilePattern,
+                                 "abstraction", stats.numCallsAbstraction, "input", 0);
+        dumpFormulaToFile(symbFormula, new File(dumpFile));
+
+        dumpFile = String.format(formulaDumpFilePattern,
+                                 "abstraction", stats.numCallsAbstraction, "predDef", 0);
+        dumpFormulaToFile(predDef, new File(dumpFile));
+
+        dumpFile = String.format(formulaDumpFilePattern,
+                                 "abstraction", stats.numCallsAbstraction, "predVars", 0);
+        printFormulasToFile(predVars, new File(dumpFile));
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
@@ -1047,6 +1068,26 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
 
     return f;
+  }
+  
+  protected void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, smgr.dumpFormula(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+  
+  private static final Joiner LINE_JOINER = Joiner.on('\n');
+
+  protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, LINE_JOINER.join(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
   }
 
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces;
 
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -76,9 +75,4 @@ public interface ShiftingSymbolicFormulaManager extends SymbolicFormulaManager {
     public void collectVarNames(SymbolicFormula term, Set<String> vars,
                                 Set<Pair<String, SymbolicFormulaList>> lvals);
 
-    /**
-     * Dump an abstraction problem to a file so that the user can look at this problem later.
-     */
-    public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
-        SymbolicFormula predDef, List<SymbolicFormula> importantPreds);
 }
