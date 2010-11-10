@@ -64,16 +64,25 @@ public class CFAReduction {
   
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
     Set<CFANode> allNodes = new HashSet<CFANode>();
-    Set<CFANode> relevantNodes = new HashSet<CFANode>();
-    Set<CFANode> errorNodes = new HashSet<CFANode>();
     
     dfs(cfa, allNodes, false);
+
+    Set<CFANode> errorNodes = getErrorNodes(allNodes);
+    
+    // backwards search to determine all relevant nodes
+    Set<CFANode> relevantNodes = new HashSet<CFANode>();
+    for (CFANode n : errorNodes) {
+      dfs(n, relevantNodes, true);
+    }
+
+    // now detach all the nodes not visited
+    pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
+  }
+  
+  private static Set<CFANode> getErrorNodes(Set<CFANode> allNodes) {
+    Set<CFANode> errorNodes = new HashSet<CFANode>();
+    
     for (CFANode n : allNodes) {
-      if (relevantNodes.contains(n)) {
-        // this node has already been determined to be necessary
-        continue;
-      }
-      
       boolean errorLocation = false;
       // first, check for label "ERROR"
       if (n instanceof CFALabelNode) {
@@ -94,12 +103,14 @@ public class CFAReduction {
       }
       
       if (errorLocation) {
-        dfs(n, relevantNodes, true);
         errorNodes.add(n);
       }
     }
+    return errorNodes;
+  }
 
-    // now detach all the nodes not visited
+  private void pruneIrrelevantNodes(Set<CFANode> allNodes,
+      Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
     for (CFANode n : allNodes) {
       if (!relevantNodes.contains(n)) {
         boolean irrelevant = true;
@@ -137,7 +148,7 @@ public class CFAReduction {
       }
     }
   }
-
+  
   private void dfs(CFANode start, Set<CFANode> seen, boolean reverse) {
     Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
     toProcess.push(start);
