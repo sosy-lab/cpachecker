@@ -166,6 +166,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   // 1: predicate is true
   private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
   private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
+  
+  private final ShiftingSymbolicFormulaManager smgr;
 
   public SymbPredAbsFormulaManagerImpl(
       AbstractFormulaManager pAmgr,
@@ -177,6 +179,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       LogManager logger) throws InvalidConfigurationException {
     super(pAmgr, pSmgr, config, logger);
     config.inject(this);
+    
+    smgr = pSmgr;
     
     if (formulaDumpFile != null) {
       formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();

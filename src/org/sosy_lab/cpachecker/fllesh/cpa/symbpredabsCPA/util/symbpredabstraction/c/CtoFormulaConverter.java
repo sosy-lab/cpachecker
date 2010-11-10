@@ -78,8 +78,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.ShiftingSymbolicFormulaManager;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -117,12 +117,12 @@ public class CtoFormulaConverter {
   private final Map<String, SymbolicFormula> stringLitToFormula = new HashMap<String, SymbolicFormula>();
   private int nextStringLitIndex = 0;
   
-  protected final ShiftingSymbolicFormulaManager smgr;
+  protected final SymbolicFormulaManager smgr;
   protected final LogManager logger;
   
   private final SymbolicFormula mOne;
   
-  public CtoFormulaConverter(Configuration config, ShiftingSymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
     this.smgr = smgr;

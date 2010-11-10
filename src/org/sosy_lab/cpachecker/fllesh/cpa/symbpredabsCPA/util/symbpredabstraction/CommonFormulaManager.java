@@ -39,11 +39,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.c.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.ShiftingSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
@@ -62,7 +65,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * @author Philipp Wendler
  */
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
+public class CommonFormulaManager implements FormulaManager {
+  
+  protected final CtoFormulaConverter mCConverter;
   
   protected final AbstractFormulaManager amgr;
 
@@ -78,9 +83,12 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   
   private final SymbolicFormula mZero;
   
-  public CommonFormulaManager(AbstractFormulaManager pAmgr, ShiftingSymbolicFormulaManager pSmgr,
+  protected final LogManager logger;
+  private final SymbolicFormulaManager smgr;
+  
+  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    super(config, pSmgr, pLogger);
+    mCConverter = new CtoFormulaConverter(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
 
@@ -92,6 +100,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     } else {
       toConcreteCache = null;
     }
+    
+    logger = pLogger;
+    smgr = pSmgr;
     
     mZero = smgr.makeNumber(0);
   }
@@ -298,45 +309,45 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         if (i2 <= 0) {
           
           for (int lIndex = 1; lIndex < i1 + 1; lIndex++) {
-            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(CtoFormulaConverter.NONDET_FLAG_VARIABLE, lIndex);
             SymbolicFormula lZero = mZero;
             SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
             
             mt2 = smgr.makeAnd(mt2, lAssignment);
           }
           
-          lSSAMapBuilder.setIndex(NONDET_VARIABLE, i1);
-          lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_FLAG_VARIABLE, i1);
         }
         else if (i1 != i2) {
           if (i1 > i2) {
             for (int lIndex = i2 + 1; lIndex < i1 + 1; lIndex++) {
-              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(CtoFormulaConverter.NONDET_FLAG_VARIABLE, lIndex);
               SymbolicFormula lZero = mZero;
               SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
               
               mt2 = smgr.makeAnd(mt2, lAssignment);
             }
             
-            lSSAMapBuilder.setIndex(NONDET_VARIABLE, i1);
-            lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i1);
+            lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_VARIABLE, i1);
+            lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_FLAG_VARIABLE, i1);
           }
           else {
             for (int lIndex = i1 + 1; lIndex < i2 + 1; lIndex++) {
-              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+              SymbolicFormula lNondetFlagVariable = smgr.makeVariable(CtoFormulaConverter.NONDET_FLAG_VARIABLE, lIndex);
               SymbolicFormula lZero = mZero;
               SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
               
               mt1 = smgr.makeAnd(mt1, lAssignment);
             }
             
-            lSSAMapBuilder.setIndex(NONDET_VARIABLE, i2);
-            lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i2);
+            lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_VARIABLE, i2);
+            lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_FLAG_VARIABLE, i2);
           }
         }
         else {
-          lSSAMapBuilder.setIndex(NONDET_VARIABLE, i1);
-          lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_VARIABLE, i1);
+          lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_FLAG_VARIABLE, i1);
         }
       }
       else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
@@ -380,15 +391,15 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         if (i1 <= 0) {
           
           for (int lIndex = 1; lIndex < i2 + 1; lIndex++) {
-            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex);
+            SymbolicFormula lNondetFlagVariable = smgr.makeVariable(CtoFormulaConverter.NONDET_FLAG_VARIABLE, lIndex);
             SymbolicFormula lZero = smgr.makeNumber(0);
             SymbolicFormula lAssignment = smgr.makeAssignment(lNondetFlagVariable, lZero);
             
             mt1 = smgr.makeAnd(mt1, lAssignment);
           }
           
-          lSSAMapBuilder.setIndex(NONDET_VARIABLE, i2);
-          lSSAMapBuilder.setIndex(NONDET_FLAG_VARIABLE, i2);
+          lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_VARIABLE, i2);
+          lSSAMapBuilder.setIndex(CtoFormulaConverter.NONDET_FLAG_VARIABLE, i2);
         }
       }
       else if (var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
@@ -515,6 +526,12 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       }
     }
     return new Pair<SymbolicFormula, SymbolicFormula>(e1, e2);
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPf, CFAEdge pE)
+      throws CPATransferException {
+    return mCConverter.makeAnd(pPf, pE);
   }
 
 }
