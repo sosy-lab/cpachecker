@@ -178,6 +178,7 @@ public class CPAchecker {
       // create CFA
       stats.cfaCreationTime.start();
       CFACreator cfaCreator = new CFACreator(config, logger);
+      stats.setCFACreator(cfaCreator);
       cfaCreator.createCFA(ast);
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();

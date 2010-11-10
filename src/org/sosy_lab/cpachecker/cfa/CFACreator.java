@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -76,6 +77,8 @@ public class CFACreator {
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
+  
+  public final Timer pruningTime = new Timer();
   
   public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -134,8 +137,10 @@ public class CFACreator {
     
     // remove irrelevant locations
     if (removeIrrelevantForErrorLocations) {
+      pruningTime.start();
       CFAReduction coi =  new CFAReduction(config);
       coi.removeIrrelevantForErrorLocations(mainFunction);
+      pruningTime.stop();
   
       if (mainFunction.getNumLeavingEdges() == 0) {
         logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()

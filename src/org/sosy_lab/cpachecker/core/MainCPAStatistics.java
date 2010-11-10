@@ -41,12 +41,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
 @Options
@@ -104,6 +106,8 @@ class MainCPAStatistics implements Statistics {
     final Timer cfaCreationTime = new Timer();
     final Timer cpaCreationTime = new Timer();
     final Timer analysisTime = new Timer();
+
+    private CFACreator cfaCreator;
 
     public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
         config.inject(this);
@@ -165,6 +169,9 @@ class MainCPAStatistics implements Statistics {
         }
         out.println("Time for parsing C file:   " + parseTime);
         out.println("Time for CFA construction: " + cfaCreationTime);
+        if (cfaCreator != null) {
+          out.println("  Time for CFA pruning:    " + cfaCreator.pruningTime);
+        }
         out.println("Time for CPA instantiaton: " + cpaCreationTime);
         out.println("Time for Analysis:         " + analysisTime);
         out.println("Total time for CPAchecker: " + programTime);
@@ -213,5 +220,10 @@ class MainCPAStatistics implements Statistics {
     
     private static String formatMem(long mem) {
       return String.format("%,9dMB", mem >> 20);
+    }
+
+    public void setCFACreator(CFACreator pCfaCreator) {
+      Preconditions.checkState(cfaCreator == null);
+      cfaCreator = pCfaCreator;
     }
 }
