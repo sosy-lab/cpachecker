@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces;
 
-import java.util.Set;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 
@@ -60,19 +57,5 @@ public interface ShiftingSymbolicFormulaManager extends SymbolicFormulaManager {
      * formula).
      */
     public SymbolicFormula replaceAssignments(SymbolicFormula f);
-
-    /**
-     * Extracts the SSA indices from a formula. 
-     */
-    public SSAMap extractSSA(SymbolicFormula f);
-
-    /**
-     * Collects all variables names and all lValues in a term.
-     * @param term  the symbolic formula to analyze
-     * @param vars  the set were all variable names are stored
-     * @param lvals the set where all lValue UIFs and their arguments are stored
-     */
-    public void collectVarNames(SymbolicFormula term, Set<String> vars,
-                                Set<Pair<String, SymbolicFormulaList>> lvals);
 
 }

@@ -28,9 +28,7 @@ import static mathsat.api.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -324,75 +322,5 @@ public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormul
     SymbolicFormula result = cache.get(f);
     assert result != null;
     return result;
-  }
-
-  /**
-   * returns an SSA map for the instantiated formula f
-   */
-  @Override
-  public SSAMap extractSSA(SymbolicFormula f) {
-    SSAMapBuilder lSSAMapBuilder = SSAMap.emptySSAMap().builder();
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-    Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();
-
-    toProcess.push(f);
-    while (!toProcess.isEmpty()) {
-      final SymbolicFormula tt = toProcess.pop();
-      if (cache.contains(tt)) {
-        continue;
-      }
-      cache.add(tt);
-      final long t = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(tt);
-
-      if (msat_term_is_variable(t) != 0) {
-        Pair<String, Integer> var = parseName(msat_term_repr(t));
-        String name = var.getFirst();
-        int idx = var.getSecond();
-        if (idx > lSSAMapBuilder.getIndex(name)) {
-          lSSAMapBuilder.setIndex(name, idx);
-        }
-      } else {
-        int arity = msat_term_arity(t);
-        for (int i = 0; i < arity; ++i) {
-          toProcess.push(org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(msat_term_get_arg(t, i)));
-        }
-      }
-    }
-
-    return lSSAMapBuilder.build();
-  }
-
-  @Override
-  public void collectVarNames(SymbolicFormula f, Set<String> vars,
-                              Set<Pair<String, SymbolicFormulaList>> lvals) {
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-
-    toProcess.push(f);
-    // TODO - this assumes the term is small! There is no memoizing yet!!
-    while (!toProcess.isEmpty()) {
-        final long t = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(toProcess.pop());
-
-        if (msat_term_is_variable(t) != 0) {
-          vars.add(msat_term_repr(t));
-        
-        } else {
-          final int arity = msat_term_arity(t);
-          for (int i = 0; i < arity; ++i) {
-            toProcess.push(org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(msat_term_get_arg(t, i)));
-          }
-          
-          if (msat_term_is_uif(t) != 0) {
-            String name = msat_decl_get_name(msat_term_get_decl(t));
-            if (ufCanBeLvalue(name)) {
-              long[] a = new long[arity];
-              for (int i = 0; i < arity; ++i) {
-                a[i] = msat_term_get_arg(t, i);
-              }
-              SymbolicFormulaList aa = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(a);
-              lvals.add(new Pair<String, SymbolicFormulaList>(name, aa));
-            }
-          }
-        }
-    }
   }
 }
