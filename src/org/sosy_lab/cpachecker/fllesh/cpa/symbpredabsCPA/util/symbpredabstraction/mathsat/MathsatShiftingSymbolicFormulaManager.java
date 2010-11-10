@@ -86,24 +86,8 @@ public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormul
 
   @Override
   public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
-    return instantiate(f, ssa, new HashMap<SymbolicFormula, SymbolicFormula>());
-  }
-
-  @Override
-  public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa) {
-    long[] args = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(f);
-    long[] result = new long[args.length];
-    Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
-    
-    for (int i = 0; i < args.length; i++) {
-      result[i] = org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.getTerm(instantiate(org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(args[i]), ssa, cache));
-    }
-    return org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.encapsulate(result);
-  }
-
-  private SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa,
-                                      Map<SymbolicFormula, SymbolicFormula> cache) {
     Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+    Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {

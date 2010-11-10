@@ -42,11 +42,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 public interface ShiftingSymbolicFormulaManager extends SymbolicFormulaManager {
 
     /**
-     * @see #instantiate(SymbolicFormula, SSAMap)
-     */
-    public SymbolicFormulaList instantiate(SymbolicFormulaList f, SSAMap ssa);
-
-    /**
      * "shifts" forward all the variables in the formula f, of the amount
      * given by the input ssa. That is, variables x with index 1 in f will be
      * replaced by variables with index ssa.getIndex(x), vars with index 2 by
