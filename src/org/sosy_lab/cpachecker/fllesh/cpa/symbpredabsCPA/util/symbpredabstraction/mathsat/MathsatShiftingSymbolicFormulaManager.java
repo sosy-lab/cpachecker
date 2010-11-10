@@ -37,7 +37,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
@@ -49,9 +48,6 @@ import org.sosy_lab.cpachecker.fllesh.cpa.symbpredabsCPA.util.symbpredabstractio
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormulaManager implements ShiftingSymbolicFormulaManager  {
   
-  @Option
-  private boolean useIntegers = false;
-  
   // We need to distinguish assignments from tests. This is needed to
   // build a formula in SSA form later on, when we have to mapback
   // a counterexample, without adding too many extra variables. Therefore,
@@ -61,16 +57,6 @@ public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormul
   // with an equality, because now we have an SSA form
   private final long assignUfDecl;
   
-  // datatype to use for variables, when converting them to mathsat vars
-  // can be either MSAT_REAL or MSAT_INT
-  // Note that MSAT_INT does not mean that we support the full linear
-  // integer arithmetic (LIA)! At the moment, interpolation doesn't work on
-  // LIA, only difference logic or on LRA (i.e. on the rationals). However
-  // by setting the vars to be MSAT_INT, the solver tries some heuristics
-  // that might work (e.g. tightening of a < b into a <= b - 1, splitting
-  // negated equalities, ...)
-  private final int msatVarType;
-  
   // cache for replacing assignments
   private final Map<SymbolicFormula, SymbolicFormula> replaceAssignmentsCache = new HashMap<SymbolicFormula, SymbolicFormula>();
   
@@ -78,8 +64,7 @@ public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormul
     super(config, logger);
     config.inject(this, MathsatShiftingSymbolicFormulaManager.class);
     
-    msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
-    final int[] msatVarType2 = {msatVarType, msatVarType};
+    final int[] msatVarType2 = {super.msatVarType, super.msatVarType};
     assignUfDecl = msat_declare_uif(getMsatEnv(), ":=", MSAT_BOOL, 2, msatVarType2);
   }
   

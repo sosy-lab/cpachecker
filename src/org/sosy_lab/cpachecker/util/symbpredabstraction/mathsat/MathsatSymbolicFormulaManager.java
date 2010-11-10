@@ -81,7 +81,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // by setting the vars to be MSAT_INT, the solver tries some heuristics
   // that might work (e.g. tightening of a < b into a <= b - 1, splitting
   // negated equalities, ...)
-  private final int msatVarType;
+  protected final int msatVarType;
   
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
