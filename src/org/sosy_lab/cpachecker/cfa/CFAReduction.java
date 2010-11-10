@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -53,13 +51,13 @@ public class CFAReduction {
   private static final String ERROR_LABEL = "error";
   
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
-    Map<CFANode, Integer> dfsMap = new HashMap<CFANode, Integer>();
-    Map<CFANode, Integer> dfsMapFromError = new HashMap<CFANode, Integer>();
+    Set<CFANode> allNodes = new HashSet<CFANode>();
+    Set<CFANode> relevantNodes = new HashSet<CFANode>();
     Set<CFANode> errorNodes = new HashSet<CFANode>();
     
-    dfs(cfa, dfsMap, false);
-    for (CFANode n : dfsMap.keySet()) {
-      if (dfsMapFromError.containsKey(n)) {
+    dfs(cfa, allNodes, false);
+    for (CFANode n : allNodes) {
+      if (relevantNodes.contains(n)) {
         // this node has already been determined to be necessary
         continue;
       }
@@ -84,13 +82,14 @@ public class CFAReduction {
       }
       
       if (errorLocation) {
-        dfs(n, dfsMapFromError, true);
+        dfs(n, relevantNodes, true);
         errorNodes.add(n);
       }
     }
+
     // now detach all the nodes not visited
-    for (CFANode n : dfsMap.keySet()) {
-      if (!dfsMapFromError.containsKey(n)) {
+    for (CFANode n : allNodes) {
+      if (!relevantNodes.contains(n)) {
         int edgeIndex = 0;
         while (n.getNumEnteringEdges() > edgeIndex) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
@@ -115,55 +114,40 @@ public class CFAReduction {
     }
   }
 
-  private void dfs(CFANode start, Map<CFANode, Integer> dfsMarked,
-                   boolean reverse) {
+  private void dfs(CFANode start, Set<CFANode> seen, boolean reverse) {
     Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
-
     toProcess.push(start);
     while (!toProcess.isEmpty()) {
-      CFANode n = toProcess.peek();
-      if (dfsMarked.containsKey(n) && dfsMarked.get(n) == 1) {
-        toProcess.pop();
-        continue;
-      }
-      boolean finished = true;
-      dfsMarked.put(n, -1);
+      CFANode n = toProcess.pop();
+      seen.add(n);
       if (reverse) {
         for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
           CFAEdge e = n.getEnteringEdge(i);
           CFANode s = e.getPredecessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
+          if (!seen.contains(s)) {
             toProcess.push(s);
-            finished = false;
           }
         }
         if (n.getEnteringSummaryEdge() != null) {
           CFANode s = n.getEnteringSummaryEdge().getPredecessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
+          if (!seen.contains(s)) {
             toProcess.push(s);
-            finished = false;
           }
         }
       } else {
         for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
           CFAEdge e = n.getLeavingEdge(i);
           CFANode s = e.getSuccessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
+          if (!seen.contains(s)) {
             toProcess.push(s);
-            finished = false;
           }
         }
         if (n.getLeavingSummaryEdge() != null) {
           CFANode s = n.getLeavingSummaryEdge().getSuccessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
+          if (!seen.contains(s)) {
             toProcess.push(s);
-            finished = false;
           }
         }
-      }
-      if (finished) {
-        toProcess.pop();
-        dfsMarked.put(n, 1);
       }
     }
   }
