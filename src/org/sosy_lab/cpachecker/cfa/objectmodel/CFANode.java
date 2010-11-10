@@ -44,6 +44,9 @@ public class CFANode implements Comparable<CFANode>
     private CallToReturnEdge enteringSummaryEdge;
     // topological sort id, smaller if it appears later in sorting
     private int topologicalSortId;
+    
+    // flag whether the error condition is reachable from this node
+    private boolean isRelevant = true;
 
     private static int nextNodeNumber = 0;
 
@@ -169,7 +172,15 @@ public class CFANode implements Comparable<CFANode>
     public CallToReturnEdge getLeavingSummaryEdge(){
     	return leavingSummaryEdge;
     }
+    
+    public boolean isRelevant() {
+      return isRelevant;
+    }
 
+    public void setIrrelevant() {
+      isRelevant = false;
+    }
+    
     @Override
     public boolean equals(Object other) {
       if (other == this) {
