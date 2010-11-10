@@ -72,6 +72,7 @@ public class CFACreator {
   private File exportCfaFile = new File("cfa.dot");
 
   private final LogManager logger;
+  private final Configuration config;
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
@@ -79,6 +80,7 @@ public class CFACreator {
   public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     
+    this.config = config;
     this.logger = logger;
   }
 
@@ -132,7 +134,7 @@ public class CFACreator {
     
     // remove irrelevant locations
     if (removeIrrelevantForErrorLocations) {
-      CFAReduction coi =  new CFAReduction();
+      CFAReduction coi =  new CFAReduction(config);
       coi.removeIrrelevantForErrorLocations(mainFunction);
   
       if (mainFunction.getNumLeavingEdges() == 0) {

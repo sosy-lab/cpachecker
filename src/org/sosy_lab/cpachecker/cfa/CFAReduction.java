@@ -28,6 +28,10 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -45,7 +49,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
+@Options(prefix="cfa.pruning")
 public class CFAReduction {
+  
+  @Option
+  private boolean markOnly = false;
+  
+  public CFAReduction(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+  }
 
   private static final String ASSERT_FUNCTION = "__assert_fail";
   private static final String ERROR_LABEL = "error";
@@ -90,26 +102,38 @@ public class CFAReduction {
     // now detach all the nodes not visited
     for (CFANode n : allNodes) {
       if (!relevantNodes.contains(n)) {
+        boolean irrelevant = true;
         int edgeIndex = 0;
         while (n.getNumEnteringEdges() > edgeIndex) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
           if(!(errorNodes.contains(prevNode))) {
             // do not remove the direct successors of error nodes
-            prevNode.removeLeavingEdge(removedEdge);
-            n.removeEnteringEdge(removedEdge);
+            irrelevant = false;
+            if (!markOnly) {
+              prevNode.removeLeavingEdge(removedEdge);
+              n.removeEnteringEdge(removedEdge);
+            } else {
+              ++edgeIndex;
+            }
           } else {
             ++edgeIndex;
           }
         }
-        while (n.getNumLeavingEdges() > 0) {
-          CFAEdge removedEdge = n.getLeavingEdge(0);
-          n.removeLeavingEdge(removedEdge);
-          CFANode succNode = removedEdge.getSuccessor();
-          succNode.removeEnteringEdge(removedEdge);
+        if (markOnly) {
+          if (irrelevant) {
+            n.setIrrelevant();
+          }
+        } else {
+          while (n.getNumLeavingEdges() > 0) {
+            CFAEdge removedEdge = n.getLeavingEdge(0);
+            n.removeLeavingEdge(removedEdge);
+            CFANode succNode = removedEdge.getSuccessor();
+            succNode.removeEnteringEdge(removedEdge);
+          }
+          n.addEnteringSummaryEdge(null);
+          n.addLeavingSummaryEdge(null);
         }
-        n.addEnteringSummaryEdge(null);
-        n.addLeavingSummaryEdge(null);
       }
     }
   }
