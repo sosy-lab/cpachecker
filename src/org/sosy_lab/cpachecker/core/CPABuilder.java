@@ -175,6 +175,9 @@ public class CPABuilder {
       Method factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
       factoryObj = factoryMethod.invoke(null, (Object[])null);
     
+    } catch (NullPointerException e) {
+      throw new CPAException("The factory method of the CPA " + cpaName + " is not static!");
+      
     } catch (NoSuchMethodException e) {
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
     
