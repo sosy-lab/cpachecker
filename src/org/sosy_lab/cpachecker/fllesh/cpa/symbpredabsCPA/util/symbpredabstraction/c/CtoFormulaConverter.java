@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 
@@ -78,10 +77,6 @@ public class CtoFormulaConverter {
   private final org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter mInternalFC;
 
   //names for special variables needed to deal with functions
-  private static final String VAR_RETURN_NAME = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.VAR_RETURN_NAME;
-  private static final String OP_ADDRESSOF_NAME = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.OP_ADDRESSOF_NAME;
-  private static final String OP_STAR_NAME = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.OP_STAR_NAME;
-  private static final String OP_ARRAY_SUBSCRIPT = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.OP_ARRAY_SUBSCRIPT;
   public static final String NONDET_VARIABLE = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.NONDET_VARIABLE;
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
   private static final String FUNCTION_PARAM_NAME = "__param__";
@@ -91,21 +86,6 @@ public class CtoFormulaConverter {
   public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
     mInternalFC = new org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter(config, smgr, logger);
     mOne = mInternalFC.getFormulaManager().makeNumber(1);
-  }
-
-  private int getIndex(String name, SymbolicFormulaList args, SSAMapBuilder ssa, boolean autoInstantiate) {
-    int idx = ssa.getIndex(name, args);
-    if (idx <= 0) {
-      if (!autoInstantiate) {
-        return -1;
-      } else {
-        mInternalFC.getLogManager().log(Level.ALL, "DEBUG_3",
-            "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
-        idx = 1;
-        ssa.setIndex(name, args, idx);
-      }
-    }
-    return idx;
   }
   
   private SymbolicFormula makeNondetVariable(SSAMapBuilder pSSAMap) {
@@ -411,7 +391,7 @@ public class CtoFormulaConverter {
     } else if (retExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
       assert(exp.getOperator() == IASTBinaryExpression.op_assign);
-      String retvar = mInternalFC.scoped(VAR_RETURN_NAME, function);
+      String retvar = mInternalFC.scoped(org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.VAR_RETURN_NAME, function);
 
       int retidx = mInternalFC.getIndex(retvar, ssa);
       SymbolicFormula retvarFormula = mInternalFC.getFormulaManager().makeVariable(retvar, retidx);
@@ -488,7 +468,7 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      String retvalname = mInternalFC.scoped(VAR_RETURN_NAME, function);
+      String retvalname = mInternalFC.scoped(org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.VAR_RETURN_NAME, function);
       int idx = mInternalFC.makeLvalIndex(retvalname, ssa);
 
       SymbolicFormula retvar = mInternalFC.getFormulaManager().makeVariable(retvalname, idx);
@@ -557,8 +537,13 @@ public class CtoFormulaConverter {
 
   private SymbolicFormula makeAndAssume(SymbolicFormula f1,
       AssumeEdge assume, String function, SSAMapBuilder ssa) throws CPATransferException {
-    SymbolicFormula f2 = makePredicate(assume.getExpression(),
-        assume.getTruthAssumption(), function, ssa);
+    SymbolicFormula f2;
+    if (assume.getTruthAssumption()) {
+      f2 = makePredicate(assume.getExpression(), function, ssa);
+    }
+    else {
+      f2 = makeNegativePredicate(assume.getExpression(), function, ssa);
+    }
 
     return mInternalFC.getFormulaManager().makeAnd(f1, f2);
   }
@@ -613,9 +598,9 @@ public class CtoFormulaConverter {
         if (mInternalFC.handleLValuesAsUIF()) {
           String opname;
           if (op == IASTUnaryExpression.op_amper) {
-            opname = OP_ADDRESSOF_NAME;
+            opname = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.OP_ADDRESSOF_NAME;
           } else {
-            opname = OP_STAR_NAME;
+            opname = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.OP_STAR_NAME;
           }
           SymbolicFormula term = buildTerm(operand, function, ssa);
 
@@ -654,7 +639,7 @@ public class CtoFormulaConverter {
       default: {
         // this might be a predicate implicitly cast to an int. Let's
         // see if this is indeed the case...
-        SymbolicFormula ftmp = makePredicate(exp, true, function, ssa);
+        SymbolicFormula ftmp = makePredicate(exp, function, ssa);
         return mInternalFC.getFormulaManager().makeIfThenElse(ftmp, mInternalFC.getFormulaManager().makeNumber(1), mInternalFC.getFormulaManager().makeNumber(0));
       }
       }
@@ -762,7 +747,7 @@ public class CtoFormulaConverter {
         // this might be a predicate implicitly cast to an int, like this:
         // int tmp = (a == b)
         // Let's see if this is indeed the case...
-        SymbolicFormula ftmp = makePredicate(exp, true, function, ssa);
+        SymbolicFormula ftmp = makePredicate(exp, function, ssa);
         return mInternalFC.getFormulaManager().makeIfThenElse(ftmp, mInternalFC.getFormulaManager().makeNumber(1), mInternalFC.getFormulaManager().makeNumber(0));
       }
     } else if (exp instanceof IASTFieldReference) {
@@ -776,11 +761,8 @@ public class CtoFormulaConverter {
         String ufname =
           (fexp.isPointerDereference() ? "->{" : ".{") +
           tpname + "," + field + "}";
-        SymbolicFormulaList aterm = mInternalFC.getFormulaManager().makeList(term);
-        int idx = getIndex(ufname, aterm, ssa, true);
-
-        // see above for the case of &x and *x
-        return mInternalFC.getFormulaManager().makeUIF(ufname, aterm, idx);
+        
+        return mInternalFC.makeUIF(ufname, mInternalFC.getFormulaManager().makeList(term), ssa);
       } else {
         mInternalFC.warnUnsafeVar(exp);
         return makeVariable(org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.exprToVarName(exp), function, ssa);
@@ -795,11 +777,9 @@ public class CtoFormulaConverter {
         SymbolicFormula aterm = buildTerm(arrexp, function, ssa);
         SymbolicFormula sterm = buildTerm(subexp, function, ssa);
 
-        String ufname = OP_ARRAY_SUBSCRIPT;
-        SymbolicFormulaList args = mInternalFC.getFormulaManager().makeList(aterm, sterm);
-        int idx = getIndex(ufname, args, ssa, true);
-
-        return mInternalFC.getFormulaManager().makeUIF(ufname, args, idx);
+        String ufname = org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter.OP_ARRAY_SUBSCRIPT;
+        
+        return mInternalFC.makeUIF(ufname, mInternalFC.getFormulaManager().makeList(aterm, sterm), ssa);
 
       } else {
         mInternalFC.warnUnsafeVar(exp);
@@ -873,59 +853,65 @@ public class CtoFormulaConverter {
     }
   }
 
-  protected SymbolicFormula makePredicate(IASTExpression exp, boolean isTrue,
-        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  private SymbolicFormula createBinaryPredicate(int pOperator, SymbolicFormula pOperand1, SymbolicFormula pOperand2) {
+    switch (pOperator) {
+    case IASTBinaryExpression.op_greaterThan:
+      return mInternalFC.getFormulaManager().makeGt(pOperand1, pOperand2);
+
+    case IASTBinaryExpression.op_greaterEqual:
+      return mInternalFC.getFormulaManager().makeGeq(pOperand1, pOperand2);
+
+    case IASTBinaryExpression.op_lessThan:
+      return mInternalFC.getFormulaManager().makeLt(pOperand1, pOperand2);
+
+    case IASTBinaryExpression.op_lessEqual:
+      return mInternalFC.getFormulaManager().makeLeq(pOperand1, pOperand2);
+
+    case IASTBinaryExpression.op_equals:
+      return mInternalFC.getFormulaManager().makeEqual(pOperand1, pOperand2);
+
+    case IASTBinaryExpression.op_notequals:
+      return mInternalFC.getFormulaManager().makeNot(mInternalFC.getFormulaManager().makeEqual(pOperand1, pOperand2));
+      
+    default:
+      return null;
+    } 
+  }
+  
+  private SymbolicFormula createBinaryPredicate(IASTBinaryExpression pExpression, String pFunction, SSAMapBuilder pSSAMapBuilder) throws UnrecognizedCCodeException {
+    IASTExpression op1 = pExpression.getOperand1();
+    IASTExpression op2 = pExpression.getOperand2();
+
+    SymbolicFormula t1 = buildTerm(op1, pFunction, pSSAMapBuilder);
+    SymbolicFormula t2 = buildTerm(op2, pFunction, pSSAMapBuilder);
     
+    return createBinaryPredicate(pExpression.getOperator(), t1, t2);
+  }
+  
+  private SymbolicFormula makeNegativePredicate(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    SymbolicFormula result = makePredicate(exp, function, ssa);
+    
+    return mInternalFC.getFormulaManager().makeNot(result);
+  }
+  
+  protected SymbolicFormula makePredicate(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     SymbolicFormula result = null;
     
     if (exp instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression)exp);
-      int opType = binExp.getOperator();
-      IASTExpression op1 = binExp.getOperand1();
-      IASTExpression op2 = binExp.getOperand2();
-
-      SymbolicFormula t1 = buildTerm(op1, function, ssa);
-      SymbolicFormula t2 = buildTerm(op2, function, ssa);
-
-      switch (opType) {
-      case IASTBinaryExpression.op_greaterThan:
-        result = mInternalFC.getFormulaManager().makeGt(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_greaterEqual:
-        result = mInternalFC.getFormulaManager().makeGeq(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_lessThan:
-        result = mInternalFC.getFormulaManager().makeLt(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_lessEqual:
-        result = mInternalFC.getFormulaManager().makeLeq(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_equals:
-        result = mInternalFC.getFormulaManager().makeEqual(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_notequals:
-        result = mInternalFC.getFormulaManager().makeNot(mInternalFC.getFormulaManager().makeEqual(t1, t2));
-        break;
-      }
-
-      // now create the formula
-    } else if (exp instanceof IASTUnaryExpression) {
+      result = createBinaryPredicate((IASTBinaryExpression)exp, function, ssa);
+    }
+    else if (exp instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)exp);
       if (unaryExp.getOperator() == IASTUnaryExpression.op_not) {
         // ! exp
-        return makePredicate(unaryExp.getOperand(), !isTrue, function, ssa);
-      
-      } else if (unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+        return makeNegativePredicate(unaryExp.getOperand(), function, ssa);      
+      } 
+      else if (unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
         // (exp)
-        return makePredicate(unaryExp.getOperand(), isTrue, function, ssa);
+        return makePredicate(unaryExp.getOperand(), function, ssa);
       }
     }
-
+    
     if (result == null) {
       // not handled above, check whether this is an implict cast to bool
       // build the term. If this is not a predicate, make
@@ -937,10 +923,7 @@ public class CtoFormulaConverter {
         result = mInternalFC.getFormulaManager().makeNot(mInternalFC.getFormulaManager().makeEqual(result, z));
       }
     }
-    
-    if (!isTrue) {
-      result = mInternalFC.getFormulaManager().makeNot(result);
-    }
+      
     return result;
   }
 }

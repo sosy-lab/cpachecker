@@ -274,7 +274,7 @@ public class CtoFormulaConverter {
     return smgr.makeAssignment(f, rightHandSide);
   }
   
-  private SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMapBuilder ssa) {
+  public SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name, args);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
