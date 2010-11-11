@@ -113,11 +113,11 @@ public class CtoFormulaConverter {
       = ImmutableSet.of("__assert_fail", "printf", "puts");
 
   //names for special variables needed to deal with functions
-  private static final String VAR_RETURN_NAME = "__retval__";
-  private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
-  private static final String OP_STAR_NAME = "__ptrStar__";
-  private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  protected static final String NONDET_VARIABLE = "__nondet__";
+  public static final String VAR_RETURN_NAME = "__retval__";
+  public static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
+  public static final String OP_STAR_NAME = "__ptrStar__";
+  public static final String OP_ARRAY_SUBSCRIPT = "__array__";
+  public static final String NONDET_VARIABLE = "__nondet__";
   public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
   // global variables (do not live in any namespace)
@@ -138,13 +138,12 @@ public class CtoFormulaConverter {
     this.smgr = smgr;
     this.logger = logger;
   }
-  
 
-  private void warnUnsafeVar(IASTExpression exp) {
+  public void warnUnsafeVar(IASTExpression exp) {
     log(Level.WARNING, "Unhandled expression treated as free variable", exp);
   }
   
-  private void log(Level level, String msg, IASTNode astNode) {
+  public void log(Level level, String msg, IASTNode astNode) {
     msg = "Line " + astNode.getFileLocation().getStartingLineNumber()
         + ": " + msg
         + ": " + astNode.getRawSignature();
@@ -155,23 +154,39 @@ public class CtoFormulaConverter {
   }
 
   // looks up the variable in the current namespace
-  protected String scoped(String var, String function) {
+  public String scoped(String var, String function) {
     if (globalVars.contains(var)) {
       return var;
     } else {
       return function + "::" + var;
     }
   }
+  
+  public boolean initializeAllVariables() {
+    return initAllVars;
+  }
+  
+  public boolean handleLValuesAsUIF() {
+    return lvalsAsUif;
+  }
+  
+  public LogManager getLogManager() {
+    return logger;
+  }
+  
+  public SymbolicFormulaManager getFormulaManager() {
+    return smgr;
+  }
 
-  private boolean isNondetVariable(String var) {
+  public boolean isNondetVariable(String var) {
     return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix); 
   }
 
-  private String exprToVarName(IASTExpression e) {
+  public static String exprToVarName(IASTExpression e) {
     return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
 
-  private String getTypeName(IType tp) {
+  public String getTypeName(IType tp) {
     try {
       if (tp instanceof IPointerType) {
         return getTypeName(((IPointerType)tp).getType());
@@ -192,7 +207,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, SSAMapBuilder ssa) {
+  public int makeLvalIndex(String name, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name);
     if (idx > 0) {
       idx = idx+1;
@@ -207,7 +222,7 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  private int getIndex(String var, SSAMapBuilder ssa) {
+  public int getIndex(String var, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
@@ -611,6 +626,111 @@ public class CtoFormulaConverter {
 
     return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, branchingInformation);
   }
+  
+  public SymbolicFormula buildLiteralExpression(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
+    // this should be a number...
+    String num = lexp.getRawSignature();
+    switch (lexp.getKind()) {
+    case IASTLiteralExpression.lk_integer_constant:
+      // this might have some modifiers attached (e.g. 0UL), we
+      // have to get rid of them
+      int pos = num.length()-1;
+      while (!Character.isDigit(num.charAt(pos))) {
+        --pos;
+      }
+      num = num.substring(0, pos+1);
+      if (num.startsWith("0x")) {
+        // this should be in hex format
+        // remove "0x" from the string
+        num = num.substring(2);
+        // we use Long instead of Integer to avoid getting negative
+        // numbers (e.g. for 0xffffff we would get -1)
+        num = Long.valueOf(num, 16).toString();
+      }
+      
+      // TODO here we assume 32 bit integers!!! This is because CIL
+      // seems to do so as well...
+      try {
+        Integer.parseInt(num);
+      } catch (NumberFormatException nfe) {
+        long l = Long.parseLong(num);
+        if (l < 0) {
+          num = Long.toString(Integer.MAX_VALUE + l);
+        } else {
+          num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
+        }
+      }
+      return smgr.makeNumber(num);
+      
+    case IASTLiteralExpression.lk_float_constant:
+      // parse with valueOf and convert to String again, because Mathsat
+      // does not accept all possible C float constants (but Java hopefully does)
+      return smgr.makeNumber(Double.valueOf(num).toString());
+
+    case IASTLiteralExpression.lk_char_constant: {
+      // we convert to a byte, and take the integer value
+      String s = lexp.getRawSignature();
+      assert(s.charAt(0) == '\'');
+      assert(s.charAt(s.length()-1) == '\'');
+      s = s.substring(1, s.length()-1); // remove ''
+      assert s.length() > 0;
+      char c = s.charAt(0); // always the first character of s
+      int n;
+
+      if (c == '\\') {
+        s = s.substring(1); // remove leading \
+        assert s.length() >= 1 && s.length() <= 3;
+        c = s.charAt(0);
+        try {
+          if (s.length() == 1 && !Character.isDigit(c)) {
+            // something like '\n'
+            switch (c) {
+            case 'b' : n = '\b'; break;
+            case 't' : n = '\t'; break;
+            case 'n' : n = '\n'; break;
+            case 'f' : n = '\f'; break;
+            case 'r' : n = '\r'; break;
+            case '"' : n = '\"'; break;
+            case '\'' : n = '\''; break;
+            case '\\' : n = '\\'; break;
+            default:
+              throw new UnrecognizedCCodeException("unknown character literal", null, lexp);
+            }
+          } else if (c == 'x') {
+            // something like '\xFF'
+            n = Integer.parseInt(s.substring(1), 16);
+          } else {
+            // something like '\000'
+            n = Integer.parseInt(s, 8);
+          }
+        } catch (NumberFormatException e) {
+          throw new UnrecognizedCCodeException("character with illegal number", null, lexp);
+        }
+      } else {
+        // something like 'a'
+        assert s.length() == 1;
+        n = c;
+      }
+      return smgr.makeNumber("" + n);
+    }
+
+    case IASTLiteralExpression.lk_string_literal: {
+      // we create a string constant representing the given
+      // string literal
+      if (stringLitToFormula.containsKey(lexp.getRawSignature())) {
+        return stringLitToFormula.get(lexp.getRawSignature());
+      } else {
+        // generate a new string literal. We generate a new UIf
+        int n = nextStringLitIndex++;
+        SymbolicFormula t = smgr.makeString(n);
+        stringLitToFormula.put(lexp.getRawSignature(), t);
+        return t;
+      }
+    }
+    default:
+      throw new UnrecognizedCCodeException("Unknown literal", null, lexp);
+    }
+  }
 
   private SymbolicFormula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)
         throws UnrecognizedCCodeException {
@@ -618,111 +738,9 @@ public class CtoFormulaConverter {
       // this is a variable: get the right index for the SSA
       String var = ((IASTIdExpression)exp).getName().getRawSignature();
       return makeVariable(var, function, ssa);
-    } else if (exp instanceof IASTLiteralExpression) {
-      // this should be a number...
-      IASTLiteralExpression lexp = (IASTLiteralExpression)exp;
-      String num = lexp.getRawSignature();
-      switch (lexp.getKind()) {
-      case IASTLiteralExpression.lk_integer_constant:
-        // this might have some modifiers attached (e.g. 0UL), we
-        // have to get rid of them
-        int pos = num.length()-1;
-        while (!Character.isDigit(num.charAt(pos))) {
-          --pos;
-        }
-        num = num.substring(0, pos+1);
-        if (num.startsWith("0x")) {
-          // this should be in hex format
-          // remove "0x" from the string
-          num = num.substring(2);
-          // we use Long instead of Integer to avoid getting negative
-          // numbers (e.g. for 0xffffff we would get -1)
-          num = Long.valueOf(num, 16).toString();
-        }
-        
-        // TODO here we assume 32 bit integers!!! This is because CIL
-        // seems to do so as well...
-        try {
-          Integer.parseInt(num);
-        } catch (NumberFormatException nfe) {
-          long l = Long.parseLong(num);
-          if (l < 0) {
-            num = Long.toString(Integer.MAX_VALUE + l);
-          } else {
-            num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
-          }
-        }
-        return smgr.makeNumber(num);
-        
-      case IASTLiteralExpression.lk_float_constant:
-        // parse with valueOf and convert to String again, because Mathsat
-        // does not accept all possible C float constants (but Java hopefully does)
-        return smgr.makeNumber(Double.valueOf(num).toString());
-
-      case IASTLiteralExpression.lk_char_constant: {
-        // we convert to a byte, and take the integer value
-        String s = exp.getRawSignature();
-        assert(s.charAt(0) == '\'');
-        assert(s.charAt(s.length()-1) == '\'');
-        s = s.substring(1, s.length()-1); // remove ''
-        assert s.length() > 0;
-        char c = s.charAt(0); // always the first character of s
-        int n;
-
-        if (c == '\\') {
-          s = s.substring(1); // remove leading \
-          assert s.length() >= 1 && s.length() <= 3;
-          c = s.charAt(0);
-          try {
-            if (s.length() == 1 && !Character.isDigit(c)) {
-              // something like '\n'
-              switch (c) {
-              case 'b' : n = '\b'; break;
-              case 't' : n = '\t'; break;
-              case 'n' : n = '\n'; break;
-              case 'f' : n = '\f'; break;
-              case 'r' : n = '\r'; break;
-              case '"' : n = '\"'; break;
-              case '\'' : n = '\''; break;
-              case '\\' : n = '\\'; break;
-              default:
-                throw new UnrecognizedCCodeException("unknown character literal", null, exp);
-              }
-            } else if (c == 'x') {
-              // something like '\xFF'
-              n = Integer.parseInt(s.substring(1), 16);
-            } else {
-              // something like '\000'
-              n = Integer.parseInt(s, 8);
-            }
-          } catch (NumberFormatException e) {
-            throw new UnrecognizedCCodeException("character with illegal number", null, exp);
-          }
-        } else {
-          // something like 'a'
-          assert s.length() == 1;
-          n = c;
-        }
-        return smgr.makeNumber("" + n);
-      }
-
-      case IASTLiteralExpression.lk_string_literal: {
-        // we create a string constant representing the given
-        // string literal
-        if (stringLitToFormula.containsKey(exp.getRawSignature())) {
-          return stringLitToFormula.get(exp.getRawSignature());
-        } else {
-          // generate a new string literal. We generate a new UIf
-          int n = nextStringLitIndex++;
-          SymbolicFormula t = smgr.makeString(n);
-          stringLitToFormula.put(exp.getRawSignature(), t);
-          return t;
-        }
-      }
-      default:
-        throw new UnrecognizedCCodeException("Unknown literal", null, exp);
-      }
-
+    } 
+    else if (exp instanceof IASTLiteralExpression) {
+      return buildLiteralExpression((IASTLiteralExpression)exp);
     } else if (exp instanceof IASTCastExpression) {
       // we completely ignore type casts
       logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
@@ -1171,7 +1189,7 @@ public class CtoFormulaConverter {
     return result;
   }
   
-  protected void addToGlobalVars(String pVar){
+  public void addToGlobalVars(String pVar){
     globalVars.add(pVar);
   }
 }

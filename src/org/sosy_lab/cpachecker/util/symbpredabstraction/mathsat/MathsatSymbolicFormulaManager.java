@@ -84,7 +84,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   protected final int msatVarType;
   
   // the character for separating name and index of a value
-  private static final String INDEX_SEPARATOR = "@";
+  public static final String INDEX_SEPARATOR = "@";
 
   // various caches for speeding up expensive tasks
   //
