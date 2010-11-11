@@ -36,9 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -70,9 +68,6 @@ public class CFAReduction {
   @Option
   private boolean markOnly = false;
   
-  @Option
-  private boolean useCPA = false;
-  
   private final LogManager logger;
   
   public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -81,16 +76,13 @@ public class CFAReduction {
     this.logger = logger;
   }
 
-  private static final String ASSERT_FUNCTION = "__assert_fail";
-  private static final String ERROR_LABEL = "error";
   
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
     Set<CFANode> allNodes = new HashSet<CFANode>();
     
     dfs(cfa, allNodes, false);
 
-    Set<CFANode> errorNodes = useCPA ? getErrorNodesWithCPA(cfa, allNodes)
-                                     : getErrorNodes(allNodes);
+    Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
     
     if (errorNodes.isEmpty()) {
       // shortcut, all nodes are irrelevant
@@ -126,36 +118,6 @@ public class CFAReduction {
 
     // now detach all the nodes not visited
     pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
-  }
-  
-  private static Set<CFANode> getErrorNodes(Set<CFANode> allNodes) {
-    Set<CFANode> errorNodes = new HashSet<CFANode>();
-    
-    for (CFANode n : allNodes) {
-      boolean errorLocation = false;
-      // first, check for label "ERROR"
-      if (n instanceof CFALabelNode) {
-        CFALabelNode l = (CFALabelNode)n;
-        errorLocation = l.getLabel().toLowerCase().startsWith(ERROR_LABEL);
-      }
-      
-      // second, check for assert
-      if (!errorLocation) {
-        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
-          CFAEdge e = n.getEnteringEdge(i);
-          if ((e.getEdgeType() == CFAEdgeType.StatementEdge)
-              && (e.getRawStatement().trim().startsWith(ASSERT_FUNCTION))) {
-            errorLocation = true;
-            break;
-          }
-        }
-      }
-      
-      if (errorLocation) {
-        errorNodes.add(n);
-      }
-    }
-    return errorNodes;
   }
 
   private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) {      
