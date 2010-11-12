@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.ShiftingSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.ShiftingSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
