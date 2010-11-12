@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.CommonFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.ShiftingSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
@@ -1072,26 +1072,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
 
     return f;
-  }
-  
-  protected void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, smgr.dumpFormula(f));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
-  }
-  
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-
-  protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, LINE_JOINER.join(f));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
   }
 
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {

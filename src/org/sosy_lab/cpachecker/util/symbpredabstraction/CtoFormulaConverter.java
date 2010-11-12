@@ -91,7 +91,7 @@ import com.google.common.collect.ImmutableSet;
 public class CtoFormulaConverter {
 
   @Option
-  private boolean useNondetFlags = false;
+  protected boolean useNondetFlags = false;
   
   @Option
   private boolean initAllVars = false;

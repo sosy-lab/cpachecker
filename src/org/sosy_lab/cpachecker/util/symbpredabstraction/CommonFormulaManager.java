@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -87,6 +90,18 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
   }
 
+  /**
+   * Generates the predicates corresponding to the given atoms.
+   */
+  protected List<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
+    List<Predicate> ret = new ArrayList<Predicate>(atoms.size());
+
+    for (SymbolicFormula atom : atoms) {
+      ret.add(makePredicate(atom));
+    }
+    return ret;
+  }
+  
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
@@ -304,13 +319,29 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-        SymbolicFormula t = makeSSAMerger(var, Math.max(i2, 1), i1);
+        SymbolicFormula t;
+        
+        if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1);
+        }
+        else {
+          t = makeSSAMerger(var, Math.max(i2, 1), i1);
+        }
+        
         mt2 = smgr.makeAnd(mt2, t);
 
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
-        SymbolicFormula t = makeSSAMerger(var, Math.max(i1, 1), i2); 
+        SymbolicFormula t;
+        
+        if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2);
+        }
+        else {
+          t = makeSSAMerger(var, Math.max(i1, 1), i2); 
+        }
+        
         mt1 = smgr.makeAnd(mt1, t); 
       }
     }
@@ -339,21 +370,29 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
     return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(sp, result);
   }
+  
+  private SymbolicFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
+    return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, smgr.makeNumber(0));
+  }
+  
+  private SymbolicFormula makeMerger(String var, int iSmaller, int iBigger, SymbolicFormula pInitialValue) {
+    assert iSmaller < iBigger;
+    
+    SymbolicFormula lResult = smgr.makeTrue();
+
+    for (int i = iSmaller+1; i <= iBigger; ++i) {
+      SymbolicFormula currentVar = smgr.makeVariable(var, i);
+      SymbolicFormula e = smgr.makeEqual(currentVar, pInitialValue);
+      lResult = smgr.makeAnd(lResult, e);
+    }
+    
+    return lResult;
+  }
 
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
   private SymbolicFormula makeSSAMerger(String var, int iSmaller, int iBigger) {
-    assert iSmaller < iBigger;
-
-    SymbolicFormula initialVar = smgr.makeVariable(var, iSmaller);
-    SymbolicFormula result = smgr.makeTrue();
-
-    for (int i = iSmaller+1; i <= iBigger; ++i) {
-      SymbolicFormula currentVar = smgr.makeVariable(var, i);
-      SymbolicFormula e = smgr.makeEqual(currentVar, initialVar);
-      result = smgr.makeAnd(result, e);
-    }
-    return result;
+    return makeMerger(var, iSmaller, iBigger, smgr.makeVariable(var, iSmaller));
   }
 
   private SymbolicFormula makeSSAMerger(String name,
