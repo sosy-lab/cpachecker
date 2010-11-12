@@ -91,6 +91,9 @@ import com.google.common.collect.ImmutableSet;
 public class CtoFormulaConverter {
 
   @Option
+  private boolean useNondetFlags = false;
+  
+  @Option
   private boolean initAllVars = false;
 
   @Option
@@ -113,11 +116,12 @@ public class CtoFormulaConverter {
       = ImmutableSet.of("__assert_fail", "printf", "puts");
 
   //names for special variables needed to deal with functions
-  public static final String VAR_RETURN_NAME = "__retval__";
-  public static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
-  public static final String OP_STAR_NAME = "__ptrStar__";
-  public static final String OP_ARRAY_SUBSCRIPT = "__array__";
+  private static final String VAR_RETURN_NAME = "__retval__";
+  private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
+  private static final String OP_STAR_NAME = "__ptrStar__";
+  private static final String OP_ARRAY_SUBSCRIPT = "__array__";
   public static final String NONDET_VARIABLE = "__nondet__";
+  public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
   public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
   // global variables (do not live in any namespace)
@@ -139,11 +143,11 @@ public class CtoFormulaConverter {
     this.logger = logger;
   }
 
-  public void warnUnsafeVar(IASTExpression exp) {
+  private void warnUnsafeVar(IASTExpression exp) {
     log(Level.WARNING, "Unhandled expression treated as free variable", exp);
   }
   
-  public void log(Level level, String msg, IASTNode astNode) {
+  private void log(Level level, String msg, IASTNode astNode) {
     msg = "Line " + astNode.getFileLocation().getStartingLineNumber()
         + ": " + msg
         + ": " + astNode.getRawSignature();
@@ -154,39 +158,23 @@ public class CtoFormulaConverter {
   }
 
   // looks up the variable in the current namespace
-  public String scoped(String var, String function) {
+  protected String scoped(String var, String function) {
     if (globalVars.contains(var)) {
       return var;
     } else {
       return function + "::" + var;
     }
   }
-  
-  public boolean initializeAllVariables() {
-    return initAllVars;
-  }
-  
-  public boolean handleLValuesAsUIF() {
-    return lvalsAsUif;
-  }
-  
-  public LogManager getLogManager() {
-    return logger;
-  }
-  
-  public SymbolicFormulaManager getFormulaManager() {
-    return smgr;
-  }
 
-  public boolean isNondetVariable(String var) {
+  private boolean isNondetVariable(String var) {
     return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix); 
   }
 
-  public static String exprToVarName(IASTExpression e) {
+  private static String exprToVarName(IASTExpression e) {
     return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
 
-  public String getTypeName(IType tp) {
+  private String getTypeName(IType tp) {
     try {
       if (tp instanceof IPointerType) {
         return getTypeName(((IPointerType)tp).getType());
@@ -207,7 +195,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  public int makeLvalIndex(String name, SSAMapBuilder ssa) {
+  private int makeLvalIndex(String name, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name);
     if (idx > 0) {
       idx = idx+1;
@@ -222,7 +210,7 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  public int getIndex(String var, SSAMapBuilder ssa) {
+  private int getIndex(String var, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
@@ -274,7 +262,7 @@ public class CtoFormulaConverter {
     return smgr.makeAssignment(f, rightHandSide);
   }
   
-  public SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMapBuilder ssa) {
+  private SymbolicFormula makeUIF(String name, SymbolicFormulaList args, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name, args);
     if (idx <= 0) {
       logger.log(Level.ALL, "DEBUG_3",
@@ -361,6 +349,25 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
+    if (useNondetFlags) {
+      int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
+      int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
+      
+      if (lNondetIndex != lFlagIndex) {
+        if (lFlagIndex < 0) {
+          lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
+        }
+        
+        for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
+          SymbolicFormula lAssignment = smgr.makeAssignment(smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), smgr.makeNumber(1));
+          edgeFormula = smgr.makeAnd(edgeFormula, lAssignment);
+        }
+        
+        // update ssa index of nondet flag
+        ssa.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
+      }
+    }
+    
     SSAMap newSsa = ssa.build();
     if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
       // formula is just "true" and SSAMap is identical
@@ -627,7 +634,7 @@ public class CtoFormulaConverter {
     return new Pair<SymbolicFormula, SymbolicFormula>(edgeFormula, branchingInformation);
   }
   
-  public SymbolicFormula buildLiteralExpression(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
+  private SymbolicFormula buildLiteralExpression(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
     // this should be a number...
     String num = lexp.getRawSignature();
     switch (lexp.getKind()) {
@@ -1189,7 +1196,7 @@ public class CtoFormulaConverter {
     return result;
   }
   
-  public void addToGlobalVars(String pVar){
+  protected void addToGlobalVars(String pVar){
     globalVars.add(pVar);
   }
 }

@@ -7,7 +7,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
