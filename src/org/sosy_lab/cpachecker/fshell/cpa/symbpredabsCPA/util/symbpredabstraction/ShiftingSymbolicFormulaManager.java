@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces;
+package org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;

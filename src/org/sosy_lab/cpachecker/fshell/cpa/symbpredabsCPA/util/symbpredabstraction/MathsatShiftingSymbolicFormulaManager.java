@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.mathsat;
+package org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction;
 
 import static mathsat.api.*;
 
@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.util.symbpredabstraction.interfaces.ShiftingSymbolicFormulaManager;
 
 public class MathsatShiftingSymbolicFormulaManager extends MathsatSymbolicFormulaManager implements ShiftingSymbolicFormulaManager  {
   
