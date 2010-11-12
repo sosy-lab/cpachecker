@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
 
 import com.google.common.base.Preconditions;
 
-public class FlleShResult {
+public class FShell3Result {
 
   public static class Factory {
     
@@ -75,8 +75,8 @@ public class FlleShResult {
       return lTestCases;
     }
     
-    public FlleShResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
-      return new FlleShResult(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
+    public FShell3Result create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
+      return new FShell3Result(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals);
     }
     
   }
@@ -94,7 +94,7 @@ public class FlleShResult {
   private double mTimeInReach; // seconds
   private double mTimeInCover; // seconds
   
-  private FlleShResult(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
+  private FShell3Result(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
     mNumberOfTestCases = pNumberOfTestCases;

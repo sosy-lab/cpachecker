@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.testlocks;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -39,7 +39,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(82, lResult.getNumberOfTestGoals());
     Assert.assertEquals(76, lResult.getNumberOfFeasibleTestGoals());
@@ -55,7 +55,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(96, lResult.getNumberOfTestGoals());
     Assert.assertEquals(89, lResult.getNumberOfFeasibleTestGoals());
@@ -71,7 +71,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(110, lResult.getNumberOfTestGoals());
     Assert.assertEquals(102, lResult.getNumberOfFeasibleTestGoals());
@@ -87,7 +87,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(124, lResult.getNumberOfTestGoals());
     Assert.assertEquals(115, lResult.getNumberOfFeasibleTestGoals());
@@ -103,7 +103,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(138, lResult.getNumberOfTestGoals());
     Assert.assertEquals(128, lResult.getNumberOfFeasibleTestGoals());
@@ -119,7 +119,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(152, lResult.getNumberOfTestGoals());
     Assert.assertEquals(141, lResult.getNumberOfFeasibleTestGoals());
@@ -135,7 +135,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(166, lResult.getNumberOfTestGoals());
     Assert.assertEquals(154, lResult.getNumberOfFeasibleTestGoals());
@@ -151,7 +151,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(180, lResult.getNumberOfTestGoals());
     Assert.assertEquals(167, lResult.getNumberOfFeasibleTestGoals());
@@ -167,7 +167,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(194, lResult.getNumberOfTestGoals());
     Assert.assertEquals(180, lResult.getNumberOfFeasibleTestGoals());
@@ -183,7 +183,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(208, lResult.getNumberOfTestGoals());
     Assert.assertEquals(193, lResult.getNumberOfFeasibleTestGoals());
@@ -199,7 +199,7 @@ public class StatementCoverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(222, lResult.getNumberOfTestGoals());
     Assert.assertEquals(206, lResult.getNumberOfFeasibleTestGoals());

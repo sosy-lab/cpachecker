@@ -9,7 +9,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 
 import com.google.common.base.Preconditions;
@@ -37,7 +37,7 @@ public abstract class ExperimentalSeries {
     mExperiment = null;
   }
   
-  public FlleShResult execute(String[] lArguments) throws IOException, InvalidConfigurationException {
+  public FShell3Result execute(String[] lArguments) throws IOException, InvalidConfigurationException {
     Preconditions.checkNotNull(lArguments);
     Preconditions.checkArgument(lArguments.length == 3 || lArguments.length == 4);
     
@@ -45,7 +45,7 @@ public abstract class ExperimentalSeries {
     
     lTime.proceed();
     
-    FlleShResult lResult = Main.run(lArguments);
+    FShell3Result lResult = Main.run(lArguments);
     
     lTime.pause();
     

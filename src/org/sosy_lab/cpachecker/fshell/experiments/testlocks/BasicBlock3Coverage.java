@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.testlocks;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -39,7 +39,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(32768, lResult.getNumberOfTestGoals());
     Assert.assertEquals(13824, lResult.getNumberOfFeasibleTestGoals());
@@ -55,7 +55,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1369, lResult.getNumberOfTestGoals());
     Assert.assertEquals(813, lResult.getNumberOfFeasibleTestGoals());
@@ -71,7 +71,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1764, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1057, lResult.getNumberOfFeasibleTestGoals());
@@ -87,7 +87,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(2209, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1333, lResult.getNumberOfFeasibleTestGoals());
@@ -103,7 +103,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(2704, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1641, lResult.getNumberOfFeasibleTestGoals());
@@ -119,7 +119,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(3249, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1981, lResult.getNumberOfFeasibleTestGoals());
@@ -135,7 +135,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(3844, lResult.getNumberOfTestGoals());
     Assert.assertEquals(2353, lResult.getNumberOfFeasibleTestGoals());
@@ -151,7 +151,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(4489, lResult.getNumberOfTestGoals());
     Assert.assertEquals(2757, lResult.getNumberOfFeasibleTestGoals());
@@ -167,7 +167,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(5184, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3193, lResult.getNumberOfFeasibleTestGoals());
@@ -183,7 +183,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(5929, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3661, lResult.getNumberOfFeasibleTestGoals());
@@ -199,7 +199,7 @@ public class BasicBlock3Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(6724, lResult.getNumberOfTestGoals());
     Assert.assertEquals(4161, lResult.getNumberOfFeasibleTestGoals());

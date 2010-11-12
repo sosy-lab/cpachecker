@@ -53,7 +53,7 @@ public class Main {
     run(pArguments);
   }
   
-  public static FlleShResult run(String[] pArguments) throws IOException, InvalidConfigurationException {
+  public static FShell3Result run(String[] pArguments) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
     
@@ -83,9 +83,9 @@ public class Main {
       }
     }
     
-    FlleSh lFlleSh = new FlleSh(lSourceFileName, lEntryFunction);
+    FShell3 lFlleSh = new FShell3(lSourceFileName, lEntryFunction);
     
-    FlleShResult lResult = lFlleSh.run(lFQLSpecificationString);
+    FShell3Result lResult = lFlleSh.run(lFQLSpecificationString);
     
     System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Inprecise: " + lResult.getNumberOfImpreciseTestCases());
     

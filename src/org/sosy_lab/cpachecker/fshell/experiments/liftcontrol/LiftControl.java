@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.liftcontrol;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -39,7 +39,7 @@ public class LiftControl extends ExperimentalSeries {
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(245, lResult.getNumberOfTestGoals());
     Assert.assertEquals(45, lResult.getNumberOfFeasibleTestGoals());
@@ -55,7 +55,7 @@ public class LiftControl extends ExperimentalSeries {
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(60025, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -71,7 +71,7 @@ public class LiftControl extends ExperimentalSeries {
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(14706125, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -87,7 +87,7 @@ public class LiftControl extends ExperimentalSeries {
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(245, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -103,7 +103,7 @@ public class LiftControl extends ExperimentalSeries {
         "test/programs/fql/lift_control/lift_no_dbgCnt.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(245, lResult.getNumberOfTestGoals());
     Assert.assertEquals(57, lResult.getNumberOfFeasibleTestGoals());
@@ -119,7 +119,7 @@ public class LiftControl extends ExperimentalSeries {
         "test/programs/fql/lift_control/lift_no_dbgCnt_modified_ioinit.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(245, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());

@@ -39,7 +39,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
 
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
@@ -57,7 +57,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
@@ -75,7 +75,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
@@ -93,7 +93,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
@@ -111,7 +111,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(20, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -135,7 +135,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -154,7 +154,7 @@ public class MainTest extends ExperimentalSeries {
         false
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -173,7 +173,7 @@ public class MainTest extends ExperimentalSeries {
         false
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(8, lResult.getNumberOfTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfFeasibleTestGoals());
@@ -192,7 +192,7 @@ public class MainTest extends ExperimentalSeries {
         false
     );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
@@ -210,7 +210,7 @@ public class MainTest extends ExperimentalSeries {
         false
         );
         
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(3, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
@@ -230,7 +230,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
@@ -252,7 +252,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfFeasibleTestGoals());
@@ -274,7 +274,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
@@ -296,7 +296,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -319,7 +319,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfFeasibleTestGoals());
@@ -341,7 +341,7 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(26, lResult.getNumberOfTestGoals());
     Assert.assertEquals(23, lResult.getNumberOfFeasibleTestGoals());
@@ -365,7 +365,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(15, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -383,7 +383,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(17, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -406,7 +406,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(17, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -427,7 +427,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main", 
                                         false);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(43, lResult.getNumberOfTestGoals());
     Assert.assertEquals(40, lResult.getNumberOfFeasibleTestGoals());
@@ -445,7 +445,7 @@ public class MainTest extends ExperimentalSeries {
         false
         );
 
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(6, lResult.getNumberOfTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfFeasibleTestGoals());
@@ -463,7 +463,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
 
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
@@ -480,7 +480,7 @@ public class MainTest extends ExperimentalSeries {
         "main", 
         false);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
@@ -502,7 +502,7 @@ public class MainTest extends ExperimentalSeries {
         "foo", 
         true); // disable CIL preprocessing
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
@@ -526,7 +526,7 @@ public class MainTest extends ExperimentalSeries {
         true
     );
 
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
@@ -542,7 +542,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
@@ -560,7 +560,7 @@ public class MainTest extends ExperimentalSeries {
         true
         );
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(-1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
@@ -581,7 +581,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main", 
                                         false);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -602,7 +602,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main", 
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -625,7 +625,7 @@ public class MainTest extends ExperimentalSeries {
                                         //false);
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -646,7 +646,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main", 
                                         false);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
@@ -664,7 +664,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
@@ -684,7 +684,7 @@ public class MainTest extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(-1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());

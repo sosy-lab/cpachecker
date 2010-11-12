@@ -83,7 +83,7 @@ import com.google.common.collect.Multimap;
  * 
  */
 
-public class FlleSh {
+public class FShell3 {
   
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
@@ -121,15 +121,15 @@ public class FlleSh {
     return lCFACreator.getFunctions();
   }
   
-  public FlleSh(String pSourceFileName, String pEntryFunction) {
+  public FShell3(String pSourceFileName, String pEntryFunction) {
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
     CFAFunctionDefinitionNode lMainFunction;
     
     try {
-      mConfiguration = FlleSh.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = FShell3.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new LogManager(mConfiguration);
       
-      lCFAMap = FlleSh.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = FShell3.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -208,11 +208,11 @@ public class FlleSh {
     mInfeasibleGoals = new HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>>();
   }
   
-  public FlleShResult run(String pFQLSpecification) {
+  public FShell3Result run(String pFQLSpecification) {
     return run(pFQLSpecification, true, false, false, false, true);
   }
   
-  public FlleShResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic) {
     if (pGenerateTestGoalAutomataInAdvance) {
       return run2(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
     }
@@ -364,7 +364,7 @@ public class FlleSh {
     System.out.println("Coverage: " + ((double)lNumberOfCoveredTestGoals)/((double)lIndex));
   }
   
-  public FlleShResult run_incremental(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+  public FShell3Result run_incremental(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -385,7 +385,7 @@ public class FlleSh {
     System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
     System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
     
-    FlleShResult.Factory lResultFactory = FlleShResult.factory();
+    FShell3Result.Factory lResultFactory = FShell3Result.factory();
     
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
@@ -597,7 +597,7 @@ public class FlleSh {
     System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
     System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
     
-    FlleShResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
+    FShell3Result lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
     
     /*if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
       throw new RuntimeException();
@@ -616,7 +616,7 @@ public class FlleSh {
     return lResult;
   }
   
-  public FlleShResult run2(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
+  public FShell3Result run2(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -635,7 +635,7 @@ public class FlleSh {
     
     System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
     
-    FlleShResult.Factory lResultFactory = FlleShResult.factory();
+    FShell3Result.Factory lResultFactory = FShell3Result.factory();
     
     GuardedEdgeAutomatonCPA lPassingCPA = null;
     
@@ -899,7 +899,7 @@ public class FlleSh {
     }
   }
   
-  private void removeCoveredGoals(Deque<Goal> pGoals, FlleShResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
+  private void removeCoveredGoals(Deque<Goal> pGoals, FShell3Result.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
     // a) determine cfa path
     CFAEdge[] lCFAPath;
     try {
@@ -1075,7 +1075,7 @@ public class FlleSh {
   }
   
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
-    File lPropertiesFile = FlleSh.createPropertiesFile(pEntryFunction);
+    File lPropertiesFile = FShell3.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
   

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.testlocks;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -39,7 +39,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(11, lResult.getNumberOfTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
@@ -55,7 +55,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(11, lResult.getNumberOfTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
@@ -71,7 +71,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_5_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(32, lResult.getNumberOfTestGoals());
     Assert.assertEquals(26, lResult.getNumberOfFeasibleTestGoals());
@@ -87,7 +87,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_10_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(57, lResult.getNumberOfTestGoals());
     Assert.assertEquals(46, lResult.getNumberOfFeasibleTestGoals());
@@ -103,7 +103,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_15_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(82, lResult.getNumberOfTestGoals());
     Assert.assertEquals(66, lResult.getNumberOfFeasibleTestGoals());
@@ -119,7 +119,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_20_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(107, lResult.getNumberOfTestGoals());
     Assert.assertEquals(86, lResult.getNumberOfFeasibleTestGoals());
@@ -135,7 +135,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(11, lResult.getNumberOfTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
@@ -151,7 +151,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_5_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(32, lResult.getNumberOfTestGoals());
     Assert.assertEquals(26, lResult.getNumberOfFeasibleTestGoals());
@@ -167,7 +167,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_10_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(57, lResult.getNumberOfTestGoals());
     Assert.assertEquals(46, lResult.getNumberOfFeasibleTestGoals());
@@ -183,7 +183,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_15_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(82, lResult.getNumberOfTestGoals());
     Assert.assertEquals(66, lResult.getNumberOfFeasibleTestGoals());
@@ -199,7 +199,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_20_labeled.c",
         "main", true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(107, lResult.getNumberOfTestGoals());
     Assert.assertEquals(86, lResult.getNumberOfFeasibleTestGoals());

@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.fshell.FlleSh;
+import org.sosy_lab.cpachecker.fshell.FShell3;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Predicate;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.ConditionEdge;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Filter;
@@ -59,11 +59,11 @@ public class TargetGraphTest {
     
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -76,11 +76,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -99,11 +99,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -122,11 +122,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -147,11 +147,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -175,11 +175,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -196,11 +196,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -217,11 +217,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -242,11 +242,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -265,11 +265,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -307,11 +307,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -335,11 +335,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -368,11 +368,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -396,11 +396,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -429,11 +429,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -462,11 +462,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -495,11 +495,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -530,11 +530,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
     
@@ -547,11 +547,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -575,11 +575,11 @@ public class TargetGraphTest {
     
     String lEntryFunction = "foo";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lInitialNode = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 

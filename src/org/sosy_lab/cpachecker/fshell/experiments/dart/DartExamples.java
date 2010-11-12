@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.dart;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -39,7 +39,7 @@ public class DartExamples extends ExperimentalSeries {
                                         "h",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
@@ -55,7 +55,7 @@ public class DartExamples extends ExperimentalSeries {
                                         "f",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
@@ -71,7 +71,7 @@ public class DartExamples extends ExperimentalSeries {
                                         "bar",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     // TODO we do not support data structures yet
     
@@ -89,7 +89,7 @@ public class DartExamples extends ExperimentalSeries {
                                         "foobar",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     // TODO nonlinearity seams to be a problem
     
@@ -107,7 +107,7 @@ public class DartExamples extends ExperimentalSeries {
                                         "ac_controller",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(13, lResult.getNumberOfTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfFeasibleTestGoals());

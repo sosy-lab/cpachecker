@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.fshell.FlleSh;
+import org.sosy_lab.cpachecker.fshell.FShell3;
 import org.sosy_lab.cpachecker.util.Cilly;
 import org.sosy_lab.cpachecker.util.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
@@ -73,11 +73,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
     
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -112,11 +112,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -151,11 +151,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
@@ -190,11 +190,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
     
-    Configuration lConfiguration = FlleSh.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CFAFunctionDefinitionNode lMainFunction = FlleSh.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     

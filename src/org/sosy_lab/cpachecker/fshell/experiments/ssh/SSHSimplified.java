@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.ssh;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FlleShResult;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -41,7 +41,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         false);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -59,7 +59,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -77,7 +77,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -95,7 +95,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -113,7 +113,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -131,7 +131,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -149,7 +149,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -167,7 +167,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -185,7 +185,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -203,7 +203,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -221,7 +221,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -239,7 +239,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -257,7 +257,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -275,7 +275,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -293,7 +293,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -311,7 +311,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -329,7 +329,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -347,7 +347,7 @@ public class SSHSimplified extends ExperimentalSeries {
                                         "main",
                                         true);
     
-    FlleShResult lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);
     
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
