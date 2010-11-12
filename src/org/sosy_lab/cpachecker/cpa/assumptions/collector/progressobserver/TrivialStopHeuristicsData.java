@@ -64,4 +64,9 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
       return "TOP";
   }
 
+  @Override
+  public boolean shouldTerminateAnalysis() {
+    return true;
+  }
+
 }

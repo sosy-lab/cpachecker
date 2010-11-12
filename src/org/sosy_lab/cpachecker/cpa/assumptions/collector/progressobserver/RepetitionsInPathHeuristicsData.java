@@ -131,4 +131,10 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     public String toString() { return "BOTTOM"; }
   };
 
+  @Override
+  public boolean shouldTerminateAnalysis() {
+    return false;
+  }
+
+
 }

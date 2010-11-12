@@ -81,6 +81,9 @@ public class ProgressObserverPrecisionAdjustment implements
     while (preIt.hasNext()) {
       StopHeuristics<? extends StopHeuristicsData> h = heuristicsIt.next();
       StopHeuristicsData d = preIt.next();
+      if (d.shouldTerminateAnalysis() && d.isBottom()) {
+        return new Triple<AbstractElement, Precision, Action>(new ProgressObserverElement(postData), p, Action.BREAK);
+      }
       ReachedHeuristicsDataSetView slice = new ReachedHeuristicsDataSetView(reached, new ProjectionFunction(idx));
       postData.add(h.collectData(d, slice));
       idx++;

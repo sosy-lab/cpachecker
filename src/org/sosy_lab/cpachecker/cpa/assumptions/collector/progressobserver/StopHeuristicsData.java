@@ -32,4 +32,8 @@ public interface StopHeuristicsData {
   public boolean isBottom();
   public boolean isTop();
   public boolean isLessThan(StopHeuristicsData d);
+  // should we stop analysis when we hit bottom
+  // this returns true when time or memory limit for analysis
+  // is hit
+  public boolean shouldTerminateAnalysis();
 }

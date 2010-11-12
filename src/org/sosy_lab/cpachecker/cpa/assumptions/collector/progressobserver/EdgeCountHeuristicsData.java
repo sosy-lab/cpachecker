@@ -205,4 +205,9 @@ public class EdgeCountHeuristicsData
     public boolean equals(Object obj) { return obj == this; }
   };
 
+  @Override
+  public boolean shouldTerminateAnalysis() {
+    return false;
+  }
+
 }

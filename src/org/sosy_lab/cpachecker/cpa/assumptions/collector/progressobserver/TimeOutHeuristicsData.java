@@ -57,4 +57,9 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   public static final TimeOutHeuristicsData BOTTOM = new TimeOutHeuristicsData(0, true);
 
+  @Override
+  public boolean shouldTerminateAnalysis() {
+    return true;
+  }
+
 }
