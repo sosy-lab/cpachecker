@@ -532,7 +532,7 @@ public class CtoFormulaConverter {
       
       SymbolicFormula lResult = smgr.makeAssignment(outvarFormula.getFirst(), retvarFormula.getFirst());
       
-      SymbolicFormula lFlagResult = getFlagFormula(retvarFormula.getSecond(), outvarFormula.getSecond());
+      SymbolicFormula lFlagResult = smgr.makeAnd(retvarFormula.getSecond(), outvarFormula.getSecond());
       
       if (lFlagResult.isTrue()) {
         return lResult;
@@ -824,7 +824,7 @@ public class CtoFormulaConverter {
         
         SymbolicFormula lResult = smgr.makeAssignment(newvar.getFirst(), me);
         
-        SymbolicFormula lFlagFormula = getFlagFormula(mvar.getSecond(), newvar.getSecond());
+        SymbolicFormula lFlagFormula = smgr.makeAnd(mvar.getSecond(), newvar.getSecond());
         
         return new Pair<SymbolicFormula, SymbolicFormula>(lResult, lFlagFormula);
       }
@@ -947,7 +947,7 @@ public class CtoFormulaConverter {
         }
         Pair<SymbolicFormula, SymbolicFormula> lMVar = buildLvalueTerm(e1, function, ssa);
         
-        SymbolicFormula lFlagFormula = getFlagFormula(lMe2.getSecond(), lMVar.getSecond());
+        SymbolicFormula lFlagFormula = smgr.makeAnd(lMe2.getSecond(), lMVar.getSecond());
         
         return new Pair<SymbolicFormula, SymbolicFormula>(smgr.makeAssignment(lMVar.getFirst(), me2), lFlagFormula);
       }
@@ -965,7 +965,7 @@ public class CtoFormulaConverter {
         Pair<SymbolicFormula, SymbolicFormula> me1 = buildTerm(e1, function, ssa);
         Pair<SymbolicFormula, SymbolicFormula> me2 = buildTerm(e2, function, ssa);
         
-        SymbolicFormula lFlagFormula = getFlagFormula(me1.getSecond(), me2.getSecond());
+        SymbolicFormula lFlagFormula = smgr.makeAnd(me1.getSecond(), me2.getSecond());
         
         switch (op) {
         case IASTBinaryExpression.op_plus:
@@ -1030,7 +1030,7 @@ public class CtoFormulaConverter {
         Pair<SymbolicFormula, SymbolicFormula> aterm = buildTerm(arrexp, function, ssa);
         Pair<SymbolicFormula, SymbolicFormula> sterm = buildTerm(subexp, function, ssa);
         
-        SymbolicFormula lFlagFormula = getFlagFormula(aterm.getSecond(), sterm.getSecond());
+        SymbolicFormula lFlagFormula = smgr.makeAnd(aterm.getSecond(), sterm.getSecond());
         
         String ufname = OP_ARRAY_SUBSCRIPT;
         return new Pair<SymbolicFormula, SymbolicFormula>(makeUIF(ufname, smgr.makeList(aterm.getFirst(), sterm.getFirst()), ssa), lFlagFormula);
@@ -1136,27 +1136,12 @@ public class CtoFormulaConverter {
 
       SymbolicFormula lResult = smgr.makeUIF(ufname, args, idx);
       
-      return new Pair<SymbolicFormula, SymbolicFormula>(lResult, getFlagFormula(aterm.getSecond(), sterm.getSecond()));
+      return new Pair<SymbolicFormula, SymbolicFormula>(lResult, smgr.makeAnd(aterm.getSecond(), sterm.getSecond()));
     } else {
       throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
     }
   }
   
-  private SymbolicFormula getFlagFormula(SymbolicFormula pFormula1, SymbolicFormula pFormula2) {
-    if (pFormula1.isTrue() && pFormula2.isTrue()) {
-      return pFormula1;
-    }
-    else if (pFormula1.isTrue()) {
-      return pFormula2;
-    }
-    else if (pFormula2.isTrue()) {
-      return pFormula1;
-    }
-    else {
-      return smgr.makeAnd(pFormula1, pFormula2);
-    }
-  }
-
   private Pair<SymbolicFormula, SymbolicFormula> makeExternalFunctionCall(IASTFunctionCallExpression fexp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
@@ -1208,7 +1193,7 @@ public class CtoFormulaConverter {
       for (int i = 0; i < args.length; ++i) {
         Pair<SymbolicFormula, SymbolicFormula> lTerm = buildTerm(args[i], function, ssa);
         mArgs[i] = lTerm.getFirst();
-        lFlagFormula = getFlagFormula(lFlagFormula, lTerm.getSecond());
+        lFlagFormula = smgr.makeAnd(lFlagFormula, lTerm.getSecond());
       }
 
       return new Pair<SymbolicFormula, SymbolicFormula>(smgr.makeUIF(func, smgr.makeList(mArgs)), lFlagFormula);
@@ -1256,7 +1241,7 @@ public class CtoFormulaConverter {
         break;
       }
       
-      lFlagFormula = getFlagFormula(t1.getSecond(), t2.getSecond());
+      lFlagFormula = smgr.makeAnd(t1.getSecond(), t2.getSecond());
 
       // now create the formula
     } else if (exp instanceof IASTUnaryExpression) {
