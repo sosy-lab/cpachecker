@@ -517,7 +517,8 @@ public class CFABuilder extends ASTVisitor
 		}
 	}
 
-	private void handleGotoStatement (IASTGotoStatement gotoStatement, IASTFileLocation fileloc)
+	private void handleGotoStatement (IASTGotoStatement gotoStatement, 
+	    IASTFileLocation fileloc)
 	{
 		String labelName = gotoStatement.getName ().toString ();
 
@@ -525,14 +526,17 @@ public class CFABuilder extends ASTVisitor
 		CFANode labelNode = labelMap.get (labelName);
 		if (labelNode != null)
 		{
-			BlankEdge gotoEdge = new BlankEdge("Goto: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode, true);
+			BlankEdge gotoEdge = new BlankEdge("Goto: " 
+			    + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode, true);
 			
       /* labelNode was analyzed before, so it is in the labelMap, 
        * then there can be a jump backwards and this can create a loop.
-       * The Node labelNode can be the start of a loop, so check if there is a path 
-       * from labelNode to the current Node through DFS-search */
+       * If LabelNode has not been the start of a loop, Node labelNode can be 
+       * the start of a loop, so check if there is a path from labelNode to 
+       * the current Node through DFS-search */
       ArrayList<Integer> visitedNodes = new ArrayList<Integer>();
-      if (isPathFromTo(visitedNodes, labelNode, prevNode)) {
+      if (!labelNode.isLoopStart() 
+          && isPathFromTo(visitedNodes, labelNode, prevNode)) {
         labelNode.setLoopStart();
       }
 
