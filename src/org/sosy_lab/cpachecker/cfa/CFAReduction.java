@@ -92,7 +92,7 @@ public class CFAReduction {
         }
       } else {
         // remove all outgoing edges of first node
-        for (int i = cfa.getNumLeavingEdges(); i >= 0; i--) {
+        for (int i = cfa.getNumLeavingEdges() - 1; i >= 0; i--) {
           cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
         }
         cfa.addLeavingSummaryEdge(null);
