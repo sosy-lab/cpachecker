@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import com.google.common.base.Throwables;
 
@@ -62,6 +63,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     
     private int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
+    private int countFailedRefinements = 0;
 
     @Override
     public String getName() {
@@ -72,15 +74,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
 
-      out.println("Number of refinements:          " + countRefinements + " (" + countSuccessfulRefinements + " successful)");
+      out.println("Number of refinements:            " + countRefinements);
 
       if (countRefinements > 0) {
+        out.println("Number of successful refinements: " + countSuccessfulRefinements);
+        out.println("Number of failed refinements:     " + countFailedRefinements);
         out.println("");
-        out.println("Total time for CEGAR algorithm: " + totalTimer);
-        out.println("Time for refinements:           " + refinementTimer);
-        out.println("Average time for refinement:    " + refinementTimer.printAvgTime());
-        out.println("Max time for refinement:        " + refinementTimer.printMaxTime());
-        out.println("Time for garbage collection:    " + gcTimer);
+        out.println("Total time for CEGAR algorithm:   " + totalTimer);
+        out.println("Time for refinements:             " + refinementTimer);
+        out.println("Average time for refinement:      " + refinementTimer.printAvgTime());
+        out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
+        out.println("Time for garbage collection:      " + gcTimer);
       }
     }
   }
@@ -173,8 +177,16 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         stats.countRefinements++;
 
         stats.refinementTimer.start();
-        boolean refinementResult = mRefiner.performRefinement(reached);
-        stats.refinementTimer.stop();
+        boolean refinementResult;
+        try {
+          refinementResult = mRefiner.performRefinement(reached);
+          
+        } catch (RefinementFailedException e) {
+          stats.countFailedRefinements++;
+          throw e;
+        } finally {
+          stats.refinementTimer.stop();
+        }
         
         if (refinementResult) {
           // successful refinement
