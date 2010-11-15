@@ -363,6 +363,10 @@ cpas.symbpredabs.refinement.addWellScopedPredicates = false
 # refinement will add all discovered predicates to all the locations in the abstract trace
 cpas.symbpredabs.refinement.addPredicatesGlobally = false
 
+# skip refinement if input formula is larger than this amount of bytes
+# (ignored if 0)
+cpas.symbpredabs.refinement.maxRefinementSize = 0
+
 
 # where to dump the counterexample formula in case the error location is reached
 cpas.symbpredabs.refinement.msatCexFile = counterexample.msat

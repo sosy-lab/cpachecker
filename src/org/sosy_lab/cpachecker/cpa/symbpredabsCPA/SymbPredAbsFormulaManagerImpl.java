@@ -159,6 +159,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option
   private boolean useBitwiseAxioms = false;
   
+  @Option(name="refinement.maxRefinementSize")
+  private int maxRefinementSize = 0;
+  
   private final Map<Pair<SymbolicFormula, Collection<Predicate>>, Abstraction> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -590,6 +593,18 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
+    if (maxRefinementSize > 0) {
+      SymbolicFormula cex = smgr.makeTrue();
+      for (SymbolicFormula formula : f) {
+        cex = smgr.makeAnd(cex, formula);
+      }
+      int size = smgr.dumpFormula(cex).length();
+      if (size > maxRefinementSize) {
+        logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
+        throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
+      }
+    }
+    
     logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
