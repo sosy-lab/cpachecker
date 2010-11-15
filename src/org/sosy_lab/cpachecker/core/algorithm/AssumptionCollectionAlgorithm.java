@@ -58,6 +58,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Outer algorithm to collect all invariants generated during
  * the analysis, and report them to the user
@@ -108,8 +110,21 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         // run the inner algorithm to fill the reached set
         innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
-        logger.log(Level.FINER, "Dumping assumptions due to: " + failedRefinement.toString());
+        logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
+
+        // remove element and it's parent from reached set
+        // parent needs to be removed, because CPAAlgorithm re-added it
+        // to the waitlist just before refinement
+        ARTElement ae = (ARTElement)reached.getLastElement();
+        for (ARTElement p : ImmutableSet.copyOf(ae.getParents())) {
+          reached.remove(p);
+          p.removeFromART();
+        }
+        reached.remove(ae);
+        ae.removeFromART();
+
+        restartCPA = true;
       } catch (CPAException e) {
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
