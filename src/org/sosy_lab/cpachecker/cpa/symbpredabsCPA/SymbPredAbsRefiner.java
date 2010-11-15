@@ -169,19 +169,21 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       } else {
         targetPath = createPathFromPredicateValues(pPath, preds);
         
-        // try to create a better satisfying assignment by replaying this single path
-        try {
-          info = formulaManager.checkPath(targetPath.asEdgesList());
-          if (info.isSpurious()) {
-            logger.log(Level.WARNING, "Inconsistent replayed error path!");
-            info = mCounterexampleTraceInfo;
-          } else {
-            mCounterexampleTraceInfo = info;
-            preciseInfo = true;
+        if (targetPath != null) {
+          // try to create a better satisfying assignment by replaying this single path
+          try {
+            info = formulaManager.checkPath(targetPath.asEdgesList());
+            if (info.isSpurious()) {
+              logger.log(Level.WARNING, "Inconsistent replayed error path!");
+              info = mCounterexampleTraceInfo;
+            } else {
+              mCounterexampleTraceInfo = info;
+              preciseInfo = true;
+            }
+          } catch (CPATransferException e) {
+            // path is now suddenly a problem 
+            logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
           }
-        } catch (CPATransferException e) {
-          // path is now suddenly a problem 
-          logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
         }
       }
       errorPathProcessing.stop();
