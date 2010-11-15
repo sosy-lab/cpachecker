@@ -1356,6 +1356,8 @@ arg2_term.repr = (void *)((size_t)arg2);
 
   msat_to_msat_jretval = (*jenv)->NewStringUTF(jenv, msat_to_msat_retval);
 
+  free(msat_to_msat_retval);
+
   return msat_to_msat_jretval;
 
 }
@@ -1374,6 +1376,8 @@ arg2_term.repr = (void *)((size_t)arg2);
   msat_to_smtlib_retval = msat_to_smtlib(arg1_e, arg2_term);
 
   msat_to_smtlib_jretval = (*jenv)->NewStringUTF(jenv, msat_to_smtlib_retval);
+
+  free(msat_to_smtlib_retval);
 
   return msat_to_smtlib_jretval;
 
@@ -2399,6 +2403,8 @@ arg1_d.repr = (void *)((size_t)arg1);
 
   msat_decl_get_name_jretval = (*jenv)->NewStringUTF(jenv, msat_decl_get_name_retval);
 
+  free(msat_decl_get_name_retval);
+
   return msat_decl_get_name_jretval;
 
 }
@@ -2418,6 +2424,8 @@ arg2_t.repr = (void *)((size_t)arg2);
 
   msat_term_get_name_jretval = (*jenv)->NewStringUTF(jenv, msat_term_get_name_retval);
 
+  free(msat_term_get_name_retval);
+
   return msat_term_get_name_jretval;
 
 }
@@ -2434,6 +2442,8 @@ arg1_t.repr = (void *)((size_t)arg1);
   msat_term_repr_retval = msat_term_repr(arg1_t);
 
   msat_term_repr_jretval = (*jenv)->NewStringUTF(jenv, msat_term_repr_retval);
+
+  free(msat_term_repr_retval);
 
   return msat_term_repr_jretval;
 
