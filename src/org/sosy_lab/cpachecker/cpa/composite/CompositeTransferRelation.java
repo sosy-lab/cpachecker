@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
-  private final ImmutableList<TransferRelation> transferRelations;
-  private final int size;
+  protected final ImmutableList<TransferRelation> transferRelations;
+  protected final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
 
@@ -172,7 +172,7 @@ public class CompositeTransferRelation implements TransferRelation{
     }
   }
   
-  private static Collection<List<AbstractElement>> createCartesianProduct(
+  protected static Collection<List<AbstractElement>> createCartesianProduct(
       List<Collection<? extends AbstractElement>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractElement>> allResultingElements;
     switch (resultCount) {

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.Com
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.composite.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
@@ -284,6 +285,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
           element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonPredicateElement)lElement);
         }
         
+        if (lElement instanceof ProductAutomatonElement.PredicateElement) {
+          element = strengthen(edge.getSuccessor(), element, (ProductAutomatonElement.PredicateElement)lElement);
+        }
+        
         if (lElement instanceof ConstrainedAssumeElement) {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
         }
@@ -314,6 +319,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     PathFormula pf = pElement.getPathFormula();
     
     for (ECPPredicate lPredicate : pAutomatonElement) {
+      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+      
+      pf = convertEdgeToPathFormula(pf, lEdge);
+    }
+
+    return replacePathFormula(pElement, pf);
+  }
+  
+  private SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ProductAutomatonElement.PredicateElement pAutomatonElement) throws CPATransferException {
+    PathFormula pf = pElement.getPathFormula();
+    
+    for (ECPPredicate lPredicate : pAutomatonElement.getPredicates()) {
       AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
       
       pf = convertEdgeToPathFormula(pf, lEdge);

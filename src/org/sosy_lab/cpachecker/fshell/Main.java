@@ -87,7 +87,7 @@ public class Main {
     
     FShell3Result lResult = lFlleSh.run(lFQLSpecificationString);
     
-    System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Inprecise: " + lResult.getNumberOfImpreciseTestCases());
+    System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
     
     return lResult;
   }

@@ -68,7 +68,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
     }
     
     void addRefiner(SymbPredAbsRefiner ref) {
-      Preconditions.checkState(refiner == null);
+      //Preconditions.checkState(refiner == null);
       refiner = ref;
     }
 

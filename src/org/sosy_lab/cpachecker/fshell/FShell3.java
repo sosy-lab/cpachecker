@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -48,13 +50,11 @@ import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonAcceptingElement;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.composite.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.NonabstractionElement;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.SymbPredAbsCPA;
-import org.sosy_lab.cpachecker.fshell.cpa.symbpredabsCPA.SymbPredAbsRefiner;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
+import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
@@ -93,7 +93,6 @@ public class FShell3 {
   private final ConfigurableProgramAnalysis mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
-  private final ProductAutomatonCPA mProductAutomatonCPA;
   private final SymbPredAbsCPA mSymbPredAbsCPA;
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
@@ -182,9 +181,6 @@ public class FShell3 {
     
     // cfa path CPA
     mCFAPathCPA = CFAPathCPA.getInstance();
-    
-    // product automaton CPA
-    mProductAutomatonCPA = ProductAutomatonCPA.getInstance();
     
     // symbolic predicate abstraction CPA
     CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
@@ -594,8 +590,9 @@ public class FShell3 {
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
-    System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
-    System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
+    // TODO remove ... look at statistics
+    //System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
+    //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
     
     FShell3Result lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
     
@@ -745,13 +742,14 @@ public class FShell3 {
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
-    System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
-    System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
+    // TODO remove ... look at statistics
+    //System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
+    //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
     
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
 
-  private CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, ConfigurableProgramAnalysis pPassingCPA) {
+  private CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
     
@@ -768,14 +766,16 @@ public class FShell3 {
     
     lComponentAnalyses.add(mCallStackCPA);
     
+    List<GuardedEdgeAutomatonCPA> lAutomatonCPAs = new ArrayList<GuardedEdgeAutomatonCPA>(2);
+    
     if (pPassingCPA != null) {
-      lComponentAnalyses.add(pPassingCPA);
+      lAutomatonCPAs.add(pPassingCPA);
     }
     
-    lComponentAnalyses.add(pAutomatonCPA);
+    lAutomatonCPAs.add(pAutomatonCPA);
     
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
     lComponentAnalyses.add(mSymbPredAbsCPA);
-    lComponentAnalyses.add(mProductAutomatonCPA);
     
     lComponentAnalyses.add(mAssumeCPA);
 
@@ -945,12 +945,17 @@ public class FShell3 {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
     
+    List<GuardedEdgeAutomatonCPA> lAutomatonCPAs = new ArrayList<GuardedEdgeAutomatonCPA>(2);
+    
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
-      lComponentAnalyses.add(pPassingAutomatonCPA);
+      lAutomatonCPAs.add(pPassingAutomatonCPA);
     }
     
-    lComponentAnalyses.add(pCoverAutomatonCPA);
+    lAutomatonCPAs.add(pCoverAutomatonCPA);
+
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
     
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
@@ -958,11 +963,7 @@ public class FShell3 {
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
     lComponentAnalyses.add(lInterpreterCPA);
-    
-    // product automaton CPA
-    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(mProductAutomatonCPA);
-    
+        
     // assume CPA
     lComponentAnalyses.add(mAssumeCPA);
     
@@ -997,7 +998,15 @@ public class FShell3 {
       if (((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
         // location of last element is at end node
 
-        return lEndNode.get(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance());
+        AbstractElement lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
+        
+        if (lProductAutomatonElement instanceof Targetable) {
+          Targetable lTargetable = (Targetable)lProductAutomatonElement;
+          
+          return lTargetable.isTarget();
+        }
+        
+        return false;
       }
       
       return false;
@@ -1008,12 +1017,17 @@ public class FShell3 {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
     
+    List<GuardedEdgeAutomatonCPA> lAutomatonCPAs = new ArrayList<GuardedEdgeAutomatonCPA>(2);
+    
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
-      lComponentAnalyses.add(pPassingAutomatonCPA);
+      lAutomatonCPAs.add(pPassingAutomatonCPA);
     }
     
-    lComponentAnalyses.add(pCoverAutomatonCPA);
+    lAutomatonCPAs.add(pCoverAutomatonCPA);
+    
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
     
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
@@ -1025,10 +1039,6 @@ public class FShell3 {
     // CFA path CPA
     int lCFAPathCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(mCFAPathCPA);
-    
-    // product automaton CPA
-    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(mProductAutomatonCPA);
     
     // assume CPA
     lComponentAnalyses.add(mAssumeCPA);
@@ -1065,7 +1075,15 @@ public class FShell3 {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
     
-    if (!lEndNode.get(lProductAutomatonCPAIndex).equals(ProductAutomatonAcceptingElement.getInstance())) {
+    AbstractElement lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
+    
+    if (!(lProductAutomatonElement instanceof Targetable)) {
+      throw new RuntimeException();
+    }
+    
+    Targetable lTargetable = (Targetable)lProductAutomatonElement;
+    
+    if (!lTargetable.isTarget()) {
       throw new RuntimeException();
     }
     
@@ -1122,6 +1140,7 @@ public class FShell3 {
       lWriter.println("analysis.useRefinement = true");
       lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner.class.getCanonicalName());
 
+      lWriter.println("cpas.symbpredabs.addBranchingInformation = false");
       lWriter.println("cpas.symbpredabs.useNondetFlags = true");
       lWriter.println("cpas.symbpredabs.initAllVars = false");
       //lWriter.println("cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET");

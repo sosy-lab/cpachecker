@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositeStopOperator implements StopOperator{
 
-  private final ImmutableList<StopOperator> stopOperators;
+  protected final ImmutableList<StopOperator> stopOperators;
 
   public CompositeStopOperator(ImmutableList<StopOperator> stopOperators)
   {

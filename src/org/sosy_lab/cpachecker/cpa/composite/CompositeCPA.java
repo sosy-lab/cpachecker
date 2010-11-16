@@ -108,7 +108,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  private CompositeCPA (AbstractDomain abstractDomain,
+  protected CompositeCPA (AbstractDomain abstractDomain,
       TransferRelation transferRelation,
       MergeOperator mergeOperator,
       StopOperator stopOperator,
