@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.composite;
+package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;

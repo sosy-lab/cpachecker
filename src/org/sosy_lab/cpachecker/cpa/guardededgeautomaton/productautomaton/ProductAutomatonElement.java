@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.composite;
+package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import java.util.LinkedList;
 import java.util.List;
