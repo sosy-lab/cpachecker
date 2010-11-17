@@ -347,7 +347,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param expression the expression containing the assumption
    * @param cfaEdge the CFA edge corresponding to this expression
    * @param truthValue flag to determine whether this is the if or the else branch of the assumption
-   * @return the successor element
+   * @return the successor elements
    */
   private AbstractElement handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException
@@ -372,26 +372,24 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
     }
 
-    // a plain boolean identifier
-    // no need to track - if the value evaluates to false, it has already a value/interval set equal to 0/[0; 0]
-    // there's no gain from evaluating this, is there?
+    // a plain (boolean) identifier, e.g. if(a)
     else if(expression instanceof IASTIdExpression)
     {
-      return element.clone();
-      /*
       String functionName = cfaEdge.getPredecessor().getFunctionName();
       String variableName = constructVariableName(expression.getRawSignature(), functionName);
 
-      if(element.contains(variableName))
-      {
-        // if the value is 0 (the interval [0; 0]) then assign the interval of the negate of the truthValue (1 -> if branch, 0 -> else branch)
-        if(element.getInterval(variableName).equals(Interval.FALSE))
-          element.addInterval(variableName, new Interval(truthValue ? 0 : 1, truthValue ? 0 : 1), this.threshold);
-        /* the value is non-zero/non-false ... is it safe to assign anything? we only know it is not 0
-        else
-          element.addInterval(variableName, new Interval(1, 1), this.threshold);
+      Interval interval   = element.getInterval(variableName);
 
-      }*/
+      if(truthValue)
+      {
+        if(!interval.equals(Interval.FALSE))
+          return element.clone();
+      }
+      else
+      {
+        if(interval.contains(Interval.FALSE))
+          return element.clone();
+      }
     }
 
     // [exp1 op exp2]
@@ -399,7 +397,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       IntervalAnalysisElement newElement = element.clone();
 
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
       IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
 
       int operator = binExp.getOperator();
@@ -407,123 +404,131 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       IASTExpression operand1 = binExp.getOperand1();
       IASTExpression operand2 = binExp.getOperand2();
 
-      Interval interval   = null;
-      Interval interval1  = getInterval(element, operand1, functionName, cfaEdge);
-      Interval interval2  = getInterval(element, operand2, functionName, cfaEdge);
-
-      boolean operand1IsLiteral = operand1 instanceof IASTLiteralExpression;
-
       // both operands are literals -> no gain in information
-      if(operand1IsLiteral && operand2 instanceof IASTLiteralExpression)
+      if((operand1 instanceof IASTLiteralExpression) && (operand2 instanceof IASTLiteralExpression))
         return newElement;
 
       // one of the operators is an identifier, the other one is a literal
-      else if(operand1 instanceof IASTIdExpression && operand2 instanceof IASTLiteralExpression
-           || operand1IsLiteral && operand2 instanceof IASTIdExpression)
+      /*else if(operand1 instanceof IASTIdExpression && operand2 instanceof IASTLiteralExpression
+           || operand1IsLiteral && operand2 instanceof IASTIdExpression)*/
+
+      // at least one of the operators is an identifier
+      else
       {
-        // flip the operands so that operand2 always is the literal expression
-        if(operand1IsLiteral)
-        {
-          IASTExpression temp = operand1;
-          operand1            = operand2;
-          operand2            = temp;
-        }
-
-        String variableName = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-
-        Long literalValue   = parseLiteral(operand2);
-
-        // flag to determine if operands are in "correct" order
-        boolean inOrder   = (truthValue && !operand1IsLiteral) || (!truthValue && operand1IsLiteral);
-
         switch(operator)
         {
           case IASTBinaryExpression.op_equals:
-            interval = truthValue ? new Interval(literalValue) : Interval.createUnboundInterval();
-            break;
-
           case IASTBinaryExpression.op_notequals:
-            interval = truthValue ? Interval.createUnboundInterval() : new Interval(literalValue);
-            break;
-
           case IASTBinaryExpression.op_greaterThan:
-            interval = inOrder ? Interval.createLowerBoundedInterval(literalValue + 1) : Interval.createUpperBoundedInterval(literalValue);
-            break;
-
           case IASTBinaryExpression.op_greaterEqual:
-            interval = inOrder ? Interval.createLowerBoundedInterval(literalValue) : Interval.createUpperBoundedInterval(literalValue - 1);
-            break;
-
           case IASTBinaryExpression.op_lessThan:
-            interval = inOrder ? Interval.createUpperBoundedInterval(literalValue - 1) : Interval.createLowerBoundedInterval(literalValue);
-            break;
-
           case IASTBinaryExpression.op_lessEqual:
-            interval = inOrder ? Interval.createUpperBoundedInterval(literalValue) : Interval.createLowerBoundedInterval(literalValue + 1);
+            newElement = processAssumption(newElement, operator, operand1, operand2, truthValue, cfaEdge);
             break;
 
           default:
             throw new UnrecognizedCCodeException(cfaEdge, binExp);
         }
 
-        return newElement.addInterval(variableName, interval, threshold);
-      }
-
-      // both operands are identifiers
-      else if(operand1 instanceof IASTIdExpression && operand2 instanceof IASTIdExpression)
-      {
-        if(interval1 != null && interval2 != null)
-        {
-          String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-          String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-
-          int adaptedOperator = truthValue ? operator : adaptOperator(operator);
-
-          switch(adaptedOperator)
-          {
-            case IASTBinaryExpression.op_equals:
-              interval = interval1.intersect(interval2);
-              newElement.addInterval(variableName1, interval, threshold);
-              newElement.addInterval(variableName2, interval, threshold);
-              break;
-
-            case IASTBinaryExpression.op_notequals:
-              // TODO: is it possible to gain any usable and/or valuable information here?
-              // not until we track multiple intervals per variable I guess ...
-              break;
-
-            case IASTBinaryExpression.op_lessThan:
-              newElement.addInterval(variableName1, interval = interval1.limitUpperBoundBy(interval2, false), threshold);
-              newElement.addInterval(variableName2, interval = interval2.limitLowerBoundBy(interval1, false), threshold);
-              break;
-
-            case IASTBinaryExpression.op_lessEqual:
-              newElement.addInterval(variableName1, interval = interval1.limitUpperBoundBy(interval2, true), threshold);
-              newElement.addInterval(variableName2, interval = interval2.limitLowerBoundBy(interval1, true), threshold);
-              break;
-
-            case IASTBinaryExpression.op_greaterEqual:
-              newElement.addInterval(variableName1, interval = interval2.limitUpperBoundBy(interval1, true), threshold);
-              newElement.addInterval(variableName2, interval = interval1.limitLowerBoundBy(interval2, true), threshold);
-              break;
-
-            case IASTBinaryExpression.op_greaterThan:
-              newElement.addInterval(variableName1, interval = interval2.limitUpperBoundBy(interval1, false), threshold);
-              newElement.addInterval(variableName2, interval = interval1.limitLowerBoundBy(interval2, false), threshold);
-              break;
-
-            default:
-              throw new UnrecognizedCCodeException(cfaEdge, binExp);
-          }
-
-          return newElement;
-        }
-
-        return null;
+        return newElement;//.addInterval(variableName, interval, threshold);
       }
     }
 
     return null;
+  }
+
+  private IntervalAnalysisElement processAssumption(IntervalAnalysisElement element, int operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  {
+    if(!truthValue)
+      return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
+
+    /* unnecessary ..?
+    if(operand1 instanceof IASTLiteralExpression)
+      processAssumption(element, flipOperator(operator), operand2, operand1, truthValue, cfaEdge);
+    */
+
+    Interval interval1 = getInterval(element, operand1, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
+    Interval interval2 = getInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
+
+    // reduce <= to <
+    if(operator == IASTBinaryExpression.op_lessEqual)
+    {
+      interval2 = interval2.plus(1);
+      operator = IASTBinaryExpression.op_lessThan;
+    }
+
+    // reduce >= to >
+    else if(operator == IASTBinaryExpression.op_greaterEqual)
+    {
+      interval1 = interval1.plus(1);
+      operator = IASTBinaryExpression.op_greaterThan;
+    }
+
+    String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
+
+    // a < b, a < 1
+    if(operator == IASTBinaryExpression.op_lessThan)
+    {
+      // a.low < b.high, so a may be less than b
+      if(interval1.getLow() < interval2.getHigh())
+      {
+        interval1.limitUpperBoundBy(interval2);
+        interval2.limitLowerBoundBy(interval1);
+
+        element.addInterval(variableName1, interval1, threshold);
+        element.addInterval(variableName2, interval2, threshold);
+      }
+
+      // a.low is greater than b.high, so there can't be a succesor
+      else
+        element = null;
+    }
+
+    // a > b, a > 1
+    else if(operator == IASTBinaryExpression.op_greaterThan)
+    {
+      // a.high > b.low, so a may be greater than b
+      if(interval1.getHigh() > interval2.getLow())
+      {
+        interval1.limitLowerBoundBy(interval2);
+        interval2.limitUpperBoundBy(interval1);
+
+        element.addInterval(variableName1, interval1, threshold);
+        element.addInterval(variableName2, interval2, threshold);
+      }
+
+      // a.high is less than b.low, so a can't be greater than b, so there can't be a succesor
+      else
+        element = null;
+    }
+
+    // a == b, a == 1
+    else if(operator == IASTBinaryExpression.op_equals)
+    {
+      // a and b intersect, so they may have the same value, so they may be equal
+      if(interval1.intersects(interval2))
+      {
+        element.addInterval(variableName1, interval1.intersect(interval2), threshold);
+        element.addInterval(variableName2, interval2.intersect(interval1), threshold);
+      }
+
+      // a and b do not intersect, so they can't be equal, so there can't be a successor
+      else
+        element = null;
+    }
+
+    // a != b, a != 1
+    else if(operator == IASTBinaryExpression.op_notequals)
+    {
+      // a = [x, x] = b => a and b are always equal, so there can't be a successor
+      if(interval1.equals(interval2) && interval1.getLow() == interval1.getHigh())
+        element = null;
+    }
+    else
+      throw new UnrecognizedCCodeException("unknown operator", cfaEdge);
+
+    return element;
   }
 
   /**
@@ -533,7 +538,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param operator
    * @return the negated counter part of the given operator
    */
-  private int adaptOperator(int operator)
+  private int negateOperator(int operator)
   {
     switch(operator)
     {
@@ -554,9 +559,38 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       case IASTBinaryExpression.op_greaterThan:
         return IASTBinaryExpression.op_lessEqual;
-    }
 
-    return operator;
+      default:
+        return operator;
+    }
+  }
+
+  /**
+   * This method return the counter part for a given operator
+   *
+   * @author loewe
+   * @param operator
+   * @return the counter part of the given operator
+   */
+  private int flipOperator(int operator)
+  {
+    switch(operator)
+    {
+      case IASTBinaryExpression.op_lessThan:
+        return IASTBinaryExpression.op_greaterThan;
+
+      case IASTBinaryExpression.op_lessEqual:
+        return IASTBinaryExpression.op_greaterEqual;
+
+      case IASTBinaryExpression.op_greaterEqual:
+        return IASTBinaryExpression.op_lessEqual;
+
+      case IASTBinaryExpression.op_greaterThan:
+        return IASTBinaryExpression.op_lessThan;
+
+      default:
+        return operator;
+    }
   }
 
   /**
@@ -835,9 +869,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       return handleAssignmentOfBinaryExp(element, lParam, binExp.getOperand1(), binExp.getOperand2(), binExp.getOperator(), cfaEdge);
     }
 
-    // TODO: track these ... a = extCall();  or  a = b->c;
+    // TODO: track these more precisely
     else if(rightExp instanceof IASTFunctionCallExpression || rightExp instanceof IASTFieldReference)
-      return element.clone().removeInterval(constructVariableName(lParam, functionName));
+      return element.clone().addInterval(constructVariableName(lParam, functionName), Interval.createUnboundInterval(), threshold);
 
     else
       throw new UnrecognizedCCodeException(cfaEdge, rightExp);
@@ -1010,7 +1044,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       String varName = constructVariableName(expression.getRawSignature(), functionName);
 
-      return (element.contains(varName)) ? element.getInterval(varName) : null;
+      return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
     }
 
     else if(expression instanceof IASTCastExpression)

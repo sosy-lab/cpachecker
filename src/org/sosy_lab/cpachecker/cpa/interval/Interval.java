@@ -99,7 +99,11 @@ public class Interval
    */
   public Interval union(Interval other)
   {
-      return new Interval(Math.min(low, other.low), Math.max(high, other.high));
+      if(isEmpty() || other.isEmpty())
+        return createEmptyInterval();
+
+      else
+        return new Interval(Math.min(low, other.low), Math.max(high, other.high));
   }
 
   /**
@@ -149,28 +153,28 @@ public class Interval
     return interval;
   }
 
-  public Interval limitLowerBoundBy(Interval other, boolean equal)
+  public Interval limitLowerBoundBy(Interval other)
   {
     Interval interval = null;
 
-    if((equal && other.low > high) || (!equal && other.low >= high))
+    if(high < other.low)
       interval = createEmptyInterval();
 
     else
-      interval = new Interval(Math.max(low, other.low + (equal ? 0 : 1)), high);
+      interval = new Interval(Math.max(low, other.low), high);
 
     return interval;
   }
 
-  public Interval limitUpperBoundBy(Interval other, boolean equal)
+  public Interval limitUpperBoundBy(Interval other)
   {
     Interval interval = null;
 
-    if((equal && other.high < low) || (!equal && other.high <= low))
+    if(low > other.high)
       interval = createEmptyInterval();
 
     else
-      interval = new Interval(low, Math.min(high, other.high - (equal ? 0 : 1)));
+      interval = new Interval(low, Math.min(high, other.high));
 
     return interval;
   }
@@ -181,7 +185,7 @@ public class Interval
    * @param other the other interval
    * @return true if the intervals intersect, else false
    */
-  private boolean intersects(Interval other)
+  public boolean intersects(Interval other)
   {
      return (low >= other.low && low <= other.high)
          || (high >= other.low && high <= other.high)

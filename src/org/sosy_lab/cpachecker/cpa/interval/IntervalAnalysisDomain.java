@@ -77,12 +77,12 @@ public class IntervalAnalysisDomain implements AbstractDomain
         {
           Interval currentInterval = currentIntervals.get(key);
           Interval reachedInterval = reachedIntervals.get(key);
-System.out.println("current key: " + key);
-System.out.println("currentInterval: " + currentInterval);
-System.out.println("reachedInterval: " + reachedInterval);
+//System.out.println("current key: " + key);
+//System.out.println("currentInterval: " + currentInterval);
+//System.out.println("reachedInterval: " + reachedInterval);
           Interval union = currentInterval.union(reachedInterval);
-System.out.println("union: " + union);
-System.out.println();
+//System.out.println("union: " + union);
+//System.out.println();
           newIntervals.put(key, union);
 
           // update the references
