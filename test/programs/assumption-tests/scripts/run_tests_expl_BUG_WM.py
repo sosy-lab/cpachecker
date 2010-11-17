@@ -12,11 +12,11 @@ from string import Template
 import optparse
 import re
 
-# memory limit in bytes (can be overriden on the command line)
-MEMORY_LIMIT = 3000000
+# memory limit in kilobytes (can be overriden on the command line)
+MEMORY_LIMIT = 1500000
 
 # time limit in seconds (can be overriden on the command line)
-TIME_LIMIT = 1200
+TIME_LIMIT = 600
 
 
 CPACHECKER_DIR = os.path.dirname(sys.argv[0])

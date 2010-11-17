@@ -13,10 +13,10 @@ import optparse
 import re
 
 # memory limit in bytes (can be overriden on the command line)
-MEMORY_LIMIT = 3000000
+MEMORY_LIMIT = 1500000
 
 # time limit in seconds (can be overriden on the command line)
-TIME_LIMIT = 1200
+TIME_LIMIT = 600
 
 
 CPACHECKER_DIR = os.path.dirname(sys.argv[0])
@@ -44,7 +44,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
     
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
-    tot_time, outcome, reached, uninitvars = None, None, None
+    tot_time, outcome, reached, uninitvars = None, None, None, None
     
     if retval == 0:
         outcome = None
@@ -65,7 +65,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
             elif reached is None and line.startswith('Size of reached set:'):
                 reached = (line[line.find(':')+1:line.find('(')-1].strip())
             elif uninitvars is None and line.startswith('No of uninitialized vars :'):
-                uninitvars = (line[line.find(':')+1:line.find('(')-1].strip())
+                uninitvars = line[line.find(':')+1:].strip()
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
             elif line.find('SIGSEGV') != -1:

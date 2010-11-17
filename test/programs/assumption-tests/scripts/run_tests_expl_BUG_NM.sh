@@ -3,9 +3,9 @@ BASE_DIR="`dirname \"$0\"`/.."
 cd "$BASE_DIR"
 
 CONFIG="config/explicitAnalysis-limits.properties"
-OUTPUTNM="output/explicit_BUGS_NoMonitor"
+OUTPUTNM="output/explicit_buggy/explicit_BUGS_NoMonitor.log"
 INPUTS="testsets/explicit_BUG.set"
-TIMELIMIT=1200 #in seconds
+TIMELIMIT=600 #in seconds
 
 INSTANCES="`cat \"$INPUTS\"`"
 
