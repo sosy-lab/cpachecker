@@ -4,7 +4,7 @@ cd "$BASE_DIR"
 
 CONFIG="config/explicitAnalysis_14_400MB_assumeedges1000.properties"
 OUTPUTM="output/explicit/400MBMemLimit/explicitAnalysis_14_400MB_assumeedges1000.log"
-INPUTS="testsets/explicit.set"
+INPUTS="testsets/explicit.safe_400MB.set"
 
 INSTANCES="`cat \"$INPUTS\"`"
 

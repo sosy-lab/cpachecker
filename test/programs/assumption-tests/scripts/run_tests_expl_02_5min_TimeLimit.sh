@@ -4,7 +4,7 @@ cd "$BASE_DIR"
 
 CONFIG="config/explicitAnalysis_02_5min_TimeLimit.properties"
 OUTPUTM="output/explicit/5minTimeLimit/explicitAnalysis_02_5min_TimeLimit.log"
-INPUTS="testsets/explicit.set"
+INPUTS="testsets/explicit.safe_5min.set"
 
 INSTANCES="`cat \"$INPUTS\"`"
 
