@@ -44,7 +44,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
     
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
-    tot_time, outcome, reached, uninitvars = None, None, None, None
+    tot_time, outcome, reached, uninitvars, maxheap = None, None, None, None, None
     
     if retval == 0:
         outcome = None
@@ -66,6 +66,8 @@ def run_single(benchmark, config, time_limit, mem_limit):
                 reached = (line[line.find(':')+1:line.find('(')-1].strip())
             elif uninitvars is None and line.startswith('No of uninitialized vars :'):
                 uninitvars = line[line.find(':')+1:].strip()
+            elif maxheap is None and line.startswith('Heap memory usage:'):
+                maxheap = (line[line.find(':')+1:line.find('max')-1].strip())
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
             elif line.find('SIGSEGV') != -1:
@@ -87,7 +89,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
         tot_time = -1
     if outcome is None:
         outcome = 'UNKNOWN'
-    return tot_time, outcome, reached, uninitvars
+    return tot_time, outcome, reached, uninitvars, maxheap
 
 def blast_cmdline_for_config(config):
     with open(config) as f:
@@ -182,16 +184,17 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                 maxlentime = len(str(time_limit)) + 4
                 
                 if write_header: 
-                    out.write(Template('$i\t$t\t$o\tReached\tUninitvars\n').substitute(i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime), o='OUTCOME'))
+                    out.write(Template('$i\t$t\t$o\tReached\tUninitvars\tMax Heap\n').substitute(i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime), o='OUTCOME'))
                     out.write('-' * (maxlen + maxlentime + 86) + '\n')
 
-                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$funinitvars')
+                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$funinitvars\t$fmaxheap')
                 for name in sorted(d):
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
                     foutcome = d[name][1].ljust(15)
                     freached = (d[name][2] if d[name][2] != None else "").ljust(7)
                     funinitvars = d[name][3]
+                    fmaxheap = d[name][4]
                     out.write(line.substitute(locals()).strip() + '\n')
         
         
@@ -222,17 +225,18 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                 d = results[config]
                 maxlen = max(map(len, d.keys()))
                 maxlentime = len(str(time_limit)) + 4
-                out.write(Template('$i\t$t\t$o\t\tReached\tUninitvars\n').substitute(
+                out.write(Template('$i\t$t\t$o\t\tReached\tUninitvars\tMax Heap\n').substitute(
                     i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime),
                     o='OUTCOME'))
                 out.write('-' * (maxlen + maxlentime + 45) + '\n')
-                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$funinitvars')
+                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$funinitvars\t$fmaxheap')
                 for name in sorted(d):
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
                     foutcome = d[name][1].ljust(15)
                     freached = (d[name][2] if d[name][2] != None else "").ljust(7)
 		    funinitvars = d[name][3]
+                    fmaxheap = d[name][4]
                     out.write(line.substitute(locals()).strip() + '\n')
 
 
