@@ -2,7 +2,7 @@ BASE_DIR="`dirname \"$0\"`/.."
 
 cd "$BASE_DIR"
 
-CONFIG="config/explicitAnalysis_11_400MB_pathlength10005000.properties"
+CONFIG="config/explicitAnalysis_11_400MB_pathlength1000.properties"
 OUTPUTM="output/explicit/400MBMemLimit/explicitAnalysis_11_400MB_pathlength10005000.log"
 INPUTS="testsets/explicit.set"
 

@@ -16,7 +16,7 @@ import re
 MEMORY_LIMIT = 2000000
 
 # time limit in seconds (can be overriden on the command line)
-TIME_LIMIT = 1200
+TIME_LIMIT = 1800
 
 
 CPACHECKER_DIR = os.path.dirname(sys.argv[0])
@@ -36,21 +36,11 @@ def run_single(benchmark, config, time_limit, mem_limit):
     and memory limit. The output is saved in a file $benchmark.$config.log.
     Returns a pair (time, outcome)
     """
-    pl = 0
+
     cn = configname(config)
-    if "s3_srvr_10_BUG.cil.c" in benchmark:
-       pl = 200
-    elif "s3_srvr_11_BUG.cil.c" in benchmark:
-       pl = 700
-    elif "s3_srvr_12_BUG.cil.c" in benchmark:
-       pl = 1200
-    elif "s3_srvr_13_BUG.cil.c" in benchmark:
-       pl = 1500
-    elif "s3_srvr_14_BUG.cil.c" in benchmark:
-       pl = 300
 
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathlengthlimit=$pl -setprop output.disable=true -config $config $benchmark > '
+                       '(scripts/cpa.sh -setprop output.disable=true -config $config $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
@@ -96,7 +86,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
         tot_time = -1
     if outcome is None:
         outcome = 'UNKNOWN'
-    return tot_time, outcome, reached, pl
+    return tot_time, outcome, reached
 
 def blast_cmdline_for_config(config):
     with open(config) as f:
@@ -191,16 +181,15 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                 maxlentime = len(str(time_limit)) + 4
                 
                 if write_header: 
-                    out.write(Template('$i\t$t\t$o\tReached\tPL\n').substitute(i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime), o='OUTCOME'))
+                    out.write(Template('$i\t$t\t$o\tReached\n').substitute(i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime), o='OUTCOME'))
                     out.write('-' * (maxlen + maxlentime + 86) + '\n')
 
-                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$fpl')
+                line = Template('$fname\t$ftime\t$foutcome\t$freached')
                 for name in sorted(d):
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
                     foutcome = d[name][1].ljust(15)
                     freached = (d[name][2] if d[name][2] != None else "").ljust(7)
-                    fpl = d[name][3]
                     out.write(line.substitute(locals()).strip() + '\n')
         
         
@@ -231,17 +220,16 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                 d = results[config]
                 maxlen = max(map(len, d.keys()))
                 maxlentime = len(str(time_limit)) + 4
-                out.write(Template('$i\t$t\t$o\t\tReached\tPL\n').substitute(
+                out.write(Template('$i\t$t\t$o\t\tReached\n').substitute(
                     i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime),
                     o='OUTCOME'))
                 out.write('-' * (maxlen + maxlentime + 45) + '\n')
-                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$fpl')
+                line = Template('$fname\t$ftime\t$foutcome\t$freached')
                 for name in sorted(d):
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
                     foutcome = d[name][1].ljust(15)
                     freached = (d[name][2] if d[name][2] != None else "").ljust(7)
-		    fpl = d[name][3]
                     out.write(line.substitute(locals()).strip() + '\n')
 
 
