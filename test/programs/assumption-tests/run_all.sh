@@ -3,3 +3,4 @@
 ./run_explicit.buggy.sh
 ./run_explicit.safe_5minTimeLimit.sh
 ./run_explicit.safe_400MBMemLimit.sh
+./run_predabs-lbe.sh
