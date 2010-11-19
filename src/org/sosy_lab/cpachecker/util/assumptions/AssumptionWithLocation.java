@@ -57,6 +57,11 @@ public abstract class AssumptionWithLocation {
    * Return the conjunction of all assumptions for all nodes.
    */
   public abstract Assumption getCombinedAssumption();
+  
+  /**
+   * Return the number of locations for which we have an assumption.
+   */
+  public abstract int getNumberOfLocations();
 
   public static AssumptionWithLocation emptyAssumption() {
     return emptyAssumptionWithLocation;
@@ -114,6 +119,11 @@ public abstract class AssumptionWithLocation {
     }
     
     @Override
+    public int getNumberOfLocations() {
+      return 0;
+    }
+    
+    @Override
     public String toString() {
       return "TRUE";
     }
@@ -147,6 +157,11 @@ public abstract class AssumptionWithLocation {
     @Override
     public Assumption getCombinedAssumption() {
       return assumption;
+    }
+    
+    @Override
+    public int getNumberOfLocations() {
+      return 1;
     }
 
     @Override
@@ -205,6 +220,11 @@ public abstract class AssumptionWithLocation {
         assumption = assumption.and(a);
       }
       return assumption;
+    }
+    
+    @Override
+    public int getNumberOfLocations() {
+      return map.size();
     }
     
     @Override
