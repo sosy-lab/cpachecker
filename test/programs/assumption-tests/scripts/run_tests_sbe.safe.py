@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Script to benchmark various configurations of CPAChecker
+Script to benchmark various configurations of CPAChecker.
 """
 
 from __future__ import with_statement
@@ -12,11 +12,11 @@ from string import Template
 import optparse
 import re
 
-# memory limit in bytes (can be overriden on the command line)
+# memory limit in kilobytes (can be overriden on the command line)
 MEMORY_LIMIT = 2000000
 
 # time limit in seconds (can be overriden on the command line)
-TIME_LIMIT = 1800
+TIME_LIMIT = 3600
 
 
 CPACHECKER_DIR = os.path.dirname(sys.argv[0])
@@ -30,19 +30,21 @@ CSISAT_REPLACEMENT_DIR = os.path.abspath(os.path.join(
 def configname(config):
     return os.path.basename(config).split('.')[0]
 
-def run_single(benchmark, config, time_limit, mem_limit):
+def run_single(benchmark, config, time_limit, mem_limit, outfile):
     """\
     Runs a single benchmark instance with the given configuration, time limit
     and memory limit. The output is saved in a file $benchmark.$config.log.
     Returns a pair (time, outcome)
     """
     cn = configname(config)
+
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
                        '(scripts/cpa.sh -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
+
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
-    tot_time, outcome, reached, refinements, abstractions, failedrefinements = None, None, None, None, None, None
+    tot_time, outcome, reached, refinements, abstractions, maxheap = None, None, None, None, None, None
 
     if retval == 0:
         outcome = None
@@ -66,8 +68,8 @@ def run_single(benchmark, config, time_limit, mem_limit):
                 abstractions = (line[line.find(':')+1:line.find('(')-1].strip())
             elif refinements is None and line.startswith('Number of refinements:'):
                 refinements = (line[line.find(':')+1:line.find('(')].strip())
-            elif failedrefinements is None and line.startswith('Number of failed refinements:'):
-                failedrefinements = (line[line.find(':')+1:line.find('(')-1].strip())
+            elif maxheap is None and line.startswith('Heap memory usage:'):
+                maxheap = (line[line.find(':')+1:line.find('max')-1].strip())
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
             elif line.find('SIGSEGV') != -1:
@@ -89,7 +91,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
         tot_time = -1
     if outcome is None:
         outcome = 'UNKNOWN'
-    return tot_time, outcome, reached, refinements, abstractions, failedrefinements
+    return tot_time, outcome, reached, refinements, abstractions, maxheap
     
 
 def blast_cmdline_for_config(config):
@@ -135,7 +137,7 @@ def run_single_blast(benchmark, config, time_limit, mem_limit):
 
 
 def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
-         order='config', verbose=True):
+         order, verbose, live):
     """\
     Runs a collection of benchmarks for each of the given configs, and with
     the given time and memory limits. Collects results in one log file for each
@@ -156,14 +158,50 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
     for config in configs:
         results[configname(config)] = {}
 
-    def go(b, c, t, m):
+    def go(b, c, t, m, o):
         if verbose:
             sys.stdout.write('Running: %s with config: %s... ' %
                              (b, configname(c)))
             sys.stdout.flush()
+
         subst = re.compile('.*/(benchmarks-[^/]*/)')
         bs = subst.sub(r'\1', b)
-        results[configname(c)][bs] = run(os.path.abspath(b), c, t, m)
+        
+        write_header = (results[configname(c)] == {})
+        
+        results[configname(c)][bs] = run(os.path.abspath(b), c, t, m, o)
+        sys.stderr.write('\n')
+        if not live:
+            return
+
+        if write_header:
+            # override the file's content
+            mode = 'w'
+        else:
+            # append to the file
+            mode = 'a'
+
+        with open(outfile + '.' + configname(c) + '.log', mode) as out:
+                d = results[configname(c)]
+                maxlen = max(map(len, d.keys()))
+                maxlentime = len(str(time_limit)) + 4
+                
+                if write_header: 
+                    out.write(Template('$i\t$t\t$o\t\tReached\tRefinements\tAbstractions\tMax heap size\n').substitute(i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime), o='OUTCOME'))
+                    out.write('-' * (maxlen + maxlentime + 86) + '\n')
+
+                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$frefinements\t$fabstractions\t$fmaxheap')
+                for name in sorted(d):
+                    fname = name.ljust(maxlen)
+                    ftime = str(d[name][0]).rjust(maxlentime)
+                    foutcome = d[name][1].ljust(15)
+                    freached = (d[name][2] if d[name][2] != None else "").ljust(7)
+                    frefinements = (d[name][3] if d[name][3] != None else "").ljust(15)
+                    fabstractions = (d[name][4] if d[name][4] != None else "").ljust(22)
+	            fmaxheap = d[name][5]
+                    out.write(line.substitute(locals()).strip() + '\n')
+        
+        
 	sys.stderr.write(results[configname(c)][bs][1])
 	sys.stderr.write('\n')
 #        if results[configname(c)][bs][1] == 'ERROR':
@@ -175,23 +213,27 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
         if order == 'config':
             for config in configs:
                 for benchmark in benchmarks:
-                    go(benchmark, config, time_limit, mem_limit)
+                    go(benchmark, config, time_limit, mem_limit, outfile)
         else:
             for benchmark in benchmarks:
                 for config in configs:
-                    go(benchmark, config, time_limit, mem_limit)
+                    go(benchmark, config, time_limit, mem_limit, outfile)
     finally:
-        # write out the results
+        if live:
+            # there's nothing to do here anymore
+            return
+        
+        # if not live write out the results
         for config in map(configname, configs):
             with open(outfile + '.' + config + '.log', 'w') as out:
                 d = results[config]
                 maxlen = max(map(len, d.keys()))
                 maxlentime = len(str(time_limit)) + 4
-                out.write(Template('$i\t$t\t$o\t\tReached\tRefinements\tAbstractions\t\tFailed Refinements\n').substitute(
+                out.write(Template('$i\t$t\t$o\t\tReached\tRefinements\tAbstractions\tMax heap size\n').substitute(
                     i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime),
                     o='OUTCOME'))
                 out.write('-' * (maxlen + maxlentime + 86) + '\n')
-                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$frefinements\t$fabstractions\t$ffailedrefinements')
+                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$frefinements\t$fabstractions\t$fmaxheap')
                 for name in sorted(d):
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
@@ -199,7 +241,7 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                     freached = (d[name][2] if d[name][2] != None else "").ljust(7)
                     frefinements = (d[name][3] if d[name][3] != None else "").ljust(15)
                     fabstractions = (d[name][4] if d[name][4] != None else "").ljust(22)
-                    ffailedrefinements = d[name][5] if d[name][5] != None else ""
+	            fmaxheap = d[name][5]
                     out.write(line.substitute(locals()).strip() + '\n')
 
 
@@ -213,7 +255,8 @@ if __name__ == '__main__':
     p.add_option('--blast_dir')
     p.add_option('--cpachecker_dir')
     p.add_option('--csisat_replacement_dir')
-    
+    p.add_option('--live', action='store_true')
+
     opts, args = p.parse_args()
 
     if opts.blast_dir:
@@ -222,13 +265,18 @@ if __name__ == '__main__':
         CPACHECKER_DIR = opts.cpachecker_dir
     if opts.csisat_replacement_dir:
         CSISAT_REPLACEMENT_DIR = opts.csisat_replacement_dir
-    
+
     if not opts.config:
         sys.stdout.write('ERROR, at least one --config required\n')
     elif not args:
         sys.stdout.write('ERROR, at least one benchmark required\n')
     else:
         main('blast' if opts.blast else 'cpa',
-#             map(os.path.abspath, args),
              args,
-             opts.config, opts.timeout, opts.memlimit, opts.output)
+             opts.config,
+             opts.timeout,
+             opts.memlimit,
+             opts.output,
+             'config',
+             True, # be verbose
+             opts.live)

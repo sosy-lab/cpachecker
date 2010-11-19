@@ -41,7 +41,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
     if "s3_srvr_10_BUG.cil.c" in benchmark:
        pl = 200
     elif "s3_srvr_11_BUG.cil.c" in benchmark:
-       pl = 700
+       pl = 600
     elif "s3_srvr_12_BUG.cil.c" in benchmark:
        pl = 1200
     elif "s3_srvr_13_BUG.cil.c" in benchmark:

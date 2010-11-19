@@ -19,10 +19,6 @@ int t5_pc  =    0;
 int t6_pc  =    0;
 int t7_pc  =    0;
 int t8_pc  =    0;
-int t9_pc  =    0;
-int t10_pc  =    0;
-int t11_pc  =    0;
-int t12_pc  =    0;
 int m_st  ;
 int t1_st  ;
 int t2_st  ;
@@ -32,10 +28,6 @@ int t5_st  ;
 int t6_st  ;
 int t7_st  ;
 int t8_st  ;
-int t9_st  ;
-int t10_st  ;
-int t11_st  ;
-int t12_st  ;
 int m_i  ;
 int t1_i  ;
 int t2_i  ;
@@ -45,10 +37,6 @@ int t5_i  ;
 int t6_i  ;
 int t7_i  ;
 int t8_i  ;
-int t9_i  ;
-int t10_i  ;
-int t11_i  ;
-int t12_i  ;
 int M_E  =    2;
 int T1_E  =    2;
 int T2_E  =    2;
@@ -58,10 +46,7 @@ int T5_E  =    2;
 int T6_E  =    2;
 int T7_E  =    2;
 int T8_E  =    2;
-int T9_E  =    2;
-int T10_E  =    2;
-int T11_E  =    2;
-int T12_E  =    2;
+int E_M  =    2;
 int E_1  =    2;
 int E_2  =    2;
 int E_3  =    2;
@@ -70,10 +55,6 @@ int E_5  =    2;
 int E_6  =    2;
 int E_7  =    2;
 int E_8  =    2;
-int E_9  =    2;
-int E_10  =    2;
-int E_11  =    2;
-int E_12  =    2;
 int is_master_triggered(void) ;
 int is_transmit1_triggered(void) ;
 int is_transmit2_triggered(void) ;
@@ -83,11 +64,10 @@ int is_transmit5_triggered(void) ;
 int is_transmit6_triggered(void) ;
 int is_transmit7_triggered(void) ;
 int is_transmit8_triggered(void) ;
-int is_transmit9_triggered(void) ;
-int is_transmit10_triggered(void) ;
-int is_transmit11_triggered(void) ;
-int is_transmit12_triggered(void) ;
 void immediate_notify(void) ;
+int token  ;
+int __BLAST_NONDET  ;
+int local  ;
 void master(void) 
 { 
 
@@ -106,20 +86,23 @@ void master(void)
   while (1) {
     while_0_continue: /* CIL Label */ ;
     {
+    token = __BLAST_NONDET;
+    local = token;
     E_1 = 1;
     immediate_notify();
     E_1 = 2;
+    m_pc = 1;
+    m_st = 2;
     }
-    {
-    while (1) {
-      while_1_continue: /* CIL Label */ ;
-      m_pc = 1;
-      m_st = 2;
 
-      goto return_label;
-      M_WAIT: ;
-    }
-    while_1_break: /* CIL Label */ ;
+    goto return_label;
+    M_WAIT: ;
+    if (token != local + 8) {
+      {
+      error();
+      }
+    } else {
+
     }
   }
   while_0_break: /* CIL Label */ ;
@@ -145,19 +128,20 @@ void transmit1(void)
   T1_ENTRY: ;
   {
   while (1) {
-    while_2_continue: /* CIL Label */ ;
+    while_1_continue: /* CIL Label */ ;
     t1_pc = 1;
     t1_st = 2;
 
     goto return_label;
     T1_WAIT: 
     {
+    token += 1;
     E_2 = 1;
     immediate_notify();
     E_2 = 2;
     }
   }
-  while_2_break: /* CIL Label */ ;
+  while_1_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -180,19 +164,20 @@ void transmit2(void)
   T2_ENTRY: ;
   {
   while (1) {
-    while_3_continue: /* CIL Label */ ;
+    while_2_continue: /* CIL Label */ ;
     t2_pc = 1;
     t2_st = 2;
 
     goto return_label;
     T2_WAIT: 
     {
+    token += 1;
     E_3 = 1;
     immediate_notify();
     E_3 = 2;
     }
   }
-  while_3_break: /* CIL Label */ ;
+  while_2_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -215,19 +200,20 @@ void transmit3(void)
   T3_ENTRY: ;
   {
   while (1) {
-    while_4_continue: /* CIL Label */ ;
+    while_3_continue: /* CIL Label */ ;
     t3_pc = 1;
     t3_st = 2;
 
     goto return_label;
     T3_WAIT: 
     {
+    token += 1;
     E_4 = 1;
     immediate_notify();
     E_4 = 2;
     }
   }
-  while_4_break: /* CIL Label */ ;
+  while_3_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -250,19 +236,20 @@ void transmit4(void)
   T4_ENTRY: ;
   {
   while (1) {
-    while_5_continue: /* CIL Label */ ;
+    while_4_continue: /* CIL Label */ ;
     t4_pc = 1;
     t4_st = 2;
 
     goto return_label;
     T4_WAIT: 
     {
+    token += 1;
     E_5 = 1;
     immediate_notify();
     E_5 = 2;
     }
   }
-  while_5_break: /* CIL Label */ ;
+  while_4_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -285,19 +272,20 @@ void transmit5(void)
   T5_ENTRY: ;
   {
   while (1) {
-    while_6_continue: /* CIL Label */ ;
+    while_5_continue: /* CIL Label */ ;
     t5_pc = 1;
     t5_st = 2;
 
     goto return_label;
     T5_WAIT: 
     {
+    token += 1;
     E_6 = 1;
     immediate_notify();
     E_6 = 2;
     }
   }
-  while_6_break: /* CIL Label */ ;
+  while_5_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -320,19 +308,20 @@ void transmit6(void)
   T6_ENTRY: ;
   {
   while (1) {
-    while_7_continue: /* CIL Label */ ;
+    while_6_continue: /* CIL Label */ ;
     t6_pc = 1;
     t6_st = 2;
 
     goto return_label;
     T6_WAIT: 
     {
+    token += 1;
     E_7 = 1;
     immediate_notify();
     E_7 = 2;
     }
   }
-  while_7_break: /* CIL Label */ ;
+  while_6_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -355,19 +344,20 @@ void transmit7(void)
   T7_ENTRY: ;
   {
   while (1) {
-    while_8_continue: /* CIL Label */ ;
+    while_7_continue: /* CIL Label */ ;
     t7_pc = 1;
     t7_st = 2;
 
     goto return_label;
     T7_WAIT: 
     {
+    token += 1;
     E_8 = 1;
     immediate_notify();
     E_8 = 2;
     }
   }
-  while_8_break: /* CIL Label */ ;
+  while_7_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -390,157 +380,20 @@ void transmit8(void)
   T8_ENTRY: ;
   {
   while (1) {
-    while_9_continue: /* CIL Label */ ;
+    while_8_continue: /* CIL Label */ ;
     t8_pc = 1;
     t8_st = 2;
 
     goto return_label;
     T8_WAIT: 
     {
-    E_9 = 1;
+    token += 1;
+    E_M = 1;
     immediate_notify();
-    E_9 = 2;
+    E_M = 2;
     }
   }
-  while_9_break: /* CIL Label */ ;
-  }
-
-  return_label: /* CIL Label */ 
-  return;
-}
-}
-void transmit9(void) 
-{ 
-
-  {
-  if (t9_pc == 0) {
-    goto T9_ENTRY;
-  } else {
-    if (t9_pc == 1) {
-      goto T9_WAIT;
-    } else {
-
-    }
-  }
-  T9_ENTRY: ;
-  {
-  while (1) {
-    while_10_continue: /* CIL Label */ ;
-    t9_pc = 1;
-    t9_st = 2;
-
-    goto return_label;
-    T9_WAIT: 
-    {
-    E_10 = 1;
-    immediate_notify();
-    E_10 = 2;
-    }
-  }
-  while_10_break: /* CIL Label */ ;
-  }
-
-  return_label: /* CIL Label */ 
-  return;
-}
-}
-void transmit10(void) 
-{ 
-
-  {
-  if (t10_pc == 0) {
-    goto T10_ENTRY;
-  } else {
-    if (t10_pc == 1) {
-      goto T10_WAIT;
-    } else {
-
-    }
-  }
-  T10_ENTRY: ;
-  {
-  while (1) {
-    while_11_continue: /* CIL Label */ ;
-    t10_pc = 1;
-    t10_st = 2;
-
-    goto return_label;
-    T10_WAIT: 
-    {
-    E_11 = 1;
-    immediate_notify();
-    E_11 = 2;
-    }
-  }
-  while_11_break: /* CIL Label */ ;
-  }
-
-  return_label: /* CIL Label */ 
-  return;
-}
-}
-void transmit11(void) 
-{ 
-
-  {
-  if (t11_pc == 0) {
-    goto T11_ENTRY;
-  } else {
-    if (t11_pc == 1) {
-      goto T11_WAIT;
-    } else {
-
-    }
-  }
-  T11_ENTRY: ;
-  {
-  while (1) {
-    while_12_continue: /* CIL Label */ ;
-    t11_pc = 1;
-    t11_st = 2;
-
-    goto return_label;
-    T11_WAIT: 
-    {
-    E_12 = 1;
-    immediate_notify();
-    E_12 = 2;
-    }
-  }
-  while_12_break: /* CIL Label */ ;
-  }
-
-  return_label: /* CIL Label */ 
-  return;
-}
-}
-void transmit12(void) 
-{ 
-
-  {
-  if (t12_pc == 0) {
-    goto T12_ENTRY;
-  } else {
-    if (t12_pc == 1) {
-      goto T12_WAIT;
-    } else {
-
-    }
-  }
-  T12_ENTRY: ;
-  {
-  while (1) {
-    while_13_continue: /* CIL Label */ ;
-    t12_pc = 1;
-    t12_st = 2;
-
-    goto return_label;
-    T12_WAIT: 
-    {
-    error();
-    }
-  }
-  while_13_break: /* CIL Label */ ;
+  while_8_break: /* CIL Label */ ;
   }
 
   return_label: /* CIL Label */ 
@@ -552,7 +405,7 @@ int is_master_triggered(void)
 
   {
   if (m_pc == 1) {
-    if (M_E == 1) {
+    if (E_M == 1) {
       __retres1 = 1;
       goto return_label;
     } else {
@@ -718,82 +571,6 @@ int is_transmit8_triggered(void)
   return (__retres1);
 }
 }
-int is_transmit9_triggered(void) 
-{ int __retres1 ;
-
-  {
-  if (t9_pc == 1) {
-    if (E_9 == 1) {
-      __retres1 = 1;
-      goto return_label;
-    } else {
-
-    }
-  } else {
-
-  }
-  __retres1 = 0;
-  return_label: /* CIL Label */ 
-  return (__retres1);
-}
-}
-int is_transmit10_triggered(void) 
-{ int __retres1 ;
-
-  {
-  if (t10_pc == 1) {
-    if (E_10 == 1) {
-      __retres1 = 1;
-      goto return_label;
-    } else {
-
-    }
-  } else {
-
-  }
-  __retres1 = 0;
-  return_label: /* CIL Label */ 
-  return (__retres1);
-}
-}
-int is_transmit11_triggered(void) 
-{ int __retres1 ;
-
-  {
-  if (t11_pc == 1) {
-    if (E_11 == 1) {
-      __retres1 = 1;
-      goto return_label;
-    } else {
-
-    }
-  } else {
-
-  }
-  __retres1 = 0;
-  return_label: /* CIL Label */ 
-  return (__retres1);
-}
-}
-int is_transmit12_triggered(void) 
-{ int __retres1 ;
-
-  {
-  if (t12_pc == 1) {
-    if (E_12 == 1) {
-      __retres1 = 1;
-      goto return_label;
-    } else {
-
-    }
-  } else {
-
-  }
-  __retres1 = 0;
-  return_label: /* CIL Label */ 
-  return (__retres1);
-}
-}
 void update_channels(void) 
 { 
 
@@ -851,26 +628,6 @@ void init_threads(void)
   } else {
     t8_st = 2;
   }
-  if (t9_i == 1) {
-    t9_st = 0;
-  } else {
-    t9_st = 2;
-  }
-  if (t10_i == 1) {
-    t10_st = 0;
-  } else {
-    t10_st = 2;
-  }
-  if (t11_i == 1) {
-    t11_st = 0;
-  } else {
-    t11_st = 2;
-  }
-  if (t12_i == 1) {
-    t12_st = 0;
-  } else {
-    t12_st = 2;
-  }
 
   return;
 }
@@ -915,27 +672,7 @@ int exists_runnable_thread(void)
                     __retres1 = 1;
                     goto return_label;
                   } else {
-                    if (t9_st == 0) {
-                      __retres1 = 1;
-                      goto return_label;
-                    } else {
-                      if (t10_st == 0) {
-                        __retres1 = 1;
-                        goto return_label;
-                      } else {
-                        if (t11_st == 0) {
-                          __retres1 = 1;
-                          goto return_label;
-                        } else {
-                          if (t12_st == 0) {
-                            __retres1 = 1;
-                            goto return_label;
-                          } else {
 
-                          }
-                        }
-                      }
-                    }
                   }
                 }
               }
@@ -951,23 +688,23 @@ int exists_runnable_thread(void)
 }
 }
 void eval(void) 
-{ int __BLAST_NONDET ;
+{ int __BLAST_NONDET___0 ;
   int tmp ;
 
   {
   {
   while (1) {
-    while_14_continue: /* CIL Label */ ;
+    while_9_continue: /* CIL Label */ ;
     {
     tmp = exists_runnable_thread();
     }
     if (tmp) {
 
     } else {
-      goto while_14_break;
+      goto while_9_break;
     }
     if (m_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         m_st = 1;
         master();
@@ -979,7 +716,7 @@ void eval(void)
 
     }
     if (t1_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t1_st = 1;
         transmit1();
@@ -991,7 +728,7 @@ void eval(void)
 
     }
     if (t2_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t2_st = 1;
         transmit2();
@@ -1003,7 +740,7 @@ void eval(void)
 
     }
     if (t3_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t3_st = 1;
         transmit3();
@@ -1015,7 +752,7 @@ void eval(void)
 
     }
     if (t4_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t4_st = 1;
         transmit4();
@@ -1027,7 +764,7 @@ void eval(void)
 
     }
     if (t5_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t5_st = 1;
         transmit5();
@@ -1039,7 +776,7 @@ void eval(void)
 
     }
     if (t6_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t6_st = 1;
         transmit6();
@@ -1051,7 +788,7 @@ void eval(void)
 
     }
     if (t7_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t7_st = 1;
         transmit7();
@@ -1063,7 +800,7 @@ void eval(void)
 
     }
     if (t8_st == 0) {
-      if (__BLAST_NONDET) {
+      if (__BLAST_NONDET___0) {
         {
         t8_st = 1;
         transmit8();
@@ -1074,56 +811,8 @@ void eval(void)
     } else {
 
     }
-    if (t9_st == 0) {
-      if (__BLAST_NONDET) {
-        {
-        t9_st = 1;
-        transmit9();
-        }
-      } else {
-
-      }
-    } else {
-
-    }
-    if (t10_st == 0) {
-      if (__BLAST_NONDET) {
-        {
-        t10_st = 1;
-        transmit10();
-        }
-      } else {
-
-      }
-    } else {
-
-    }
-    if (t11_st == 0) {
-      if (__BLAST_NONDET) {
-        {
-        t11_st = 1;
-        transmit11();
-        }
-      } else {
-
-      }
-    } else {
-
-    }
-    if (t12_st == 0) {
-      if (__BLAST_NONDET) {
-        {
-        t12_st = 1;
-        transmit12();
-        }
-      } else {
-
-      }
-    } else {
-
-    }
   }
-  while_14_break: /* CIL Label */ ;
+  while_9_break: /* CIL Label */ ;
   }
 
   return;
@@ -1178,23 +867,8 @@ void fire_delta_events(void)
   } else {
 
   }
-  if (T9_E == 0) {
-    T9_E = 1;
-  } else {
-
-  }
-  if (T10_E == 0) {
-    T10_E = 1;
-  } else {
-
-  }
-  if (T11_E == 0) {
-    T11_E = 1;
-  } else {
-
-  }
-  if (T12_E == 0) {
-    T12_E = 1;
+  if (E_M == 0) {
+    E_M = 1;
   } else {
 
   }
@@ -1235,26 +909,6 @@ void fire_delta_events(void)
   }
   if (E_8 == 0) {
     E_8 = 1;
-  } else {
-
-  }
-  if (E_9 == 0) {
-    E_9 = 1;
-  } else {
-
-  }
-  if (E_10 == 0) {
-    E_10 = 1;
-  } else {
-
-  }
-  if (E_11 == 0) {
-    E_11 = 1;
-  } else {
-
-  }
-  if (E_12 == 0) {
-    E_12 = 1;
   } else {
 
   }
@@ -1311,23 +965,8 @@ void reset_delta_events(void)
   } else {
 
   }
-  if (T9_E == 1) {
-    T9_E = 2;
-  } else {
-
-  }
-  if (T10_E == 1) {
-    T10_E = 2;
-  } else {
-
-  }
-  if (T11_E == 1) {
-    T11_E = 2;
-  } else {
-
-  }
-  if (T12_E == 1) {
-    T12_E = 2;
+  if (E_M == 1) {
+    E_M = 2;
   } else {
 
   }
@@ -1371,26 +1010,6 @@ void reset_delta_events(void)
   } else {
 
   }
-  if (E_9 == 1) {
-    E_9 = 2;
-  } else {
-
-  }
-  if (E_10 == 1) {
-    E_10 = 2;
-  } else {
-
-  }
-  if (E_11 == 1) {
-    E_11 = 2;
-  } else {
-
-  }
-  if (E_12 == 1) {
-    E_12 = 2;
-  } else {
-
-  }
 
   return;
 }
@@ -1405,10 +1024,6 @@ void activate_threads(void)
   int tmp___5 ;
   int tmp___6 ;
   int tmp___7 ;
-  int tmp___8 ;
-  int tmp___9 ;
-  int tmp___10 ;
-  int tmp___11 ;
 
   {
   {
@@ -1480,38 +1095,6 @@ void activate_threads(void)
   }
   if (tmp___7) {
     t8_st = 0;
-  } else {
-
-  }
-  {
-  tmp___8 = is_transmit9_triggered();
-  }
-  if (tmp___8) {
-    t9_st = 0;
-  } else {
-
-  }
-  {
-  tmp___9 = is_transmit10_triggered();
-  }
-  if (tmp___9) {
-    t10_st = 0;
-  } else {
-
-  }
-  {
-  tmp___10 = is_transmit11_triggered();
-  }
-  if (tmp___10) {
-    t11_st = 0;
-  } else {
-
-  }
-  {
-  tmp___11 = is_transmit12_triggered();
-  }
-  if (tmp___11) {
-    t12_st = 0;
   } else {
 
   }
@@ -1588,23 +1171,8 @@ void reset_time_events(void)
   } else {
 
   }
-  if (T9_E == 1) {
-    T9_E = 2;
-  } else {
-
-  }
-  if (T10_E == 1) {
-    T10_E = 2;
-  } else {
-
-  }
-  if (T11_E == 1) {
-    T11_E = 2;
-  } else {
-
-  }
-  if (T12_E == 1) {
-    T12_E = 2;
+  if (E_M == 1) {
+    E_M = 2;
   } else {
 
   }
@@ -1648,26 +1216,6 @@ void reset_time_events(void)
   } else {
 
   }
-  if (E_9 == 1) {
-    E_9 = 2;
-  } else {
-
-  }
-  if (E_10 == 1) {
-    E_10 = 2;
-  } else {
-
-  }
-  if (E_11 == 1) {
-    E_11 = 2;
-  } else {
-
-  }
-  if (E_12 == 1) {
-    E_12 = 2;
-  } else {
-
-  }
 
   return;
 }
@@ -1685,10 +1233,6 @@ void init_model(void)
   t6_i = 1;
   t7_i = 1;
   t8_i = 1;
-  t9_i = 1;
-  t10_i = 1;
-  t11_i = 1;
-  t12_i = 1;
 
   return;
 }
@@ -1728,7 +1272,7 @@ void start_simulation(void)
   }
   {
   while (1) {
-    while_15_continue: /* CIL Label */ ;
+    while_10_continue: /* CIL Label */ ;
     {
     kernel_st = 1;
     eval();
@@ -1760,12 +1304,12 @@ void start_simulation(void)
     tmp___0 = stop_simulation();
     }
     if (tmp___0) {
-      goto while_15_break;
+      goto while_10_break;
     } else {
 
     }
   }
-  while_15_break: /* CIL Label */ ;
+  while_10_break: /* CIL Label */ ;
   }
 
   return;
