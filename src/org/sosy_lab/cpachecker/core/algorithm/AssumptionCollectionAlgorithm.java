@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
 
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -69,6 +71,31 @@ import com.google.common.collect.ImmutableSet;
 @Options
 public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
 
+  private class AssumptionCollectionStatistics implements Statistics {
+    @Override
+    public String getName() {
+      return "Assumption Collection algorithm";
+    }
+    
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,
+        ReachedSet pReached) {
+
+      AssumptionWithLocation result = resultAssumption.build();
+      out.println("Number of locations with assumptions: " + result.getNumberOfLocations());
+      
+      if (exportAssumptions && assumptionsFile != null) {
+        try {
+          Files.writeFile(assumptionsFile, resultAssumption.build());
+        } catch (IOException e) {
+          logger.log(Level.WARNING,
+              "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
+              ", (", e.getMessage(), ")");
+        }
+      }
+    }
+  }
+  
   @Option(name="assumptions.export")
   private boolean exportAssumptions = true;
 
@@ -78,6 +105,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final SymbolicFormulaManager symbolicManager;
+  private final AssumptionWithLocation.Builder resultAssumption = AssumptionWithLocation.builder();
 
   public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
@@ -100,7 +128,6 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   @Override
   public void run(ReachedSet reached) throws CPAException {
 
-    AssumptionWithLocation.Builder resultAssumption = AssumptionWithLocation.builder();
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -142,16 +169,6 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     if (reached.hasWaitingElement()) {
       logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
-    }
-
-    if (exportAssumptions && assumptionsFile != null) {
-      try {
-        Files.writeFile(assumptionsFile, resultAssumption.build());
-      } catch (IOException e) {
-        logger.log(Level.WARNING,
-            "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
-            ", (", e.getMessage(), ")");
-      }
     }
   }
 
@@ -214,5 +231,6 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     if (innerAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
     }
+    pStatsCollection.add(new AssumptionCollectionStatistics());
   }
 }
