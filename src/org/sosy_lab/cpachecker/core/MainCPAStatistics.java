@@ -31,6 +31,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -42,7 +43,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -158,14 +162,20 @@ class MainCPAStatistics implements Statistics {
             s.printStatistics(out, result, reached);
         }
 
+        HashSet<CFANode> allLocations = new HashSet<CFANode>();
+        for (AbstractElement ae : reached) {
+          if (ae instanceof AbstractWrapperElement) {
+            allLocations.add(((AbstractWrapperElement)ae).retrieveLocationElement().getLocationNode());
+          }
+        }
+        
         out.println("\nCPAchecker general statistics");
         out.println("-----------------------------");
+        out.println("Size of reached set:       " + reached.size());
+        out.println("  Number of locations:     " + allLocations.size());
         if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
-          out.println("Size of reached set: " + reached.size()
-              + " (in " + p.getNumberOfPartitions() + " partitions)");
-        } else {
-          out.println("Size of reached set: " + reached.size());
+          out.println("  Number of partitions:    " + p.getNumberOfPartitions());
         }
         out.println("Time for parsing C file:   " + parseTime);
         out.println("Time for CFA construction: " + cfaCreationTime);
