@@ -193,7 +193,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
+    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
   }
 
   /**
