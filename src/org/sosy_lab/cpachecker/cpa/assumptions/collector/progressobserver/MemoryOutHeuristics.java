@@ -23,24 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.util.logging.Level;
-
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
-
-
 public class MemoryOutHeuristics
-  implements StopHeuristics<TrivialStopHeuristicsData>
+implements StopHeuristics<TrivialStopHeuristicsData>
 {
   private final int threshold;
   private final LogManager logger;
+  private int freq = 100000; //TODO read from file
+  private int noOfIterations = 0;
 
   public MemoryOutHeuristics(Configuration config, LogManager pLogger) {
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
@@ -55,6 +51,20 @@ public class MemoryOutHeuristics
   @Override
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge)
   {
+    
+    //TODO consider moving these into a thread later
+    // does com.sun.management.OperatingSystemMXBean give us 
+    // info same with "top"?
+    
+    if(noOfIterations != freq){
+      noOfIterations++;
+      return TrivialStopHeuristicsData.TOP;
+    }
+    
+    else{
+      noOfIterations = 0;
+    }
+    
     // Negative threshold => do nothing
     if (threshold <= 0)
       return TrivialStopHeuristicsData.TOP;
@@ -63,40 +73,28 @@ public class MemoryOutHeuristics
     if (pData == TrivialStopHeuristicsData.BOTTOM)
       return TrivialStopHeuristicsData.BOTTOM;
 
-    // try this later com.sun.management.OperatingSystemMXBean
     try {
-      FileInputStream fis = new FileInputStream("/proc/meminfo");
-      DataInputStream dis = new DataInputStream(fis);
-      BufferedReader bfr = new BufferedReader(new InputStreamReader(dis));
-      String line;
 
-      long memFree = 0;
+      ProcessExecutor<Exception> processExecutor = new ProcessExecutor<Exception>(logger, Exception.class, new String[]{"top", "-b", "-n", "1"});
+      processExecutor.join();
+      
+      long memUsed = -2;
 
-      while((line = bfr.readLine()) != null){
-        //          MemTotal:        2060840 kB
-        //          MemFree:         1732952 kB
-        //          Buffers:            3164 kB
-        //          Cached:            58376 kB
-        if(line.contains("MemTotal:")){
-          continue;
-        }
-        else if(line.contains("MemFree:")){
-          memFree = Long.valueOf(line.split("\\s+")[1]);
+      for (String line: processExecutor.getOutput())
+      {
+        if(line.contains("java")){ 
+          memUsed = Long.valueOf(line.split("\\s+")[5].replace("m", ""));
           break;
         }
-//        else{
-//          break;
-//        }
       }
 
-//    long totalFree = memTotal - (memFree + buffers + cached);
-
-      if(memFree < threshold) {
+      System.out.println(memUsed);
+      
+      if(memUsed > threshold) {
         logger.log(Level.WARNING, "MEMORY IS OUT");
         return TrivialStopHeuristicsData.BOTTOM;
       }
 
-      dis.close();
     } catch (Exception e1) {
       e1.printStackTrace();
     }
