@@ -68,13 +68,19 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
+    assert ((AssumptionCollectorElement)el).getCollectedAssumption().isTrue();
     
     AssumptionReportingVisitor reportingVisitor = new AssumptionReportingVisitor();
     for (AbstractElement e : others) {
       reportingVisitor.visit(e);
     }
     
-    return Collections.singleton(new AssumptionCollectorElement(reportingVisitor.assumption));
+    Assumption assumption = reportingVisitor.assumption;
+    if (assumption.isTrue()) {
+      return null;
+    } else {      
+      return Collections.singleton(new AssumptionCollectorElement(assumption));
+    }
   }
 
   private final class AssumptionReportingVisitor extends AbstractWrappedElementVisitor {
