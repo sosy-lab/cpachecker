@@ -31,6 +31,7 @@ class TransferRelationMonitorStatistics implements Statistics {
     out.println("Max Post time on a path:   " + Timer.formatTime(trans.maxTotalTimeForPath) + "s" );
     out.println("Max size of a single path: " + trans.maxSizeOfSinglePath);
     out.println("Max number of branches:    " + trans.maxNumberOfBranches);
+    out.println("Number of locations with assumptions tr: " + trans.noOfAssumptions.size());
   }
 
 }

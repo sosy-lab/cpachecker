@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +44,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -58,7 +61,11 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   long maxNumberOfBranches = 0;
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
-
+  // i forgot to send information from here to assumption generation code
+  // so this is hack for statictics
+  // will be properly handled soon.
+  Set<CFANode> noOfAssumptions = new HashSet<CFANode>();
+  
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
 
@@ -146,6 +153,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
         || (nodeLimitForPath > 0 && pathLength > nodeLimitForPath)
         || (limitForBranches > 0 && branchesOnPath > limitForBranches)
         ) {
+      noOfAssumptions.add(pCfaEdge.getPredecessor());
       return Collections.emptySet();
     }
 
@@ -221,6 +229,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     
     // check for violation of limits
     if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+      noOfAssumptions.add(cfaEdge.getPredecessor());
       return Collections.emptySet();
     }
 
