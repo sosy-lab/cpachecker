@@ -82,12 +82,11 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
 
-      AssumptionWithLocation result = resultAssumption.build();
-      out.println("Number of locations with assumptions: " + result.getNumberOfLocations());
+      out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
       
       if (exportAssumptions && assumptionsFile != null) {
         try {
-          Files.writeFile(assumptionsFile, resultAssumption.build());
+          Files.writeFile(assumptionsFile, resultAssumption);
         } catch (IOException e) {
           logger.log(Level.WARNING,
               "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
@@ -106,7 +105,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final SymbolicFormulaManager symbolicManager;
-  private final AssumptionWithLocation.Builder resultAssumption;
+  private final AssumptionWithLocation resultAssumption;
 
   public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
@@ -119,7 +118,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       throw new InvalidConfigurationException("AssumptionCollectorCPA needed for AssumptionCollectionAlgorithm");
     }
     symbolicManager = cpa.getSymbolicFormulaManager();
-    resultAssumption = AssumptionWithLocation.builder(symbolicManager);
+    resultAssumption = new AssumptionWithLocation(symbolicManager);
   }
 
   @Override
@@ -204,7 +203,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * avoid the given refinement failure
    */
   private void addAssumptionsForFailedRefinement(
-      AssumptionWithLocation.Builder invariant,
+      AssumptionWithLocation invariant,
       RefinementFailedException failedRefinement) {
     Path path = failedRefinement.getErrorPath();
 
@@ -223,7 +222,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * avoid nodes in the given set of states
    */
   private void addAssumptionsForWaitlist(
-      AssumptionWithLocation.Builder invariant,
+      AssumptionWithLocation invariant,
       Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
