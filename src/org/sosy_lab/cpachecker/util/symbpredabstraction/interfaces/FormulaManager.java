@@ -76,6 +76,15 @@ public interface FormulaManager {
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula);
 
   /**
+   * Creates a conjunction of a pathFormula and a formula.
+   * The other formula will be instantiated with the indices from the pathFormula
+   * first.
+   * 
+   * @return (pPathFormula & pOtherFormula)
+   */
+  public PathFormula makeAnd(PathFormula pPathFormula, SymbolicFormula pOtherFormula);
+  
+  /**
    * creates a Predicate for an atom that defines it
    */
   public Predicate makePredicate(SymbolicFormula atom);

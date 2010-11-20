@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.Product
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -357,8 +356,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       return pElement;
     }
     
-    PathFormula pf = 
-      ((CommonFormulaManager)formulaManager).makePathFormulaAndAssumption(pElement.getPathFormula(), asmpt);
+    PathFormula pf = formulaManager.makeAnd(pElement.getPathFormula(), asmpt);
       
     return replacePathFormula(pElement, pf);
   }

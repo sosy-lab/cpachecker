@@ -261,6 +261,15 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
     return new PathFormula(newFormula, newSsa, newLength,
         newReachingPathsFormula, newBranchingCounter);
+  }  
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, SymbolicFormula pOtherFormula) {
+    SSAMap ssa = pPathFormula.getSsa();
+    SymbolicFormula otherFormula =  smgr.instantiate(pOtherFormula, ssa);
+    SymbolicFormula resultFormula = smgr.makeAnd(pPathFormula.getSymbolicFormula(), otherFormula);
+    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
+        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
 
   /**
@@ -427,13 +436,5 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
     }
-  }
-
-  public PathFormula makePathFormulaAndAssumption(PathFormula pPathFormula, SymbolicFormula pAssumption) {
-    SSAMap ssa = pPathFormula.getSsa();
-    SymbolicFormula assumptionFormula =  smgr.instantiate(pAssumption, ssa);
-    SymbolicFormula resultFormula = smgr.makeAnd(pPathFormula.getSymbolicFormula(), assumptionFormula);
-    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
-        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
 }
