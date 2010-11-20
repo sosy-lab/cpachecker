@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -68,7 +67,6 @@ class SymbPredAbsCPAStatistics implements Statistics {
     }
     
     void addRefiner(SymbPredAbsRefiner ref) {
-      //Preconditions.checkState(refiner == null);
       refiner = ref;
     }
 

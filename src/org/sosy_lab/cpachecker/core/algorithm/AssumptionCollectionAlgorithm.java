@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
