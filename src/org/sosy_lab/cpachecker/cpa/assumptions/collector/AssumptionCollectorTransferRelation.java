@@ -69,33 +69,17 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     
-    AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor();
+    AssumptionReportingVisitor reportingVisitor = new AssumptionReportingVisitor();
     for (AbstractElement e : others) {
       reportingVisitor.visit(e);
     }
     
-    boolean forceStop = reportingVisitor.forceStop;
-    Assumption assumption = reportingVisitor.assumption;
-    
-    if (forceStop) {
-//    TODO: write code that extracts the state formula from the predecessor element
-//    for now, we just add the assumption "false" to the current location      
-//      for (AbstractElement e : others) {
-//        SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, e);
-//        Assumption dataAssumption = new Assumption(manager.makeNot(reportedFormula), false);
-//        assumption.add(edge.getPredecessor(), dataAssumption);
-//      }
-
-      assumption = Assumption.FALSE;
-    }
-    
-    return Collections.singleton(new AssumptionCollectorElement(assumption));
+    return Collections.singleton(new AssumptionCollectorElement(reportingVisitor.assumption));
   }
 
-  private final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {
+  private final class AssumptionReportingVisitor extends AbstractWrappedElementVisitor {
 
     private Assumption assumption = Assumption.TRUE;
-    private boolean forceStop = false;
     
     @Override
     public void process(AbstractElement element) {
@@ -109,7 +93,8 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       if (element instanceof AvoidanceReportingElement) {
         boolean stop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
         if (stop) {
-          forceStop = true;
+          assumption = Assumption.FALSE;
+          // TODO we can skip processing the rest of the elements
         }
       }
     }
