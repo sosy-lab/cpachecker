@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.Product
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
@@ -278,7 +277,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
         if (lElement instanceof AssumptionCollectorElement) {
-          element = strengthen(element, (AssumptionCollectorElement)lElement, pPrecision);
+          element = strengthen(element, (AssumptionCollectorElement)lElement, edge.getSuccessor());
         }
         
         if (lElement instanceof GuardedEdgeAutomatonPredicateElement) {
@@ -348,10 +347,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
   
   private SymbPredAbsAbstractElement strengthen(SymbPredAbsAbstractElement pElement, 
-      AssumptionCollectorElement pElement2, Precision pPrecision) {
-    AssumptionWithLocation asmptwl = pElement2.getCollectedAssumptions();
+      AssumptionCollectorElement pElement2, CFANode loc) {
     
-    Assumption asmpt = asmptwl.getCombinedAssumption();
+    Assumption asmpt = pElement2.getCollectedAssumptions().getAssumption(loc);
 
     if (asmpt.isTrue()) {
       return pElement;
