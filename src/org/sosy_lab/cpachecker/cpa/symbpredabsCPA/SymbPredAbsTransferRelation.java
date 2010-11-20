@@ -277,7 +277,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
         if (lElement instanceof AssumptionCollectorElement) {
-          element = strengthen(element, (AssumptionCollectorElement)lElement, edge.getSuccessor());
+          element = strengthen(element, (AssumptionCollectorElement)lElement);
         }
         
         if (lElement instanceof GuardedEdgeAutomatonPredicateElement) {
@@ -347,9 +347,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
   
   private SymbPredAbsAbstractElement strengthen(SymbPredAbsAbstractElement pElement, 
-      AssumptionCollectorElement pElement2, CFANode loc) {
+      AssumptionCollectorElement pElement2) {
     
-    Assumption asmpt = pElement2.getCollectedAssumptions().getAssumption(loc);
+    Assumption asmpt = pElement2.getCollectedAssumption();
 
     if (asmpt.isTrue()) {
       return pElement;

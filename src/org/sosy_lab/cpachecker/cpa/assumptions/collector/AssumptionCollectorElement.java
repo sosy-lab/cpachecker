@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
@@ -36,12 +36,12 @@ import com.google.common.base.Preconditions;
  */
 public class AssumptionCollectorElement implements AbstractElement {
 
-  static AbstractElement emptyElement = new AssumptionCollectorElement(AssumptionWithLocation.emptyAssumption(), false);
+  static AbstractElement emptyElement = new AssumptionCollectorElement(Assumption.TRUE, false);
   
-  private final AssumptionWithLocation assumption;
+  private final Assumption assumption;
   private final boolean stop;
 
-  public AssumptionCollectorElement(AssumptionWithLocation f, boolean forceStop) {
+  public AssumptionCollectorElement(Assumption f, boolean forceStop) {
     assumption = Preconditions.checkNotNull(f);
     stop = forceStop;
   }
@@ -49,7 +49,7 @@ public class AssumptionCollectorElement implements AbstractElement {
   /**
    * Return the invariant in this state.
    */
-  public AssumptionWithLocation getCollectedAssumptions() {
+  public Assumption getCollectedAssumption() {
     return assumption;
   }
 

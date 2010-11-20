@@ -30,7 +30,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -90,7 +89,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       assumption = Assumption.FALSE;
     }
     
-    return Collections.singleton(new AssumptionCollectorElement(AssumptionWithLocation.forLocation(edge.getSuccessor(), assumption), forceStop));
+    return Collections.singleton(new AssumptionCollectorElement(assumption, forceStop));
   }
 
   private final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {

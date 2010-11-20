@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 public class AssumptionCollectorDomain implements AbstractDomain {
@@ -45,9 +45,9 @@ public class AssumptionCollectorDomain implements AbstractDomain {
     AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)pElement2;
 
     return new AssumptionCollectorElement(
-        AssumptionWithLocation.and(collectorElement1.getCollectedAssumptions(),
-                                   collectorElement2.getCollectedAssumptions(),
-                                   symbolicFormulaManager),
+        Assumption.and(collectorElement1.getCollectedAssumption(),
+                       collectorElement2.getCollectedAssumption(),
+                       symbolicFormulaManager),
         (collectorElement1.isStop() || collectorElement2.isStop()));
   }
 

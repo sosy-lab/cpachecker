@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -160,9 +162,16 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
-    AssumptionExtractor extractor = new AssumptionExtractor(resultAssumption);
     for (AbstractElement element : reached) {
-      extractor.visit(element);
+      if (element instanceof AbstractElementWithLocation) {
+        CFANode location = ((AbstractElementWithLocation)element).getLocationNode();
+
+        AssumptionExtractor extractor = new AssumptionExtractor();
+        extractor.visit(element);
+        resultAssumption.add(location, extractor.result);
+      } else {
+        assert false;
+      }
     }
 
     // dump invariants to prevent going further with nodes in
@@ -177,19 +186,15 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   /**
    * Extracts the invariant(s) stored in abstract elements.
    */
-  private static class AssumptionExtractor extends AbstractWrappedElementVisitor {
+  private class AssumptionExtractor extends AbstractWrappedElementVisitor {
     
-    final AssumptionWithLocation.Builder result;
+    private Assumption result = Assumption.TRUE;
     
-    public AssumptionExtractor(AssumptionWithLocation.Builder pResult) {
-      this.result = pResult;
-    }
-
     @Override
     public void process(AbstractElement pElement) {
       if (pElement instanceof AssumptionCollectorElement) {
-        AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumptions();
-        result.add(dumpedInvariant);
+        Assumption dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumption();
+        result = Assumption.and(result, dumpedInvariant, symbolicManager);
       }
     }
   }
