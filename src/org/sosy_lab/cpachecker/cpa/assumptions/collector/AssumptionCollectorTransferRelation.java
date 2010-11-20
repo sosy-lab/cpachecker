@@ -89,7 +89,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       assumption = Assumption.FALSE;
     }
     
-    return Collections.singleton(new AssumptionCollectorElement(assumption, forceStop));
+    return Collections.singleton(new AssumptionCollectorElement(assumption));
   }
 
   private final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {

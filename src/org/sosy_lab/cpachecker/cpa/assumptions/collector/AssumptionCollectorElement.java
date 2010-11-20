@@ -36,14 +36,12 @@ import com.google.common.base.Preconditions;
  */
 public class AssumptionCollectorElement implements AbstractElement {
 
-  static AbstractElement emptyElement = new AssumptionCollectorElement(Assumption.TRUE, false);
+  static AbstractElement emptyElement = new AssumptionCollectorElement(Assumption.TRUE);
   
   private final Assumption assumption;
-  private final boolean stop;
 
-  public AssumptionCollectorElement(Assumption f, boolean forceStop) {
+  public AssumptionCollectorElement(Assumption f) {
     assumption = Preconditions.checkNotNull(f);
-    stop = forceStop;
   }
 
   /**
@@ -55,18 +53,18 @@ public class AssumptionCollectorElement implements AbstractElement {
 
   @Override
   public String toString() {
-    return (stop ? "<STOP> " : "") + "assume: " + assumption;
+    return (assumption.isFalse() ? "<STOP> " : "") + "assume: " + assumption;
   }
 
   public boolean isStop() {
-    return stop;
+    return assumption.isFalse();
   }
 
   @Override
   public boolean equals(Object other) {
     if (other instanceof AssumptionCollectorElement) {
       AssumptionCollectorElement otherElement = (AssumptionCollectorElement) other;
-      return (otherElement.stop == stop) && assumption.equals(otherElement.assumption);
+      return assumption.equals(otherElement.assumption);
     } else {
       return false;
     }

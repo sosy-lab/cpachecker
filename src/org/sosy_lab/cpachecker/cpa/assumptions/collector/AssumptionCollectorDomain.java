@@ -47,8 +47,7 @@ public class AssumptionCollectorDomain implements AbstractDomain {
     return new AssumptionCollectorElement(
         Assumption.and(collectorElement1.getCollectedAssumption(),
                        collectorElement2.getCollectedAssumption(),
-                       symbolicFormulaManager),
-        (collectorElement1.isStop() || collectorElement2.isStop()));
+                       symbolicFormulaManager));
   }
 
   @Override
