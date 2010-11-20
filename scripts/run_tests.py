@@ -164,12 +164,11 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
         subst = re.compile('.*/(benchmarks-[^/]*/)')
         bs = subst.sub(r'\1', b)
         results[configname(c)][bs] = run(os.path.abspath(b), c, t, m)
-	sys.stderr.write(results[configname(c)][bs][1])
-	sys.stderr.write('\n')
-#        if results[configname(c)][bs][1] == 'ERROR':
-#            sys.stderr.write('ERROR\n')
-#        elif verbose:
-#            sys.stdout.write('DONE\n')
+        result = results[configname(c)][bs][1]
+        sys.stdout.write(result)
+        sys.stdout.write('\n')
+        if result.find('SAFE') == -1:
+            sys.stdout.write('Please see ' + b + '.' + configname(c) + '.log for further information!\n')
 
     try:
         if order == 'config':
