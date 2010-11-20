@@ -40,36 +40,21 @@ public class Assumption {
   }
 
   public static final Assumption TRUE = new Assumption();
-  public static final Assumption FALSE = new Assumption(manager.makeFalse(), false);
+  public static final Assumption FALSE = new Assumption(manager.makeFalse());
 
-  private final SymbolicFormula dischargeableAssumption;
-  private final SymbolicFormula otherAssumption;
+  private final SymbolicFormula assumption;
 
-  private Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
-  {
-    dischargeableAssumption = dischargeable;
-    otherAssumption = rest;
-  }
-
-  public Assumption(SymbolicFormula assumption, boolean isDischargeable)
-  {
-    dischargeableAssumption = isDischargeable ? assumption : manager.makeTrue();
-    otherAssumption = isDischargeable ? manager.makeTrue() : assumption;
+  public Assumption(SymbolicFormula pAssumption) {
+    assumption = pAssumption;
   }
 
   /** Constructs an invariant corresponding to true */
-  public Assumption()
-  {
-    dischargeableAssumption = manager.makeTrue();
-    otherAssumption = manager.makeTrue();
+  public Assumption() {
+    assumption = manager.makeTrue();
   }
 
-  public SymbolicFormula getDischargeableFormula() {
-    return dischargeableAssumption;
-  }
-
-  public SymbolicFormula getOtherFormula() {
-    return otherAssumption;
+  public SymbolicFormula getFormula() {
+    return assumption;
   }
 
   /**
@@ -84,9 +69,8 @@ public class Assumption {
     else if (other == TRUE)
       return one;
     
-    SymbolicFormula newDischargeable = manager.makeAnd(one.dischargeableAssumption, other.dischargeableAssumption);
-    SymbolicFormula newOther = manager.makeAnd(one.otherAssumption, other.otherAssumption);
-    return new Assumption(newDischargeable, newOther);
+    SymbolicFormula newFormula = manager.makeAnd(one.assumption, other.assumption);
+    return new Assumption(newFormula);
   }
 
   /**
@@ -97,8 +81,7 @@ public class Assumption {
     if (this == TRUE)
       return true;
     else
-      return dischargeableAssumption.isTrue()
-      && otherAssumption.isTrue();
+      return assumption.isTrue();
   }
 
   public boolean isFalse() {
@@ -107,18 +90,17 @@ public class Assumption {
     else if (this == TRUE)
       return false;
     else
-      return dischargeableAssumption.isFalse()
-      || otherAssumption.isFalse();
+      return assumption.isFalse();
   }
   
   @Override
   public String toString() {
-    return "Formula: " + dischargeableAssumption;
+    return assumption.toString();
   }
   
   @Override
   public int hashCode() {
-    return (31 + dischargeableAssumption.hashCode()) * 31 + otherAssumption.hashCode();
+    return assumption.hashCode();
   }  
   
   @Override
@@ -129,8 +111,7 @@ public class Assumption {
       return false;
     } else {
       Assumption other = (Assumption)obj;
-      return dischargeableAssumption.equals(other.dischargeableAssumption) && 
-              otherAssumption.equals(other.otherAssumption);
+      return assumption.equals(other.assumption);
     }
   }
   

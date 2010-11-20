@@ -214,7 +214,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
+    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion)));
   }
 
   /**
@@ -226,7 +226,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
+      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion)));
     }
   }
 

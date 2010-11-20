@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import com.google.common.base.Function;
@@ -83,21 +82,7 @@ public class AssumptionWithLocation {
     public String apply(Map.Entry<CFANode, Assumption> entry) {
       int nodeId = entry.getKey().getNodeNumber();
       Assumption assumption = entry.getValue();
-      SymbolicFormula disInv = assumption.getDischargeableFormula();
-      SymbolicFormula otherInv = assumption.getOtherFormula();
-      StringBuilder result = new StringBuilder();
-      if (!disInv.isTrue()) {
-        result.append("pc = ").append(nodeId).append("\t =(d)=>  ");
-        result.append(disInv.toString());
-        if (!otherInv.isTrue()) {
-          result.append('\n');
-        }
-      }
-      if (!otherInv.isTrue()) {
-        result.append("pc = ").append(nodeId).append("\t =====>  ");
-        result.append(otherInv.toString());
-      }
-      return result.toString();
+      return "pc = " + nodeId + "\t =====>  " + assumption.toString();
     }
   };
 
