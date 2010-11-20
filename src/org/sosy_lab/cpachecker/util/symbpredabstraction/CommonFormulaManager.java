@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
@@ -430,9 +429,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
   }
 
-  public PathFormula makePathFormulaAndAssumption(PathFormula pPathFormula, Assumption pAssumption) {
+  public PathFormula makePathFormulaAndAssumption(PathFormula pPathFormula, SymbolicFormula pAssumption) {
     SSAMap ssa = pPathFormula.getSsa();
-    SymbolicFormula assumptionFormula =  smgr.instantiate(pAssumption.getFormula(), ssa);
+    SymbolicFormula assumptionFormula =  smgr.instantiate(pAssumption, ssa);
     SymbolicFormula resultFormula = smgr.makeAnd(pPathFormula.getSymbolicFormula(), assumptionFormula);
     return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
         pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());

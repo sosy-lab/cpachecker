@@ -64,13 +64,15 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final SymbolicFormulaManager symbolicFormulaManager;
+  private final AssumptionCollectorElement topElement;
 
   private AssumptionCollectorCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
     abstractDomain = new AssumptionCollectorDomain(symbolicFormulaManager);
     stopOperator = new AssumptionCollectorStop();
-    transferRelation = new AssumptionCollectorTransferRelation(symbolicFormulaManager);
+    topElement = new AssumptionCollectorElement(symbolicFormulaManager.makeTrue());
+    transferRelation = new AssumptionCollectorTransferRelation(symbolicFormulaManager, topElement);
   }
 
   public SymbolicFormulaManager getSymbolicFormulaManager()
@@ -85,7 +87,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return AssumptionCollectorElement.emptyElement;
+    return topElement;
   }
 
   @Override

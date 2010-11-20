@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import com.google.common.base.Preconditions;
 
@@ -35,19 +35,17 @@ import com.google.common.base.Preconditions;
  * @author g.theoduloz
  */
 public class AssumptionCollectorElement implements AbstractElement {
-
-  static AbstractElement emptyElement = new AssumptionCollectorElement(Assumption.TRUE);
   
-  private final Assumption assumption;
+  private final SymbolicFormula assumption;
 
-  public AssumptionCollectorElement(Assumption f) {
+  public AssumptionCollectorElement(SymbolicFormula f) {
     assumption = Preconditions.checkNotNull(f);
   }
 
   /**
    * Return the invariant in this state.
    */
-  public Assumption getCollectedAssumption() {
+  public SymbolicFormula getCollectedAssumption() {
     return assumption;
   }
 

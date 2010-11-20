@@ -28,9 +28,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -44,13 +44,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  */
 public class AssumptionCollectorTransferRelation implements TransferRelation {
 
-  private static final Collection<AbstractElement> emptyElementSet
-          = Collections.singleton(AssumptionCollectorElement.emptyElement);
-  
+  private final Collection<AbstractElement> topElementSet;
+
   private final SymbolicFormulaManager symbolicFormulaManager;
   
-  public AssumptionCollectorTransferRelation(SymbolicFormulaManager pManager) {
+  public AssumptionCollectorTransferRelation(SymbolicFormulaManager pManager, AbstractElement topElement) {
     symbolicFormulaManager = pManager;
+    topElementSet = Collections.singleton(topElement);
   }
 
   @Override
@@ -63,7 +63,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
     
-    return emptyElementSet;
+    return topElementSet;
   }
 
   @Override
@@ -75,7 +75,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       reportingVisitor.visit(e);
     }
     
-    Assumption assumption = reportingVisitor.assumption;
+    SymbolicFormula assumption = reportingVisitor.assumption;
     if (assumption.isTrue()) {
       return null;
     } else {      
@@ -85,21 +85,21 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private final class AssumptionReportingVisitor extends AbstractWrappedElementVisitor {
 
-    private Assumption assumption = Assumption.TRUE;
+    private SymbolicFormula assumption = symbolicFormulaManager.makeTrue();
     
     @Override
     public void process(AbstractElement element) {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
-        Assumption inv = ((AssumptionReportingElement)element).getAssumption();
-        assumption = Assumption.and(assumption, inv, symbolicFormulaManager);
+        SymbolicFormula inv = ((AssumptionReportingElement)element).getAssumption();
+        assumption = symbolicFormulaManager.makeAnd(assumption, inv);
       }
 
       // process stop flag
       if (element instanceof AvoidanceReportingElement) {
         boolean stop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
         if (stop) {
-          assumption = Assumption.FALSE;
+          assumption = symbolicFormulaManager.makeFalse();
           // TODO we can skip processing the rest of the elements
         }
       }

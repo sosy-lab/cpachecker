@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 public class AssumptionCollectorDomain implements AbstractDomain {
@@ -45,13 +43,12 @@ public class AssumptionCollectorDomain implements AbstractDomain {
     AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)pElement2;
 
     return new AssumptionCollectorElement(
-        Assumption.and(collectorElement1.getCollectedAssumption(),
-                       collectorElement2.getCollectedAssumption(),
-                       symbolicFormulaManager));
+        symbolicFormulaManager.makeAnd(collectorElement1.getCollectedAssumption(),
+                                       collectorElement2.getCollectedAssumption()));
   }
 
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+  public boolean satisfiesPartialOrder(AbstractElement pElement1, AbstractElement pElement2) {
     throw new UnsupportedOperationException();
   }
 }

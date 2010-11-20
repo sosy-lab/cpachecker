@@ -32,7 +32,6 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -186,13 +185,13 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    */
   private class AssumptionExtractor extends AbstractWrappedElementVisitor {
     
-    private Assumption result = Assumption.TRUE;
+    private SymbolicFormula result = symbolicManager.makeTrue();
     
     @Override
     public void process(AbstractElement pElement) {
       if (pElement instanceof AssumptionCollectorElement) {
-        Assumption dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumption();
-        result = Assumption.and(result, dumpedInvariant, symbolicManager);
+        SymbolicFormula dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumption();
+        result = symbolicManager.makeAnd(result, dumpedInvariant);
       }
     }
   }
@@ -214,7 +213,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion)));
+    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), symbolicManager.makeNot(dataRegion));
   }
 
   /**
@@ -226,7 +225,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion)));
+      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), symbolicManager.makeNot(dataRegion));
     }
   }
 

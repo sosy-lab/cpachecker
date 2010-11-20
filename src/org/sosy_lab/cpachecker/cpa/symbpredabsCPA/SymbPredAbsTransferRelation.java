@@ -54,10 +54,10 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPred
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
-import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -349,7 +349,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private SymbPredAbsAbstractElement strengthen(SymbPredAbsAbstractElement pElement, 
       AssumptionCollectorElement pElement2) {
     
-    Assumption asmpt = pElement2.getCollectedAssumption();
+    SymbolicFormula asmpt = pElement2.getCollectedAssumption();
 
     if (asmpt.isTrue() || asmpt.isFalse()) {
       // we don't add the assumption false in order to not forget the content of the path formula
