@@ -68,9 +68,9 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   private AssumptionCollectorCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
-    abstractDomain = new AssumptionCollectorDomain();
+    abstractDomain = new AssumptionCollectorDomain(symbolicFormulaManager);
     stopOperator = new AssumptionCollectorStop();
-    transferRelation = new AssumptionCollectorTransferRelation();
+    transferRelation = new AssumptionCollectorTransferRelation(symbolicFormulaManager);
   }
 
   public SymbolicFormulaManager getSymbolicFormulaManager()

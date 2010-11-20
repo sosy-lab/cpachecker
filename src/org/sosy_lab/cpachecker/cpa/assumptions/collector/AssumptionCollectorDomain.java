@@ -27,8 +27,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 public class AssumptionCollectorDomain implements AbstractDomain {
+
+  private final SymbolicFormulaManager symbolicFormulaManager;
+  
+  public AssumptionCollectorDomain(
+      SymbolicFormulaManager pSymbolicFormulaManager) {
+    symbolicFormulaManager = pSymbolicFormulaManager;
+  }
 
   @Override
   public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
@@ -38,7 +46,8 @@ public class AssumptionCollectorDomain implements AbstractDomain {
 
     return new AssumptionCollectorElement(
         AssumptionWithLocation.and(collectorElement1.getCollectedAssumptions(),
-                                   collectorElement2.getCollectedAssumptions()),
+                                   collectorElement2.getCollectedAssumptions(),
+                                   symbolicFormulaManager),
         (collectorElement1.isStop() || collectorElement2.isStop()));
   }
 

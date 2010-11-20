@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.assumptions.Assumption;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -48,6 +49,12 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   private static final Collection<AbstractElement> emptyElementSet
           = Collections.singleton(AssumptionCollectorElement.emptyElement);
   
+  private final SymbolicFormulaManager symbolicFormulaManager;
+  
+  public AssumptionCollectorTransferRelation(SymbolicFormulaManager pManager) {
+    symbolicFormulaManager = pManager;
+  }
+
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
@@ -87,10 +94,10 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     return Collections.singleton(new AssumptionCollectorElement(assumption.build(), forceStop));
   }
 
-  private static final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {
+  private final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {
 
     private final CFANode location;
-    private final AssumptionWithLocation.Builder assumptionBuilder = AssumptionWithLocation.builder();
+    private final AssumptionWithLocation.Builder assumptionBuilder = AssumptionWithLocation.builder(symbolicFormulaManager);
     private boolean forceStop = false;
 
     public AssumptionAndForceStopReportingVisitor(CFANode location) {

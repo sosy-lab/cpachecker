@@ -105,7 +105,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final SymbolicFormulaManager symbolicManager;
-  private final AssumptionWithLocation.Builder resultAssumption = AssumptionWithLocation.builder();
+  private final AssumptionWithLocation.Builder resultAssumption;
 
   public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
@@ -118,6 +118,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       throw new InvalidConfigurationException("AssumptionCollectorCPA needed for AssumptionCollectionAlgorithm");
     }
     symbolicManager = cpa.getSymbolicFormulaManager();
+    resultAssumption = AssumptionWithLocation.builder(symbolicManager);
   }
 
   @Override

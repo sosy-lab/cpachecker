@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -73,7 +74,8 @@ public abstract class AssumptionWithLocation {
   /**
    * Conjunct two assumptions
    */
-  public static AssumptionWithLocation and(AssumptionWithLocation pOne, AssumptionWithLocation pTwo) {
+  public static AssumptionWithLocation and(AssumptionWithLocation pOne, AssumptionWithLocation pTwo,
+                                           SymbolicFormulaManager manager) {
     if (pOne == emptyAssumptionWithLocation) {
       return pTwo;
     }
@@ -84,16 +86,17 @@ public abstract class AssumptionWithLocation {
       AssumptionWithSingleLocation one = (AssumptionWithSingleLocation)pOne;
       AssumptionWithSingleLocation two = (AssumptionWithSingleLocation)pTwo;
       if (one.location.equals(two.location)) {
-        return new AssumptionWithSingleLocation(one.location, one.assumption.and(two.assumption));
+        return new AssumptionWithSingleLocation(one.location,
+            Assumption.and(one.assumption, two.assumption, manager));
       }
     }
 
     // in all other cases
-    return new Builder().add(pOne).add(pTwo).build();
+    return new Builder(manager).add(pOne).add(pTwo).build();
   }
   
-  public static AssumptionWithLocation.Builder builder() {
-    return new Builder();
+  public static AssumptionWithLocation.Builder builder(SymbolicFormulaManager manager) {
+    return new Builder(manager);
   }
   
   /**
@@ -236,15 +239,20 @@ public abstract class AssumptionWithLocation {
   
   public static class Builder {
 
+    private final SymbolicFormulaManager manager;
     private final Map<CFANode, Assumption> assumptions = new HashMap<CFANode, Assumption>();
     
+    private Builder(SymbolicFormulaManager pManager) {
+      manager = pManager;
+    }
+
     public Builder add(CFANode node, Assumption assumption) {
       if (!assumption.isTrue()) {
         Assumption oldInvariant = assumptions.get(node);
         if (oldInvariant == null) {
           assumptions.put(node, assumption);
         } else {
-          assumptions.put(node, oldInvariant.and(assumption));
+          assumptions.put(node, Assumption.and(oldInvariant, assumption, manager));
         }
       }
       return this;

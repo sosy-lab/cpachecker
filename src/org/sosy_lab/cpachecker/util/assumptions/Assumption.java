@@ -76,16 +76,16 @@ public class Assumption {
    * Conjunct this invariant with an other invariant and
    * return the result
    */
-  Assumption and(Assumption other)
+  static Assumption and(Assumption one, Assumption other, SymbolicFormulaManager manager)
   {
     // shortcut
-    if (this == TRUE)
+    if (one == TRUE)
       return other;
     else if (other == TRUE)
-      return this;
+      return one;
     
-    SymbolicFormula newDischargeable = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
-    SymbolicFormula newOther = manager.makeAnd(otherAssumption, other.otherAssumption);
+    SymbolicFormula newDischargeable = manager.makeAnd(one.dischargeableAssumption, other.dischargeableAssumption);
+    SymbolicFormula newOther = manager.makeAnd(one.otherAssumption, other.otherAssumption);
     return new Assumption(newDischargeable, newOther);
   }
 
