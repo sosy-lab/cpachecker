@@ -351,7 +351,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     Assumption asmpt = pElement2.getCollectedAssumption();
 
-    if (asmpt.isTrue()) {
+    if (asmpt.isTrue() || asmpt.isFalse()) {
+      // we don't add the assumption false in order to not forget the content of the path formula
+      // (we need it for post-processing) 
       return pElement;
     }
     
