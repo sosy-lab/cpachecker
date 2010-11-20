@@ -73,14 +73,6 @@ public class Assumption {
   }
 
   /**
-   * Return a formula representing all assumptions
-   * contained in this invariant
-   */
-  public SymbolicFormula getAllFormula() {
-    return manager.makeAnd(dischargeableAssumption, otherAssumption);
-  }
-
-  /**
    * Conjunct this invariant with an other invariant and
    * return the result
    */

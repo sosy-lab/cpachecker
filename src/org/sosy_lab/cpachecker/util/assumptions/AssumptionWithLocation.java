@@ -54,11 +54,6 @@ public abstract class AssumptionWithLocation {
   public abstract Assumption getAssumption(CFANode node);
 
   /**
-   * Return the conjunction of all assumptions for all nodes.
-   */
-  public abstract Assumption getCombinedAssumption();
-  
-  /**
    * Return the number of locations for which we have an assumption.
    */
   public abstract int getNumberOfLocations();
@@ -112,11 +107,6 @@ public abstract class AssumptionWithLocation {
     public Assumption getAssumption(CFANode node) {
       return Assumption.TRUE;
     }
-
-    @Override
-    public Assumption getCombinedAssumption() {
-      return Assumption.TRUE;
-    }
     
     @Override
     public int getNumberOfLocations() {
@@ -152,11 +142,6 @@ public abstract class AssumptionWithLocation {
       } else {
         return Assumption.TRUE;
       }
-    }
-    
-    @Override
-    public Assumption getCombinedAssumption() {
-      return assumption;
     }
     
     @Override
@@ -211,15 +196,6 @@ public abstract class AssumptionWithLocation {
       } else {
         return result;
       }
-    }
-    
-    @Override
-    public Assumption getCombinedAssumption() {
-      Assumption assumption = new Assumption();
-      for (Assumption a : map.values()) {
-        assumption = assumption.and(a);
-      }
-      return assumption;
     }
     
     @Override
