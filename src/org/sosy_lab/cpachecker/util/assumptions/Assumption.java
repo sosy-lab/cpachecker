@@ -76,7 +76,7 @@ public class Assumption {
    * Conjunct this invariant with an other invariant and
    * return the result
    */
-  static Assumption and(Assumption one, Assumption other, SymbolicFormulaManager manager)
+  public static Assumption and(Assumption one, Assumption other, SymbolicFormulaManager manager)
   {
     // shortcut
     if (one == TRUE)

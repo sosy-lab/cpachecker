@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -71,13 +70,13 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     
-    AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor(edge.getSuccessor());
+    AssumptionAndForceStopReportingVisitor reportingVisitor = new AssumptionAndForceStopReportingVisitor();
     for (AbstractElement e : others) {
       reportingVisitor.visit(e);
     }
     
     boolean forceStop = reportingVisitor.forceStop;
-    AssumptionWithLocation.Builder assumption = reportingVisitor.assumptionBuilder;
+    Assumption assumption = reportingVisitor.assumption;
     
     if (forceStop) {
 //    TODO: write code that extracts the state formula from the predecessor element
@@ -88,28 +87,23 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 //        assumption.add(edge.getPredecessor(), dataAssumption);
 //      }
 
-      assumption.add(edge.getSuccessor(), Assumption.FALSE);
+      assumption = Assumption.FALSE;
     }
     
-    return Collections.singleton(new AssumptionCollectorElement(assumption.build(), forceStop));
+    return Collections.singleton(new AssumptionCollectorElement(AssumptionWithLocation.forLocation(edge.getSuccessor(), assumption), forceStop));
   }
 
   private final class AssumptionAndForceStopReportingVisitor extends AbstractWrappedElementVisitor {
 
-    private final CFANode location;
-    private final AssumptionWithLocation.Builder assumptionBuilder = AssumptionWithLocation.builder(symbolicFormulaManager);
+    private Assumption assumption = Assumption.TRUE;
     private boolean forceStop = false;
-
-    public AssumptionAndForceStopReportingVisitor(CFANode location) {
-      this.location = location;
-    }
     
     @Override
     public void process(AbstractElement element) {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
         Assumption inv = ((AssumptionReportingElement)element).getAssumption();
-        assumptionBuilder.add(location, inv);
+        assumption = Assumption.and(assumption, inv, symbolicFormulaManager);
       }
 
       // process stop flag
