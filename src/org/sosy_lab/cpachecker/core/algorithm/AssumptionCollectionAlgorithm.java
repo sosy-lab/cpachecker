@@ -163,8 +163,8 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {
-      if (element instanceof AbstractElementWithLocation) {
-        CFANode location = ((AbstractElementWithLocation)element).getLocationNode();
+      if (element instanceof AbstractWrapperElement) {
+        CFANode location = ((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode();
 
         AssumptionExtractor extractor = new AssumptionExtractor();
         extractor.visit(element);
