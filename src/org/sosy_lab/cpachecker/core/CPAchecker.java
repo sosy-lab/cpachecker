@@ -244,6 +244,15 @@ public class CPAchecker {
 
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+     
+    } catch (UnsatisfiedLinkError e) {
+      if (e.getMessage().contains("libgmpxx.so.4")) {
+        logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
+            + "Please install libgmpxx.so.4 and try again.\n"
+            + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
+      } else {
+        logger.logException(Level.SEVERE, e, null);
+      }
 
     } catch (ForceStopCPAException e) {
       // CPA must exit because it was asked to
