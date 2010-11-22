@@ -31,12 +31,15 @@ import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.internal.core.dom.parser.IASTAmbiguousDeclarator;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -51,10 +54,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
  * only a few actions (CFAEdges) are important. */
 public class ErrorPathShrinker {
 
+  private static boolean printForTesting = true;
+
   /** The function shrinkErrorPath gets an targetPath and creates a new Path, 
    * with only the important edges of the Path. 
-   * It is the "main"-function of this Class and it only iterates the Path 
-   * and checks every CFAEdge
+   * It only iterates the Path and checks every CFAEdge
    * 
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
@@ -78,20 +82,21 @@ public class ErrorPathShrinker {
     // iterate through the Path (backwards) and collect all important variables
     while (iterator.hasNext()) {
 
-/*
-      // output for testing
-      System.out.print("importantVars: { ");
-      for (String var : importantVars) {
-        System.out.print(var + " , ");
-      }
-      System.out.println(" }");
-*/
       Pair<ARTElement, CFAEdge> cfaEdge = iterator.next();
 
       boolean isCFAEdgeImportant = handle(cfaEdge.getSecond(), importantVars);
 
       if (isCFAEdgeImportant) {
         errorPath.addFirst(cfaEdge);
+      }
+
+      if (printForTesting) {
+        // output for testing
+        System.out.print("importantVars: { ");
+        for (String var : importantVars) {
+          System.out.print(var + " , ");
+        }
+        System.out.println(" }");
       }
 
     }
@@ -115,11 +120,13 @@ public class ErrorPathShrinker {
       /* this is the statement edge which leads the function to the last node
       * of its CFA (not same as a return edge) */
       if (cfaEdge.isJumpEdge()) {
-        return handleExitFromFunction((StatementEdge) cfaEdge, importantVars);
+        return handleExitFromFunction(
+            ((StatementEdge) cfaEdge).getExpression(), importantVars);
       }
       // this is a regular statement
       else {
-        return handleStatement((StatementEdge) cfaEdge, importantVars);
+        return handleStatement(((StatementEdge) cfaEdge).getExpression(),
+            importantVars);
       }
 
       // edge is a declaration edge, e.g. int a;
@@ -142,9 +149,10 @@ public class ErrorPathShrinker {
     case ReturnEdge:
       return handleFunctionReturn((ReturnEdge) cfaEdge, importantVars);
 
+      // if edge cannot be handled, it could be important
     default:
+      return true;
     }
-    return true;
   }
 
   /**
@@ -156,10 +164,32 @@ public class ErrorPathShrinker {
    */
   private static boolean handleDeclaration(DeclarationEdge declarationEdge,
       Set<String> importantVars) {
-    // "int a;" --> declarator "a"
-    // TODO: "int a=5;" --> declarator "a"
-    String varName = declarationEdge.getDeclarators()[0].getRawSignature();
-    return importantVars.contains(varName);
+
+    // boolean for iteration
+    boolean isImportant = false;
+
+    // normally there is only one declarator, when are more than one?
+    for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
+
+      String varName = declarator.getName().getRawSignature();
+
+      if (importantVars.contains(varName)) {
+
+        // working: "int a;" --> if "a" is important, the edge is important
+        // TODO problem: "int a=b+c;", if "a" is important, 
+        // "b" and "c" also are important, add them to importantVars. how?
+        // currently "b+c" is added to importantVars, not the single variables.
+        // currently even numbers are added to importantVars.
+
+        if (declarator.getInitializer() != null) {
+          importantVars.add(declarator.getInitializer().getRawSignature());
+        }
+
+        // one important declaration is enough for an important edge
+        isImportant = isImportant || importantVars.contains(varName);
+      }
+    }
+    return isImportant;
   }
 
   /**
@@ -225,32 +255,34 @@ public class ErrorPathShrinker {
     return true;
   }
 
-  private static boolean handleExitFromFunction(StatementEdge statementEdge,
+  private static boolean handleExitFromFunction(IASTExpression exitExpression,
       Set<String> importantVars) {
     // nothing to do?
     return true;
   }
 
-  private static boolean handleStatement(StatementEdge statementEdge,
+  private static boolean handleStatement(IASTExpression statementExp,
       Set<String> importantVars) {
 
     // a unary operation, e.g. a++
     // this does not change the Set of important variables, 
     // but the edge could be important
-    if (statementEdge.getExpression() instanceof IASTUnaryExpression)
-      return handleUnaryStatement(statementEdge, importantVars);
+    if (statementExp instanceof IASTUnaryExpression)
+      return handleUnaryStatement((IASTUnaryExpression) statementExp,
+          importantVars);
 
     // expression is a binary operation, e.g. a = b;
-    else if (statementEdge.getExpression() instanceof IASTBinaryExpression)
-      return handleBinaryStatement(statementEdge, importantVars);
+    else if (statementExp instanceof IASTBinaryExpression)
+      return handleAssignment((IASTBinaryExpression) statementExp,
+          importantVars);
 
     // ext();
-    else if (statementEdge.getExpression() instanceof IASTFunctionCallExpression)
+    else if (statementExp instanceof IASTFunctionCallExpression)
       return true;
 
     // a; 
-    else if (statementEdge.getExpression() instanceof IASTIdExpression) {
-      String varName = statementEdge.getExpression().getRawSignature();
+    else if (statementExp instanceof IASTIdExpression) {
+      String varName = statementExp.getRawSignature();
       return importantVars.contains(varName);
     }
 
@@ -265,65 +297,16 @@ public class ErrorPathShrinker {
    * @param importantVars Set of important variables
    * @return isImportantEdge
    */
-  private static boolean handleUnaryStatement(StatementEdge statementEdge,
-      Set<String> importantVars) {
-
-    // get unaryExpression, i.e. "a++"
-    IASTUnaryExpression unaryExpression =
-        (IASTUnaryExpression) statementEdge.getExpression();
+  private static boolean handleUnaryStatement(
+      IASTUnaryExpression unaryExpression, Set<String> importantVars) {
 
     // get operand, i.e. "a"
     IASTExpression operand = unaryExpression.getOperand();
 
     // if operand is a identifier and is not important, the edge is not 
     // important, in any other case the edge could be important
-    if (operand instanceof IASTIdExpression
-        && !importantVars.contains(operand.getRawSignature())) {
-      return false;
-    } else {
-      return true;
-    }
-
-  }
-
-  /**
-   * This method handles binary statements.
-   *
-   * @param declarationEdge the edge to prove
-   * @param importantVars Set of important variables
-   * @return isImportantEdge
-   */
-  private static boolean handleBinaryStatement(StatementEdge statementEdge,
-      Set<String> importantVars) {
-
-    IASTBinaryExpression binaryExpression =
-        (IASTBinaryExpression) statementEdge.getExpression();
-
-    switch (binaryExpression.getOperator()) {
-    // a = ?
-    case IASTBinaryExpression.op_assign:
-      return handleAssignment(binaryExpression, importantVars);
-
-      // a += ?, a-= ?
-    case IASTBinaryExpression.op_plusAssign:
-    case IASTBinaryExpression.op_minusAssign:
-    case IASTBinaryExpression.op_multiplyAssign:
-    case IASTBinaryExpression.op_shiftLeftAssign:
-    case IASTBinaryExpression.op_shiftRightAssign:
-    case IASTBinaryExpression.op_binaryAndAssign:
-    case IASTBinaryExpression.op_binaryXorAssign:
-    case IASTBinaryExpression.op_binaryOrAssign:
-      return handleOperationAndAssign(binaryExpression, importantVars);
-
-    default:
-      return true;
-    }
-  }
-
-  private static boolean handleOperationAndAssign(
-      IASTBinaryExpression binaryExpression, Set<String> importantVars) {
-    // TODO Auto-generated method stub
-    return false;
+    return !(operand instanceof IASTIdExpression 
+        && !importantVars.contains(operand.getRawSignature()));
   }
 
   /**
@@ -394,8 +377,8 @@ public class ErrorPathShrinker {
     else if (rightExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = (IASTBinaryExpression) rightExp;
 
-      return handleAssignmentOfBinaryExp(lParam, binExp.getOperand1(),
-          binExp.getOperand2(), binExp.getOperator(), importantVars);
+      return handleAssignmentOfBinaryExp(lParam, binExp.getOperand1(), binExp
+          .getOperand2(), binExp.getOperator(), importantVars);
     }
 
     // TODO: a = func(); or a = b->c; currently, the interval of a is unbound
