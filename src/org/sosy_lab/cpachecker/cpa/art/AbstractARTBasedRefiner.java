@@ -114,9 +114,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     if (!result) {
       Path targetPath = getTargetPath(path);
       
-      /* the shrinked errorPath only includes the nodes,
-       * that are important for the error, it is not a complete path, 
-       * only some nodes of the targetPath are part of it */
+/*  
+      // the shrinked errorPath only includes the nodes,
+      // that are important for the error, it is not a complete path, 
+      // only some nodes of the targetPath are part of it 
       Path shrinkedErrorPath = ErrorPathShrinker.shrinkErrorPath(targetPath);
       
       // print targetPath and shrinkedErrorPath for comparing, only for testing
@@ -124,7 +125,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       System.out.println(targetPath.toString());
       System.out.println("-- shrinkedErrorPath --");
       System.out.println(shrinkedErrorPath.toString());
-      
+*/
       // new targetPath must contain root and error node
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
       assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
