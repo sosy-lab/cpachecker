@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
@@ -48,8 +49,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path, 
  * with only the important edges of the Path. The idea behind this Class is, 
- * that not every action (CFAEdge) before an error is important for the error, 
- * only a few actions (CFAEdges) are important. */
+ * that not every action (CFAEdge) before an error occurs is important for 
+ * the error, only a few actions (CFAEdges) are important. 
+ * 
+ * @author Friedberger Karlheinz
+ */
 public class ErrorPathShrinker {
 
   /** Set<String> for storing the important variables */
@@ -67,14 +71,14 @@ public class ErrorPathShrinker {
 
     Path errorPath = new Path();
 
-    // reverse iterator, from Error to rootNode
+    // reverse iterator, from errorNode to rootNode
     Iterator<Pair<ARTElement, CFAEdge>> iterator =
         targetPath.descendingIterator();
 
-    // the last element of the errorPath is the errorNode,
+    // the last element of the errorPath is the errorNode (important),
     errorPath.addFirst(iterator.next());
 
-    // the last "action" before the errorNode is in the secondlast element
+    // the last "action" before the errorNode is in the secondlast element,
     // handle it to maybe get first important variables
     handle(iterator.next().getSecond());
 
@@ -89,11 +93,11 @@ public class ErrorPathShrinker {
         errorPath.addFirst(cfaEdge);
       }
 
+      // print the Set of importantVars, for testing
       if (printForTesting) {
-        // output for testing
         System.out.print("importantVars: { ");
         for (String var : importantVars) {
-          System.out.print(var + " , ");
+          System.out.print(var + ", ");
         }
         System.out.println(" }");
       }
@@ -133,8 +137,12 @@ public class ErrorPathShrinker {
     case AssumeEdge:
       return handleAssumption(((AssumeEdge) cfaEdge).getExpression());
 
+      /* There are several BlankEdgeTypes: 
+       * a jumpEdge ("goto label") is important, 
+       * a labelEdge and other Types maybe, a really blank edge is not. 
+       * TODO are there more types? */
     case BlankEdge:
-      return false; // a blank edge is not important
+      return cfaEdge.isJumpEdge();
 
     case FunctionCallEdge:
       return handleFunctionCall((FunctionCallEdge) cfaEdge);
@@ -253,7 +261,9 @@ public class ErrorPathShrinker {
   }
 
   /**
-   * This method handles variable declarations.
+   * This method handles variable declarations ("int a;"). Expressions like 
+   * "int a=b;" are preprocessed by CIL to "int a; \n a=b;", so there is no 
+   * need to handle them. The expression "a=b;" is handled as StatementEdge.
    * 
    * @param declarationEdge the edge to prove
    * @return isImportantEdge
@@ -263,25 +273,17 @@ public class ErrorPathShrinker {
     // boolean for iteration
     boolean isImportant = false;
 
-    // normally there is only one declarator, when are more than one?
+    /* Normally there is only one declarator in the DeclarationEdge. 
+     * If there are more than one declarators, CIL divides them into different 
+     * declarators while preprocessing: 
+     * "int a,b,c;"  -->  CIL  -->  "int a;  int b;  int c;". 
+     * If the declared variable is important, the edge is important.
+     * One important declarator is enough for an edge to be important, 
+     * normally there is only one declarator, if CIL has been run. */
     for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
-
       String varName = declarator.getName().getRawSignature();
-
       if (importantVars.contains(varName)) {
-
-        // working: "int a;" --> if "a" is important, the edge is important
-        // TODO problem: "int a=b+c;", if "a" is important, 
-        // "b" and "c" also are important, add them to importantVars. how?
-        // currently "b+c" is added to importantVars, not the single variables.
-        // currently even numbers are added to importantVars.
-
-        if (declarator.getInitializer() != null) {
-          importantVars.add(declarator.getInitializer().getRawSignature());
-        }
-
-        // one important declaration is enough for an important edge
-        isImportant = isImportant || importantVars.contains(varName);
+        isImportant = true;
       }
     }
     return isImportant;
@@ -319,14 +321,11 @@ public class ErrorPathShrinker {
       // do nothing
     }
 
-    // exp is an Identifier, true or false
+    // exp is an Identifier
     else if (exp instanceof IASTIdExpression) {
-      String expName = exp.getRawSignature();
-      // "true" and "false" are Identifiers, not Literals
-      if (!(expName.equals("true") || expName.equals("false"))) {
-        importantVars.add(expName);
-      }
+      importantVars.add(exp.getRawSignature());
     }
+
     // (cast) b 
     else if (exp instanceof IASTCastExpression) {
       addAllVarsInExpToImportantVars(((IASTCastExpression) exp).getOperand());
