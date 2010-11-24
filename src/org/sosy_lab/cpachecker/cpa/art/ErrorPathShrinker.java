@@ -151,6 +151,108 @@ public class ErrorPathShrinker {
   }
 
   /**
+   * This method handles statements.
+   * 
+   * @param statementExp the expression to prove
+   * @return true boolean
+   */
+  private static boolean handleStatement(IASTExpression statementExp) {
+
+    // a unary operation, e.g. a++
+    // this does not change the Set of important variables, 
+    // but the edge could be important
+    if (statementExp instanceof IASTUnaryExpression)
+      return handleUnaryStatement((IASTUnaryExpression) statementExp);
+
+    // expression is a binary operation, e.g. a = b;
+    else if (statementExp instanceof IASTBinaryExpression)
+      return handleAssignment((IASTBinaryExpression) statementExp);
+
+    // ext();
+    else if (statementExp instanceof IASTFunctionCallExpression)
+      return true;
+
+    // a;
+    else if (statementExp instanceof IASTIdExpression) {
+      String varName = statementExp.getRawSignature();
+      return importantVars.contains(varName);
+    }
+
+    else
+      return true;
+  }
+
+  /**
+   * This method handles unary statements (a++, a--).
+   *
+   * @param unaryExpression the expression to prove
+   * @return isImportantEdge
+   */
+  private static boolean handleUnaryStatement(
+      IASTUnaryExpression unaryExpression) {
+
+    // get operand, i.e. "a"
+    IASTExpression operand = unaryExpression.getOperand();
+
+    // if operand is a identifier and is not important, the edge is not 
+    // important, in any other case the edge could be important
+    return !(operand instanceof IASTIdExpression && !importantVars
+        .contains(operand.getRawSignature()));
+  }
+
+  /**
+   * This method handles assignments (?a = ??).
+   *
+   * @param binaryExpression the expression to prove
+   * @return isImportantEdge
+   */
+  private static boolean handleAssignment(IASTBinaryExpression binaryExpression) {
+
+    IASTExpression lParam = binaryExpression.getOperand1();
+    IASTExpression rightExp = binaryExpression.getOperand2();
+
+    // a = ?
+    if (lParam instanceof IASTIdExpression)
+      return handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
+
+    // TODO: assignment to pointer, *a = ?
+    else if (lParam instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression) lParam).getOperator() == IASTUnaryExpression.op_star)
+      return true;
+
+    // TODO assignment to field, a->b = ?
+    else if (lParam instanceof IASTFieldReference)
+      return true;
+
+    // TODO assignment to array cell, a[b] = ?
+    else if (lParam instanceof IASTArraySubscriptExpression)
+      return true;
+
+    // if the edge is not unimportant, this edge could be important.
+    else
+      return true;
+  }
+
+  /**
+   * This method handles the assignment of a variable (a = ?).
+   *
+   * @param lParam the local name of the variable to assign to
+   * @param rightExp the assigning expression
+   * @return isImportantEdge
+   */
+  private static boolean handleAssignmentToVariable(String lParam,
+      IASTExpression rightExp) {
+
+    // if lParam is important, the edge is important 
+    // and every variable in rightExp is important.
+    if (importantVars.contains(lParam)) {
+      addAllVarsInExpToImportantVars(rightExp);
+      return true;
+    } else
+      return false;
+  }
+
+  /**
    * This method handles variable declarations.
    * 
    * @param declarationEdge the edge to prove
@@ -186,166 +288,16 @@ public class ErrorPathShrinker {
   }
 
   /**
-   * This method handles assumptions (a==b, a<=b, etc.).
+   * This method handles assumptions (a==b, a<=b, true, etc.).
+   * Assumptions always are handled as important edges. This method only 
+   * adds all variables in an assumption (expression) to the important variables.
+   * 
+   * @param assumeExp the expression to prove
+   * @return true boolean
    */
   private static boolean handleAssumption(IASTExpression assumeExp) {
-
-    // first, unpack the expression to deal with a raw assumption
-    if (assumeExp instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExp = ((IASTUnaryExpression) assumeExp);
-
-      switch (unaryExp.getOperator()) {
-      // remove brackets
-      case IASTUnaryExpression.op_bracketedPrimary:
-        return handleAssumption(unaryExp.getOperand());
-
-        // remove negation
-      case IASTUnaryExpression.op_not:
-        return handleAssumption(unaryExp.getOperand());
-
-      default:
-        return true;
-      }
-    }
-
-    // a plain (boolean) identifier, e.g. if(a), always add to importantVars
-    else if (assumeExp instanceof IASTIdExpression) {
-      String varName = (assumeExp.getRawSignature());
-      importantVars.add(varName);
-      return true;
-    }
-
-    // "exp1 op exp2", where expX is only a literal or a identifier, 
-    // add identifier to importantVars
-    else if (assumeExp instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = (IASTBinaryExpression) assumeExp;
-      IASTExpression operand1 = binExp.getOperand1();
-      IASTExpression operand2 = binExp.getOperand2();
-
-      if (operand1 instanceof IASTIdExpression)
-        importantVars.add(operand1.getRawSignature());
-
-      if (operand2 instanceof IASTIdExpression)
-        importantVars.add(operand2.getRawSignature());
-
-      // TODO ((a==b) && (c||d)), get operands from difficult conditions
-
-      return true;
-    }
-
-    // default (if edge cannot be handled, it could be important)
+    addAllVarsInExpToImportantVars(assumeExp);
     return true;
-  }
-
-  private static boolean handleFunctionCall(FunctionCallEdge pCfaEdge) {
-    // TODO Auto-generated method stub
-    return true;
-  }
-
-  private static boolean handleFunctionReturn(ReturnEdge pCfaEdge) {
-    // TODO Auto-generated method stub
-    return true;
-  }
-
-  private static boolean handleExitFromFunction(IASTExpression exitExpression) {
-    // nothing to do?
-    return true;
-  }
-
-  private static boolean handleStatement(IASTExpression statementExp) {
-
-    // a unary operation, e.g. a++
-    // this does not change the Set of important variables, 
-    // but the edge could be important
-    if (statementExp instanceof IASTUnaryExpression)
-      return handleUnaryStatement((IASTUnaryExpression) statementExp);
-
-    // expression is a binary operation, e.g. a = b;
-    else if (statementExp instanceof IASTBinaryExpression)
-      return handleAssignment((IASTBinaryExpression) statementExp);
-
-    // ext();
-    else if (statementExp instanceof IASTFunctionCallExpression)
-      return true;
-
-    // a; 
-    else if (statementExp instanceof IASTIdExpression) {
-      String varName = statementExp.getRawSignature();
-      return importantVars.contains(varName);
-    }
-
-    else
-      return true;
-  }
-
-  /**
-   * This method handles unary statements (a++, a--).
-   *
-   * @param statementEdge the edge to prove
-   * @return isImportantEdge
-   */
-  private static boolean handleUnaryStatement(
-      IASTUnaryExpression unaryExpression) {
-
-    // get operand, i.e. "a"
-    IASTExpression operand = unaryExpression.getOperand();
-
-    // if operand is a identifier and is not important, the edge is not 
-    // important, in any other case the edge could be important
-    return !(operand instanceof IASTIdExpression && !importantVars
-        .contains(operand.getRawSignature()));
-  }
-
-  /**
-   * This method handles assignments (?a = ?).
-   *
-   * @param binaryExpression a binary expression
-   * @return isImportantEdge
-   */
-  private static boolean handleAssignment(IASTBinaryExpression binaryExpression) {
-
-    IASTExpression lParam = binaryExpression.getOperand1();
-    IASTExpression rightExp = binaryExpression.getOperand2();
-
-    // a = ?
-    if (lParam instanceof IASTIdExpression)
-      return handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
-
-    // TODO: assignment to pointer, *a = ?
-    else if (lParam instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression) lParam).getOperator() == IASTUnaryExpression.op_star)
-      return true;
-
-    // TODO assignment to field, a->b = ?
-    else if (lParam instanceof IASTFieldReference)
-      return true;
-
-    // TODO assignment to array cell, a[b] = ?
-    else if (lParam instanceof IASTArraySubscriptExpression)
-      return true;
-
-    else
-      // if the edge is not unimportant, this edge could be important.
-      return true;
-  }
-
-  /**
-   * This method handles the assignment of a variable (a = ?).
-   *
-   * @param lParam the local name of the variable to assign to
-   * @param rightExp the assigning expression
-   * @return isImportantEdge
-   */
-  private static boolean handleAssignmentToVariable(String lParam,
-      IASTExpression rightExp) {
-
-    // if lParam is important, the edge is important 
-    // and every variable in rightExp is important.
-    if (importantVars.contains(lParam)) {
-      addAllVarsInExpToImportantVars(rightExp);
-      return true;
-    } else
-      return false;
   }
 
   /**
@@ -361,38 +313,57 @@ public class ErrorPathShrinker {
    */
   private static void addAllVarsInExpToImportantVars(IASTExpression exp) {
 
-    // a = 8.2 or "return;" (when rightExp == null),
+    // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
     if (exp instanceof IASTLiteralExpression || exp == null) {
       // do nothing
     }
 
-    // a = b, b is an Identifier
+    // exp is an Identifier, true or false
     else if (exp instanceof IASTIdExpression) {
-      importantVars.add(exp.getRawSignature());
+      String expName = exp.getRawSignature();
+      // "true" and "false" are Identifiers, not Literals
+      if (!(expName.equals("true") || expName.equals("false"))) {
+        importantVars.add(expName);
+      }
     }
-    // a = (cast) b 
+    // (cast) b 
     else if (exp instanceof IASTCastExpression) {
       addAllVarsInExpToImportantVars(((IASTCastExpression) exp).getOperand());
     }
 
-    // a = -b
+    // -b
     else if (exp instanceof IASTUnaryExpression) {
       addAllVarsInExpToImportantVars(((IASTUnaryExpression) exp).getOperand());
     }
 
-    // a = b op c; --> b is operand1, c is operand2
+    // b op c; --> b is operand1, c is operand2
     else if (exp instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = (IASTBinaryExpression) exp;
       addAllVarsInExpToImportantVars(binExp.getOperand1());
       addAllVarsInExpToImportantVars(binExp.getOperand2());
     }
 
-    // a = func(); or a = b->c;
+    // func(); or b->c;
     else if (exp instanceof IASTFunctionCallExpression
         || exp instanceof IASTFieldReference) {
       // TODO: what should be added to importantVars?
     }
+  }
+
+  private static boolean handleFunctionCall(FunctionCallEdge pCfaEdge) {
+    // TODO Auto-generated method stub
+    return true;
+  }
+
+  private static boolean handleFunctionReturn(ReturnEdge pCfaEdge) {
+    // TODO Auto-generated method stub
+    return true;
+  }
+
+  private static boolean handleExitFromFunction(IASTExpression exitExpression) {
+    // nothing to do?
+    return true;
   }
 
 }
