@@ -395,8 +395,10 @@ public class CFABuilder extends ASTVisitor
 		switch (kind) {
 		case ALWAYS_FALSE: {
 		    if (ifStatement.getElseClause() == null) {
+		        CFANode ifNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 		        BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, postIfNode);
 		        edge.addToCFA(logger);
+		        locStack.push(ifNode);
 		    } else {
 		        CFANode elseNode =
 		            new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
