@@ -24,8 +24,8 @@
 
 package org.sosy_lab.cpachecker.cpa.art;
 
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
@@ -41,9 +41,9 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -57,7 +57,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 public class ErrorPathShrinker {
 
   /** Set<String> for storing the important variables */
-  private final static Set<String> importantVars   = new HashSet<String>();
+  private final static Set<String> importantVars   =
+                                                       new LinkedHashSet<String>();
+
+  /** Set<String> for storing the global variables */
+  private final static Set<String> globalVars      =
+                                                       new LinkedHashSet<String>();
 
   private static boolean           printForTesting = false;
 
@@ -69,23 +74,22 @@ public class ErrorPathShrinker {
    * @return errorPath the "short" errorPath */
   public static final Path shrinkErrorPath(Path targetPath) {
 
+    // first collect all global variables
+    findGolbalVarsInPath(targetPath);
+
     Path errorPath = new Path();
 
     // reverse iterator, from errorNode to rootNode
-    Iterator<Pair<ARTElement, CFAEdge>> iterator =
+    Iterator<Pair<ARTElement, CFAEdge>> revIterator =
         targetPath.descendingIterator();
 
     // the last element of the errorPath is the errorNode (important),
-    errorPath.addFirst(iterator.next());
-
-    // the last "action" before the errorNode is in the secondlast element,
-    // handle it to maybe get first important variables
-    handle(iterator.next().getSecond());
+    errorPath.addFirst(revIterator.next());
 
     // iterate through the Path (backwards) and collect all important variables
-    while (iterator.hasNext()) {
+    while (revIterator.hasNext()) {
 
-      Pair<ARTElement, CFAEdge> cfaEdge = iterator.next();
+      Pair<ARTElement, CFAEdge> cfaEdge = revIterator.next();
 
       boolean isCFAEdgeImportant = handle(cfaEdge.getSecond());
 
@@ -95,15 +99,57 @@ public class ErrorPathShrinker {
 
       // print the Set of importantVars, for testing
       if (printForTesting) {
+        if (isCFAEdgeImportant) {
+          System.out.print("important? yes   ");
+        } else {
+          System.out.print("important?       ");
+        }
         System.out.print("importantVars: { ");
         for (String var : importantVars) {
           System.out.print(var + ", ");
         }
-        System.out.println(" }");
+        System.out.println(" } , edge: " + cfaEdge.getSecond().toString());
       }
 
     }
     return errorPath;
+  }
+
+  /** This method iterates a Path and adds all golbal Variables to the Set 
+   * of global variables. 
+   * 
+   * @param path the Path to iterate
+   */
+  private static void findGolbalVarsInPath(Path path) {
+
+    // iterate through the Path and collect all important variables
+    Iterator<Pair<ARTElement, CFAEdge>> iterator = path.iterator();
+    while (iterator.hasNext()) {
+      CFAEdge cfaEdge = iterator.next().getSecond();
+
+      // only globalDeclarations (SubType of Declaration) are important
+      if (cfaEdge instanceof GlobalDeclarationEdge) {
+        DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+
+        for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
+
+          // ignore null and pointer variables
+          if ((declarator != null)
+              && (declarator.getPointerOperators().length == 0)) {
+            // a global variable is added to the list of global variables
+            globalVars.add(declarator.getName().toString());
+          }
+        }
+      }
+    }
+
+    if (printForTesting) {
+      System.out.print("globlaVars: { ");
+      for (String var : globalVars) {
+        System.out.print(var + ", ");
+      }
+      System.out.println(" }");
+    }
   }
 
   /** This function returns, if the edge is important. 
@@ -122,6 +168,7 @@ public class ErrorPathShrinker {
       /* this is the statement edge which leads the function to the last node
       * of its CFA (not same as a return edge) */
       if (cfaEdge.isJumpEdge()) {
+        System.out.println("exitFromFuctionEdge : " + cfaEdge.toString());
         return handleExitFromFunction(((StatementEdge) cfaEdge).getExpression());
       }
       // this is a regular statement
@@ -360,8 +407,18 @@ public class ErrorPathShrinker {
     return true;
   }
 
+  /**
+   * This method handles exits from a function ("return a;").
+   *
+   * @param exitExpression the expression to be handled
+   * @return isImportantEdge
+   */
   private static boolean handleExitFromFunction(IASTExpression exitExpression) {
-    // nothing to do?
+    /* TODO exitFromFunction is only important, if the function is important. 
+     * the function is called before exitFromFunction, 
+     * so it is before the exitFromFunction in the targetPath.
+     * Currently every exitFromFunction is important. */
+    addAllVarsInExpToImportantVars(exitExpression);
     return true;
   }
 
