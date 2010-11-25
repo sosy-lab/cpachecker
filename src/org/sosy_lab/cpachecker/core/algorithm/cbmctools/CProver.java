@@ -42,59 +42,71 @@ import com.google.common.base.Preconditions;
  *
  */
 public class CProver {
-  
+
   private static class CBMCExecutor extends ProcessExecutor<RuntimeException> {
-    
+
     // TODO function name
     private static final String[] CBMC_ARGS = {"cbmc", "--function", "main_0", "--32"};
-    
+
     private Boolean result = null;
-    
+
     public CBMCExecutor(LogManager logger, File file) throws IOException {
       super(logger, RuntimeException.class, getCmdline(file));
     }
-    
+
     private static String[] getCmdline(File file) {
       Preconditions.checkArgument(file.canRead());
-      
+
       String[] result = Arrays.copyOf(CBMC_ARGS, CBMC_ARGS.length + 1);
       result[result.length-1] = file.getAbsolutePath();
       return result;
     }
-    
+
     @Override
     protected void handleExitCode(int pCode) {
       switch (pCode) {
       case 0: // Verification successful (Path is infeasible)
         result = false;
         break;
-        
+
       case 10: // Verification failed (Path is feasible)
         result = true;
         break;
-        
+
       default:
         super.handleExitCode(pCode);
       }
     }
   }
 
-  public static boolean checkFeasibility(String program, LogManager logger) throws IOException {
-    File cFile = Files.createTempFile("path", ".c", program);
+  public static boolean checkFeasibility(String program, LogManager logger, File CBMCFile) throws IOException {
+
+    File cFile = CBMCFile;
+    boolean dumpCBMC = (cFile != null);
+
+    if(dumpCBMC){
+      Files.writeFile(cFile, program);
+    }
+    else{
+      cFile = Files.createTempFile("path", ".c", program);
+    }
+    assert(cFile != null);
     try {
       logger.log(Level.FINER, "Starting CBMC verification.");
       CBMCExecutor cbmc = new CBMCExecutor(logger, cFile);
       cbmc.join();
       logger.log(Level.FINER, "CBMC finished.");
-      
+
       if (cbmc.result == null) {
         // exit code and stderr are already logged with level WARNING
         throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
       }
       return cbmc.result;
-      
+
     } finally {
-      cFile.delete();
+      if(!dumpCBMC) {
+        cFile.delete();
+      }
     }
   }
 }

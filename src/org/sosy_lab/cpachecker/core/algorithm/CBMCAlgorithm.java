@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -33,6 +34,10 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CProver;
@@ -46,17 +51,22 @@ import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options(prefix="cbmc")
 public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
   private final LogManager logger;
 
-  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, LogManager logger) throws CPAException {
+  @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
+  private File CBMCFile;
+  
+  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
     this.logger = logger;
-
+    config.inject(this);
+    
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
       throw new CPAException("Need ART CPA for CBMC check");
     }
@@ -70,11 +80,12 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
     AbstractElement lastElement = reached.getLastElement();
     if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
       Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath((ARTElement)lastElement);
+      
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
       
       boolean cbmcResult;
       try {
-        cbmcResult = CProver.checkFeasibility(pathProgram, logger);
+        cbmcResult = CProver.checkFeasibility(pathProgram, logger, CBMCFile);
       } catch (IOException e) {
         throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
       }

@@ -406,8 +406,8 @@ public class AbstractPathToCTranslator {
         lAssumptionString = "!(" + lExpressionString + ")";
       }
 
-      //return ("__CPROVER_assume(" + lAssumptionString + ");");
-      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
+      return ("__CPROVER_assume(" + lAssumptionString + ");");
+//      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;

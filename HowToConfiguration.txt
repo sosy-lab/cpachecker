@@ -164,6 +164,9 @@ analysis.useRefinement = false
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
 
+# dump CBMC file to the specified file in the output folder for debugging purposes
+cbmc.dumpCBMCfile = cbmc.c
+
 # Which CPA to use?
 cpa = cpa.composite.CompositeCPA
 

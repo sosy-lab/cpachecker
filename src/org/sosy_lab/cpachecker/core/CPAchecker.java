@@ -333,7 +333,7 @@ public class CPAchecker {
     }
 
     if (options.useCBMC) {
-      algorithm = new CBMCAlgorithm(cfas, algorithm, logger);
+      algorithm = new CBMCAlgorithm(cfas, algorithm, config, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {
