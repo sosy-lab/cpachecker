@@ -89,12 +89,78 @@ public class ErrorPathShrinker {
     // iterate through the Path (backwards) and collect all important variables
     while (revIterator.hasNext()) {
 
-      Pair<ARTElement, CFAEdge> cfaEdge = revIterator.next();
+      Pair<ARTElement, CFAEdge> cfaEdgePair = revIterator.next();
+      CFAEdge cfaEdge = cfaEdgePair.getSecond();
+      boolean isCFAEdgeImportant = true;
 
-      boolean isCFAEdgeImportant = handle(cfaEdge.getSecond());
+      // check the type of the edge
+      switch (cfaEdge.getEdgeType()) {
+
+      // if edge is a statement edge, e.g. a = b + c
+      case StatementEdge:
+
+        /* this is the statement edge which leads the function to the last node
+        * of its CFA (not same as a return edge) */
+        if (cfaEdge.isJumpEdge()) {
+          System.out.println("exitFromFuctionEdge : " + cfaEdge.toString());
+          
+          isCFAEdgeImportant =
+              handleExitFromFunction(((StatementEdge) cfaEdge).getExpression());
+          
+          // TODO handle complete functions, from functionExit to functionCall
+          cfaEdgePair = revIterator.next();
+          while (!(cfaEdgePair.getSecond() instanceof FunctionCallEdge)){
+            // TODO handle all edges in a function, 
+            // globalVars are important, if they are used later. 
+            // other variables are important, if the function is part of a assignment ("a=func();")
+            System.out.println("Edge : " + cfaEdgePair.getSecond().toString());
+            cfaEdgePair = revIterator.next();
+          }
+          
+        }
+        // this is a regular statement
+        else {
+          isCFAEdgeImportant =
+              handleStatement(((StatementEdge) cfaEdge).getExpression());
+        }
+        break;
+
+      // edge is a declaration edge, e.g. int a;
+      case DeclarationEdge:
+        isCFAEdgeImportant = handleDeclaration((DeclarationEdge) cfaEdge);
+        break;
+
+      // this is an assumption, e.g. if(a == b)
+      case AssumeEdge:
+        isCFAEdgeImportant =
+            handleAssumption(((AssumeEdge) cfaEdge).getExpression());
+        break;
+
+      /* There are several BlankEdgeTypes: 
+       * a jumpEdge ("goto label") is important, 
+       * a labelEdge and other Types maybe, a really blank edge is not. 
+       * TODO are there more types? */
+      case BlankEdge:
+        isCFAEdgeImportant = cfaEdge.isJumpEdge();
+        break;
+
+      case FunctionCallEdge:
+        isCFAEdgeImportant = handleFunctionCall((FunctionCallEdge) cfaEdge);
+        break;
+
+      // this is a return edge from function, this is different from return 
+      // statement of the function. See case in statement edge for details
+      case ReturnEdge:
+        isCFAEdgeImportant = handleFunctionReturn((ReturnEdge) cfaEdge);
+        break;
+
+      // if edge cannot be handled, it could be important
+      default:
+        isCFAEdgeImportant = true;
+      }
 
       if (isCFAEdgeImportant) {
-        errorPath.addFirst(cfaEdge);
+        errorPath.addFirst(cfaEdgePair);
       }
 
       // print the Set of importantVars, for testing
@@ -108,7 +174,7 @@ public class ErrorPathShrinker {
         for (String var : importantVars) {
           System.out.print(var + ", ");
         }
-        System.out.println(" } , edge: " + cfaEdge.getSecond().toString());
+        System.out.println(" } , edge: " + cfaEdge.toString());
       }
 
     }
