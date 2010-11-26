@@ -7,10 +7,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTProblem;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTProblem;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -54,7 +54,7 @@ public class TranslationUnit {
     mCFAs.putAll(pCFAs);
     mGlobalDeclarations.addAll(pGlobalDeclarations);
   }
-  
+
   public void add(TranslationUnit pTranslationUnit) {
     add(pTranslationUnit.mCFAs);
     

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.Files;

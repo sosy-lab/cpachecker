@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;

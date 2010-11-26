@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;

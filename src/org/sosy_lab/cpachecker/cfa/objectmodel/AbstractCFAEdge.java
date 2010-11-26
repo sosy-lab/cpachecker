@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel;
 
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.common.LogManager;
 
 import com.google.common.base.Preconditions;
