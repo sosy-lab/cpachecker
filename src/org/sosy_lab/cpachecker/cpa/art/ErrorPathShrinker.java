@@ -68,7 +68,7 @@ public final class ErrorPathShrinker {
 
   /** The function shrinkErrorPath gets an targetPath and creates a new Path,
    * with only the important edges of the Path.
-   * 
+   *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
   public static Path shrinkErrorPath(final Path targetPath) {
@@ -107,7 +107,7 @@ public final class ErrorPathShrinker {
 
   /** This method iterates a Path and adds all global Variables to the Set
    * of global variables.
-   * 
+   *
    * @param path the Path to iterate
    */
   private static void findGlobalVarsInPath(final Path path) {
@@ -138,7 +138,7 @@ public final class ErrorPathShrinker {
     }
 
     if (printForTesting) {
-      System.out.print("globlaVars: { ");
+      System.out.print("globalVars in the Path: { ");
       for (String var : GLOBAL_VARS) {
         System.out.print(var + ", ");
       }
@@ -149,18 +149,16 @@ public final class ErrorPathShrinker {
   /** This function gets a Path and shrinks it to a shorter Path,
    * only important edges from the first Path are in the shortPath.
    *
-   * @param shortPath
-   * @param revIterator
-   * @param importantVars
-   * @param importantGlobalVars
-   * @param importantGlobalVarsIn
-   * @param importantVarsForGlobalVarsIn
-   * @param globalVarsPath
+   * @param shortPath the short Path contains only important edges
+   * @param revIterator the reverse Iterator of the longPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handlePath(final Path shortPath,
       final Iterator<Pair<ARTElement, CFAEdge>> revIterator,
       final Set<String> importantVars,
-      final Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
     // iterate through the Path (backwards) and collect all important variables
     while (revIterator.hasNext()) {
@@ -177,26 +175,26 @@ public final class ErrorPathShrinker {
         // of its CFA (not same as a return edge)
         if (cfaEdge.isJumpEdge()) {
           handleJumpStatement(shortPath, cfaEdgePair, revIterator,
-              importantVars, importantVarsForGlobalVarsIn, globalVarsPath);
+              importantVars, importantVarsForGlobalVars, globalVarsPath);
         }
 
         // this is a regular statement
         else {
           handleStatement(shortPath, cfaEdgePair, importantVars,
-              importantVarsForGlobalVarsIn, globalVarsPath);
+              importantVarsForGlobalVars, globalVarsPath);
         }
         break;
 
       // edge is a declaration edge, e.g. int a;
       case DeclarationEdge:
         handleDeclaration(shortPath, cfaEdgePair, importantVars,
-            importantVarsForGlobalVarsIn, globalVarsPath);
+            importantVarsForGlobalVars, globalVarsPath);
         break;
 
       // this is an assumption, e.g. if(a == b)
       case AssumeEdge:
         handleAssumption(shortPath, cfaEdgePair, importantVars,
-            importantVarsForGlobalVarsIn);
+            importantVarsForGlobalVars, globalVarsPath);
         break;
 
       /* There are several BlankEdgeTypes:
@@ -212,7 +210,9 @@ public final class ErrorPathShrinker {
       // start of a function, so "return" to the higher recursive call
       case FunctionCallEdge:
         shortPath.addFirst(cfaEdgePair);
-        if (!globalVarsPath.isEmpty()) globalVarsPath.addFirst(cfaEdgePair);
+        if (!globalVarsPath.isEmpty()) {
+          globalVarsPath.addFirst(cfaEdgePair);
+        }
         return;
 
         // this is a return edge from function, this is different from return
@@ -226,54 +226,39 @@ public final class ErrorPathShrinker {
       default:
         shortPath.addFirst(cfaEdgePair);
       }
-
-      // print the Set of importantVars, for testing
-      if (printForTesting) {
-        System.out.print("importantVars: { ");
-        for (String var : importantVars) {
-          System.out.print(var + ", ");
-        }
-        System.out.println(" } , edge: " + cfaEdge.toString() + ", type: "
-            + cfaEdge.getEdgeType());
-      }
-
     }
-    return;
   }
 
   /** This method makes a recursive call of handlePath().
    * After that it merges the result with the current shortPath.
    *
-   * @param shortPath
-   * @param longPath
-   * @param cfaEdgePair
-   * @param revIterator
-   * @param importantVars
-   * @param importantGlobalVars
-   * @param importantGlobalVarsIn
-   * @param globalVarsPath
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
+   * @param revIterator the reverse Iterator of the longPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    * */
   private static void handleJumpStatement(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
       final Iterator<Pair<ARTElement, CFAEdge>> revIterator,
       final Set<String> importantVars,
-      Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
     // Set for storing the important variables, normally empty when leaving
     // handlePath(), because declarators are removed, except globalVars.
     final Set<String> possibleVars = new LinkedHashSet<String>();
-
-    for (String varName : importantVarsForGlobalVarsIn) {
-      if (GLOBAL_VARS.contains(varName)) possibleVars.add(varName);
-    }
+    addGlobalVarsFromSetToSet(importantVarsForGlobalVars, possibleVars);
 
     // in the expression "return r" the value "r" is possibly important.
-    addAllVarsInExpToImportantVars(((StatementEdge) cfaEdgePair.getSecond())
-        .getExpression(), possibleVars, importantVarsForGlobalVarsIn);
+    final IASTExpression returnExp =
+        ((StatementEdge) cfaEdgePair.getSecond()).getExpression();
+    addAllVarsInExpToImportantVars(returnExp, possibleVars,
+        importantVarsForGlobalVars);
 
     final Pair<ARTElement, CFAEdge> returnEdgePair = cfaEdgePair;
 
-    // Path for storing changings of variables of importantGlobalVarsIn
+    // Path for storing changings of variables of importantVarsForGlobalVars
     final Path functionGlobalVarsPath = new Path();
 
     // the short Path is the result, the last element is the "return"-Node
@@ -282,36 +267,18 @@ public final class ErrorPathShrinker {
     // Set for storing the global variables, that are possibly important
     // in the function. copy all global variables in another Set,
     // they could be assigned in the function.
-    final Set<String> possibleImportantVarsForGlobalVarsIn =
+    final Set<String> possibleimportantVarsForGlobalVars =
         new LinkedHashSet<String>();
 
-    // only global variables can be used inside and outside of a function
-    for (String varName : importantVarsForGlobalVarsIn) {
-      if (GLOBAL_VARS.contains(varName))
-        possibleImportantVarsForGlobalVarsIn.add(varName);
-    }
-
-    // print the Set of possibleVars, for testing, normal output: "{r}"
-    if (printForTesting) {
-      System.out.print("importantVarsForGlobalVarsIn: { ");
-      for (String var : importantVarsForGlobalVarsIn) {
-        System.out.print(var + ", ");
-      }
-      System.out.println(" } , edge: " + cfaEdgePair.getSecond().toString());
-      System.out.print("possibleVars: { ");
-      for (String var : possibleVars) {
-        System.out.print(var + ", ");
-      }
-      System.out.println(" } ");
-    }
+    // only global variables can be used inside AND outside of a function
+    addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
+        possibleimportantVarsForGlobalVars);
 
     // this is a recursive call to handle the Path inside of the function
     handlePath(shortFunctionPath, revIterator, possibleVars,
-        possibleImportantVarsForGlobalVarsIn, functionGlobalVarsPath);
+        possibleimportantVarsForGlobalVars, functionGlobalVarsPath);
 
     if (printForTesting) {
-      System.out.println("test");
-      // the global Path has to be part of the functionPath
       System.out.println("funcPath:\n" + shortFunctionPath.toString());
       System.out.println("globPath:\n" + functionGlobalVarsPath.toString());
     }
@@ -334,31 +301,32 @@ public final class ErrorPathShrinker {
     if (importantVars.contains(funcAssumeVarName)
         || !functionGlobalVarsPath.isEmpty()) {
 
+      // delete global variables assigned in the function,
+      // delete all globalVars, the important ones will be added again later.
+      importantVarsForGlobalVars.removeAll(GLOBAL_VARS);
+      importantVars.removeAll(GLOBAL_VARS);
+
+      // if global variables are used in the function and they have an effect
+      // to the result or the globalPath of the function,
+      // add them to the important variables and to the importantGlobalVars.
+      addGlobalVarsFromSetToSet(possibleimportantVarsForGlobalVars,
+          importantVarsForGlobalVars);
+      addGlobalVarsFromSetToSet(possibleimportantVarsForGlobalVars,
+          importantVars);
+
       // get "x" and "y" from "a = f(x,y)"
       // all variables in the expressions "x" and "y" are important
       if (funcEdge.getArguments() != null) {
         for (IASTExpression exp : funcEdge.getArguments()) {
           addAllVarsInExpToImportantVars(exp, importantVars,
-              importantVarsForGlobalVarsIn);
-        }
-      }
-
-      // delete global variables assigned in the function
-      importantVarsForGlobalVarsIn.removeAll(GLOBAL_VARS);
-      importantVars.removeAll(GLOBAL_VARS);
-
-      // if global variables are used in the function and they have an effect
-      // to the result or the globalPath of the function, 
-      // add them to the important variables and to the importantGlobalVars.
-      for (String varName : possibleImportantVarsForGlobalVarsIn) {
-        if (GLOBAL_VARS.contains(varName)) {
-          importantVarsForGlobalVarsIn.add(varName);
-          importantVars.add(varName);
+              importantVarsForGlobalVars);
         }
       }
 
       // add the returnEdge in front of the shortPath
       shortPath.addFirst(returnEdgePair);
+      globalVarsPath.addFirst(returnEdgePair);
+      globalVarsPath.addAll(0, functionGlobalVarsPath);
     }
 
     // if the variable funcAssumeVar is important,
@@ -378,16 +346,16 @@ public final class ErrorPathShrinker {
   /**
    * This method handles statements.
    * 
-   * @param shortPath
-   * @param cfaEdgePair
-   * @param importantVars
-   * @param importantGlobalVarsIn
-   * @param globalVarsPath
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handleStatement(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
       final Set<String> importantVars,
-      final Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
     IASTExpression statementExp =
         ((StatementEdge) cfaEdgePair.getSecond()).getExpression();
@@ -398,14 +366,14 @@ public final class ErrorPathShrinker {
     if (statementExp instanceof IASTUnaryExpression) {
       handleUnaryStatement(shortPath, cfaEdgePair,
           (IASTUnaryExpression) statementExp, importantVars,
-          importantVarsForGlobalVarsIn, globalVarsPath);
+          importantVarsForGlobalVars, globalVarsPath);
     }
 
     // expression is a binary operation, e.g. a = b;
     else if (statementExp instanceof IASTBinaryExpression) {
       handleAssignment(shortPath, cfaEdgePair,
           (IASTBinaryExpression) statementExp, importantVars,
-          importantVarsForGlobalVarsIn, globalVarsPath);
+          importantVarsForGlobalVars, globalVarsPath);
     }
 
     // ext();
@@ -419,7 +387,7 @@ public final class ErrorPathShrinker {
       if (importantVars.contains(varName)) {
         shortPath.addFirst(cfaEdgePair);
       }
-      if (importantVarsForGlobalVarsIn.contains(varName)) {
+      if (importantVarsForGlobalVars.contains(varName)) {
         globalVarsPath.addFirst(cfaEdgePair);
       }
     }
@@ -432,18 +400,18 @@ public final class ErrorPathShrinker {
   /**
    * This method handles unary statements (a++, a--).
    *
-   * @param shortPath
-   * @param cfaEdgePair
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
    * @param unaryExpression the expression to prove
-   * @param importantVars
-   * @param importantVarsForGlobalVarsIn
-   * @param globalVarsPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handleUnaryStatement(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
       final IASTUnaryExpression unaryExpression,
       final Set<String> importantVars,
-      final Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
     // get operand, i.e. "a"
     final IASTExpression operand = unaryExpression.getOperand();
@@ -451,25 +419,12 @@ public final class ErrorPathShrinker {
     if (operand instanceof IASTIdExpression) {
       final String varName = operand.getRawSignature();
 
-      if (printForTesting) {
-        System.out.print("TTimportantVars: { ");
-        for (String var : importantVars) {
-          System.out.print(var + ", ");
-        }
-        System.out.println(" }");
-        System.out.print("TTimportantVarsForGlobalVarsIn: { ");
-        for (String var : importantVarsForGlobalVarsIn) {
-          System.out.print(var + ", ");
-        }
-        System.out.println(" }");
-      }
-
       // an identifier is important, if it has been marked as important before.
       if (importantVars.contains(varName)) {
         shortPath.addFirst(cfaEdgePair);
       }
 
-      if (importantVarsForGlobalVarsIn.contains(varName)) {
+      if (importantVarsForGlobalVars.contains(varName)) {
         globalVarsPath.addFirst(cfaEdgePair);
       }
     }
@@ -478,27 +433,27 @@ public final class ErrorPathShrinker {
   /**
    * This method handles assignments (?a = ??).
    * 
-   * @param shortPath
-   * @param cfaEdgePair
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
    * @param binaryExpression the expression to prove
-   * @param importantVars
-   * @param importantGlobalVarsIn
-   * @param globalVarsPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handleAssignment(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
       final IASTBinaryExpression binaryExpression,
       final Set<String> importantVars,
-      final Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
     IASTExpression lParam = binaryExpression.getOperand1();
     IASTExpression rightExp = binaryExpression.getOperand2();
 
     // a = ?
     if (lParam instanceof IASTIdExpression) {
-      handleAssignmentToVariable(shortPath, cfaEdgePair, lParam
-          .getRawSignature(), rightExp, importantVars,
-          importantVarsForGlobalVarsIn, globalVarsPath);
+      handleAssignmentToVariable(shortPath, cfaEdgePair,
+          lParam.getRawSignature(), rightExp, importantVars,
+          importantVarsForGlobalVars, globalVarsPath);
     }
 
     // TODO: assignment to pointer, *a = ?
@@ -526,50 +481,50 @@ public final class ErrorPathShrinker {
   /**
    * This method handles the assignment of a variable (a = ?).
    * 
-   * @param shortPath
-   * @param cfaEdgePair
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
    * @param lParam the local name of the variable to assign to
    * @param rightExp the assigning expression
-   * @param importantVars
-   * @param importantGlobalVarsIn
-   * @param globalVarsPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handleAssignmentToVariable(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair, final String lParam,
       final IASTExpression rightExp, final Set<String> importantVars,
-      final Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
-    // FIRST add edge to the Path, THEN remove lParam from Sets
+    // FIRST add edge to the Path, THEN remove lParam from Set
     if (importantVars.contains(lParam)
-        || importantVarsForGlobalVarsIn.contains(lParam)) {
-
+        || importantVarsForGlobalVars.contains(lParam)) {
       shortPath.addFirst(cfaEdgePair);
     }
 
-    // if lParam is important, the edge is important
-    // and every variable in rightExp is important.
+    // if lParam is important, the edge and rightExp are important.
     if (importantVars.contains(lParam)) {
 
-      addAllVarsInExpToImportantVars(rightExp, importantVars,
-          importantVarsForGlobalVarsIn);
-
-      // if lParam gets a value, its history is unimportant, remove it.
+      // FIRST remove lParam, its history is unimportant.
       importantVars.remove(lParam);
+
+      // THEN update the Set
+      addAllVarsInExpToImportantVars(rightExp, importantVars,
+          importantVarsForGlobalVars);
     }
 
     // if lParam is a globalVar, all variables in the right expression are
     // important for a global variable and the Edge is part of globalVarPath.
-    if (importantVarsForGlobalVarsIn.contains(lParam)) {
-
-      addAllVarsInExpToImportantVars(rightExp, importantVars,
-          importantVarsForGlobalVarsIn);
-      addAllVarsInExpToImportantVars(rightExp, importantVarsForGlobalVarsIn,
-          importantVarsForGlobalVarsIn);
-
-      // if lParam gets a value, its history is unimportant, remove it.
-      importantVarsForGlobalVarsIn.remove(lParam);
+    if (importantVarsForGlobalVars.contains(lParam)) {
 
       globalVarsPath.addFirst(cfaEdgePair);
+
+      // FIRST remove lParam, its history is unimportant.
+      importantVarsForGlobalVars.remove(lParam);
+
+      // THEN update the Set
+      addAllVarsInExpToImportantVars(rightExp, importantVars,
+          importantVarsForGlobalVars);
+      addAllVarsInExpToImportantVars(rightExp, importantVarsForGlobalVars,
+          importantVarsForGlobalVars);
     }
   }
 
@@ -578,16 +533,16 @@ public final class ErrorPathShrinker {
    * "int a=b;" are preprocessed by CIL to "int a; \n a=b;", so there is no
    * need to handle them. The expression "a=b;" is handled as StatementEdge.
    * 
-   * @param shortPath
-   * @param cfaEdgePair
-   * @param importantVars
-   * @param importantVarsForGlobalVarsIn
-   * @param globalVarsPath
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handleDeclaration(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
       final Set<String> importantVars,
-      final Set<String> importantVarsForGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
 
     DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdgePair.getSecond();
 
@@ -604,7 +559,7 @@ public final class ErrorPathShrinker {
         // so it is not important in the CFA before. --> remove it.
         importantVars.remove(varName);
       }
-      if (importantVarsForGlobalVarsIn.contains(varName)) {
+      if (importantVarsForGlobalVars.contains(varName)) {
         globalVarsPath.addFirst(cfaEdgePair);
       }
     }
@@ -615,19 +570,29 @@ public final class ErrorPathShrinker {
    * Assumptions always are handled as important edges. This method only adds
    * all variables in an assumption (expression) to the important variables.
    * 
-   * @param shortPath
-   * @param cfaEdgePair
-   * @param importantVars
-   * @param importantGlobalVarsIn
+   * @param shortPath the short Path contains only important edges
+   * @param cfaEdgePair the current Edge of the longPath
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param globalVarsPath Path with all Edges that influence an important global variable
    */
   private static void handleAssumption(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
-      final Set<String> importantVars, final Set<String> importantGlobalVarsIn) {
+      final Set<String> importantVars,
+      final Set<String> importantVarsForGlobalVars, final Path globalVarsPath) {
+
     final IASTExpression assumeExp =
         ((AssumeEdge) cfaEdgePair.getSecond()).getExpression();
+
     addAllVarsInExpToImportantVars(assumeExp, importantVars,
-        importantGlobalVarsIn);
+        importantVarsForGlobalVars);
     shortPath.addFirst(cfaEdgePair);
+
+    if (!globalVarsPath.isEmpty()) {
+      addAllVarsInExpToImportantVars(assumeExp, importantVarsForGlobalVars,
+          importantVarsForGlobalVars);
+      globalVarsPath.addFirst(cfaEdgePair);
+    }
   }
 
   /**
@@ -638,11 +603,12 @@ public final class ErrorPathShrinker {
    * Literals are not part of important variables.
    *
    * @param exp the expression to be divided and added
-   * @param importantVars
-   * @param importantGlobalVarsIn
+   * @param importantVars all currently important variables
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
    */
   private static void addAllVarsInExpToImportantVars(final IASTExpression exp,
-      final Set<String> importantVars, final Set<String> importantGlobalVarsIn) {
+      final Set<String> importantVars,
+      final Set<String> importantVarsForGlobalVars) {
 
     // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
@@ -655,35 +621,43 @@ public final class ErrorPathShrinker {
       final String varName = exp.getRawSignature();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
-        importantGlobalVarsIn.add(varName);
+        importantVarsForGlobalVars.add(varName);
       }
     }
 
     // (cast) b
     else if (exp instanceof IASTCastExpression) {
       addAllVarsInExpToImportantVars(((IASTCastExpression) exp).getOperand(),
-          importantVars, importantGlobalVarsIn);
+          importantVars, importantVarsForGlobalVars);
     }
 
     // -b
     else if (exp instanceof IASTUnaryExpression) {
       addAllVarsInExpToImportantVars(((IASTUnaryExpression) exp).getOperand(),
-          importantVars, importantGlobalVarsIn);
+          importantVars, importantVarsForGlobalVars);
     }
 
     // b op c; --> b is operand1, c is operand2
     else if (exp instanceof IASTBinaryExpression) {
       final IASTBinaryExpression binExp = (IASTBinaryExpression) exp;
       addAllVarsInExpToImportantVars(binExp.getOperand1(), importantVars,
-          importantGlobalVarsIn);
+          importantVarsForGlobalVars);
       addAllVarsInExpToImportantVars(binExp.getOperand2(), importantVars,
-          importantGlobalVarsIn);
+          importantVarsForGlobalVars);
     }
+  }
 
-    // func(); or b->c;
-    else if (exp instanceof IASTFunctionCallExpression
-        || exp instanceof IASTFieldReference) {
-      // TODO: what should be added to importantVars?
+  /** This function adds all globalVars from one Set to another Set.
+   * 
+   *  @param sourceSet where to read the variables
+   *  @param targetSet where to store the variables
+   */
+  private static void addGlobalVarsFromSetToSet(final Set<String> sourceSet,
+      final Set<String> targetSet) {
+    for (String varName : sourceSet) {
+      if (GLOBAL_VARS.contains(varName)) {
+        targetSet.add(varName);
+      }
     }
   }
 
