@@ -64,7 +64,7 @@ public final class ErrorPathShrinker {
   private static final Set<String> GLOBAL_VARS     =
                                                        new LinkedHashSet<String>();
 
-  private static boolean           printForTesting = true;
+  private static boolean           printForTesting = false;
 
   /** The function shrinkErrorPath gets an targetPath and creates a new Path,
    * with only the important edges of the Path.
@@ -84,10 +84,6 @@ public final class ErrorPathShrinker {
     final Set<String> importantVars = new LinkedHashSet<String>();
 
     // Set for storing the global variables, that are important and used
-    // after the proved edges.
-    final Set<String> importantGlobalVarsAfter = new LinkedHashSet<String>();
-
-    // Set for storing the global variables, that are important and used
     // during proving the edges.
     final Set<String> importantGlobalVarsIn = new LinkedHashSet<String>();
 
@@ -101,7 +97,7 @@ public final class ErrorPathShrinker {
     shortErrorPath.addFirst(revIterator.next());
 
     handlePath(shortErrorPath, revIterator, importantVars,
-        importantGlobalVarsAfter, importantGlobalVarsIn, globalVarsPath);
+        importantGlobalVarsIn, globalVarsPath);
 
     //TODO add the rest of the GlobalVarEdges
 
@@ -162,9 +158,8 @@ public final class ErrorPathShrinker {
    */
   private static void handlePath(final Path shortPath,
       final Iterator<Pair<ARTElement, CFAEdge>> revIterator,
-      final Set<String> importantVars,
-      final Set<String> importantGlobalVarsAfter,
-      final Set<String> importantGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVars, final Set<String> importantGlobalVarsIn,
+      final Path globalVarsPath) {
 
     // Set for storing all variables, that are important for a global variable
     // used after the function
@@ -186,8 +181,7 @@ public final class ErrorPathShrinker {
         // of its CFA (not same as a return edge)
         if (cfaEdge.isJumpEdge()) {
           handleJumpStatement(shortPath, cfaEdgePair, revIterator,
-              importantVars, importantGlobalVarsAfter, importantGlobalVarsIn,
-              globalVarsPath);
+              importantVars, importantGlobalVarsIn, globalVarsPath);
         }
 
         // this is a regular statement
@@ -266,9 +260,8 @@ public final class ErrorPathShrinker {
   private static void handleJumpStatement(final Path shortPath,
       final Pair<ARTElement, CFAEdge> cfaEdgePair,
       final Iterator<Pair<ARTElement, CFAEdge>> revIterator,
-      final Set<String> importantVars,
-      final Set<String> importantGlobalVarsAfter,
-      final Set<String> importantGlobalVarsIn, final Path globalVarsPath) {
+      final Set<String> importantVars, final Set<String> importantGlobalVarsIn,
+      final Path globalVarsPath) {
 
     // Set for storing the important variables, normally empty when leaving
     // handlePath(), because declarators are removed, except globalVars.
@@ -279,13 +272,13 @@ public final class ErrorPathShrinker {
         ((StatementEdge) cfaEdgePair.getSecond()).getExpression(),
         possibleVars, importantGlobalVarsIn);
 
+    final Pair<ARTElement, CFAEdge> returnEdgePair = cfaEdgePair;
+
     // Path for storing changings of variables of importantGlobalVarsIn
     final Path functionGlobalVarsPath = new Path();
-    functionGlobalVarsPath.addFirst(cfaEdgePair);
 
     // the short Path is the result, the last element is the "return"-Node
     final Path shortFunctionPath = new Path();
-    shortFunctionPath.addFirst(cfaEdgePair);
 
     // Set for storing the global variables, that are possibly important
     // in the function. copy all global variables in another Set,
@@ -305,12 +298,12 @@ public final class ErrorPathShrinker {
       for (String var : possibleVars) {
         System.out.print(var + ", ");
       }
+      System.out.println(" } ");
     }
 
     // this is a recursive call to handle the Path inside of the function
     handlePath(shortFunctionPath, revIterator, possibleVars,
-        importantGlobalVarsIn, possibleImportantGlobalVarsIn,
-        functionGlobalVarsPath);
+        possibleImportantGlobalVarsIn, functionGlobalVarsPath);
 
     if (printForTesting) {
       System.out.println("funcPath:\n" + shortFunctionPath.toString());
@@ -343,7 +336,8 @@ public final class ErrorPathShrinker {
         }
       }
 
-      // add the functionPath in front of the shortPath
+      // add the returnEdge and the functionPath in front of the shortPath
+      shortPath.addFirst(returnEdgePair);
       shortPath.addAll(0, shortFunctionPath);
 
       // if global variables are used in the function and they have an effect
@@ -364,12 +358,12 @@ public final class ErrorPathShrinker {
         for (IASTExpression exp : funcEdge.getArguments()) {
           addAllVarsInExpToImportantVars(exp, importantVars,
               importantGlobalVarsIn);
-          System.out.println(exp.getRawSignature() + ", ");
         }
       }
 
-      // add the hole functionPath to the shortPath
-      shortPath.addAll(0, functionGlobalVarsPath);
+      // add the returnEdge and the functionPath in front of the shortPath
+      shortPath.addFirst(returnEdgePair);
+      shortPath.addAll(0, shortFunctionPath);
 
       // if global variables are used in the function,
       // add them to the importantGlobalVars.
@@ -421,7 +415,7 @@ public final class ErrorPathShrinker {
     // a;
     else if (statementExp instanceof IASTIdExpression) {
       final String varName = statementExp.getRawSignature();
-      if (importantVars.contains(varName) || importantVars.isEmpty()) {
+      if (importantVars.contains(varName)) {
         shortPath.addFirst(cfaEdgePair);
       }
       if (importantGlobalVarsIn.contains(varName)) {
@@ -457,17 +451,8 @@ public final class ErrorPathShrinker {
     if (operand instanceof IASTIdExpression) {
       final String varName = operand.getRawSignature();
 
-      for (String var : importantVars) {
-        System.out.print(var + " ");
-      }
-      System.out.println(importantVars.isEmpty());
-
-      // if the operand is an identifier, it is important, if it is the first
-      // identifier or has been marked as important before.
-      if (importantVars.isEmpty()) {
-        importantVars.add(operand.getRawSignature());
-        shortPath.addFirst(cfaEdgePair);
-      } else if (importantVars.contains(varName)) {
+      // an identifier is important, if it has been marked as important before.
+      if (importantVars.contains(varName)) {
         shortPath.addFirst(cfaEdgePair);
       }
 
@@ -549,7 +534,7 @@ public final class ErrorPathShrinker {
 
     // if lParam is important, the edge is important
     // and every variable in rightExp is important.
-    if (importantVars.contains(lParam) || importantVars.isEmpty()) {
+    if (importantVars.contains(lParam)) {
       addAllVarsInExpToImportantVars(rightExp, importantVars,
           importantGlobalVarsIn);
     }
@@ -563,7 +548,7 @@ public final class ErrorPathShrinker {
       globalVarsPath.addFirst(cfaEdgePair);
     }
 
-    if (importantVars.contains(lParam) || importantVars.isEmpty()
+    if (importantVars.contains(lParam)
         || importantGlobalVarsIn.contains(lParam)
         || possibleImportantVarsForGlobalVarsIn.contains(lParam)) {
       shortPath.addFirst(cfaEdgePair);
