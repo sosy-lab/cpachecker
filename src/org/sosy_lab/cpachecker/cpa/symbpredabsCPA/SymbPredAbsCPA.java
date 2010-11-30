@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
@@ -107,7 +107,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.config = config;
     this.logger = logger;
 
-    regionManager = BDDAbstractFormulaManager.getInstance();
+    regionManager = BDDRegionManager.getInstance();
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
 
     TheoremProver thmProver;

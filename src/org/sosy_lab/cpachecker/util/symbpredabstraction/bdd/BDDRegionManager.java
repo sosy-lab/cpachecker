@@ -36,14 +36,14 @@ import org.sosy_lab.common.Triple;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
  */
-public class BDDAbstractFormulaManager implements RegionManager {
+public class BDDRegionManager implements RegionManager {
 
   // static because init() may be called only once!
   private static final String BDD_PACKAGE = "cudd";
   private static final BDDFactory factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
 
-  private static final Region trueFormula = new BDDAbstractFormula(factory.one());
-  private static final Region falseFormula = new BDDAbstractFormula(factory.zero());
+  private static final Region trueFormula = new BDDRegion(factory.one());
+  private static final Region falseFormula = new BDDRegion(factory.zero());
 
   private static int nextvar = 0;
   private static int varcount = 100;
@@ -61,7 +61,7 @@ public class BDDAbstractFormulaManager implements RegionManager {
     return ret;
   }
 
-  private static RegionManager instance = new BDDAbstractFormulaManager();
+  private static RegionManager instance = new BDDRegionManager();
   
   public static RegionManager getInstance() { return instance; }
   
@@ -69,15 +69,15 @@ public class BDDAbstractFormulaManager implements RegionManager {
   public boolean entails(Region pF1, Region pF2) {
       // check entailment using BDDs: create the BDD representing
       // the implication, and check that it is the TRUE formula
-      BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
-      BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
+      BDDRegion f1 = (BDDRegion)pF1;
+      BDDRegion f2 = (BDDRegion)pF2;
       BDD imp = f1.getBDD().imp(f2.getBDD());
       return imp.isOne();
   }
 
   @Override
   public boolean isFalse(Region f) {
-    return ((BDDAbstractFormula)f).getBDD().isZero();
+    return ((BDDRegion)f).getBDD().isZero();
   }
 
   @Override
@@ -92,41 +92,41 @@ public class BDDAbstractFormulaManager implements RegionManager {
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
-    BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
-    BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
+    BDDRegion f1 = (BDDRegion)pF1;
+    BDDRegion f2 = (BDDRegion)pF2;
 
-    return new BDDAbstractFormula(f1.getBDD().and(f2.getBDD()));
+    return new BDDRegion(f1.getBDD().and(f2.getBDD()));
   }
 
   @Override
   public Region makeNot(Region pF) {
-    BDDAbstractFormula f = (BDDAbstractFormula)pF;
+    BDDRegion f = (BDDRegion)pF;
 
-    return new BDDAbstractFormula(f.getBDD().not());
+    return new BDDRegion(f.getBDD().not());
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
-    BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
-    BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
+    BDDRegion f1 = (BDDRegion)pF1;
+    BDDRegion f2 = (BDDRegion)pF2;
 
-    return new BDDAbstractFormula(f1.getBDD().or(f2.getBDD()));
+    return new BDDRegion(f1.getBDD().or(f2.getBDD()));
   }
 
   @Override
   public Region createPredicate() {
     BDD bddVar = createNewVar();
 
-    return new BDDAbstractFormula(bddVar);
+    return new BDDRegion(bddVar);
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
-    BDD f = ((BDDAbstractFormula)pF).getBDD();
+    BDD f = ((BDDRegion)pF).getBDD();
 
-    BDDAbstractFormula predicate = new BDDAbstractFormula(factory.ithVar(f.var()));
-    BDDAbstractFormula fThen = new BDDAbstractFormula(f.high());
-    BDDAbstractFormula fElse = new BDDAbstractFormula(f.low());
+    BDDRegion predicate = new BDDRegion(factory.ithVar(f.var()));
+    BDDRegion fThen = new BDDRegion(f.high());
+    BDDRegion fElse = new BDDRegion(f.low());
 
     return new Triple<Region, Region, Region>(predicate, fThen, fElse);
   }

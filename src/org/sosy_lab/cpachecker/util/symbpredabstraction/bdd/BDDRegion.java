@@ -27,15 +27,15 @@ import net.sf.javabdd.BDD;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 
 /**
- * Abstract formulas represented using BDDs
+ * Regions represented using BDDs
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-class BDDAbstractFormula implements Region {
+class BDDRegion implements Region {
 
     private final BDD bddRepr;
 
-    public BDDAbstractFormula(BDD pBDD) {
+    public BDDRegion(BDD pBDD) {
         bddRepr = pBDD;
     }
 
@@ -45,8 +45,8 @@ class BDDAbstractFormula implements Region {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof BDDAbstractFormula) {
-            return bddRepr.equals(((BDDAbstractFormula)o).bddRepr);
+        if (o instanceof BDDRegion) {
+            return bddRepr.equals(((BDDRegion)o).bddRepr);
         }
         return false;
     }
