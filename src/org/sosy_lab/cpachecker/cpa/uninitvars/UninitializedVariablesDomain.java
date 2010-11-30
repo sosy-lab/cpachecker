@@ -30,16 +30,14 @@ import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
  */
 public class UninitializedVariablesDomain implements AbstractDomain {
 
-  private static class UninitializedVariablesJoinOperator {
-    public AbstractElement join(AbstractElement element1,
-                                AbstractElement element2) throws CPAException {
+  @Override
+  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
 
@@ -51,15 +49,11 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       // the others are already identical (were joined before calling the last function)
 
       return newElement;
-    }
   }
 
-  private static class UninitializedVariablesPartialOrder {
-    // returns true if element1 < element2 on lattice
-    public boolean satisfiesPartialOrder(AbstractElement element1,
-                                         AbstractElement element2)
-                                         throws CPAException {
-
+  @Override
+  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+      // returns true if element1 < element2 on lattice
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
 
@@ -87,21 +81,5 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       assert !it2.hasNext(); // ensure same length
 
       return true;
-    }
-  }
-
-  private static final UninitializedVariablesJoinOperator joinOperator = new UninitializedVariablesJoinOperator();
-  private static final UninitializedVariablesPartialOrder partialOrder = new UninitializedVariablesPartialOrder();
-
-  @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return joinOperator.join(pElement1, pElement2);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

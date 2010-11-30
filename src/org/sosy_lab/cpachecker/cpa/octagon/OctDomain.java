@@ -31,16 +31,13 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class OctDomain implements AbstractDomain{
 
   public static long totaltime = 0;
 
-  private static class OctPartialOrder
-  {
-    public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
-    {
+  @Override
+  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
 
       Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
 
@@ -83,32 +80,13 @@ public class OctDomain implements AbstractDomain{
         totaltime = totaltime + (System.currentTimeMillis() - start);
         return included;
       }
-    }
   }
 
-  private static class OctJoinOperator
-  {
-    public AbstractElement join (AbstractElement element1, AbstractElement element2)
-    {
+  @Override
+  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
       // TODO fix
       OctElement octEl1 = (OctElement) element1;
       OctElement octEl2 = (OctElement) element2;
       return LibraryAccess.widening(octEl1, octEl2);
-    }
-  }
-
-  private final static OctPartialOrder partialOrder = new OctPartialOrder ();
-  private final static OctJoinOperator joinOperator = new OctJoinOperator ();
-
-  @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return joinOperator.join(pElement1, pElement2);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }

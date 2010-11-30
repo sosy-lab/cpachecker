@@ -27,15 +27,12 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class InterpreterDomain implements AbstractDomain {
 
-  private static class InterpreterPartialOrder
-  {
-    // returns true if element1 < element2 on lattice
-    public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
-    {
+  @Override
+  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
+      // returns true if element1 < element2 on lattice
       InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
       InterpreterElement explicitAnalysisElementReached = (InterpreterElement) reachedElement;
 
@@ -57,13 +54,10 @@ public class InterpreterDomain implements AbstractDomain {
         }
       }
       return true;
-    }
   }
 
-  private static class InterpreterJoinOperator
-  {
-    public AbstractElement join(AbstractElement element1, AbstractElement element2)
-    {
+  @Override
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
       /*InterpreterElement explicitAnalysisElement1 = (InterpreterElement) element1;
       InterpreterElement explicitAnalysisElement2 = (InterpreterElement) element2;
 
@@ -83,22 +77,6 @@ public class InterpreterDomain implements AbstractDomain {
       }
       return new InterpreterElement(newConstantsMap, explicitAnalysisElement2.getPreviousElement());*/
       
-      throw new RuntimeException();
-    }
-  }
-
-  private final static InterpreterPartialOrder sPartialOrder = new InterpreterPartialOrder ();
-  private final static InterpreterJoinOperator sJoinOperator = new InterpreterJoinOperator ();
-
-  @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return sJoinOperator.join(pElement1, pElement2);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return sPartialOrder.satisfiesPartialOrder(pElement1, pElement2);
+      throw new UnsupportedOperationException();
   }
 }

@@ -30,25 +30,19 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DefUseDomain implements AbstractDomain
 {
-    private static class DefUsePartialOrder
-    {
-        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
-        {
+  @Override
+  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
             
             return defUseElement2.containsAllOf(defUseElement1);
-        }
     }
 
-    private static class DefUseJoinOperator
-    {
-        public AbstractElement join (AbstractElement element1, AbstractElement element2)
-        {
+    @Override
+    public AbstractElement join(AbstractElement element1, AbstractElement element2) {
             // Useless code, but helps to catch bugs by causing cast exceptions
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
@@ -64,21 +58,5 @@ public class DefUseDomain implements AbstractDomain
             }
 
             return new DefUseElement (joined);
-        }
-    }
-
-    private final static DefUsePartialOrder partialOrder = new DefUsePartialOrder ();
-    private final static DefUseJoinOperator joinOperator = new DefUseJoinOperator ();
-    
-    @Override
-    public AbstractElement join(AbstractElement pElement1,
-        AbstractElement pElement2) throws CPAException {
-      return joinOperator.join(pElement1, pElement2);
-    }
-
-    @Override
-    public boolean isLessOrEqual(AbstractElement pElement1,
-        AbstractElement pElement2) throws CPAException {
-      return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
     }
 }

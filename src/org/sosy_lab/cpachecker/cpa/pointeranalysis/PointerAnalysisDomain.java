@@ -25,17 +25,15 @@ package org.sosy_lab.cpachecker.cpa.pointeranalysis;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
  */
 public class PointerAnalysisDomain implements AbstractDomain {
 
-  private static class PointerAnalysisJoinOperator {
-    public AbstractElement join(AbstractElement element1,
-                                AbstractElement element2) throws CPAException {
-
+  @Override
+  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+    
       PointerAnalysisElement pointerElement1 = (PointerAnalysisElement)element1;
       //PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
 
@@ -66,32 +64,13 @@ public class PointerAnalysisDomain implements AbstractDomain {
       // the others are already identical (were joined before calling the last function)
       */
       return pointerElementNew;
-    }
   }
 
-  private static class PointerAnalysisPartialOrder {
-    public boolean satisfiesPartialOrder(AbstractElement newElement,
-                                         AbstractElement reachedElement)
-                                         throws CPAException {
+  @Override
+  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
       PointerAnalysisElement newPointerElement = (PointerAnalysisElement)newElement;
       PointerAnalysisElement reachedPointerElement = (PointerAnalysisElement)reachedElement;
 
       return reachedPointerElement.isSubsetOf(newPointerElement);
-    }
-  }
-
-  private static final PointerAnalysisJoinOperator joinOperator = new PointerAnalysisJoinOperator();
-  private static final PointerAnalysisPartialOrder partialOrder = new PointerAnalysisPartialOrder();
-
-  @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return joinOperator.join(pElement1, pElement2);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
 }
