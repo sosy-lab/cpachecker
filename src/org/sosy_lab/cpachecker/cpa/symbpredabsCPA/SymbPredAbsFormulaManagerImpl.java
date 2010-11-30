@@ -67,9 +67,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
@@ -117,8 +114,6 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   private final TheoremProver thmProver;
   private final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
-
-  private static final int MAX_CACHE_SIZE = 100000;
 
   private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
@@ -176,8 +171,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
-  private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
-  private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
+  private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
+  private final Map<Formula, Boolean> feasibilityCache;
 
   public SymbPredAbsFormulaManagerImpl(
       RegionManager pRmgr,
@@ -217,8 +212,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       abstractionCache = null;
     }
     if (useCache && cartesianAbstraction) {
-      cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
-      feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
+      cartesianAbstractionCache = new HashMap<Pair<Formula, AbstractionPredicate>, Byte>();
+      feasibilityCache = new HashMap<Formula, Boolean>();
     } else {
       cartesianAbstractionCache = null;
       feasibilityCache = null;
@@ -291,8 +286,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       int predIndex = -1;
       for (AbstractionPredicate p : predicates) {
         ++predIndex;
-        CartesianAbstractionCacheKey key =
-          new CartesianAbstractionCacheKey(f, p);
+        Pair<Formula, AbstractionPredicate> key = new Pair<Formula, AbstractionPredicate>(f, p);
         if (cartesianAbstractionCache.containsKey(key)) {
           predVals[predIndex] = cartesianAbstractionCache.get(key);
         } else {
@@ -303,10 +297,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
     boolean skipFeasibilityCheck = false;
     if (useCache) {
-      FeasibilityCacheKey key = new FeasibilityCacheKey(f);
-      if (feasibilityCache.containsKey(key)) {
+      if (feasibilityCache.containsKey(f)) {
         skipFeasibilityCheck = true;
-        if (!feasibilityCache.get(key)) {
+        if (!feasibilityCache.get(f)) {
           // abstract post leads to false, we can return immediately
           return rmgr.makeFalse();
         }
@@ -323,8 +316,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
         //++stats.abstractionNumMathsatQueries;
         boolean unsat = thmProver.isUnsat(f);
         if (useCache) {
-          FeasibilityCacheKey key = new FeasibilityCacheKey(f);
-          feasibilityCache.put(key, !unsat);
+          feasibilityCache.put(f, !unsat);
         }
         if (unsat) {
           return rmgr.makeFalse();
@@ -396,9 +388,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
             }
 
             if (useCache) {
-              CartesianAbstractionCacheKey key =
-                new CartesianAbstractionCacheKey(f, p);
-              cartesianAbstractionCache.put(key, predVal);
+              cartesianAbstractionCache.put(new Pair<Formula, AbstractionPredicate>(f, p), predVal);
             }
           }
         }     
