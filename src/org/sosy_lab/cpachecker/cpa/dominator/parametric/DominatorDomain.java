@@ -76,7 +76,7 @@ public class DominatorDomain implements AbstractDomain {
     private final static DominatorTopElement topElement = new DominatorTopElement();
 
     @Override
-    public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException
+    public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException
     {
         if (element1.equals(element2))
             return true;
@@ -88,7 +88,7 @@ public class DominatorDomain implements AbstractDomain {
         	DominatorElement dominatorElement1 = (DominatorElement)element1;
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
 
-        	if (this.cpa.getAbstractDomain().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
+        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
         		Iterator<AbstractElement> dominatorIterator = dominatorElement2.getIterator();
 
         		while (dominatorIterator.hasNext()) {

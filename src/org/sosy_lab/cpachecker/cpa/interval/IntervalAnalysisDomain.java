@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 public class IntervalAnalysisDomain implements AbstractDomain
 {
     @Override
-    public boolean satisfiesPartialOrder(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
+    public boolean isLessOrEqual(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {
       IntervalAnalysisElement currentElement = (IntervalAnalysisElement) currentAbstractElement;
       IntervalAnalysisElement reachedElement = (IntervalAnalysisElement) reachedAbstractElement;

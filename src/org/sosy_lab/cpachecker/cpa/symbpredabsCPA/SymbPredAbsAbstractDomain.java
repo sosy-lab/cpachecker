@@ -54,7 +54,7 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
   }
   
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement element1,
+  public boolean isLessOrEqual(AbstractElement element1,
                                        AbstractElement element2) throws CPAException {
     coverageCheckTimer.start();
     try {

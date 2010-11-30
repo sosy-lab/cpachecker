@@ -57,10 +57,10 @@ public class MustMayAnalysisPartialOrder {
     } else if (lElement2.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
       mustSatisfies = false;
     } else {
-      mustSatisfies = mMustDomain.satisfiesPartialOrder(lElement1.getMustElement(), lElement2.getMustElement());
+      mustSatisfies = mMustDomain.isLessOrEqual(lElement1.getMustElement(), lElement2.getMustElement());
     }
     
-    boolean maySatisfies = mMayDomain.satisfiesPartialOrder(lElement1.getMayElement(), lElement2.getMayElement()); 
+    boolean maySatisfies = mMayDomain.isLessOrEqual(lElement1.getMayElement(), lElement2.getMayElement()); 
     return (mustSatisfies && maySatisfies);
   }
 

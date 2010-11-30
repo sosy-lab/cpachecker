@@ -27,7 +27,31 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface AbstractDomain {
 
-    public AbstractElement join(AbstractElement element1, AbstractElement element2) throws CPAException;
-    public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException;
+  /**
+   * Returns the smallest element of the lattice that is greater than both
+   * elements (the join).
+   * 
+   * This is an optional method. If a domain is expected to be used only with
+   * merge-sep, it does not have to provide an implementation of this method.
+   * This method should then throw an {@link UnsupportedOperationException}.
+   * 
+   * @param element1 an abstract element
+   * @param element2 an abstract element
+   * @return the join of element1 and element2
+   * @throws CPAException If any error occurred.
+   * @throws UnsupportedOperationException If this domain does not provide a join method.
+   */
+  public AbstractElement join(AbstractElement element1, AbstractElement element2) throws CPAException;
+  
+  /**
+   * Returns true if element1 is less or equal than element with respect to
+   * the lattice.
+   * 
+   * @param element1 an abstract element
+   * @param element2 an abstract element
+   * @return (element1 <= element2)
+   * @throws CPAException If any error occurred.
+   */
+  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException;
 
 }

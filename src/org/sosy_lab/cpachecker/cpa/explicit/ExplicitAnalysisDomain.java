@@ -115,7 +115,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement pElement1,
+  public boolean isLessOrEqual(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     return partialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }

@@ -59,11 +59,11 @@ public class FlatLatticeDomain implements AbstractDomain {
 
   @Override
   public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
-    if (satisfiesPartialOrder(pElement1, pElement2)) {
+    if (isLessOrEqual(pElement1, pElement2)) {
       return pElement2;
     }
 
-    if (satisfiesPartialOrder(pElement2, pElement1)) {
+    if (isLessOrEqual(pElement2, pElement1)) {
       return pElement1;
     }
 
@@ -71,7 +71,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement) throws CPAException {
+  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) throws CPAException {
     return (mTopElement.equals(reachedElement) || newElement.equals(reachedElement));
   }
 }

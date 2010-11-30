@@ -54,12 +54,12 @@ public class StopJoinOperator implements StopOperator {
       joinedElement = domain.join(it.next(), joinedElement);
     }
 
-    return domain.satisfiesPartialOrder(element, joinedElement);
+    return domain.isLessOrEqual(element, joinedElement);
   }
 
   @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
                       throws CPAException {
-    return domain.satisfiesPartialOrder(element, reachedElement);
+    return domain.isLessOrEqual(element, reachedElement);
   }
 }

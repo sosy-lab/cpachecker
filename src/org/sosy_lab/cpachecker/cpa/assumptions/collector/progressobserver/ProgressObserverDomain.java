@@ -42,7 +42,7 @@ public class ProgressObserverDomain implements AbstractDomain {
 
   // Partial order: flat
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2) throws CPAException {
+  public boolean isLessOrEqual(AbstractElement el1, AbstractElement el2) throws CPAException {
     return (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
   }
 }

@@ -52,7 +52,7 @@ public class StopSepOperator implements StopOperator {
     throws CPAException
   {
     for (AbstractElement reachedElement : reached) {
-      if (domain.satisfiesPartialOrder(el, reachedElement))
+      if (domain.isLessOrEqual(el, reachedElement))
         return true;
     }
     return false;
@@ -61,7 +61,7 @@ public class StopSepOperator implements StopOperator {
   @Override
   public boolean stop(AbstractElement el, AbstractElement reachedElement)
       throws CPAException {
-    return domain.satisfiesPartialOrder(el, reachedElement);
+    return domain.isLessOrEqual(el, reachedElement);
   }
 
 }

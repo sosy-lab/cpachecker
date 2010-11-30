@@ -49,7 +49,7 @@ public class CompositeDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean satisfiesPartialOrder(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
     CompositeElement comp1 = (CompositeElement)pElement1;
     CompositeElement comp2 = (CompositeElement)pElement2;
 
@@ -61,7 +61,7 @@ public class CompositeDomain implements AbstractDomain {
 
     for (int idx = 0; idx < comp1Elements.size(); idx++) {
       AbstractDomain domain = domains.get(idx);
-      if (!domain.satisfiesPartialOrder(comp1Elements.get (idx), comp2Elements.get(idx))) {
+      if (!domain.isLessOrEqual(comp1Elements.get (idx), comp2Elements.get(idx))) {
         return false;
       }
     }

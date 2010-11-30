@@ -179,7 +179,7 @@ public class CPASelfCheck {
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
 
     boolean ok = true;
-    ok &= ensure(d.satisfiesPartialOrder(initial, d.join(initial,initial)),
+    ok &= ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
     return ok;
   }
@@ -194,7 +194,7 @@ public class CPASelfCheck {
     boolean ok = true;
     ok &= ensure(merge != null, "Merge-hack: mergeOperator is null!");
     if (!ok) return false;
-    ok &= ensure(d.satisfiesPartialOrder(initial, merge.merge(initial,initial,initialPrec)),
+    ok &= ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
         "Merging same elements was unsound!");
     return ok;
   }
