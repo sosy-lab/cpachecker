@@ -31,9 +31,9 @@ import java.util.Collection;
 import java.util.Deque;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
@@ -95,7 +95,7 @@ public class MathsatTheoremProver implements TheoremProver {
   
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
-                             FormulaManager fmgr, RegionManager rmgr) {
+                             AbstractionManager fmgr, RegionManager rmgr) {
     long formula = getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -130,7 +130,7 @@ public class MathsatTheoremProver implements TheoremProver {
    * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
    */
   public static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
-    private final FormulaManager fmgr;
+    private final AbstractionManager fmgr;
     private final RegionManager rmgr;
     
     private long totalTime = 0;
@@ -139,7 +139,7 @@ public class MathsatTheoremProver implements TheoremProver {
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(FormulaManager fmgr, RegionManager rmgr) {
+    public MathsatAllSatCallback(AbstractionManager fmgr, RegionManager rmgr) {
       this.fmgr = fmgr;
       this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();

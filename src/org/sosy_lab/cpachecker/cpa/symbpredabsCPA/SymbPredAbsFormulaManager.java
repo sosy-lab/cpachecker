@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface SymbPredAbsFormulaManager extends FormulaManager {
+public interface SymbPredAbsFormulaManager extends PathFormulaManager {
 
     /**
      * Abstract post operation.
@@ -82,4 +82,11 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
     CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException;
 
     void dumpCounterexampleToFile(CounterexampleTraceInfo pCex, File pFile);
+
+    
+    // methods from AbstractionManager
+    
+    AbstractionPredicate makeFalsePredicate();
+
+    AbstractionFormula makeTrueAbstractionFormula(SymbolicFormula previousBlockFormula);
 }

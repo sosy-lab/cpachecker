@@ -23,32 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import com.google.common.base.Joiner;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -58,164 +40,12 @@ import com.google.common.base.Joiner;
  * 
  * @author Philipp Wendler
  */
-@Options(prefix="cpas.symbpredabs.mathsat")
-public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
+public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
 
-  protected final RegionManager rmgr;
-
-  // Here we keep the mapping abstract predicate variable -> predicate
-  private final Map<Region, AbstractionPredicate> absVarToPredicate;
-  // and the mapping symbolic variable -> predicate
-  private final Map<SymbolicFormula, AbstractionPredicate> symbVarToPredicate;
-
-  @Option
-  protected boolean useCache = true;
-
-  private final Map<Region, SymbolicFormula> toConcreteCache;
-
-  public CommonFormulaManager(RegionManager pRmgr, SymbolicFormulaManager pSmgr,
+  public PathFormulaManagerImpl(SymbolicFormulaManager pSmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pSmgr, pLogger);
-    config.inject(this, CommonFormulaManager.class);
-    rmgr = pRmgr;
-
-    absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
-    symbVarToPredicate = new HashMap<SymbolicFormula, AbstractionPredicate>();
-
-    if (useCache) {
-      toConcreteCache = new HashMap<Region, SymbolicFormula>();
-    } else {
-      toConcreteCache = null;
-    }
   }
-
-  /**
-   * Generates the predicates corresponding to the given atoms.
-   */
-  protected List<AbstractionPredicate> buildPredicates(Collection<SymbolicFormula> atoms) {
-    List<AbstractionPredicate> ret = new ArrayList<AbstractionPredicate>(atoms.size());
-
-    for (SymbolicFormula atom : atoms) {
-      ret.add(makePredicate(atom));
-    }
-    return ret;
-  }
-  
-  /**
-   * creates a Predicate from the Boolean symbolic variable (var) and
-   * the atom that defines it
-   */
-  @Override
-  public AbstractionPredicate makePredicate(SymbolicFormula atom) {
-    SymbolicFormula var = smgr.createPredicateVariable(atom);
-    AbstractionPredicate result = symbVarToPredicate.get(var);
-    if (result == null) {
-      Region absVar = rmgr.createPredicate();
-
-      logger.log(Level.FINEST, "Created predicate", absVar,
-          "from variable", var, "and atom", atom);
-
-      result = new AbstractionPredicate(absVar, var, atom);
-      symbVarToPredicate.put(var, result);
-      absVarToPredicate.put(absVar, result);
-    }
-    return result;
-  }
-  
-  @Override
-  public AbstractionPredicate makeFalsePredicate() {
-    return makePredicate(smgr.makeFalse());
-  }
-
-  /**
-   * Get predicate corresponding to a variable.
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
-   * @return a Predicate
-   */
-  @Override
-  public AbstractionPredicate getPredicate(SymbolicFormula var) {
-    AbstractionPredicate result = symbVarToPredicate.get(var);
-    if (result == null) {
-      throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
-    }
-    return result;
-  }
-
-  /**
-   * Given an abstract formula (which is a BDD over the predicates), build
-   * its concrete representation (which is a MathSAT formula corresponding
-   * to the BDD, in which each predicate is replaced with its definition)
-   */
-  @Override
-  public SymbolicFormula toConcrete(Region af) {
-
-    Map<Region, SymbolicFormula> cache;
-    if (useCache) {
-      cache = toConcreteCache;
-    } else {
-      cache = new HashMap<Region, SymbolicFormula>();
-    }
-    Deque<Region> toProcess = new ArrayDeque<Region>();
-
-    cache.put(rmgr.makeTrue(), smgr.makeTrue());
-    cache.put(rmgr.makeFalse(), smgr.makeFalse());
-
-    toProcess.push(af);
-    while (!toProcess.isEmpty()) {
-      Region n = toProcess.peek();
-      if (cache.containsKey(n)) {
-        toProcess.pop();
-        continue;
-      }
-      boolean childrenDone = true;
-      SymbolicFormula m1 = null;
-      SymbolicFormula m2 = null;
-
-      Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
-      Region c1 = parts.getSecond();
-      Region c2 = parts.getThird();
-      if (!cache.containsKey(c1)) {
-        toProcess.push(c1);
-        childrenDone = false;
-      } else {
-        m1 = cache.get(c1);
-      }
-      if (!cache.containsKey(c2)) {
-        toProcess.push(c2);
-        childrenDone = false;
-      } else {
-        m2 = cache.get(c2);
-      }
-      if (childrenDone) {
-        assert m1 != null;
-        assert m2 != null;
-
-        toProcess.pop();
-        Region var = parts.getFirst();
-        assert(absVarToPredicate.containsKey(var));
-
-        SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();
-
-        SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
-        cache.put(n, ite);
-      }
-    }
-
-    SymbolicFormula result = cache.get(af);
-    assert result != null;
-
-    return result;
-  }
-
-  @Override
-  public AbstractionFormula makeTrueAbstractionFormula(SymbolicFormula previousBlockFormula) {
-    if (previousBlockFormula == null) {
-      previousBlockFormula = smgr.makeTrue();
-    }
-    return new AbstractionFormula(rmgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
-  }
-
-  // the rest of this class is related only to symbolic formulas
 
   @Override
   public PathFormula makeEmptyPathFormula() {
@@ -228,16 +58,6 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
 
-  /**
-   * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
-   * it also merges the SSA maps and creates the necessary adjustments to the
-   * formulas if the two SSA maps contain different values for the same variables.
-   *
-   * @param pF1 a PathFormula
-   * @param pF2 a PathFormula
-   * @return (pF1 | pF2)
-   */
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     SymbolicFormula formula1 = pF1.getSymbolicFormula();
@@ -389,25 +209,5 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       result = smgr.makeAnd(result, e);
     }
     return result;
-  }
-
-  protected void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, smgr.dumpFormula(f));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
-  }
-
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-
-  protected void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, LINE_JOINER.join(f));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
   }
 }

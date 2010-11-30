@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -57,11 +59,13 @@ import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
@@ -69,6 +73,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -78,6 +83,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
@@ -85,7 +91,7 @@ import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpas.symbpredabs")
-class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager implements SymbPredAbsFormulaManager {
+class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl implements SymbPredAbsFormulaManager {
 
   static class Stats {
     public int numCallsAbstraction = 0;
@@ -107,6 +113,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   
   final Stats stats;
 
+  private final AbstractionManager amgr;
   private final TheoremProver thmProver;
   private final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
@@ -114,7 +121,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   private static final int MAX_CACHE_SIZE = 100000;
 
   private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
+      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
 
   @Option(name="abstraction.cartesian")
   private boolean cartesianAbstraction = false;
@@ -161,6 +168,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   
   @Option(name="refinement.maxRefinementSize")
   private int maxRefinementSize = 0;
+
+  @Option
+  private boolean useCache = true;
   
   private final Map<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
@@ -176,8 +186,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       InterpolatingTheoremProver<T1> pItpProver,
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
-      LogManager logger) throws InvalidConfigurationException {
-    super(pRmgr, pSmgr, config, logger);
+      LogManager pLogger) throws InvalidConfigurationException {
+    super(pSmgr, config, pLogger);
     config.inject(this);
     
     if (formulaDumpFile != null) {
@@ -188,6 +198,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
 
     stats = new Stats();
+    amgr = new AbstractionManagerImpl(pRmgr, pSmgr, config, pLogger);
     thmProver = pThmProver;
     firstItpProver = pItpProver;
     secondItpProver = pAltItpProver;
@@ -259,7 +270,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
     
-    SymbolicFormula symbolicAbs = smgr.instantiate(toConcrete(abs), pathFormula.getSsa());
+    SymbolicFormula symbolicAbs = smgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
     AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getSymbolicFormula());
 
     if (useCache) {
@@ -271,6 +282,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
   private Region buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
+    final RegionManager rmgr = amgr.getRegionManager();  
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
@@ -492,7 +504,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     final Timer solveTimer = new Timer();
     solveTimer.start();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, rmgr);
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, amgr.getRegionManager());
     solveTimer.stop();
     
     // update statistics
@@ -701,7 +713,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           Collection<AbstractionPredicate> preds;
           
           if (itp.isFalse()) {
-            preds = ImmutableSet.of(makeFalsePredicate());
+            preds = ImmutableSet.of(amgr.makeFalsePredicate());
           } else {
             preds = getAtomsAsPredicates(itp);
           }
@@ -1086,7 +1098,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {
-      preds.add(makePredicate(atom));
+      preds.add(amgr.makePredicate(atom));
     }
     return preds;    
   }
@@ -1136,5 +1148,39 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     public CounterexampleTraceInfo call() throws CPAException {
       return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, currentItpProver);
     }
+  }
+  
+
+  private void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, smgr.dumpFormula(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+
+  private static final Joiner LINE_JOINER = Joiner.on('\n');
+
+  private void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, LINE_JOINER.join(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+
+  // delegate methods
+  
+  @Override
+  public AbstractionPredicate makeFalsePredicate() {
+    return amgr.makeFalsePredicate();
+  }
+
+  @Override
+  public AbstractionFormula makeTrueAbstractionFormula(
+      SymbolicFormula pPreviousBlockFormula) {
+    return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
   }
 }
