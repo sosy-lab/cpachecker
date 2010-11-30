@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -79,7 +79,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       SymbPredAbsFormulaManagerImpl<?, ?> amgr = cpa.getFormulaManager();
 
-      Multimap<CFANode, Predicate> predicates = HashMultimap.create();
+      Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
       for (AbstractElement e : reached) {
         Precision precision = reached.getPrecision(e);
@@ -92,11 +92,11 @@ class SymbPredAbsCPAStatistics implements Statistics {
 
       // check if/where to dump the predicate map
       if (result == Result.SAFE && export && file != null) {
-        TreeMap<CFANode, Collection<Predicate>> sortedPredicates
-              = new TreeMap<CFANode, Collection<Predicate>>(predicates.asMap());
+        TreeMap<CFANode, Collection<AbstractionPredicate>> sortedPredicates
+              = new TreeMap<CFANode, Collection<AbstractionPredicate>>(predicates.asMap());
         StringBuilder sb = new StringBuilder();
         
-        for (Entry<CFANode, Collection<Predicate>> e : sortedPredicates.entrySet()) {
+        for (Entry<CFANode, Collection<AbstractionPredicate>> e : sortedPredicates.entrySet()) {
           sb.append("LOCATION: ");
           sb.append(e.getKey());
           sb.append('\n');
@@ -113,14 +113,14 @@ class SymbPredAbsCPAStatistics implements Statistics {
       }
 
       int maxPredsPerLocation = 0;
-      for (Collection<Predicate> p : predicates.asMap().values()) {
+      for (Collection<AbstractionPredicate> p : predicates.asMap().values()) {
         maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
       }
 
       int allLocs = predicates.keySet().size();
       int totPredsUsed = predicates.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
-      int allDistinctPreds = (new HashSet<Predicate>(predicates.values())).size();
+      int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
 
       SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
       SymbPredAbsAbstractDomain domain = cpa.getAbstractDomain();

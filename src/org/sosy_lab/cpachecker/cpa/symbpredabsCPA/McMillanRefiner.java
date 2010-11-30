@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 
@@ -117,7 +117,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
       assert e instanceof AbstractionElement;
 
-      Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
+      Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
       if (newpreds.size() == 0) {
         if (foundInterpolant) {
           // no predicates after some interpolants have been found means we have
@@ -140,7 +140,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
       boolean newPred = false;
 
-      for (Predicate p : newpreds) {
+      for (AbstractionPredicate p : newpreds) {
         AbstractFormula f = p.getAbstractVariable();
         if (abstractFormulaManager.isFalse(f)) {
           assert newpreds.size() == 1;

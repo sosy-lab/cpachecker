@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -144,7 +144,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     prec = new SymbPredAbsPrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
     
-    Collection<Predicate> predicates = null;
+    Collection<AbstractionPredicate> predicates = null;
     if (predicatesFile != null) {
       try {
         String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
@@ -160,7 +160,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     
     if (checkBlockFeasibility) {
-      Predicate p = formulaManager.makeFalsePredicate();
+      AbstractionPredicate p = formulaManager.makeFalsePredicate();
       if (predicates == null) {
         predicates = ImmutableSet.of(p);
       } else {

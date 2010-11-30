@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -52,7 +52,7 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      */
     public Abstraction buildAbstraction(
             Abstraction abs, PathFormula pathFormula,
-            Collection<Predicate> predicates);
+            Collection<AbstractionPredicate> predicates);
 
     /**
      * Counterexample analysis and predicate discovery.
@@ -77,7 +77,7 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
     /**
      * Create predicates for all atoms in a formula.
      */
-    List<Predicate> getAtomsAsPredicates(SymbolicFormula pF);
+    List<AbstractionPredicate> getAtomsAsPredicates(SymbolicFormula pF);
 
     CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException;
 

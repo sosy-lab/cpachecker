@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.FeasibilityCacheKey;
@@ -162,7 +162,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="refinement.maxRefinementSize")
   private int maxRefinementSize = 0;
   
-  private final Map<Pair<SymbolicFormula, Collection<Predicate>>, Abstraction> abstractionCache;
+  private final Map<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, Abstraction> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -201,7 +201,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 //    }
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<SymbolicFormula, Collection<Predicate>>, Abstraction>();
+      abstractionCache = new HashMap<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, Abstraction>();
     } else {
       abstractionCache = null;
     }
@@ -220,7 +220,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Override
   public Abstraction buildAbstraction(
       Abstraction abstractionFormula, PathFormula pathFormula,
-      Collection<Predicate> predicates) {
+      Collection<AbstractionPredicate> predicates) {
 
     stats.numCallsAbstraction++;
 
@@ -238,9 +238,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
     
     // caching
-    Pair<SymbolicFormula, Collection<Predicate>> absKey = null;
+    Pair<SymbolicFormula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = new Pair<SymbolicFormula, Collection<Predicate>>(f, predicates);
+      absKey = new Pair<SymbolicFormula, Collection<AbstractionPredicate>>(f, predicates);
       Abstraction result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -270,14 +270,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   }
 
   private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
-      Collection<Predicate> predicates) {
+      Collection<AbstractionPredicate> predicates) {
     
     byte[] predVals = null;
     final byte NO_VALUE = -2;
     if (useCache) {
       predVals = new byte[predicates.size()];
       int predIndex = -1;
-      for (Predicate p : predicates) {
+      for (AbstractionPredicate p : predicates) {
         ++predIndex;
         CartesianAbstractionCacheKey key =
           new CartesianAbstractionCacheKey(f, p);
@@ -330,7 +330,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         // check whether each of the predicate is implied in the next state...
 
         int predIndex = -1;
-        for (Predicate p : predicates) {
+        for (AbstractionPredicate p : predicates) {
           ++predIndex;
           if (useCache && predVals[predIndex] != NO_VALUE) {
             
@@ -451,7 +451,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   }
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
-      Collection<Predicate> predicates) {
+      Collection<AbstractionPredicate> predicates) {
 
     // first, create the new formula corresponding to
     // (symbFormula & edges from e to succ)
@@ -466,7 +466,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     SymbolicFormula predDef = smgr.makeTrue();
     List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
 
-    for (Predicate p : predicates) {
+    for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
       SymbolicFormula var = p.getSymbolicVariable();
       SymbolicFormula def = p.getSymbolicAtom();
@@ -698,7 +698,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
         } else {
           foundPredicates = true;
-          Collection<Predicate> preds;
+          Collection<AbstractionPredicate> preds;
           
           if (itp.isFalse()) {
             preds = ImmutableSet.of(makeFalsePredicate());
@@ -716,9 +716,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             String dumpFile = String.format(formulaDumpFilePattern,
                         "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
             Collection<SymbolicFormula> atoms = Collections2.transform(preds,
-                new Function<Predicate, SymbolicFormula>(){
+                new Function<AbstractionPredicate, SymbolicFormula>(){
                       @Override
-                      public SymbolicFormula apply(Predicate pArg0) {
+                      public SymbolicFormula apply(AbstractionPredicate pArg0) {
                         return pArg0.getSymbolicAtom();
                       }
                 });
@@ -1075,7 +1075,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   }
 
   @Override
-  public List<Predicate> getAtomsAsPredicates(SymbolicFormula f) {
+  public List<AbstractionPredicate> getAtomsAsPredicates(SymbolicFormula f) {
     Collection<SymbolicFormula> atoms;
     if (atomicPredicates) {
       atoms = smgr.extractAtoms(f, splitItpAtoms, false);
@@ -1083,7 +1083,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       atoms = Collections.singleton(smgr.uninstantiate(f));
     }
 
-    List<Predicate> preds = new ArrayList<Predicate>(atoms.size());
+    List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {
       preds.add(makePredicate(atom));

@@ -33,13 +33,13 @@ import com.google.common.base.Preconditions;
  *
  * A generic representation of a predicate
  */
-public class Predicate {
+public class AbstractionPredicate {
 
   private final AbstractFormula abstractVariable;
   private final SymbolicFormula symbolicVariable;
   private final SymbolicFormula symbolicAtom;
 
-  public Predicate(AbstractFormula pAbstractVariable,
+  public AbstractionPredicate(AbstractFormula pAbstractVariable,
       SymbolicFormula pSymbolicVariable, SymbolicFormula pSymbolicAtom) {
     abstractVariable = Preconditions.checkNotNull(pAbstractVariable);
     symbolicVariable = Preconditions.checkNotNull(pSymbolicVariable);
@@ -66,10 +66,10 @@ public class Predicate {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
-    } else if (!(pObj instanceof Predicate)) {
+    } else if (!(pObj instanceof AbstractionPredicate)) {
       return false;
     } else {
-      Predicate other = (Predicate)pObj;
+      AbstractionPredicate other = (AbstractionPredicate)pObj;
       return this.abstractVariable.equals(other.abstractVariable);
     }
   }

@@ -28,7 +28,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -36,30 +36,30 @@ import com.google.common.collect.SetMultimap;
 
 public class SymbPredAbsPrecision implements Precision {
 
-  private final ImmutableSetMultimap<CFANode, Predicate> predicateMap;
-  private final ImmutableSet<Predicate> globalPredicates;
+  private final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
+  private final ImmutableSet<AbstractionPredicate> globalPredicates;
 
-  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap, Collection<Predicate> globalPredicates) {
+  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
     assert predicateMap != null;
     this.predicateMap = predicateMap;
     this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
   }
 
-  public SymbPredAbsPrecision(Collection<Predicate> globalPredicates) {
+  public SymbPredAbsPrecision(Collection<AbstractionPredicate> globalPredicates) {
     predicateMap = ImmutableSetMultimap.of();
-    this.globalPredicates = (globalPredicates == null ? ImmutableSet.<Predicate>of() : ImmutableSet.copyOf(globalPredicates));
+    this.globalPredicates = (globalPredicates == null ? ImmutableSet.<AbstractionPredicate>of() : ImmutableSet.copyOf(globalPredicates));
   }
 
-  public SetMultimap<CFANode, Predicate> getPredicateMap() {
+  public SetMultimap<CFANode, AbstractionPredicate> getPredicateMap() {
     return predicateMap;
   }
 
-  public Set<Predicate> getGlobalPredicates() {
+  public Set<AbstractionPredicate> getGlobalPredicates() {
     return globalPredicates;
   }
   
-  public Set<Predicate> getPredicates(CFANode loc) {
-    Set<Predicate> result = predicateMap.get(loc);
+  public Set<AbstractionPredicate> getPredicates(CFANode loc) {
+    Set<AbstractionPredicate> result = predicateMap.get(loc);
     if (result.isEmpty()) {
       result = globalPredicates;
     }

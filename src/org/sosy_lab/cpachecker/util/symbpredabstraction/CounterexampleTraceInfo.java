@@ -49,7 +49,7 @@ import com.google.common.collect.Multimap;
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final Multimap<AbstractElement, Predicate> pmap;
+    private final Multimap<AbstractElement, AbstractionPredicate> pmap;
     private final Model mCounterexampleModel;
     private final List<SymbolicFormula> mCounterexampleFormula;
     private final NavigableMap<Integer, Map<Integer, Boolean>> branchingPreds;
@@ -88,7 +88,7 @@ public class CounterexampleTraceInfo {
      *
      * @return a list of predicates
      */
-    public Collection<Predicate> getPredicatesForRefinement(AbstractElement e) {
+    public Collection<AbstractionPredicate> getPredicatesForRefinement(AbstractElement e) {
         return pmap.get(e);
     }
 
@@ -97,7 +97,7 @@ public class CounterexampleTraceInfo {
      * AbstractElement
      */
     public void addPredicatesForRefinement(AbstractElement e,
-                                           Iterable<Predicate> preds) {
+                                           Iterable<AbstractionPredicate> preds) {
       pmap.putAll(e, preds);
     }
 

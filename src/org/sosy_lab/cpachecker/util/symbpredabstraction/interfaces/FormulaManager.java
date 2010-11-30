@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 
 public interface FormulaManager {
 
@@ -87,18 +87,18 @@ public interface FormulaManager {
   /**
    * creates a Predicate for an atom that defines it
    */
-  public Predicate makePredicate(SymbolicFormula atom);
+  public AbstractionPredicate makePredicate(SymbolicFormula atom);
   
   /**
    * Creates a Predicate for the atom "false".
    */
-  public Predicate makeFalsePredicate();
+  public AbstractionPredicate makeFalsePredicate();
   
   /**
    * Get predicate corresponding to a variable.
    * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
    * @return a Predicate
    */
-  public Predicate getPredicate(SymbolicFormula var);
+  public AbstractionPredicate getPredicate(SymbolicFormula var);
 
 }

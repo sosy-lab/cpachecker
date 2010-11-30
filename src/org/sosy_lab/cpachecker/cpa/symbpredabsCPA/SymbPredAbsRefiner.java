@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -214,15 +214,15 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       ArrayList<SymbPredAbsAbstractElement> pPath, List<ARTElement> pArtPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-    Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
-    Set<Predicate> globalPredicates = oldPrecision.getGlobalPredicates();
+    Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
+    Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
     
     SymbPredAbsAbstractElement firstInterpolationElement = null;
     ARTElement firstInterpolationARTElement = null;
     boolean newPredicatesFound = false;
     
     List<CFANode> absLocations = new ArrayList<CFANode>(pArtPath.size());
-    ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
@@ -231,7 +231,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     for (ARTElement ae : pArtPath) {
       i++;
       SymbPredAbsAbstractElement e = pPath.get(i);
-      Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
+      Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
       CFANode loc = ae.retrieveLocationElement().getLocationNode();
       absLocations.add(loc);
       
@@ -250,7 +250,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     assert firstInterpolationElement != null;
     assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
 
-    ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
+    ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
     SymbPredAbsPrecision newPrecision;
     if (addPredicatesGlobally) {
       newPrecision = new SymbPredAbsPrecision(newPredicateMap.values());

@@ -60,9 +60,9 @@ public class Cache {
 
   public static class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
     private final SymbolicFormula formula;
-    private final Predicate pred;
+    private final AbstractionPredicate pred;
 
-    public CartesianAbstractionCacheKey(SymbolicFormula f, Predicate p) {
+    public CartesianAbstractionCacheKey(SymbolicFormula f, AbstractionPredicate p) {
       super();
       formula = f;
       pred = p;

@@ -64,9 +64,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   protected final AbstractFormulaManager amgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
-  private final Map<AbstractFormula, Predicate> absVarToPredicate;
+  private final Map<AbstractFormula, AbstractionPredicate> absVarToPredicate;
   // and the mapping symbolic variable -> predicate
-  private final Map<SymbolicFormula, Predicate> symbVarToPredicate;
+  private final Map<SymbolicFormula, AbstractionPredicate> symbVarToPredicate;
 
   @Option
   protected boolean useCache = true;
@@ -79,8 +79,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
 
-    absVarToPredicate = new HashMap<AbstractFormula, Predicate>();
-    symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
+    absVarToPredicate = new HashMap<AbstractFormula, AbstractionPredicate>();
+    symbVarToPredicate = new HashMap<SymbolicFormula, AbstractionPredicate>();
 
     if (useCache) {
       toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
@@ -92,8 +92,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   /**
    * Generates the predicates corresponding to the given atoms.
    */
-  protected List<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
-    List<Predicate> ret = new ArrayList<Predicate>(atoms.size());
+  protected List<AbstractionPredicate> buildPredicates(Collection<SymbolicFormula> atoms) {
+    List<AbstractionPredicate> ret = new ArrayList<AbstractionPredicate>(atoms.size());
 
     for (SymbolicFormula atom : atoms) {
       ret.add(makePredicate(atom));
@@ -106,16 +106,16 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * the atom that defines it
    */
   @Override
-  public Predicate makePredicate(SymbolicFormula atom) {
+  public AbstractionPredicate makePredicate(SymbolicFormula atom) {
     SymbolicFormula var = smgr.createPredicateVariable(atom);
-    Predicate result = symbVarToPredicate.get(var);
+    AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       AbstractFormula absVar = amgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
           "from variable", var, "and atom", atom);
 
-      result = new Predicate(absVar, var, atom);
+      result = new AbstractionPredicate(absVar, var, atom);
       symbVarToPredicate.put(var, result);
       absVarToPredicate.put(absVar, result);
     }
@@ -123,7 +123,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
   
   @Override
-  public Predicate makeFalsePredicate() {
+  public AbstractionPredicate makeFalsePredicate() {
     return makePredicate(smgr.makeFalse());
   }
 
@@ -133,8 +133,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * @return a Predicate
    */
   @Override
-  public Predicate getPredicate(SymbolicFormula var) {
-    Predicate result = symbVarToPredicate.get(var);
+  public AbstractionPredicate getPredicate(SymbolicFormula var) {
+    AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
     }
