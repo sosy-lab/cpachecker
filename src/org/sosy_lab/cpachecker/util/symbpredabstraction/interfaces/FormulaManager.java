@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 
@@ -62,7 +62,7 @@ public interface FormulaManager {
   /**
    * Creates a new Abstraction object that represents the formula "true".
    */
-  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula);
+  public AbstractionFormula makeTrueAbstractionFormula(SymbolicFormula previousBlockFormula);
   
   /**
    * Creates a new empty path formula.

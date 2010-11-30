@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * 
  * Abstractions are not considered equal even if they have the same formula. 
  */
-public class Abstraction {
+public class AbstractionFormula {
 
   private final Region region;
   private final SymbolicFormula symbolicFormula;
@@ -48,7 +48,7 @@ public class Abstraction {
   private static int nextId = 0;
   private final int id = nextId++;
   
-  public Abstraction(Region pFirst, SymbolicFormula pSecond,
+  public AbstractionFormula(Region pFirst, SymbolicFormula pSecond,
       SymbolicFormula pBlockFormula) {
     this.region = pFirst;
     this.symbolicFormula = pSecond;

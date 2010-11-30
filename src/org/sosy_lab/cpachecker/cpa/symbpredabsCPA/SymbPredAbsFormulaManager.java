@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
@@ -50,8 +50,8 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
     /**
      * Abstract post operation.
      */
-    public Abstraction buildAbstraction(
-            Abstraction abs, PathFormula pathFormula,
+    public AbstractionFormula buildAbstraction(
+            AbstractionFormula abs, PathFormula pathFormula,
             Collection<AbstractionPredicate> predicates);
 
     /**
@@ -63,16 +63,16 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
 
     /**
      * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-     * @param pAbstractionFormula the abstraction formula
+     * @param pAbstractionFormulaFormula the abstraction formula
      * @param pPathFormula the path formula
      * @return unsat(pAbstractionFormula & pPathFormula)
      */
-    boolean unsat(Abstraction pAbstractionFormula, PathFormula pPathFormula);
+    boolean unsat(AbstractionFormula pAbstractionFormulaFormula, PathFormula pPathFormula);
     
     /**
      * Checks if (a1 & p1) => a2
      */
-    boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2);
+    boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2);
 
     /**
      * Create predicates for all atoms in a formula.

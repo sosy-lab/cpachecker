@@ -208,11 +208,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
 
   @Override
-  public Abstraction makeTrueAbstraction(SymbolicFormula previousBlockFormula) {
+  public AbstractionFormula makeTrueAbstractionFormula(SymbolicFormula previousBlockFormula) {
     if (previousBlockFormula == null) {
       previousBlockFormula = smgr.makeTrue();
     }
-    return new Abstraction(rmgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
+    return new AbstractionFormula(rmgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
   }
 
   // the rest of this class is related only to symbolic formulas

@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
@@ -162,7 +162,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   @Option(name="refinement.maxRefinementSize")
   private int maxRefinementSize = 0;
   
-  private final Map<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, Abstraction> abstractionCache;
+  private final Map<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -201,7 +201,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 //    }
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, Abstraction>();
+      abstractionCache = new HashMap<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
     } else {
       abstractionCache = null;
     }
@@ -218,15 +218,15 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * Abstract post operation.
    */
   @Override
-  public Abstraction buildAbstraction(
-      Abstraction abstractionFormula, PathFormula pathFormula,
+  public AbstractionFormula buildAbstraction(
+      AbstractionFormula abstractionFormula, PathFormula pathFormula,
       Collection<AbstractionPredicate> predicates) {
 
     stats.numCallsAbstraction++;
 
     if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
-      return new Abstraction(rmgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
+      return new AbstractionFormula(rmgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
     }
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
@@ -241,11 +241,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     Pair<SymbolicFormula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
       absKey = new Pair<SymbolicFormula, Collection<AbstractionPredicate>>(f, predicates);
-      Abstraction result = abstractionCache.get(absKey);
+      AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new Abstraction(result.asRegion(), result.asSymbolicFormula(), result.getBlockFormula());
+        result = new AbstractionFormula(result.asRegion(), result.asSymbolicFormula(), result.getBlockFormula());
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
@@ -260,7 +260,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
     
     SymbolicFormula symbolicAbs = smgr.instantiate(toConcrete(abs), pathFormula.getSsa());
-    Abstraction result = new Abstraction(abs, symbolicAbs, pathFormula.getSymbolicFormula());
+    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getSymbolicFormula());
 
     if (useCache) {
       abstractionCache.put(absKey, result);
@@ -433,7 +433,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * Checks if (a1 & p1) => a2
    */
   @Override
-  public boolean checkCoverage(Abstraction a1, PathFormula p1, Abstraction a2) {
+  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
     SymbolicFormula absFormula = a1.asSymbolicFormula();
     SymbolicFormula symbFormula = buildSymbolicFormula(p1.getSymbolicFormula()); 
     SymbolicFormula a = smgr.makeAnd(absFormula, symbFormula);
@@ -541,7 +541,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   @Override
-  public boolean unsat(Abstraction abstractionFormula, PathFormula pathFormula) {
+  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
     SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
     SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
     SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
@@ -901,7 +901,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
     for (SymbPredAbsAbstractElement e : abstractTrace) {
-      result.add(e.getAbstraction().getBlockFormula());
+      result.add(e.getAbstractionFormula().getBlockFormula());
     }
     return result;
   }

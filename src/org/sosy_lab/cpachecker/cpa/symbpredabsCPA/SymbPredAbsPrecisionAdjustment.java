@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.ComputeAbstractionElement;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 
@@ -84,7 +84,7 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
       ComputeAbstractionElement element,
       SymbPredAbsPrecision precision) {
 
-    Abstraction abstraction = element.getAbstraction();
+    AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
     
@@ -99,13 +99,13 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
     computingAbstractionTime.start();
 
     // compute new abstraction
-    Abstraction newAbstraction = formulaManager.buildAbstraction(
-        abstraction, pathFormula, preds);
+    AbstractionFormula newAbstractionFormula = formulaManager.buildAbstraction(
+        abstractionFormula, pathFormula, preds);
 
     computingAbstractionTime.stop();
 
     // if the abstraction is false, return bottom (represented by empty set)
-    if (newAbstraction.isFalse()) {
+    if (newAbstractionFormula.isFalse()) {
       numAbstractionsFalse++;
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
     }
@@ -113,6 +113,6 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 
-    return new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstraction);
+    return new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
   }
 }

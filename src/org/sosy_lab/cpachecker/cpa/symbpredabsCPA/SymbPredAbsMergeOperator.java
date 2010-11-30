@@ -70,7 +70,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       merged = elem2;
     } else {
       // don't merge if the elements are in different blocks (they have different abstractions)
-      if (!elem1.getAbstraction().equals(elem2.getAbstraction())) {
+      if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
         merged = elem2;
       
       } else {
@@ -83,7 +83,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
                 
-        merged = new SymbPredAbsAbstractElement(pathFormula, elem1.getAbstraction());
+        merged = new SymbPredAbsAbstractElement(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

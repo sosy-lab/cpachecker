@@ -77,7 +77,7 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
       bddCoverageCheckTimer.start();
       
       // if e1's predicate abstraction entails e2's pred. abst.
-      boolean result = mRegionManager.entails(e1.getAbstraction().asRegion(), e2.getAbstraction().asRegion());
+      boolean result = mRegionManager.entails(e1.getAbstractionFormula().asRegion(), e2.getAbstractionFormula().asRegion());
       
       bddCoverageCheckTimer.stop();
       return result;
@@ -86,7 +86,7 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
       if (symbolicCoverageCheck) {
         symbolicCoverageCheckTimer.start();
         
-        boolean result = mgr.checkCoverage(e1.getAbstraction(), e1.getPathFormula(), e2.getAbstraction());
+        boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
       
         symbolicCoverageCheckTimer.stop();
         return result;

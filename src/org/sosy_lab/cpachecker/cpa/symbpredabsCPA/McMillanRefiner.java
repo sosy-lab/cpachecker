@@ -136,7 +136,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
         foundInterpolant = true;
       }
 
-      Region abs = e.getAbstraction().asRegion();
+      Region abs = e.getAbstractionFormula().asRegion();
 
       boolean newPred = false;
 

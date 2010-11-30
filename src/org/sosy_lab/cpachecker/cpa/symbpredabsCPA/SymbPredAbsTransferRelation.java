@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPred
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -125,7 +125,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // Check whether abstraction is false.
     // Such elements might get created when precision adjustment computes an abstraction.
-    if (element.getAbstraction().asSymbolicFormula().isFalse()) {
+    if (element.getAbstractionFormula().asSymbolicFormula().isFalse()) {
       return Collections.emptySet();
     }
     
@@ -140,9 +140,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     if (doAbstraction) {
       result = Collections.singleton(
           new SymbPredAbsAbstractElement.ComputeAbstractionElement(
-              pathFormula, element.getAbstraction(), loc)); 
+              pathFormula, element.getAbstractionFormula(), loc)); 
     } else {
-      result = handleNonAbstractionLocation(pathFormula, element.getAbstraction());
+      result = handleNonAbstractionFormulaLocation(pathFormula, element.getAbstractionFormula());
     }
     postTimer.stop();
     return result;
@@ -152,8 +152,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * Does special things when we do not compute an abstraction for the
    * successor. This currently only envolves an optional sat check.
    */
-  private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
-                PathFormula pathFormula, Abstraction abstraction) {
+  private Collection<SymbPredAbsAbstractElement> handleNonAbstractionFormulaLocation(
+                PathFormula pathFormula, AbstractionFormula abstractionFormula) {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
     
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -162,7 +162,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     if (satCheck) {
       satCheckTimer.start(); 
 
-      boolean unsat = formulaManager.unsat(abstraction, pathFormula);
+      boolean unsat = formulaManager.unsat(abstractionFormula, pathFormula);
       
       satCheckTimer.stop();
       
@@ -175,7 +175,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
-        new SymbPredAbsAbstractElement(pathFormula, abstraction));
+        new SymbPredAbsAbstractElement(pathFormula, abstractionFormula));
   }
 
   /**
@@ -367,10 +367,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private SymbPredAbsAbstractElement replacePathFormula(SymbPredAbsAbstractElement oldElement, PathFormula newPathFormula) {
     if (oldElement instanceof ComputeAbstractionElement) {
       CFANode loc = ((ComputeAbstractionElement) oldElement).getLocation();
-      return new ComputeAbstractionElement(newPathFormula, oldElement.getAbstraction(), loc);
+      return new ComputeAbstractionElement(newPathFormula, oldElement.getAbstractionFormula(), loc);
     } else {
       assert !(oldElement instanceof AbstractionElement);
-      return new SymbPredAbsAbstractElement(newPathFormula, oldElement.getAbstraction());
+      return new SymbPredAbsAbstractElement(newPathFormula, oldElement.getAbstractionFormula());
     }
   }
   
@@ -379,7 +379,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
-    boolean unsat = formulaManager.unsat(pElement.getAbstraction(), pathFormula);
+    boolean unsat = formulaManager.unsat(pElement.getAbstractionFormula(), pathFormula);
     strengthenCheckTimer.stop();
 
     if (unsat) {
@@ -392,7 +392,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "Last part of the path is not infeasible.");
 
       // set abstraction to true (we don't know better)
-      Abstraction abs = formulaManager.makeTrueAbstraction(pathFormula.getSymbolicFormula());
+      AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula.getSymbolicFormula());
 
       PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 

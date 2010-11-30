@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Abstraction;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -44,7 +44,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    */
   public static class AbstractionElement extends SymbPredAbsAbstractElement {
     
-    public AbstractionElement(PathFormula pf, Abstraction pA) {
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA) {
       super(pf, pA);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
@@ -53,7 +53,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
 
     @Override
     public Object getPartitionKey() {
-      if (super.abstraction.asSymbolicFormula().isFalse()) {
+      if (super.abstractionFormula.asSymbolicFormula().isFalse()) {
         // put unreachable states in a separate partition to avoid merging
         // them with any reachable states
         return Boolean.FALSE;
@@ -64,7 +64,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     
     @Override
     public String toString() {
-      return "Abstraction location: true, Abstraction: " + super.abstraction;
+      return "Abstraction location: true, Abstraction: " + super.abstractionFormula;
     }
   }
   
@@ -73,7 +73,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
     
     private final CFANode location;
     
-    public ComputeAbstractionElement(PathFormula pf, Abstraction pA, CFANode pLoc) {
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc) {
       super(pf, pA);
       location = pLoc;
     }
@@ -99,7 +99,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   private final PathFormula pathFormula;
 
   /** The abstraction which is updated only on abstraction locations */
-  private final Abstraction abstraction;
+  private final AbstractionFormula abstractionFormula;
   
   /**
    * The abstract element this element was merged into.
@@ -107,13 +107,13 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
    */
   private SymbPredAbsAbstractElement mergedInto = null;
 
-  public SymbPredAbsAbstractElement(PathFormula pf, Abstraction a) {
+  public SymbPredAbsAbstractElement(PathFormula pf, AbstractionFormula a) {
     this.pathFormula = pf;
-    this.abstraction = a;
+    this.abstractionFormula = a;
   }
   
-  public Abstraction getAbstraction() {
-    return abstraction;
+  public AbstractionFormula getAbstractionFormula() {
+    return abstractionFormula;
   }
 
   SymbPredAbsAbstractElement getMergedInto() {
@@ -136,6 +136,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
   
   @Override
   public Object getPartitionKey() {
-    return abstraction;
+    return abstractionFormula;
   }
 }
