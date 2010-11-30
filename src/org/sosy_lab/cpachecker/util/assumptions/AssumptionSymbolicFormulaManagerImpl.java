@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
 
 
 /**
@@ -105,7 +105,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
   public static FormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (smgr == null) {
-      smgr = new MathsatSymbolicFormulaManager(pConfig, pLogger);
+      smgr = new MathsatFormulaManager(pConfig, pLogger);
     }
     return smgr;
   }

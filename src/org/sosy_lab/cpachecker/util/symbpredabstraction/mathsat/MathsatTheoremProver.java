@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
 import static mathsat.api.*;
-import static org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager.*;
+import static org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -41,10 +41,10 @@ import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver implements TheoremProver {
 
-  private final MathsatSymbolicFormulaManager mgr;
+  private final MathsatFormulaManager mgr;
   private long curEnv;
 
-  public MathsatTheoremProver(MathsatSymbolicFormulaManager pMgr) {
+  public MathsatTheoremProver(MathsatFormulaManager pMgr) {
     mgr = pMgr;
     curEnv = 0;
   }

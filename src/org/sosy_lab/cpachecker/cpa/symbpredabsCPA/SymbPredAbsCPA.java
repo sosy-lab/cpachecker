@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Interpolating
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
 
@@ -108,7 +108,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.logger = logger;
 
     regionManager = BDDRegionManager.getInstance();
-    MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
+    MathsatFormulaManager symbolicFormulaManager = new MathsatFormulaManager(config, logger);
 
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {

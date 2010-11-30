@@ -33,12 +33,12 @@ import com.google.common.base.Preconditions;
 
 public class MathsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
 
-    private final MathsatSymbolicFormulaManager mgr;
+    private final MathsatFormulaManager mgr;
     private long env;
     
     private final boolean useSharedEnv;
 
-    public MathsatInterpolatingProver(MathsatSymbolicFormulaManager pMgr, boolean shared) {
+    public MathsatInterpolatingProver(MathsatFormulaManager pMgr, boolean shared) {
         mgr = pMgr;
         env = 0;
         useSharedEnv = shared;
@@ -58,7 +58,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     public Integer addFormula(Formula f) {
         Preconditions.checkState(env != 0);
 
-        long t = ((MathsatSymbolicFormula)f).getTerm();
+        long t = ((MathsatFormula)f).getTerm();
         if (!useSharedEnv) {
             t = mathsat.api.msat_make_copy_from(env, t, mgr.getMsatEnv());
         }
@@ -92,7 +92,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         if (!useSharedEnv) {
             itp = mathsat.api.msat_make_copy_from(mgr.getMsatEnv(), itp, env);
         }
-        return new MathsatSymbolicFormula(itp);
+        return new MathsatFormula(itp);
     }
 
     @Override

@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManage
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class MathsatSymbolicFormulaManager implements FormulaManager  {
+public class MathsatFormulaManager implements FormulaManager  {
 
   @Option
   private boolean useIntegers = false;
@@ -97,8 +97,8 @@ public class MathsatSymbolicFormulaManager implements FormulaManager  {
   private final Formula trueFormula;
   private final Formula falseFormula;
   
-  public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this, MathsatSymbolicFormulaManager.class);
+  public MathsatFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this, MathsatFormulaManager.class);
     msatEnv = msat_create_env();
     msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
 
@@ -155,19 +155,19 @@ public class MathsatSymbolicFormulaManager implements FormulaManager  {
   }
   
   public static long getTerm(Formula f) {
-    return ((MathsatSymbolicFormula)f).getTerm();
+    return ((MathsatFormula)f).getTerm();
   }
   
   public static long[] getTerm(FormulaList f) {
-    return ((MathsatSymbolicFormulaList)f).getTerms();
+    return ((MathsatFormulaList)f).getTerms();
   }
   
   public static Formula encapsulate(long t) {
-    return new MathsatSymbolicFormula(t);
+    return new MathsatFormula(t);
   }
 
   public static FormulaList encapsulate(long[] t) {
-    return new MathsatSymbolicFormulaList(t);
+    return new MathsatFormulaList(t);
   }
   
   public String makeName(String name, int idx) {
@@ -433,12 +433,12 @@ public class MathsatSymbolicFormulaManager implements FormulaManager  {
   
   @Override
   public FormulaList makeList(Formula pF) {
-    return new MathsatSymbolicFormulaList(getTerm(pF));
+    return new MathsatFormulaList(getTerm(pF));
   }
   
   @Override
   public FormulaList makeList(Formula pF1, Formula pF2) {
-    return new MathsatSymbolicFormulaList(getTerm(pF1), getTerm(pF2));
+    return new MathsatFormulaList(getTerm(pF1), getTerm(pF2));
   }
   
   @Override

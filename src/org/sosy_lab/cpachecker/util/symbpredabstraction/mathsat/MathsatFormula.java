@@ -31,11 +31,11 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class MathsatSymbolicFormula implements Formula {
+public class MathsatFormula implements Formula {
 
     private final long msatTerm;
 
-    public MathsatSymbolicFormula(long t) {
+    public MathsatFormula(long t) {
         if (mathsat.api.MSAT_ERROR_TERM(t)) {
           throw new IllegalArgumentException("Error term is not a valid formula");
         }
@@ -59,8 +59,8 @@ public class MathsatSymbolicFormula implements Formula {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof MathsatSymbolicFormula)) return false;
-        return msatTerm == ((MathsatSymbolicFormula)o).msatTerm;
+        if (!(o instanceof MathsatFormula)) return false;
+        return msatTerm == ((MathsatFormula)o).msatTerm;
     }
 
     public long getTerm() { return msatTerm; }

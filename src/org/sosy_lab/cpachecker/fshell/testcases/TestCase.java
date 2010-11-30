@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
 
 public abstract class TestCase {
 
@@ -145,8 +145,8 @@ public abstract class TestCase {
     
     boolean lIsPrecise = true;
     
-    String lNondetPrefix = CtoFormulaConverter.NONDET_VARIABLE + MathsatSymbolicFormulaManager.INDEX_SEPARATOR;
-    String lNondetFlagPrefix = CtoFormulaConverter.NONDET_FLAG_VARIABLE + MathsatSymbolicFormulaManager.INDEX_SEPARATOR; 
+    String lNondetPrefix = CtoFormulaConverter.NONDET_VARIABLE + MathsatFormulaManager.INDEX_SEPARATOR;
+    String lNondetFlagPrefix = CtoFormulaConverter.NONDET_FLAG_VARIABLE + MathsatFormulaManager.INDEX_SEPARATOR; 
     
     SortedMap<Integer, Double> lNondetMap = new TreeMap<Integer, Double>();
     SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<Integer, Boolean>();
