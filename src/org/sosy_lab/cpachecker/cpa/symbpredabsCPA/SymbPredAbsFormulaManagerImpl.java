@@ -504,7 +504,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
     final Timer solveTimer = new Timer();
     solveTimer.start();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, amgr.getRegionManager());
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr);
     solveTimer.stop();
     
     // update statistics

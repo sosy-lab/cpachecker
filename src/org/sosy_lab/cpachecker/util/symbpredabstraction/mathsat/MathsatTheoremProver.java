@@ -95,7 +95,7 @@ public class MathsatTheoremProver implements TheoremProver {
   
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
-                             AbstractionManager fmgr, RegionManager rmgr) {
+                             AbstractionManager amgr) {
     long formula = getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -105,7 +105,7 @@ public class MathsatTheoremProver implements TheoremProver {
     for (SymbolicFormula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, rmgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -130,7 +130,7 @@ public class MathsatTheoremProver implements TheoremProver {
    * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
    */
   public static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
-    private final AbstractionManager fmgr;
+    private final AbstractionManager amgr;
     private final RegionManager rmgr;
     
     private long totalTime = 0;
@@ -139,9 +139,9 @@ public class MathsatTheoremProver implements TheoremProver {
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(AbstractionManager fmgr, RegionManager rmgr) {
-      this.fmgr = fmgr;
-      this.rmgr = rmgr;
+    public MathsatAllSatCallback(AbstractionManager fmgr) {
+      this.amgr = fmgr;
+      this.rmgr = fmgr.getRegionManager();
       this.formula = rmgr.makeFalse();
     }
 
@@ -194,10 +194,10 @@ public class MathsatTheoremProver implements TheoremProver {
         Region v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
-          v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
+          v = amgr.getPredicate(encapsulate(t)).getAbstractVariable();
           v = rmgr.makeNot(v);
         } else {
-          v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
+          v = amgr.getPredicate(encapsulate(t)).getAbstractVariable();
         }
         curCube.add(v);
       }
