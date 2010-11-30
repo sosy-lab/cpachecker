@@ -32,7 +32,7 @@ import java.util.Deque;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
@@ -95,7 +95,7 @@ public class MathsatTheoremProver implements TheoremProver {
   
   @Override
   public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
-                             FormulaManager fmgr, AbstractFormulaManager amgr) {
+                             FormulaManager fmgr, RegionManager rmgr) {
     long formula = getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -105,7 +105,7 @@ public class MathsatTheoremProver implements TheoremProver {
     for (SymbolicFormula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, rmgr);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -131,7 +131,7 @@ public class MathsatTheoremProver implements TheoremProver {
    */
   public static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final FormulaManager fmgr;
-    private final AbstractFormulaManager amgr;
+    private final RegionManager rmgr;
     
     private long totalTime = 0;
     private int count = 0;
@@ -139,16 +139,16 @@ public class MathsatTheoremProver implements TheoremProver {
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
+    public MathsatAllSatCallback(FormulaManager fmgr, RegionManager rmgr) {
       this.fmgr = fmgr;
-      this.amgr = amgr;
-      this.formula = amgr.makeFalse();
+      this.rmgr = rmgr;
+      this.formula = rmgr.makeFalse();
     }
 
     public void setInfiniteNumberOfModels() {
       count = Integer.MAX_VALUE;
       cubes.clear();
-      formula = amgr.makeTrue();
+      formula = rmgr.makeTrue();
     }
     
     @Override
@@ -174,7 +174,7 @@ public class MathsatTheoremProver implements TheoremProver {
       while (cubes.size() > 1) {
         Region b1 = cubes.remove();
         Region b2 = cubes.remove();
-        cubes.add(amgr.makeOr(b1, b2));
+        cubes.add(rmgr.makeOr(b1, b2));
       }
       assert(cubes.size() == 1);
       formula = cubes.remove();
@@ -189,13 +189,13 @@ public class MathsatTheoremProver implements TheoremProver {
       // in a BDD
       // first, let's create the BDD corresponding to the model
       Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
-      Region m = amgr.makeTrue();
+      Region m = rmgr.makeTrue();
       for (long t : model) {
         Region v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
           v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
-          v = amgr.makeNot(v);
+          v = rmgr.makeNot(v);
         } else {
           v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
         }
@@ -206,7 +206,7 @@ public class MathsatTheoremProver implements TheoremProver {
       while (curCube.size() > 1) {
         Region v1 = curCube.remove();
         Region v2 = curCube.remove();
-        curCube.add(amgr.makeAnd(v1, v2));
+        curCube.add(rmgr.makeAnd(v1, v2));
       }
       assert(curCube.size() == 1);
       m = curCube.remove();

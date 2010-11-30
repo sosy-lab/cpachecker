@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
 import com.google.common.base.Joiner;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -284,8 +284,8 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
-            FormulaManager fmgr, AbstractFormulaManager amgr) {
-        MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, amgr);
+            FormulaManager fmgr, RegionManager rmgr) {
+        MathsatAllSatCallback callback = new MathsatAllSatCallback(fmgr, rmgr);
         
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);

@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
@@ -96,7 +96,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsPrecisionAdjustment prec;
   private final StopOperator stop;
   private final SymbPredAbsPrecision initialPrecision;
-  private final AbstractFormulaManager abstractFormulaManager;
+  private final RegionManager regionManager;
   private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
   private final SymbPredAbsCPAStatistics stats;
   private final AbstractElement topElement;
@@ -107,7 +107,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.config = config;
     this.logger = logger;
 
-    abstractFormulaManager = BDDAbstractFormulaManager.getInstance();
+    regionManager = BDDAbstractFormulaManager.getInstance();
     MathsatSymbolicFormulaManager symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
 
     TheoremProver thmProver;
@@ -134,7 +134,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer, Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer, Integer>(regionManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
     transfer = new SymbPredAbsTransferRelation(this);
     
     topElement = new SymbPredAbsAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstraction(null));    
@@ -192,8 +192,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return stop;
   }
 
-  protected AbstractFormulaManager getAbstractFormulaManager() {
-    return abstractFormulaManager;
+  protected RegionManager getAbstractFormulaManager() {
+    return regionManager;
   }
 
   protected SymbPredAbsFormulaManagerImpl<?, ?> getFormulaManager() {

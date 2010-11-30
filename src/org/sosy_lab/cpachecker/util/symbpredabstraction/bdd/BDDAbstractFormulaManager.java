@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.bdd;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 
 import org.sosy_lab.common.Triple;
 
@@ -36,7 +36,7 @@ import org.sosy_lab.common.Triple;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
  */
-public class BDDAbstractFormulaManager implements AbstractFormulaManager {
+public class BDDAbstractFormulaManager implements RegionManager {
 
   // static because init() may be called only once!
   private static final String BDD_PACKAGE = "cudd";
@@ -61,9 +61,9 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
     return ret;
   }
 
-  private static AbstractFormulaManager instance = new BDDAbstractFormulaManager();
+  private static RegionManager instance = new BDDAbstractFormulaManager();
   
-  public static AbstractFormulaManager getInstance() { return instance; }
+  public static RegionManager getInstance() { return instance; }
   
   @Override
   public boolean entails(Region pF1, Region pF2) {

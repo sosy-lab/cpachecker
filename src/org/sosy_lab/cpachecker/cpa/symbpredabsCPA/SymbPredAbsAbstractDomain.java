@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 
 @Options(prefix="cpas.symbpredabs")
 public final class SymbPredAbsAbstractDomain implements AbstractDomain {
@@ -44,12 +44,12 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
   public final Timer bddCoverageCheckTimer = new Timer();
   public final Timer symbolicCoverageCheckTimer = new Timer();
   
-  private final AbstractFormulaManager mAbstractFormulaManager;
+  private final RegionManager mRegionManager;
   private final SymbPredAbsFormulaManager mgr;
     
   public SymbPredAbsAbstractDomain(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
-    mAbstractFormulaManager = pCpa.getAbstractFormulaManager();
+    mRegionManager = pCpa.getAbstractFormulaManager();
     mgr = pCpa.getFormulaManager();
   }
   
@@ -77,7 +77,7 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
       bddCoverageCheckTimer.start();
       
       // if e1's predicate abstraction entails e2's pred. abst.
-      boolean result = mAbstractFormulaManager.entails(e1.getAbstraction().asRegion(), e2.getAbstraction().asRegion());
+      boolean result = mRegionManager.entails(e1.getAbstraction().asRegion(), e2.getAbstraction().asRegion());
       
       bddCoverageCheckTimer.stop();
       return result;

@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -170,14 +170,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
   private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
 
   public SymbPredAbsFormulaManagerImpl(
-      AbstractFormulaManager pAmgr,
+      RegionManager pRmgr,
       SymbolicFormulaManager pSmgr,
       TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver,
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager logger) throws InvalidConfigurationException {
-    super(pAmgr, pSmgr, config, logger);
+    super(pRmgr, pSmgr, config, logger);
     config.inject(this);
     
     if (formulaDumpFile != null) {
@@ -226,7 +226,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
-      return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
+      return new Abstraction(rmgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
     }
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
@@ -296,7 +296,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
         skipFeasibilityCheck = true;
         if (!feasibilityCache.get(key)) {
           // abstract post leads to false, we can return immediately
-          return amgr.makeFalse();
+          return rmgr.makeFalse();
         }
       }
     }
@@ -315,7 +315,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           feasibilityCache.put(key, !unsat);
         }
         if (unsat) {
-          return amgr.makeFalse();
+          return rmgr.makeFalse();
         }
       } else {
         //++stats.abstractionNumCachedQueries;
@@ -325,7 +325,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       try {
         Timer totBddTimer = new Timer();
 
-        Region absbdd = amgr.makeTrue();
+        Region absbdd = rmgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
 
@@ -337,10 +337,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             totBddTimer.start();
             Region v = p.getAbstractVariable();
             if (predVals[predIndex] == -1) { // pred is false
-              v = amgr.makeNot(v);
-              absbdd = amgr.makeAnd(absbdd, v);
+              v = rmgr.makeNot(v);
+              absbdd = rmgr.makeAnd(absbdd, v);
             } else if (predVals[predIndex] == 1) { // pred is true
-              absbdd = amgr.makeAnd(absbdd, v);
+              absbdd = rmgr.makeAnd(absbdd, v);
             }
             totBddTimer.stop();
             
@@ -363,7 +363,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
             if (isTrue) {
               totBddTimer.start();
               Region v = p.getAbstractVariable();
-              absbdd = amgr.makeAnd(absbdd, v);
+              absbdd = rmgr.makeAnd(absbdd, v);
               totBddTimer.stop();
 
               predVal = 1;
@@ -375,8 +375,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
               if (isFalse) {
                 totBddTimer.start();
                 Region v = p.getAbstractVariable();
-                v = amgr.makeNot(v);
-                absbdd = amgr.makeAnd(absbdd, v);
+                v = rmgr.makeNot(v);
+                absbdd = rmgr.makeAnd(absbdd, v);
                 totBddTimer.stop();
 
                 predVal = -1;
@@ -492,7 +492,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     final Timer solveTimer = new Timer();
     solveTimer.start();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, amgr);
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, this, rmgr);
     solveTimer.stop();
     
     // update statistics

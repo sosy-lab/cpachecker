@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
-  private final AbstractFormulaManager abstractFormulaManager;
+  private final RegionManager regionManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
   private final LogManager logger;
@@ -57,7 +57,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
     }
 
-    abstractFormulaManager = symbPredAbsCpa.getAbstractFormulaManager();
+    regionManager = symbPredAbsCpa.getAbstractFormulaManager();
     formulaManager = symbPredAbsCpa.getFormulaManager();
     logger = symbPredAbsCpa.getLogger();
   }
@@ -142,14 +142,14 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
       for (AbstractionPredicate p : newpreds) {
         Region f = p.getAbstractVariable();
-        if (abstractFormulaManager.isFalse(f)) {
+        if (regionManager.isFalse(f)) {
           assert newpreds.size() == 1;
 
           root = ae;
 
-        } else if (!abstractFormulaManager.entails(abs, f)) {
+        } else if (!regionManager.entails(abs, f)) {
           newPred = true;
-          abs = abstractFormulaManager.makeAnd(abs, p.getAbstractVariable());
+          abs = regionManager.makeAnd(abs, p.getAbstractVariable());
         }
       }
 

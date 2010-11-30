@@ -43,7 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
@@ -61,7 +61,7 @@ import com.google.common.base.Joiner;
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class CommonFormulaManager extends CtoFormulaConverter implements FormulaManager {
 
-  protected final AbstractFormulaManager amgr;
+  protected final RegionManager rmgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate;
@@ -73,11 +73,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
 
   private final Map<Region, SymbolicFormula> toConcreteCache;
 
-  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
+  public CommonFormulaManager(RegionManager pRmgr, SymbolicFormulaManager pSmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pSmgr, pLogger);
     config.inject(this, CommonFormulaManager.class);
-    amgr = pAmgr;
+    rmgr = pRmgr;
 
     absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
     symbVarToPredicate = new HashMap<SymbolicFormula, AbstractionPredicate>();
@@ -110,7 +110,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula var = smgr.createPredicateVariable(atom);
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
-      Region absVar = amgr.createPredicate();
+      Region absVar = rmgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
           "from variable", var, "and atom", atom);
@@ -157,8 +157,8 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     }
     Deque<Region> toProcess = new ArrayDeque<Region>();
 
-    cache.put(amgr.makeTrue(), smgr.makeTrue());
-    cache.put(amgr.makeFalse(), smgr.makeFalse());
+    cache.put(rmgr.makeTrue(), smgr.makeTrue());
+    cache.put(rmgr.makeFalse(), smgr.makeFalse());
 
     toProcess.push(af);
     while (!toProcess.isEmpty()) {
@@ -171,7 +171,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       SymbolicFormula m1 = null;
       SymbolicFormula m2 = null;
 
-      Triple<Region, Region, Region> parts = amgr.getIfThenElse(n);
+      Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
       Region c1 = parts.getSecond();
       Region c2 = parts.getThird();
       if (!cache.containsKey(c1)) {
@@ -212,7 +212,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     if (previousBlockFormula == null) {
       previousBlockFormula = smgr.makeTrue();
     }
-    return new Abstraction(amgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
+    return new Abstraction(rmgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
   }
 
   // the rest of this class is related only to symbolic formulas

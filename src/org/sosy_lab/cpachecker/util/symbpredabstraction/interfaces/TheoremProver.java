@@ -37,7 +37,7 @@ public interface TheoremProver {
   void reset();
 
   AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
-                      FormulaManager mgr, AbstractFormulaManager amgr);
+                      FormulaManager mgr, RegionManager rmgr);
     
   interface AllSatResult {
       

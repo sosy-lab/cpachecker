@@ -31,7 +31,7 @@ import org.sosy_lab.common.Triple;
  * An AbstractFormulaManager is an object that knows how to create/manipulate
  * AbstractFormulas
  */
-public interface AbstractFormulaManager {
+public interface RegionManager {
 
   /**
    * checks whether the data region represented by f1
