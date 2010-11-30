@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 /**
  * Instances of this class should hold the same formula in two representations:
- * as an AbstractFormula and as a SymbolicFormula
+ * as a Region and as a SymbolicFormula
  * 
  * The former one has no SSA indices, while the latter DOES have SSA indices added.
  * 
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  */
 public class Abstraction {
 
-  private final AbstractFormula abstractFormula;
+  private final Region region;
   private final SymbolicFormula symbolicFormula;
 
   /**
@@ -48,9 +48,9 @@ public class Abstraction {
   private static int nextId = 0;
   private final int id = nextId++;
   
-  public Abstraction(AbstractFormula pFirst, SymbolicFormula pSecond,
+  public Abstraction(Region pFirst, SymbolicFormula pSecond,
       SymbolicFormula pBlockFormula) {
-    this.abstractFormula = pFirst;
+    this.region = pFirst;
     this.symbolicFormula = pSecond;
     this.blockFormula = pBlockFormula;
   }
@@ -63,8 +63,8 @@ public class Abstraction {
     return asSymbolicFormula().isFalse();
   }
   
-  public AbstractFormula asAbstractFormula() {
-    return abstractFormula;
+  public Region asRegion() {
+    return region;
   }
   
   public SymbolicFormula asSymbolicFormula() {

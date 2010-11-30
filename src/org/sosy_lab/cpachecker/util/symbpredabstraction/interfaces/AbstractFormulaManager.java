@@ -40,62 +40,62 @@ public interface AbstractFormulaManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(AbstractFormula f1, AbstractFormula f2);
+  public boolean entails(Region f1, Region f2);
 
   /**
    * checks whether f represents "false"
    * @return true if f represents logical falsity, false otherwise
    */
-  public boolean isFalse(AbstractFormula f);
+  public boolean isFalse(Region f);
 
   /**
    * @return a representation of logical truth
    */
-  public AbstractFormula makeTrue();
+  public Region makeTrue();
 
   /**
    * @return a representation of logical falseness
    */
-  public AbstractFormula makeFalse();
+  public Region makeFalse();
 
   /**
-   * Creates a formula representing a negation of the argument
+   * Creates a region representing a negation of the argument
    * @param f an AbstractFormula
    * @return (!f1)
    */
-  public AbstractFormula makeNot(AbstractFormula f);
+  public Region makeNot(Region f);
 
   /**
-   * Creates a formula representing an AND of the two argument
+   * Creates a region representing an AND of the two argument
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
    * @return (f1 & f2)
    */
-  public AbstractFormula makeAnd(AbstractFormula f1, AbstractFormula f2);
+  public Region makeAnd(Region f1, Region f2);
 
   /**
-   * Creates a formula representing an OR of the two argument
+   * Creates a region representing an OR of the two argument
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
    * @return (f1 | f2)
    */
-  public AbstractFormula makeOr(AbstractFormula f1, AbstractFormula f2);
+  public Region makeOr(Region f1, Region f2);
 
   /**
    * Creates a new variable and returns the predicate representing it.
    * @return a new predicate
    */
-  public AbstractFormula createPredicate();
+  public Region createPredicate();
 
   /**
-   * An abstract formula consists of the form
+   * A region consists of the form
    * if (predicate) then formula1 else formula2
-   * This method decomposes a formula into these three parts.
-   * @param pF an abstract formula
+   * This method decomposes a region into these three parts.
+   * @param pF a region
    * @return a triple with the condition predicate and the formulas for the true
    *         branch and the else branch
    */
-  public Triple<AbstractFormula, AbstractFormula, AbstractFormula>
-      getIfThenElse(AbstractFormula f);
+  public Triple<Region, Region, Region>
+      getIfThenElse(Region f);
 
 }

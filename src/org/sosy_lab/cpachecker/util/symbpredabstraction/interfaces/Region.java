@@ -30,5 +30,5 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
  * abstract space. For instance, in the case of predicate abstraction, it can
  * be a BDD over the predicates
  */
-public interface AbstractFormula {
+public interface Region {
 }

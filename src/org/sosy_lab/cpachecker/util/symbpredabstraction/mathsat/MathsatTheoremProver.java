@@ -31,7 +31,7 @@ import java.util.Collection;
 import java.util.Deque;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
@@ -136,8 +136,8 @@ public class MathsatTheoremProver implements TheoremProver {
     private long totalTime = 0;
     private int count = 0;
 
-    private AbstractFormula formula;
-    private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
+    private Region formula;
+    private final Deque<Region> cubes = new ArrayDeque<Region>();
 
     public MathsatAllSatCallback(FormulaManager fmgr, AbstractFormulaManager amgr) {
       this.fmgr = fmgr;
@@ -162,7 +162,7 @@ public class MathsatTheoremProver implements TheoremProver {
     }
 
     @Override
-    public AbstractFormula getResult() {
+    public Region getResult() {
       if (cubes.size() > 0) {
         buildBalancedOr();
       }
@@ -172,8 +172,8 @@ public class MathsatTheoremProver implements TheoremProver {
     private void buildBalancedOr() {
       cubes.add(formula);
       while (cubes.size() > 1) {
-        AbstractFormula b1 = cubes.remove();
-        AbstractFormula b2 = cubes.remove();
+        Region b1 = cubes.remove();
+        Region b2 = cubes.remove();
         cubes.add(amgr.makeOr(b1, b2));
       }
       assert(cubes.size() == 1);
@@ -188,10 +188,10 @@ public class MathsatTheoremProver implements TheoremProver {
       // of all the models found by msat_all_sat, and storing them
       // in a BDD
       // first, let's create the BDD corresponding to the model
-      Deque<AbstractFormula> curCube = new ArrayDeque<AbstractFormula>(model.length + 1);
-      AbstractFormula m = amgr.makeTrue();
+      Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
+      Region m = amgr.makeTrue();
       for (long t : model) {
-        AbstractFormula v;
+        Region v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
           v = fmgr.getPredicate(encapsulate(t)).getAbstractVariable();
@@ -204,8 +204,8 @@ public class MathsatTheoremProver implements TheoremProver {
       // now, add the model to the bdd
       curCube.add(m);
       while (curCube.size() > 1) {
-        AbstractFormula v1 = curCube.remove();
-        AbstractFormula v2 = curCube.remove();
+        Region v1 = curCube.remove();
+        Region v2 = curCube.remove();
         curCube.add(amgr.makeAnd(v1, v2));
       }
       assert(curCube.size() == 1);

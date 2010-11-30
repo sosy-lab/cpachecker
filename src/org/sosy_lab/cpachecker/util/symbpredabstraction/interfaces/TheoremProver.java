@@ -44,7 +44,7 @@ public interface TheoremProver {
     /**
      * The result of an allSat call as an abstract formula.
      */
-    public AbstractFormula getResult();
+    public Region getResult();
     
     /**
      * The number of satisfying assignments contained in the result, of

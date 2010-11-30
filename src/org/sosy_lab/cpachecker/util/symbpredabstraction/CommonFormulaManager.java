@@ -42,7 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
@@ -64,14 +64,14 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   protected final AbstractFormulaManager amgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
-  private final Map<AbstractFormula, AbstractionPredicate> absVarToPredicate;
+  private final Map<Region, AbstractionPredicate> absVarToPredicate;
   // and the mapping symbolic variable -> predicate
   private final Map<SymbolicFormula, AbstractionPredicate> symbVarToPredicate;
 
   @Option
   protected boolean useCache = true;
 
-  private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
+  private final Map<Region, SymbolicFormula> toConcreteCache;
 
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -79,11 +79,11 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
 
-    absVarToPredicate = new HashMap<AbstractFormula, AbstractionPredicate>();
+    absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
     symbVarToPredicate = new HashMap<SymbolicFormula, AbstractionPredicate>();
 
     if (useCache) {
-      toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
+      toConcreteCache = new HashMap<Region, SymbolicFormula>();
     } else {
       toConcreteCache = null;
     }
@@ -110,7 +110,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
     SymbolicFormula var = smgr.createPredicateVariable(atom);
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
-      AbstractFormula absVar = amgr.createPredicate();
+      Region absVar = amgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
           "from variable", var, "and atom", atom);
@@ -147,22 +147,22 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
    * to the BDD, in which each predicate is replaced with its definition)
    */
   @Override
-  public SymbolicFormula toConcrete(AbstractFormula af) {
+  public SymbolicFormula toConcrete(Region af) {
 
-    Map<AbstractFormula, SymbolicFormula> cache;
+    Map<Region, SymbolicFormula> cache;
     if (useCache) {
       cache = toConcreteCache;
     } else {
-      cache = new HashMap<AbstractFormula, SymbolicFormula>();
+      cache = new HashMap<Region, SymbolicFormula>();
     }
-    Deque<AbstractFormula> toProcess = new ArrayDeque<AbstractFormula>();
+    Deque<Region> toProcess = new ArrayDeque<Region>();
 
     cache.put(amgr.makeTrue(), smgr.makeTrue());
     cache.put(amgr.makeFalse(), smgr.makeFalse());
 
     toProcess.push(af);
     while (!toProcess.isEmpty()) {
-      AbstractFormula n = toProcess.peek();
+      Region n = toProcess.peek();
       if (cache.containsKey(n)) {
         toProcess.pop();
         continue;
@@ -171,9 +171,9 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
       SymbolicFormula m1 = null;
       SymbolicFormula m2 = null;
 
-      Triple<AbstractFormula, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
-      AbstractFormula c1 = parts.getSecond();
-      AbstractFormula c2 = parts.getThird();
+      Triple<Region, Region, Region> parts = amgr.getIfThenElse(n);
+      Region c1 = parts.getSecond();
+      Region c2 = parts.getThird();
       if (!cache.containsKey(c1)) {
         toProcess.push(c1);
         childrenDone = false;
@@ -191,7 +191,7 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
         assert m2 != null;
 
         toProcess.pop();
-        AbstractFormula var = parts.getFirst();
+        Region var = parts.getFirst();
         assert(absVarToPredicate.containsKey(var));
 
         SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();

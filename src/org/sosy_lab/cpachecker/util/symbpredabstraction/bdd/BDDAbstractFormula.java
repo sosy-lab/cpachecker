@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.bdd;
 
 import net.sf.javabdd.BDD;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 
 /**
  * Abstract formulas represented using BDDs
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-class BDDAbstractFormula implements AbstractFormula {
+class BDDAbstractFormula implements Region {
 
     private final BDD bddRepr;
 

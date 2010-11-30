@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.TimeStampCache;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
@@ -245,14 +245,14 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new Abstraction(result.asAbstractFormula(), result.asSymbolicFormula(), result.getBlockFormula());
+        result = new Abstraction(result.asRegion(), result.asSymbolicFormula(), result.getBlockFormula());
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
       }
     }
     
-    AbstractFormula abs;
+    Region abs;
     if (cartesianAbstraction) {
       abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
     } else {
@@ -269,7 +269,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     return result;
   }
 
-  private AbstractFormula buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
+  private Region buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
     
     byte[] predVals = null;
@@ -325,7 +325,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       try {
         Timer totBddTimer = new Timer();
 
-        AbstractFormula absbdd = amgr.makeTrue();
+        Region absbdd = amgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
 
@@ -335,7 +335,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
           if (useCache && predVals[predIndex] != NO_VALUE) {
             
             totBddTimer.start();
-            AbstractFormula v = p.getAbstractVariable();
+            Region v = p.getAbstractVariable();
             if (predVals[predIndex] == -1) { // pred is false
               v = amgr.makeNot(v);
               absbdd = amgr.makeAnd(absbdd, v);
@@ -362,7 +362,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
             if (isTrue) {
               totBddTimer.start();
-              AbstractFormula v = p.getAbstractVariable();
+              Region v = p.getAbstractVariable();
               absbdd = amgr.makeAnd(absbdd, v);
               totBddTimer.stop();
 
@@ -374,7 +374,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
               if (isFalse) {
                 totBddTimer.start();
-                AbstractFormula v = p.getAbstractVariable();
+                Region v = p.getAbstractVariable();
                 v = amgr.makeNot(v);
                 absbdd = amgr.makeAnd(absbdd, v);
                 totBddTimer.stop();
@@ -450,7 +450,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
     }
   }
 
-  private AbstractFormula buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
+  private Region buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
 
     // first, create the new formula corresponding to
@@ -529,7 +529,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
       printFormulasToFile(predVars, new File(dumpFile));
     }
 
-    AbstractFormula result = allSatResult.getResult();
+    Region result = allSatResult.getResult();
     logger.log(Level.ALL, "Abstraction computed, result is", result);
     return result;
   }

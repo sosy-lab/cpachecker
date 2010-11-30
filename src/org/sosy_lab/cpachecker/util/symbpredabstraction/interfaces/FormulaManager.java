@@ -36,7 +36,7 @@ public interface FormulaManager {
    * The formula returned is a "generic" version, not instantiated to any
    * particular "SSA step" (see SymbolicFormulaManager.instantiate()).
    */
-  public SymbolicFormula toConcrete(AbstractFormula af);
+  public SymbolicFormula toConcrete(Region af);
 
   /**
    * Creates a formula representing an AND of the two argument.

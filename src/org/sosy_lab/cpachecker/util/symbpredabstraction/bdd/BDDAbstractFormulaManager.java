@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.bdd;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
 
 import org.sosy_lab.common.Triple;
@@ -42,8 +42,8 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   private static final String BDD_PACKAGE = "cudd";
   private static final BDDFactory factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
 
-  private static final AbstractFormula trueFormula = new BDDAbstractFormula(factory.one());
-  private static final AbstractFormula falseFormula = new BDDAbstractFormula(factory.zero());
+  private static final Region trueFormula = new BDDAbstractFormula(factory.one());
+  private static final Region falseFormula = new BDDAbstractFormula(factory.zero());
 
   private static int nextvar = 0;
   private static int varcount = 100;
@@ -66,7 +66,7 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   public static AbstractFormulaManager getInstance() { return instance; }
   
   @Override
-  public boolean entails(AbstractFormula pF1, AbstractFormula pF2) {
+  public boolean entails(Region pF1, Region pF2) {
       // check entailment using BDDs: create the BDD representing
       // the implication, and check that it is the TRUE formula
       BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
@@ -76,22 +76,22 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   }
 
   @Override
-  public boolean isFalse(AbstractFormula f) {
+  public boolean isFalse(Region f) {
     return ((BDDAbstractFormula)f).getBDD().isZero();
   }
 
   @Override
-  public AbstractFormula makeTrue() {
+  public Region makeTrue() {
     return trueFormula;
   }
 
   @Override
-  public AbstractFormula makeFalse() {
+  public Region makeFalse() {
     return falseFormula;
   }
 
   @Override
-  public AbstractFormula makeAnd(AbstractFormula pF1, AbstractFormula pF2) {
+  public Region makeAnd(Region pF1, Region pF2) {
     BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
     BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
 
@@ -99,14 +99,14 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   }
 
   @Override
-  public AbstractFormula makeNot(AbstractFormula pF) {
+  public Region makeNot(Region pF) {
     BDDAbstractFormula f = (BDDAbstractFormula)pF;
 
     return new BDDAbstractFormula(f.getBDD().not());
   }
 
   @Override
-  public AbstractFormula makeOr(AbstractFormula pF1, AbstractFormula pF2) {
+  public Region makeOr(Region pF1, Region pF2) {
     BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
     BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
 
@@ -114,20 +114,20 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   }
 
   @Override
-  public AbstractFormula createPredicate() {
+  public Region createPredicate() {
     BDD bddVar = createNewVar();
 
     return new BDDAbstractFormula(bddVar);
   }
 
   @Override
-  public Triple<AbstractFormula, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
+  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     BDD f = ((BDDAbstractFormula)pF).getBDD();
 
     BDDAbstractFormula predicate = new BDDAbstractFormula(factory.ithVar(f.var()));
     BDDAbstractFormula fThen = new BDDAbstractFormula(f.high());
     BDDAbstractFormula fElse = new BDDAbstractFormula(f.low());
 
-    return new Triple<AbstractFormula, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
+    return new Triple<Region, Region, Region>(predicate, fThen, fElse);
   }
 }
