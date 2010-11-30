@@ -303,7 +303,7 @@ public class CtoFormulaConverter {
           log(Level.FINEST, "IGNORING return from main:", edge.getRawAST());
           edgeFormula = fmgr.makeTrue();
         } else {
-          edgeFormula = makeReturn(statementEdge, function, ssa);
+          edgeFormula = makeReturn(statementEdge.getExpression(), function, ssa);
         }
       } else {
         edgeFormula = makeStatement(statementEdge.getExpression(), function, ssa);
@@ -567,13 +567,12 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeReturn(StatementEdge edge, String function, SSAMapBuilder ssa)
+  private Formula makeReturn(IASTExpression exp, String function, SSAMapBuilder ssa)
       throws CPATransferException {
-    IASTExpression exp = edge.getExpression();
     if (exp == null) {
       // this is a return from a void function, do nothing
       return fmgr.makeTrue();
-    } else if (exp instanceof IASTUnaryExpression) {
+    } else {
       
       // we have to save the information about the return value,
       // so that we can use it later on, if it is assigned to
@@ -582,8 +581,6 @@ public class CtoFormulaConverter {
       Formula retval = buildTerm(exp, function, ssa);
       return makeAssignment(VAR_RETURN_NAME, function, retval, ssa); 
     }
-    // if we are here, we can't handle the return properly...
-    throw new UnrecognizedCFAEdgeException(edge);
   }
 
   private Formula makeStatement(IASTExpression expr, String function,
