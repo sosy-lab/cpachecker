@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 
 /**
@@ -46,7 +45,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManage
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
   private final LogManager logger;
-  private final FormulaManager formulaManager;
+  private final SymbPredAbsFormulaManager formulaManager;
 
   long totalMergeTime = 0;
 
