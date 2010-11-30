@@ -226,7 +226,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends CommonFormulaManager impleme
 
     if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
-      return new AbstractionFormula(rmgr.makeTrue(), smgr.makeTrue(), pathFormula.getSymbolicFormula());
+      return makeTrueAbstractionFormula(pathFormula.getSymbolicFormula());
     }
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
