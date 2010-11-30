@@ -299,12 +299,7 @@ public class CtoFormulaConverter {
       StatementEdge statementEdge = (StatementEdge)edge;
 
       if (statementEdge.isJumpEdge()) {
-        if (statementEdge.getSuccessor().getFunctionName().equals("main")) {
-          log(Level.FINEST, "IGNORING return from main:", edge.getRawAST());
-          edgeFormula = fmgr.makeTrue();
-        } else {
-          edgeFormula = makeReturn(statementEdge.getExpression(), function, ssa);
-        }
+        edgeFormula = makeReturn(statementEdge.getExpression(), function, ssa);
       } else {
         edgeFormula = makeStatement(statementEdge.getExpression(), function, ssa);
       }
