@@ -273,33 +273,6 @@ public class CommonFormulaManager extends CtoFormulaConverter implements Formula
   }
 
   /**
-   * Used for computing an abstraction using an assumption formula
-   * formula of the assumption is updated accordingly based on the {@link SSAMap} of
-   * the path formula for the edge.
-   * Then the conjunction of these two formulas is computed and a new path formula
-   * constructed using the this conjunction and a merged ssa map is returned.
-   * @param pPathFormula a PathFormula
-   * @param pAssumptionFormula a PathFormula
-   * @return an updated path formula which appends assumption to the path formula
-   */
-  public PathFormula makeAnd(PathFormula pPathFormula, PathFormula pAssumptionFormula) {
-
-    SSAMap ssaMapOfPf = pPathFormula.getSsa();
-//    SSAMap ssaMapOfAsmpt = pAssumptionFormula.getSsa();
-    
-    SymbolicFormula formulaOfPf = pPathFormula.getSymbolicFormula();
-    SymbolicFormula formulaOfAsmpt = pAssumptionFormula.getSymbolicFormula();
-    
-    //SSAMap mergedSSAMap = SSAMap.merge(ssaMapOfPf, ssaMapOfAsmpt);
-    // update the assumption formula with the new ssa index
-    //SymbolicFormula updatedAsmptFormula = smgr.instantiate(smgr.uninstantiate(formulaOfAsmpt), mergedSSAMap);
-    
-    SymbolicFormula retFormula = smgr.makeAnd(formulaOfPf, formulaOfAsmpt);
-    return new PathFormula(retFormula, ssaMapOfPf, pPathFormula.getLength(), 
-        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
-  }
-
-  /**
    * builds a formula that represents the necessary variable assignments
    * to "merge" the two ssa maps. That is, for every variable X that has two
    * different ssa indices i and j in the maps, creates a new formula
