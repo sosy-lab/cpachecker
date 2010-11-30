@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
@@ -44,9 +44,9 @@ public class ReportingUtils {
    * the given abstract element, according to reported
    * formulas
    */
-  public static SymbolicFormula extractReportedFormulas(SymbolicFormulaManager manager, AbstractElement element)
+  public static Formula extractReportedFormulas(SymbolicFormulaManager manager, AbstractElement element)
   {
-    SymbolicFormula result = manager.makeTrue();
+    Formula result = manager.makeTrue();
 
     // If it is a wrapper, add its sub-element's assertions
     if (element instanceof AbstractWrapperElement)
@@ -58,8 +58,8 @@ public class ReportingUtils {
     // If the element can be approximated by a formula, conjunct its approximation
     if (element instanceof FormulaReportingElement) {
       FormulaReportingElement repel = (FormulaReportingElement) element;
-      SymbolicFormula symbolicFormula = repel.getFormulaApproximation();
-      result = manager.makeAnd(result, symbolicFormula);
+      Formula formula = repel.getFormulaApproximation();
+      result = manager.makeAnd(result, formula);
     }
 
     return result;

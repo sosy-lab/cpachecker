@@ -30,7 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -75,7 +75,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       reportingVisitor.visit(e);
     }
     
-    SymbolicFormula assumption = reportingVisitor.assumption;
+    Formula assumption = reportingVisitor.assumption;
     if (assumption.isTrue()) {
       return null;
     } else {      
@@ -85,13 +85,13 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private final class AssumptionReportingVisitor extends AbstractWrappedElementVisitor {
 
-    private SymbolicFormula assumption = symbolicFormulaManager.makeTrue();
+    private Formula assumption = symbolicFormulaManager.makeTrue();
     
     @Override
     public void process(AbstractElement element) {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
-        SymbolicFormula inv = ((AssumptionReportingElement)element).getAssumption();
+        Formula inv = ((AssumptionReportingElement)element).getAssumption();
         assumption = symbolicFormulaManager.makeAnd(assumption, inv);
       }
 

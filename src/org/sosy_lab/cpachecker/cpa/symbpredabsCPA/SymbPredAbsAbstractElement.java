@@ -48,12 +48,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement, Partitionabl
       super(pf, pA);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
-      Preconditions.checkArgument(pf.getSymbolicFormula().isTrue());
+      Preconditions.checkArgument(pf.getFormula().isTrue());
     }
 
     @Override
     public Object getPartitionKey() {
-      if (super.abstractionFormula.asSymbolicFormula().isFalse()) {
+      if (super.abstractionFormula.asFormula().isFalse()) {
         // put unreachable states in a separate partition to avoid merging
         // them with any reachable states
         return Boolean.FALSE;

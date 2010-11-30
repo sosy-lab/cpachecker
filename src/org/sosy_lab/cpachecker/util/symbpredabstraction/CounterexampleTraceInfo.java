@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -51,7 +51,7 @@ public class CounterexampleTraceInfo {
     private final boolean spurious;
     private final Multimap<AbstractElement, AbstractionPredicate> pmap;
     private final Model mCounterexampleModel;
-    private final List<SymbolicFormula> mCounterexampleFormula;
+    private final List<Formula> mCounterexampleFormula;
     private final NavigableMap<Integer, Map<Integer, Boolean>> branchingPreds;
 
     public CounterexampleTraceInfo() {
@@ -62,7 +62,7 @@ public class CounterexampleTraceInfo {
       branchingPreds = Maps.newTreeMap();
     }
     
-    public CounterexampleTraceInfo(List<SymbolicFormula> pCounterexampleFormula, Model pModel, NavigableMap<Integer, Map<Integer, Boolean>> preds) {
+    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, NavigableMap<Integer, Map<Integer, Boolean>> preds) {
       Preconditions.checkNotNull(pCounterexampleFormula);
       Preconditions.checkNotNull(pModel);
       
@@ -111,7 +111,7 @@ public class CounterexampleTraceInfo {
       return (mCounterexampleModel != null);
     }
     
-    public List<SymbolicFormula> getCounterExampleFormulas() {
+    public List<Formula> getCounterExampleFormulas() {
       return mCounterexampleFormula;
     }
     

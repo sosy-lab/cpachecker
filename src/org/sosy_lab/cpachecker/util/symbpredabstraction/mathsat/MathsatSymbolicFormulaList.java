@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
 import java.util.Arrays;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
 
-public class MathsatSymbolicFormulaList implements SymbolicFormulaList {
+public class MathsatSymbolicFormulaList implements FormulaList {
 
   private final long[] terms;
   

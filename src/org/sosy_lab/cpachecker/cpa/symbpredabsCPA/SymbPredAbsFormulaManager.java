@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 
 /**
@@ -77,7 +77,7 @@ public interface SymbPredAbsFormulaManager extends PathFormulaManager {
     /**
      * Create predicates for all atoms in a formula.
      */
-    List<AbstractionPredicate> getAtomsAsPredicates(SymbolicFormula pF);
+    List<AbstractionPredicate> getAtomsAsPredicates(Formula pF);
 
     CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException;
 
@@ -88,5 +88,5 @@ public interface SymbPredAbsFormulaManager extends PathFormulaManager {
     
     AbstractionPredicate makeFalsePredicate();
 
-    AbstractionFormula makeTrueAbstractionFormula(SymbolicFormula previousBlockFormula);
+    AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula);
 }

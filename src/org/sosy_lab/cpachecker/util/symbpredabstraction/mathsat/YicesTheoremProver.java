@@ -42,7 +42,7 @@ import com.google.common.base.Joiner;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
@@ -202,7 +202,7 @@ public class YicesTheoremProver implements TheoremProver {
                 decls, msatToYicesCache.get(f.getTerm()));
     }
 
-    private Pair<Collection<String>, String> toYices(SymbolicFormula f) {
+    private Pair<Collection<String>, String> toYices(Formula f) {
         return toYices((MathsatSymbolicFormula)f);
     }
 
@@ -267,9 +267,9 @@ public class YicesTheoremProver implements TheoremProver {
         return model;
     }
 
-    private Set<String> toYicesPreds(Collection<SymbolicFormula> important) {
+    private Set<String> toYicesPreds(Collection<Formula> important) {
         Set<String> ret = new HashSet<String>(important.size());
-        for (SymbolicFormula f : important) {
+        for (Formula f : important) {
             long pred = ((MathsatSymbolicFormula)f).getTerm();
             assert(mathsat.api.msat_term_is_boolean_var(pred) != 0);
             long d = mathsat.api.msat_term_get_decl(pred);
@@ -282,7 +282,7 @@ public class YicesTheoremProver implements TheoremProver {
     }
 
     @Override
-    public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
+    public AllSatResult allSat(Formula f, Collection<Formula> important,
             AbstractionManager amgr) {
         MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr);
         
@@ -331,7 +331,7 @@ public class YicesTheoremProver implements TheoremProver {
 
             // add the model as a blocking clause
             StringBuilder buf = new StringBuilder();
-            for (SymbolicFormula m : model) {
+            for (Formula m : model) {
                 long t = ((MathsatSymbolicFormula)m).getTerm();
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
@@ -369,7 +369,7 @@ public class YicesTheoremProver implements TheoremProver {
     public void init() {}
 
     @Override
-    public boolean isUnsat(SymbolicFormula f) {
+    public boolean isUnsat(Formula f) {
         push(f);
         boolean res = yicesInconsistent();
         pop();
@@ -403,7 +403,7 @@ public class YicesTheoremProver implements TheoremProver {
     }
 
     @Override
-    public void push(SymbolicFormula f) {
+    public void push(Formula f) {
         yicesCommand("(push)");
         ++curLevel;
         Pair<Collection<String>, String> p = toYices(f);

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 /**
  * Instances of this class should hold the same formula in two representations:
@@ -37,41 +37,41 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 public class AbstractionFormula {
 
   private final Region region;
-  private final SymbolicFormula symbolicFormula;
+  private final Formula formula;
 
   /**
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  private final SymbolicFormula blockFormula;
+  private final Formula blockFormula;
   
   private static int nextId = 0;
   private final int id = nextId++;
   
-  public AbstractionFormula(Region pFirst, SymbolicFormula pSecond,
-      SymbolicFormula pBlockFormula) {
+  public AbstractionFormula(Region pFirst, Formula pSecond,
+      Formula pBlockFormula) {
     this.region = pFirst;
-    this.symbolicFormula = pSecond;
+    this.formula = pSecond;
     this.blockFormula = pBlockFormula;
   }
 
   public boolean isTrue() {
-    return asSymbolicFormula().isTrue();
+    return asFormula().isTrue();
   }
   
   public boolean isFalse() {
-    return asSymbolicFormula().isFalse();
+    return asFormula().isFalse();
   }
   
   public Region asRegion() {
     return region;
   }
   
-  public SymbolicFormula asSymbolicFormula() {
-    return symbolicFormula;
+  public Formula asFormula() {
+    return formula;
   }
   
-  public SymbolicFormula getBlockFormula() {
+  public Formula getBlockFormula() {
     return blockFormula;
   }
   
@@ -81,6 +81,6 @@ public class AbstractionFormula {
   
   @Override
   public String toString() {
-    return "ABS" + id + ": " + symbolicFormula;
+    return "ABS" + id + ": " + formula;
   }
 }

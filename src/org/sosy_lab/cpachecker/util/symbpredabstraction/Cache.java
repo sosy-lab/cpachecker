@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 /**
  * Helper class for various caching things, which are used by several other
@@ -59,10 +59,10 @@ public class Cache {
   }
 
   public static class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
-    private final SymbolicFormula formula;
+    private final Formula formula;
     private final AbstractionPredicate pred;
 
-    public CartesianAbstractionCacheKey(SymbolicFormula f, AbstractionPredicate p) {
+    public CartesianAbstractionCacheKey(Formula f, AbstractionPredicate p) {
       super();
       formula = f;
       pred = p;
@@ -88,9 +88,9 @@ public class Cache {
 
   public static class FeasibilityCacheKey extends KeyWithTimeStamp {
 
-    private final SymbolicFormula f;
+    private final Formula f;
 
-    public FeasibilityCacheKey(SymbolicFormula fm) {
+    public FeasibilityCacheKey(Formula fm) {
       super();
       f = fm;
     }

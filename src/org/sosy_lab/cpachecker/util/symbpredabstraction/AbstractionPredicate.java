@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 
@@ -36,11 +36,11 @@ import com.google.common.base.Preconditions;
 public class AbstractionPredicate {
 
   private final Region abstractVariable;
-  private final SymbolicFormula symbolicVariable;
-  private final SymbolicFormula symbolicAtom;
+  private final Formula symbolicVariable;
+  private final Formula symbolicAtom;
 
   public AbstractionPredicate(Region pAbstractVariable,
-      SymbolicFormula pSymbolicVariable, SymbolicFormula pSymbolicAtom) {
+      Formula pSymbolicVariable, Formula pSymbolicAtom) {
     abstractVariable = Preconditions.checkNotNull(pAbstractVariable);
     symbolicVariable = Preconditions.checkNotNull(pSymbolicVariable);
     symbolicAtom = Preconditions.checkNotNull(pSymbolicAtom);
@@ -54,11 +54,11 @@ public class AbstractionPredicate {
     return abstractVariable;
   }
   
-  public SymbolicFormula getSymbolicVariable() {
+  public Formula getSymbolicVariable() {
     return symbolicVariable;
   }
   
-  public SymbolicFormula getSymbolicAtom() {
+  public Formula getSymbolicAtom() {
     return symbolicAtom;
   }
   

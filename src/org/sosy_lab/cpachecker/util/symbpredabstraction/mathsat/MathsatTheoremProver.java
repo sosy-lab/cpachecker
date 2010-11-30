@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
@@ -50,7 +50,7 @@ public class MathsatTheoremProver implements TheoremProver {
   }
 
   @Override
-  public boolean isUnsat(SymbolicFormula f) {
+  public boolean isUnsat(Formula f) {
     push(f);
     int res = msat_solve(curEnv);
     pop();
@@ -73,7 +73,7 @@ public class MathsatTheoremProver implements TheoremProver {
   }
 
   @Override
-  public void push(SymbolicFormula f) {
+  public void push(Formula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getTerm(f));
@@ -94,7 +94,7 @@ public class MathsatTheoremProver implements TheoremProver {
   }
   
   @Override
-  public AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important, 
+  public AllSatResult allSat(Formula f, Collection<Formula> important, 
                              AbstractionManager amgr) {
     long formula = getTerm(f);
     
@@ -102,7 +102,7 @@ public class MathsatTheoremProver implements TheoremProver {
     
     long[] imp = new long[important.size()];
     int i = 0;
-    for (SymbolicFormula impF : important) {
+    for (Formula impF : important) {
       imp[i++] = getTerm(impF);
     }
     MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr);

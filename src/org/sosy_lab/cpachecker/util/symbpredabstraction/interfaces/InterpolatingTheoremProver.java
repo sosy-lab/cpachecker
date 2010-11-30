@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 public interface InterpolatingTheoremProver<T> {
     public void init();
     public void reset();
-    public T addFormula(SymbolicFormula f);
+    public T addFormula(Formula f);
     public boolean isUnsat();
-    public SymbolicFormula getInterpolant(List<T> formulasOfA);
+    public Formula getInterpolant(List<T> formulasOfA);
     public Model getModel();
 }

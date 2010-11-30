@@ -41,7 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
@@ -62,12 +62,12 @@ public class AbstractionManagerImpl implements AbstractionManager {
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate;
   // and the mapping symbolic variable -> predicate
-  private final Map<SymbolicFormula, AbstractionPredicate> symbVarToPredicate;
+  private final Map<Formula, AbstractionPredicate> symbVarToPredicate;
 
   @Option
   protected boolean useCache = true;
 
-  private final Map<Region, SymbolicFormula> toConcreteCache;
+  private final Map<Region, Formula> toConcreteCache;
 
   public AbstractionManagerImpl(RegionManager pRmgr, SymbolicFormulaManager pSmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -77,10 +77,10 @@ public class AbstractionManagerImpl implements AbstractionManager {
     smgr = pSmgr;
 
     absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
-    symbVarToPredicate = new HashMap<SymbolicFormula, AbstractionPredicate>();
+    symbVarToPredicate = new HashMap<Formula, AbstractionPredicate>();
 
     if (useCache) {
-      toConcreteCache = new HashMap<Region, SymbolicFormula>();
+      toConcreteCache = new HashMap<Region, Formula>();
     } else {
       toConcreteCache = null;
     }
@@ -89,10 +89,10 @@ public class AbstractionManagerImpl implements AbstractionManager {
   /**
    * Generates the predicates corresponding to the given atoms.
    */
-  protected List<AbstractionPredicate> buildPredicates(Collection<SymbolicFormula> atoms) {
+  protected List<AbstractionPredicate> buildPredicates(Collection<Formula> atoms) {
     List<AbstractionPredicate> ret = new ArrayList<AbstractionPredicate>(atoms.size());
 
-    for (SymbolicFormula atom : atoms) {
+    for (Formula atom : atoms) {
       ret.add(makePredicate(atom));
     }
     return ret;
@@ -102,8 +102,8 @@ public class AbstractionManagerImpl implements AbstractionManager {
    * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#makePredicate(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula)
    */
   @Override
-  public AbstractionPredicate makePredicate(SymbolicFormula atom) {
-    SymbolicFormula var = smgr.createPredicateVariable(atom);
+  public AbstractionPredicate makePredicate(Formula atom) {
+    Formula var = smgr.createPredicateVariable(atom);
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       Region absVar = rmgr.createPredicate();
@@ -130,7 +130,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
    * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#getPredicate(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula)
    */
   @Override
-  public AbstractionPredicate getPredicate(SymbolicFormula var) {
+  public AbstractionPredicate getPredicate(Formula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
@@ -142,13 +142,13 @@ public class AbstractionManagerImpl implements AbstractionManager {
    * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#toConcrete(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region)
    */
   @Override
-  public SymbolicFormula toConcrete(Region af) {
+  public Formula toConcrete(Region af) {
 
-    Map<Region, SymbolicFormula> cache;
+    Map<Region, Formula> cache;
     if (useCache) {
       cache = toConcreteCache;
     } else {
-      cache = new HashMap<Region, SymbolicFormula>();
+      cache = new HashMap<Region, Formula>();
     }
     Deque<Region> toProcess = new ArrayDeque<Region>();
 
@@ -163,8 +163,8 @@ public class AbstractionManagerImpl implements AbstractionManager {
         continue;
       }
       boolean childrenDone = true;
-      SymbolicFormula m1 = null;
-      SymbolicFormula m2 = null;
+      Formula m1 = null;
+      Formula m2 = null;
 
       Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
       Region c1 = parts.getSecond();
@@ -189,14 +189,14 @@ public class AbstractionManagerImpl implements AbstractionManager {
         Region var = parts.getFirst();
         assert(absVarToPredicate.containsKey(var));
 
-        SymbolicFormula atom = absVarToPredicate.get(var).getSymbolicAtom();
+        Formula atom = absVarToPredicate.get(var).getSymbolicAtom();
 
-        SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
+        Formula ite = smgr.makeIfThenElse(atom, m1, m2);
         cache.put(n, ite);
       }
     }
 
-    SymbolicFormula result = cache.get(af);
+    Formula result = cache.get(af);
     assert result != null;
 
     return result;
@@ -206,7 +206,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
    * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#makeTrueAbstractionFormula(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula)
    */
   @Override
-  public AbstractionFormula makeTrueAbstractionFormula(SymbolicFormula previousBlockFormula) {
+  public AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula) {
     if (previousBlockFormula == null) {
       previousBlockFormula = smgr.makeTrue();
     }

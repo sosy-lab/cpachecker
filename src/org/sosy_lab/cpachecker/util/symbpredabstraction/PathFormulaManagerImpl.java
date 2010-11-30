@@ -28,8 +28,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 /**
@@ -60,22 +60,22 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
-    SymbolicFormula formula1 = pF1.getSymbolicFormula();
-    SymbolicFormula formula2 = pF2.getSymbolicFormula();
+    Formula formula1 = pF1.getFormula();
+    Formula formula2 = pF2.getFormula();
     SSAMap ssa1 = pF1.getSsa();
     SSAMap ssa2 = pF2.getSsa();
 
-    Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
+    Pair<Pair<Formula, Formula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
     // do not swap these two lines, that makes a huge difference in performance!
-    SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
-    SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
+    Formula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
+    Formula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
 
-    SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
+    Formula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
-    SymbolicFormula newReachingPathsFormula
+    Formula newReachingPathsFormula
     = smgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
     int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
 
@@ -84,10 +84,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }  
 
   @Override
-  public PathFormula makeAnd(PathFormula pPathFormula, SymbolicFormula pOtherFormula) {
+  public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
-    SymbolicFormula otherFormula =  smgr.instantiate(pOtherFormula, ssa);
-    SymbolicFormula resultFormula = smgr.makeAnd(pPathFormula.getSymbolicFormula(), otherFormula);
+    Formula otherFormula =  smgr.instantiate(pOtherFormula, ssa);
+    Formula resultFormula = smgr.makeAnd(pPathFormula.getFormula(), otherFormula);
     return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
         pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
@@ -104,11 +104,11 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @param ssa2 an SSAMap
    * @return A pair (SymbolicFormula, SSAMap)
    */
-  private Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
+  private Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = SSAMap.merge(ssa1, ssa2);
-    SymbolicFormula mt1 = smgr.makeTrue();
-    SymbolicFormula mt2 = smgr.makeTrue();
+    Formula mt1 = smgr.makeTrue();
+    Formula mt2 = smgr.makeTrue();
 
     for (String var : result.allVariables()) {
       if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
@@ -120,7 +120,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-        SymbolicFormula t;
+        Formula t;
         
         if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i2, 1), i1);
@@ -134,7 +134,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
-        SymbolicFormula t;
+        Formula t;
         
         if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i1, 1), i2);
@@ -147,43 +147,43 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       }
     }
 
-    for (Pair<String, SymbolicFormulaList> f : result.allFunctions()) {
+    for (Pair<String, FormulaList> f : result.allFunctions()) {
       String name = f.getFirst();
-      SymbolicFormulaList args = f.getSecond();
+      FormulaList args = f.getSecond();
       int i1 = ssa1.getIndex(f);
       int i2 = ssa2.getIndex(f);
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-        SymbolicFormula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
+        Formula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
         mt2 = smgr.makeAnd(mt2, t);
 
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
-        SymbolicFormula t = makeSSAMerger(name, args, Math.max(i1, 1), i2); 
+        Formula t = makeSSAMerger(name, args, Math.max(i1, 1), i2); 
         mt1 = smgr.makeAnd(mt1, t); 
       }
     }
 
-    Pair<SymbolicFormula, SymbolicFormula> sp =
-      new Pair<SymbolicFormula, SymbolicFormula>(mt1, mt2);
-    return new Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap>(sp, result);
+    Pair<Formula, Formula> sp =
+      new Pair<Formula, Formula>(mt1, mt2);
+    return new Pair<Pair<Formula, Formula>, SSAMap>(sp, result);
   }
   
-  private SymbolicFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
+  private Formula makeNondetFlagMerger(int iSmaller, int iBigger) {
     return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, smgr.makeNumber(0));
   }
   
-  private SymbolicFormula makeMerger(String var, int iSmaller, int iBigger, SymbolicFormula pInitialValue) {
+  private Formula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {
     assert iSmaller < iBigger;
     
-    SymbolicFormula lResult = smgr.makeTrue();
+    Formula lResult = smgr.makeTrue();
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
-      SymbolicFormula currentVar = smgr.makeVariable(var, i);
-      SymbolicFormula e = smgr.makeEqual(currentVar, pInitialValue);
+      Formula currentVar = smgr.makeVariable(var, i);
+      Formula e = smgr.makeEqual(currentVar, pInitialValue);
       lResult = smgr.makeAnd(lResult, e);
     }
     
@@ -192,20 +192,20 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
-  private SymbolicFormula makeSSAMerger(String var, int iSmaller, int iBigger) {
+  private Formula makeSSAMerger(String var, int iSmaller, int iBigger) {
     return makeMerger(var, iSmaller, iBigger, smgr.makeVariable(var, iSmaller));
   }
 
-  private SymbolicFormula makeSSAMerger(String name,
-      SymbolicFormulaList args, int iSmaller, int iBigger) {
+  private Formula makeSSAMerger(String name,
+      FormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
 
-    SymbolicFormula intialFunc = smgr.makeUIF(name, args, iSmaller);
-    SymbolicFormula result = smgr.makeTrue();
+    Formula intialFunc = smgr.makeUIF(name, args, iSmaller);
+    Formula result = smgr.makeTrue();
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
-      SymbolicFormula currentFunc = smgr.makeUIF(name, args, i);
-      SymbolicFormula e = smgr.makeEqual(currentFunc, intialFunc);
+      Formula currentFunc = smgr.makeUIF(name, args, i);
+      Formula e = smgr.makeEqual(currentFunc, intialFunc);
       result = smgr.makeAnd(result, e);
     }
     return result;

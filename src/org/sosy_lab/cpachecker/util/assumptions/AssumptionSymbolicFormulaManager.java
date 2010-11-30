@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 /**
  * Extension of predicate abstraction's symbolic formula manager
@@ -42,10 +42,10 @@ public interface AssumptionSymbolicFormulaManager {
    * @param p an invariant predicate
    * @return The formula (f1 & e)
    */
-  public SymbolicFormula makeAnd(SymbolicFormula f1, IASTNode p, String function) throws UnrecognizedCCodeException;
+  public Formula makeAnd(Formula f1, IASTNode p, String function) throws UnrecognizedCCodeException;
 
   /**
    * @return a SymbolicFormula representing logical truth
    */
-  public SymbolicFormula makeTrue();
+  public Formula makeTrue();
 }

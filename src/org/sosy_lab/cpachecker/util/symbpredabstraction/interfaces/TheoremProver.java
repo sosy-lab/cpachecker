@@ -30,13 +30,13 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 public interface TheoremProver {
 
   void init();
-  void push(SymbolicFormula f);
+  void push(Formula f);
   void pop();
-  boolean isUnsat(SymbolicFormula f);
+  boolean isUnsat(Formula f);
   Model getModel();
   void reset();
 
-  AllSatResult allSat(SymbolicFormula f, Collection<SymbolicFormula> important,
+  AllSatResult allSat(Formula f, Collection<Formula> important,
                       AbstractionManager mgr);
     
   interface AllSatResult {

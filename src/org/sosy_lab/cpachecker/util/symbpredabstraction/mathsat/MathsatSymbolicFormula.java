@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 
 /**
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class MathsatSymbolicFormula implements SymbolicFormula {
+public class MathsatSymbolicFormula implements Formula {
 
     private final long msatTerm;
 

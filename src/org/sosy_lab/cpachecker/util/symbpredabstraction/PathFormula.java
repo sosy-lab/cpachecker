@@ -23,23 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 public class PathFormula {
 
-  private final SymbolicFormula formula;
+  private final Formula formula;
   private final SSAMap ssa;
   private final int length;
   
   // this formula contains information about the branches we took so we can
   // single out feasible paths
-  private final SymbolicFormula reachingPathsFormula;
+  private final Formula reachingPathsFormula;
   
   // number of branching locations we saw on the paths (used for reachingPathsFormula)
   private final int branchingCounter; 
   
-  protected PathFormula(SymbolicFormula pf, SSAMap ssa, int pLength,
-        SymbolicFormula pReachingPathsFormula, int pBranchingCounter) {
+  protected PathFormula(Formula pf, SSAMap ssa, int pLength,
+        Formula pReachingPathsFormula, int pBranchingCounter) {
     this.formula = pf;
     this.ssa = ssa;    
     this.length = pLength;
@@ -47,7 +47,7 @@ public class PathFormula {
     this.branchingCounter = pBranchingCounter;
   }
 
-  public SymbolicFormula getSymbolicFormula() {
+  public Formula getFormula() {
     return formula;
   }
 
@@ -59,7 +59,7 @@ public class PathFormula {
     return length;
   }
 
-  public SymbolicFormula getReachingPathsFormula() {
+  public Formula getReachingPathsFormula() {
     return reachingPathsFormula;
   }
   
@@ -69,7 +69,7 @@ public class PathFormula {
   
   @Override
   public String toString(){
-    return getSymbolicFormula().toString();
+    return getFormula().toString();
   }
 
   @Override

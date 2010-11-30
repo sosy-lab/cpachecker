@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
  *
  * A generic interface for manipulating symbolic representations of formulas.
  */
-public interface SymbolicFormula {
+public interface Formula {
     /**
      * checks whether this formula represents "true"
      * @return true if this formula represents logical truth, false otherwise

@@ -43,8 +43,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import com.google.common.base.Preconditions;
@@ -89,13 +89,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms
-  private final Map<SymbolicFormula, Boolean> arithCache = new HashMap<SymbolicFormula, Boolean>();
+  private final Map<Formula, Boolean> arithCache = new HashMap<Formula, Boolean>();
 
   // cache for uninstantiating terms (see uninstantiate() below)
-  private final Map<SymbolicFormula, SymbolicFormula> uninstantiateCache = new HashMap<SymbolicFormula, SymbolicFormula>();
+  private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
   
-  private final SymbolicFormula trueFormula;
-  private final SymbolicFormula falseFormula;
+  private final Formula trueFormula;
+  private final Formula falseFormula;
   
   public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatSymbolicFormulaManager.class);
@@ -154,19 +154,19 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     return env;
   }
   
-  public static long getTerm(SymbolicFormula f) {
+  public static long getTerm(Formula f) {
     return ((MathsatSymbolicFormula)f).getTerm();
   }
   
-  public static long[] getTerm(SymbolicFormulaList f) {
+  public static long[] getTerm(FormulaList f) {
     return ((MathsatSymbolicFormulaList)f).getTerms();
   }
   
-  public static SymbolicFormula encapsulate(long t) {
+  public static Formula encapsulate(long t) {
     return new MathsatSymbolicFormula(t);
   }
 
-  public static SymbolicFormulaList encapsulate(long[] t) {
+  public static FormulaList encapsulate(long[] t) {
     return new MathsatSymbolicFormulaList(t);
   }
   
@@ -186,42 +186,42 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // ----------------- Boolean formulas -----------------
   
   @Override
-  public boolean isBoolean(SymbolicFormula f) {
+  public boolean isBoolean(Formula f) {
     return msat_term_get_type(getTerm(f)) == MSAT_BOOL;
   }
   
   @Override
-  public SymbolicFormula makeTrue() {
+  public Formula makeTrue() {
     return trueFormula;
   }
   
   @Override
-  public SymbolicFormula makeFalse() {
+  public Formula makeFalse() {
     return falseFormula;
   }
 
   @Override
-  public SymbolicFormula makeNot(SymbolicFormula f) {
+  public Formula makeNot(Formula f) {
     return encapsulate(msat_make_not(msatEnv, getTerm(f)));
   }
 
   @Override
-  public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeAnd(Formula f1, Formula f2) {
     return encapsulate(msat_make_and(msatEnv, getTerm(f1), getTerm(f2)));
   }
 
   @Override
-  public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeOr(Formula f1, Formula f2) {
     return encapsulate(msat_make_or(msatEnv, getTerm(f1), getTerm(f2)));
   }
 
   @Override
-  public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeEquivalence(Formula f1, Formula f2) {
     return encapsulate(msat_make_iff(msatEnv, getTerm(f1), getTerm(f2)));
   }
 
   @Override
-  public SymbolicFormula makeIfThenElse(SymbolicFormula condition, SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeIfThenElse(Formula condition, Formula f1, Formula f2) {
     return encapsulate(msat_make_ite(msatEnv, getTerm(condition), getTerm(f1), getTerm(f2)));
   }
   
@@ -229,32 +229,32 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // ----------------- Numeric formulas -----------------
 
   @Override
-  public SymbolicFormula makeNegate(SymbolicFormula f) {
+  public Formula makeNegate(Formula f) {
     return encapsulate(msat_make_negate(msatEnv, getTerm(f)));
   }
 
   @Override
-  public SymbolicFormula makeNumber(int i) {
+  public Formula makeNumber(int i) {
     return encapsulate(msat_make_number(msatEnv, Integer.valueOf(i).toString()));
   }
   
   @Override
-  public SymbolicFormula makeNumber(String i) {
+  public Formula makeNumber(String i) {
     return encapsulate(msat_make_number(msatEnv, i));
   }
   
   @Override
-  public SymbolicFormula makePlus(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makePlus(Formula f1, Formula f2) {
     return encapsulate(msat_make_plus(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   @Override
-  public SymbolicFormula makeMinus(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeMinus(Formula f1, Formula f2) {
     return encapsulate(msat_make_minus(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   @Override
-  public SymbolicFormula makeDivide(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeDivide(Formula f1, Formula f2) {
     long t1 = getTerm(f1);
     long t2 = getTerm(f2);
     
@@ -281,12 +281,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
-  public SymbolicFormula makeModulo(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeModulo(Formula f1, Formula f2) {
     return makeUIFforBinaryOperator(f1, f2, modUfDecl);
   }
   
   @Override
-  public SymbolicFormula makeMultiply(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeMultiply(Formula f1, Formula f2) {
     long t1 = getTerm(f1);
     long t2 = getTerm(f2);
     
@@ -305,61 +305,61 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // ----------------- Numeric relations -----------------
   
   @Override
-  public SymbolicFormula makeEqual(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeEqual(Formula f1, Formula f2) {
     return encapsulate(msat_make_equal(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   @Override
-  public SymbolicFormula makeGt(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeGt(Formula f1, Formula f2) {
     return encapsulate(msat_make_gt(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   @Override
-  public SymbolicFormula makeGeq(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeGeq(Formula f1, Formula f2) {
     return encapsulate(msat_make_geq(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   @Override
-  public SymbolicFormula makeLt(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeLt(Formula f1, Formula f2) {
     return encapsulate(msat_make_lt(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   @Override
-  public SymbolicFormula makeLeq(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeLeq(Formula f1, Formula f2) {
     return encapsulate(msat_make_leq(msatEnv, getTerm(f1), getTerm(f2)));
   }
   
   // ----------------- Bit-manipulation functions -----------------
 
   @Override
-  public SymbolicFormula makeBitwiseNot(SymbolicFormula f) {
+  public Formula makeBitwiseNot(Formula f) {
     long[] args = {getTerm(f)};
     
     return encapsulate(msat_make_uif(msatEnv, bitwiseNotUfDecl, args));
   }
 
   @Override
-  public SymbolicFormula makeBitwiseAnd(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeBitwiseAnd(Formula f1, Formula f2) {
     return makeUIFforBinaryOperator(f1, f2, bitwiseAndUfDecl);
   }
   
   @Override
-  public SymbolicFormula makeBitwiseOr(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeBitwiseOr(Formula f1, Formula f2) {
     return makeUIFforBinaryOperator(f1, f2, bitwiseOrUfDecl);
   }
   
   @Override
-  public SymbolicFormula makeBitwiseXor(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeBitwiseXor(Formula f1, Formula f2) {
     return makeUIFforBinaryOperator(f1, f2, bitwiseXorUfDecl);
   }
   
   @Override
-  public SymbolicFormula makeShiftLeft(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeShiftLeft(Formula f1, Formula f2) {
     return makeUIFforBinaryOperator(f1, f2, leftShiftUfDecl);
   }
   
   @Override
-  public SymbolicFormula makeShiftRight(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeShiftRight(Formula f1, Formula f2) {
     return makeUIFforBinaryOperator(f1, f2, rightShiftUfDecl);
   }
 
@@ -376,16 +376,16 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
-  public SymbolicFormula makeUIF(String name, SymbolicFormulaList args) {
+  public Formula makeUIF(String name, FormulaList args) {
     return encapsulate(buildMsatUF(name, getTerm(args)));
   }
 
   @Override
-  public SymbolicFormula makeUIF(String name, SymbolicFormulaList args, int idx) {
+  public Formula makeUIF(String name, FormulaList args, int idx) {
     return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args)));
   }
   
-  private SymbolicFormula makeUIFforBinaryOperator(SymbolicFormula f1, SymbolicFormula f2, long uifDecl) {
+  private Formula makeUIFforBinaryOperator(Formula f1, Formula f2, long uifDecl) {
     long[] args = {getTerm(f1), getTerm(f2)};
     
     return encapsulate(msat_make_uif(msatEnv, uifDecl, args));
@@ -395,7 +395,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // ----------------- Other formulas -----------------
 
   @Override
-  public SymbolicFormula makeString(int i) {
+  public Formula makeString(int i) {
     long n = msat_make_number(msatEnv, Integer.valueOf(i).toString());
     
     return encapsulate(msat_make_uif(msatEnv,
@@ -412,19 +412,19 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula makeVariable(String var, int idx) {
+  public Formula makeVariable(String var, int idx) {
     return encapsulate(buildMsatVariable(var, idx));
   }
   
   @Override
-  public SymbolicFormula makePredicateVariable(String var, int idx) {
+  public Formula makePredicateVariable(String var, int idx) {
     String name = makeName("PRED" + var, idx);
     long decl = msat_declare_variable(msatEnv, name, MSAT_BOOL);
     return encapsulate(msat_make_variable(msatEnv, decl));
   }
 
   @Override
-  public SymbolicFormula makeAssignment(SymbolicFormula f1, SymbolicFormula f2) {
+  public Formula makeAssignment(Formula f1, Formula f2) {
     return makeEqual(f1, f2);
   }
 
@@ -432,17 +432,17 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // ----------------- Convert to list -----------------
   
   @Override
-  public SymbolicFormulaList makeList(SymbolicFormula pF) {
+  public FormulaList makeList(Formula pF) {
     return new MathsatSymbolicFormulaList(getTerm(pF));
   }
   
   @Override
-  public SymbolicFormulaList makeList(SymbolicFormula pF1, SymbolicFormula pF2) {
+  public FormulaList makeList(Formula pF1, Formula pF2) {
     return new MathsatSymbolicFormulaList(getTerm(pF1), getTerm(pF2));
   }
   
   @Override
-  public SymbolicFormulaList makeList(SymbolicFormula... pF) {
+  public FormulaList makeList(Formula... pF) {
     long[] t = new long[pF.length];
     for (int i = 0; i < pF.length; i++) {
       t[i] = getTerm(pF[i]);
@@ -453,7 +453,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // ----------------- Complex formula manipulation -----------------
   
   @Override
-  public SymbolicFormula createPredicateVariable(SymbolicFormula atom) {
+  public Formula createPredicateVariable(Formula atom) {
     long t = getTerm(atom);
 
     String repr = (msat_term_is_atom(t) != 0)
@@ -465,7 +465,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public String dumpFormula(SymbolicFormula f) {
+  public String dumpFormula(Formula f) {
     return msat_to_msat(msatEnv, getTerm(f));
   }
 
@@ -500,7 +500,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
 */
 
   @Override
-  public SymbolicFormula parseInfix(String s) {
+  public Formula parseInfix(String s) {
     long f = msat_from_string(msatEnv, s);
     Preconditions.checkArgument(!MSAT_ERROR_TERM(f),
         "Could not parse formula %s as Mathsat formula.", s);
@@ -509,7 +509,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula parse(String s) {
+  public Formula parse(String s) {
     long f = msat_from_msat(msatEnv, s);
     Preconditions.checkArgument(!MSAT_ERROR_TERM(f),
         "Could not parse formula %s as Mathsat formula.", s);
@@ -518,13 +518,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
   
   @Override
-  public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-    Map<SymbolicFormula, SymbolicFormula> cache = new HashMap<SymbolicFormula, SymbolicFormula>();
+  public Formula instantiate(Formula f, SSAMap ssa) {
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
-      final SymbolicFormula tt = toProcess.peek();
+      final Formula tt = toProcess.peek();
       if (cache.containsKey(tt)) {
         toProcess.pop();
         continue;
@@ -548,8 +548,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
-          SymbolicFormula newC = cache.get(c);
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
           if (newC != null) {
             newargs[i] = getTerm(newC);
           } else {
@@ -585,7 +585,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       }
     }
 
-    SymbolicFormula result = cache.get(f);
+    Formula result = cache.get(f);
     assert result != null;
     return result;
   }
@@ -595,13 +595,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public SymbolicFormula uninstantiate(SymbolicFormula f) {
-    Map<SymbolicFormula, SymbolicFormula> cache = uninstantiateCache;
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+  public Formula uninstantiate(Formula f) {
+    Map<Formula, Formula> cache = uninstantiateCache;
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
     
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
-      final SymbolicFormula tt = toProcess.peek();
+      final Formula tt = toProcess.peek();
       if (cache.containsKey(tt)) {
         toProcess.pop();
         continue;
@@ -619,8 +619,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
-          SymbolicFormula newC = cache.get(c);
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
           if (newC != null) {
             newargs[i] = getTerm(newC);
           } else {
@@ -652,7 +652,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       }
     }
 
-    SymbolicFormula result = cache.get(f);
+    Formula result = cache.get(f);
     assert result != null;
     return result;
   }
@@ -663,16 +663,16 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
   // But only if an bitwise "and" occurs in the formula.
   @Override
-  public SymbolicFormula getBitwiseAxioms(SymbolicFormula f) {
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
-    Set<SymbolicFormula> seen = new HashSet<SymbolicFormula>();
-    Set<SymbolicFormula> allLiterals = new HashSet<SymbolicFormula>();
+  public Formula getBitwiseAxioms(Formula f) {
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Set<Formula> seen = new HashSet<Formula>();
+    Set<Formula> allLiterals = new HashSet<Formula>();
 
     boolean andFound = false;
 
     toProcess.add(f);
     while (!toProcess.isEmpty()) {
-      final SymbolicFormula tt = toProcess.pollLast();
+      final Formula tt = toProcess.pollLast();
       final long t = getTerm(tt);
 
       if (msat_term_is_number(t) != 0) {
@@ -686,7 +686,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       }
       int arity = msat_term_arity(t);
       for (int i = 0; i < arity; ++i) {
-        SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
+        Formula c = encapsulate(msat_term_get_arg(t, i));
         if (seen.add(c)) {
           // was not already contained in seen
           toProcess.add(c);
@@ -697,7 +697,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
     long result = msat_make_true(msatEnv);
     if (andFound) {
       long z = msat_make_number(msatEnv, "0");
-      for (SymbolicFormula nn : allLiterals) {
+      for (Formula nn : allLiterals) {
         long n = getTerm(nn);
         long u1 = msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{n, z});
         long u2 = msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{z, n});
@@ -711,16 +711,16 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   @Override
-  public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
+  public Collection<Formula> extractAtoms(Formula f,
       boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Set<SymbolicFormula> cache = new HashSet<SymbolicFormula>();
-    List<SymbolicFormula> atoms = new ArrayList<SymbolicFormula>();
+    Set<Formula> cache = new HashSet<Formula>();
+    List<Formula> atoms = new ArrayList<Formula>();
 
-    Deque<SymbolicFormula> toProcess = new ArrayDeque<SymbolicFormula>();
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
     toProcess.push(f);
 
     while (!toProcess.isEmpty()) {
-      SymbolicFormula tt = toProcess.pop();
+      Formula tt = toProcess.pop();
       long t = getTerm(tt);
       assert !cache.contains(tt);
       cache.add(tt);
@@ -740,7 +740,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
           long a2 = msat_term_get_arg(t, 1);
           long t1 = msat_make_leq(msatEnv, a1, a2);
           //long t2 = msat_make_leq(msatEnv, a2, a1);
-          SymbolicFormula tt1 = encapsulate(t1);
+          Formula tt1 = encapsulate(t1);
           //SymbolicFormula tt2 = encapsulate(t2);
           cache.add(tt1);
           //cache.add(tt2);
@@ -760,7 +760,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
       } else {
         // ok, go into this formula
         for (int i = 0; i < msat_term_arity(t); ++i){
-          SymbolicFormula c = encapsulate(msat_term_get_arg(t, i));
+          Formula c = encapsulate(msat_term_get_arg(t, i));
           if (!cache.contains(c)) {
             toProcess.push(c);
           }
@@ -772,7 +772,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
   }
 
   // returns true if the given term is a pure arithmetic term
-  private boolean isPurelyArithmetic(SymbolicFormula f) {
+  private boolean isPurelyArithmetic(Formula f) {
     Boolean result = arithCache.get(f);
     if (result != null) {
       return result;

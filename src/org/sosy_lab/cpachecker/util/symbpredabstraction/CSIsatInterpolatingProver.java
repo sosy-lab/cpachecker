@@ -31,7 +31,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import com.google.common.base.Joiner;
@@ -75,12 +75,12 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
     @Override
     public void handleOutput(String line) throws IOException {
-      SymbolicFormula itp = smgr.parseInfix(line);
+      Formula itp = smgr.parseInfix(line);
       interpolants.add(itp);
       logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
     }
 
-    public void writeFormulas(List<SymbolicFormula> formulas) throws IOException {
+    public void writeFormulas(List<Formula> formulas) throws IOException {
       String formulasStr = FORMULAS_JOINER.join(formulas);
 
       logger.log(Level.ALL, "Interpolation problem is", formulasStr);
@@ -101,8 +101,8 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     logger = pLogger;
   }
 
-  private final List<SymbolicFormula> formulas = new ArrayList<SymbolicFormula>();
-  private final List<SymbolicFormula> interpolants = new ArrayList<SymbolicFormula>();
+  private final List<Formula> formulas = new ArrayList<Formula>();
+  private final List<Formula> interpolants = new ArrayList<Formula>();
 
   @Override
   public void init() {
@@ -111,7 +111,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   }
 
   @Override
-  public Integer addFormula(SymbolicFormula pF) {
+  public Integer addFormula(Formula pF) {
     Preconditions.checkNotNull(pF);
     Preconditions.checkState(interpolants.isEmpty(), "Cannot add formulas after calling unsat, call reset!");
 
@@ -120,7 +120,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   }
 
   @Override
-  public SymbolicFormula getInterpolant(List<Integer> pFormulasOfA) {
+  public Formula getInterpolant(List<Integer> pFormulasOfA) {
     Preconditions.checkState(!interpolants.isEmpty(), "isUnsat needs to be called first!");
 
     int i = 0;

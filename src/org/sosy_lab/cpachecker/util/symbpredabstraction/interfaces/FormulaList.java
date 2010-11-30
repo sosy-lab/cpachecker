@@ -29,6 +29,6 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
  * Because of this, it needs to have implementations of equals() and hashCode()
  * that let it be used in HashMaps.
  */
-public interface SymbolicFormulaList {
+public interface FormulaList {
 
 }

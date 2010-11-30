@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -125,7 +125,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // Check whether abstraction is false.
     // Such elements might get created when precision adjustment computes an abstraction.
-    if (element.getAbstractionFormula().asSymbolicFormula().isFalse()) {
+    if (element.getAbstractionFormula().asFormula().isFalse()) {
       return Collections.emptySet();
     }
     
@@ -348,7 +348,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private SymbPredAbsAbstractElement strengthen(SymbPredAbsAbstractElement pElement, 
       AssumptionCollectorElement pElement2) {
     
-    SymbolicFormula asmpt = pElement2.getCollectedAssumption();
+    Formula asmpt = pElement2.getCollectedAssumption();
 
     if (asmpt.isTrue() || asmpt.isFalse()) {
       // we don't add the assumption false in order to not forget the content of the path formula
@@ -392,7 +392,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "Last part of the path is not infeasible.");
 
       // set abstraction to true (we don't know better)
-      AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula.getSymbolicFormula());
+      AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula.getFormula());
 
       PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 

@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionMa
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
@@ -172,7 +172,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   @Option
   private boolean useCache = true;
   
-  private final Map<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -212,7 +212,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 //    }
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<SymbolicFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
+      abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();
     } else {
       abstractionCache = null;
     }
@@ -237,26 +237,26 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
     if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
-      return makeTrueAbstractionFormula(pathFormula.getSymbolicFormula());
+      return makeTrueAbstractionFormula(pathFormula.getFormula());
     }
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
     
-    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
-    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
-    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    Formula absFormula = abstractionFormula.asFormula();
+    Formula symbFormula = buildFormula(pathFormula.getFormula());
+    Formula f = smgr.makeAnd(absFormula, symbFormula);
     
     // caching
-    Pair<SymbolicFormula, Collection<AbstractionPredicate>> absKey = null;
+    Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = new Pair<SymbolicFormula, Collection<AbstractionPredicate>>(f, predicates);
+      absKey = new Pair<Formula, Collection<AbstractionPredicate>>(f, predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asSymbolicFormula(), result.getBlockFormula());
+        result = new AbstractionFormula(result.asRegion(), result.asFormula(), result.getBlockFormula());
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
@@ -270,8 +270,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
     
-    SymbolicFormula symbolicAbs = smgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
-    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getSymbolicFormula());
+    Formula symbolicAbs = smgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
+    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
 
     if (useCache) {
       abstractionCache.put(absKey, result);
@@ -280,7 +280,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     return result;
   }
 
-  private Region buildCartesianAbstraction(SymbolicFormula f, SSAMap ssa,
+  private Region buildCartesianAbstraction(Formula f, SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
     final RegionManager rmgr = amgr.getRegionManager();  
     
@@ -362,8 +362,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
                 "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
             // instantiate the definition of the predicate
-            SymbolicFormula predTrue = smgr.instantiate(p.getSymbolicAtom(), ssa);
-            SymbolicFormula predFalse = smgr.makeNot(predTrue);
+            Formula predTrue = smgr.instantiate(p.getSymbolicAtom(), ssa);
+            Formula predFalse = smgr.makeNot(predTrue);
 
             // check whether this predicate has a truth value in the next
             // state
@@ -427,10 +427,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     }
   }
 
-  private SymbolicFormula buildSymbolicFormula(SymbolicFormula symbFormula) {
+  private Formula buildFormula(Formula symbFormula) {
 
     if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
+      Formula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
       if (!bitwiseAxioms.isTrue()) {
         symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
 
@@ -446,13 +446,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
    */
   @Override
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
-    SymbolicFormula absFormula = a1.asSymbolicFormula();
-    SymbolicFormula symbFormula = buildSymbolicFormula(p1.getSymbolicFormula()); 
-    SymbolicFormula a = smgr.makeAnd(absFormula, symbFormula);
+    Formula absFormula = a1.asFormula();
+    Formula symbFormula = buildFormula(p1.getFormula()); 
+    Formula a = smgr.makeAnd(absFormula, symbFormula);
 
-    SymbolicFormula b = smgr.instantiate(a2.asSymbolicFormula(), p1.getSsa());
+    Formula b = smgr.instantiate(a2.asFormula(), p1.getSsa());
 
-    SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
+    Formula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
 
     thmProver.init();
     try {
@@ -462,7 +462,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     }
   }
 
-  private Region buildBooleanAbstraction(SymbolicFormula f, SSAMap ssa,
+  private Region buildBooleanAbstraction(Formula f, SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
 
     // first, create the new formula corresponding to
@@ -475,20 +475,20 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
-    SymbolicFormula predDef = smgr.makeTrue();
-    List<SymbolicFormula> predVars = new ArrayList<SymbolicFormula>(predicates.size());
+    Formula predDef = smgr.makeTrue();
+    List<Formula> predVars = new ArrayList<Formula>(predicates.size());
 
     for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
-      SymbolicFormula var = p.getSymbolicVariable();
-      SymbolicFormula def = p.getSymbolicAtom();
+      Formula var = p.getSymbolicVariable();
+      Formula def = p.getSymbolicAtom();
       if (def.isFalse()) {
         continue;
       }
       def = smgr.instantiate(def, ssa);
       
       // build the formula (var <-> def) and add it to the list of definitions
-      SymbolicFormula equiv = smgr.makeEquivalence(var, def);
+      Formula equiv = smgr.makeEquivalence(var, def);
       predDef = smgr.makeAnd(predDef, equiv);
 
       predVars.add(var);
@@ -498,7 +498,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    SymbolicFormula fm = smgr.makeAnd(f, predDef);
+    Formula fm = smgr.makeAnd(f, predDef);
 
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
@@ -554,9 +554,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
    */
   @Override
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
-    SymbolicFormula absFormula = abstractionFormula.asSymbolicFormula();
-    SymbolicFormula symbFormula = buildSymbolicFormula(pathFormula.getSymbolicFormula());
-    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    Formula absFormula = abstractionFormula.asFormula();
+    Formula symbFormula = buildFormula(pathFormula.getFormula());
+    Formula f = smgr.makeAnd(absFormula, symbFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     thmProver.init();
@@ -581,13 +581,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
     logger.log(Level.FINEST, "Building counterexample trace");
 
-    List<SymbolicFormula> f = getFormulasForTrace(pAbstractTrace);
+    List<Formula> f = getFormulasForTrace(pAbstractTrace);
 
     if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = smgr.makeTrue();
+      Formula bitwiseAxioms = smgr.makeTrue();
   
-      for (SymbolicFormula fm : f) {
-        SymbolicFormula a = smgr.getBitwiseAxioms(fm);
+      for (Formula fm : f) {
+        Formula a = smgr.getBitwiseAxioms(fm);
         if (!a.isTrue()) {
           bitwiseAxioms = smgr.makeAnd(bitwiseAxioms, a);  
         }
@@ -606,8 +606,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
     if (maxRefinementSize > 0) {
-      SymbolicFormula cex = smgr.makeTrue();
-      for (SymbolicFormula formula : f) {
+      Formula cex = smgr.makeTrue();
+      for (Formula formula : f) {
         cex = smgr.makeAnd(cex, formula);
       }
       int size = smgr.dumpFormula(cex).length();
@@ -633,7 +633,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
     if (dumpInterpolationProblems) {
       int k = 0;
-      for (SymbolicFormula formula : f) {
+      for (Formula formula : f) {
         String dumpFile = String.format(formulaDumpFilePattern,
                     "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
         dumpFormulaToFile(formula, new File(dumpFile));
@@ -696,7 +696,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
             start_of_a, "to", i);
 
         stats.cexAnalysisSolverTimer.start();
-        SymbolicFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
+        Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         stats.cexAnalysisSolverTimer.stop();
         
         if (dumpInterpolationProblems) {
@@ -727,10 +727,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
           if (dumpInterpolationProblems) {
             String dumpFile = String.format(formulaDumpFilePattern,
                         "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
-            Collection<SymbolicFormula> atoms = Collections2.transform(preds,
-                new Function<AbstractionPredicate, SymbolicFormula>(){
+            Collection<Formula> atoms = Collections2.transform(preds,
+                new Function<AbstractionPredicate, Formula>(){
                       @Override
-                      public SymbolicFormula apply(AbstractionPredicate pArg0) {
+                      public Formula apply(AbstractionPredicate pArg0) {
                         return pArg0.getSymbolicAtom();
                       }
                 });
@@ -778,7 +778,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
         logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
         int k = 0;
-        for (SymbolicFormula formula : f) {
+        for (Formula formula : f) {
           pItpProver.addFormula(formula);
           String dumpFile =
               String.format(formulaDumpFilePattern, "interpolation",
@@ -819,8 +819,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   
   @Override
   public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
-    SymbolicFormula f = smgr.makeTrue();
-    for (SymbolicFormula part : cex.getCounterExampleFormulas()) {
+    Formula f = smgr.makeTrue();
+    for (Formula part : cex.getCounterExampleFormulas()) {
       f = smgr.makeAnd(f, part);
     }
     dumpFormulaToFile(f, file);
@@ -832,7 +832,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     for (CFAEdge edge : pPath) {
       pathFormula = makeAnd(pathFormula, edge);
     }
-    SymbolicFormula f = pathFormula.getSymbolicFormula();
+    Formula f = pathFormula.getFormula();
     // ignore reachingPathsFormula here because it is just a simple path
     
     thmProver.init();
@@ -905,12 +905,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     }
   }
 
-  private List<SymbolicFormula> getFormulasForTrace(
+  private List<Formula> getFormulasForTrace(
       List<SymbPredAbsAbstractElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
-    List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
+    List<Formula> result = new ArrayList<Formula>(abstractTrace.size());
 
     for (SymbPredAbsAbstractElement e : abstractTrace) {
       result.add(e.getAbstractionFormula().getBlockFormula());
@@ -918,7 +918,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     return result;
   }
 
-  private <T> boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas,
+  private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
         List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) {
     Boolean tmpSpurious = null;
 
@@ -933,7 +933,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
         fromStart = !fromStart;
 
         tmpSpurious = null;
-        SymbolicFormula fm = traceFormulas.get(i);
+        Formula fm = traceFormulas.get(i);
         itpGroupsIds.set(i, pItpProver.addFormula(fm));
         if (!fm.isTrue()) {
           if (pItpProver.isUnsat()) {
@@ -953,7 +953,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
 
         tmpSpurious = null;
-        SymbolicFormula fm = traceFormulas.get(i);
+        Formula fm = traceFormulas.get(i);
         itpGroupsIds.set(i, pItpProver.addFormula(fm));
         if (!fm.isTrue()) {
           if (pItpProver.isUnsat()) {
@@ -976,7 +976,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     return (tmpSpurious == null) ? pItpProver.isUnsat() : tmpSpurious;
   }
 
-  private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,
+  private List<Formula> getUsefulBlocks(List<Formula> f,
       boolean suffixTrace, boolean zigZag) {
     
     stats.cexAnalysisGetUsefulBlocksTimer.start();
@@ -988,8 +988,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    SymbolicFormula trueFormula = smgr.makeTrue();
-    SymbolicFormula[] needed = new SymbolicFormula[f.size()];
+    Formula trueFormula = smgr.makeTrue();
+    Formula[] needed = new Formula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
       needed[i] = trueFormula;
     }
@@ -1023,7 +1023,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
           else --e;
           fromStart = !fromStart;
 
-          SymbolicFormula t = f.get(i);
+          Formula t = f.get(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
@@ -1046,7 +1046,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       } else {
         for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
         i += incr) {
-          SymbolicFormula t = f.get(i);
+          Formula t = f.get(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
@@ -1087,8 +1087,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   }
 
   @Override
-  public List<AbstractionPredicate> getAtomsAsPredicates(SymbolicFormula f) {
-    Collection<SymbolicFormula> atoms;
+  public List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
+    Collection<Formula> atoms;
     if (atomicPredicates) {
       atoms = smgr.extractAtoms(f, splitItpAtoms, false);
     } else {
@@ -1097,7 +1097,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
     List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
 
-    for (SymbolicFormula atom : atoms) {
+    for (Formula atom : atoms) {
       preds.add(amgr.makePredicate(atom));
     }
     return preds;    
@@ -1151,7 +1151,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   }
   
 
-  private void dumpFormulaToFile(SymbolicFormula f, File outputFile) {
+  private void dumpFormulaToFile(Formula f, File outputFile) {
     try {
       Files.writeFile(outputFile, smgr.dumpFormula(f));
     } catch (IOException e) {
@@ -1162,7 +1162,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
-  private void printFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
+  private void printFormulasToFile(Iterable<Formula> f, File outputFile) {
     try {
       Files.writeFile(outputFile, LINE_JOINER.join(f));
     } catch (IOException e) {
@@ -1180,7 +1180,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
   @Override
   public AbstractionFormula makeTrueAbstractionFormula(
-      SymbolicFormula pPreviousBlockFormula) {
+      Formula pPreviousBlockFormula) {
     return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
   }
 }

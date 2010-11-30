@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 /**
  * Interface to implement in order for an object (typically abstract element)
@@ -37,6 +37,6 @@ public interface FormulaReportingElement {
   /**
    * Returns a symbolic formula over-approximating the element
    */
-  public SymbolicFormula getFormulaApproximation();
+  public Formula getFormulaApproximation();
 
 }

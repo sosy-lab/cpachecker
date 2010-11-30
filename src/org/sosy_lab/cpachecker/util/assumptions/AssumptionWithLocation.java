@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import com.google.common.base.Function;
@@ -45,7 +45,7 @@ public class AssumptionWithLocation {
   private final SymbolicFormulaManager manager;
 
   // map from location to (conjunctive) list of invariants
-  private final Map<CFANode, SymbolicFormula> map = new HashMap<CFANode, SymbolicFormula>();
+  private final Map<CFANode, Formula> map = new HashMap<CFANode, Formula>();
 
   public AssumptionWithLocation(SymbolicFormulaManager pManager) {
     manager = pManager;
@@ -63,20 +63,20 @@ public class AssumptionWithLocation {
     return Joiner.on('\n').join(Collections2.transform(map.entrySet(), assumptionFormatter));
   }
   
-  private static final Function<Entry<CFANode, SymbolicFormula>, String> assumptionFormatter
-      = new Function<Entry<CFANode, SymbolicFormula>, String>() {
+  private static final Function<Entry<CFANode, Formula>, String> assumptionFormatter
+      = new Function<Entry<CFANode, Formula>, String>() {
     
     @Override
-    public String apply(Map.Entry<CFANode, SymbolicFormula> entry) {
+    public String apply(Map.Entry<CFANode, Formula> entry) {
       int nodeId = entry.getKey().getNodeNumber();
-      SymbolicFormula assumption = entry.getValue();
+      Formula assumption = entry.getValue();
       return "pc = " + nodeId + "\t =====>  " + assumption.toString();
     }
   };
 
-  public void add(CFANode node, SymbolicFormula assumption) {
+  public void add(CFANode node, Formula assumption) {
     if (!assumption.isTrue()) {
-      SymbolicFormula oldInvariant = map.get(node);
+      Formula oldInvariant = map.get(node);
       if (oldInvariant == null) {
         map.put(node, assumption);
       } else {

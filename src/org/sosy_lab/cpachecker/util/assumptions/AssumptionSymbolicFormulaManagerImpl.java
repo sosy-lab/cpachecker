@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaList;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
@@ -67,7 +67,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     }
 
     @Override
-    public int getIndex(String pName, SymbolicFormulaList pArgs) {
+    public int getIndex(String pName, FormulaList pArgs) {
       return 1;
     }
 
@@ -77,7 +77,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     }
 
     @Override
-    public void setIndex(String pName, SymbolicFormulaList pArgs, int pIdx) {
+    public void setIndex(String pName, FormulaList pArgs, int pIdx) {
       assert(false);
     }
 
@@ -125,7 +125,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
   }
 //  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
 
-  private Pair<SymbolicFormula, SSAMapBuilder> buildSymbolicFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
+  private Pair<Formula, SSAMapBuilder> buildFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
   {
     // first, check whether we have &&, ||, or !
     if (p instanceof IASTBinaryExpression) {
@@ -139,50 +139,50 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
       switch (binop.getOperator()) {
       case IASTBinaryExpression.op_logicalAnd:
         if (sign){
-          SymbolicFormula symbFor = smgr.makeAnd(
-              buildSymbolicFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-        return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
+          Formula symbFor = smgr.makeAnd(
+              buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
+              buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
+        return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
         }
         else{
-          SymbolicFormula symbFor = smgr.makeOr(
-              buildSymbolicFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
+          Formula symbFor = smgr.makeOr(
+              buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
+              buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
+          return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
         }
       case IASTBinaryExpression.op_logicalOr:
         if (sign){
-          SymbolicFormula symbFor = smgr.makeOr(
-              buildSymbolicFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-          return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
+          Formula symbFor = smgr.makeOr(
+              buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
+              buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
+          return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
         }
         else{
-          SymbolicFormula symbFor = smgr.makeAnd(
-              buildSymbolicFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildSymbolicFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return new Pair<SymbolicFormula, SSAMapBuilder>(symbFor, pSSAMap);
+          Formula symbFor = smgr.makeAnd(
+              buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
+              buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
+          return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
           }
       }
     } else if (p instanceof IASTUnaryExpression) {
       IASTUnaryExpression unop = (IASTUnaryExpression) p;
       if (unop.getOperator() == IASTUnaryExpression.op_not)
-        return buildSymbolicFormula(unop.getOperand(), !sign, function, pSSAMap);
+        return buildFormula(unop.getOperand(), !sign, function, pSSAMap);
     }
 
     //    super.setNamespace(pEdge.getSuccessor().getFunctionName());
     // atomic formula
-    SymbolicFormula ssaFormula = makePredicate(p, sign, function, pSSAMap);
-    return new Pair<SymbolicFormula, SSAMapBuilder>(ssaFormula, pSSAMap);
+    Formula ssaFormula = makePredicate(p, sign, function, pSSAMap);
+    return new Pair<Formula, SSAMapBuilder>(ssaFormula, pSSAMap);
   }
 
   @Override
-  public SymbolicFormula makeAnd(SymbolicFormula f, IASTNode p, String function) throws UnrecognizedCCodeException {
+  public Formula makeAnd(Formula f, IASTNode p, String function) throws UnrecognizedCCodeException {
     SSAMapBuilder mapBuilder = new DummySSAMap();
     
     if(p instanceof IASTExpression){
       
-      return smgr.makeAnd(f, buildSymbolicFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
+      return smgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
@@ -212,7 +212,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
   }
   
   @Override
-  public SymbolicFormula makeTrue() {
+  public Formula makeTrue() {
     return smgr.makeTrue();
   }
 }

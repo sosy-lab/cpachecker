@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
@@ -148,7 +148,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     if (predicatesFile != null) {
       try {
         String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        SymbolicFormula f = symbolicFormulaManager.parse(fileContent);
+        Formula f = symbolicFormulaManager.parse(fileContent);
         predicates = formulaManager.getAtomsAsPredicates(f);
       } catch (IllegalArgumentException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,

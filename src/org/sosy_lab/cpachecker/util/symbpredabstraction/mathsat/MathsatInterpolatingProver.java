@@ -27,7 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 
@@ -55,7 +55,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     }
 
     @Override
-    public Integer addFormula(SymbolicFormula f) {
+    public Integer addFormula(Formula f) {
         Preconditions.checkState(env != 0);
 
         long t = ((MathsatSymbolicFormula)f).getTerm();
@@ -79,7 +79,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     }
 
     @Override
-    public SymbolicFormula getInterpolant(List<Integer> formulasOfA) {
+    public Formula getInterpolant(List<Integer> formulasOfA) {
         Preconditions.checkState(env != 0);
 
         int[] groupsOfA = new int[formulasOfA.size()];

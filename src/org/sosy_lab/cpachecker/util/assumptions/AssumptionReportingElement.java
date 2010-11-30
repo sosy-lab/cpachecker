@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 
 
 /**
@@ -42,6 +42,6 @@ public interface AssumptionReportingElement {
    *         for the given element, or the value null representing
    *         the assumption true.
    */
-  public SymbolicFormula getAssumption();
+  public Formula getAssumption();
 
 }
