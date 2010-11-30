@@ -33,14 +33,14 @@ public class PointerAnalysisDomain implements AbstractDomain {
 
   @Override
   public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-    
+    throw new UnsupportedOperationException();
+    /*
       PointerAnalysisElement pointerElement1 = (PointerAnalysisElement)element1;
-      //PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
+      PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
 
       PointerAnalysisElement pointerElementNew = pointerElement1.clone();
 
       // TODO Join Operator
-      /*
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
       Map<String, Pointer> pointersNew = pointerElementNew.getGlobalPointers();
       for (String name : pointers2.keySet()) {
@@ -62,8 +62,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
       }
       // only the local variables of the current context need to be joined,
       // the others are already identical (were joined before calling the last function)
-      */
       return pointerElementNew;
+    */
   }
 
   @Override
