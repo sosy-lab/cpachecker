@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver.AllSatResult;
 
@@ -181,13 +181,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
   public SymbPredAbsFormulaManagerImpl(
       RegionManager pRmgr,
-      SymbolicFormulaManager pSmgr,
+      FormulaManager pFmgr,
       TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver,
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pSmgr, config, pLogger);
+    super(pFmgr, config, pLogger);
     config.inject(this);
     
     if (formulaDumpFile != null) {
@@ -198,7 +198,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     }
 
     stats = new Stats();
-    amgr = new AbstractionManagerImpl(pRmgr, pSmgr, config, pLogger);
+    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
     thmProver = pThmProver;
     firstItpProver = pItpProver;
     secondItpProver = pAltItpProver;
@@ -246,7 +246,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     
     Formula absFormula = abstractionFormula.asFormula();
     Formula symbFormula = buildFormula(pathFormula.getFormula());
-    Formula f = smgr.makeAnd(absFormula, symbFormula);
+    Formula f = fmgr.makeAnd(absFormula, symbFormula);
     
     // caching
     Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
@@ -270,7 +270,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
     
-    Formula symbolicAbs = smgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
+    Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
     AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
 
     if (useCache) {
@@ -362,8 +362,8 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
                 "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
             // instantiate the definition of the predicate
-            Formula predTrue = smgr.instantiate(p.getSymbolicAtom(), ssa);
-            Formula predFalse = smgr.makeNot(predTrue);
+            Formula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
+            Formula predFalse = fmgr.makeNot(predTrue);
 
             // check whether this predicate has a truth value in the next
             // state
@@ -430,9 +430,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   private Formula buildFormula(Formula symbFormula) {
 
     if (useBitwiseAxioms) {
-      Formula bitwiseAxioms = smgr.getBitwiseAxioms(symbFormula);
+      Formula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
       if (!bitwiseAxioms.isTrue()) {
-        symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
+        symbFormula = fmgr.makeAnd(symbFormula, bitwiseAxioms);
 
         logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
       }
@@ -448,11 +448,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
     Formula absFormula = a1.asFormula();
     Formula symbFormula = buildFormula(p1.getFormula()); 
-    Formula a = smgr.makeAnd(absFormula, symbFormula);
+    Formula a = fmgr.makeAnd(absFormula, symbFormula);
 
-    Formula b = smgr.instantiate(a2.asFormula(), p1.getSsa());
+    Formula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
 
-    Formula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
+    Formula toCheck = fmgr.makeAnd(a, fmgr.makeNot(b));
 
     thmProver.init();
     try {
@@ -475,7 +475,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
-    Formula predDef = smgr.makeTrue();
+    Formula predDef = fmgr.makeTrue();
     List<Formula> predVars = new ArrayList<Formula>(predicates.size());
 
     for (AbstractionPredicate p : predicates) {
@@ -485,11 +485,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       if (def.isFalse()) {
         continue;
       }
-      def = smgr.instantiate(def, ssa);
+      def = fmgr.instantiate(def, ssa);
       
       // build the formula (var <-> def) and add it to the list of definitions
-      Formula equiv = smgr.makeEquivalence(var, def);
-      predDef = smgr.makeAnd(predDef, equiv);
+      Formula equiv = fmgr.makeEquivalence(var, def);
+      predDef = fmgr.makeAnd(predDef, equiv);
 
       predVars.add(var);
     }
@@ -498,7 +498,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    Formula fm = smgr.makeAnd(f, predDef);
+    Formula fm = fmgr.makeAnd(f, predDef);
 
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
@@ -556,7 +556,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
     Formula absFormula = abstractionFormula.asFormula();
     Formula symbFormula = buildFormula(pathFormula.getFormula());
-    Formula f = smgr.makeAnd(absFormula, symbFormula);
+    Formula f = fmgr.makeAnd(absFormula, symbFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     thmProver.init();
@@ -584,12 +584,12 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     List<Formula> f = getFormulasForTrace(pAbstractTrace);
 
     if (useBitwiseAxioms) {
-      Formula bitwiseAxioms = smgr.makeTrue();
+      Formula bitwiseAxioms = fmgr.makeTrue();
   
       for (Formula fm : f) {
-        Formula a = smgr.getBitwiseAxioms(fm);
+        Formula a = fmgr.getBitwiseAxioms(fm);
         if (!a.isTrue()) {
-          bitwiseAxioms = smgr.makeAnd(bitwiseAxioms, a);  
+          bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);  
         }
       }
   
@@ -597,7 +597,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
         logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
             "LAST GROUP: ", bitwiseAxioms);
         int lastIndex = f.size()-1;
-        f.set(lastIndex, smgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
+        f.set(lastIndex, fmgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
       }
     }
 
@@ -606,11 +606,11 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
     if (maxRefinementSize > 0) {
-      Formula cex = smgr.makeTrue();
+      Formula cex = fmgr.makeTrue();
       for (Formula formula : f) {
-        cex = smgr.makeAnd(cex, formula);
+        cex = fmgr.makeAnd(cex, formula);
       }
-      int size = smgr.dumpFormula(cex).length();
+      int size = fmgr.dumpFormula(cex).length();
       if (size > maxRefinementSize) {
         logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
         throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
@@ -819,9 +819,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   
   @Override
   public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
-    Formula f = smgr.makeTrue();
+    Formula f = fmgr.makeTrue();
     for (Formula part : cex.getCounterExampleFormulas()) {
-      f = smgr.makeAnd(f, part);
+      f = fmgr.makeAnd(f, part);
     }
     dumpFormulaToFile(f, file);
   }
@@ -838,7 +838,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     thmProver.init();
     try {
       thmProver.push(f);
-      if (thmProver.isUnsat(smgr.makeTrue())) {
+      if (thmProver.isUnsat(fmgr.makeTrue())) {
         return new CounterexampleTraceInfo();
       } else {
         return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
@@ -988,7 +988,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    Formula trueFormula = smgr.makeTrue();
+    Formula trueFormula = fmgr.makeTrue();
     Formula[] needed = new Formula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
       needed[i] = trueFormula;
@@ -1090,9 +1090,9 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   public List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
     Collection<Formula> atoms;
     if (atomicPredicates) {
-      atoms = smgr.extractAtoms(f, splitItpAtoms, false);
+      atoms = fmgr.extractAtoms(f, splitItpAtoms, false);
     } else {
-      atoms = Collections.singleton(smgr.uninstantiate(f));
+      atoms = Collections.singleton(fmgr.uninstantiate(f));
     }
 
     List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
@@ -1153,7 +1153,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
   private void dumpFormulaToFile(Formula f, File outputFile) {
     try {
-      Files.writeFile(outputFile, smgr.dumpFormula(f));
+      Files.writeFile(outputFile, fmgr.dumpFormula(f));
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");

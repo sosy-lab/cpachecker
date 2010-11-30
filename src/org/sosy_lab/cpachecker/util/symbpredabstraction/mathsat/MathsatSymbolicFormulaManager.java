@@ -45,12 +45,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
-public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager  {
+public class MathsatSymbolicFormulaManager implements FormulaManager  {
 
   @Option
   private boolean useIntegers = false;

@@ -29,7 +29,7 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -42,12 +42,12 @@ import com.google.common.collect.Collections2;
  */
 public class AssumptionWithLocation {
 
-  private final SymbolicFormulaManager manager;
+  private final FormulaManager manager;
 
   // map from location to (conjunctive) list of invariants
   private final Map<CFANode, Formula> map = new HashMap<CFANode, Formula>();
 
-  public AssumptionWithLocation(SymbolicFormulaManager pManager) {
+  public AssumptionWithLocation(FormulaManager pManager) {
     manager = pManager;
   }
   

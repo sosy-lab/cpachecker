@@ -43,7 +43,7 @@ import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 
@@ -57,7 +57,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int curVarIndex;
     private int yicesContext;
     private yices.YicesLite yicesManager;
-    private SymbolicFormulaManager smgr;
+    private FormulaManager smgr;
 
     private Deque<Collection<String>> declStack;
     private Set<String> globalDecls;
@@ -69,7 +69,7 @@ public class YicesTheoremProver implements TheoremProver {
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(SymbolicFormulaManager mgr) {
+    public YicesTheoremProver(FormulaManager mgr) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();

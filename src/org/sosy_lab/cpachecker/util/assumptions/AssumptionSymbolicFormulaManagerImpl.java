@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
 
@@ -99,10 +99,10 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     
   }
 
-  private static volatile SymbolicFormulaManager smgr = null;
+  private static volatile FormulaManager smgr = null;
 
   // TODO Ugly, probably better to remove singleton pattern here.
-  public static SymbolicFormulaManager createSymbolicFormulaManager(Configuration pConfig, LogManager pLogger)
+  public static FormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (smgr == null) {
       smgr = new MathsatSymbolicFormulaManager(pConfig, pLogger);
@@ -114,14 +114,14 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
    * Return the singleton instance for this class.
    * {@link #createInstance()} has to be called before at least once.
    */
-  public static SymbolicFormulaManager getSymbolicFormulaManager() {
+  public static FormulaManager getFormulaManager() {
     assert smgr != null;
 
     return smgr;
   }
 
   public AssumptionSymbolicFormulaManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    super(pConfig, createSymbolicFormulaManager(pConfig, pLogger), pLogger);
+    super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }
 //  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
 

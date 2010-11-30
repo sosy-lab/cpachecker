@@ -80,7 +80,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -132,14 +132,14 @@ public class CtoFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
   private int nextStringLitIndex = 0;
   
-  protected final SymbolicFormulaManager smgr;
+  protected final FormulaManager fmgr;
   protected final LogManager logger;
   
-  public CtoFormulaConverter(Configuration config, SymbolicFormulaManager smgr, LogManager logger) throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, FormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
     nondetFunctions = new HashSet<String>(Arrays.asList(nondetFunctionsArray));
-    this.smgr = smgr;
+    this.fmgr = fmgr;
     this.logger = logger;
   }
 
@@ -250,7 +250,7 @@ public class CtoFormulaConverter {
       var = scoped(var, function);
       idx = getIndex(var, ssa);
     }
-    return smgr.makeVariable(var, idx);
+    return fmgr.makeVariable(var, idx);
   }
   
   private Formula makeAssignment(String var, String function,
@@ -258,8 +258,8 @@ public class CtoFormulaConverter {
     
     String name = scoped(var, function);
     int idx = makeLvalIndex(name, ssa);
-    Formula f = smgr.makeVariable(name, idx);
-    return smgr.makeAssignment(f, rightHandSide);
+    Formula f = fmgr.makeVariable(name, idx);
+    return fmgr.makeAssignment(f, rightHandSide);
   }
   
   private Formula makeUIF(String name, FormulaList args, SSAMapBuilder ssa) {
@@ -270,7 +270,7 @@ public class CtoFormulaConverter {
       idx = 1;
       ssa.setIndex(name, args, idx);
     }
-    return smgr.makeUIF(name, args, idx);
+    return fmgr.makeUIF(name, args, idx);
   }
 
 //  @Override
@@ -301,7 +301,7 @@ public class CtoFormulaConverter {
       if (statementEdge.isJumpEdge()) {
         if (statementEdge.getSuccessor().getFunctionName().equals("main")) {
           log(Level.FINEST, "IGNORING return from main:", edge.getRawAST());
-          edgeFormula = smgr.makeTrue();
+          edgeFormula = fmgr.makeTrue();
         } else {
           edgeFormula = makeReturn(statementEdge, function, ssa);
         }
@@ -322,13 +322,13 @@ public class CtoFormulaConverter {
       Pair<Formula, Formula> pair
           = makeAssume((AssumeEdge)edge, function, ssa, branchingCounter);
       edgeFormula = pair.getFirst();
-      reachingPathsFormula = smgr.makeAnd(reachingPathsFormula, pair.getSecond());
+      reachingPathsFormula = fmgr.makeAnd(reachingPathsFormula, pair.getSecond());
       break;
     }
 
     case BlankEdge: {
       assert false : "Handled above";
-      edgeFormula = smgr.makeTrue();
+      edgeFormula = fmgr.makeTrue();
       break;
     }
 
@@ -359,8 +359,8 @@ public class CtoFormulaConverter {
         }
         
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
-          Formula lAssignment = smgr.makeAssignment(smgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), smgr.makeNumber(1));
-          edgeFormula = smgr.makeAnd(edgeFormula, lAssignment);
+          Formula lAssignment = fmgr.makeAssignment(fmgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), fmgr.makeNumber(1));
+          edgeFormula = fmgr.makeAnd(edgeFormula, lAssignment);
         }
         
         // update ssa index of nondet flag
@@ -375,7 +375,7 @@ public class CtoFormulaConverter {
       return oldFormula;
     }
     
-    Formula newFormula = smgr.makeAnd(oldFormula.getFormula(), edgeFormula);
+    Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
     return new PathFormula(newFormula, newSsa, newLength, reachingPathsFormula, branchingCounter);
   }
@@ -390,7 +390,7 @@ public class CtoFormulaConverter {
       IASTEnumerationSpecifier.IASTEnumerator[] enums =
         ((IASTEnumerationSpecifier)spec).getEnumerators();
       
-      Formula result = smgr.makeTrue();
+      Formula result = fmgr.makeTrue();
       for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
         String var = e.getName().getRawSignature();
         globalVars.add(var);
@@ -401,16 +401,16 @@ public class CtoFormulaConverter {
         ssa.setIndex(var, idx);
 
         Formula minit = buildTerm(exp, function, ssa);
-        Formula mvar = smgr.makeVariable(var, idx);
-        Formula t = smgr.makeAssignment(mvar, minit);
-        result = smgr.makeAnd(result, t);
+        Formula mvar = fmgr.makeVariable(var, idx);
+        Formula t = fmgr.makeAssignment(mvar, minit);
+        result = fmgr.makeAnd(result, t);
       }
       return result;
     
     } else if (spec instanceof IASTCompositeTypeSpecifier) {
       // this is the declaration of a struct, just ignore it...
       log(Level.ALL, "Ignoring declaration", spec);
-      return smgr.makeTrue();
+      return fmgr.makeTrue();
     
     } else if (spec instanceof IASTSimpleDeclSpecifier ||
                spec instanceof IASTElaboratedTypeSpecifier ||
@@ -418,10 +418,10 @@ public class CtoFormulaConverter {
 
       if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
         log(Level.ALL, "Ignoring typedef", spec);
-        return smgr.makeTrue();
+        return fmgr.makeTrue();
       }
   
-      Formula result = smgr.makeTrue();
+      Formula result = fmgr.makeTrue();
       for (IASTDeclarator d : declarators) {
         if (d instanceof IASTFunctionDeclarator) {
           // ignore function declarations here
@@ -465,9 +465,9 @@ public class CtoFormulaConverter {
           } else {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
             Formula minit = buildTerm(exp, function, ssa);
-            Formula mvar = smgr.makeVariable(var, idx);
-            Formula t = smgr.makeAssignment(mvar, minit);
-            result = smgr.makeAnd(result, t);
+            Formula mvar = fmgr.makeVariable(var, idx);
+            Formula t = fmgr.makeAssignment(mvar, minit);
+            result = fmgr.makeAnd(result, t);
           }
   
         } else if (spec.getStorageClass() == IASTDeclSpecifier.sc_extern) {
@@ -479,10 +479,10 @@ public class CtoFormulaConverter {
           if (isNondetVariable(varNameWithoutFunction)) {
             logger.log(Level.ALL, "NOT AUTO-INITIALIZING VAR:", var);
           } else {
-            Formula mvar = smgr.makeVariable(var, idx);
-            Formula z = smgr.makeNumber(0);
-            Formula t = smgr.makeAssignment(mvar, z);
-            result = smgr.makeAnd(result, t);
+            Formula mvar = fmgr.makeVariable(var, idx);
+            Formula z = fmgr.makeNumber(0);
+            Formula t = fmgr.makeAssignment(mvar, z);
+            result = fmgr.makeAnd(result, t);
             logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
           }
         }
@@ -500,7 +500,7 @@ public class CtoFormulaConverter {
     IASTExpression retExp = ce.getExpression();
     if (retExp instanceof IASTFunctionCallExpression) {
       // this should be a void return, just do nothing...
-      return smgr.makeTrue();
+      return fmgr.makeTrue();
       
     } else if (retExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
@@ -511,7 +511,7 @@ public class CtoFormulaConverter {
       
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, function, ssa);
-      return smgr.makeAssignment(outvarFormula, retvarFormula);
+      return fmgr.makeAssignment(outvarFormula, retvarFormula);
     
     } else {
       throw new UnrecognizedCFAEdgeException("UNKNOWN FUNCTION EXIT EXPRESSION: " + ce.getRawStatement());
@@ -534,13 +534,13 @@ public class CtoFormulaConverter {
       
       assert formalParams.size() == paramsCount;
       if (paramsCount == 0) {
-        return smgr.makeTrue();
+        return fmgr.makeTrue();
       }
 
       String calledFunction = fn.getFunctionName();
       
       int i = 0;
-      Formula result = smgr.makeTrue();
+      Formula result = fmgr.makeTrue();
       for (IASTParameterDeclaration formalParam : formalParams) {
         // get formal parameter name
         String formalParamName = formalParam.getDeclarator().getName().toString();
@@ -560,7 +560,7 @@ public class CtoFormulaConverter {
         
         Formula eq = makeAssignment(formalParamName, calledFunction, actualParam, ssa);
         
-        result = smgr.makeAnd(result, eq);
+        result = fmgr.makeAnd(result, eq);
       }
 
       return result;
@@ -572,7 +572,7 @@ public class CtoFormulaConverter {
     IASTExpression exp = edge.getExpression();
     if (exp == null) {
       // this is a return from a void function, do nothing
-      return smgr.makeTrue();
+      return fmgr.makeTrue();
     } else if (exp instanceof IASTUnaryExpression) {
       
       // we have to save the information about the return value,
@@ -591,7 +591,7 @@ public class CtoFormulaConverter {
 
     Formula f = buildTerm(expr, function, ssa);
 
-    if (!smgr.isBoolean(f)) {
+    if (!fmgr.isBoolean(f)) {
       // in this case, we have something like:
         // f(x);
       // i.e. an expression that gets assigned to nothing. Since
@@ -604,7 +604,7 @@ public class CtoFormulaConverter {
         log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
                         expr);
       }
-      return smgr.makeTrue();
+      return fmgr.makeTrue();
     }
     return f;
   }
@@ -620,15 +620,15 @@ public class CtoFormulaConverter {
       // add a unique predicate for each branching decision
       String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
   
-      Formula predFormula = smgr.makePredicateVariable(var, branchingIdx);
+      Formula predFormula = fmgr.makePredicateVariable(var, branchingIdx);
       if (assume.getTruthAssumption() == false) {
-        predFormula = smgr.makeNot(predFormula);
+        predFormula = fmgr.makeNot(predFormula);
       }
       
-      branchingInformation = smgr.makeEquivalence(edgeFormula, predFormula);
-      branchingInformation = smgr.makeAnd(branchingInformation, predFormula);
+      branchingInformation = fmgr.makeEquivalence(edgeFormula, predFormula);
+      branchingInformation = fmgr.makeAnd(branchingInformation, predFormula);
     } else {
-      branchingInformation = smgr.makeTrue();
+      branchingInformation = fmgr.makeTrue();
     }
 
     return new Pair<Formula, Formula>(edgeFormula, branchingInformation);
@@ -667,12 +667,12 @@ public class CtoFormulaConverter {
           num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
         }
       }
-      return smgr.makeNumber(num);
+      return fmgr.makeNumber(num);
       
     case IASTLiteralExpression.lk_float_constant:
       // parse with valueOf and convert to String again, because Mathsat
       // does not accept all possible C float constants (but Java hopefully does)
-      return smgr.makeNumber(Double.valueOf(num).toString());
+      return fmgr.makeNumber(Double.valueOf(num).toString());
 
     case IASTLiteralExpression.lk_char_constant: {
       // we convert to a byte, and take the integer value
@@ -718,7 +718,7 @@ public class CtoFormulaConverter {
         assert s.length() == 1;
         n = c;
       }
-      return smgr.makeNumber("" + n);
+      return fmgr.makeNumber("" + n);
     }
 
     case IASTLiteralExpression.lk_string_literal: {
@@ -729,7 +729,7 @@ public class CtoFormulaConverter {
       } else {
         // generate a new string literal. We generate a new UIf
         int n = nextStringLitIndex++;
-        Formula t = smgr.makeString(n);
+        Formula t = fmgr.makeString(n);
         stringLitToFormula.put(lexp.getRawSignature(), t);
         return t;
       }
@@ -766,19 +766,19 @@ public class CtoFormulaConverter {
         Formula mvar = buildTerm(operand, function, ssa);
         Formula newvar = buildLvalueTerm(operand, function, ssa);
         Formula me;
-        Formula one = smgr.makeNumber(1);
+        Formula one = fmgr.makeNumber(1);
         if (op == IASTUnaryExpression.op_postFixIncr ||
             op == IASTUnaryExpression.op_prefixIncr) {
-          me = smgr.makePlus(mvar, one);
+          me = fmgr.makePlus(mvar, one);
         } else {
-          me = smgr.makeMinus(mvar, one);
+          me = fmgr.makeMinus(mvar, one);
         }
-        return smgr.makeAssignment(newvar, me);
+        return fmgr.makeAssignment(newvar, me);
       }
 
       case IASTUnaryExpression.op_minus: {
         Formula mop = buildTerm(operand, function, ssa);
-        return smgr.makeNegate(mop);
+        return fmgr.makeNegate(mop);
       }
 
       case IASTUnaryExpression.op_amper:
@@ -798,7 +798,7 @@ public class CtoFormulaConverter {
           //    opname, term, ssa, absoluteSSAIndices);
 
           // build the  function corresponding to this operation.
-          return smgr.makeUIF(opname, smgr.makeList(term), idx);
+          return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
 
         } else {
           warnUnsafeVar(exp);
@@ -807,7 +807,7 @@ public class CtoFormulaConverter {
 
       case IASTUnaryExpression.op_tilde: {
         Formula term = buildTerm(operand, function, ssa);
-        return smgr.makeBitwiseNot(term);
+        return fmgr.makeBitwiseNot(term);
       }
 
       /* !operand cannot be handled directly in case operand is a variable
@@ -828,7 +828,7 @@ public class CtoFormulaConverter {
         // this might be a predicate implicitly cast to an int. Let's
         // see if this is indeed the case...
         Formula ftmp = makePredicate(exp, true, function, ssa);
-        return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
+        return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
       }
       }
 
@@ -857,41 +857,41 @@ public class CtoFormulaConverter {
           Formula oldvar = buildTerm(e1, function, ssa);
           switch (op) {
           case IASTBinaryExpression.op_plusAssign:
-            me2 = smgr.makePlus(oldvar, me2);
+            me2 = fmgr.makePlus(oldvar, me2);
             break;
           case IASTBinaryExpression.op_minusAssign:
-            me2 = smgr.makeMinus(oldvar, me2);
+            me2 = fmgr.makeMinus(oldvar, me2);
             break;
           case IASTBinaryExpression.op_multiplyAssign:
-            me2 = smgr.makeMultiply(oldvar, me2);
+            me2 = fmgr.makeMultiply(oldvar, me2);
             break;
           case IASTBinaryExpression.op_divideAssign:
-            me2 = smgr.makeDivide(oldvar, me2);
+            me2 = fmgr.makeDivide(oldvar, me2);
             break;
           case IASTBinaryExpression.op_moduloAssign:
-            me2 = smgr.makeModulo(oldvar, me2);
+            me2 = fmgr.makeModulo(oldvar, me2);
             break;
           case IASTBinaryExpression.op_binaryAndAssign:
-            me2 = smgr.makeBitwiseAnd(oldvar, me2);
+            me2 = fmgr.makeBitwiseAnd(oldvar, me2);
             break;
           case IASTBinaryExpression.op_binaryOrAssign:
-            me2 = smgr.makeBitwiseOr(oldvar, me2);
+            me2 = fmgr.makeBitwiseOr(oldvar, me2);
             break;
           case IASTBinaryExpression.op_binaryXorAssign:
-            me2 = smgr.makeBitwiseXor(oldvar, me2);
+            me2 = fmgr.makeBitwiseXor(oldvar, me2);
             break;
           case IASTBinaryExpression.op_shiftLeftAssign:
-            me2 = smgr.makeShiftLeft(oldvar, me2);
+            me2 = fmgr.makeShiftLeft(oldvar, me2);
             break;
           case IASTBinaryExpression.op_shiftRightAssign:
-            me2 = smgr.makeShiftRight(oldvar, me2);
+            me2 = fmgr.makeShiftRight(oldvar, me2);
             break;
           default:
             throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
           }
         }
         Formula mvar = buildLvalueTerm(e1, function, ssa);
-        return smgr.makeAssignment(mvar, me2);
+        return fmgr.makeAssignment(mvar, me2);
       }
 
       case IASTBinaryExpression.op_plus:
@@ -909,25 +909,25 @@ public class CtoFormulaConverter {
 
         switch (op) {
         case IASTBinaryExpression.op_plus:
-          return smgr.makePlus(me1, me2);
+          return fmgr.makePlus(me1, me2);
         case IASTBinaryExpression.op_minus:
-          return smgr.makeMinus(me1, me2);
+          return fmgr.makeMinus(me1, me2);
         case IASTBinaryExpression.op_multiply:
-          return smgr.makeMultiply(me1, me2);
+          return fmgr.makeMultiply(me1, me2);
         case IASTBinaryExpression.op_divide:
-          return smgr.makeDivide(me1, me2);
+          return fmgr.makeDivide(me1, me2);
         case IASTBinaryExpression.op_modulo:
-          return smgr.makeModulo(me1, me2);
+          return fmgr.makeModulo(me1, me2);
         case IASTBinaryExpression.op_binaryAnd:
-          return smgr.makeBitwiseAnd(me1, me2);
+          return fmgr.makeBitwiseAnd(me1, me2);
         case IASTBinaryExpression.op_binaryOr:
-          return smgr.makeBitwiseOr(me1, me2);
+          return fmgr.makeBitwiseOr(me1, me2);
         case IASTBinaryExpression.op_binaryXor:
-          return smgr.makeBitwiseXor(me1, me2);
+          return fmgr.makeBitwiseXor(me1, me2);
         case IASTBinaryExpression.op_shiftLeft:
-          return smgr.makeShiftLeft(me1, me2);
+          return fmgr.makeShiftLeft(me1, me2);
         case IASTBinaryExpression.op_shiftRight:
-          return smgr.makeShiftRight(me1, me2);
+          return fmgr.makeShiftRight(me1, me2);
         default:
           throw new AssertionError("Missing switch case");
         }
@@ -938,7 +938,7 @@ public class CtoFormulaConverter {
         // int tmp = (a == b)
         // Let's see if this is indeed the case...
         Formula ftmp = makePredicate(exp, true, function, ssa);
-        return smgr.makeIfThenElse(ftmp, smgr.makeNumber(1), smgr.makeNumber(0));
+        return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
       }
 
     } else if (exp instanceof IASTFieldReference) {
@@ -954,7 +954,7 @@ public class CtoFormulaConverter {
           tpname + "," + field + "}";
 
         // see above for the case of &x and *x
-        return makeUIF(ufname, smgr.makeList(term), ssa);
+        return makeUIF(ufname, fmgr.makeList(term), ssa);
       } else {
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
@@ -970,7 +970,7 @@ public class CtoFormulaConverter {
         Formula sterm = buildTerm(subexp, function, ssa);
 
         String ufname = OP_ARRAY_SUBSCRIPT;
-        return makeUIF(ufname, smgr.makeList(aterm, sterm), ssa);
+        return makeUIF(ufname, fmgr.makeList(aterm, sterm), ssa);
 
       } else {
         warnUnsafeVar(exp);
@@ -1007,7 +1007,7 @@ public class CtoFormulaConverter {
       var = scoped(var, function);
       int idx = makeLvalIndex(var, ssa);
 
-      Formula mvar = smgr.makeVariable(var, idx);
+      Formula mvar = fmgr.makeVariable(var, idx);
       return mvar;
     } else if (exp instanceof IASTUnaryExpression) {
       int op = ((IASTUnaryExpression)exp).getOperator();
@@ -1035,7 +1035,7 @@ public class CtoFormulaConverter {
       // *x = 1       |     <ptr_*>::2(x) = 1
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return smgr.makeUIF(opname, smgr.makeList(term), idx);
+      return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
       
     } else if (exp instanceof IASTFieldReference) {
       IASTFieldReference fexp = (IASTFieldReference)exp;
@@ -1047,11 +1047,11 @@ public class CtoFormulaConverter {
       String ufname =
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
-      FormulaList args = smgr.makeList(term);
+      FormulaList args = fmgr.makeList(term);
       int idx = makeLvalIndex(ufname, args, ssa);
 
       // see above for the case of &x and *x
-      return smgr.makeUIF(ufname, args, idx);
+      return fmgr.makeUIF(ufname, args, idx);
 
     } else if (exp instanceof IASTArraySubscriptExpression) {
       IASTArraySubscriptExpression aexp =
@@ -1062,10 +1062,10 @@ public class CtoFormulaConverter {
       Formula sterm = buildTerm(subexp, function, ssa);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      FormulaList args = smgr.makeList(aterm, sterm);
+      FormulaList args = fmgr.makeList(aterm, sterm);
       int idx = makeLvalIndex(ufname, args, ssa);
 
-      return smgr.makeUIF(ufname, args, idx);
+      return fmgr.makeUIF(ufname, args, idx);
 
     } else {
       throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
@@ -1084,7 +1084,7 @@ public class CtoFormulaConverter {
         // ignore parameters and just create a fresh variable for it  
         globalVars.add(func);
         int idx = makeLvalIndex(func, ssa);
-        return smgr.makeVariable(func, idx);
+        return fmgr.makeVariable(func, idx);
         
       } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
         if (pexp == null) {
@@ -1107,7 +1107,7 @@ public class CtoFormulaConverter {
       // SSAMapBuilder from checking for strict monotony)
       globalVars.add(func);
       ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
-      return smgr.makeVariable(func, 1);
+      return fmgr.makeVariable(func, 1);
     } else {
       IASTExpression[] args;
       if (pexp instanceof IASTExpressionList) {
@@ -1121,7 +1121,7 @@ public class CtoFormulaConverter {
         mArgs[i] = buildTerm(args[i], function, ssa);
       }
 
-      return smgr.makeUIF(func, smgr.makeList(mArgs));
+      return fmgr.makeUIF(func, fmgr.makeList(mArgs));
     }
   }
 
@@ -1141,27 +1141,27 @@ public class CtoFormulaConverter {
 
       switch (opType) {
       case IASTBinaryExpression.op_greaterThan:
-        result = smgr.makeGt(t1, t2);
+        result = fmgr.makeGt(t1, t2);
         break;
 
       case IASTBinaryExpression.op_greaterEqual:
-        result = smgr.makeGeq(t1, t2);
+        result = fmgr.makeGeq(t1, t2);
         break;
 
       case IASTBinaryExpression.op_lessThan:
-        result = smgr.makeLt(t1, t2);
+        result = fmgr.makeLt(t1, t2);
         break;
 
       case IASTBinaryExpression.op_lessEqual:
-        result = smgr.makeLeq(t1, t2);
+        result = fmgr.makeLeq(t1, t2);
         break;
 
       case IASTBinaryExpression.op_equals:
-        result = smgr.makeEqual(t1, t2);
+        result = fmgr.makeEqual(t1, t2);
         break;
 
       case IASTBinaryExpression.op_notequals:
-        result = smgr.makeNot(smgr.makeEqual(t1, t2));
+        result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
         break;
       }
 
@@ -1184,14 +1184,14 @@ public class CtoFormulaConverter {
       // it a predicate by adding a "!= 0"
       result = buildTerm(exp, function, ssa);
 
-      if (!smgr.isBoolean(result)) {
-        Formula z = smgr.makeNumber(0);
-        result = smgr.makeNot(smgr.makeEqual(result, z));
+      if (!fmgr.isBoolean(result)) {
+        Formula z = fmgr.makeNumber(0);
+        result = fmgr.makeNot(fmgr.makeEqual(result, z));
       }
     }
     
     if (!isTrue) {
-      result = smgr.makeNot(result);
+      result = fmgr.makeNot(result);
     }
     return result;
   }

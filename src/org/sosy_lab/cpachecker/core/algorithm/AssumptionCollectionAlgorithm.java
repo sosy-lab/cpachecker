@@ -31,7 +31,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -103,7 +103,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
-  private final SymbolicFormulaManager symbolicManager;
+  private final FormulaManager symbolicManager;
   private final AssumptionWithLocation resultAssumption;
 
   public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
@@ -116,7 +116,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionCollectorCPA needed for AssumptionCollectionAlgorithm");
     }
-    symbolicManager = cpa.getSymbolicFormulaManager();
+    symbolicManager = cpa.getFormulaManager();
     resultAssumption = new AssumptionWithLocation(symbolicManager);
   }
 

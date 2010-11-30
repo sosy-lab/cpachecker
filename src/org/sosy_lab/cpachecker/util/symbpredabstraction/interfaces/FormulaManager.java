@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
  * A SymbolicFormulaManager is an object that can create/manipulate
  * SymbolicFormulas
  */
-public interface SymbolicFormulaManager {
+public interface FormulaManager {
 
   // ----------------- Boolean formulas -----------------
 

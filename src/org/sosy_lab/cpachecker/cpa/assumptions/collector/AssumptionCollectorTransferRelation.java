@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -46,10 +46,10 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private final Collection<AbstractElement> topElementSet;
 
-  private final SymbolicFormulaManager symbolicFormulaManager;
+  private final FormulaManager formulaManager;
   
-  public AssumptionCollectorTransferRelation(SymbolicFormulaManager pManager, AbstractElement topElement) {
-    symbolicFormulaManager = pManager;
+  public AssumptionCollectorTransferRelation(FormulaManager pManager, AbstractElement topElement) {
+    formulaManager = pManager;
     topElementSet = Collections.singleton(topElement);
   }
 
@@ -85,21 +85,21 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private final class AssumptionReportingVisitor extends AbstractWrappedElementVisitor {
 
-    private Formula assumption = symbolicFormulaManager.makeTrue();
+    private Formula assumption = formulaManager.makeTrue();
     
     @Override
     public void process(AbstractElement element) {
       // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
         Formula inv = ((AssumptionReportingElement)element).getAssumption();
-        assumption = symbolicFormulaManager.makeAnd(assumption, inv);
+        assumption = formulaManager.makeAnd(assumption, inv);
       }
 
       // process stop flag
       if (element instanceof AvoidanceReportingElement) {
         boolean stop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
         if (stop) {
-          assumption = symbolicFormulaManager.makeFalse();
+          assumption = formulaManager.makeFalse();
           // TODO we can skip processing the rest of the elements
         }
       }

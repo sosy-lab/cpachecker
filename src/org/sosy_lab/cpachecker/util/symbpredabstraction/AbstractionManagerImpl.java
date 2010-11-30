@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionMa
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -57,7 +57,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   protected final LogManager logger;
   protected final RegionManager rmgr;
-  protected final SymbolicFormulaManager smgr;
+  protected final FormulaManager fmgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate;
@@ -69,12 +69,12 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   private final Map<Region, Formula> toConcreteCache;
 
-  public AbstractionManagerImpl(RegionManager pRmgr, SymbolicFormulaManager pSmgr,
+  public AbstractionManagerImpl(RegionManager pRmgr, FormulaManager pFmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, AbstractionManagerImpl.class);
     logger = pLogger;
     rmgr = pRmgr;
-    smgr = pSmgr;
+    fmgr = pFmgr;
 
     absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
     symbVarToPredicate = new HashMap<Formula, AbstractionPredicate>();
@@ -103,7 +103,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
    */
   @Override
   public AbstractionPredicate makePredicate(Formula atom) {
-    Formula var = smgr.createPredicateVariable(atom);
+    Formula var = fmgr.createPredicateVariable(atom);
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       Region absVar = rmgr.createPredicate();
@@ -123,7 +123,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
    */
   @Override
   public AbstractionPredicate makeFalsePredicate() {
-    return makePredicate(smgr.makeFalse());
+    return makePredicate(fmgr.makeFalse());
   }
 
   /* (non-Javadoc)
@@ -152,8 +152,8 @@ public class AbstractionManagerImpl implements AbstractionManager {
     }
     Deque<Region> toProcess = new ArrayDeque<Region>();
 
-    cache.put(rmgr.makeTrue(), smgr.makeTrue());
-    cache.put(rmgr.makeFalse(), smgr.makeFalse());
+    cache.put(rmgr.makeTrue(), fmgr.makeTrue());
+    cache.put(rmgr.makeFalse(), fmgr.makeFalse());
 
     toProcess.push(af);
     while (!toProcess.isEmpty()) {
@@ -191,7 +191,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
         Formula atom = absVarToPredicate.get(var).getSymbolicAtom();
 
-        Formula ite = smgr.makeIfThenElse(atom, m1, m2);
+        Formula ite = fmgr.makeIfThenElse(atom, m1, m2);
         cache.put(n, ite);
       }
     }
@@ -208,9 +208,9 @@ public class AbstractionManagerImpl implements AbstractionManager {
   @Override
   public AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula) {
     if (previousBlockFormula == null) {
-      previousBlockFormula = smgr.makeTrue();
+      previousBlockFormula = fmgr.makeTrue();
     }
-    return new AbstractionFormula(rmgr.makeTrue(), smgr.makeTrue(), previousBlockFormula);
+    return new AbstractionFormula(rmgr.makeTrue(), fmgr.makeTrue(), previousBlockFormula);
   }
 
   @Override

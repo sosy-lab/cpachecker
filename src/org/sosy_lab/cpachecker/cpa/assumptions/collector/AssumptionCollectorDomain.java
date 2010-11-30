@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 public class AssumptionCollectorDomain implements AbstractDomain {
 
-  private final SymbolicFormulaManager symbolicFormulaManager;
+  private final FormulaManager formulaManager;
   
   public AssumptionCollectorDomain(
-      SymbolicFormulaManager pSymbolicFormulaManager) {
-    symbolicFormulaManager = pSymbolicFormulaManager;
+      FormulaManager pFormulaManager) {
+    formulaManager = pFormulaManager;
   }
 
   @Override
@@ -43,7 +43,7 @@ public class AssumptionCollectorDomain implements AbstractDomain {
     AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)pElement2;
 
     return new AssumptionCollectorElement(
-        symbolicFormulaManager.makeAnd(collectorElement1.getCollectedAssumption(),
+        formulaManager.makeAnd(collectorElement1.getCollectedAssumption(),
                                        collectorElement2.getCollectedAssumption()));
   }
 

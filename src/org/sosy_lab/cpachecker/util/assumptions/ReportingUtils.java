@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 
@@ -44,7 +44,7 @@ public class ReportingUtils {
    * the given abstract element, according to reported
    * formulas
    */
-  public static Formula extractReportedFormulas(SymbolicFormulaManager manager, AbstractElement element)
+  public static Formula extractReportedFormulas(FormulaManager manager, AbstractElement element)
   {
     Formula result = manager.makeTrue();
 

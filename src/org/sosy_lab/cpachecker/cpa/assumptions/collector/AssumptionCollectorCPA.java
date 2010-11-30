@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
@@ -63,21 +63,21 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final SymbolicFormulaManager symbolicFormulaManager;
+  private final FormulaManager formulaManager;
   private final AssumptionCollectorElement topElement;
 
   private AssumptionCollectorCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    symbolicFormulaManager = AssumptionSymbolicFormulaManagerImpl.createSymbolicFormulaManager(config, logger);
-    abstractDomain = new AssumptionCollectorDomain(symbolicFormulaManager);
+    formulaManager = AssumptionSymbolicFormulaManagerImpl.createFormulaManager(config, logger);
+    abstractDomain = new AssumptionCollectorDomain(formulaManager);
     stopOperator = new AssumptionCollectorStop();
-    topElement = new AssumptionCollectorElement(symbolicFormulaManager.makeTrue());
-    transferRelation = new AssumptionCollectorTransferRelation(symbolicFormulaManager, topElement);
+    topElement = new AssumptionCollectorElement(formulaManager.makeTrue());
+    transferRelation = new AssumptionCollectorTransferRelation(formulaManager, topElement);
   }
 
-  public SymbolicFormulaManager getSymbolicFormulaManager()
+  public FormulaManager getFormulaManager()
   {
-    return symbolicFormulaManager;
+    return formulaManager;
   }
 
   @Override

@@ -32,7 +32,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -90,10 +90,10 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     }
   }
 
-  private final SymbolicFormulaManager smgr;
+  private final FormulaManager smgr;
   private final LogManager logger;
 
-  public CSIsatInterpolatingProver(SymbolicFormulaManager pSmgr, LogManager pLogger) {
+  public CSIsatInterpolatingProver(FormulaManager pSmgr, LogManager pLogger) {
     Preconditions.checkNotNull(pSmgr);
     Preconditions.checkNotNull(pLogger);
 

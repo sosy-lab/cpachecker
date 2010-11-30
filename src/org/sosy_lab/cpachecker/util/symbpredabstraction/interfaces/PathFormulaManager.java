@@ -12,7 +12,7 @@ public interface PathFormulaManager {
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link SymbolicFormulaManager#makeOr(Formula, Formula)},
+   * from {@link FormulaManager#makeOr(Formula, Formula)},
    * it also merges the SSA maps and creates the necessary adjustments to the
    * formulas if the two SSA maps contain different values for the same variables.
    *
