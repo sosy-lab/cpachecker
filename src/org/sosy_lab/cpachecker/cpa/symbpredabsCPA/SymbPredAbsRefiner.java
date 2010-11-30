@@ -140,15 +140,15 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     logger.log(Level.ALL, "Abstraction trace is", path);
 
     // build the counterexample
-    CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
-    mCounterexampleTraceInfo = info;
+    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(path);
+    targetPath = null;
 
     // if error is spurious refine
-    if (info.isSpurious()) {
+    if (mCounterexampleTraceInfo.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       precisionUpdate.start();
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
-              performRefinement(oldSymbPredAbsPrecision, path, artPath, info);
+              performRefinement(oldSymbPredAbsPrecision, path, artPath, mCounterexampleTraceInfo);
       precisionUpdate.stop();
 
       artUpdate.start();
@@ -161,9 +161,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       logger.log(Level.FINEST, "Error trace is not spurious");
       errorPathProcessing.start();
       
-      targetPath = null;
       boolean preciseInfo = false;
-      NavigableMap<Integer, Map<Integer, Boolean>> preds = info.getBranchingPredicates();
+      NavigableMap<Integer, Map<Integer, Boolean>> preds = mCounterexampleTraceInfo.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ART branches available!");
       } else {
@@ -172,12 +171,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         if (targetPath != null) {
           // try to create a better satisfying assignment by replaying this single path
           try {
-            info = formulaManager.checkPath(targetPath.asEdgesList());
-            if (info.isSpurious()) {
+            CounterexampleTraceInfo info2 = formulaManager.checkPath(targetPath.asEdgesList());
+            if (info2.isSpurious()) {
               logger.log(Level.WARNING, "Inconsistent replayed error path!");
-              info = mCounterexampleTraceInfo;
             } else {
-              mCounterexampleTraceInfo = info;
+              mCounterexampleTraceInfo = info2;
               preciseInfo = true;
             }
           } catch (CPATransferException e) {
@@ -193,9 +191,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
         }
 
-        formulaManager.dumpCounterexampleToFile(info, dumpCexFile);
+        formulaManager.dumpCounterexampleToFile(mCounterexampleTraceInfo, dumpCexFile);
         try {
-          Files.writeFile(exportFile, info.getCounterexample());
+          Files.writeFile(exportFile, mCounterexampleTraceInfo.getCounterexample());
         } catch (IOException e) {
           logger.log(Level.WARNING, "Could not write satisfying assignment for error path to file! ("
               + e.getMessage() + ")");
