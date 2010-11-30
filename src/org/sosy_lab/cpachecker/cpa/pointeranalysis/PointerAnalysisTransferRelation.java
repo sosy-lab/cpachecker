@@ -175,8 +175,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         lineNumber = edge.getLineNumber();
       }
 
-      Pair<Integer, String> warningIndex =
-          new Pair<Integer, String>(lineNumber, variable);
+      Pair<Integer, String> warningIndex = Pair.of(lineNumber, variable);
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
         if (lineNumber != null) {

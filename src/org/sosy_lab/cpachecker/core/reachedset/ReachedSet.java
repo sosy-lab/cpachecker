@@ -66,7 +66,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
       public Pair<AbstractElement, Precision> apply(
                   AbstractElement element) {
 
-        return new Pair<AbstractElement, Precision>(element, getPrecision(element));
+        return Pair.of(element, getPrecision(element));
       }
 
   };

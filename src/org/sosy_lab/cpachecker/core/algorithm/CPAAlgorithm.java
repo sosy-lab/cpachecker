@@ -202,8 +202,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               stats.countMerge++;
 
               toRemove.add(reachedElement);
-              toAdd.add(new Pair<AbstractElement, Precision>(mergedElement,
-                  successorPrecision));
+              toAdd.add(Pair.of(mergedElement, successorPrecision));
             }
           }
           reachedSet.removeAll(toRemove);

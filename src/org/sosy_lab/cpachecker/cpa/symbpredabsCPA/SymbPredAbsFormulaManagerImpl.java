@@ -246,7 +246,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
     // caching
     Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = new Pair<Formula, Collection<AbstractionPredicate>>(f, predicates);
+      absKey = Pair.of(f, predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -286,7 +286,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       int predIndex = -1;
       for (AbstractionPredicate p : predicates) {
         ++predIndex;
-        Pair<Formula, AbstractionPredicate> key = new Pair<Formula, AbstractionPredicate>(f, p);
+        Pair<Formula, AbstractionPredicate> key = Pair.of(f, p);
         if (cartesianAbstractionCache.containsKey(key)) {
           predVals[predIndex] = cartesianAbstractionCache.get(key);
         } else {
@@ -388,7 +388,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
             }
 
             if (useCache) {
-              cartesianAbstractionCache.put(new Pair<Formula, AbstractionPredicate>(f, p), predVal);
+              cartesianAbstractionCache.put(Pair.of(f, p), predVal);
             }
           }
         }     

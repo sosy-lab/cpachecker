@@ -142,26 +142,26 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
           Formula symbFor = smgr.makeAnd(
               buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-        return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
+        return Pair.of(symbFor, pSSAMap);
         }
         else{
           Formula symbFor = smgr.makeOr(
               buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
+          return Pair.of(symbFor, pSSAMap);
         }
       case IASTBinaryExpression.op_logicalOr:
         if (sign){
           Formula symbFor = smgr.makeOr(
               buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-          return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
+          return Pair.of(symbFor, pSSAMap);
         }
         else{
           Formula symbFor = smgr.makeAnd(
               buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return new Pair<Formula, SSAMapBuilder>(symbFor, pSSAMap);
+          return Pair.of(symbFor, pSSAMap);
           }
       }
     } else if (p instanceof IASTUnaryExpression) {
@@ -173,7 +173,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     //    super.setNamespace(pEdge.getSuccessor().getFunctionName());
     // atomic formula
     Formula ssaFormula = makePredicate(p, sign, function, pSSAMap);
-    return new Pair<Formula, SSAMapBuilder>(ssaFormula, pSSAMap);
+    return Pair.of(ssaFormula, pSSAMap);
   }
 
   @Override

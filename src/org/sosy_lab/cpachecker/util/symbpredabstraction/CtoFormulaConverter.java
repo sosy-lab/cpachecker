@@ -623,7 +623,7 @@ public class CtoFormulaConverter {
       branchingInformation = fmgr.makeTrue();
     }
 
-    return new Pair<Formula, Formula>(edgeFormula, branchingInformation);
+    return Pair.of(edgeFormula, branchingInformation);
   }
   
   private Formula buildLiteralExpression(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {

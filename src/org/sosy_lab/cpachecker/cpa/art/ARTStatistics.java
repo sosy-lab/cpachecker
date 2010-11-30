@@ -127,7 +127,7 @@ public class ARTStatistics implements Statistics {
     ARTElement lastElement = it.next().getFirst();
     while (it.hasNext()) {
       ARTElement currentElement = it.next().getFirst();
-      result.add(new Pair<ARTElement, ARTElement>(lastElement, currentElement));
+      result.add(Pair.of(lastElement, currentElement));
       lastElement = currentElement;
     }
     return result;
@@ -184,7 +184,7 @@ public class ARTStatistics implements Statistics {
       }
 
       for (ARTElement child : currentElement.getChildren()) {
-        boolean colored = pathEdges.contains(new Pair<ARTElement, ARTElement>(currentElement, child));
+        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
         edges.append(currentElement.getElementId());
         edges.append(" -> ");

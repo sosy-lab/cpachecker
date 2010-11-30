@@ -198,8 +198,7 @@ public class YicesTheoremProver implements TheoremProver {
                 }
             }
         }
-        return new Pair<Collection<String>, String>(
-                decls, msatToYicesCache.get(f.getTerm()));
+        return Pair.of(decls, msatToYicesCache.get(f.getTerm()));
     }
 
     private Pair<Collection<String>, String> toYices(Formula f) {

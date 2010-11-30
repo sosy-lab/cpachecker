@@ -180,7 +180,7 @@ public class MathsatFormulaManager implements FormulaManager  {
       throw new IllegalArgumentException("Not an instantiated variable: " + var);
     }
     
-    return new Pair<String, Integer>(s[0], Integer.parseInt(s[1]));
+    return Pair.of(s[0], Integer.parseInt(s[1]));
   }
 
   // ----------------- Boolean formulas -----------------

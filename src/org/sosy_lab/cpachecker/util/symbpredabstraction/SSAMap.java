@@ -68,7 +68,7 @@ public class SSAMap {
     }
     
     public int getIndex(String func, FormulaList args) {
-      return SSAMap.getIndex(new Pair<String, FormulaList>(func, args),
+      return SSAMap.getIndex(Pair.of(func, args),
                              Objects.firstNonNull(funcsBuilder, ssa.funcs));
     }
     
@@ -90,7 +90,7 @@ public class SSAMap {
         funcsBuilder = LinkedHashMultiset.create(ssa.funcs);
       }
       
-      Pair<String, FormulaList> key = new Pair<String, FormulaList>(func, args);
+      Pair<String, FormulaList> key = Pair.of(func, args);
       Preconditions.checkArgument(idx >= funcsBuilder.count(key), "SSAMap updates need to be strictly monotone!");
       funcsBuilder.setCount(key, idx);
     }
@@ -216,7 +216,7 @@ public class SSAMap {
   }
 
   public int getIndex(String name, FormulaList args) {
-    return getIndex(new Pair<String, FormulaList>(name, args), funcs);
+    return getIndex(Pair.of(name, args), funcs);
   }
   
   protected int getIndex(Pair<String, FormulaList> key) {

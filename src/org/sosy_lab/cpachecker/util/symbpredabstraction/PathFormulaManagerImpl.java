@@ -167,9 +167,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       }
     }
 
-    Pair<Formula, Formula> sp =
-      new Pair<Formula, Formula>(mt1, mt2);
-    return new Pair<Pair<Formula, Formula>, SSAMap>(sp, result);
+    return Pair.of(Pair.of(mt1, mt2), result);
   }
   
   private Formula makeNondetFlagMerger(int iSmaller, int iBigger) {

@@ -65,7 +65,7 @@ public class UnmodifiableReachedSetView
       new Function<Pair<AbstractElement,Precision>, Pair<AbstractElement,Precision>>() {
         @Override
         public Pair<AbstractElement, Precision> apply(Pair<AbstractElement, Precision> from) {
-          return new Pair<AbstractElement, Precision>(
+          return Pair.of(
               mapElementFunction.apply(from.getFirst()),
               mapPrecisionFunction.apply(from.getSecond()));
         }

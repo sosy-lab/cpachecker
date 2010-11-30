@@ -170,7 +170,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       ExplicitAnalysisElement tempEl = ((ExplicitAnalysisElement)successor);
       if(tempEl.getConstantsMap().size() > maxSize){
         maxSize = tempEl.getConstantsMap().size();
-        maxElem = new Pair<AbstractElement, String>(tempEl, 
+        maxElem = Pair.of(successor, 
             cfaEdge.getRawStatement() + "@" + cfaEdge.getLineNumber());
       }
       return Collections.singleton(successor);

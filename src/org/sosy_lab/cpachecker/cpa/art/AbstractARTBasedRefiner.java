@@ -182,7 +182,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
     CFAEdge lastEdge = currentARTElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0);
-    path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, lastEdge));
+    path.addFirst(Pair.of(currentARTElement, lastEdge));
     seenElements.add(currentARTElement);
 
     while (!currentARTElement.getParents().isEmpty()) {
@@ -195,7 +195,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
 
       CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
-      path.addFirst(new Pair<ARTElement, CFAEdge>(parentElement, edge));
+      path.addFirst(Pair.of(parentElement, edge));
 
       currentARTElement = parentElement;
     }

@@ -77,7 +77,7 @@ public class UninitializedVariablesStatistics implements Statistics {
             Pair<Integer, String> warningIndex;
             for(Triple<Integer, String, String> warning : warnings) {
               //check if a warning has already been displayed
-              warningIndex = new  Pair<Integer, String>(warning.getFirst(), warning.getSecond());
+              warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
               if (!warningsDisplayed.contains(warningIndex)) {
                 warningsDisplayed.add(warningIndex);
                 pOut.println(warning.getThird());

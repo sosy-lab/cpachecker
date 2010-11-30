@@ -294,7 +294,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
     }
     lastErrorPath = absLocations;
-    return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
+    return Pair.of(root, newPrecision);
   }
 
   @Override
@@ -385,7 +385,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         return null;
       }
 
-      result.add(new Pair<ARTElement, CFAEdge>(currentElement, edge));
+      result.add(Pair.of(currentElement, edge));
       currentElement = child;
     }
     

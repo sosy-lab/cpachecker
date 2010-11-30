@@ -303,7 +303,7 @@ public class TargetGraphUtil {
       lFalseNode.addPredicate(lNegatedPredicate);
       lBuilder.addNode(lFalseNode);
 
-      Pair<Node, Node> lPair = new Pair<Node, Node>(lTrueNode, lFalseNode);
+      Pair<Node, Node> lPair = Pair.of(lTrueNode, lFalseNode);
 
       lMap.put(lNode, lPair);
     }

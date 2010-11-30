@@ -71,7 +71,7 @@ implements GenericAssumptionBuilder
         case IBasicType.t_int:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
-          return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          return Pair.of
           (DummyASTNumericalLiteralExpression.INT_MIN, DummyASTNumericalLiteralExpression.INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
@@ -104,8 +104,7 @@ implements GenericAssumptionBuilder
         }
       }
     } catch (DOMException e) { /* oops... just ignore, and return (null, null) */ }
-    return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
-    (null, null);
+    return Pair.of(null, null);
   }
 
   /**

@@ -200,7 +200,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       pathFormulaComputationTimer.stop();
 
     } else {
-      final Pair<PathFormula, CFAEdge> formulaCacheKey = new Pair<PathFormula, CFAEdge>(pathFormula, edge);
+      final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pathFormula, edge);
       pf = pathFormulaCache.get(formulaCacheKey);
       if (pf == null) {
         pathFormulaComputationTimer.start();

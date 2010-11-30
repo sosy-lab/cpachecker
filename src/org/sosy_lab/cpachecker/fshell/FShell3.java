@@ -1165,7 +1165,7 @@ public class FShell3 {
   }
   
   private Collection<NondeterministicFiniteAutomaton.State> getSimilarStates(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pInfeasibleAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pOtherAutomaton) {
-    Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lInitialPair = new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
+    Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lInitialPair = Pair.of(pInfeasibleAutomaton.getInitialState(), pOtherAutomaton.getInitialState());
     
     LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lWorklist = new LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
     lWorklist.add(lInitialPair);
@@ -1193,7 +1193,7 @@ public class FShell3 {
         
         for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pOtherAutomaton.getOutgoingEdges(lCurrentPair.getSecond())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
+            lPotentialWork.add(Pair.of(lOutgoingEdge.getTarget(), lOutgoingEdge2.getTarget()));
             lOneDirectionSimilar = true;
           }
         }
@@ -1208,7 +1208,7 @@ public class FShell3 {
         
         for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge2 : pInfeasibleAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
           if (lOutgoingEdge.getLabel().equals(lOutgoingEdge2.getLabel())) {
-            lPotentialWork.add(new Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
+            lPotentialWork.add(Pair.of(lOutgoingEdge2.getTarget(), lOutgoingEdge.getTarget()));
             lOneDirectionSimilar = true;
           }
         }

@@ -106,7 +106,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(new Pair<String, Collection<String>>(functionName, new ArrayList<String>()));
+    localVars.addLast(Pair.of(functionName, (Collection<String>)new ArrayList<String>()));
   }
 
   public void returnFromFunction() {
@@ -146,8 +146,8 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
                                     new LinkedList<Pair<String, Collection<String>>>();
 
     for (Pair<String, Collection<String>> localContext : localVars) {
-      newLocalVars.addLast(new Pair<String, Collection<String>>(localContext.getFirst(),
-                                                     new ArrayList<String>(localContext.getSecond())));
+      newLocalVars.addLast(Pair.of(localContext.getFirst(),
+                                   (Collection<String>)new ArrayList<String>(localContext.getSecond())));
     }
 
     return new UninitializedVariablesElement(new ArrayList<String>(globalVars), newLocalVars,

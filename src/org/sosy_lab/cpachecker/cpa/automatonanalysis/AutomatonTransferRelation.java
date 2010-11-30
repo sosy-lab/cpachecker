@@ -148,7 +148,7 @@ class AutomatonTransferRelation implements TransferRelation {
             if (t.canExecuteActionsOn(exprArgs)) {
               Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
               if (nonDetState) {
-                transitionsToBeTaken.add(new Pair<AutomatonTransition, Map<Integer, String>>(t, transitionVariables)); 
+                transitionsToBeTaken.add(Pair.of(t, transitionVariables)); 
               } else { // not a nondet State, return the first state, that was found
                 long startAction = System.currentTimeMillis();
                 Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
