@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automatonanalysis;
+package org.sosy_lab.cpachecker.cpa.automaton;
 
 
 /** Represents a local variable of the automaton.

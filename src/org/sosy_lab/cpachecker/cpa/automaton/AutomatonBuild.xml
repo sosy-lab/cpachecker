@@ -2,7 +2,7 @@
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <project name="AutomatonParserGeneration" default="generate" basedir="./../../../../../../">
   <!-- basedir should be the "CPAchecker" directory -->
-  <property name="parserDir" location="src/org/sosy_lab/cpachecker/cpa/automatonanalysis/" />
+  <property name="parserDir" location="src/org/sosy_lab/cpachecker/cpa/automaton/" />
   <property name="src"       location="src" />
   <property name="lib"       location="lib" />
   <property environment="env" />
@@ -32,7 +32,7 @@
     	 nopositions="true"
     />
 
-    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" skel="src/org/sosy_lab/cpachecker/cpa/automatonanalysis/skeleton.nested"/>
+    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" skel="src/org/sosy_lab/cpachecker/cpa/automaton/skeleton.nested"/>
 
     <!-- remove generation date to not interfere with SVN -->
     <replaceregexp match="(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \w\w\w \d\d \d\d:\d\d:\d\d \w+ \d\d\d\d" replace="[date omitted]" flags="g">
@@ -42,7 +42,7 @@
 	</fileset>
     </replaceregexp>
     <replaceregexp file="${parserDir}/AutomatonScanner.java" match="\d\d\.\d\d.\d\d \d\d:\d\d" replace="[date omitted]" flags="g" />
-    <replaceregexp file="${parserDir}/AutomatonScanner.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/cpa/automatonanalysis/Scanner.jflex./tt>)" replace="\1\2" />
+    <replaceregexp file="${parserDir}/AutomatonScanner.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/cpa/automaton/Scanner.jflex./tt>)" replace="\1\2" />
 
     <!-- places the suppressWarnings-tag in front of the outer class -->
     <replace file="${parserDir}/AutomatonParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>

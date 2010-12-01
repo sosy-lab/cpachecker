@@ -4,7 +4,7 @@
 // [date omitted]
 //----------------------------------------------------
 
-package org.sosy_lab.cpachecker.cpa.automatonanalysis;
+package org.sosy_lab.cpachecker.cpa.automaton;
 
 /** CUP generated interface containing symbol constants. */
 public interface AutomatonSym {

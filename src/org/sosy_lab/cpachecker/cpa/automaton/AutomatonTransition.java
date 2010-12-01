@@ -21,15 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automatonanalysis;
+package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonAction.CPAModification;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 
 import com.google.common.collect.ImmutableList;
 
