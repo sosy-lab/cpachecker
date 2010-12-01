@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 @Options(prefix="cpas.explicit")
-public class ExplicitAnalysisTransferRelation implements TransferRelation {
+public class ExplicitTransferRelation implements TransferRelation {
 
 
   public static Pair<AbstractElement, String> maxElem;
@@ -84,7 +84,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private String missingInformationLeftPointer  = null;
   private IASTExpression missingInformationRightExpression = null;
 
-  public ExplicitAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
+  public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -92,7 +92,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   public Collection<AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
     AbstractElement successor;
-    ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
+    ExplicitElement explicitElement = (ExplicitElement)element;
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 
@@ -143,7 +143,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("external function calls not yet supported", functionCallEdge);
         //      try {
         //      handleExternalFunctionCall(expAnalysisElement, functionCallEdge);
-        //      } catch (ExplicitAnalysisTransferException e) {
+        //      } catch (ExplicitTransferException e) {
         //        CPAMain.logManager.logException(Level.WARNING, e, "");
         //      }
       } else {
@@ -167,7 +167,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
-      ExplicitAnalysisElement tempEl = ((ExplicitAnalysisElement)successor);
+      ExplicitElement tempEl = ((ExplicitElement)successor);
       if(tempEl.getConstantsMap().size() > maxSize){
         maxSize = tempEl.getConstantsMap().size();
         maxElem = Pair.of(successor, 
@@ -183,7 +183,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    */
-  private ExplicitAnalysisElement handleFunctionReturn(ExplicitAnalysisElement element,
+  private ExplicitElement handleFunctionReturn(ExplicitElement element,
       ReturnEdge functionReturnEdge)
   throws UnrecognizedCCodeException {
 
@@ -191,8 +191,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTExpression exprOnSummary = summaryEdge.getExpression();
     // TODO get from stack
-    ExplicitAnalysisElement previousElem = element.getPreviousElement();
-    ExplicitAnalysisElement newElement = previousElem.clone();
+    ExplicitElement previousElem = element.getPreviousElement();
+    ExplicitElement newElement = previousElem.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
     //System.out.println(exprOnSummary.getRawSignature());
@@ -309,7 +309,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ExplicitAnalysisElement handleFunctionCall(ExplicitAnalysisElement element,
+  private ExplicitElement handleFunctionCall(ExplicitElement element,
       FunctionCallEdge callEdge)
   throws UnrecognizedCCodeException {
 
@@ -326,7 +326,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
     assert (paramNames.size() == arguments.length);
 
-    ExplicitAnalysisElement newElement = new ExplicitAnalysisElement(element);
+    ExplicitElement newElement = new ExplicitElement(element);
 
     for(String globalVar:globalVars){
       if(element.contains(globalVar)){
@@ -385,14 +385,14 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       else{
         // TODO forgetting
         newElement.forget(formalParamName);
-        //      throw new ExplicitAnalysisTransferException("Unhandled case");
+        //      throw new ExplicitTransferException("Unhandled case");
       }
     }
 
     return newElement;
   }
 
-  private ExplicitAnalysisElement handleExitFromFunction(ExplicitAnalysisElement element,
+  private ExplicitElement handleExitFromFunction(ExplicitElement element,
       IASTExpression expression,
       StatementEdge statementEdge)
   throws UnrecognizedCCodeException {
@@ -400,7 +400,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, statementEdge);
   }
 
-  private AbstractElement handleAssumption(ExplicitAnalysisElement element,
+  private AbstractElement handleAssumption(ExplicitElement element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
   throws UnrecognizedCFAEdgeException {
 
@@ -484,7 +484,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       IASTExpression op2, String functionName, boolean truthValue) 
   throws UnrecognizedCFAEdgeException {
 
-    ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+    ExplicitElement newElement = ((ExplicitElement)element).clone();
 
 //    if(op1 != null && op2 != null & op1.getRawSignature().equals("l")){
 //      System.out.println("op1 " + op1.getRawSignature() + " op2 " + 
@@ -1003,7 +1003,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  //  private Boolean getBooleanExpressionValue(ExplicitAnalysisElement element,
+  //  private Boolean getBooleanExpressionValue(ExplicitElement element,
   //                              IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
   //                              throws UnrecognizedCCodeException {
   //    if (expression instanceof IASTUnaryExpression) {
@@ -1094,10 +1094,10 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   //    }
   //  }
 
-  private ExplicitAnalysisElement handleDeclaration(ExplicitAnalysisElement element,
+  private ExplicitElement handleDeclaration(ExplicitElement element,
       DeclarationEdge declarationEdge) {
 
-    ExplicitAnalysisElement newElement = element.clone();
+    ExplicitElement newElement = element.clone();
     IASTDeclarator[] declarators = declarationEdge.getDeclarators();
     // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
 
@@ -1129,7 +1129,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ExplicitAnalysisElement handleStatement(ExplicitAnalysisElement element,
+  private ExplicitElement handleStatement(ExplicitElement element,
       IASTExpression expression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
@@ -1155,7 +1155,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitAnalysisElement handleUnaryStatement(ExplicitAnalysisElement element,
+  private ExplicitElement handleUnaryStatement(ExplicitElement element,
       IASTExpression expression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
@@ -1181,7 +1181,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       String functionName = cfaEdge.getPredecessor().getFunctionName();
       String varName = getvarName(operand.getRawSignature(), functionName);
 
-      ExplicitAnalysisElement newElement = element.clone();
+      ExplicitElement newElement = element.clone();
       if(newElement.contains(varName)){
         newElement.assignConstant(varName, newElement.getValueFor(varName) + shift, this.threshold);
       }
@@ -1192,7 +1192,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitAnalysisElement handleBinaryStatement(ExplicitAnalysisElement element,
+  private ExplicitElement handleBinaryStatement(ExplicitElement element,
       IASTExpression expression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException
   {
@@ -1221,7 +1221,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitAnalysisElement handleOperationAndAssign(ExplicitAnalysisElement element,
+  private ExplicitElement handleOperationAndAssign(ExplicitElement element,
       IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
@@ -1268,7 +1268,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         rightOp, newOperator, cfaEdge);
   }
 
-  private ExplicitAnalysisElement handleAssignment(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignment(ExplicitElement element,
       IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
@@ -1319,7 +1319,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitAnalysisElement handleAssignmentToVariable(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignmentToVariable(ExplicitElement element,
       String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
@@ -1349,7 +1349,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     // a = extCall();  or  a = b->c;
     else if(rightExp instanceof IASTFunctionCallExpression
         || rightExp instanceof IASTFieldReference){
-      ExplicitAnalysisElement newElement = element.clone();
+      ExplicitElement newElement = element.clone();
       String lvarName = getvarName(lParam, functionName);
       newElement.forget(lvarName);
       return newElement;
@@ -1359,7 +1359,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitAnalysisElement handleAssignmentOfCast(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignmentOfCast(ExplicitElement element,
       String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException
   {
@@ -1367,14 +1367,14 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return handleAssignmentToVariable(element, lParam, castOperand, cfaEdge);
   }
 
-  private ExplicitAnalysisElement handleAssignmentOfUnaryExp(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignmentOfUnaryExp(ExplicitElement element,
       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
     String assignedVar = getvarName(lParam, functionName);
-    ExplicitAnalysisElement newElement = element.clone();
+    ExplicitElement newElement = element.clone();
 
     IASTExpression unaryOperand = unaryExp.getOperand();
     int unaryOperator = unaryExp.getOperator();
@@ -1419,7 +1419,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ExplicitAnalysisElement handleAssignmentOfBinaryExp(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignmentOfBinaryExp(ExplicitElement element,
       String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
       int binaryOperator, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
@@ -1427,7 +1427,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
     String assignedVar = getvarName(lParam, functionName);
-    ExplicitAnalysisElement newElement = element.clone();
+    ExplicitElement newElement = element.clone();
 
     switch (binaryOperator) {
     case IASTBinaryExpression.op_divide:
@@ -1492,7 +1492,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long getExpressionValue(ExplicitAnalysisElement element, IASTExpression expression,
+  private Long getExpressionValue(ExplicitElement element, IASTExpression expression,
       String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     if (expression instanceof IASTLiteralExpression) {
@@ -1536,7 +1536,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitAnalysisElement handleAssignmentOfVariable(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignmentOfVariable(ExplicitElement element,
       String lParam, IASTExpression op2, String functionName)
   {
     String rParam = op2.getRawSignature();
@@ -1544,7 +1544,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     String leftVarName = getvarName(lParam, functionName);
     String rightVarName = getvarName(rParam, functionName);
 
-    ExplicitAnalysisElement newElement = element.clone();
+    ExplicitElement newElement = element.clone();
     if(newElement.contains(rightVarName)){
       newElement.assignConstant(leftVarName, newElement.getValueFor(rightVarName), this.threshold);
     }
@@ -1554,11 +1554,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private ExplicitAnalysisElement handleAssignmentOfLiteral(ExplicitAnalysisElement element,
+  private ExplicitElement handleAssignmentOfLiteral(ExplicitElement element,
       String lParam, IASTExpression op2, String functionName)
   throws UnrecognizedCCodeException
   {
-    ExplicitAnalysisElement newElement = element.clone();
+    ExplicitElement newElement = element.clone();
 
     // op2 may be null if this is a "return;" statement
     Long val = (op2 == null ? 0L : parseLiteral(op2));
@@ -1752,8 +1752,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       List<AbstractElement> elements,
       CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
 
-    assert element instanceof ExplicitAnalysisElement;
-    ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
+    assert element instanceof ExplicitElement;
+    ExplicitElement explicitElement = (ExplicitElement)element;
 
     for (AbstractElement ae : elements) {
       if (ae instanceof PointerElement) {
@@ -1767,17 +1767,17 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractElement> strengthen(
-      ExplicitAnalysisElement pExplicitElement, AssumptionCollectorElement pAe,
+      ExplicitElement pExplicitElement, AssumptionCollectorElement pAe,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
     
     return null;
   }
 
-  private Collection<? extends AbstractElement> strengthen(ExplicitAnalysisElement explicitElement,
+  private Collection<? extends AbstractElement> strengthen(ExplicitElement explicitElement,
       PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
 
-    List<ExplicitAnalysisElement> retList = new ArrayList<ExplicitAnalysisElement>();
+    List<ExplicitElement> retList = new ArrayList<ExplicitElement>();
 
     if (missingInformationLeftVariable != null && missingInformationRightPointer != null) {
 

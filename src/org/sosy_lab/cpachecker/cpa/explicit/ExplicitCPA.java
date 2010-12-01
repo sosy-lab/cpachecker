@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpas.explicit")
-public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
+public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ExplicitAnalysisCPA.class);
+    return AutomaticCPAFactory.forType(ExplicitCPA.class);
   }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
@@ -62,25 +62,25 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  private ExplicitAnalysisCPA(Configuration config) throws InvalidConfigurationException {
+  private ExplicitCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
-    ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
-    MergeOperator explicitAnalysisMergeOp = null;
+    ExplicitDomain explicitDomain = new ExplicitDomain ();
+    MergeOperator explicitMergeOp = null;
     if (mergeType.equals("SEP")){
-      explicitAnalysisMergeOp = MergeSepOperator.getInstance();
+      explicitMergeOp = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")){
-      explicitAnalysisMergeOp = new MergeJoinOperator(explicitAnalysisDomain);
+      explicitMergeOp = new MergeJoinOperator(explicitDomain);
     }
 
-    StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain);
+    StopOperator explicitStopOp = new StopSepOperator(explicitDomain);
 
-    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation(config);
+    TransferRelation explicitRelation = new ExplicitTransferRelation(config);
 
-    this.abstractDomain = explicitAnalysisDomain;
-    this.mergeOperator = explicitAnalysisMergeOp;
-    this.stopOperator = explicitAnalysisStopOp;
-    this.transferRelation = explicitAnalysisTransferRelation;
+    this.abstractDomain = explicitDomain;
+    this.mergeOperator = explicitMergeOp;
+    this.stopOperator = explicitStopOp;
+    this.transferRelation = explicitRelation;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
@@ -111,7 +111,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
   {
-    return new ExplicitAnalysisElement();
+    return new ExplicitElement();
   }
 
   @Override

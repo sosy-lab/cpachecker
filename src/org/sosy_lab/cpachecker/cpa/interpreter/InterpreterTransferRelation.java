@@ -162,7 +162,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("external function calls not yet supported", functionCallEdge);
 //      try {
 //      handleExternalFunctionCall(expAnalysisElement, functionCallEdge);
-//      } catch (ExplicitAnalysisTransferException e) {
+//      } catch (ExplicitTransferException e) {
 //        CPAMain.logManager.logException(Level.WARNING, e, "");
 //      }
       } else {
@@ -396,7 +396,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       else{
         // TODO forgetting
         newElement.forget(formalParamName);
-//      throw new ExplicitAnalysisTransferException("Unhandled case");
+//      throw new ExplicitTransferException("Unhandled case");
       }
     }
 
@@ -1104,7 +1104,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     return newElement;
   }
   
-//  private Boolean getBooleanExpressionValue(ExplicitAnalysisElement element,
+//  private Boolean getBooleanExpressionValue(ExplicitElement element,
 //                              IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
 //                              throws UnrecognizedCCodeException {
 //    if (expression instanceof IASTUnaryExpression) {

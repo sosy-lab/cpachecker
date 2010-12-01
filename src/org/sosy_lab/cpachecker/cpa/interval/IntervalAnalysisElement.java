@@ -66,7 +66,7 @@ public class IntervalAnalysisElement implements AbstractElement
     return referenceCounts;
   }
 
-  // see ExplicitAnalysisElement::getValueFor
+  // see ExplicitElement::getValueFor
   public Interval getInterval(String variableName)
   {
     return intervals.get(variableName);
@@ -90,7 +90,7 @@ public class IntervalAnalysisElement implements AbstractElement
    * @param pThreshold threshold from property explicitAnalysis.threshold
    * @return this
    */
-  // see ExplicitAnalysisElement::assignConstant
+  // see ExplicitElement::assignConstant
   public IntervalAnalysisElement addInterval(String variableName, Interval interval, int pThreshold)
   {
     // only add the interval if it is not already present
@@ -118,7 +118,7 @@ public class IntervalAnalysisElement implements AbstractElement
    * @param variableName the name of the variable whose interval should be removed
    * @return this
    */
-  // see ExplicitAnalysisElement::forget
+  // see ExplicitElement::forget
   public IntervalAnalysisElement removeInterval(String variableName)
   {
     if(intervals.containsKey(variableName))

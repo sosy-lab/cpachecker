@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisElement;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory.InvalidPointerException;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory.LocalVariable;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory.MemoryAddress;
@@ -1456,8 +1456,8 @@ public class PointerTransferRelation implements TransferRelation {
 
     for (AbstractElement ae : elements) {
       try {
-        if (ae instanceof ExplicitAnalysisElement) {
-          strengthen(pointerElement, (ExplicitAnalysisElement)ae, cfaEdge,
+        if (ae instanceof ExplicitElement) {
+          strengthen(pointerElement, (ExplicitElement)ae, cfaEdge,
               precision);
 
         } else if (ae instanceof TypesElement) {
@@ -1477,7 +1477,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (missing != null && missing.actionLeftPointer != null) {
       // strengthen operator did not get the necessary information
       // necessary do to the backup operation with unknown offset
-      // this has to be here so it gets executed if there is no ExplicitAnalysis
+      // this has to be here so it gets executed if there is no ExplicitCPA
 
       PointerOperation op;
       if (missing.actionRightPointer != null) {
@@ -1494,10 +1494,10 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   /**
-   * strengthen called for explicitAnalysisCPA
+   * strengthen called for ExplicitCPA
    */
   private void strengthen(PointerElement pointerElement,
-      ExplicitAnalysisElement explicitElement, CFAEdge cfaEdge,
+      ExplicitElement explicitElement, CFAEdge cfaEdge,
       Precision precision) throws InvalidPointerException,
       UnrecognizedCCodeException {
 
@@ -1545,14 +1545,14 @@ public class PointerTransferRelation implements TransferRelation {
       } else {
         // getting variable content failed
         // backup action (adding unknown offset) will be done by caller as if
-        // there was no ExplicitAnalysis
+        // there was no ExplicitCPA
       }
     }
 
   }
 
   private Long getVariableContent(IASTNode variable,
-      ExplicitAnalysisElement explicitElement, CFAEdge cfaEdge) {
+      ExplicitElement explicitElement, CFAEdge cfaEdge) {
 
     String varName = variable.getRawSignature();
     if (!explicitElement.contains(varName)) {

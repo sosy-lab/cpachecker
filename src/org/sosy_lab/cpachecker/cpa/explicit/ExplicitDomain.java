@@ -29,23 +29,23 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public class ExplicitAnalysisDomain implements AbstractDomain {
+public class ExplicitDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
       // returns true if element1 < element2 on lattice
-      ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
-      ExplicitAnalysisElement explicitAnalysisElementReached = (ExplicitAnalysisElement) reachedElement;
+      ExplicitElement ExplicitElementNew = (ExplicitElement) newElement;
+      ExplicitElement ExplicitElementReached = (ExplicitElement) reachedElement;
 
 //      ("===============");
-//      System.out.println(explicitAnalysisElementNew);
+//      System.out.println(ExplicitElementNew);
 //      System.out.println("---------------");
-//      SystemSystem.out.println.out.println(explicitAnalysisElementReached);
+//      SystemSystem.out.println.out.println(ExplicitElementReached);
 //      System.out.println("===============");
 //      System.exit(0);
 
-      Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
-      Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
+      Map<String, Long> constantsMapNew = ExplicitElementNew.getConstantsMap();
+      Map<String, Long> constantsMapReached = ExplicitElementReached.getConstantsMap();
 
       if(constantsMapNew.size() < constantsMapReached.size()){
         return false;
@@ -66,14 +66,14 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   @Override
   public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-      ExplicitAnalysisElement explicitAnalysisElement1 = (ExplicitAnalysisElement) element1;
-      ExplicitAnalysisElement explicitAnalysisElement2 = (ExplicitAnalysisElement) element2;
+      ExplicitElement ExplicitElement1 = (ExplicitElement) element1;
+      ExplicitElement ExplicitElement2 = (ExplicitElement) element2;
 
-      Map<String, Long> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
-      Map<String, Long> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
+      Map<String, Long> constantsMap1 = ExplicitElement1.getConstantsMap();
+      Map<String, Long> constantsMap2 = ExplicitElement2.getConstantsMap();
 
-      Map<String, Integer> referencesMap1 = explicitAnalysisElement1.getNoOfReferences();
-      Map<String, Integer> referencesMap2 = explicitAnalysisElement2.getNoOfReferences();
+      Map<String, Integer> referencesMap1 = ExplicitElement1.getNoOfReferences();
+      Map<String, Integer> referencesMap2 = ExplicitElement2.getNoOfReferences();
 
       Map<String, Long> newConstantsMap = new HashMap<String, Long>();
       Map<String, Integer> newReferencesMap = new HashMap<String, Integer>();
@@ -95,6 +95,6 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
           newReferencesMap.put(key, referencesMap2.get(key));
         }
       }
-      return new ExplicitAnalysisElement(newConstantsMap, newReferencesMap, explicitAnalysisElement2.getPreviousElement());
+      return new ExplicitElement(newConstantsMap, newReferencesMap, ExplicitElement2.getPreviousElement());
   }
 }

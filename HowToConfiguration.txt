@@ -54,7 +54,7 @@ has to be prefixed with the identifier of the CPA as described above.
 
 A simple example (the first line could be ommitted as it's the default):
 cpa = cpa.composite.CompositeCPA
-CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitAnalysisCPA explicitCPA
+CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA explicitCPA
 explicitCPA.cpas.explicit.threshold = 10
 
 A more complex example:
@@ -222,11 +222,11 @@ cpas.art.errorPath.file = ErrorPath.txt
 # which merge operator to use for DefUseCPA (join or sep)
 cpas.defuse.merge = sep
 
-# which merge operator to use for ExplicitAnalysisCPA (join or sep)
+# which merge operator to use for ExplicitCPA (join or sep)
 cpas.explicit.merge = sep
 
 # threshold for amount of different values that are tracked for one variable in
-# ExplicitAnalysisCPA (0 means infinitely)
+# ExplicitCPA (0 means infinitely)
 cpas.explicit.threshold = 0
 
 # file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA

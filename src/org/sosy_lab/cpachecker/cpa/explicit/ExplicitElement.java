@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 import com.google.common.base.Preconditions;
 
-public class ExplicitAnalysisElement implements AbstractQueryableElement {
+public class ExplicitElement implements AbstractQueryableElement {
 
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> constantsMap;
@@ -41,27 +41,27 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
 
   // element from the previous context
   // used for return edges
-  private final ExplicitAnalysisElement previousElement;
+  private final ExplicitElement previousElement;
   
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
-  public ExplicitAnalysisElement() {
+  public ExplicitElement() {
     constantsMap = new HashMap<String, Long>();
     noOfReferences = new HashMap<String, Integer>();
     previousElement = null;
   }
 
-  public ExplicitAnalysisElement(ExplicitAnalysisElement previousElement) {
+  public ExplicitElement(ExplicitElement previousElement) {
     constantsMap = new HashMap<String, Long>();
     noOfReferences = new HashMap<String, Integer>();
     this.previousElement = previousElement;
   }
 
 
-  public ExplicitAnalysisElement(Map<String, Long> constantsMap,
-                                 Map<String, Integer> referencesMap,
-                                 ExplicitAnalysisElement previousElement) {
+  public ExplicitElement(Map<String, Long> constantsMap,
+                         Map<String, Integer> referencesMap,
+                         ExplicitElement previousElement) {
     this.constantsMap = constantsMap;
     this.noOfReferences = referencesMap;
     this.previousElement = previousElement;
@@ -112,13 +112,13 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     return constantsMap.containsKey(variableName);
   }
 
-  public ExplicitAnalysisElement getPreviousElement() {
+  public ExplicitElement getPreviousElement() {
     return previousElement;
   }
   
   @Override
-  public ExplicitAnalysisElement clone() {
-    ExplicitAnalysisElement newElement = new ExplicitAnalysisElement(previousElement);
+  public ExplicitElement clone() {
+    ExplicitElement newElement = new ExplicitElement(previousElement);
     for (String s: constantsMap.keySet()){
       long val = constantsMap.get(s).longValue();
       newElement.constantsMap.put(s, val);
@@ -135,7 +135,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     if (this == other)
       return true;
 
-    //assert (other instanceof ExplicitAnalysisElement);
+    //assert (other instanceof ExplicitElement);
     
     if (other == null) {
       return false;
@@ -145,7 +145,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
       return false;
     }
 
-    ExplicitAnalysisElement otherElement = (ExplicitAnalysisElement) other;
+    ExplicitElement otherElement = (ExplicitElement) other;
     if (otherElement.constantsMap.size() != constantsMap.size()){
       return false;
     }

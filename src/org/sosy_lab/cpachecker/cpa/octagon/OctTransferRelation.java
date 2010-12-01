@@ -2050,7 +2050,7 @@ public class OctTransferRelation implements TransferRelation{
 
     // TODO: The method summaryEdge.extractAbstractElement() has been removed.
     // If OctagonCPA is to be used, store a reference to the previous element
-    // in the OctElement, just like ExplicitAnalysisCPA does.
+    // in the OctElement, just like ExplicitCPA does.
     throw new UnsupportedOperationException("NEEDS TO BE IMPLEMENTED");
     
 /*
