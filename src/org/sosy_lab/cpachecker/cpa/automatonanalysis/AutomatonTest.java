@@ -52,7 +52,7 @@ public class AutomatonTest {
   @Test
   public void CyclicInclusionTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointeranalysis.PointerAnalysisCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
@@ -75,7 +75,7 @@ public class AutomatonTest {
   @Test
   public void IncludeSpecificationTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointeranalysis.PointerAnalysisCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
         "specification",     "test/config/automata/defaultSpecificationForTesting.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
@@ -232,7 +232,7 @@ public class AutomatonTest {
   @Test
   public void pointerAnalyisTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.pointer.PointerCPA",
         "automatonAnalysis.inputFile",     "test/config/automata/PointerAnalysisTestAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "automatonAnalysis.dotExportFile", OUTPUT_FILE,
@@ -252,7 +252,7 @@ public class AutomatonTest {
   @Test
   public void pointerAnalyisSkeletonTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.pointer.PointerCPA",
         "automatonAnalysis.inputFile",     "test/config/automata/PointerAnalysisTestSkeletonAutomaton.txt",
         "log.consoleLevel",               "INFO"
       );

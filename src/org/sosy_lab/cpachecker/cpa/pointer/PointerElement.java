@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointeranalysis;
+package org.sosy_lab.cpachecker.cpa.pointer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,9 +36,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.Assign;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.AssumeInequality;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.PointerOperation;
+import org.sosy_lab.cpachecker.cpa.pointer.Pointer.Assign;
+import org.sosy_lab.cpachecker.cpa.pointer.Pointer.AssumeInequality;
+import org.sosy_lab.cpachecker.cpa.pointer.Pointer.PointerOperation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  *
  * @author Philipp Wendler
  */
-public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
+public class PointerElement implements AbstractQueryableElement, Memory,
     Cloneable, Targetable {
 
   private static final char                                    FUNCTION_NAME_SEPARATOR =
@@ -92,7 +92,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
    *        and ASTNode is the shift operand
    */
 
-  public PointerAnalysisElement() {
+  public PointerElement() {
     stack = new HashMap<String, Map<String, Pointer>>();
     heap = new HashMap<MemoryAddress, Pointer>();
     mallocs = new HashSet<MemoryRegion>();
@@ -103,7 +103,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     stack.put("", new HashMap<String, Pointer>());
   }
 
-  private PointerAnalysisElement(final Map<String, Map<String, Pointer>> stack,
+  private PointerElement(final Map<String, Map<String, Pointer>> stack,
       final Map<MemoryAddress, Pointer> heap, final Set<MemoryRegion> mallocs,
       final Map<PointerTarget, Set<PointerLocation>> reverseRelation,
       final Map<PointerLocation, Set<PointerLocation>> aliases,
@@ -926,7 +926,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
             Pointer p = loc.getPointer(this);
 
             // all local locations have already been removed, there has to be a global one!
-            PointerAnalysisTransferRelation
+            PointerTransferRelation
                 .addWarning(
                     "After returning from "
                         + oldFunctionName
@@ -947,7 +947,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     stack.remove(oldFunctionName);
   }
 
-  public boolean isSubsetOf(PointerAnalysisElement other) {
+  public boolean isSubsetOf(PointerElement other) {
     assert other.currentFunctionName.matches("^" + currentFunctionName + "("
         + FUNCTION_NAME_SEPARATOR + ".*)?$");
 
@@ -993,9 +993,9 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   @Override
   public boolean equals(Object other) {
     if (other == this) { return true; }
-    if (other == null || !(other instanceof PointerAnalysisElement)) { return false; }
+    if (other == null || !(other instanceof PointerElement)) { return false; }
 
-    PointerAnalysisElement otherElement = (PointerAnalysisElement) other;
+    PointerElement otherElement = (PointerElement) other;
 
     return currentFunctionName.equals(otherElement.currentFunctionName)
         && stack.equals(otherElement.stack) && heap.equals(otherElement.heap)
@@ -1010,8 +1010,8 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   }
 
   @Override
-  public PointerAnalysisElement clone() {
-    return new PointerAnalysisElement(stack, heap, mallocs, reverseRelation,
+  public PointerElement clone() {
+    return new PointerElement(stack, heap, mallocs, reverseRelation,
         aliases, tempTracked, currentFunctionName, properties);
   }
 
@@ -1068,7 +1068,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   @Override
   public void modifyProperty(String pModification)
       throws InvalidQueryException {
-    throw new InvalidQueryException("The PointerAnalysis CPA does not support modification.");
+    throw new InvalidQueryException("The Pointer CPA does not support modification.");
   }
   
   @Override

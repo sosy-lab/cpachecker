@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -1210,15 +1210,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     for(AbstractElement elem : elements)
     {
-      if(elem instanceof PointerAnalysisElement)
-        return strengthen(intervalElement, (PointerAnalysisElement)elem, cfaEdge, precision);
+      if(elem instanceof PointerElement)
+        return strengthen(intervalElement, (PointerElement)elem, cfaEdge, precision);
     }
 
     return null;
   }
 
   private Collection<? extends AbstractElement> strengthen(IntervalAnalysisElement intervalElement,
-      PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
+      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
     return null;
   }

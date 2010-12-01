@@ -60,9 +60,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory;
+import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -1756,8 +1756,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
 
     for (AbstractElement ae : elements) {
-      if (ae instanceof PointerAnalysisElement) {
-        return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
+      if (ae instanceof PointerElement) {
+        return strengthen(explicitElement, (PointerElement)ae, cfaEdge, precision);
       }
       else if(ae instanceof AssumptionCollectorElement){
         return strengthen(explicitElement, (AssumptionCollectorElement)ae, cfaEdge, precision);
@@ -1775,7 +1775,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractElement> strengthen(ExplicitAnalysisElement explicitElement,
-      PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
 
     List<ExplicitAnalysisElement> retList = new ArrayList<ExplicitAnalysisElement>();
 
@@ -1807,7 +1807,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return null;
   }
 
-  private String derefPointerToVariable(PointerAnalysisElement pointerElement,
+  private String derefPointerToVariable(PointerElement pointerElement,
       String pointer) {
     Pointer p = pointerElement.lookupPointer(pointer);
     if (p != null && p.getNumberOfTargets() == 1) {

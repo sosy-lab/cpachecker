@@ -238,7 +238,7 @@ automatonAnalysis.dotExport = false
 # file for saving the automaton in DOT format
 automatonAnalysis.dotExportFile = automaton.txt
 
-# which merge operator to use for PointerAnalysisCPA? (join or sep)
+# which merge operator to use for PointerCPA? (join or sep)
 cpas.pointeranalysis.merge = sep
 
 # print warnings during analysis when unsafe pointer operations are found

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointeranalysis;
+package org.sosy_lab.cpachecker.cpa.pointer;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -29,16 +29,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 /**
  * @author Philipp Wendler
  */
-public class PointerAnalysisDomain implements AbstractDomain {
+public class PointerDomain implements AbstractDomain {
 
   @Override
   public AbstractElement join(AbstractElement element1, AbstractElement element2) {
     throw new UnsupportedOperationException();
     /*
-      PointerAnalysisElement pointerElement1 = (PointerAnalysisElement)element1;
-      PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
+      PointerElement pointerElement1 = (PointerElement)element1;
+      PointerElement pointerElement2 = (PointerElement)element2;
 
-      PointerAnalysisElement pointerElementNew = pointerElement1.clone();
+      PointerElement pointerElementNew = pointerElement1.clone();
 
       // TODO Join Operator
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
@@ -68,8 +68,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
-      PointerAnalysisElement newPointerElement = (PointerAnalysisElement)newElement;
-      PointerAnalysisElement reachedPointerElement = (PointerAnalysisElement)reachedElement;
+      PointerElement newPointerElement = (PointerElement)newElement;
+      PointerElement reachedPointerElement = (PointerElement)reachedElement;
 
       return reachedPointerElement.isSubsetOf(newPointerElement);
   }

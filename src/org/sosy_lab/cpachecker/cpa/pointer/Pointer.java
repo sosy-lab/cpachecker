@@ -21,23 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointeranalysis;
+package org.sosy_lab.cpachecker.cpa.pointer;
 
-import static org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.INVALID_POINTER;
-import static org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.NULL_POINTER;
-import static org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.UNKNOWN_POINTER;
-import static org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.UNINITIALIZED_POINTER;
+import static org.sosy_lab.cpachecker.cpa.pointer.Memory.INVALID_POINTER;
+import static org.sosy_lab.cpachecker.cpa.pointer.Memory.NULL_POINTER;
+import static org.sosy_lab.cpachecker.cpa.pointer.Memory.UNKNOWN_POINTER;
+import static org.sosy_lab.cpachecker.cpa.pointer.Memory.UNINITIALIZED_POINTER;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.InvalidPointerException;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.MemoryAddress;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.PointerLocation;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.PointerTarget;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.Variable;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.InvalidPointerException;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.MemoryAddress;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.Variable;
 
 /**
  * A pointer is a set of possible targets.
@@ -149,7 +149,7 @@ public class Pointer implements Cloneable {
           newTargets.add(target.addOffset(byteShift));
 
         } catch (InvalidPointerException e) {
-          PointerAnalysisTransferRelation.addWarning(e.getMessage(),
+          PointerTransferRelation.addWarning(e.getMessage(),
               memory.getCurrentEdge(), target.toString());
 
           newTargets.add(INVALID_POINTER);
@@ -172,7 +172,7 @@ public class Pointer implements Cloneable {
       try {
         newTargets.add(target.addUnknownOffset());
       } catch (InvalidPointerException e) {
-        PointerAnalysisTransferRelation.addWarning(e.getMessage(),
+        PointerTransferRelation.addWarning(e.getMessage(),
             memory.getCurrentEdge(), target.toString());
 
         newTargets.add(INVALID_POINTER);

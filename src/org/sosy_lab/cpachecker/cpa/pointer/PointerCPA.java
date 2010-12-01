@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointeranalysis;
+package org.sosy_lab.cpachecker.cpa.pointer;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * @author Philipp Wendler
  */
 @Options(prefix="cpas.pointeranalysis")
-public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
+public class PointerCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(PointerAnalysisCPA.class);
+    return AutomaticCPAFactory.forType(PointerCPA.class);
   }
 
   @Option(name="merge", values={"sep", "join"})
@@ -69,9 +69,9 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private PointerAnalysisCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private PointerCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-    PointerAnalysisDomain domain = new PointerAnalysisDomain();
+    PointerDomain domain = new PointerDomain();
 
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
@@ -84,7 +84,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     abstractDomain = domain;
     mergeOperator = mergeOp;
     stopOperator = new StopSepOperator(domain);
-    transferRelation = new PointerAnalysisTransferRelation(printWarnings, logger);
+    transferRelation = new PointerTransferRelation(printWarnings, logger);
   }
 
   @Override
@@ -94,8 +94,8 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    PointerAnalysisElement element = new PointerAnalysisElement();
-    ((PointerAnalysisTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
+    PointerElement element = new PointerElement();
+    ((PointerTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
     return element;
   }
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointeranalysis;
+package org.sosy_lab.cpachecker.cpa.pointer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,16 +66,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitAnalysisElement;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.InvalidPointerException;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.LocalVariable;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.MemoryAddress;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.MemoryRegion;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.PointerTarget;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.StackArray;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.StackArrayCell;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory.Variable;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer.PointerOperation;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement.ElementProperty;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.InvalidPointerException;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.LocalVariable;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.MemoryAddress;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.MemoryRegion;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.StackArray;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.StackArrayCell;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory.Variable;
+import org.sosy_lab.cpachecker.cpa.pointer.Pointer.PointerOperation;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerElement.ElementProperty;
 import org.sosy_lab.cpachecker.cpa.types.Type;
 import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.cpa.types.Type.ArrayType;
@@ -89,7 +89,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 /**
  * @author Philipp Wendler
  */
-public class PointerAnalysisTransferRelation implements TransferRelation {
+public class PointerTransferRelation implements TransferRelation {
 
   /*
    * Exception usage during analysis:
@@ -133,7 +133,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    *
    * This information is stored in a separate object which can be garbage
    * collected after it was used, this reduces the memory footprint of a
-   * PointerAnalysisElement.
+   * PointerElement.
    */
   private static class MissingInformation {
     private Pointer         typeInformationPointer = null;
@@ -160,7 +160,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private FunctionDefinitionNode entryFunctionDefinitionNode = null;
   private boolean entryFunctionProcessed = false;
 
-  public PointerAnalysisTransferRelation(boolean pPrintWarnings,
+  public PointerTransferRelation(boolean pPrintWarnings,
       LogManager pLogger) {
     printWarnings = pPrintWarnings;
     warnings = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
@@ -218,11 +218,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<PointerAnalysisElement> getAbstractSuccessors(
+  public Collection<PointerElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    PointerAnalysisElement successor = ((PointerAnalysisElement)element).clone();
+    PointerElement successor = ((PointerElement)element).clone();
     if (successor.isTarget()) {
       return Collections.emptySet();
     }
@@ -312,7 +312,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     return Collections.singleton(successor);
   }
 
-  private void handleDeclaration(PointerAnalysisElement element, CFAEdge edge,
+  private void handleDeclaration(PointerElement element, CFAEdge edge,
       IASTDeclarator[] declarators, IASTDeclSpecifier specifier) throws CPATransferException {
 
     if (specifier instanceof IASTCompositeTypeSpecifier
@@ -461,7 +461,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleAssume(PointerAnalysisElement element,
+  private void handleAssume(PointerElement element,
       IASTExpression expression, boolean isTrueBranch, AssumeEdge assumeEdge)
       throws UnrecognizedCCodeException, UnreachableStateException, InvalidPointerException {
 
@@ -554,7 +554,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleBinaryAssume(PointerAnalysisElement element,
+  private void handleBinaryAssume(PointerElement element,
       IASTBinaryExpression expression, boolean isTrueBranch,
       AssumeEdge assumeEdge) throws UnrecognizedCCodeException,
       UnreachableStateException {
@@ -594,7 +594,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCall(PointerAnalysisElement element,
+  private void handleFunctionCall(PointerElement element,
       CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)cfaEdge.getSuccessor();
@@ -690,7 +690,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleReturnFromFunction(PointerAnalysisElement element,
+  private void handleReturnFromFunction(PointerElement element,
       IASTExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
@@ -777,7 +777,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   }
 
-  private void handleStatement(PointerAnalysisElement element,
+  private void handleStatement(PointerElement element,
       IASTExpression expression, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
@@ -852,7 +852,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFree(PointerAnalysisElement element,
+  private void handleFree(PointerElement element,
       IASTFunctionCallExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
@@ -943,7 +943,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleBinaryStatement(PointerAnalysisElement element,
+  private void handleBinaryStatement(PointerElement element,
       IASTBinaryExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
@@ -1085,7 +1085,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * If the right-hand side seems to not evaluate to a pointer, the left pointer
    * is just set to unknown (no warning / error etc. is produced).
    */
-  private void handleAssignment(PointerAnalysisElement element,
+  private void handleAssignment(PointerElement element,
       String leftVarName, Pointer leftPointer, boolean leftDereference,
       IASTExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
@@ -1405,7 +1405,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * @throws NumberFormatException if argument is a number, not a valid integer
    * @throws UnrecognizedCCodeException if parameter contains something unexpected
    */
-  private void handleMalloc(PointerAnalysisElement element, Pointer pointer,
+  private void handleMalloc(PointerElement element, Pointer pointer,
       boolean leftDereference, IASTExpression parameter, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
@@ -1448,11 +1448,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       return null;
     }
 
-    if (!(element instanceof PointerAnalysisElement)) {
+    if (!(element instanceof PointerElement)) {
       return null;
     }
 
-    PointerAnalysisElement pointerElement = (PointerAnalysisElement)element;
+    PointerElement pointerElement = (PointerElement)element;
 
     for (AbstractElement ae : elements) {
       try {
@@ -1496,7 +1496,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   /**
    * strengthen called for explicitAnalysisCPA
    */
-  private void strengthen(PointerAnalysisElement pointerElement,
+  private void strengthen(PointerElement pointerElement,
       ExplicitAnalysisElement explicitElement, CFAEdge cfaEdge,
       Precision precision) throws InvalidPointerException,
       UnrecognizedCCodeException {
@@ -1569,7 +1569,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   /**
    * strengthen called for TypesCPA
    */
-  private void strengthen(PointerAnalysisElement pointerElement,
+  private void strengthen(PointerElement pointerElement,
       TypesElement typesElement, CFAEdge cfaEdge, Precision precision)
       throws UnrecognizedCCodeException {
 
@@ -1619,7 +1619,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * recursively traverses all fields of a struct
    */
   @SuppressWarnings("unused")
-  private void handleStructDeclaration(PointerAnalysisElement element,
+  private void handleStructDeclaration(PointerElement element,
                                        TypesElement typeElem, Type.CompositeType structType,
                                        String varName,String recursiveVarName) {
 
@@ -1699,7 +1699,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * the same type, setting the assignee's fields accordingly
    */
   @SuppressWarnings("unused")
-  private void checkFields(PointerAnalysisElement element, CFAEdge cfaEdge, IASTExpression exp,
+  private void checkFields(PointerElement element, CFAEdge cfaEdge, IASTExpression exp,
                            TypesElement typeElem, Type.CompositeType structType,
                            String leftName, String rightName,
                            String recursiveLeftName, String recursiveRightName) {
@@ -1740,7 +1740,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       break;
 
     default:
-      addWarning("Types determined by TypesCPA und PointerAnalysisCPA differ!",
+      addWarning("Types determined by TypesCPA und PointerCPA differ!",
           null, pointer.getLocation().toString());
     }
   }
