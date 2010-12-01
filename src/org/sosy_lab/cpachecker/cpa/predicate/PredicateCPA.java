@@ -71,7 +71,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return AutomaticCPAFactory.forType(PredicateCPA.class);
   }
 
-  @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})
+  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})
   private String whichProver = "MATHSAT";
 
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})

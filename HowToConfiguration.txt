@@ -261,7 +261,7 @@ cpa.uninitvars.printWarnings = true
 #------------------------------------------------------------------------------
 
 # which solver to use? (mathsat, yices)
-cpa.predicate.explicit.abstraction.solver = mathsat
+cpa.predicate.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
 cpa.predicate.interpolatingProver = mathsat
@@ -269,8 +269,9 @@ cpa.predicate.interpolatingProver = mathsat
 # get an initial set of predicates from a file in MSAT format
 cpa.predicate.abstraction.initialPredicates =
 
-# cache queries to mathsat
-cpa.predicate.mathsat.useCache = true
+# use caching where possible
+cpa.predicate.useCache = true
+cpa.predicate.blk.useCache = true
 
 # when transforming code to formula,
 # add predicates that help producing more precise error paths
@@ -339,16 +340,16 @@ cpa.predicate.useBitwiseAxioms = false
 
 # apply deletion-filter to the abstract counterexample, to get a
 # minimal set of blocks, before applying interpolation-based refinement
-cpa.predicate.explicit.getUsefulBlocks = false
+cpa.predicate.refinement.getUsefulBlocks = false
 
 # use incremental search in counterexample analysis, to find the minimal infeasible prefix
-cpa.predicate.shortestCexTrace = false
+cpa.predicate.refinement.shortestCexTrace = false
 
 # if shortestCexTrace is used, start from the end with the incremental search
-cpa.predicate.shortestCexTraceUseSuffix = false
+cpa.predicate.refinement.shortestCexTraceUseSuffix = false
 
 # if shortestCexTrace is used, alternatingly search from start and end of the trace
-cpa.predicate.shortestCexTraceUseZigZag = false
+cpa.predicate.refinement.shortestCexTraceUseZigZag = false
 
 # whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
@@ -386,7 +387,13 @@ cpa.predicate.errorPath.export = true
 cpa.predicate.errorPath.file = ErrorPathAssignment.txt
 
 # dump the abstraction formulas if they took to long
-cpa.predicate.mathsat.dumpHardAbstractionQueries = false
+cpa.predicate.abstraction.dumpHardQueries = false
+
+# time limit for refinement (0 is infinitely long)
+cpa.predicate.refinement.timelimit = 0
+
+# try again with a second solver if refinement timed out
+cpa.predicate.refinement.changesolverontimeout = false
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false

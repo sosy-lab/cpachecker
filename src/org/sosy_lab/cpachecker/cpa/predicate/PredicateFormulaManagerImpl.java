@@ -121,13 +121,13 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
   @Option(name="abstraction.cartesian")
   private boolean cartesianAbstraction = false;
 
-  @Option(name="mathsat.dumpHardAbstractionQueries")
+  @Option(name="abstraction.dumpHardQueries")
   private boolean dumpHardAbstractions = false;
 
-  @Option(name="explicit.getUsefulBlocks")
+  @Option(name="refinement.getUsefulBlocks")
   private boolean getUsefulBlocks = false;
 
-  @Option(name="shortestCexTrace")
+  @Option(name="refinement.shortestCexTrace")
   private boolean shortestTrace = false;
 
   @Option(name="refinement.atomicPredicates")
@@ -136,10 +136,10 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
   @Option(name="refinement.splitItpAtoms")
   private boolean splitItpAtoms = false;
 
-  @Option(name="shortestCexTraceUseSuffix")
+  @Option(name="refinement.shortestCexTraceUseSuffix")
   private boolean useSuffix = false;
 
-  @Option(name="shortestCexTraceZigZag")
+  @Option(name="refinement.shortestCexTraceZigZag")
   private boolean useZigZag = false;
 
   @Option(name="refinement.addWellScopedPredicates")
@@ -152,10 +152,10 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
   private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
   private final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
   
-  @Option(name="interpolation.timelimit")
+  @Option(name="refinement.timelimit")
   private long itpTimeLimit = 0;
 
-  @Option(name="interpolation.changesolverontimeout")
+  @Option(name="refinement.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
 
   @Option
