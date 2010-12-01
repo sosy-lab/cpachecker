@@ -68,7 +68,7 @@ import com.google.common.collect.ImmutableSet;
  *
  * @author g.theoduloz
  */
-@Options
+@Options(prefix="assumptions")
 public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
 
   private class AssumptionCollectionStatistics implements Statistics {
@@ -95,10 +95,10 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     }
   }
   
-  @Option(name="assumptions.export")
+  @Option(name="export")
   private boolean exportAssumptions = true;
 
-  @Option(name="assumptions.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE)
   private File assumptionsFile = new File("assumptions.txt");
 
   private final LogManager logger;
