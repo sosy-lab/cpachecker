@@ -72,7 +72,7 @@ class PredicateCPAStatistics implements Statistics {
 
     @Override
     public String getName() {
-      return "Summary Predicate Abstraction CPA";
+      return "PredicateCPA";
     }
 
     @Override

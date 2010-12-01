@@ -17,7 +17,7 @@ class MonitorStatistics implements Statistics {
   
   @Override
   public String getName() {
-    return "Monitor Statistics";
+    return "MonitorCPA";
   }
 
   @Override
