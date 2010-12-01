@@ -3,11 +3,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
-@Options(prefix="automatonAnalysis")
 public class ObserverAutomatonCPA extends ControlAutomatonCPA {
   
     private ObserverAutomatonCPA(Configuration pConfig, LogManager pLogger)
@@ -15,13 +13,6 @@ public class ObserverAutomatonCPA extends ControlAutomatonCPA {
     super(pConfig, pLogger);
     super.getAutomaton().assertObserverAutomaton();
   }
-/*
-    @SuppressWarnings("unused")
-    @Option(name="dotExportFile")
-    private String exportFile = "";
-    @Option(required=true)
-    private String inputFile = "";
-*/
     
     private static class AutomatonCPAFactory extends ControlAutomatonCPA.AutomatonCPAFactory {
 
