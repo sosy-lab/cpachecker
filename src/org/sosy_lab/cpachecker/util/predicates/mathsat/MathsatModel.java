@@ -1,10 +1,10 @@
-package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
+package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Function;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.TermType;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.Model.Function;
+import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 
 import com.google.common.collect.ImmutableMap;
 

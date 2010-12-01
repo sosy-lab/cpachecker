@@ -21,23 +21,40 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
+package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-/**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- *
- * A generic interface for manipulating symbolic representations of formulas.
- */
-public interface Formula {
-    /**
-     * checks whether this formula represents "true"
-     * @return true if this formula represents logical truth, false otherwise
-     */
-    public boolean isTrue();
+import java.util.Collection;
 
+import org.sosy_lab.cpachecker.util.predicates.Model;
+
+public interface TheoremProver {
+
+  void init();
+  void push(Formula f);
+  void pop();
+  boolean isUnsat(Formula f);
+  Model getModel();
+  void reset();
+
+  AllSatResult allSat(Formula f, Collection<Formula> important,
+                      AbstractionManager mgr);
+    
+  interface AllSatResult {
+      
     /**
-     * checks whether this formula represents "false"
-     * @return true if this formula represents logical falsity, false otherwise
+     * The result of an allSat call as an abstract formula.
      */
-    public boolean isFalse();
+    public Region getResult();
+    
+    /**
+     * The number of satisfying assignments contained in the result, of
+     * {@link Integer#MAX_VALUE} if this number is infinite.
+     */
+    public int getCount();
+    
+    /**
+     * The time spent for creating the abstract formula.
+     */
+    public long getTotalTime();
+  }
 }

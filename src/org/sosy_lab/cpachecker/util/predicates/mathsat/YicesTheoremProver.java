@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
+package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,12 +40,12 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractionManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 
 import org.sosy_lab.common.Pair;
 

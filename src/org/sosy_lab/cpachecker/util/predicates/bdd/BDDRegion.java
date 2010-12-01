@@ -21,14 +21,43 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
+package org.sosy_lab.cpachecker.util.predicates.bdd;
+
+import net.sf.javabdd.BDD;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ * Regions represented using BDDs
  *
- * An AbstractFormula is a representation of a data region in the
- * abstract space. For instance, in the case of predicate abstraction, it can
- * be a BDD over the predicates
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface Region {
+class BDDRegion implements Region {
+
+    private final BDD bddRepr;
+
+    public BDDRegion(BDD pBDD) {
+        bddRepr = pBDD;
+    }
+
+    protected BDD getBDD() {
+        return bddRepr;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof BDDRegion) {
+            return bddRepr.equals(((BDDRegion)o).bddRepr);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return bddRepr.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return bddRepr.isOne() ? "true" : bddRepr.toString();
+    }
 }

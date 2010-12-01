@@ -21,9 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
+package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
 /**

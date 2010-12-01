@@ -21,11 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat;
+package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
 import java.util.Arrays;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 public class MathsatFormulaList implements FormulaList {
 

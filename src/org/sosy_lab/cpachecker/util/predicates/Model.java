@@ -21,11 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.symbpredabstraction;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;

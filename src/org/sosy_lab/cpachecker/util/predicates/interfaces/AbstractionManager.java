@@ -1,7 +1,7 @@
-package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
+package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 public interface AbstractionManager {
 

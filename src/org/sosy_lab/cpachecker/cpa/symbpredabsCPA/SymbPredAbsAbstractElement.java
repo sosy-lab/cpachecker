@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 import com.google.common.base.Preconditions;
 

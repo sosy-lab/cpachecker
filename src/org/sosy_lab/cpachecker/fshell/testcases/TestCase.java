@@ -7,11 +7,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 public abstract class TestCase {
 
