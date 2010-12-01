@@ -71,9 +71,6 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     return new ProgressObserverCPAFactory();
   }
 
-  @Option(name="analysis.useAssumptionCollector")
-  private boolean useAssumptionCollector = true;
-
   @Option(name="heuristics", required=true)
   private String[] heuristicsNames = {};
   
@@ -122,11 +119,6 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   {
     logger = mgr;
     cfg.inject(this);
-
-    // Check if assumption collector is enabled; if not, the analysis will
-    // not be sound
-    if (!useAssumptionCollector)
-      logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
 
     enabledHeuristics = createEnabledHeuristics(cfg);
 
