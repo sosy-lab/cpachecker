@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
+package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.util.Collection;
 
@@ -31,11 +31,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class TransferRelationMonitorStop implements StopOperator {
+public class MonitorStop implements StopOperator {
 
   private final ConfigurableProgramAnalysis wrappedCpa;
 
-  public TransferRelationMonitorStop(ConfigurableProgramAnalysis cpa) {
+  public MonitorStop(ConfigurableProgramAnalysis cpa) {
     this.wrappedCpa = cpa;
   }
 
@@ -43,11 +43,11 @@ public class TransferRelationMonitorStop implements StopOperator {
   public boolean stop(AbstractElement pElement,
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
-    TransferRelationMonitorElement transferRelationMonitorElement = (TransferRelationMonitorElement)pElement;
+    MonitorElement monitorElement = (MonitorElement)pElement;
 
     for (AbstractElement reachedElement : pReached) {
-      TransferRelationMonitorElement transferRelationMonitorReachedElement = (TransferRelationMonitorElement)reachedElement;
-      if (stop(transferRelationMonitorElement, transferRelationMonitorReachedElement)) {
+      MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
+      if (stop(monitorElement, monitorReachedElement)) {
         return true;
       }
     }
@@ -55,7 +55,7 @@ public class TransferRelationMonitorStop implements StopOperator {
 
   }
 
-  public boolean stop(TransferRelationMonitorElement pElement, TransferRelationMonitorElement pReachedElement)
+  public boolean stop(MonitorElement pElement, MonitorElement pReachedElement)
                                                       throws CPAException {
 
     AbstractElement wrappedElement = pElement.getWrappedElement();
@@ -67,7 +67,7 @@ public class TransferRelationMonitorStop implements StopOperator {
   @Override
   public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
       throws CPAException {
-    return stop((TransferRelationMonitorElement)pElement, (TransferRelationMonitorElement)pReachedElement);
+    return stop((MonitorElement)pElement, (MonitorElement)pReachedElement);
   }
 
 }

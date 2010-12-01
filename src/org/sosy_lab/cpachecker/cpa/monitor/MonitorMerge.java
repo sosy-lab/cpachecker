@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
+package org.sosy_lab.cpachecker.cpa.monitor;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -29,11 +29,11 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class TransferRelationMonitorMerge implements MergeOperator{
+public class MonitorMerge implements MergeOperator{
 
   private ConfigurableProgramAnalysis wrappedCpa;
 
-  public TransferRelationMonitorMerge(ConfigurableProgramAnalysis pWrappedCPA) {
+  public MonitorMerge(ConfigurableProgramAnalysis pWrappedCPA) {
     wrappedCpa = pWrappedCPA;
   }
 
@@ -42,26 +42,26 @@ public class TransferRelationMonitorMerge implements MergeOperator{
       AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision)
   throws CPAException {
-    TransferRelationMonitorElement transferRelationMonitorElement1= (TransferRelationMonitorElement)pElement1;
-    TransferRelationMonitorElement transferRelationMonitorElement2 = (TransferRelationMonitorElement)pElement2;
+    MonitorElement monitorElement1= (MonitorElement)pElement1;
+    MonitorElement monitorElement2 = (MonitorElement)pElement2;
 
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
-    AbstractElement wrappedElement1 = transferRelationMonitorElement1.getWrappedElement();
-    AbstractElement wrappedElement2 = transferRelationMonitorElement2.getWrappedElement();
+    AbstractElement wrappedElement1 = monitorElement1.getWrappedElement();
+    AbstractElement wrappedElement2 = monitorElement2.getWrappedElement();
     AbstractElement retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
     }
 
 
-    int pathLength = Math.max(transferRelationMonitorElement1.getNoOfNodesOnPath(),
-                              transferRelationMonitorElement2.getNoOfNodesOnPath());
-    int branchesOnPath = Math.max(transferRelationMonitorElement1.getNoOfBranchesOnPath(),
-                                  transferRelationMonitorElement2.getNoOfBranchesOnPath());
-    long totalTimeOnPath = Math.max(transferRelationMonitorElement1.getTotalTimeOnPath(),
-                                    transferRelationMonitorElement2.getTotalTimeOnPath());
+    int pathLength = Math.max(monitorElement1.getNoOfNodesOnPath(),
+                              monitorElement2.getNoOfNodesOnPath());
+    int branchesOnPath = Math.max(monitorElement1.getNoOfBranchesOnPath(),
+                                  monitorElement2.getNoOfBranchesOnPath());
+    long totalTimeOnPath = Math.max(monitorElement1.getTotalTimeOnPath(),
+                                    monitorElement2.getTotalTimeOnPath());
     
-    TransferRelationMonitorElement mergedElement = new TransferRelationMonitorElement(
+    MonitorElement mergedElement = new MonitorElement(
         retElement, pathLength, branchesOnPath, totalTimeOnPath);
 
     return mergedElement;

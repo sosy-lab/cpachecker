@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
+package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Throwables;
 
 @Options(prefix="trackabstractioncomputation")
-public class TransferRelationMonitorTransferRelation implements TransferRelation {
+public class MonitorTransferRelation implements TransferRelation {
 
   long maxSizeOfSinglePath = 0;
   long maxNumberOfBranches = 0;
@@ -80,7 +80,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   
   private final TransferRelation transferRelation;
 
-  public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
+  public MonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
@@ -88,10 +88,10 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<TransferRelationMonitorElement> getAbstractSuccessors(
+  public Collection<MonitorElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
+    MonitorElement element = (MonitorElement)pElement;
     totalTimeOfTransfer.start();
 
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
@@ -158,9 +158,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     }
 
     // wrap elements
-    List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
+    List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(
+      MonitorElement successorElem = new MonitorElement(
           absElement, pathLength, branchesOnPath, totalTimeOnPath);
       
       wrappedSuccessors.add(successorElem);
@@ -172,7 +172,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) throws CPATransferException {
-    TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
+    MonitorElement element = (MonitorElement)pElement;
     totalTimeOfTransfer.start();
 
     StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),
@@ -234,9 +234,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     }
 
     // wrap elements
-    List<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>(successors.size());
+    List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(
+      MonitorElement successorElem = new MonitorElement(
           absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath);
       
       wrappedSuccessors.add(successorElem);

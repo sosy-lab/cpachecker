@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
+package org.sosy_lab.cpachecker.cpa.monitor;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
@@ -14,15 +14,15 @@ import com.google.common.base.Preconditions;
 /**
  * Precision Adjustment for Monitoring.
  * Simply delegates the operation to the wrapped CPA's precision adjustment operator
- * and updates the {@link TransferRelationMonitorElement} based on this computation.
+ * and updates the {@link MonitorElement} based on this computation.
  */
-public class TransferRelationMonitorPrecisionAdjustment implements PrecisionAdjustment{
+public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
 
   final Timer totalTimeOfPrecAdj = new Timer();
   
-  public TransferRelationMonitorPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+  public MonitorPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
   }
   
@@ -31,11 +31,11 @@ public class TransferRelationMonitorPrecisionAdjustment implements PrecisionAdju
       AbstractElement pElement, Precision oldPrecision,
       UnmodifiableReachedSet pElements) {
     
-    Preconditions.checkArgument(pElement instanceof TransferRelationMonitorElement);
-    TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
+    Preconditions.checkArgument(pElement instanceof MonitorElement);
+    MonitorElement element = (MonitorElement)pElement;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  TransferRelationMonitorElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  MonitorElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();
     
@@ -55,8 +55,8 @@ public class TransferRelationMonitorPrecisionAdjustment implements PrecisionAdju
     }
       // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
-    TransferRelationMonitorElement resultElement = 
-      new TransferRelationMonitorElement(newElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), updatedTotalTime);
+    MonitorElement resultElement = 
+      new MonitorElement(newElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), updatedTotalTime);
 
     return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }

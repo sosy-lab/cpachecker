@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
+package org.sosy_lab.cpachecker.cpa.monitor;
 
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
 
-public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
+public class MonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
   private final long totalTimeOnPath;
 
@@ -38,7 +38,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
 
   private final boolean shouldStop = false;
   
-  protected TransferRelationMonitorElement(AbstractElement pWrappedElement,
+  protected MonitorElement(AbstractElement pWrappedElement,
       int pathLength, int branchesOnPath, long totalTimeOnPath) {
     super(pWrappedElement);
     Preconditions.checkArgument(pathLength > branchesOnPath);
@@ -55,8 +55,8 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
-    } else if (pObj instanceof TransferRelationMonitorElement) {
-      TransferRelationMonitorElement otherElem = (TransferRelationMonitorElement)pObj;
+    } else if (pObj instanceof MonitorElement) {
+      MonitorElement otherElem = (MonitorElement)pObj;
       return this.getWrappedElement().equals(otherElem.getWrappedElement());
     } else {
       return false;

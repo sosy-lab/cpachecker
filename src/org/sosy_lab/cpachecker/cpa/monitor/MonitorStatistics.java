@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
+package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.io.PrintStream;
 
@@ -7,24 +7,24 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-class TransferRelationMonitorStatistics implements Statistics {
+class MonitorStatistics implements Statistics {
 
-  private final TransferRelationMonitorCPA mCpa;
+  private final MonitorCPA mCpa;
   
-  TransferRelationMonitorStatistics(TransferRelationMonitorCPA pCpa) {
+  MonitorStatistics(MonitorCPA pCpa) {
     mCpa = pCpa;
   }
   
   @Override
   public String getName() {
-    return "TransferRelationMonitor Statistics";
+    return "Monitor Statistics";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result pResult,
       ReachedSet pReached) {
 
-    TransferRelationMonitorTransferRelation trans = mCpa.getTransferRelation();
+    MonitorTransferRelation trans = mCpa.getTransferRelation();
     
     out.println("Max. Post Time:            " + trans.totalTimeOfTransfer.printMaxTime() + "s");
     out.println("Avg. Post Time:            " + trans.totalTimeOfTransfer.printAvgTime() + "s");
