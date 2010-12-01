@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPatternVisitor;
 
 public class Predicate implements Atom {
 
-  private org.sosy_lab.cpachecker.util.predicates.Predicate mPredicate;
+  private org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate mPredicate;
 
-  public Predicate(org.sosy_lab.cpachecker.util.predicates.Predicate pPredicate) {
+  public Predicate(org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate pPredicate) {
     assert(pPredicate != null);
 
     mPredicate = pPredicate;
   }
   
-  public org.sosy_lab.cpachecker.util.predicates.Predicate getPredicate() {
+  public org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate getPredicate() {
     return mPredicate;
   }
 

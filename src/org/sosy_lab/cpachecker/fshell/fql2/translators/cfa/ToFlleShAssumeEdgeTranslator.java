@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
-import org.sosy_lab.cpachecker.util.predicates.translators.c.PredicateTranslator;
+import org.sosy_lab.cpachecker.util.predicates.simpleformulas.translators.c.PredicateTranslator;
 
 public class ToFlleShAssumeEdgeTranslator {
 

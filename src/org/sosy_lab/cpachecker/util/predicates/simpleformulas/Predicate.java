@@ -21,9 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
-
-import org.sosy_lab.cpachecker.util.predicates.Term;
+package org.sosy_lab.cpachecker.util.predicates.simpleformulas;
 
 import com.google.common.base.Preconditions;
 

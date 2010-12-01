@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.FunctionEntry;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Label;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Line;
-import org.sosy_lab.cpachecker.util.predicates.Constant;
-import org.sosy_lab.cpachecker.util.predicates.Variable;
+import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Constant;
+import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Variable;
 
 public class TargetGraphTest {
   
@@ -229,7 +229,7 @@ public class TargetGraphTest {
 
     Variable lX = new Variable("x");
     Constant l100 = new Constant(100);
-    Predicate lPredicate = new Predicate(new org.sosy_lab.cpachecker.util.predicates.Predicate(lX, org.sosy_lab.cpachecker.util.predicates.Predicate.Comparison.LESS, l100));
+    Predicate lPredicate = new Predicate(new org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate(lX, org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate.Comparison.LESS, l100));
     
     TargetGraph lPredicatedGraph = TargetGraphUtil.predicate(lFuncTargetGraph, lPredicate);
 
