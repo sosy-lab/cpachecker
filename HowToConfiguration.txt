@@ -247,6 +247,9 @@ cpa.pointer.merge = sep
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
 
+# which heuristics should be used to track progress?
+cpa.progressobvserver.heuristics =
+
 # which merge operator to use for UninitializedVariablesCPA? (join or sep)
 cpa.uninitvars.merge = sep
 

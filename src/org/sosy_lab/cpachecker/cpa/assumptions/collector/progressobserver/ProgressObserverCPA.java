@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * @author g.theoduloz
  *
  */
-@Options
+@Options(prefix="cpa.progressobserver")
 public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   private static class ProgressObserverCPAFactory extends AbstractCPAFactory {
