@@ -98,9 +98,6 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return ret;
   }
   
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#makePredicate(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula)
-   */
   @Override
   public AbstractionPredicate makePredicate(Formula atom) {
     Formula var = fmgr.createPredicateVariable(atom);
@@ -118,17 +115,11 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return result;
   }
   
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#makeFalsePredicate()
-   */
   @Override
   public AbstractionPredicate makeFalsePredicate() {
     return makePredicate(fmgr.makeFalse());
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#getPredicate(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula)
-   */
   @Override
   public AbstractionPredicate getPredicate(Formula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
@@ -138,9 +129,6 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#toConcrete(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Region)
-   */
   @Override
   public Formula toConcrete(Region af) {
 
@@ -202,9 +190,6 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.util.symbpredabstraction.IAbstractionManager#makeTrueAbstractionFormula(org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula)
-   */
   @Override
   public AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula) {
     if (previousBlockFormula == null) {
