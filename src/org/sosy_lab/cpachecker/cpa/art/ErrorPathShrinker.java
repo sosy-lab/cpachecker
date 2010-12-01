@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
@@ -267,16 +268,16 @@ public final class ErrorPathShrinker {
     // Set for storing the global variables, that are possibly important
     // in the function. copy all global variables in another Set,
     // they could be assigned in the function.
-    final Set<String> possibleimportantVarsForGlobalVars =
+    final Set<String> possibleImportantVarsForGlobalVars =
         new LinkedHashSet<String>();
 
     // only global variables can be used inside AND outside of a function
     addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
-        possibleimportantVarsForGlobalVars);
+        possibleImportantVarsForGlobalVars);
 
     // this is a recursive call to handle the Path inside of the function
     handlePath(shortFunctionPath, revIterator, possibleVars,
-        possibleimportantVarsForGlobalVars, functionGlobalVarsPath);
+        possibleImportantVarsForGlobalVars, functionGlobalVarsPath);
 
     if (printForTesting) {
       System.out.println("funcPath:\n" + shortFunctionPath.toString());
@@ -284,62 +285,100 @@ public final class ErrorPathShrinker {
     }
 
     // the recursive call stops at the functionStart,
-    // so the lastEdge is the functionCall.
+    // so the lastEdge is the functionCall and there exist a CallToReturnEdge, 
+    // that jumps over the hole function
     final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
     assert (lastEdge instanceof FunctionCallEdge);
     final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
+    final CallToReturnEdge funcSummaryEdge =
+        funcEdge.getPredecessor().getLeavingSummaryEdge();
+    final IASTExpression funcExp = funcSummaryEdge.getExpression();
 
-    /* TODO: is there any possibility to get the funcAssumeVar through the AST?
-     * current solution: split the rawStatement at the expression " = ",
-     * the expression " = " is the "middle" of the assumption.
-     * The first part is the funcAssumeVar.
-     * "a = f(x)"-->"a", "a = f(x==y)"-->"a", "f(x)"-->"f(x)" */
-    final String funcAssumeVarName = funcEdge.getRawStatement().split(" = ")[0];
+    // "f(x)", without a variable "a" as "a = f(x)".
+    // if the function changes the global variables,
+    // get the variables from the function and update the Sets and Paths
+    if (funcExp instanceof IASTFunctionCallExpression
+        && !functionGlobalVarsPath.isEmpty()) {
 
-    // if the function has a important result or changes the global variables,
-    // get the params from the function and update the Sets
-    if (importantVars.contains(funcAssumeVarName)
-        || !functionGlobalVarsPath.isEmpty()) {
+      getImportantVarsFromFunctionCall(funcEdge, importantVars,
+          importantVarsForGlobalVars, possibleImportantVarsForGlobalVars);
 
-      // delete global variables assigned in the function,
-      // delete all globalVars, the important ones will be added again later.
-      importantVarsForGlobalVars.removeAll(GLOBAL_VARS);
-      importantVars.removeAll(GLOBAL_VARS);
-
-      // if global variables are used in the function and they have an effect
-      // to the result or the globalPath of the function,
-      // add them to the important variables and to the importantGlobalVars.
-      addGlobalVarsFromSetToSet(possibleimportantVarsForGlobalVars,
-          importantVarsForGlobalVars);
-      addGlobalVarsFromSetToSet(possibleimportantVarsForGlobalVars,
-          importantVars);
-
-      // get "x" and "y" from "a = f(x,y)"
-      // all variables in the expressions "x" and "y" are important
-      if (funcEdge.getArguments() != null) {
-        for (IASTExpression exp : funcEdge.getArguments()) {
-          addAllVarsInExpToImportantVars(exp, importantVars,
-              importantVarsForGlobalVars);
-        }
-      }
-
-      // add the returnEdge in front of the shortPath
+      // add the important edges in front of the shortPath
       shortPath.addFirst(returnEdgePair);
       globalVarsPath.addFirst(returnEdgePair);
       globalVarsPath.addAll(0, functionGlobalVarsPath);
-    }
-
-    // if the variable funcAssumeVar is important,
-    // add the functionPath in front of the shortPath,
-    // (the globalVarsPath is always part of the shortFunctionPath)
-    if (importantVars.contains(funcAssumeVarName)) {
-      shortPath.addAll(0, shortFunctionPath);
-    }
-
-    // if the function changes values of global variables used later,
-    // add the functionGlobalVarsPath in front of the shortPath
-    else if (!functionGlobalVarsPath.isEmpty()) {
       shortPath.addAll(0, functionGlobalVarsPath);
+    }
+
+    // "a = f(x)"
+    if (funcExp instanceof IASTBinaryExpression) {
+      final IASTExpression lParam =
+          ((IASTBinaryExpression) funcExp).getOperand1();
+
+      // if the function has a important result or changes the global variables,
+      // get the params from the function and update the Sets
+      if (importantVars.contains(lParam) || !functionGlobalVarsPath.isEmpty()) {
+
+        getImportantVarsFromFunctionCall(funcEdge, importantVars,
+            importantVarsForGlobalVars, possibleImportantVarsForGlobalVars);
+
+        // add the returnEdge in front of the shortPath
+        shortPath.addFirst(returnEdgePair);
+        globalVarsPath.addFirst(returnEdgePair);
+        globalVarsPath.addAll(0, functionGlobalVarsPath);
+      }
+
+      // if the variable funcAssumeVar (result of the function) is important,
+      // add the functionPath in front of the shortPath,
+      // (the globalVarsPath is always part of the shortFunctionPath)
+      if (importantVars.contains(lParam)) {
+        shortPath.addAll(0, shortFunctionPath);
+      }
+
+      // if the variable funcAssumeVar (result of the function) is unimportant, 
+      // but the function changes values of global variables used later,
+      // add the functionGlobalVarsPath in front of the shortPath
+      else if (!functionGlobalVarsPath.isEmpty()) {
+        shortPath.addAll(0, functionGlobalVarsPath);
+      }
+    }
+  }
+
+  /** This method adds all global variables used in the function to the Sets 
+   * of important variables. Global variables assigned in the function will 
+   * be deleted. The variables in the Expression "x" and "y" from "f(x,y)" 
+   * are added to the Sets of important variables, too. 
+   * 
+   * @param funcEdge
+   * @param importantVarsForGlobalVars all variables influencing a important global variable
+   * @param importantVars all currently important variables
+   * @param possibleImportantVarsForGlobalVars
+   * */
+  private static void getImportantVarsFromFunctionCall(
+      final FunctionCallEdge funcEdge, final Set<String> importantVars,
+      final Set<String> importantVarsForGlobalVars,
+      final Set<String> possibleImportantVarsForGlobalVars) {
+
+    // delete global variables assigned in the function,
+    // delete all globalVars, the important ones will be added again later.
+    importantVarsForGlobalVars.removeAll(GLOBAL_VARS);
+    importantVars.removeAll(GLOBAL_VARS);
+
+    // if global variables are used in the function and they have an effect
+    // to the result or the globalPath of the function,
+    // add them to the important variables and to the importantGlobalVars.
+    addGlobalVarsFromSetToSet(possibleImportantVarsForGlobalVars,
+        importantVarsForGlobalVars);
+    addGlobalVarsFromSetToSet(possibleImportantVarsForGlobalVars, importantVars);
+
+    // get a list with the expressions "x" and "y" from "f(x,y)"
+    // all variables in the expressions are important
+    final IASTExpression[] listOfExp = funcEdge.getArguments();
+    if (listOfExp != null) {
+      for (IASTExpression exp : listOfExp) {
+        addAllVarsInExpToImportantVars(exp, importantVars,
+            importantVarsForGlobalVars);
+      }
     }
   }
 
@@ -451,8 +490,8 @@ public final class ErrorPathShrinker {
 
     // a = ?
     if (lParam instanceof IASTIdExpression) {
-      handleAssignmentToVariable(shortPath, cfaEdgePair,
-          lParam.getRawSignature(), rightExp, importantVars,
+      handleAssignmentToVariable(shortPath, cfaEdgePair, lParam
+          .getRawSignature(), rightExp, importantVars,
           importantVarsForGlobalVars, globalVarsPath);
     }
 
@@ -644,6 +683,18 @@ public final class ErrorPathShrinker {
           importantVarsForGlobalVars);
       addAllVarsInExpToImportantVars(binExp.getOperand2(), importantVars,
           importantVarsForGlobalVars);
+    }
+    // func(); 
+    else if (exp instanceof IASTFunctionCallExpression) {
+      final IASTFunctionCallExpression funcExp =
+          (IASTFunctionCallExpression) exp;
+      funcExp.getParameterExpression();
+    }
+
+    // or b->c;
+    else if (exp instanceof IASTFunctionCallExpression
+        || exp instanceof IASTFieldReference) {
+      // TODO: what should be added to importantVars?
     }
   }
 
