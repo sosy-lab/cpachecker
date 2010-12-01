@@ -238,6 +238,9 @@ cpa.automaton.dotExport = false
 # file for saving the automaton in DOT format
 cpa.automaton.dotExportFile = automaton.txt
 
+# which merge operator to use for OctagonCPA? (join or sep)
+cpa.octagon.merge = sep
+
 # which merge operator to use for PointerCPA? (join or sep)
 cpa.pointer.merge = sep
 
