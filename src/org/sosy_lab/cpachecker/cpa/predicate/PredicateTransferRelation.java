@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * the strongest post for the given CFA edge. Afterwards it optionally 
  * computes an abstraction.
  */
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpa.predicate")
 public class PredicateTransferRelation implements TransferRelation {
 
   @Option(name="blk.threshold")

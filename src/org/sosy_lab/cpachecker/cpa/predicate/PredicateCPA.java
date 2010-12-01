@@ -64,7 +64,7 @@ import com.google.common.io.Files;
  * @author Erkan
  *
  */
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpa.predicate")
 public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {

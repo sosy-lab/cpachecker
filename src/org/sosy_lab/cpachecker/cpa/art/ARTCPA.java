@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpas.art")
+@Options(prefix="cpa.art")
 public class ARTCPA extends AbstractSingleWrapperCPA {
 
   public static CPAFactory factory() {

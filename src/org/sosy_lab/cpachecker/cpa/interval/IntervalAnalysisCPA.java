@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpas.interval")
+@Options(prefix="cpa.interval")
 public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
 {
   private static class IntervalAnalysisCPAFactory extends AbstractCPAFactory

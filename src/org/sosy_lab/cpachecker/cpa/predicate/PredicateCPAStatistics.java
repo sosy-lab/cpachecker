@@ -49,7 +49,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpas.symbpredabs.predmap")
+@Options(prefix="cpa.predicate.predmap")
 class PredicateCPAStatistics implements Statistics {
 
     @Option

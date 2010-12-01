@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
  * 
  * @author Philipp Wendler
  */
-@Options(prefix="cpas.symbpredabs.mathsat")
+@Options(prefix="cpa.predicate.mathsat")
 public class AbstractionManagerImpl implements AbstractionManager {
 
   protected final LogManager logger;

@@ -1140,15 +1140,15 @@ public class FShell3 {
       lWriter.println("analysis.useRefinement = true");
       lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner.class.getCanonicalName());
 
-      lWriter.println("cpas.symbpredabs.addBranchingInformation = false");
-      lWriter.println("cpas.symbpredabs.useNondetFlags = true");
-      lWriter.println("cpas.symbpredabs.initAllVars = false");
-      //lWriter.println("cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET");
-      lWriter.println("cpas.symbpredabs.blk.useCache = false");
-      //lWriter.println("cpas.symbpredabs.mathsat.lvalsAsUIFs = true");
+      lWriter.println("cpa.predicate.addBranchingInformation = false");
+      lWriter.println("cpa.predicate.useNondetFlags = true");
+      lWriter.println("cpa.predicate.initAllVars = false");
+      //lWriter.println("cpa.predicate.noAutoInitPrefix = __BLAST_NONDET");
+      lWriter.println("cpa.predicate.blk.useCache = false");
+      //lWriter.println("cpa.predicate.mathsat.lvalsAsUIFs = true");
       // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
       // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
-      //lWriter.println("cpas.symbpredabs.mathsat.useDtc = true");
+      //lWriter.println("cpa.predicate.mathsat.useDtc = true");
       
       lWriter.close();
 

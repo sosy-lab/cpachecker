@@ -104,7 +104,7 @@ def main():
         action="store", 
         type="string", 
         dest="errorpath",
-        help="CPAChecker cpas.art.errorPath.json"
+        help="CPAChecker cpa.art.errorPath.json"
     )
     parser.add_option("-c", "--config",
         action="store", 

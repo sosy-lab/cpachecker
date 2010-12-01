@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-@Options(prefix="cpas.symbpredabs.mathsat")
+@Options(prefix="cpa.predicate.mathsat")
 public class MathsatFormulaManager implements FormulaManager  {
 
   @Option

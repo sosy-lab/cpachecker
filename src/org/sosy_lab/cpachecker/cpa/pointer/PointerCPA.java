@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 /**
  * @author Philipp Wendler
  */
-@Options(prefix="cpas.pointeranalysis")
+@Options(prefix="cpa.pointer")
 public class PointerCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {

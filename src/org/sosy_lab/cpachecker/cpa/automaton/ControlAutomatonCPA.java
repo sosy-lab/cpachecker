@@ -57,7 +57,7 @@ import com.google.common.base.Preconditions;
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  * @author rhein
  */
-@Options(prefix="automatonAnalysis")
+@Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
   @Option(name="dotExport")
@@ -133,7 +133,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   protected ControlAutomatonCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
     if (inputFile == null) {
-      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option automatonAnalysis.inputFile!");
+      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
     }
     automaton = parseAutomatonFile(logger, config);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");

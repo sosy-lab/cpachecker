@@ -48,25 +48,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 
-@Options
+@Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
 
-  @Option(name="ART.export")
+  @Option(name="export")
   private boolean exportART = true;
 
-  @Option(name="ART.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE)
   private File artFile = new File("ART.dot");
 
-  @Option(name="cpas.art.errorPath.export")
+  @Option(name="errorPath.export")
   private boolean exportErrorPath = true;
 
-  @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
 
-  @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathSourceFile = new File("ErrorPath.c");
 
-  @Option(name="cpas.art.errorPath.json", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.json", type=Option.Type.OUTPUT_FILE)
   private File errorPathJson = new File("ErrorPath.json");
 
   private final ARTCPA cpa;

@@ -45,7 +45,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      String mergeType = getConfiguration().getProperty("cpas.octagon.merge");
+      String mergeType = getConfiguration().getProperty("cpa.octagon.merge");
       return new OctagonCPA(mergeType);
     }
   }

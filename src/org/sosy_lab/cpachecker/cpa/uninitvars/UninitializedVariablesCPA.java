@@ -54,18 +54,18 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 /**
  * @author Philipp Wendler
  */
-@Options
+@Options(prefix="cpa.uninitvars")
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option(name="uninitVars.printWarnings")
+  @Option
   private String printWarnings = "true";
-  @Option(name="uninitVars.merge", values={"sep", "join"})
+  @Option(name="merge", values={"sep", "join"})
   private String mergeType = "sep";
-  @Option(name="uninitVars.stop", values={"sep", "join"})
+  @Option(name="stop", values={"sep", "join"})
   private String stopType = "sep";
 
   private final AbstractDomain abstractDomain;

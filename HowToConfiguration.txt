@@ -55,13 +55,13 @@ has to be prefixed with the identifier of the CPA as described above.
 A simple example (the first line could be ommitted as it's the default):
 cpa = cpa.composite.CompositeCPA
 CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA explicitCPA
-explicitCPA.cpas.explicit.threshold = 10
+explicitCPA.cpa.explicit.threshold = 10
 
 A more complex example:
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.predicate.PredicateCPA
-ErrorLocationAutomaton.automatonAnalysis.inputFile = test/config/automata/ErrorLocationAutomaton.txt
+ErrorLocationAutomaton.cpa.automaton.inputFile = test/config/automata/ErrorLocationAutomaton.txt
 
 Note that instead of manually specifying an ObserverAutomatonCPA, you can
 use the option "specification". The following example is identical to the last one:
@@ -209,78 +209,78 @@ cegar.restartOnRefinement = false
 #------------------------------------------------------------------------------
 
 # which merge operator to use for ARTCPA? only use sep here if all other CPAs also use sep
-cpas.art.merge = join
+cpa.art.merge = join
 
 # export final ART as .dot file
 ART.export = true
 ART.file = ART.dot
 
 # export error path to file, if one is found
-cpas.art.errorPath.export = true
-cpas.art.errorPath.file = ErrorPath.txt
+cpa.art.errorPath.export = true
+cpa.art.errorPath.file = ErrorPath.txt
 
 # which merge operator to use for DefUseCPA (join or sep)
-cpas.defuse.merge = sep
+cpa.defuse.merge = sep
 
 # which merge operator to use for ExplicitCPA (join or sep)
-cpas.explicit.merge = sep
+cpa.explicit.merge = sep
 
 # threshold for amount of different values that are tracked for one variable in
 # ExplicitCPA (0 means infinitely)
-cpas.explicit.threshold = 0
+cpa.explicit.threshold = 0
 
 # file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
-automatonAnalysis.inputFile =
+cpa.automaton.inputFile =
 
 # export automaton to file
-automatonAnalysis.dotExport = false
+cpa.automaton.dotExport = false
 
 # file for saving the automaton in DOT format
-automatonAnalysis.dotExportFile = automaton.txt
+cpa.automaton.dotExportFile = automaton.txt
 
 # which merge operator to use for PointerCPA? (join or sep)
-cpas.pointeranalysis.merge = sep
+cpa.pointer.merge = sep
 
 # print warnings during analysis when unsafe pointer operations are found
-cpas.pointeranalysis.printWarnings = true
+cpa.pointer.printWarnings = true
 
 # which merge operator to use for UninitializedVariablesCPA? (join or sep)
-uninitVars.merge = sep
+cpa.uninitvars.merge = sep
 
 # which stop operator to use for UninitializedVariablesCPA (join or sep)
-uninitVars.stop = sep
+cpa.uninitvars.stop = sep
 
 # print warnings during analysis when uninitialized variables are used
-uninitVars.printWarnings = true
+cpa.uninitvars.printWarnings = true
 
 #------------------------------------------------------------------------------
 # Options for Predicate Abstraction
 #------------------------------------------------------------------------------
 
 # which solver to use? (mathsat, yices)
-cpas.symbpredabs.explicit.abstraction.solver = mathsat
+cpa.predicate.explicit.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
-cpas.symbpredabs.interpolatingProver = mathsat
+cpa.predicate.interpolatingProver = mathsat
 
 # get an initial set of predicates from a file in MSAT format
-cpas.symbpredabs.abstraction.initialPredicates =
+cpa.predicate.abstraction.initialPredicates =
 
 # cache queries to mathsat
-cpas.symbpredabs.mathsat.useCache = true
+cpa.predicate.mathsat.useCache = true
 
 # when transforming code to formula,
 # add predicates that help producing more precise error paths
 # (not necessary for SBE)
-cpas.symbpredabs.addBranchingInformation = true
+cpa.predicate.addBranchingInformation = true
 
 # initialize all variables to 0 when they are declared
-cpas.symbpredabs.initAllVars = false
+cpa.predicate.initAllVars = false
 
 # if initAllVars is true, we get rid of all non-determinism. This might not be
 # desirable. If the following property is set to a non-empty value, all
 # variables starting with this prefix will not be initialized automatically
-cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET
+cpa.predicate.noAutoInitPrefix = __BLAST_NONDET
 
 # list of functions that should be considered as giving a non-deterministic
 # return value
@@ -289,104 +289,104 @@ cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET
 # to the list, so you need to specify them explicitly if you need them.
 # Mentioning a function in this list has only an effect, if it is an
 # "external function", i.e., no source is given in the code for this function.
-cpas.symbpredabs.nondetFunctions = int_nondet, malloc, nondet_int, random
+cpa.predicate.nondetFunctions = int_nondet, malloc, nondet_int, random
 
 # use uninterpreted functions for *, & and array access
-cpas.symbpredabs.mathsat.lvalsAsUif = false
+cpa.predicate.mathsat.lvalsAsUif = false
 
 # encode program variables as INTEGERs in MathSAT, instead of using
 # REALs. Since interpolation is not really supported by the laz solver, when
 # computing interpolants we still use the LA solver, but encoding variables
 # as ints might still be a good idea: we can tighten strict inequalities, and
 # split negated equalities
-cpas.symbpredabs.mathsat.useIntegers = false
+cpa.predicate.mathsat.useIntegers = false
 
 
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
-cpas.symbpredabs.blk.threshold = 0
+cpa.predicate.blk.threshold = 0
 
 # force abstractions on function call/return
-cpas.symbpredabs.blk.functions = true
+cpa.predicate.blk.functions = true
 
 # force abstractions for each loop iteration
-cpas.symbpredabs.blk.loops = true
+cpa.predicate.blk.loops = true
 
 # require that both the threshold and (functions or loops) have to be fulfilled to compute an abstraction
-cpas.symbpredabs.blk.requiredThresholdAndLBE = false
+cpa.predicate.blk.requiredThresholdAndLBE = false
 
 
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than blocksize)
-cpas.symbpredabs.satCheckBlockSize = 0
+cpa.predicate.satCheckBlockSize = 0
 
 # always check satisfiability at end of block, even if precision is empty
-cpas.symbpredabs.checkBlockFeasibility = true
+cpa.predicate.checkBlockFeasibility = true
 
 # whether to include the symbolic path formula in the coverage checks or do only the fast abstract checks
-cpas.symbpredabs.symbolicCoverageCheck = false
+cpa.predicate.symbolicCoverageCheck = false
 
 # use a combination of theories (this is incomplete)
-cpas.symbpredabs.mathsat.useDtc = false
+cpa.predicate.mathsat.useDtc = false
 
 # try to add some useful static-learning-like axioms for bitwise
 # operations (which are encoded as UFs): essentially, we simply collect all
 # the numbers used in bitwise operations, and add axioms like (0 & n = 0)
-cpas.symbpredabs.useBitwiseAxioms = false
+cpa.predicate.useBitwiseAxioms = false
 
 # apply deletion-filter to the abstract counterexample, to get a
 # minimal set of blocks, before applying interpolation-based refinement
-cpas.symbpredabs.explicit.getUsefulBlocks = false
+cpa.predicate.explicit.getUsefulBlocks = false
 
 # use incremental search in counterexample analysis, to find the minimal infeasible prefix
-cpas.symbpredabs.shortestCexTrace = false
+cpa.predicate.shortestCexTrace = false
 
 # if shortestCexTrace is used, start from the end with the incremental search
-cpas.symbpredabs.shortestCexTraceUseSuffix = false
+cpa.predicate.shortestCexTraceUseSuffix = false
 
 # if shortestCexTrace is used, alternatingly search from start and end of the trace
-cpas.symbpredabs.shortestCexTraceUseZigZag = false
+cpa.predicate.shortestCexTraceUseZigZag = false
 
 # whether to use Boolean (false) or Cartesian (true) abstraction
-cpas.symbpredabs.abstraction.cartesian = false
+cpa.predicate.abstraction.cartesian = false
 
 # only use the atoms from the interpolants as predicates,
 # and not the whole interpolant
-cpas.symbpredabs.refinement.atomicPredicates = true
+cpa.predicate.refinement.atomicPredicates = true
 
 # split arithmetic equalities when extracting predicates from interpolants
-cpas.symbpredabs.refinement.splitItpAtoms = false
+cpa.predicate.refinement.splitItpAtoms = false
 
 # refinement will try to build "well-scoped" predicates, by cutting spurious
 # traces as explained in Section 5.2 of the paper "Abstractions From Proofs"
 # (this does not work with function inlining)
 # THIS FEATURE IS CURRENTLY NOT AVAILABLE. 
-cpas.symbpredabs.refinement.addWellScopedPredicates = false
+cpa.predicate.refinement.addWellScopedPredicates = false
 
 # refinement will add all discovered predicates to all the locations in the abstract trace
-cpas.symbpredabs.refinement.addPredicatesGlobally = false
+cpa.predicate.refinement.addPredicatesGlobally = false
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
-cpas.symbpredabs.refinement.maxRefinementSize = 0
+cpa.predicate.refinement.maxRefinementSize = 0
 
 
 # where to dump the counterexample formula in case the error location is reached
-cpas.symbpredabs.refinement.msatCexFile = counterexample.msat
+cpa.predicate.refinement.msatCexFile = counterexample.msat
 
 # export final predicate map, if the error location is not reached
-cpas.symbpredabs.predmap.export = true
-cpas.symbpredabs.predmap.file = predmap.txt
+cpa.predicate.predmap.export = true
+cpa.predicate.predmap.file = predmap.txt
 
 # export one satisfying assignment for the error path
-cpas.symbpredabs.errorPath.export = true
-cpas.symbpredabs.errorPath.file = ErrorPathAssignment.txt
+cpa.predicate.errorPath.export = true
+cpa.predicate.errorPath.file = ErrorPathAssignment.txt
 
 # dump the abstraction formulas if they took to long
-cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
+cpa.predicate.mathsat.dumpHardAbstractionQueries = false
 
 # dump all interpolation problems
-cpas.symbpredabs.refinement.dumpInterpolationProblems = false
+cpa.predicate.refinement.dumpInterpolationProblems = false
 
 # where to dump interpolation and abstraction problems (format string)
-cpas.symbpredabs.formulaDumpFilePattern = %s%04d-%s%03d.msat
+cpa.predicate.formulaDumpFilePattern = %s%04d-%s%03d.msat

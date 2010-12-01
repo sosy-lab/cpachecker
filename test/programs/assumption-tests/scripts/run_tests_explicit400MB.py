@@ -50,7 +50,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
        pl = 300
 
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa_400MB_VM.sh -setprop trackabstractioncomputation.pathlengthlimit=$pl -setprop output.disable=true -config $config $benchmark > '
+                       '(scripts/cpa_400MB_VM.sh -setprop cpa.monitor.pathlengthlimit=$pl -setprop output.disable=true -config $config $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)

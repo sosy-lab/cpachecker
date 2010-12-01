@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-@Options(prefix="cpas.interval")
+@Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation
 {
   private static final int OFFSET_ARITHMETIC_OPERATOR = 17;

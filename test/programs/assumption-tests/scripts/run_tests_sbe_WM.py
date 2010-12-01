@@ -40,31 +40,31 @@ def run_single(benchmark, config, time_limit, mem_limit, outfile):
 
     if "cdaudio_simpl1" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.brancheslimit=20 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.brancheslimit=20 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     elif "diskperf_simpl1" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathlengthlimit=500 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.pathlengthlimit=500 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     elif "s3_clnt_3" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathlengthlimit=500 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.pathlengthlimit=500 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     elif "s3_srvr_6" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathcomputationlimit=30000 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.pathcomputationlimit=30000 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     elif "s3_srvr_7" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathlengthlimit=1000 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.pathlengthlimit=1000 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     elif "s3_srvr_8" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathlengthlimit=1000 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.pathlengthlimit=1000 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     elif "token_ring.12" in benchmark:
        cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -setprop trackabstractioncomputation.pathlengthlimit=1000 -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '(scripts/cpa.sh -setprop cpa.monitor.pathlengthlimit=1000 -setprop output.disable=true -config "$config" "$benchmark" > '
                        '"$benchmark.$cn.log" 2>&1)').substitute(locals())
 
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)

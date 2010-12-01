@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.Abstractio
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpa.predicate")
 public final class PredicateAbstractDomain implements AbstractDomain {
   
   @Option

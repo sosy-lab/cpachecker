@@ -87,7 +87,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpa.predicate")
 class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl implements PredicateFormulaManager {
 
   static class Stats {

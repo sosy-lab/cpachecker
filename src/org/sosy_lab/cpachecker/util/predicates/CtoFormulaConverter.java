@@ -87,7 +87,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Class containing all the code that converts C code into a formula.
  */
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
 
   @Option

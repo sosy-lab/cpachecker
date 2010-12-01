@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Throwables;
 
-@Options(prefix="trackabstractioncomputation")
+@Options(prefix="cpa.monitor")
 public class MonitorTransferRelation implements TransferRelation {
 
   long maxSizeOfSinglePath = 0;

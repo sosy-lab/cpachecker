@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpas.defuse")
+@Options(prefix="cpa.defuse")
 public class DefUseCPA implements ConfigurableProgramAnalysis{
 
   public static CPAFactory factory() {

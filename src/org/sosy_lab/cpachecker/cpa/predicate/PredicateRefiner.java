@@ -63,7 +63,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpas.symbpredabs")
+@Options(prefix="cpa.predicate")
 public class PredicateRefiner extends AbstractARTBasedRefiner {
 
   @Option(name="refinement.addPredicatesGlobally")
