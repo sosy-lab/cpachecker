@@ -212,12 +212,21 @@ cegar.restartOnRefinement = false
 cpa.art.merge = join
 
 # export final ART as .dot file
-ART.export = true
-ART.file = ART.dot
+cpa.art.export = true
+cpa.art.file = ART.dot
 
 # export error path to file, if one is found
 cpa.art.errorPath.export = true
 cpa.art.errorPath.file = ErrorPath.txt
+
+# file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
+cpa.automaton.inputFile =
+
+# export automaton to file
+cpa.automaton.dotExport = false
+
+# file for saving the automaton in DOT format
+cpa.automaton.dotExportFile = automaton.txt
 
 # which merge operator to use for DefUseCPA (join or sep)
 cpa.defuse.merge = sep
@@ -228,15 +237,6 @@ cpa.explicit.merge = sep
 # threshold for amount of different values that are tracked for one variable in
 # ExplicitCPA (0 means infinitely)
 cpa.explicit.threshold = 0
-
-# file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
-cpa.automaton.inputFile =
-
-# export automaton to file
-cpa.automaton.dotExport = false
-
-# file for saving the automaton in DOT format
-cpa.automaton.dotExportFile = automaton.txt
 
 # which merge operator to use for OctagonCPA? (join or sep)
 cpa.octagon.merge = sep
