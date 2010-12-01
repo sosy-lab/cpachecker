@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +50,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs.predmap")
-class SymbPredAbsCPAStatistics implements Statistics {
+class PredicateCPAStatistics implements Statistics {
 
     @Option
     private boolean export = true;
@@ -58,15 +58,15 @@ class SymbPredAbsCPAStatistics implements Statistics {
     @Option(type=Option.Type.OUTPUT_FILE)
     private File file = new File("predmap.txt");
 
-    private final SymbPredAbsCPA cpa;
-    private SymbPredAbsRefiner refiner = null;
+    private final PredicateCPA cpa;
+    private PredicateRefiner refiner = null;
 
-    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa, SymbPredAbsAbstractDomain pDomain) throws InvalidConfigurationException {
+    public PredicateCPAStatistics(PredicateCPA cpa, PredicateAbstractDomain pDomain) throws InvalidConfigurationException {
       this.cpa = cpa;
       cpa.getConfiguration().inject(this);
     }
     
-    void addRefiner(SymbPredAbsRefiner ref) {
+    void addRefiner(PredicateRefiner ref) {
       refiner = ref;
     }
 
@@ -77,7 +77,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      SymbPredAbsFormulaManagerImpl<?, ?> amgr = cpa.getFormulaManager();
+      PredicateFormulaManagerImpl<?, ?> amgr = cpa.getFormulaManager();
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
@@ -85,7 +85,7 @@ class SymbPredAbsCPAStatistics implements Statistics {
         Precision precision = reached.getPrecision(e);
         if (precision != null && precision instanceof WrapperPrecision) {
 
-          SymbPredAbsPrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
+          PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
           predicates.putAll(preds.getPredicateMap());
         }
       }
@@ -122,10 +122,10 @@ class SymbPredAbsCPAStatistics implements Statistics {
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
       int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
 
-      SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
-      SymbPredAbsAbstractDomain domain = cpa.getAbstractDomain();
-      SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
-      SymbPredAbsPrecisionAdjustment prec = cpa.getPrecisionAdjustment();
+      PredicateFormulaManagerImpl.Stats bs = amgr.stats;
+      PredicateAbstractDomain domain = cpa.getAbstractDomain();
+      PredicateTransferRelation trans = cpa.getTransferRelation();
+      PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
 
       out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
       if (prec.numAbstractions > 0) {

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.Set;
@@ -34,18 +34,18 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
-public class SymbPredAbsPrecision implements Precision {
+public class PredicatePrecision implements Precision {
 
   private final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
   private final ImmutableSet<AbstractionPredicate> globalPredicates;
 
-  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
+  public PredicatePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
     assert predicateMap != null;
     this.predicateMap = predicateMap;
     this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
   }
 
-  public SymbPredAbsPrecision(Collection<AbstractionPredicate> globalPredicates) {
+  public PredicatePrecision(Collection<AbstractionPredicate> globalPredicates) {
     predicateMap = ImmutableSetMultimap.of();
     this.globalPredicates = (globalPredicates == null ? ImmutableSet.<AbstractionPredicate>of() : ImmutableSet.copyOf(globalPredicates));
   }
@@ -75,10 +75,10 @@ public class SymbPredAbsPrecision implements Precision {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
-    } else if (!(pObj instanceof SymbPredAbsPrecision)) {
+    } else if (!(pObj instanceof PredicatePrecision)) {
       return false;
     } else {
-      return predicateMap.equals(((SymbPredAbsPrecision)pObj).predicateMap);
+      return predicateMap.equals(((PredicatePrecision)pObj).predicateMap);
     }
   }
 

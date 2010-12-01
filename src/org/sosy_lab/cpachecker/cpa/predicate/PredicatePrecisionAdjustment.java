@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.logging.Level;
@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
+public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   
   // statistics
   final Timer totalPrecTime = new Timer();
@@ -51,9 +51,9 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
   int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
-  private final SymbPredAbsFormulaManager formulaManager;
+  private final PredicateFormulaManager formulaManager;
   
-  public SymbPredAbsPrecisionAdjustment(SymbPredAbsCPA pCpa) {
+  public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getFormulaManager();
   }
@@ -67,7 +67,7 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
     
     if (pElement instanceof ComputeAbstractionElement) {
       ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
-      SymbPredAbsPrecision precision = (SymbPredAbsPrecision)pPrecision;
+      PredicatePrecision precision = (PredicatePrecision)pPrecision;
       
       pElement = computeAbstraction(element, precision);
     }
@@ -82,7 +82,7 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
    */
   private AbstractElement computeAbstraction(
       ComputeAbstractionElement element,
-      SymbPredAbsPrecision precision) {
+      PredicatePrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PathFormula pathFormula = element.getPathFormula();
@@ -113,6 +113,6 @@ public class SymbPredAbsPrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 
-    return new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
+    return new PredicateAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
   }
 }

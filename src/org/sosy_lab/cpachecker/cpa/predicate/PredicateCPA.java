@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,10 +65,10 @@ import com.google.common.io.Files;
  *
  */
 @Options(prefix="cpas.symbpredabs")
-public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SymbPredAbsCPA.class);
+    return AutomaticCPAFactory.forType(PredicateCPA.class);
   }
 
   @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})
@@ -90,18 +90,18 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final Configuration config;
   private final LogManager logger;
 
-  private final SymbPredAbsAbstractDomain domain;
-  private final SymbPredAbsTransferRelation transfer;
-  private final SymbPredAbsMergeOperator merge;
-  private final SymbPredAbsPrecisionAdjustment prec;
+  private final PredicateAbstractDomain domain;
+  private final PredicateTransferRelation transfer;
+  private final PredicateMergeOperator merge;
+  private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
-  private final SymbPredAbsPrecision initialPrecision;
+  private final PredicatePrecision initialPrecision;
   private final RegionManager regionManager;
-  private final SymbPredAbsFormulaManagerImpl<?, ?> formulaManager;
-  private final SymbPredAbsCPAStatistics stats;
+  private final PredicateFormulaManagerImpl<?, ?> formulaManager;
+  private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
-  private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.config = config;
@@ -134,14 +134,14 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer, Integer>(regionManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
-    transfer = new SymbPredAbsTransferRelation(this);
+    formulaManager = new PredicateFormulaManagerImpl<Integer, Integer>(regionManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    transfer = new PredicateTransferRelation(this);
     
-    topElement = new SymbPredAbsAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstractionFormula(null));    
-    domain = new SymbPredAbsAbstractDomain(this);
+    topElement = new PredicateAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstractionFormula(null));    
+    domain = new PredicateAbstractDomain(this);
     
-    merge = new SymbPredAbsMergeOperator(this);
-    prec = new SymbPredAbsPrecisionAdjustment(this);
+    merge = new PredicateMergeOperator(this);
+    prec = new PredicatePrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
     
     Collection<AbstractionPredicate> predicates = null;
@@ -167,23 +167,23 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
         predicates.add(p);
       }
     }
-    initialPrecision = new SymbPredAbsPrecision(predicates);
+    initialPrecision = new PredicatePrecision(predicates);
 
-    stats = new SymbPredAbsCPAStatistics(this, domain);
+    stats = new PredicateCPAStatistics(this, domain);
   }
 
   @Override
-  public SymbPredAbsAbstractDomain getAbstractDomain() {
+  public PredicateAbstractDomain getAbstractDomain() {
     return domain;
   }
 
   @Override
-  public SymbPredAbsTransferRelation getTransferRelation() {
+  public PredicateTransferRelation getTransferRelation() {
     return transfer;
   }
 
   @Override
-  public SymbPredAbsMergeOperator getMergeOperator() {
+  public PredicateMergeOperator getMergeOperator() {
     return merge;
   }
 
@@ -196,7 +196,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return regionManager;
   }
 
-  protected SymbPredAbsFormulaManagerImpl<?, ?> getFormulaManager() {
+  protected PredicateFormulaManagerImpl<?, ?> getFormulaManager() {
     return formulaManager;
   }
 
@@ -219,7 +219,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public SymbPredAbsPrecisionAdjustment getPrecisionAdjustment() {
+  public PredicatePrecisionAdjustment getPrecisionAdjustment() {
     return prec;
   }
 
@@ -228,7 +228,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     pStatsCollection.add(stats);
   }
   
-  SymbPredAbsCPAStatistics getStats() {
+  PredicateCPAStatistics getStats() {
     return stats;
   }
 }

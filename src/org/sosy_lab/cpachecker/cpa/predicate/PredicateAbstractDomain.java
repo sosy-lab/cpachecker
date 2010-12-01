@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -29,12 +29,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpas.symbpredabs")
-public final class SymbPredAbsAbstractDomain implements AbstractDomain {
+public final class PredicateAbstractDomain implements AbstractDomain {
   
   @Option
   private boolean symbolicCoverageCheck = false; 
@@ -45,9 +45,9 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
   public final Timer symbolicCoverageCheckTimer = new Timer();
   
   private final RegionManager mRegionManager;
-  private final SymbPredAbsFormulaManager mgr;
+  private final PredicateFormulaManager mgr;
     
-  public SymbPredAbsAbstractDomain(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
+  public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
     mRegionManager = pCpa.getAbstractFormulaManager();
     mgr = pCpa.getFormulaManager();
@@ -59,8 +59,8 @@ public final class SymbPredAbsAbstractDomain implements AbstractDomain {
     coverageCheckTimer.start();
     try {
     
-    SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
-    SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;
+    PredicateAbstractElement e1 = (PredicateAbstractElement)element1;
+    PredicateAbstractElement e2 = (PredicateAbstractElement)element2;
 
     // TODO time statistics (previously in formula manager)
     /*

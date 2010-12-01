@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -64,7 +64,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpas.symbpredabs")
-public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
+public class PredicateRefiner extends AbstractARTBasedRefiner {
 
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally = false;
@@ -84,41 +84,41 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   final Timer errorPathProcessing = new Timer();
 
   private final LogManager logger;
-  private final SymbPredAbsFormulaManager formulaManager;
+  private final PredicateFormulaManager formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
   private Path targetPath;
   private List<CFANode> lastErrorPath = null;
 
-  public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    SymbPredAbsCPA symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
-    if (symbPredAbsCpa == null) {
-      throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
+    PredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
-    symbPredAbsCpa.getConfiguration().inject(this);
-    logger = symbPredAbsCpa.getLogger();
-    formulaManager = symbPredAbsCpa.getFormulaManager();
-    symbPredAbsCpa.getStats().addRefiner(this);
+    predicateCpa.getConfiguration().inject(this);
+    logger = predicateCpa.getLogger();
+    formulaManager = predicateCpa.getFormulaManager();
+    predicateCpa.getStats().addRefiner(this);
   }
 
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
     totalRefinement.start();
-    logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
+    logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
+    ArrayList<PredicateAbstractElement> path = new ArrayList<PredicateAbstractElement>();
     List<ARTElement> artPath = new ArrayList<ARTElement>();
     
     Iterator<Pair<ARTElement,CFAEdge>> it = pPath.iterator();
     it.next(); // skip initial element
     while (it.hasNext()) {
       ARTElement ae = it.next().getFirst();
-      SymbPredAbsAbstractElement symbElement =
-        ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+      PredicateAbstractElement symbElement =
+        ae.retrieveWrappedElement(PredicateAbstractElement.class);
 
       if (symbElement instanceof AbstractionElement) {
         path.add(symbElement);
@@ -127,14 +127,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
 
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
-    SymbPredAbsPrecision oldSymbPredAbsPrecision = null;
-    if (oldPrecision instanceof SymbPredAbsPrecision) {
-      oldSymbPredAbsPrecision = (SymbPredAbsPrecision)oldPrecision;
+    PredicatePrecision oldPredicatePrecision = null;
+    if (oldPrecision instanceof PredicatePrecision) {
+      oldPredicatePrecision = (PredicatePrecision)oldPrecision;
     } else if (oldPrecision instanceof WrapperPrecision) {
-      oldSymbPredAbsPrecision = ((WrapperPrecision)oldPrecision).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
+      oldPredicatePrecision = ((WrapperPrecision)oldPrecision).retrieveWrappedPrecision(PredicatePrecision.class);
     }
-    if (oldSymbPredAbsPrecision == null) {
-      throw new IllegalStateException("Could not find the SymbPredAbsPrecision for the error element");
+    if (oldPredicatePrecision == null) {
+      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
 
     logger.log(Level.ALL, "Abstraction trace is", path);
@@ -147,8 +147,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     if (mCounterexampleTraceInfo.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       precisionUpdate.start();
-      Pair<ARTElement, SymbPredAbsPrecision> refinementResult =
-              performRefinement(oldSymbPredAbsPrecision, path, artPath, mCounterexampleTraceInfo);
+      Pair<ARTElement, PredicatePrecision> refinementResult =
+              performRefinement(oldPredicatePrecision, path, artPath, mCounterexampleTraceInfo);
       precisionUpdate.stop();
 
       artUpdate.start();
@@ -206,16 +206,16 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   /**
    * pPath and pArtPath need to fit together such that
-   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(SymbPredAbsAbstractElement) 
+   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement) 
    */
-  private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
-      ArrayList<SymbPredAbsAbstractElement> pPath, List<ARTElement> pArtPath,
+  private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
+      ArrayList<PredicateAbstractElement> pPath, List<ARTElement> pArtPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
     
-    SymbPredAbsAbstractElement firstInterpolationElement = null;
+    PredicateAbstractElement firstInterpolationElement = null;
     ARTElement firstInterpolationARTElement = null;
     boolean newPredicatesFound = false;
     
@@ -228,7 +228,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     int i = -1;
     for (ARTElement ae : pArtPath) {
       i++;
-      SymbPredAbsAbstractElement e = pPath.get(i);
+      PredicateAbstractElement e = pPath.get(i);
       Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
       CFANode loc = ae.retrieveLocationElement().getLocationNode();
       absLocations.add(loc);
@@ -246,14 +246,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       pmapBuilder.putAll(loc, globalPredicates);
     }
     assert firstInterpolationElement != null;
-    assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+    assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(PredicateAbstractElement.class);
 
     ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
-    SymbPredAbsPrecision newPrecision;
+    PredicatePrecision newPrecision;
     if (addPredicatesGlobally) {
-      newPrecision = new SymbPredAbsPrecision(newPredicateMap.values());
+      newPrecision = new PredicatePrecision(newPredicateMap.values());
     } else {
-      newPrecision = new SymbPredAbsPrecision(newPredicateMap, globalPredicates);
+      newPrecision = new PredicatePrecision(newPredicateMap, globalPredicates);
     }
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);

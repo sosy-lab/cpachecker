@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface SymbPredAbsFormulaManager extends PathFormulaManager {
+public interface PredicateFormulaManager extends PathFormulaManager {
 
     /**
      * Abstract post operation.
@@ -59,7 +59,7 @@ public interface SymbPredAbsFormulaManager extends PathFormulaManager {
      * @throws CPAException
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException;
+            ArrayList<PredicateAbstractElement> abstractTrace) throws CPAException;
 
     /**
      * Checks if an abstraction formula and a pathFormula are unsatisfiable.

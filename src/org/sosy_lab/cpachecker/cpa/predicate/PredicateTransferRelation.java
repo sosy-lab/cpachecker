@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * computes an abstraction.
  */
 @Options(prefix="cpas.symbpredabs")
-public class SymbPredAbsTransferRelation implements TransferRelation {
+public class PredicateTransferRelation implements TransferRelation {
 
   @Option(name="blk.threshold")
   private int absBlockSize = 0;
@@ -100,12 +100,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   int pathFormulaCacheHits = 0;
   
   private final LogManager logger;
-  private final SymbPredAbsFormulaManager formulaManager;
+  private final PredicateFormulaManager formulaManager;
 
   // pathFormula computation cache
   private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache;
 
-  public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
+  public PredicateTransferRelation(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
@@ -120,7 +120,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     postTimer.start();
     
-    SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
+    PredicateAbstractElement element = (PredicateAbstractElement) pElement;
     CFANode loc = edge.getSuccessor();
 
     // Check whether abstraction is false.
@@ -139,7 +139,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     Collection<? extends AbstractElement> result;
     if (doAbstraction) {
       result = Collections.singleton(
-          new SymbPredAbsAbstractElement.ComputeAbstractionElement(
+          new PredicateAbstractElement.ComputeAbstractionElement(
               pathFormula, element.getAbstractionFormula(), loc)); 
     } else {
       result = handleNonAbstractionFormulaLocation(pathFormula, element.getAbstractionFormula());
@@ -152,7 +152,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * Does special things when we do not compute an abstraction for the
    * successor. This currently only envolves an optional sat check.
    */
-  private Collection<SymbPredAbsAbstractElement> handleNonAbstractionFormulaLocation(
+  private Collection<PredicateAbstractElement> handleNonAbstractionFormulaLocation(
                 PathFormula pathFormula, AbstractionFormula abstractionFormula) {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
     
@@ -175,7 +175,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
-        new SymbPredAbsAbstractElement(pathFormula, abstractionFormula));
+        new PredicateAbstractElement(pathFormula, abstractionFormula));
   }
 
   /**
@@ -272,7 +272,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     strengthenTimer.start();
     try {
     
-      SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
+      PredicateAbstractElement element = (PredicateAbstractElement)pElement;
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
         if (lElement instanceof AssumptionCollectorElement) {
@@ -313,7 +313,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
   }
 
-  private SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
+  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
     PathFormula pf = pElement.getPathFormula();
     
     for (ECPPredicate lPredicate : pAutomatonElement) {
@@ -325,7 +325,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return replacePathFormula(pElement, pf);
   }
   
-  private SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ProductAutomatonElement.PredicateElement pAutomatonElement) throws CPATransferException {
+  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, ProductAutomatonElement.PredicateElement pAutomatonElement) throws CPATransferException {
     PathFormula pf = pElement.getPathFormula();
     
     for (ECPPredicate lPredicate : pAutomatonElement.getPredicates()) {
@@ -337,7 +337,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return replacePathFormula(pElement, pf);
   }
   
-  private SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
+  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
     AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
     
     PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge);
@@ -345,7 +345,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return replacePathFormula(pElement, pf);
   }
   
-  private SymbPredAbsAbstractElement strengthen(SymbPredAbsAbstractElement pElement, 
+  private PredicateAbstractElement strengthen(PredicateAbstractElement pElement, 
       AssumptionCollectorElement pElement2) {
     
     Formula asmpt = pElement2.getCollectedAssumption();
@@ -364,17 +364,17 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   /**
    * Returns a new element with a given pathFormula. All other fields stay equal.
    */
-  private SymbPredAbsAbstractElement replacePathFormula(SymbPredAbsAbstractElement oldElement, PathFormula newPathFormula) {
+  private PredicateAbstractElement replacePathFormula(PredicateAbstractElement oldElement, PathFormula newPathFormula) {
     if (oldElement instanceof ComputeAbstractionElement) {
       CFANode loc = ((ComputeAbstractionElement) oldElement).getLocation();
       return new ComputeAbstractionElement(newPathFormula, oldElement.getAbstractionFormula(), loc);
     } else {
       assert !(oldElement instanceof AbstractionElement);
-      return new SymbPredAbsAbstractElement(newPathFormula, oldElement.getAbstractionFormula());
+      return new PredicateAbstractElement(newPathFormula, oldElement.getAbstractionFormula());
     }
   }
   
-  private SymbPredAbsAbstractElement strengthenSatCheck(SymbPredAbsAbstractElement pElement) {
+  private PredicateAbstractElement strengthenSatCheck(PredicateAbstractElement pElement) {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
     strengthenCheckTimer.start();
@@ -396,7 +396,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
       PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
 
-      return new SymbPredAbsAbstractElement.AbstractionElement(newPathFormula, abs);
+      return new PredicateAbstractElement.AbstractionElement(newPathFormula, abs);
     }
   }
 }

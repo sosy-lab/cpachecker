@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
@@ -93,7 +93,7 @@ public class FShell3 {
   private final ConfigurableProgramAnalysis mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
-  private final SymbPredAbsCPA mSymbPredAbsCPA;
+  private final PredicateCPA mPredicateCPA;
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
   private final GuardedEdgeLabel mAlphaLabel;
@@ -182,12 +182,12 @@ public class FShell3 {
     // cfa path CPA
     mCFAPathCPA = CFAPathCPA.getInstance();
     
-    // symbolic predicate abstraction CPA
-    CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
-    lSymbPredAbsCPAFactory.setConfiguration(mConfiguration);
-    lSymbPredAbsCPAFactory.setLogger(mLogManager);
+    // predicate abstraction CPA
+    CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
+    lPredicateCPAFactory.setConfiguration(mConfiguration);
+    lPredicateCPAFactory.setLogger(mLogManager);
     try {
-      mSymbPredAbsCPA = (SymbPredAbsCPA)lSymbPredAbsCPAFactory.createInstance();
+      mPredicateCPA = (PredicateCPA)lPredicateCPAFactory.createInstance();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -591,7 +591,7 @@ public class FShell3 {
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
     // TODO remove ... look at statistics
-    //System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
+    //System.out.println("#abstraction elements: " + mPredicateCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
     //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
     
     FShell3Result lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
@@ -743,7 +743,7 @@ public class FShell3 {
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
     // TODO remove ... look at statistics
-    //System.out.println("#abstraction elements: " + mSymbPredAbsCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
+    //System.out.println("#abstraction elements: " + mPredicateCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
     //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
     
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
@@ -775,7 +775,7 @@ public class FShell3 {
     lAutomatonCPAs.add(pAutomatonCPA);
     
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
-    lComponentAnalyses.add(mSymbPredAbsCPA);
+    lComponentAnalyses.add(mPredicateCPA);
     
     lComponentAnalyses.add(mAssumeCPA);
 
@@ -803,9 +803,9 @@ public class FShell3 {
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
     
-    SymbPredAbsRefiner lRefiner;
+    PredicateRefiner lRefiner;
     try {
-      lRefiner = new SymbPredAbsRefiner(lBasicAlgorithm.getCPA());
+      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -1138,7 +1138,7 @@ public class FShell3 {
 
       // we want to use CEGAR algorithm
       lWriter.println("analysis.useRefinement = true");
-      lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner.class.getCanonicalName());
+      lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner.class.getCanonicalName());
 
       lWriter.println("cpas.symbpredabs.addBranchingInformation = false");
       lWriter.println("cpas.symbpredabs.useNondetFlags = true");

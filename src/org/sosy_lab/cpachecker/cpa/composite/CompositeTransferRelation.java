@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorTransferRelation;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsTransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CompositeTransferRelation implements TransferRelation{
@@ -55,7 +55,7 @@ public class CompositeTransferRelation implements TransferRelation{
     // prepare special case handling if both predicates and assumptions are used
     for (int i = 0; i < size; i++) {
       TransferRelation t = transferRelations.get(i);
-      if (t instanceof SymbPredAbsTransferRelation) {
+      if (t instanceof PredicateTransferRelation) {
         predicatesIndex = i;
       }
       if (t instanceof AssumptionCollectorTransferRelation) {

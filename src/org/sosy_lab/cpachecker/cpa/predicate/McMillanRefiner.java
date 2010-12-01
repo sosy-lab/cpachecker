@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -45,37 +45,37 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
   private final RegionManager regionManager;
-  private final SymbPredAbsFormulaManager formulaManager;
+  private final PredicateFormulaManager formulaManager;
 
   private final LogManager logger;
   
   public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
-    SymbPredAbsCPA symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
-    if (symbPredAbsCpa == null) {
-      throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
+    PredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
-    regionManager = symbPredAbsCpa.getAbstractFormulaManager();
-    formulaManager = symbPredAbsCpa.getFormulaManager();
-    logger = symbPredAbsCpa.getLogger();
+    regionManager = predicateCpa.getAbstractFormulaManager();
+    formulaManager = predicateCpa.getFormulaManager();
+    logger = predicateCpa.getLogger();
   }
 
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
-    logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
+    logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
     // create path with all abstraction location elements (excluding the initial
     // element, which is not in pPath)
     // the last element is the element corresponding to the error location
     // (which is twice in pPath)
-    ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
-    SymbPredAbsAbstractElement lastElement = null;
+    ArrayList<PredicateAbstractElement> path = new ArrayList<PredicateAbstractElement>();
+    PredicateAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
-      SymbPredAbsAbstractElement symbElement =
-        artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+      PredicateAbstractElement symbElement =
+        artPair.getFirst().retrieveWrappedElement(PredicateAbstractElement.class);
 
       if (symbElement instanceof AbstractionElement && symbElement != lastElement) {
         path.add(symbElement);
@@ -113,7 +113,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     boolean foundInterpolant = false;
     for (Pair<ARTElement,CFAEdge> artPair : pArtPath) {
       ARTElement ae = artPair.getFirst();
-      SymbPredAbsAbstractElement e = ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+      PredicateAbstractElement e = ae.retrieveWrappedElement(PredicateAbstractElement.class);
 
       assert e instanceof AbstractionElement;
 

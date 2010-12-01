@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.logging.Level;
 
@@ -29,7 +29,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 
@@ -38,18 +38,18 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  * This is not a trivial merge operator in the sense that it implements
  * mergeSep and mergeJoin together. If the abstract element is on an
  * abstraction location we don't merge, otherwise we merge two elements
- * and update the {@link SymbPredAbsAbstractElement}'s pathFormula.
+ * and update the {@link PredicateAbstractElement}'s pathFormula.
  *
  * @author Erkan
  */
-public class SymbPredAbsMergeOperator implements MergeOperator {
+public class PredicateMergeOperator implements MergeOperator {
 
   private final LogManager logger;
-  private final SymbPredAbsFormulaManager formulaManager;
+  private final PredicateFormulaManager formulaManager;
 
   long totalMergeTime = 0;
 
-  public SymbPredAbsMergeOperator(SymbPredAbsCPA pCpa) {
+  public PredicateMergeOperator(PredicateCPA pCpa) {
     this.logger = pCpa.getLogger();
     formulaManager = pCpa.getFormulaManager();
   }
@@ -58,11 +58,11 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2, Precision precision) {
 
-    SymbPredAbsAbstractElement elem1 = (SymbPredAbsAbstractElement)element1;
-    SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
+    PredicateAbstractElement elem1 = (PredicateAbstractElement)element1;
+    PredicateAbstractElement elem2 = (PredicateAbstractElement)element2;
 
     // this will be the merged element
-    SymbPredAbsAbstractElement merged;
+    PredicateAbstractElement merged;
 
     if (elem1 instanceof AbstractionElement || elem2 instanceof AbstractionElement) {
       // we don't merge if this is an abstraction location
@@ -82,7 +82,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
                 
-        merged = new SymbPredAbsAbstractElement(pathFormula, elem1.getAbstractionFormula());
+        merged = new PredicateAbstractElement(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

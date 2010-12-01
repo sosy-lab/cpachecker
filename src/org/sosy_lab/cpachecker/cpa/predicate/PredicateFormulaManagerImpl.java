@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.io.IOException;
@@ -88,7 +88,7 @@ import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpas.symbpredabs")
-class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl implements SymbPredAbsFormulaManager {
+class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl implements PredicateFormulaManager {
 
   static class Stats {
     public int numCallsAbstraction = 0;
@@ -174,7 +174,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
   private final Map<Formula, Boolean> feasibilityCache;
 
-  public SymbPredAbsFormulaManagerImpl(
+  public PredicateFormulaManagerImpl(
       RegionManager pRmgr,
       FormulaManager pFmgr,
       TheoremProver pThmProver,
@@ -565,7 +565,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      ArrayList<SymbPredAbsAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
+      ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
     stats.cexAnalysisTimer.start();
 
@@ -680,7 +680,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       for (int i = 0; i < f.size()-1; ++i) {
         // last iteration is left out because B would be empty
         final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
-        SymbPredAbsAbstractElement e = pAbstractTrace.get(i);
+        PredicateAbstractElement e = pAbstractTrace.get(i);
 
         logger.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
@@ -754,7 +754,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
       // get the reachingPathsFormula and add it to the solver environment
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
-      SymbPredAbsAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
+      PredicateAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
       pItpProver.addFormula(lastElement.getPathFormula().getReachingPathsFormula());
       Model model;
       NavigableMap<Integer, Map<Integer, Boolean>> preds;
@@ -846,7 +846,7 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
    */
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ArrayList<SymbPredAbsAbstractElement> pAbstractTrace) throws CPAException {
+      ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
@@ -896,13 +896,13 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
   }
 
   private List<Formula> getFormulasForTrace(
-      List<SymbPredAbsAbstractElement> abstractTrace) {
+      List<PredicateAbstractElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
     List<Formula> result = new ArrayList<Formula>(abstractTrace.size());
 
-    for (SymbPredAbsAbstractElement e : abstractTrace) {
+    for (PredicateAbstractElement e : abstractTrace) {
       result.add(e.getAbstractionFormula().getBlockFormula());
     }
     return result;
@@ -1125,10 +1125,10 @@ class SymbPredAbsFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl imple
 
   private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
 
-    private final ArrayList<SymbPredAbsAbstractElement> abstractTrace;
+    private final ArrayList<PredicateAbstractElement> abstractTrace;
     private final InterpolatingTheoremProver<T> currentItpProver;
 
-    public TransferCallable(ArrayList<SymbPredAbsAbstractElement> pAbstractTrace,
+    public TransferCallable(ArrayList<PredicateAbstractElement> pAbstractTrace,
         InterpolatingTheoremProver<T> pItpProver) {
       abstractTrace = pAbstractTrace;
       currentItpProver = pItpProver;
