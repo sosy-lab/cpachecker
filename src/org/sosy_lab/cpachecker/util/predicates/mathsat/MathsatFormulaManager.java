@@ -121,11 +121,11 @@ public class MathsatFormulaManager implements FormulaManager  {
     falseFormula = encapsulate(msat_make_false(msatEnv));
   }
 
-  public long getMsatEnv() {
+  long getMsatEnv() {
     return msatEnv;
   }
 
-  public long createEnvironment(boolean shared, boolean ghostFilter) {
+  long createEnvironment(boolean shared, boolean ghostFilter) {
     long env;
     if (shared) {
       env = msat_create_shared_env(msatEnv);
@@ -154,27 +154,27 @@ public class MathsatFormulaManager implements FormulaManager  {
     return env;
   }
   
-  public static long getTerm(Formula f) {
+  static long getTerm(Formula f) {
     return ((MathsatFormula)f).getTerm();
   }
   
-  public static long[] getTerm(FormulaList f) {
+  static long[] getTerm(FormulaList f) {
     return ((MathsatFormulaList)f).getTerms();
   }
   
-  public static Formula encapsulate(long t) {
+  static Formula encapsulate(long t) {
     return new MathsatFormula(t);
   }
 
-  public static FormulaList encapsulate(long[] t) {
+  static FormulaList encapsulate(long[] t) {
     return new MathsatFormulaList(t);
   }
   
-  public String makeName(String name, int idx) {
+  private String makeName(String name, int idx) {
     return name + INDEX_SEPARATOR + idx;
   }
   
-  public Pair<String, Integer> parseName(String var) {
+  private Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
     if (s.length != 2) {
       throw new IllegalArgumentException("Not an instantiated variable: " + var);
@@ -365,7 +365,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   // ----------------- Uninterpreted functions -----------------
  
-  public long buildMsatUF(String name, long[] args) {
+  private long buildMsatUF(String name, long[] args) {
     int[] tp = new int[args.length];
     Arrays.fill(tp, msatVarType);
     long decl = msat_declare_uif(msatEnv, name, msatVarType, tp.length, tp);
@@ -402,11 +402,11 @@ public class MathsatFormulaManager implements FormulaManager  {
         stringLitUfDecl, new long[]{n}));
   }
 
-  public long buildMsatVariable(String var, int idx) {
+  private long buildMsatVariable(String var, int idx) {
     return buildMsatVariable(makeName(var, idx));
   }
   
-  public long buildMsatVariable(String var) {
+  private long buildMsatVariable(String var) {
     long decl = msat_declare_variable(msatEnv, var, msatVarType);
     return msat_make_variable(msatEnv, decl);
   }
@@ -590,7 +590,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     return result;
   }
 
-  public boolean ufCanBeLvalue(String name) {
+  private boolean ufCanBeLvalue(String name) {
     return name.startsWith(".{") || name.startsWith("->{");
   }
 

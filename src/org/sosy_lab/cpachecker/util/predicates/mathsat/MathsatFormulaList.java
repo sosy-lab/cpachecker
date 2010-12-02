@@ -46,7 +46,7 @@ public class MathsatFormulaList implements FormulaList {
   /**
    * Do not modify the returned array, for performance reasons it's not copied!
    */
-  public long[] getTerms() {
+  long[] getTerms() {
     return terms;
   }
   

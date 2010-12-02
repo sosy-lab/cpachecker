@@ -101,7 +101,7 @@ public class MathsatModel {
     }
   }
   
-  public static Model createMathsatModel(long lMathsatEnvironmentID) {
+  static Model createMathsatModel(long lMathsatEnvironmentID) {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
     
     long lModelIterator = mathsat.api.msat_create_model_iterator(lMathsatEnvironmentID);
