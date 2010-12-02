@@ -37,7 +37,7 @@ import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorTransferRelation;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -58,7 +58,7 @@ public class CompositeTransferRelation implements TransferRelation{
       if (t instanceof PredicateTransferRelation) {
         predicatesIndex = i;
       }
-      if (t instanceof AssumptionCollectorTransferRelation) {
+      if (t instanceof AssumptionStorageTransferRelation) {
         assumptionIndex = i;
       }
     }

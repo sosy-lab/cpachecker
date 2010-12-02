@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
-import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -275,8 +275,8 @@ public class PredicateTransferRelation implements TransferRelation {
       PredicateAbstractElement element = (PredicateAbstractElement)pElement;
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
-        if (lElement instanceof AssumptionCollectorElement) {
-          element = strengthen(element, (AssumptionCollectorElement)lElement);
+        if (lElement instanceof AssumptionStorageElement) {
+          element = strengthen(element, (AssumptionStorageElement)lElement);
         }
         
         if (lElement instanceof GuardedEdgeAutomatonPredicateElement) {
@@ -346,7 +346,7 @@ public class PredicateTransferRelation implements TransferRelation {
   }
   
   private PredicateAbstractElement strengthen(PredicateAbstractElement pElement, 
-      AssumptionCollectorElement pElement2) {
+      AssumptionStorageElement pElement2) {
     
     Formula asmpt = pElement2.getCollectedAssumption();
 

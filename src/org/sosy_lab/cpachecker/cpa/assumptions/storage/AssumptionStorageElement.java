@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector;
+package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -34,11 +34,11 @@ import com.google.common.base.Preconditions;
  *
  * @author g.theoduloz
  */
-public class AssumptionCollectorElement implements AbstractElement {
+public class AssumptionStorageElement implements AbstractElement {
   
   private final Formula assumption;
 
-  public AssumptionCollectorElement(Formula f) {
+  public AssumptionStorageElement(Formula f) {
     assumption = Preconditions.checkNotNull(f);
   }
 
@@ -60,8 +60,8 @@ public class AssumptionCollectorElement implements AbstractElement {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof AssumptionCollectorElement) {
-      AssumptionCollectorElement otherElement = (AssumptionCollectorElement) other;
+    if (other instanceof AssumptionStorageElement) {
+      AssumptionStorageElement otherElement = (AssumptionStorageElement) other;
       return assumption.equals(otherElement.assumption);
     } else {
       return false;

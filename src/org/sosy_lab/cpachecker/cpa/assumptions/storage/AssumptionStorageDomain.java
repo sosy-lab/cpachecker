@@ -21,17 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector;
+package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public class AssumptionCollectorDomain implements AbstractDomain {
+public class AssumptionStorageDomain implements AbstractDomain {
 
   private final FormulaManager formulaManager;
   
-  public AssumptionCollectorDomain(
+  public AssumptionStorageDomain(
       FormulaManager pFormulaManager) {
     formulaManager = pFormulaManager;
   }
@@ -39,12 +39,12 @@ public class AssumptionCollectorDomain implements AbstractDomain {
   @Override
   public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
 
-    AssumptionCollectorElement collectorElement1= (AssumptionCollectorElement)pElement1;
-    AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)pElement2;
+    AssumptionStorageElement storageElement1= (AssumptionStorageElement)pElement1;
+    AssumptionStorageElement storageElement2 = (AssumptionStorageElement)pElement2;
 
-    return new AssumptionCollectorElement(
-        formulaManager.makeAnd(collectorElement1.getCollectedAssumption(),
-                                       collectorElement2.getCollectedAssumption()));
+    return new AssumptionStorageElement(
+        formulaManager.makeAnd(storageElement1.getCollectedAssumption(),
+                                       storageElement2.getCollectedAssumption()));
   }
 
   @Override

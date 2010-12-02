@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
@@ -1759,15 +1759,15 @@ public class ExplicitTransferRelation implements TransferRelation {
       if (ae instanceof PointerElement) {
         return strengthen(explicitElement, (PointerElement)ae, cfaEdge, precision);
       }
-      else if(ae instanceof AssumptionCollectorElement){
-        return strengthen(explicitElement, (AssumptionCollectorElement)ae, cfaEdge, precision);
+      else if(ae instanceof AssumptionStorageElement){
+        return strengthen(explicitElement, (AssumptionStorageElement)ae, cfaEdge, precision);
       }
     }
     return null;
   }
 
   private Collection<? extends AbstractElement> strengthen(
-      ExplicitElement pExplicitElement, AssumptionCollectorElement pAe,
+      ExplicitElement pExplicitElement, AssumptionStorageElement pAe,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
     

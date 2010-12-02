@@ -47,8 +47,8 @@ import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorCPA;
-import org.sosy_lab.cpachecker.cpa.assumptions.collector.AssumptionCollectorElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
@@ -112,9 +112,9 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
     this.logger = logger;
     innerAlgorithm = algo;
-    AssumptionCollectorCPA cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionCollectorCPA.class);
+    AssumptionStorageCPA cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionStorageCPA.class);
     if (cpa == null) {
-      throw new InvalidConfigurationException("AssumptionCollectorCPA needed for AssumptionCollectionAlgorithm");
+      throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
     symbolicManager = cpa.getFormulaManager();
     resultAssumption = new AssumptionWithLocation(symbolicManager);
@@ -189,8 +189,8 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     
     @Override
     public void process(AbstractElement pElement) {
-      if (pElement instanceof AssumptionCollectorElement) {
-        Formula dumpedInvariant = ((AssumptionCollectorElement)pElement).getCollectedAssumption();
+      if (pElement instanceof AssumptionStorageElement) {
+        Formula dumpedInvariant = ((AssumptionStorageElement)pElement).getCollectedAssumption();
         result = symbolicManager.makeAnd(result, dumpedInvariant);
       }
     }

@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  *
  * In the case the element is bottom, we return false to force the bottom
  * element to be stored in the reach set. It will not have any successors
- * because of either the assumption collector, or the fact that its
+ * because of either the assumption storage CPA, or the fact that its
  * transfer would return an empty set.
  *
  * To test whether an element is bottom, we use the must-stop reporting

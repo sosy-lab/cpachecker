@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector;
+package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -54,25 +54,25 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  *
  * @author g.theoduloz
  */
-public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
+public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(AssumptionCollectorCPA.class);
+    return AutomaticCPAFactory.forType(AssumptionStorageCPA.class);
   }
 
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final FormulaManager formulaManager;
-  private final AssumptionCollectorElement topElement;
+  private final AssumptionStorageElement topElement;
 
-  private AssumptionCollectorCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
+  private AssumptionStorageCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     formulaManager = AssumptionSymbolicFormulaManagerImpl.createFormulaManager(config, logger);
-    abstractDomain = new AssumptionCollectorDomain(formulaManager);
-    stopOperator = new AssumptionCollectorStop();
-    topElement = new AssumptionCollectorElement(formulaManager.makeTrue());
-    transferRelation = new AssumptionCollectorTransferRelation(formulaManager, topElement);
+    abstractDomain = new AssumptionStorageDomain(formulaManager);
+    stopOperator = new AssumptionStorageStop();
+    topElement = new AssumptionStorageElement(formulaManager.makeTrue());
+    transferRelation = new AssumptionStorageTransferRelation(formulaManager, topElement);
   }
 
   public FormulaManager getFormulaManager()

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector;
+package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,13 +42,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * Transfer relation and strengthening for the DumpInvariant CPA
  * @author g.theoduloz
  */
-public class AssumptionCollectorTransferRelation implements TransferRelation {
+public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final Collection<AbstractElement> topElementSet;
 
   private final FormulaManager formulaManager;
   
-  public AssumptionCollectorTransferRelation(FormulaManager pManager, AbstractElement topElement) {
+  public AssumptionStorageTransferRelation(FormulaManager pManager, AbstractElement topElement) {
     formulaManager = pManager;
     topElementSet = Collections.singleton(topElement);
   }
@@ -56,7 +56,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    AssumptionCollectorElement element = (AssumptionCollectorElement)pElement;
+    AssumptionStorageElement element = (AssumptionStorageElement)pElement;
 
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop()) {
@@ -68,7 +68,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
-    assert ((AssumptionCollectorElement)el).getCollectedAssumption().isTrue();
+    assert ((AssumptionStorageElement)el).getCollectedAssumption().isTrue();
     
     AssumptionReportingVisitor reportingVisitor = new AssumptionReportingVisitor();
     for (AbstractElement e : others) {
@@ -79,7 +79,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     if (assumption.isTrue()) {
       return null;
     } else {      
-      return Collections.singleton(new AssumptionCollectorElement(assumption));
+      return Collections.singleton(new AssumptionStorageElement(assumption));
     }
   }
 
