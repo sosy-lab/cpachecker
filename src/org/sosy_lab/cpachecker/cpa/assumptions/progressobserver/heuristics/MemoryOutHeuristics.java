@@ -91,8 +91,6 @@ implements StopHeuristics<TrivialStopHeuristicsData>
           break;
         }
       }
-
-      System.out.println(memUsed);
       
       if(memUsed > threshold) {
         logger.log(Level.WARNING, "MEMORY IS OUT");

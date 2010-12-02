@@ -555,11 +555,6 @@ public class PointerElement implements AbstractQueryableElement, Memory,
     mem.setValid(true);
     mallocs.add(mem);
 
-    if (reverseRelation.containsKey(mem))
-      System.err.println("TRUE");
-    else
-      System.err.println("FALSE");
-
     return new MemoryAddress(mem);
   }
 

@@ -59,23 +59,6 @@ public class AutomatonASTComparator {
   private static final String JOKER_EXPR = "CPAChecker_AutomatonAnalysis_JokerExpression";
   private static final String NUMBERED_JOKER_EXPR = "CPAChecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
-
-  public static void printAST(IASTNode pAST) {
-    printAST(pAST, 0);
-  }
-  /** Recursive method for printing an AST to System.out .
-   */
-  private static void printAST (IASTNode pNode, int pInd) {
-    String x = "";
-    for (int i = 0; i<pInd; i++) {
-      x = x + "  ";
-    }
-    x = x + pNode.getClass().getName() + " "+ pNode.getRawSignature();
-    System.out.println(x);
-    for (IASTNode n : pNode.getChildren()) {
-      printAST(n, pInd +1);
-    }
-  }
   
   private static String replaceJokersInPattern(String pPattern) {
     String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");

@@ -190,7 +190,6 @@ public class MonitorTransferRelation implements TransferRelation {
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
-        System.out.println("timed out");
         executor.shutdownNow();
         return Collections.emptySet();
 
