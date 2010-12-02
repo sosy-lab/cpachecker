@@ -305,7 +305,7 @@ public class Configuration {
 
       String valueStr = getOptionValue(name, option, type.isEnum());
 
-      Object value = convertValue(name, valueStr, type, null, option.type());
+      Object value = convertValue(name, valueStr, null, type, option.type());
       
       // options which were not specified need not to be set
       // but do set OUTPUT_FILE options for disableOutput to work
