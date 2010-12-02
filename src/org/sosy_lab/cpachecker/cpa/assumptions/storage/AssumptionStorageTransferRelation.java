@@ -68,7 +68,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
-    assert ((AssumptionStorageElement)el).getCollectedAssumption().isTrue();
+    assert ((AssumptionStorageElement)el).getAssumption().isTrue();
     
     AssumptionReportingVisitor reportingVisitor = new AssumptionReportingVisitor();
     for (AbstractElement e : others) {

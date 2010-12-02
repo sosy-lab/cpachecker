@@ -43,8 +43,8 @@ public class AssumptionStorageDomain implements AbstractDomain {
     AssumptionStorageElement storageElement2 = (AssumptionStorageElement)pElement2;
 
     return new AssumptionStorageElement(
-        formulaManager.makeAnd(storageElement1.getCollectedAssumption(),
-                                       storageElement2.getCollectedAssumption()));
+        formulaManager.makeAnd(storageElement1.getAssumption(),
+                                       storageElement2.getAssumption()));
   }
 
   @Override

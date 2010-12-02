@@ -348,7 +348,7 @@ public class PredicateTransferRelation implements TransferRelation {
   private PredicateAbstractElement strengthen(PredicateAbstractElement pElement, 
       AssumptionStorageElement pElement2) {
     
-    Formula asmpt = pElement2.getCollectedAssumption();
+    Formula asmpt = pElement2.getAssumption();
 
     if (asmpt.isTrue() || asmpt.isFalse()) {
       // we don't add the assumption false in order to not forget the content of the path formula

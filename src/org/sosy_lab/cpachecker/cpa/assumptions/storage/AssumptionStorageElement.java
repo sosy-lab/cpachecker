@@ -45,7 +45,7 @@ public class AssumptionStorageElement implements AbstractElement {
   /**
    * Return the invariant in this state.
    */
-  public Formula getCollectedAssumption() {
+  public Formula getAssumption() {
     return assumption;
   }
 

@@ -190,7 +190,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     @Override
     public void process(AbstractElement pElement) {
       if (pElement instanceof AssumptionStorageElement) {
-        Formula dumpedInvariant = ((AssumptionStorageElement)pElement).getCollectedAssumption();
+        Formula dumpedInvariant = ((AssumptionStorageElement)pElement).getAssumption();
         result = symbolicManager.makeAnd(result, dumpedInvariant);
       }
     }
