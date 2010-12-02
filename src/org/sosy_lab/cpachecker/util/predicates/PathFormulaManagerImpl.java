@@ -102,7 +102,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    *
    * @param ssa1 an SSAMap
    * @param ssa2 an SSAMap
-   * @return A pair (SymbolicFormula, SSAMap)
+   * @return A pair (Formula, SSAMap)
    */
   private Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {

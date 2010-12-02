@@ -28,24 +28,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
- * Extension of predicate abstraction's symbolic formula manager
- * with new makeAnd method that uses an expression rather
- * than CFA edge
- *
- * @author g.theoduloz
+ * Manager for assumptions.
  */
-public interface AssumptionSymbolicFormulaManager {
+public interface AssumptionManager {
 
   /**
    * Creates a formula representing an AND of the two argument
-   * @param f1 a SymbolicFormula
+   * @param f1 a Formula
    * @param p an invariant predicate
    * @return The formula (f1 & e)
    */
   public Formula makeAnd(Formula f1, IASTNode p, String function) throws UnrecognizedCCodeException;
 
   /**
-   * @return a SymbolicFormula representing logical truth
+   * @return a Formula representing logical truth
    */
   public Formula makeTrue();
 }

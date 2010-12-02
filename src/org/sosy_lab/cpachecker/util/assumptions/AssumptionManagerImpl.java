@@ -48,16 +48,14 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 
 /**
- * Implementation of AssumptionSymbolicFormulaManager based on
- * 
- * @author g.theoduloz
+ * Implementation of AssumptionManager.
  */
-public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter implements AssumptionSymbolicFormulaManager
+public class AssumptionManagerImpl extends CtoFormulaConverter implements AssumptionManager
 {
 
   /**
    * Dummy SSA map that always return 1 as index. Only used here
-   * to circumvent the assumptions of MathsatSymbolicFormulaManager
+   * to circumvent the assumptions of FormulaManager
    */
   public static class DummySSAMap
   extends SSAMapBuilder
@@ -99,15 +97,15 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     
   }
 
-  private static volatile FormulaManager smgr = null;
+  private static volatile FormulaManager fmgr = null;
 
   // TODO Ugly, probably better to remove singleton pattern here.
   public static FormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
-    if (smgr == null) {
-      smgr = new MathsatFormulaManager(pConfig, pLogger);
+    if (fmgr == null) {
+      fmgr = new MathsatFormulaManager(pConfig, pLogger);
     }
-    return smgr;
+    return fmgr;
   }
 
   /**
@@ -115,12 +113,12 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
    * {@link #createInstance()} has to be called before at least once.
    */
   public static FormulaManager getFormulaManager() {
-    assert smgr != null;
+    assert fmgr != null;
 
-    return smgr;
+    return fmgr;
   }
 
-  public AssumptionSymbolicFormulaManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public AssumptionManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }
 //  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
@@ -139,26 +137,26 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
       switch (binop.getOperator()) {
       case IASTBinaryExpression.op_logicalAnd:
         if (sign){
-          Formula symbFor = smgr.makeAnd(
+          Formula symbFor = fmgr.makeAnd(
               buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
         return Pair.of(symbFor, pSSAMap);
         }
         else{
-          Formula symbFor = smgr.makeOr(
+          Formula symbFor = fmgr.makeOr(
               buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
           return Pair.of(symbFor, pSSAMap);
         }
       case IASTBinaryExpression.op_logicalOr:
         if (sign){
-          Formula symbFor = smgr.makeOr(
+          Formula symbFor = fmgr.makeOr(
               buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
           return Pair.of(symbFor, pSSAMap);
         }
         else{
-          Formula symbFor = smgr.makeAnd(
+          Formula symbFor = fmgr.makeAnd(
               buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
               buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
           return Pair.of(symbFor, pSSAMap);
@@ -182,7 +180,7 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
     
     if(p instanceof IASTExpression){
       
-      return smgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
+      return fmgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
@@ -213,6 +211,6 @@ public class AssumptionSymbolicFormulaManagerImpl extends CtoFormulaConverter im
   
   @Override
   public Formula makeTrue() {
-    return smgr.makeTrue();
+    return fmgr.makeTrue();
   }
 }

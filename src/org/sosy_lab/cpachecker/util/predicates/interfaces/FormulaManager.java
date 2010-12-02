@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  *
- * A SymbolicFormulaManager is an object that can create/manipulate
- * SymbolicFormulas
+ * A FormulaManager is an object that can create/manipulate
+ * Formulas
  */
 public interface FormulaManager {
 
@@ -41,51 +41,51 @@ public interface FormulaManager {
   public boolean isBoolean(Formula pF);
 
   /**
-   * @return a SymbolicFormula representing logical truth
+   * @return a Formula representing logical truth
    */
   public Formula makeTrue();
 
   /**
-   * @return a SymbolicFormula representing logical falsity
+   * @return a Formula representing logical falsity
    */
   public Formula makeFalse();
   
   /**
    * Creates a formula representing a negation of the argument.
-   * @param f a SymbolicFormula
+   * @param f a Formula
    * @return (!f1)
    */
   public Formula makeNot(Formula f);
 
   /**
    * Creates a formula representing an AND of the two arguments.
-   * @param f1 a SymbolicFormula
-   * @param f2 a SymbolicFormula
+   * @param f1 a Formula
+   * @param f2 a Formula
    * @return (f1 & f2)
    */
   public Formula makeAnd(Formula f1, Formula f2);
 
   /**
    * Creates a formula representing an OR of the two arguments.
-   * @param f1 a SymbolicFormula
-   * @param f2 a SymbolicFormula
+   * @param f1 a Formula
+   * @param f2 a Formula
    * @return (f1 | f2)
    */
   public Formula makeOr(Formula f1, Formula f2);
 
   /**
    * Creates a formula representing an equivalence of the two arguments.
-   * @param f1 a SymbolicFormula
-   * @param f2 a SymbolicFormula
+   * @param f1 a Formula
+   * @param f2 a Formula
    * @return (f1 <-> f2)
    */
   public Formula makeEquivalence(Formula f1, Formula f2);
 
   /**
    * Creates a formula representing "IF cond THEN f1 ELSE f2"
-   * @param cond a SymbolicFormula
-   * @param f1 a SymbolicFormula
-   * @param f2 a SymbolicFormula
+   * @param cond a Formula
+   * @param f1 a Formula
+   * @param f2 a Formula
    * @return (IF atom THEN f1 ELSE f2)
    */
 
@@ -182,7 +182,7 @@ public interface FormulaManager {
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
      * 
-     * @param f the generic SymbolicFormula to instantiate
+     * @param f the generic Formula to instantiate
      * @param ssa the SSAMap to use
      * @return a copy of f in which every "generic" variable is replaced by the
      * corresponding "SSA instance"

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.collect.ImmutableList;
@@ -54,12 +54,12 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     ImmutableList.<GenericAssumptionBuilder>of(
         new ArithmeticOverflowAssumptionBuilder());
 
-  private final AssumptionSymbolicFormulaManager manager;
+  private final AssumptionManager manager;
 
   /**
    * Constructor
    */
-  public GenericAssumptionsTransferRelation(AssumptionSymbolicFormulaManager manager)
+  public GenericAssumptionsTransferRelation(AssumptionManager manager)
   {
     this.manager = manager;
   }

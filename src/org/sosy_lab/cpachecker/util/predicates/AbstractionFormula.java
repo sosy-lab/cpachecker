@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * Instances of this class should hold the same formula in two representations:
- * as a Region and as a SymbolicFormula
+ * as a Region and as a Formula
  * 
  * The former one has no SSA indices, while the latter DOES have SSA indices added.
  * 

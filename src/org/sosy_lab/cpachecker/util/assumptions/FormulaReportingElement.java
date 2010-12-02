@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * Interface to implement in order for an object (typically abstract element)
- * to be able to be over-approximated by a symbolic formula representing
+ * to be able to be over-approximated by a formula representing
  * the abstract element.
  *
  * @author g.theoduloz
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 public interface FormulaReportingElement {
 
   /**
-   * Returns a symbolic formula over-approximating the element
+   * Returns a formula over-approximating the element
    */
   public Formula getFormulaApproximation();
 

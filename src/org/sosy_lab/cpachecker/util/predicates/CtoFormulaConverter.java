@@ -443,7 +443,7 @@ public class CtoFormulaConverter {
   //    long mvar = buildMsatVariable(var, idx);
   //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
   //    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-  //    m1 = new MathsatSymbolicFormula(t);
+  //    m1 = new MathsatFormula(t);
   //    }
   
         // if there is an initializer associated to this variable,

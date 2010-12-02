@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
 /**
- * A SymbolicFormula represented as a MathSAT term.
+ * A Formula represented as a MathSAT term.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */

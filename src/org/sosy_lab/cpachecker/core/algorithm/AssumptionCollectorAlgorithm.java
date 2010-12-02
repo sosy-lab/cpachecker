@@ -103,7 +103,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
-  private final FormulaManager symbolicManager;
+  private final FormulaManager formulaManager;
   private final AssumptionWithLocation resultAssumption;
 
   public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
@@ -116,8 +116,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
-    symbolicManager = cpa.getFormulaManager();
-    resultAssumption = new AssumptionWithLocation(symbolicManager);
+    formulaManager = cpa.getFormulaManager();
+    resultAssumption = new AssumptionWithLocation(formulaManager);
   }
 
   @Override
@@ -185,13 +185,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    */
   private class AssumptionExtractor extends AbstractWrappedElementVisitor {
     
-    private Formula result = symbolicManager.makeTrue();
+    private Formula result = formulaManager.makeTrue();
     
     @Override
     public void process(AbstractElement pElement) {
       if (pElement instanceof AssumptionStorageElement) {
         Formula dumpedInvariant = ((AssumptionStorageElement)pElement).getAssumption();
-        result = symbolicManager.makeAnd(result, dumpedInvariant);
+        result = formulaManager.makeAnd(result, dumpedInvariant);
       }
     }
   }
@@ -212,8 +212,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       pos = path.size() - 2; // the node before the error node
 
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
-    Formula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), symbolicManager.makeNot(dataRegion));
+    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, pair.getFirst());
+    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), formulaManager.makeNot(dataRegion));
   }
 
   /**
@@ -224,8 +224,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       AssumptionWithLocation invariant,
       Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
-      Formula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), symbolicManager.makeNot(dataRegion));
+      Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
+      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), formulaManager.makeNot(dataRegion));
     }
   }
 

@@ -470,7 +470,7 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
 /* Method for converting MSAT format to NUSMV format.
-  public String printNusmvFormat(SymbolicFormula f, Set<SymbolicFormula> preds) {
+  public String printNusmvFormat(Formula f, Set<Formula> preds) {
 
     StringBuilder out = new StringBuilder();
     out.append("MODULE main\n");
@@ -490,7 +490,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
     out.append("\nTRANS FALSE\n");
     out.append("INVARSPEC (0 = 0)\n");
-    for (SymbolicFormula p : preds) {
+    for (Formula p : preds) {
       repr = p.toString();
       repr = repr.replaceAll("([a-zA-Z:_0-9]+@[0-9]+)", "\"$1\"");
       out.append("PRED " + repr + "\n");
