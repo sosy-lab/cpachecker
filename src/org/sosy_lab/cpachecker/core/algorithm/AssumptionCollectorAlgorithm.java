@@ -69,7 +69,7 @@ import com.google.common.collect.ImmutableSet;
  * @author g.theoduloz
  */
 @Options(prefix="assumptions")
-public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
+public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
   private class AssumptionCollectionStatistics implements Statistics {
     @Override
@@ -106,7 +106,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   private final FormulaManager symbolicManager;
   private final AssumptionWithLocation resultAssumption;
 
-  public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
+  public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
 

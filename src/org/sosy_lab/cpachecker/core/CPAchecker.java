@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -329,7 +329,7 @@ public class CPAchecker {
     }
 
     if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectionAlgorithm(algorithm, config, logger);
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
     }
 
     if (options.useCBMC) {
