@@ -219,6 +219,9 @@ cpa.art.file = ART.dot
 cpa.art.errorPath.export = true
 cpa.art.errorPath.file = ErrorPath.txt
 
+# which heuristics should be used to track progress?
+cpa.assumptions.progressobserver.heuristics =
+
 # file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
 cpa.automaton.inputFile =
 
@@ -246,9 +249,6 @@ cpa.pointer.merge = sep
 
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
-
-# which heuristics should be used to track progress?
-cpa.progressobvserver.heuristics =
 
 # which merge operator to use for UninitializedVariablesCPA? (join or sep)
 cpa.uninitvars.merge = sep
