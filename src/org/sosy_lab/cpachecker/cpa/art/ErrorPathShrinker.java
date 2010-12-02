@@ -62,10 +62,7 @@ public final class ErrorPathShrinker {
   }
 
   /** Set<String> for storing the global variables. */
-  private static final Set<String> GLOBAL_VARS     =
-                                                       new LinkedHashSet<String>();
-
-  private static boolean           printForTesting = true;
+  private static final Set<String> GLOBAL_VARS = new LinkedHashSet<String>();
 
   /** The function shrinkErrorPath gets an targetPath and creates a new Path,
    * with only the important edges of the Path.
@@ -98,10 +95,13 @@ public final class ErrorPathShrinker {
     // the errorNode is important
     shortErrorPath.addFirst(revIterator.next());
 
-    handlePath(shortErrorPath, revIterator, importantVars,
-        importantVarsForGlobalVarsIn, globalVarsPath);
-
-    //TODO add the rest of the GlobalVarEdges
+    // if the ErrorNode is inside of a function, 
+    // the longPath is not handled until the StartNode, 
+    // so call handlePath again until the longPath is completely handled.
+    while (revIterator.hasNext()) {
+      handlePath(shortErrorPath, revIterator, importantVars,
+          importantVarsForGlobalVarsIn, globalVarsPath);
+    }
 
     return shortErrorPath;
   }
@@ -136,14 +136,6 @@ public final class ErrorPathShrinker {
           }
         }
       }
-    }
-
-    if (printForTesting) {
-      System.out.print("globalVars in the Path: { ");
-      for (String var : GLOBAL_VARS) {
-        System.out.print(var + ", ");
-      }
-      System.out.println(" }");
     }
   }
 
@@ -219,8 +211,7 @@ public final class ErrorPathShrinker {
         // this is a return edge from function, this is different from return
         // statement of the function. See case in statement edge for details
       case ReturnEdge:
-        handleFunctionReturn((ReturnEdge) cfaEdge, importantVars,
-            globalVarsPath);
+        // TODO: what to do?
         break;
 
       // if edge cannot be handled, it could be important
@@ -279,10 +270,10 @@ public final class ErrorPathShrinker {
     handlePath(shortFunctionPath, revIterator, possibleVars,
         possibleImportantVarsForGlobalVars, functionGlobalVarsPath);
 
-    if (printForTesting) {
-      System.out.println("funcPath:\n" + shortFunctionPath.toString());
-      System.out.println("globPath:\n" + functionGlobalVarsPath.toString());
-    }
+    /*
+    System.out.println("funcPath:\n" + shortFunctionPath.toString());
+    System.out.println("globPath:\n" + functionGlobalVarsPath.toString());
+    */
 
     // the recursive call stops at the functionStart,
     // so the lastEdge is the functionCall and there exist a CallToReturnEdge, 
@@ -686,14 +677,14 @@ public final class ErrorPathShrinker {
     }
     // func(); 
     else if (exp instanceof IASTFunctionCallExpression) {
-      final IASTFunctionCallExpression funcExp =
-          (IASTFunctionCallExpression) exp;
-      funcExp.getParameterExpression();
+      // this case is handled as 'getImportantVarsFromFunctionCall' 
+      // because of the functionReturnEgde after a functionCall.
+      // so it should never appear.
+      assert (false);
     }
 
     // or b->c;
-    else if (exp instanceof IASTFunctionCallExpression
-        || exp instanceof IASTFieldReference) {
+    else if (exp instanceof IASTFieldReference) {
       // TODO: what should be added to importantVars?
     }
   }
@@ -710,11 +701,5 @@ public final class ErrorPathShrinker {
         targetSet.add(varName);
       }
     }
-  }
-
-  /** nothing to do? */
-  private static void handleFunctionReturn(final ReturnEdge cfaEdge,
-      final Set<String> importantVars, final Path globalVarsPath) {
-    // TODO Auto-generated method stub
   }
 }
