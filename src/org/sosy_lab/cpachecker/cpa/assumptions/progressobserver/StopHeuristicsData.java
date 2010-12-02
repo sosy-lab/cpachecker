@@ -21,24 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 /**
- * Abstraction of a class that generates generic
- * assumption invariants from CFA edges
+ * Data that needs to be tracked by a stopping heuristics
  * @author g.theoduloz
  */
-public interface GenericAssumptionBuilder {
-
-  /**
-   * Returns the assumption predicate that the system assumes when
-   * it encounters the given edge. The assumption is evaluated in
-   * the pre-state of the edge.
-   * @return A non-null predicate representing the assumptions
-   */
-  public IASTNode assumptionsForEdge(CFAEdge edge);
-
+public interface StopHeuristicsData {
+  public boolean isBottom();
+  public boolean isTop();
+  public boolean isLessThan(StopHeuristicsData d);
+  // should we stop analysis when we hit bottom
+  // this returns true when time or memory limit for analysis
+  // is hit
+  public boolean shouldTerminateAnalysis();
 }

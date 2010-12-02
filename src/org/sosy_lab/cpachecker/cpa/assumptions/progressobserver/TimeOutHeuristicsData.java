@@ -21,28 +21,45 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 /**
- * Domain for the analysis controller
  * @author g.theoduloz
  */
-public class ProgressObserverDomain implements AbstractDomain {
+public class TimeOutHeuristicsData implements StopHeuristicsData {
 
-  // Join is not supported
-  @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    throw new UnsupportedOperationException();
+  private final boolean stop;
+  private final long time;
+
+  public TimeOutHeuristicsData(long pTime, boolean pStop) {
+    stop = pStop;
+    time = pTime;
   }
 
-  // Partial order: flat
   @Override
-  public boolean isLessOrEqual(AbstractElement el1, AbstractElement el2) throws CPAException {
-    return (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
+  public boolean isBottom() {
+    return stop;
   }
+
+  @Override
+  public boolean isLessThan(StopHeuristicsData data) {
+    return stop || !((TimeOutHeuristicsData)data).stop;
+  }
+
+  @Override
+  public boolean isTop() {
+    return !stop;
+  }
+
+  public long getTime() {
+    return time;
+  }
+
+  public static final TimeOutHeuristicsData BOTTOM = new TimeOutHeuristicsData(0, true);
+
+  @Override
+  public boolean shouldTerminateAnalysis() {
+    return true;
+  }
+
 }

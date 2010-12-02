@@ -21,43 +21,46 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
-
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+
+
 /**
  * @author g.theoduloz
  */
-public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
+public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
   private final int threshold;
 
-  public ReachedSizeHeuristics(Configuration config, LogManager logger)
-  {
+  public TimeOutHeuristics(Configuration config, LogManager pLogger) {
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
   }
 
   @Override
-  public TrivialStopHeuristicsData getInitialData(CFANode pNode) {
-    return TrivialStopHeuristicsData.TOP;
+  public TimeOutHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
+    return (TimeOutHeuristicsData)pData;
   }
 
   @Override
-  public TrivialStopHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
-    if ((pData == TrivialStopHeuristicsData.BOTTOM)
-     || ((threshold > 0) && (pReached.getHeuristicsData().size() > threshold)))
-      return TrivialStopHeuristicsData.BOTTOM;
+  public TimeOutHeuristicsData getInitialData(CFANode pNode) {
+    return new TimeOutHeuristicsData(System.currentTimeMillis(), false);
+  }
+
+  @Override
+  public TimeOutHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
+    TimeOutHeuristicsData d = (TimeOutHeuristicsData)pData;
+    if (d == TimeOutHeuristicsData.BOTTOM)
+      return d;
     else
-      return TrivialStopHeuristicsData.TOP;
-  }
-
-  @Override
-  public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
-    return (TrivialStopHeuristicsData)pData;
+      if (System.currentTimeMillis() > d.getTime() + threshold)
+        return TimeOutHeuristicsData.BOTTOM;
+      else
+        return d;
   }
 
 }

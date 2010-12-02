@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -95,7 +95,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     Class<?>[] argsTypes = {Configuration.class, LogManager.class}; 
     for (String heuristicsName : heuristicsNames) {
       if (!heuristicsName.contains(".")) {
-        heuristicsName = "org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver." + heuristicsName;
+        heuristicsName = "org.sosy_lab.cpachecker.cpa.assumptions.progressobserver." + heuristicsName;
       }
       try {
         Class<?> cls = Class.forName(heuristicsName);

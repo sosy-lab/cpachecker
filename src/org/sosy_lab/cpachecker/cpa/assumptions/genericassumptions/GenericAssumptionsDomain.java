@@ -21,19 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 
+package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-/**
- * Data that needs to be tracked by a stopping heuristics
- * @author g.theoduloz
- */
-public interface StopHeuristicsData {
-  public boolean isBottom();
-  public boolean isTop();
-  public boolean isLessThan(StopHeuristicsData d);
-  // should we stop analysis when we hit bottom
-  // this returns true when time or memory limit for analysis
-  // is hit
-  public boolean shouldTerminateAnalysis();
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+public class GenericAssumptionsDomain extends FlatLatticeDomain {
+
+  public GenericAssumptionsDomain(AbstractElement top) {
+    super(top);
+  }
+
+  @Override
+  public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
+    throw new UnsupportedOperationException();
+  }
 }

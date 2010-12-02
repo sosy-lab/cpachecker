@@ -21,21 +21,24 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+/**
+ * Abstraction of a class that generates generic
+ * assumption invariants from CFA edges
+ * @author g.theoduloz
+ */
+public interface GenericAssumptionBuilder {
 
-public class GenericAssumptionsDomain extends FlatLatticeDomain {
+  /**
+   * Returns the assumption predicate that the system assumes when
+   * it encounters the given edge. The assumption is evaluated in
+   * the pre-state of the edge.
+   * @return A non-null predicate representing the assumptions
+   */
+  public IASTNode assumptionsForEdge(CFAEdge edge);
 
-  public GenericAssumptionsDomain(AbstractElement top) {
-    super(top);
-  }
-
-  @Override
-  public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
-    throw new UnsupportedOperationException();
-  }
 }

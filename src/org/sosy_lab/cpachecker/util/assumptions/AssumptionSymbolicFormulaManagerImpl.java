@@ -36,7 +36,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cpa.assumptions.collector.genericassumptions.ArithmeticOverflowAssumptionBuilder;
+import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;

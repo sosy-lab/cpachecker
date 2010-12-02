@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 /**
  * Trivial heuristics data to represent only top and bottom.
