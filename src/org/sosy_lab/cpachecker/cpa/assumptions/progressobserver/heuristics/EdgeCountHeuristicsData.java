@@ -21,13 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import com.google.common.base.Function;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
 /**
  * @author g.theoduloz

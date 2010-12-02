@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
@@ -29,6 +29,10 @@ import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
 
 public class MemoryOutHeuristics
 implements StopHeuristics<TrivialStopHeuristicsData>

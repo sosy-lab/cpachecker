@@ -21,10 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -36,30 +39,32 @@ import org.sosy_lab.common.configuration.Configuration;
 /**
  * @author g.theoduloz
  */
-public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsData> {
-
+public class RepetitionsInPathHeuristics
+  implements StopHeuristics<RepetitionsInPathHeuristicsData>
+{
   private final Function<? super CFAEdge, Integer> thresholdFunction;
 
-  public EdgeCountHeuristics(Configuration config, LogManager logger)
+  public RepetitionsInPathHeuristics(Configuration config, LogManager logger)
   {
-    // Initialise the threshold function
-    int staticThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
-    thresholdFunction = Functions.constant((staticThreshold <= 0) ? null : staticThreshold);
+    int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
+    thresholdFunction = Functions.constant((configThreshold <= 0) ? null : configThreshold);
   }
 
   @Override
-  public EdgeCountHeuristicsData getInitialData(CFANode node) {
-    return new EdgeCountHeuristicsData(node);
+  public RepetitionsInPathHeuristicsData getInitialData(CFANode pNode) {
+    return new RepetitionsInPathHeuristicsData();
   }
 
   @Override
-  public EdgeCountHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
-    return ((EdgeCountHeuristicsData)pData).collectData(pReached);
+  public RepetitionsInPathHeuristicsData collectData(StopHeuristicsData pData,
+      ReachedHeuristicsDataSetView pReached) {
+    return (RepetitionsInPathHeuristicsData)pData;
   }
 
   @Override
-  public EdgeCountHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
-    return ((EdgeCountHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
+  public RepetitionsInPathHeuristicsData processEdge(StopHeuristicsData pData,
+      CFAEdge pEdge) {
+    return ((RepetitionsInPathHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
   }
 
 }
