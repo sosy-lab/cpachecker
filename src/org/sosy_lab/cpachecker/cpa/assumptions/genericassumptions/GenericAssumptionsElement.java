@@ -60,6 +60,11 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
     else
       return false;
   }
+  
+  @Override
+  public int hashCode() {
+    return assumption.hashCode();
+  }
 
   @Override
   public String toString() {
