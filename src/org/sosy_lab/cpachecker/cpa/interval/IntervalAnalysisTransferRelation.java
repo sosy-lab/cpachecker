@@ -571,6 +571,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param operator
    * @return the counter part of the given operator
    */
+  @SuppressWarnings("unused")
   private int flipOperator(int operator)
   {
     switch(operator)

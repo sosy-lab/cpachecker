@@ -29,7 +29,7 @@ import java.io.IOException;
 
 import static org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym.*;
 
-@SuppressWarnings("unused")
+@SuppressWarnings("all")
 %%
 
 %class FQLLexer

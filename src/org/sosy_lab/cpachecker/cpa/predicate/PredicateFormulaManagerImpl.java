@@ -1076,6 +1076,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
     return f;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
     Collection<Formula> atoms;
