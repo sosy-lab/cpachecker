@@ -38,7 +38,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,6 +65,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 {
   private static final int OFFSET_ARITHMETIC_OPERATOR = 17;
   private static final int OFFSET_LOGIC_OPERATOR = 13;
+
+  /**
+   * base name of the variable that is introduced to pass results from returning function calls
+   */
+  private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   private final Set<String> globalVars = new HashSet<String>();
 
@@ -144,6 +148,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
   /**
    * Handles return from one function to another function.
+   *
    * @param element previous abstract element.
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
@@ -155,8 +160,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     IASTExpression expression = summaryEdge.getExpression();
 
-    IntervalAnalysisElement previousElem = element.getPreviousElement();
-    IntervalAnalysisElement newElement = previousElem.clone();
+    IntervalAnalysisElement newElement = element.getPreviousElement().clone();
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
@@ -170,64 +174,38 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       IASTExpression operand1 = binExp.getOperand1();
 
-      // we expect left hand side of the expression to be a variable
+      // left hand side of the expression has to be a variable
       if(operand1 instanceof IASTIdExpression)
       {
-        String variableName = operand1.getRawSignature();
+        String assignedVariableName = operand1.getRawSignature();
 
-        String returnVariableName = calledFunctionName + "::" + "___cpa_temp_result_var_";
+        String returnedVariableName = calledFunctionName + "::" + RETURN_VARIABLE_BASE_NAME;
 
         for(String globalVar : globalVars)
         {
-          if(globalVar.equals(variableName))
+          // if the assigned variable represents global variable, set the global variable to the value of the returning variable or unknown
+          if(globalVar.equals(assignedVariableName))
           {
-            if(element.getNoOfReferences().containsKey(globalVar) && element.getNoOfReferences().get(globalVar).intValue() >= this.threshold)
-            {
-              newElement.removeInterval(globalVar);
-              newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-            }
+            Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
 
-            else
-            {
-              if(element.contains(returnVariableName))
-                newElement.addInterval(variableName, element.getInterval(returnVariableName), this.threshold);
-
-              else
-                newElement.removeInterval(variableName);
-            }
+            newElement.addInterval(globalVar, interval, this.threshold);
           }
 
+          // import the global variables into the scope of the called function
           else
           {
-            if(element.getNoOfReferences().containsKey(globalVar) && element.getNoOfReferences().get(globalVar).intValue() >= this.threshold)
-            {
-              newElement.removeInterval(globalVar);
-              newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-            }
+            Interval interval = element.contains(globalVar) ? element.getInterval(globalVar) : Interval.createUnboundInterval();
 
-            else
-            {
-              if(element.contains(globalVar))
-              {
-                newElement.addInterval(globalVar, element.getInterval(globalVar), this.threshold);
-                newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-              }
-
-              else
-                newElement.removeInterval(variableName);
-            }
+            newElement.addInterval(globalVar, interval, this.threshold);
           }
         }
 
-        if(!globalVars.contains(variableName))
+        // set the value of the assigned variable to the value of the returned variable
+        if(!globalVars.contains(assignedVariableName))
         {
-          String assignedVarName = constructVariableName(variableName, callerFunctionName);
+          Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
 
-          if(element.contains(returnVariableName))
-            newElement.addInterval(assignedVarName, element.getInterval(returnVariableName), this.threshold);
-
-          else
-            newElement.removeInterval(assignedVarName);
+          newElement.addInterval(constructVariableName(assignedVariableName, callerFunctionName), interval, this.threshold);
         }
       }
 
@@ -235,12 +213,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
     }
 
-    // TODO is g(b); <-- same as below !?!?!
-    else if(expression instanceof IASTUnaryExpression)
-      ;
-
-    // TODO is g(b);  <-- same as above !?!?!
-    else if(expression instanceof IASTFunctionCallExpression)
+    // anything TODO on code like this? g(b);
+    else if(expression instanceof IASTUnaryExpression || expression instanceof IASTFunctionCallExpression)
       ;
 
     else
@@ -249,7 +223,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return newElement;
   }
 
-  private IntervalAnalysisElement handleFunctionCall(IntervalAnalysisElement element, FunctionCallEdge callEdge)
+  /**
+   * This method handles function calls.
+   *
+   * @param previousElement the previous element of the analysis, before the function call
+   * @param callEdge the respective CFA edge
+   * @return the successor element
+   * @throws UnrecognizedCCodeException
+   */
+  private IntervalAnalysisElement handleFunctionCall(IntervalAnalysisElement previousElement, FunctionCallEdge callEdge)
     throws UnrecognizedCCodeException
   {
     FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
@@ -257,81 +239,38 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
-    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments = callEdge.getArguments();
+    List<String> parameterNames = functionEntryNode.getFunctionParameterNames();
+    IASTExpression[] arguments  = callEdge.getArguments();
 
     if(arguments == null)
       arguments = new IASTExpression[0];
 
-    assert(paramNames.size() == arguments.length);
+    assert(parameterNames.size() == arguments.length);
 
-    IntervalAnalysisElement newElement = new IntervalAnalysisElement(element);
+    IntervalAnalysisElement newElement = new IntervalAnalysisElement(previousElement);
 
+    // import global variables into the current scope first
     for(String globalVar : globalVars)
     {
-      if(element.contains(globalVar))
-      {
-        newElement.getIntervals().put(globalVar, element.getInterval(globalVar));
-        newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-      }
+      if(previousElement.contains(globalVar))
+        newElement.addInterval(globalVar, previousElement.getInterval(globalVar), threshold);
     }
 
-    for(int i=0; i<arguments.length; i++)
+    // set the interval of each formal parameter to the interval of its respective actual parameter
+    for(int i = 0; i < arguments.length; i++)
     {
-      IASTExpression arg = arguments[i];
+      Interval interval = getInterval(previousElement, arguments[i], callerFunctionName, callEdge);
 
-      // ignore casts
-      if(arg instanceof IASTCastExpression)
-        arg = ((IASTCastExpression)arg).getOperand();
+      String formalParameterName = constructVariableName(parameterNames.get(i), calledFunctionName);
 
-      String nameOfParam = paramNames.get(i);
-      String formalParamName = constructVariableName(nameOfParam, calledFunctionName);
-
-      if(arg instanceof IASTIdExpression)
-      {
-        IASTIdExpression idExp = (IASTIdExpression) arg;
-        String nameOfArg = idExp.getRawSignature();
-        String actualParamName = constructVariableName(nameOfArg, callerFunctionName);
-
-        if(element.contains(actualParamName))
-          newElement.addInterval(formalParamName, element.getInterval(actualParamName), this.threshold);
-      }
-
-      else if(arg instanceof IASTLiteralExpression)
-      {
-        Long literalValue = parseLiteral(arg);
-
-        if (literalValue != null)
-          newElement.addInterval(formalParamName, new Interval(literalValue), this.threshold);
-
-        else
-          newElement.removeInterval(formalParamName);
-      }
-
-      else if(arg instanceof IASTTypeIdExpression)
-        newElement.removeInterval(formalParamName);
-
-      else if(arg instanceof IASTUnaryExpression)
-      {
-        IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
-        assert(unaryExp.getOperator() == IASTUnaryExpression.op_star || unaryExp.getOperator() == IASTUnaryExpression.op_amper);
-      }
-
-      else if(arg instanceof IASTFunctionCallExpression)
-        assert(false);
-
-      else if(arg instanceof IASTFieldReference)
-        newElement.removeInterval(formalParamName);
-
-      else
-        newElement.removeInterval(formalParamName);
+      newElement.addInterval(formalParameterName, interval, this.threshold);
     }
 
     return newElement;
   }
 
   /**
-   * This method handles statement edge which leads the function to the last node of its CFA (not same as a return edge).
+   * This method handles the statement edge which leads the function to the last node of its CFA (not same as a return edge).
    *
    * @author loewe
    * @param element the analysis element
@@ -342,7 +281,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private IntervalAnalysisElement handleExitFromFunction(IntervalAnalysisElement element, IASTExpression expression, StatementEdge statementEdge)
     throws UnrecognizedCCodeException
   {
-    return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, statementEdge);
+    // assign the value of the function return to a new variable
+    return handleAssignmentToVariable(element, RETURN_VARIABLE_BASE_NAME, expression, statementEdge);
   }
 
   /**
@@ -1050,7 +990,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       Long value = parseLiteral(expression);
 
-      return (value == null) ? null : new Interval(value, value);
+      return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
     }
 
     else if(expression instanceof IASTIdExpression)
@@ -1079,9 +1019,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         case IASTUnaryExpression.op_bracketedPrimary:
           return getInterval(element, unaryOperand, functionName, cfaEdge);
-
-        case IASTUnaryExpression.op_amper:
-          return null; // TODO valid expression, but it's a pointer value
 
         default:
           throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);

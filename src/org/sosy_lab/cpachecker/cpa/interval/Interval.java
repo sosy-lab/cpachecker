@@ -84,6 +84,17 @@ public class Interval
   }
 
   @Override
+  public int hashCode()
+  {
+    int result = 17;
+
+    result = 31 * result + low.hashCode();
+    result = 31 * result + high.hashCode();
+
+    return result;
+  }
+
+  @Override
   public Interval clone()
   {
     return new Interval(low, high);

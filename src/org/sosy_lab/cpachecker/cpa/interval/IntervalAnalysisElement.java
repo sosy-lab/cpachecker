@@ -56,16 +56,6 @@ public class IntervalAnalysisElement implements AbstractElement
     this.previousElement  = previousElement;
   }
 
-  public Map<String, Interval> getIntervals()
-  {
-    return intervals;
-  }
-
-  public Map<String, Integer> getNoOfReferences()
-  {
-    return referenceCounts;
-  }
-
   // see ExplicitElement::getValueFor
   public Interval getInterval(String variableName)
   {
@@ -128,6 +118,35 @@ public class IntervalAnalysisElement implements AbstractElement
     }
 
     return this;
+  }
+
+  public IntervalAnalysisElement join(IntervalAnalysisElement reachedElement)
+  {
+    Map<String, Interval> newIntervals = new HashMap<String, Interval>();
+    Map<String, Integer> newReferences = new HashMap<String, Integer>();
+
+    newReferences.putAll(referenceCounts);
+
+    for(String variableName : reachedElement.intervals.keySet())
+    {
+      if(intervals.containsKey(variableName))
+      {
+        // update the interval
+        Interval currentInterval  = intervals.get(variableName);
+        Interval reachedInterval  = reachedElement.intervals.get(variableName);
+        Interval union            = currentInterval.union(reachedInterval);
+        newIntervals.put(variableName, union);
+
+        // update the references
+        newReferences.put(variableName, Math.max(referenceCounts.get(variableName), reachedElement.referenceCounts.get(variableName)));
+      }
+
+      // if the first map does not contain the variable, update the references
+      else
+        newReferences.put(variableName, reachedElement.referenceCounts.get(variableName));
+    }
+
+    return new IntervalAnalysisElement(newIntervals, newReferences, previousElement);
   }
 
   @Override

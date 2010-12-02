@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -57,44 +56,6 @@ public class IntervalAnalysisDomain implements AbstractDomain
     @Override
     public AbstractElement join(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {
-      IntervalAnalysisElement currentElement  = (IntervalAnalysisElement) currentAbstractElement;
-      IntervalAnalysisElement reachedElement  = (IntervalAnalysisElement) reachedAbstractElement;
-
-      Map<String, Interval> currentIntervals  = currentElement.getIntervals();
-      Map<String, Interval> reachedIntervals  = reachedElement.getIntervals();
-
-      Map<String, Integer> currentReferences  = currentElement.getNoOfReferences();
-      Map<String, Integer> reachedReferences  = reachedElement.getNoOfReferences();
-
-      Map<String, Interval> newIntervals      = new HashMap<String, Interval>();
-      Map<String, Integer> newReferences      = new HashMap<String, Integer>();
-
-      newReferences.putAll(currentReferences);
-
-      for(String key : reachedIntervals.keySet())
-      {
-        if(currentIntervals.containsKey(key))
-        {
-          Interval currentInterval = currentIntervals.get(key);
-          Interval reachedInterval = reachedIntervals.get(key);
-//System.out.println("current key: " + key);
-//System.out.println("currentInterval: " + currentInterval);
-//System.out.println("reachedInterval: " + reachedInterval);
-          Interval union = currentInterval.union(reachedInterval);
-//System.out.println("union: " + union);
-//System.out.println();
-          newIntervals.put(key, union);
-
-          // update the references
-          newReferences.put(key, Math.max(currentReferences.get(key), reachedReferences.get(key)));
-        }
-
-        // if the first map does not contain the variable, update the references
-        else
-          newReferences.put(key, reachedReferences.get(key));
-      }
-
-      return new IntervalAnalysisElement(newIntervals, newReferences, currentElement.getPreviousElement());
+      return ((IntervalAnalysisElement)currentAbstractElement).join((IntervalAnalysisElement)reachedAbstractElement);
     }
-
 }
