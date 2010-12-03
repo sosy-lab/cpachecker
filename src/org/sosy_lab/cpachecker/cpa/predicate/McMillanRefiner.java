@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
   private final RegionManager regionManager;
-  private final PredicateFormulaManager formulaManager;
+  private final PredicateRefinementManager<?,?> formulaManager;
 
   private final LogManager logger;
   

@@ -97,7 +97,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final RegionManager regionManager;
-  private final PredicateFormulaManagerImpl<?, ?> formulaManager;
+  private final PredicateRefinementManager<?, ?> formulaManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
@@ -134,7 +134,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new PredicateFormulaManagerImpl<Integer, Integer>(regionManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    formulaManager = new PredicateRefinementManager<Integer, Integer>(regionManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
     transfer = new PredicateTransferRelation(this);
     
     topElement = new PredicateAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstractionFormula(null));    
@@ -196,7 +196,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return regionManager;
   }
 
-  protected PredicateFormulaManagerImpl<?, ?> getFormulaManager() {
+  protected PredicateRefinementManager<?, ?> getFormulaManager() {
     return formulaManager;
   }
 

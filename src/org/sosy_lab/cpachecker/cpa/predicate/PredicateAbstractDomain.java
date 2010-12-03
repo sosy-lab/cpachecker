@@ -45,7 +45,7 @@ public final class PredicateAbstractDomain implements AbstractDomain {
   public final Timer symbolicCoverageCheckTimer = new Timer();
   
   private final RegionManager mRegionManager;
-  private final PredicateFormulaManager mgr;
+  private final PredicateAbstractionManager mgr;
     
   public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);

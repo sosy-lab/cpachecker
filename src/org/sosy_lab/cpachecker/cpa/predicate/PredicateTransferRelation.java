@@ -100,7 +100,7 @@ public class PredicateTransferRelation implements TransferRelation {
   int pathFormulaCacheHits = 0;
   
   private final LogManager logger;
-  private final PredicateFormulaManager formulaManager;
+  private final PredicateAbstractionManager formulaManager;
 
   // pathFormula computation cache
   private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache;

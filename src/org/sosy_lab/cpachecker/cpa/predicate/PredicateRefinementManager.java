@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,138 +42,88 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 
-@Options(prefix="cpa.predicate")
-class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl implements PredicateFormulaManager {
+@Options(prefix="cpa.predicate.refinement")
+class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
 
   static class Stats {
-    public int numCallsAbstraction = 0;
-    public int numSymbolicAbstractions = 0;
-    public int numSatCheckAbstractions = 0;
-    public int numCallsAbstractionCached = 0;
-    public long abstractionSolveTime = 0;
-    public long abstractionMaxSolveTime = 0;
-    
-    public long abstractionBddTime = 0;
-    public long abstractionMaxBddTime = 0;
-    public long allSatCount = 0;
-    public int maxAllSatCount = 0;
-
     public final Timer cexAnalysisTimer = new Timer();
     public final Timer cexAnalysisSolverTimer = new Timer();
     public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   }
   
-  final Stats stats;
+  final Stats refStats;
 
-  private final AbstractionManager amgr;
-  private final TheoremProver thmProver;
   private final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
 
   private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
 
-  @Option(name="abstraction.cartesian")
-  private boolean cartesianAbstraction = false;
-
-  @Option(name="abstraction.dumpHardQueries")
-  private boolean dumpHardAbstractions = false;
-
-  @Option(name="refinement.getUsefulBlocks")
+  @Option
   private boolean getUsefulBlocks = false;
 
-  @Option(name="refinement.shortestCexTrace")
+  @Option(name="shortestCexTrace")
   private boolean shortestTrace = false;
 
-  @Option(name="refinement.atomicPredicates")
+  @Option
   private boolean atomicPredicates = true;
 
-  @Option(name="refinement.splitItpAtoms")
+  @Option
   private boolean splitItpAtoms = false;
 
-  @Option(name="refinement.shortestCexTraceUseSuffix")
+  @Option(name="shortestCexTraceUseSuffix")
   private boolean useSuffix = false;
 
-  @Option(name="refinement.shortestCexTraceZigZag")
+  @Option(name="shortestCexTraceZigZag")
   private boolean useZigZag = false;
 
-  @Option(name="refinement.addWellScopedPredicates")
+  @Option(name="addWellScopedPredicates")
   private boolean wellScopedPredicates = false;
 
-  @Option(name="refinement.dumpInterpolationProblems")
+  @Option
   private boolean dumpInterpolationProblems = false;
 
-  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE)
-  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
-  private final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
-  
-  @Option(name="refinement.timelimit")
+  @Option(name="timelimit")
   private long itpTimeLimit = 0;
 
-  @Option(name="refinement.changesolverontimeout")
+  @Option(name="changesolverontimeout")
   private boolean changeItpSolveOTF = false;
 
   @Option
-  private boolean useBitwiseAxioms = false;
-  
-  @Option(name="refinement.maxRefinementSize")
   private int maxRefinementSize = 0;
 
-  @Option
-  private boolean useCache = true;
-  
-  private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
-  //cache for cartesian abstraction queries. For each predicate, the values
-  // are -1: predicate is false, 0: predicate is don't care,
-  // 1: predicate is true
-  private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
-  private final Map<Formula, Boolean> feasibilityCache;
-
-  public PredicateFormulaManagerImpl(
+  public PredicateRefinementManager(
       RegionManager pRmgr,
       FormulaManager pFmgr,
       TheoremProver pThmProver,
@@ -182,19 +131,10 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pFmgr, config, pLogger);
+    super(pRmgr, pFmgr, pThmProver, config, pLogger);
     config.inject(this);
-    
-    if (formulaDumpFile != null) {
-      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
-    } else {
-      dumpHardAbstractions = false;
-      formulaDumpFilePattern = null;
-    }
 
-    stats = new Stats();
-    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
-    thmProver = pThmProver;
+    refStats = new Stats();
     firstItpProver = pItpProver;
     secondItpProver = pAltItpProver;
 
@@ -205,356 +145,6 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
 //      logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
 //      wellScopedPredicates = false;
 //    }
-
-    if (useCache) {
-      abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();
-    } else {
-      abstractionCache = null;
-    }
-    if (useCache && cartesianAbstraction) {
-      cartesianAbstractionCache = new HashMap<Pair<Formula, AbstractionPredicate>, Byte>();
-      feasibilityCache = new HashMap<Formula, Boolean>();
-    } else {
-      cartesianAbstractionCache = null;
-      feasibilityCache = null;
-    }
-  }
-
-  /**
-   * Abstract post operation.
-   */
-  @Override
-  public AbstractionFormula buildAbstraction(
-      AbstractionFormula abstractionFormula, PathFormula pathFormula,
-      Collection<AbstractionPredicate> predicates) {
-
-    stats.numCallsAbstraction++;
-
-    if (predicates.isEmpty()) {
-      stats.numSymbolicAbstractions++;
-      return makeTrueAbstractionFormula(pathFormula.getFormula());
-    }
-
-    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
-    logger.log(Level.ALL, "Path formula:", pathFormula);
-    logger.log(Level.ALL, "Predicates:", predicates);
-    
-    Formula absFormula = abstractionFormula.asFormula();
-    Formula symbFormula = buildFormula(pathFormula.getFormula());
-    Formula f = fmgr.makeAnd(absFormula, symbFormula);
-    
-    // caching
-    Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
-    if (useCache) {
-      absKey = Pair.of(f, predicates);
-      AbstractionFormula result = abstractionCache.get(absKey);
-
-      if (result != null) {
-        // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asFormula(), result.getBlockFormula());
-        logger.log(Level.ALL, "Abstraction was cached, result is", result);
-        stats.numCallsAbstractionCached++;
-        return result;
-      }
-    }
-    
-    Region abs;
-    if (cartesianAbstraction) {
-      abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
-    } else {
-      abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
-    }
-    
-    Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
-    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
-
-    if (useCache) {
-      abstractionCache.put(absKey, result);
-    }
-    
-    return result;
-  }
-
-  private Region buildCartesianAbstraction(Formula f, SSAMap ssa,
-      Collection<AbstractionPredicate> predicates) {
-    final RegionManager rmgr = amgr.getRegionManager();  
-    
-    byte[] predVals = null;
-    final byte NO_VALUE = -2;
-    if (useCache) {
-      predVals = new byte[predicates.size()];
-      int predIndex = -1;
-      for (AbstractionPredicate p : predicates) {
-        ++predIndex;
-        Pair<Formula, AbstractionPredicate> key = Pair.of(f, p);
-        if (cartesianAbstractionCache.containsKey(key)) {
-          predVals[predIndex] = cartesianAbstractionCache.get(key);
-        } else {
-          predVals[predIndex] = NO_VALUE;
-        }
-      }
-    }
-
-    boolean skipFeasibilityCheck = false;
-    if (useCache) {
-      if (feasibilityCache.containsKey(f)) {
-        skipFeasibilityCheck = true;
-        if (!feasibilityCache.get(f)) {
-          // abstract post leads to false, we can return immediately
-          return rmgr.makeFalse();
-        }
-      }
-    }
-
-    Timer solveTimer = new Timer();
-    solveTimer.start();
-
-    thmProver.init();
-    try {
-
-      if (!skipFeasibilityCheck) {
-        //++stats.abstractionNumMathsatQueries;
-        boolean unsat = thmProver.isUnsat(f);
-        if (useCache) {
-          feasibilityCache.put(f, !unsat);
-        }
-        if (unsat) {
-          return rmgr.makeFalse();
-        }
-      } else {
-        //++stats.abstractionNumCachedQueries;
-      }
-
-      thmProver.push(f);
-      try {
-        Timer totBddTimer = new Timer();
-
-        Region absbdd = rmgr.makeTrue();
-
-        // check whether each of the predicate is implied in the next state...
-
-        int predIndex = -1;
-        for (AbstractionPredicate p : predicates) {
-          ++predIndex;
-          if (useCache && predVals[predIndex] != NO_VALUE) {
-            
-            totBddTimer.start();
-            Region v = p.getAbstractVariable();
-            if (predVals[predIndex] == -1) { // pred is false
-              v = rmgr.makeNot(v);
-              absbdd = rmgr.makeAnd(absbdd, v);
-            } else if (predVals[predIndex] == 1) { // pred is true
-              absbdd = rmgr.makeAnd(absbdd, v);
-            }
-            totBddTimer.stop();
-            
-            //++stats.abstractionNumCachedQueries;
-          } else {            
-            logger.log(Level.ALL, "DEBUG_1",
-                "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
-
-            // instantiate the definition of the predicate
-            Formula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
-            Formula predFalse = fmgr.makeNot(predTrue);
-
-            // check whether this predicate has a truth value in the next
-            // state
-            byte predVal = 0; // pred is neither true nor false
-
-            //++stats.abstractionNumMathsatQueries;
-            boolean isTrue = thmProver.isUnsat(predFalse);
-
-            if (isTrue) {
-              totBddTimer.start();
-              Region v = p.getAbstractVariable();
-              absbdd = rmgr.makeAnd(absbdd, v);
-              totBddTimer.stop();
-
-              predVal = 1;
-            } else {
-              // check whether it's false...
-              //++stats.abstractionNumMathsatQueries;
-              boolean isFalse = thmProver.isUnsat(predTrue);
-
-              if (isFalse) {
-                totBddTimer.start();
-                Region v = p.getAbstractVariable();
-                v = rmgr.makeNot(v);
-                absbdd = rmgr.makeAnd(absbdd, v);
-                totBddTimer.stop();
-
-                predVal = -1;
-              }
-            }
-
-            if (useCache) {
-              cartesianAbstractionCache.put(Pair.of(f, p), predVal);
-            }
-          }
-        }     
-        solveTimer.stop();
-
-        // update statistics
-        
-        long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
-        
-        stats.abstractionMaxBddTime =
-          Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
-        stats.abstractionBddTime += totBddTimer.getSumTime();
-        
-        stats.abstractionSolveTime += solveTime;
-        stats.abstractionMaxSolveTime =
-          Math.max(solveTime, stats.abstractionMaxSolveTime);
-
-        return absbdd;
-
-      } finally {
-        thmProver.pop();
-      }
-
-    } finally {
-      thmProver.reset();
-    }
-  }
-
-  private Formula buildFormula(Formula symbFormula) {
-
-    if (useBitwiseAxioms) {
-      Formula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bitwiseAxioms.isTrue()) {
-        symbFormula = fmgr.makeAnd(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-    
-    return symbFormula;
-  }
-
-  /**
-   * Checks if (a1 & p1) => a2
-   */
-  @Override
-  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
-    Formula absFormula = a1.asFormula();
-    Formula symbFormula = buildFormula(p1.getFormula()); 
-    Formula a = fmgr.makeAnd(absFormula, symbFormula);
-
-    Formula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
-
-    Formula toCheck = fmgr.makeAnd(a, fmgr.makeNot(b));
-
-    thmProver.init();
-    try {
-      return thmProver.isUnsat(toCheck);
-    } finally {
-      thmProver.reset();
-    }
-  }
-
-  private Region buildBooleanAbstraction(Formula f, SSAMap ssa,
-      Collection<AbstractionPredicate> predicates) {
-
-    // first, create the new formula corresponding to
-    // (symbFormula & edges from e to succ)
-    // TODO - at the moment, we assume that all the edges connecting e and
-    // succ have no statement or assertion attached (i.e. they are just
-    // return edges or gotos). This might need to change in the future!!
-    // (So, for now we don't need to to anything...)
-
-    // build the definition of the predicates, and instantiate them
-    // also collect all predicate variables so that the solver knows for which
-    // variables we want to have the satisfying assignments
-    Formula predDef = fmgr.makeTrue();
-    List<Formula> predVars = new ArrayList<Formula>(predicates.size());
-
-    for (AbstractionPredicate p : predicates) {
-      // get propositional variable and definition of predicate
-      Formula var = p.getSymbolicVariable();
-      Formula def = p.getSymbolicAtom();
-      if (def.isFalse()) {
-        continue;
-      }
-      def = fmgr.instantiate(def, ssa);
-      
-      // build the formula (var <-> def) and add it to the list of definitions
-      Formula equiv = fmgr.makeEquivalence(var, def);
-      predDef = fmgr.makeAnd(predDef, equiv);
-
-      predVars.add(var);
-    }
-    if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
-    }
-
-    // the formula is (abstractionFormula & pathFormula & predDef)
-    Formula fm = fmgr.makeAnd(f, predDef);
-
-    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
-
-    final Timer solveTimer = new Timer();
-    solveTimer.start();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr);
-    solveTimer.stop();
-    
-    // update statistics
-    int numModels = allSatResult.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
-    }
-    
-    long bddTime   = allSatResult.getTotalTime();
-    long solveTime = solveTimer.getSumTime() - bddTime;
-
-    stats.abstractionSolveTime += solveTime;
-    stats.abstractionBddTime   += bddTime;
-
-    stats.abstractionMaxBddTime =
-      Math.max(bddTime, stats.abstractionMaxBddTime);
-    stats.abstractionMaxSolveTime =
-      Math.max(solveTime, stats.abstractionMaxSolveTime);
-
-    // TODO dump hard abst
-    if (solveTime > 10000 && dumpHardAbstractions) {
-      // we want to dump "hard" problems...
-      String dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "input", 0);
-      dumpFormulaToFile(f, new File(dumpFile));
-
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predDef", 0);
-      dumpFormulaToFile(predDef, new File(dumpFile));
-
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predVars", 0);
-      printFormulasToFile(predVars, new File(dumpFile));
-    }
-
-    Region result = allSatResult.getResult();
-    logger.log(Level.ALL, "Abstraction computed, result is", result);
-    return result;
-  }
-
-  /**
-   * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-   * @param pAbstractionFormula the abstraction formula
-   * @param pPathFormula the path formula
-   * @return unsat(pAbstractionFormula & pPathFormula)
-   */
-  @Override
-  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
-    Formula absFormula = abstractionFormula.asFormula();
-    Formula symbFormula = buildFormula(pathFormula.getFormula());
-    Formula f = fmgr.makeAnd(absFormula, symbFormula);
-    logger.log(Level.ALL, "Checking satisfiability of formula", f);
-
-    thmProver.init();
-    try {
-      return thmProver.isUnsat(f);
-    } finally {
-      thmProver.reset();
-    }
   }
 
   /**
@@ -567,7 +157,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
     
-    stats.cexAnalysisTimer.start();
+    refStats.cexAnalysisTimer.start();
 
     logger.log(Level.FINEST, "Building counterexample trace");
 
@@ -615,7 +205,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
     // create a working environment
     pItpProver.init();
 
-    stats.cexAnalysisSolverTimer.start();
+    refStats.cexAnalysisSolverTimer.start();
 
     if (shortestTrace && getUsefulBlocks) {
       f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
@@ -625,7 +215,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
       int k = 0;
       for (Formula formula : f) {
         String dumpFile = String.format(formulaDumpFilePattern,
-                    "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
+                    "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
         dumpFormulaToFile(formula, new File(dumpFile));
       }
     }
@@ -652,7 +242,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
     assert itpGroupsIds.size() == f.size();
     assert !itpGroupsIds.contains(null); // has to be filled completely
 
-    stats.cexAnalysisSolverTimer.stop();
+    refStats.cexAnalysisSolverTimer.stop();
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
@@ -685,13 +275,13 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
         logger.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
 
-        stats.cexAnalysisSolverTimer.start();
+        refStats.cexAnalysisSolverTimer.start();
         Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-        stats.cexAnalysisSolverTimer.stop();
+        refStats.cexAnalysisSolverTimer.stop();
         
         if (dumpInterpolationProblems) {
           String dumpFile = String.format(formulaDumpFilePattern,
-                  "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
+                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
           dumpFormulaToFile(itp, new File(dumpFile));
         }
 
@@ -716,7 +306,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
 
           if (dumpInterpolationProblems) {
             String dumpFile = String.format(formulaDumpFilePattern,
-                        "interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
+                        "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
             Collection<Formula> atoms = Collections2.transform(preds,
                 new Function<AbstractionPredicate, Formula>(){
                       @Override
@@ -772,12 +362,12 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
           pItpProver.addFormula(formula);
           String dumpFile =
               String.format(formulaDumpFilePattern, "interpolation",
-                      stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
+                      refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
           dumpFormulaToFile(formula, new File(dumpFile));
         }
         String dumpFile =
             String.format(formulaDumpFilePattern, "interpolation",
-                stats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
+                refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
         dumpFormulaToFile(lastElement.getPathFormula()
             .getReachingPathsFormula(), new File(dumpFile));
         pItpProver.isUnsat();
@@ -799,7 +389,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
     pItpProver.reset();
 
     // update stats
-    stats.cexAnalysisTimer.stop();
+    refStats.cexAnalysisTimer.stop();
 
     logger.log(Level.ALL, "Counterexample information:", info);
 
@@ -807,35 +397,12 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
 
   }
   
-  @Override
   public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
     Formula f = fmgr.makeTrue();
     for (Formula part : cex.getCounterExampleFormulas()) {
       f = fmgr.makeAnd(f, part);
     }
     dumpFormulaToFile(f, file);
-  }
-
-  @Override
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    PathFormula pathFormula = makeEmptyPathFormula();
-    for (CFAEdge edge : pPath) {
-      pathFormula = makeAnd(pathFormula, edge);
-    }
-    Formula f = pathFormula.getFormula();
-    // ignore reachingPathsFormula here because it is just a simple path
-    
-    thmProver.init();
-    try {
-      thmProver.push(f);
-      if (thmProver.isUnsat(fmgr.makeTrue())) {
-        return new CounterexampleTraceInfo();
-      } else {
-        return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
-      }
-    } finally {
-      thmProver.reset();
-    }
   }
   
   /**
@@ -844,7 +411,6 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
    * This is used to detect timeouts for interpolation
    * @throws CPAException
    */
-  @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException {
     
@@ -969,7 +535,7 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
   private List<Formula> getUsefulBlocks(List<Formula> f,
       boolean suffixTrace, boolean zigZag) {
     
-    stats.cexAnalysisGetUsefulBlocksTimer.start();
+    refStats.cexAnalysisGetUsefulBlocksTimer.start();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
@@ -1071,13 +637,15 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
-    stats.cexAnalysisGetUsefulBlocksTimer.stop();
+    refStats.cexAnalysisGetUsefulBlocksTimer.stop();
 
     return f;
   }
 
+  /**
+   * Create predicates for all atoms in a formula.
+   */
   @SuppressWarnings("deprecation")
-  @Override
   public List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
     Collection<Formula> atoms;
     if (atomicPredicates) {
@@ -1139,39 +707,5 @@ class PredicateFormulaManagerImpl<T1, T2> extends PathFormulaManagerImpl impleme
     public CounterexampleTraceInfo call() throws CPAException {
       return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, currentItpProver);
     }
-  }
-  
-
-  private void dumpFormulaToFile(Formula f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, fmgr.dumpFormula(f));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
-  }
-
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-
-  private void printFormulasToFile(Iterable<Formula> f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, LINE_JOINER.join(f));
-    } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
-    }
-  }
-
-  // delegate methods
-  
-  @Override
-  public AbstractionPredicate makeFalsePredicate() {
-    return amgr.makeFalsePredicate();
-  }
-
-  @Override
-  public AbstractionFormula makeTrueAbstractionFormula(
-      Formula pPreviousBlockFormula) {
-    return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
   }
 }

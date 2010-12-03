@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 
 /**
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public class PredicateMergeOperator implements MergeOperator {
 
   private final LogManager logger;
-  private final PredicateFormulaManager formulaManager;
+  private final PathFormulaManager formulaManager;
 
   long totalMergeTime = 0;
 

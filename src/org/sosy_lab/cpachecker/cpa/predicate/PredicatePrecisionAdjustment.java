@@ -51,7 +51,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
-  private final PredicateFormulaManager formulaManager;
+  private final PredicateAbstractionManager formulaManager;
   
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();

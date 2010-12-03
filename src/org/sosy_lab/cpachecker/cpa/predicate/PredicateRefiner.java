@@ -84,7 +84,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   final Timer errorPathProcessing = new Timer();
 
   private final LogManager logger;
-  private final PredicateFormulaManager formulaManager;
+  private final PredicateRefinementManager<?,?> formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
   private Path targetPath;
   private List<CFANode> lastErrorPath = null;
