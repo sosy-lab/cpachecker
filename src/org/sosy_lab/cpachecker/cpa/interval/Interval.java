@@ -260,6 +260,11 @@ public class Interval
 */
   }
 
+  public Interval minus(int offset)
+  {
+    return plus(-offset);
+  }
+
   public Interval times(Interval interval)
   {
     Long[] values = {

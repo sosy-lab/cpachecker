@@ -149,6 +149,30 @@ public class IntervalAnalysisElement implements AbstractElement
     return new IntervalAnalysisElement(newIntervals, newReferences, previousElement);
   }
 
+  /**
+   * This method decides if this element is less or equal than the reached element, based on the order imposed by the lattice.
+   *
+   * @param reachedElement the reached element
+   * @return true, if this element is less or equal than the reached element, based on the order imposed by the lattice
+   */
+  public boolean isLessOrEqual(IntervalAnalysisElement reachedElement)
+  {
+    // this element is not less or equal than the reached element, if it contains less intervals
+    if(intervals.size() < reachedElement.intervals.size())
+      return false;
+
+    // also, this element is not less or equal than the reached element, if any one interval of the reached element is not contained in this element,
+    // or if the interval of the reached element is not wider than the respective interval of this element
+    for(String variableName : reachedElement.intervals.keySet())
+    {
+      if(!intervals.containsKey(variableName) || !reachedElement.getInterval(variableName).contains(getInterval(variableName)))
+        return false;
+    }
+
+    // else, this element < reached element on the lattice
+    return true;
+  }
+
   @Override
   public IntervalAnalysisElement clone()
   {

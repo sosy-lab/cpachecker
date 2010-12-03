@@ -386,21 +386,24 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       processAssumption(element, flipOperator(operator), operand2, operand1, truthValue, cfaEdge);
     */
 
-    Interval interval1 = getInterval(element, operand1, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
-    Interval interval2 = getInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
+    Interval orgInterval1  = getInterval(element, operand1, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
+    Interval tmpInterval1 = orgInterval1.clone();
 
-    // reduce <= to <
+    Interval orgInterval2  = getInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
+    Interval tmpInterval2 = orgInterval2.clone();
+
+    // reduce "<=" to "<"
     if(operator == IASTBinaryExpression.op_lessEqual)
     {
-      interval2 = interval2.plus(1);
-      operator = IASTBinaryExpression.op_lessThan;
+      tmpInterval2  = tmpInterval2.plus(1);
+      operator      = IASTBinaryExpression.op_lessThan;
     }
 
-    // reduce >= to >
+    // reduce ">=" to ">"
     else if(operator == IASTBinaryExpression.op_greaterEqual)
     {
-      interval1 = interval1.plus(1);
-      operator = IASTBinaryExpression.op_greaterThan;
+      tmpInterval1  = tmpInterval1.plus(1);
+      operator      = IASTBinaryExpression.op_greaterThan;
     }
 
     String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
@@ -410,16 +413,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     if(operator == IASTBinaryExpression.op_lessThan)
     {
       // a.low < b.high, so a may be less than b
-      if(interval1.getLow() < interval2.getHigh())
+      if(tmpInterval1.getLow() < tmpInterval2.getHigh())
       {
-        interval1.limitUpperBoundBy(interval2);
-        interval2.limitLowerBoundBy(interval1);
-
-        element.addInterval(variableName1, interval1, threshold);
-        element.addInterval(variableName2, interval2, threshold);
+        element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1)), threshold);
+        element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1)), threshold);
       }
 
-      // a.low is greater than b.high, so there can't be a succesor
+      // a.low is greater than b.high, so there can't be a successor
       else
         element = null;
     }
@@ -428,16 +428,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     else if(operator == IASTBinaryExpression.op_greaterThan)
     {
       // a.high > b.low, so a may be greater than b
-      if(interval1.getHigh() > interval2.getLow())
+      if(tmpInterval1.getHigh() > tmpInterval2.getLow())
       {
-        interval1.limitLowerBoundBy(interval2);
-        interval2.limitUpperBoundBy(interval1);
-
-        element.addInterval(variableName1, interval1, threshold);
-        element.addInterval(variableName2, interval2, threshold);
+        element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1)), threshold);
+        element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1)), threshold);
       }
 
-      // a.high is less than b.low, so a can't be greater than b, so there can't be a succesor
+      // a.high is less than b.low, so a can't be greater than b, so there can't be a successor
       else
         element = null;
     }
@@ -446,10 +443,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     else if(operator == IASTBinaryExpression.op_equals)
     {
       // a and b intersect, so they may have the same value, so they may be equal
-      if(interval1.intersects(interval2))
+      if(tmpInterval1.intersects(tmpInterval2))
       {
-        element.addInterval(variableName1, interval1.intersect(interval2), threshold);
-        element.addInterval(variableName2, interval2.intersect(interval1), threshold);
+        element.addInterval(variableName1, orgInterval1.intersect(tmpInterval2), threshold);
+        element.addInterval(variableName2, orgInterval2.intersect(tmpInterval1), threshold);
       }
 
       // a and b do not intersect, so they can't be equal, so there can't be a successor
@@ -461,7 +458,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     else if(operator == IASTBinaryExpression.op_notequals)
     {
       // a = [x, x] = b => a and b are always equal, so there can't be a successor
-      if(interval1.equals(interval2) && interval1.getLow() == interval1.getHigh())
+      if(tmpInterval1.equals(tmpInterval2) && tmpInterval1.getLow() == tmpInterval1.getHigh())
         element = null;
     }
     else

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
@@ -33,24 +31,7 @@ public class IntervalAnalysisDomain implements AbstractDomain
     @Override
     public boolean isLessOrEqual(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {
-      IntervalAnalysisElement currentElement = (IntervalAnalysisElement) currentAbstractElement;
-      IntervalAnalysisElement reachedElement = (IntervalAnalysisElement) reachedAbstractElement;
-
-      Map<String, Interval> currentIntervals = currentElement.getIntervals();
-      Map<String, Interval> reachedIntervals = reachedElement.getIntervals();
-
-      if(currentIntervals.size() < reachedIntervals.size())
-        return false;
-
-      // the partial order is not satisfied if any key of the reached element's map is missing in the current element's map or the value of a common key differs
-      for(String key : reachedIntervals.keySet())
-      {
-        if(!currentIntervals.containsKey(key) || !reachedIntervals.get(key).contains(currentIntervals.get(key)))
-          return false;
-      }
-
-      // return true if element1 < element2 on lattice
-      return true;
+      return ((IntervalAnalysisElement)currentAbstractElement).isLessOrEqual((IntervalAnalysisElement)reachedAbstractElement);
     }
 
     @Override
