@@ -109,7 +109,7 @@ public class PredicateTransferRelation implements TransferRelation {
     pCpa.getConfiguration().inject(this);
 
     logger = pCpa.getLogger();
-    formulaManager = pCpa.getFormulaManager();
+    formulaManager = pCpa.getPredicateManager();
     
     pathFormulaCache = useCache ? new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>() : null;
   }

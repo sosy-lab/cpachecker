@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -97,7 +98,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final RegionManager regionManager;
-  private final PredicateRefinementManager<?, ?> formulaManager;
+  private final FormulaManager formulaManager;
+  private final PredicateRefinementManager<?, ?> predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
@@ -108,13 +110,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.logger = logger;
 
     regionManager = BDDRegionManager.getInstance();
-    MathsatFormulaManager symbolicFormulaManager = new MathsatFormulaManager(config, logger);
+    MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
+    formulaManager = mathsatFormulaManager;
 
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager);
+      thmProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      thmProver = new YicesTheoremProver(symbolicFormulaManager);
+      thmProver = new YicesTheoremProver(mathsatFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -122,22 +125,22 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
+      itpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
       if(changeItpSolveOTF){
-        alternativeItpProver =  new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
+        alternativeItpProver =  new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
       }
     } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
+      itpProver = new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
       if(changeItpSolveOTF){
-        alternativeItpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false);
+        alternativeItpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
       }
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new PredicateRefinementManager<Integer, Integer>(regionManager, symbolicFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, mathsatFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
     transfer = new PredicateTransferRelation(this);
     
-    topElement = new PredicateAbstractElement.AbstractionElement(formulaManager.makeEmptyPathFormula(), formulaManager.makeTrueAbstractionFormula(null));    
+    topElement = new PredicateAbstractElement.AbstractionElement(predicateManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));    
     domain = new PredicateAbstractDomain(this);
     
     merge = new PredicateMergeOperator(this);
@@ -148,8 +151,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (predicatesFile != null) {
       try {
         String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        Formula f = symbolicFormulaManager.parse(fileContent);
-        predicates = formulaManager.getAtomsAsPredicates(f);
+        Formula f = mathsatFormulaManager.parse(fileContent);
+        predicates = predicateManager.getAtomsAsPredicates(f);
       } catch (IllegalArgumentException e) {
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");
@@ -160,7 +163,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     
     if (checkBlockFeasibility) {
-      AbstractionPredicate p = formulaManager.makeFalsePredicate();
+      AbstractionPredicate p = predicateManager.makeFalsePredicate();
       if (predicates == null) {
         predicates = ImmutableSet.of(p);
       } else {
@@ -196,10 +199,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return regionManager;
   }
 
-  protected PredicateRefinementManager<?, ?> getFormulaManager() {
-    return formulaManager;
+  protected PredicateRefinementManager<?, ?> getPredicateManager() {
+    return predicateManager;
   }
 
+  public FormulaManager getFormulaManager() {
+    return formulaManager;
+  }
+  
   protected Configuration getConfiguration() {
     return config;
   }

@@ -58,7 +58,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     }
 
     regionManager = predicateCpa.getRegionManager();
-    formulaManager = predicateCpa.getFormulaManager();
+    formulaManager = predicateCpa.getPredicateManager();
     logger = predicateCpa.getLogger();
   }
 

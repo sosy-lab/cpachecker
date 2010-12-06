@@ -55,7 +55,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
-    formulaManager = pCpa.getFormulaManager();
+    formulaManager = pCpa.getPredicateManager();
   }
   
   @Override

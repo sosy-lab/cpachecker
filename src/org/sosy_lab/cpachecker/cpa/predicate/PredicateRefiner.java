@@ -99,7 +99,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     predicateCpa.getConfiguration().inject(this);
     logger = predicateCpa.getLogger();
-    formulaManager = predicateCpa.getFormulaManager();
+    formulaManager = predicateCpa.getPredicateManager();
     predicateCpa.getStats().addRefiner(this);
   }
 

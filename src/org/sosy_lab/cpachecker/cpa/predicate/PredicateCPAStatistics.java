@@ -77,7 +77,7 @@ class PredicateCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      PredicateRefinementManager<?, ?> amgr = cpa.getFormulaManager();
+      PredicateRefinementManager<?, ?> amgr = cpa.getPredicateManager();
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
