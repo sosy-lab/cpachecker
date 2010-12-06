@@ -89,7 +89,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
 
-  public void addAll(Collection<Pair<AbstractElement, Precision>> toAdd) {
+  public void addAll(Iterable<Pair<AbstractElement, Precision>> toAdd) {
     for (Pair<AbstractElement, Precision> pair : toAdd) {
       add(pair.getFirst(), pair.getSecond());
     }
@@ -119,7 +119,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
     reached.remove(element);
   }
 
-  public void removeAll(Collection<? extends AbstractElement> toRemove) {
+  public void removeAll(Iterable<? extends AbstractElement> toRemove) {
     for (AbstractElement element : toRemove) {
       remove(element);
     }
