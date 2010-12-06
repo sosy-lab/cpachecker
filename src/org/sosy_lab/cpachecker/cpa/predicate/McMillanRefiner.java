@@ -57,7 +57,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
-    regionManager = predicateCpa.getAbstractFormulaManager();
+    regionManager = predicateCpa.getRegionManager();
     formulaManager = predicateCpa.getFormulaManager();
     logger = predicateCpa.getLogger();
   }

@@ -49,7 +49,7 @@ public final class PredicateAbstractDomain implements AbstractDomain {
     
   public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
-    mRegionManager = pCpa.getAbstractFormulaManager();
+    mRegionManager = pCpa.getRegionManager();
     mgr = pCpa.getFormulaManager();
   }
   

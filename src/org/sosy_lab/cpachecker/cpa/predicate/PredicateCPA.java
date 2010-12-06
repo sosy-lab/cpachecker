@@ -192,7 +192,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return stop;
   }
 
-  protected RegionManager getAbstractFormulaManager() {
+  protected RegionManager getRegionManager() {
     return regionManager;
   }
 
