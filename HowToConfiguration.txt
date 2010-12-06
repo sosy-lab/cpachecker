@@ -225,6 +225,9 @@ cpa.assumptions.progressobserver.heuristics =
 # file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
 cpa.automaton.inputFile =
 
+# signal the analysis to break in case of reached error state
+cpa.automaton.breakOnTargetState = true
+
 # export automaton to file
 cpa.automaton.dotExport = false
 

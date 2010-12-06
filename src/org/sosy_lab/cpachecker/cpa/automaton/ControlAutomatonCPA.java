@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -94,10 +95,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
   @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE)
   private File inputFile = null;
+  
+  @Option
+  private boolean breakOnTargetState = true;
 
   private final Automaton automaton;
   private final AutomatonTransferRelation transferRelation;
-  private final AutomatonPrecisionAdjustment precisionAdjustment = new AutomatonPrecisionAdjustment();
+  private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
   private final AutomatonState topState = new AutomatonState.TOP(ControlAutomatonCPA.this);
@@ -112,7 +116,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     this.automaton = automaton;
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new AutomatonTransferRelation(automaton, logger);
-
+    precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
+    
     if (export && exportFile != null) {
       try {
         this.automaton.writeDotFile(new PrintStream(exportFile));
@@ -138,6 +143,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     automaton = parseAutomatonFile(logger, config);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new AutomatonTransferRelation(automaton, logger);
+    precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
 
     if (export) {
       try {
