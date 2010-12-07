@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -83,6 +83,9 @@ public class PredicateTransferRelation implements TransferRelation {
   
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
+  
+  @Option
+  private boolean targetStateSatCheck = true;
 
   // statistics
   final Timer postTimer = new Timer();
@@ -291,14 +294,14 @@ public class PredicateTransferRelation implements TransferRelation {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
         }
         
-        if ((lElement instanceof Targetable) && ((Targetable)lElement).isTarget()) {
+        if (AbstractElements.isTargetElement(lElement)) {
           errorFound = true;
         }
       }
   
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && !(element instanceof AbstractionElement)) {
+      if (errorFound && targetStateSatCheck && !(element instanceof AbstractionElement)) {
         element = strengthenSatCheck(element);
         if (element == null) {
           // successor not reachable
