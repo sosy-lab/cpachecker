@@ -99,6 +99,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecision initialPrecision;
   private final RegionManager regionManager;
   private final FormulaManager formulaManager;
+  private final TheoremProver theoremProver;
   private final PredicateRefinementManager<?, ?> predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
@@ -113,11 +114,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     formulaManager = mathsatFormulaManager;
 
-    TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
-      thmProver = new MathsatTheoremProver(mathsatFormulaManager);
+      theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      thmProver = new YicesTheoremProver(mathsatFormulaManager);
+      theoremProver = new YicesTheoremProver(mathsatFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -137,7 +137,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, mathsatFormulaManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, mathsatFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     transfer = new PredicateTransferRelation(this);
     
     topElement = new PredicateAbstractElement.AbstractionElement(predicateManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));    
@@ -205,6 +205,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public FormulaManager getFormulaManager() {
     return formulaManager;
+  }
+  
+  public TheoremProver getTheoremProver() {
+    return theoremProver;
   }
   
   protected Configuration getConfiguration() {
