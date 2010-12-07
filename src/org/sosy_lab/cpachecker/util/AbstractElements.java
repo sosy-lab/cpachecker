@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 /**
@@ -63,4 +64,15 @@ public final class AbstractElements {
       return isTargetElement(pArg0);
     }
   };
+  
+  public static <T extends AbstractElement>
+                Function<AbstractElement, T> extractElementByTypeFunction(final Class<T> pType) {
+    
+    return new Function<AbstractElement, T>() {
+      @Override
+      public T apply(AbstractElement ae) {
+        return extractElementByType(ae, pType);
+      }
+    };
+  }
 }
