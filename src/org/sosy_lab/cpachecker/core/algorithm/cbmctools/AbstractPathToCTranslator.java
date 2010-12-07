@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Stack;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -159,9 +158,9 @@ public class AbstractPathToCTranslator {
   }
 
   public static List<StringBuffer> translatePath(final ARTElement firstElement,
-                                        Collection<ARTElement> pElementsOnPath) {
+      Collection<ARTElement> pElementsOnPath) {
 
-//  ARTElement parentElement;
+    //  ARTElement parentElement;
     ARTElement childElement;
     CFAEdge edge;
     Stack<Stack<CBMCStackElement>> stack;
@@ -201,7 +200,7 @@ public class AbstractPathToCTranslator {
       // get the first element in the list (this is the smallest element when topologically sorted)
       CBMCEdge nextCBMCEdge = waitlist.remove(0);
 
-//    parentElement = nextCBMCEdge.getParentElement();
+      //    parentElement = nextCBMCEdge.getParentElement();
       childElement = nextCBMCEdge.getChildElement();
       edge = nextCBMCEdge.getEdge();
       stack = nextCBMCEdge.getStack();
@@ -219,10 +218,6 @@ public class AbstractPathToCTranslator {
 
         if (childElement.isTarget()) {
           lastStackElement.write("assert(0); // target state ");
-        }
-        
-        if(edge instanceof BlankEdge){
-          lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
         }
 
         // if this is a function call edge we need to create a new element and push
@@ -250,19 +245,16 @@ public class AbstractPathToCTranslator {
 
       // this is the end of the condition, determine whether we should continue or backtrack
       else if(sizeOfChildsParents > 1){
-        if(edge instanceof BlankEdge){
-          CBMCStackElement lastStackElement = stack.peek().peek();
-//          if(((BlankEdge)edge).getRawStatement().contains("Label:")){
-//            System.out.println(((BlankEdge)edge).getRawStatement());
-//            System.out.println(stack.peek().size());
-//            lastStackElement = stack.peek().get(stack.peek().size()-2);
-//            lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
-//          }
-//          else{
-            lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
-//          }
-        }
+        CBMCStackElement lastStackElement = stack.peek().peek();
         int elemId = childElement.getElementId();
+
+        if(!(edge instanceof BlankEdge)){
+          lastStackElement.write(processSimpleEdge(edge));
+        }
+
+        lastStackElement.write("goto label_" + elemId + ";");
+
+
         // get the merge node for that node
         CBMCMergeNode mergeNode = mergeNodes.get(elemId);
         // if null create new and put in the map
@@ -276,25 +268,13 @@ public class AbstractPathToCTranslator {
 
         // if all edges are processed
         if(sizeOfChildsParents == noOfProcessedBranches){
-          // all branches are processed, now decide which nodes to remove from the stack and
-          // write to the file accordingly - this set is the set of conditions that should
-          // terminate at this point
-          Set<Integer> setOfEndedBranches = mergeNode.getProcessedConditions();
+          // all branches are processed, now decide which nodes to remove from the stack
+          List<Stack<CBMCStackElement>> incomingStacks = mergeNode.getIncomingElements();
 
-          // traverse on the last stack and remove all elements that are in
-          // setOfEndedBranches set. The remaining elements to be transferred to
-          // the next elements stack
-          while(true){
-            CBMCStackElement elem = stack.peek().peek();
-            int idOfElem = elem.getElementId();
-            if(setOfEndedBranches.contains(idOfElem)){
-              // remove the condition from the stack
-              stack.peek().pop();
-            }
-            else{
-              break;
-            }
-          }
+          Stack<CBMCStackElement> lastStack = processIncomingStacks(incomingStacks);
+          stack.pop();
+          stack.push(lastStack);
+          lastStack.peek().write("label_" + elemId + ": ;");
         }
         else{
           continue;
@@ -373,8 +353,8 @@ public class AbstractPathToCTranslator {
         }
       }
     }
-    
-    
+
+
     List<StringBuffer> retList = new ArrayList<StringBuffer>();
 
     for(CBMCStackElement stackElem: functions){
@@ -384,6 +364,40 @@ public class AbstractPathToCTranslator {
     return retList;
   }
 
+
+  //  private static void processClosedBranches(CBMCStackElement pElem,
+  //      Stack<CBMCStackElement> pPeek) {
+  //    while(true){
+  //      if(pPeek.pop().equals(pElem)){
+  //        return;
+  //      }
+  //    }
+  //  }
+
+  private static Stack<CBMCStackElement> processIncomingStacks(
+      List<Stack<CBMCStackElement>> pIncomingStacks) {
+
+    Stack<CBMCStackElement> maxStack = null;
+    int maxSizeOfStack = 0;
+    
+    for(Stack<CBMCStackElement> stack: pIncomingStacks){
+      while(true){
+        if(stack.peek().isClosedBefore()){
+          stack.pop();
+        }
+        else{
+          break;
+        }
+      }
+      if(stack.size() > maxSizeOfStack){
+        maxStack = stack;
+        maxSizeOfStack = maxStack.size();
+      }
+    }
+
+    return maxStack;
+
+  }
 
   private static String processSimpleEdge(CFAEdge pCFAEdge){
 
@@ -407,7 +421,7 @@ public class AbstractPathToCTranslator {
       }
 
       return ("__CPROVER_assume(" + lAssumptionString + ");");
-//      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
+      //      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;

@@ -34,6 +34,9 @@ public class CBMCStackElement {
   private int elementId;
   // true for if, false for else
   private boolean condition;
+  // was this condition closed by another merge node before?
+  private boolean isClosedBefore = false;
+
   // this is the code of this element
   private List<Object> codeList;
 
@@ -64,6 +67,14 @@ public class CBMCStackElement {
 
   public void setCondition(boolean pCondition) {
     condition = pCondition;
+  }
+  
+  public boolean isClosedBefore() {
+    return isClosedBefore;
+  }
+
+  public void setClosedBefore(boolean pIsClosedBefore) {
+    isClosedBefore = pIsClosedBefore;
   }
 
   public void write(Object pStatement){
@@ -98,7 +109,7 @@ public class CBMCStackElement {
 
   @Override
   public String toString() {
-    return "Element id: " + elementId + " Condition: " + condition;
+    return "Element id: " + elementId + " Condition: " + condition + " .. is closed " + isClosedBefore;
   }
 
 }
