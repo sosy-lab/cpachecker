@@ -35,8 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
  * @author rhein
  */
 public class Automaton {
-  // default name of this automaton is "anonymous".
-  private String name = "anonymous";
+  private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
@@ -44,8 +43,9 @@ public class Automaton {
   private final List<AutomatonInternalState> states;
   private final AutomatonInternalState initState;
 
-  public Automaton(Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
+  public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInit, LogManager pLogger) throws InvalidAutomatonException {
+    this.name = pName;
     this.initVars = pVars;
     this.states = pStates;
     
@@ -71,9 +71,6 @@ public class Automaton {
     }
   }
 
-  public void setName(String pName) {
-    this.name = pName;
-  }
   public String getName() {
     return name;
   }

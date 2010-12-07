@@ -78,7 +78,7 @@ parser code {:
     logger.log(Level.INFO, errorString);
   }
   
-  public Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
+  Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
     AutomatonTransition trans = new AutomatonTransition(
         AutomatonBoolExpr.TRUE, 
         Collections.singletonList(pA),
@@ -86,9 +86,9 @@ parser code {:
         "OK");
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
         Collections.singletonList(trans));
-    Automaton ret = new Automaton(Collections.<String, AutomatonVariable>emptyMap(), 
-        Collections.singletonList(okState), "OK", logger);
-    ret.setName("AnonymousAutomaton" + anonymousCounter++);
+    Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
+                                  Collections.<String, AutomatonVariable>emptyMap(), 
+                                  Collections.singletonList(okState), "OK", logger);
     return ret;
   }
   /**
@@ -101,7 +101,6 @@ parser code {:
       input = new FileInputStream(pInputFile);
       Symbol symbol = new AutomatonParser(new AutomatonScanner(input, config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
-      //return (Automaton)symbol.value;
     } catch (Exception e) {
       pLogger.logException(Level.FINER, e, "Could not load automaton from file " + pInputFile.getAbsolutePath());
       throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
@@ -123,7 +122,8 @@ parser code {:
 
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST ;
 non terminal List<Automaton> initial ;  
-non terminal Automaton automaton ;
+non terminal Automaton Specification ;
+non terminal Automaton Automaton ;
 non terminal String InitDef ;
 non terminal Automaton Body ;
 non terminal Map<String, AutomatonVariable> LocalDefs ;
@@ -134,6 +134,7 @@ non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
 non terminal AutomatonInternalState StateDef ;
+non terminal Boolean StateNonDetDef ;
 non terminal AutomatonTransition Transition ;
 non terminal AutomatonBoolExpr Assertion ;
 non terminal AutomatonAction Action ;
@@ -152,25 +153,28 @@ precedence left EQEQ, NEQ;
 precedence left EXCLAMATION;
 //precedence left EVAL;
 
-initial ::= automaton:a initial:lst {: lst.add(0, a); RESULT = lst; :}
-              | /* empty */ {: RESULT = new LinkedList<Automaton>(); :}
-              ;
+initial ::= Specification:s initial:lst {: lst.add(0, s); RESULT = lst; :}
+          | /* empty */ {: RESULT = new LinkedList<Automaton>(); :}
+          ;
 
-automaton ::= OBSERVER AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
-				{: b.setName(id.toString()); b.assertObserverAutomaton();
-				   RESULT = b; parser.initVariablesMap(); 
-				:}
-              | CONTROL AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
-              	{: b.setName(id.toString()); RESULT = b; parser.initVariablesMap(); :}
-              | AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
-              	{: b.setName(id.toString()); RESULT = b; parser.initVariablesMap(); :}
-              	// the CONTROL keyword is optional
-              | Assertion:a SEMICOLON 
-              	{: RESULT = parser.generateSkeletonForAssertion(a); parser.initVariablesMap(); :} 
+Specification ::= Automaton:a
+                  {: RESULT = a; :}
+                | Assertion:a SEMICOLON 
+              	  {: RESULT = parser.generateSkeletonForAssertion(a); :} 
+                ;
+
+Automaton ::= OBSERVER Body:b 
+              {: RESULT = b; b.assertObserverAutomaton(); :}
+            | CONTROL Body:b 
+              {: RESULT = b; :}
+            | Body:b // the CONTROL keyword is optional
+              {: RESULT = b; :}
             ;
 
-Body      ::= LocalDefs:vars InitDef:init StateDefs:states
-              {: RESULT = new Automaton(vars, states, init, parser.logger); :}
+Body      ::= AUTOMATON IDENTIFIER:id LocalDefs:vars InitDef:init StateDefs:states END AUTOMATON
+              {: RESULT = new Automaton(id.toString(), vars, states, init, parser.logger);
+                 parser.initVariablesMap();
+              :}
             ;
 
 InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
@@ -188,10 +192,14 @@ StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonInternalState>(); :}
               ;
 
-StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, true); :}
-            | STATE USEALL IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, true); :}
-            | STATE USEFIRST IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new AutomatonInternalState(id.toString(), ts, false); :}
+StateDef  ::= STATE StateNonDetDef:nd IDENTIFIER:id COLON  Transitions:ts
+              {: RESULT = new AutomatonInternalState(id.toString(), ts, nd); :}
             ;
+
+StateNonDetDef ::= USEFIRST {: RESULT = false; :}
+	       | USEALL {: RESULT = true; :}
+	       | /* empty */ {: RESULT = true; :}
+	       ;
 
 Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
