@@ -1122,10 +1122,15 @@ import java.io.StringReader;
 		
 							assert(coverage != null);
 							assert(coverage instanceof CoverageSpecification);
-							assert(passing != null);
-							assert(passing instanceof PathPattern);
 							
-							RESULT = new FQLSpecification((CoverageSpecification)coverage, (PathPattern)passing);
+							if (passing == null) {
+							  RESULT = new FQLSpecification((CoverageSpecification)coverage);
+							}
+							else {
+								assert(passing instanceof PathPattern);
+							
+								RESULT = new FQLSpecification((CoverageSpecification)coverage, (PathPattern)passing);
+							}
 						
               CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("FQLSpecification",0, RESULT);
             }

@@ -57,6 +57,8 @@ public class Main {
     assert(pArguments != null);
     assert(pArguments.length > 1);
     
+    System.out.println(pArguments[0]);
+    
     String lFQLSpecificationString = pArguments[0];
     String lSourceFileName = pArguments[1];
     

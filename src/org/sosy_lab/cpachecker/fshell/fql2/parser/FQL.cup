@@ -175,10 +175,15 @@ FQLSpecification 	::= Cover:coverage Passing:passing
 						{:
 							assert(coverage != null);
 							assert(coverage instanceof CoverageSpecification);
-							assert(passing != null);
-							assert(passing instanceof PathPattern);
 							
-							RESULT = new FQLSpecification((CoverageSpecification)coverage, (PathPattern)passing);
+							if (passing == null) {
+							  RESULT = new FQLSpecification((CoverageSpecification)coverage);
+							}
+							else {
+								assert(passing instanceof PathPattern);
+							
+								RESULT = new FQLSpecification((CoverageSpecification)coverage, (PathPattern)passing);
+							}
 						:}
 					|   TOK_IN Filter:filter Cover:coverage Passing:passing
 						{:
