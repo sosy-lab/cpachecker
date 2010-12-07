@@ -31,7 +31,6 @@ import java.util.List;
  * @author rhein
  */
 class AutomatonInternalState {
-  static final List<AutomatonTransition> emptyTransitionList = Collections.emptyList();
 
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
@@ -39,10 +38,22 @@ class AutomatonInternalState {
   private int stateId = stateIdCounter++;
 
   /** Error State */
-  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefindedState_ERROR", emptyTransitionList);
+  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR",
+      // single self-loop transition
+      Collections.singletonList(new AutomatonTransition(AutomatonBoolExpr.TRUE,
+                                                        Collections.<AutomatonBoolExpr>emptyList(),
+                                                        Collections.<AutomatonAction>emptyList(),
+                                                        "_predefinedState_ERROR")));
+  static {
+    try {
+      ERROR.setFollowStates(Collections.singletonList(ERROR));
+    } catch (InvalidAutomatonException e) {
+      throw new AssertionError(e);
+    }
+  }
 
   /** State representing BOTTOM */
-  static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", emptyTransitionList);
+  static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
 
   /** Name of this State.  */
   private final String name;

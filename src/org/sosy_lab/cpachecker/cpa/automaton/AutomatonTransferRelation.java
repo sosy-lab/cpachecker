@@ -66,7 +66,7 @@ class AutomatonTransferRelation implements TransferRelation {
    * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessors(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge)
    */
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
+  public Collection<? extends AbstractElement> getAbstractSuccessors(
                       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
                           Preconditions.checkArgument(pElement instanceof AutomatonState);
@@ -100,15 +100,12 @@ class AutomatonTransferRelation implements TransferRelation {
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
    */
-  private Collection<AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
+  private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
     if (state == state.getAutomatonCPA().getTopState()) {
-      return Collections.singleton((AbstractElement)state);
+      return Collections.singleton(state);
     }
     if (state == state.getAutomatonCPA().getBottomState()) {
       return Collections.emptySet();
-    }
-    if (state.isTarget()) {
-      return Collections.singleton((AbstractElement)state);
     }
     
     Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>();    
@@ -227,7 +224,7 @@ class AutomatonTransferRelation implements TransferRelation {
     } else {
       long start = System.currentTimeMillis();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
-      Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
+      Collection<? extends AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
       totalStrengthenTime += System.currentTimeMillis() - start;
       assert (!(lSuccessors instanceof AutomatonUnknownState)): "automaton.strengthen returned an unknownState!";
       return lSuccessors;
