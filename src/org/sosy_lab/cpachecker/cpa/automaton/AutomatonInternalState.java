@@ -38,7 +38,7 @@ class AutomatonInternalState {
   private int stateId = stateIdCounter++;
 
   /** Error State */
-  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR", Collections.<AutomatonTransition>emptyList());
+  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR", Collections.<AutomatonTransition>emptyList(), true, false);
 
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
@@ -47,19 +47,23 @@ class AutomatonInternalState {
   private final String name;
   /** Outgoing transitions of this state.  */
   private final List<AutomatonTransition> transitions;
+  
+  private final boolean mIsTarget;
+  
   /**
    * determines if all transitions of the state are considered or only the first that matches
    */
   private final boolean mAllTransitions;
 
-  public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pAllTransitions) {
+  public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pIsTarget, boolean pAllTransitions) {
     this.name = pName;
     this.transitions = pTransitions;
+    this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
   }
   
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false);
+    this(pName, pTransitions, false, false);
   }
   
   public boolean isNonDetState() {
@@ -84,6 +88,9 @@ class AutomatonInternalState {
     return stateId;
   }
 
+  public boolean isTarget() {
+    return mIsTarget;
+  }
 
   /**  Writes a representation of this state (as node) in DOT file format to the argument {@link PrintStream}.
    * @param pOut

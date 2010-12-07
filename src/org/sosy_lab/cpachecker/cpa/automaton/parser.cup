@@ -120,7 +120,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -134,6 +134,7 @@ non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
 non terminal AutomatonInternalState StateDef ;
+non terminal Boolean StateTypeDef ;
 non terminal Boolean StateNonDetDef ;
 non terminal AutomatonTransition Transition ;
 non terminal AutomatonBoolExpr Assertion ;
@@ -192,9 +193,13 @@ StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonInternalState>(); :}
               ;
 
-StateDef  ::= STATE StateNonDetDef:nd IDENTIFIER:id COLON  Transitions:ts
-              {: RESULT = new AutomatonInternalState(id.toString(), ts, nd); :}
+StateDef  ::= StateTypeDef:type STATE StateNonDetDef:nd IDENTIFIER:id COLON  Transitions:ts
+              {: RESULT = new AutomatonInternalState(id.toString(), ts, type, nd); :}
             ;
+            
+StateTypeDef ::= TARGET {: RESULT = true; :}
+	       | /* empty */ {: RESULT = false; :}
+	       ;
 
 StateNonDetDef ::= USEFIRST {: RESULT = false; :}
 	       | USEALL {: RESULT = true; :}

@@ -96,7 +96,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
 
   @Override
   public boolean isTarget() {
-    return internalState == AutomatonInternalState.ERROR;
+    return (internalState != null) && internalState.isTarget();
   }
 
   @Override

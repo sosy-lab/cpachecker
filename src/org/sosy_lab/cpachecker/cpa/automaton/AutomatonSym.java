@@ -33,6 +33,7 @@ public interface AutomatonSym {
   public static final int EQEQ = 34;
   public static final int CHECK = 24;
   public static final int NEQ = 32;
+  public static final int TARGET = 44;
   public static final int OBSERVER = 12;
   public static final int AUTOMATON = 11;
   public static final int EQ = 33;
