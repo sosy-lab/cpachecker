@@ -31,7 +31,6 @@ import java.util.Map;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
-import java_cup.runtime.SymbolFactory;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.common.LogManager;
@@ -58,8 +57,8 @@ class AutomatonInternalTests {
       
       Configuration emptyConfig = new Configuration(Collections.<String,String>emptyMap());
       LogManager logger = new LogManager(emptyConfig);
-      SymbolFactory sf1 = new ComplexSymbolFactory();
-      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), emptyConfig, logger, sf1);
+      ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
+      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), f.getName(), emptyConfig, logger, sf1);
       Symbol symb = s.next_token();
       while (symb.sym != AutomatonSym.EOF) {
         System.out.println(symb);

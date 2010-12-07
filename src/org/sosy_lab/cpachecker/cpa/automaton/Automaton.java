@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 /**
@@ -43,7 +42,7 @@ public class Automaton {
   private final AutomatonInternalState initState;
 
   public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
-      String pInit, LogManager pLogger) throws InvalidAutomatonException {
+      String pInit) throws InvalidAutomatonException {
     this.name = pName;
     this.initVars = pVars;
     this.states = pStates;

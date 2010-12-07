@@ -3,10 +3,13 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.FileReader;
 import java.io.File;
 import java_cup.runtime.*;
+import java_cup.runtime.ComplexSymbolFactory.Location;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -21,50 +24,56 @@ import java.util.logging.Level;
 
 %{
   private StringBuilder string = new StringBuilder();
-  private SymbolFactory sf;
+  private ComplexSymbolFactory sf;
   private Configuration config;
   private LogManager logger;
-  private List<String> scannedFiles = new ArrayList<String>();
+  private final List<String> scannedFiles = new ArrayList<String>();
+  private final Deque<String> filesStack = new ArrayDeque<String>();
 
-   public AutomatonScanner(java.io.InputStream r, Configuration config, LogManager logger, SymbolFactory sf){
-	this(r);
-	this.sf = sf;
-	this.config = config;
-	this.logger = logger;
+  public AutomatonScanner(java.io.InputStream r, String fileName, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
+    this(r);
+    filesStack.push(fileName);
+    this.sf = sf;
+    this.config = config;
+    this.logger = logger;
   }
-  public int getLine() {
-     return this.yyline;
-   }
-   public int getColumn() {
-     return this.yycolumn;
-   }
    
   private File getFile(String pYytext) throws FileNotFoundException {
-  	assert pYytext.startsWith("#include ");
-  	String fileName = pYytext.replaceFirst("#include ", "").trim();
-  	if (scannedFiles.contains(fileName)) {
-  	  logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
-  	  return null;
-  	}
-  	File file = new File(fileName);
-  	if (!file.isAbsolute()) {
+    assert pYytext.startsWith("#include ");
+    String fileName = pYytext.replaceFirst("#include ", "").trim();
+    if (scannedFiles.contains(fileName)) {
+      logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
+      return null;
+    }
+    File file = new File(fileName);
+    if (!file.isAbsolute()) {
       file = new File(config.getRootDirectory(), file.getPath());    
     }
-  	
-  	Files.checkReadableFile(file);
-  	scannedFiles.add(fileName);
-  	return file;
+
+    Files.checkReadableFile(file);
+    scannedFiles.add(fileName);
+    return file;
+  }
+  
+  private Location getStartLocation() {
+    return new Location(filesStack.peek(), yyline+1,yycolumn+1-yylength());
+  }
+
+  private Location getEndLocation() {
+    return new Location(filesStack.peek(), yyline+1,yycolumn+1);
   }
   
   private Symbol symbol(String name, int sym) {
-    return  sf.newSymbol(name, sym);
+    return sf.newSymbol(name, sym, getStartLocation(), getEndLocation());
   }
-  private Symbol symbol(String name, int sym, Object val) {
-    return  sf.newSymbol(name, sym, val);
+
+  private Symbol symbol(String name, int sym, String val) {
+    return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), val);
   }
   
   private void error(String message) {
-    System.out.println("Error at line "+(yyline+1)+", column "+(yycolumn+1)+" : "+message);
+    logger.log(Level.WARNING, message + " near " + getStartLocation() + " - " + getEndLocation());
+    throw new RuntimeException("Syntax error");
   }
 %}
 %eofval{
@@ -96,7 +105,11 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL>
 	"#include" {InputCharacter}+ 
 	{ File file = getFile(yytext()); 
-	  if (file != null) yypushStream(new FileReader(file)); }
+	  if (file != null) {
+	    yypushStream(new FileReader(file));
+	    filesStack.push(file.getName());
+	  }
+	}
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
 <YYINITIAL> ":"                 { return symbol(":", AutomatonSym.COLON); }
 <YYINITIAL> "("                 { return symbol("(", AutomatonSym.OPEN_BRACKETS); }
@@ -193,7 +206,6 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\\]                           { string.append(']'); }
   \\                             { string.append('\\'); }
 }
-<<EOF>> {if (yymoreStreams()) yypopStream(); else return symbol("EOF", AutomatonSym.EOF); }
+<<EOF>> {if (yymoreStreams()) { yypopStream(); filesStack.pop(); } else return symbol("EOF", AutomatonSym.EOF); }
 /* error fallback */
-.|\n                             { error("Fallback error"); throw new Error("Illegal character <"+
-                                                    yytext()+">"); }
+.|\n                             { error("Illegal character <"+yytext()+">"); }

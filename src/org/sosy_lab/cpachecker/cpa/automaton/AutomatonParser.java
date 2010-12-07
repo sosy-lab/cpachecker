@@ -7,6 +7,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import java.io.File;
@@ -408,45 +409,23 @@ import java.util.Collections;
   public int error_sym() {return 1;}
 
 
-  /** Scan to get the next Symbol. */
-  public java_cup.runtime.Symbol scan()
-    throws java.lang.Exception
-    {
- return scanner.next_token(); 
-    }
 
-
-  /* this map is used to collect the local variables. It is then passed to each "VarAccess" and "Assignment" Expression.
-   * ( I don't want to pass the Variable-Instance directly, because it might be defined after the Expression in the input Document.)
-   */
-  protected Map<String, AutomatonVariable> variablesMap;
-  public boolean syntaxErrors;
-  AutomatonScanner scanner;
-  LogManager logger;
+  private LogManager logger;
   // this int is used to determine unique names for anonymous automata
   private static int anonymousCounter;
 
-  public AutomatonParser(AutomatonScanner scanner, SymbolFactory sf, LogManager pLogger) {
+  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger) {
       super(scanner, sf);
-      this.scanner = scanner;
       this.logger = pLogger;
-      initVariablesMap();
   }
-  void initVariablesMap() {
-  	this.variablesMap = new HashMap<String, AutomatonVariable>();
-  }
+
   @Override
   public void report_error(String message, Object info) {
-    syntaxErrors = true;
     String errorString = message;
-    errorString = errorString + " Line: " + (scanner.getLine()+1) + " Column: " + scanner.getColumn();
-
-    if (info instanceof Symbol) {
-    	Symbol symbol = (Symbol) info;
-    	if (!( symbol.left < 0 || symbol.right < 0 ))
-    		errorString = errorString + "\n at line "+symbol.left+", column "+symbol.right;
+    if (info != null) {
+      errorString += " near " + info;
     }
-    logger.log(Level.INFO, errorString);
+    logger.log(Level.WARNING, errorString);
   }
   
   Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
@@ -459,18 +438,18 @@ import java.util.Collections;
         Collections.singletonList(trans));
     Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
                                   Collections.<String, AutomatonVariable>emptyMap(), 
-                                  Collections.singletonList(okState), "OK", logger);
+                                  Collections.singletonList(okState), "OK");
     return ret;
   }
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
   public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    SymbolFactory sf = new ComplexSymbolFactory();
+    ComplexSymbolFactory sf = new ComplexSymbolFactory();
     FileInputStream input = null;
     try {
       input = new FileInputStream(pInputFile);
-      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, config, pLogger, sf),sf, pLogger).parse();
+      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile.getName(), config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
     } catch (Exception e) {
       pLogger.logException(Level.FINER, e, "Could not load automaton from file " + pInputFile.getAbsolutePath());
@@ -1119,7 +1098,7 @@ import java.util.Collections;
           case 11: // LocalDefs ::= 
             {
               Map<String,AutomatonVariable> RESULT =null;
-		 RESULT = parser.variablesMap; /* RESULT = new HashMap<String, AutomatonVariable>(); */ 
+		 RESULT = new HashMap<String, AutomatonVariable>(); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("LocalDefs",5, RESULT);
             }
           return CUP$AutomatonParser$result;
@@ -1153,9 +1132,7 @@ import java.util.Collections;
 		Map<String,AutomatonVariable> vars = (Map<String,AutomatonVariable>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		String init = (String)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		List<AutomatonInternalState> states = (List<AutomatonInternalState>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new Automaton(id.toString(), vars, states, init, parser.logger);
-                 parser.initVariablesMap();
-              
+		 RESULT = new Automaton(id.toString(), vars, states, init); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Body",4, RESULT);
             }
           return CUP$AutomatonParser$result;

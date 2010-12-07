@@ -5,10 +5,13 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.FileReader;
 import java.io.File;
 import java_cup.runtime.*;
+import java_cup.runtime.ComplexSymbolFactory.Location;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -510,50 +513,56 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
 
   /* user code: */
   private StringBuilder string = new StringBuilder();
-  private SymbolFactory sf;
+  private ComplexSymbolFactory sf;
   private Configuration config;
   private LogManager logger;
-  private List<String> scannedFiles = new ArrayList<String>();
+  private final List<String> scannedFiles = new ArrayList<String>();
+  private final Deque<String> filesStack = new ArrayDeque<String>();
 
-   public AutomatonScanner(java.io.InputStream r, Configuration config, LogManager logger, SymbolFactory sf){
-	this(r);
-	this.sf = sf;
-	this.config = config;
-	this.logger = logger;
+  public AutomatonScanner(java.io.InputStream r, String fileName, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
+    this(r);
+    filesStack.push(fileName);
+    this.sf = sf;
+    this.config = config;
+    this.logger = logger;
   }
-  public int getLine() {
-     return this.yyline;
-   }
-   public int getColumn() {
-     return this.yycolumn;
-   }
    
   private File getFile(String pYytext) throws FileNotFoundException {
-  	assert pYytext.startsWith("#include ");
-  	String fileName = pYytext.replaceFirst("#include ", "").trim();
-  	if (scannedFiles.contains(fileName)) {
-  	  logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
-  	  return null;
-  	}
-  	File file = new File(fileName);
-  	if (!file.isAbsolute()) {
+    assert pYytext.startsWith("#include ");
+    String fileName = pYytext.replaceFirst("#include ", "").trim();
+    if (scannedFiles.contains(fileName)) {
+      logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
+      return null;
+    }
+    File file = new File(fileName);
+    if (!file.isAbsolute()) {
       file = new File(config.getRootDirectory(), file.getPath());    
     }
-  	
-  	Files.checkReadableFile(file);
-  	scannedFiles.add(fileName);
-  	return file;
+
+    Files.checkReadableFile(file);
+    scannedFiles.add(fileName);
+    return file;
+  }
+  
+  private Location getStartLocation() {
+    return new Location(filesStack.peek(), yyline+1,yycolumn+1-yylength());
+  }
+
+  private Location getEndLocation() {
+    return new Location(filesStack.peek(), yyline+1,yycolumn+1);
   }
   
   private Symbol symbol(String name, int sym) {
-    return  sf.newSymbol(name, sym);
+    return sf.newSymbol(name, sym, getStartLocation(), getEndLocation());
   }
-  private Symbol symbol(String name, int sym, Object val) {
-    return  sf.newSymbol(name, sym, val);
+
+  private Symbol symbol(String name, int sym, String val) {
+    return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), val);
   }
   
   private void error(String message) {
-    System.out.println("Error at line "+(yyline+1)+", column "+(yycolumn+1)+" : "+message);
+    logger.log(Level.WARNING, message + " near " + getStartLocation() + " - " + getEndLocation());
+    throw new RuntimeException("Syntax error");
   }
 
 
@@ -996,206 +1005,208 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
                                    string.toString());
           }
         case 60: break;
+        case 56: 
+          { File file = getFile(yytext()); 
+	  if (file != null) {
+	    yypushStream(new FileReader(file));
+	    filesStack.push(file.getName());
+	  }
+          }
+        case 61: break;
         case 53: 
           { return symbol("INITIAL", AutomatonSym.INITIAL);
           }
-        case 61: break;
+        case 62: break;
         case 6: 
           { return symbol(":", AutomatonSym.COLON);
           }
-        case 62: break;
+        case 63: break;
         case 41: 
           { return symbol("ERROR", AutomatonSym.ERROR);
           }
-        case 63: break;
+        case 64: break;
         case 14: 
           { return symbol("!", AutomatonSym.EXCLAMATION);
           }
-        case 64: break;
+        case 65: break;
         case 24: 
           { return symbol("!=", AutomatonSym.NEQ);
           }
-        case 65: break;
+        case 66: break;
         case 29: 
           { string.append('\t');
           }
-        case 66: break;
+        case 67: break;
         case 27: 
           { return symbol("||", AutomatonSym.OR);
           }
-        case 67: break;
+        case 68: break;
         case 11: 
           { string.setLength(0); yybegin(STRING);
           }
-        case 68: break;
+        case 69: break;
         case 10: 
           { return symbol("COMMA", AutomatonSym.COMMA);
           }
-        case 69: break;
+        case 70: break;
         case 42: 
           { return symbol("STATE", AutomatonSym.STATE);
           }
-        case 70: break;
+        case 71: break;
         case 35: 
           { return symbol("TRUE", AutomatonSym.TRUE);
           }
-        case 71: break;
+        case 72: break;
         case 9: 
           { return symbol("-", AutomatonSym.MINUS);
           }
-        case 72: break;
+        case 73: break;
         case 31: 
           { string.append('"');
           }
-        case 73: break;
+        case 74: break;
         case 19: 
           { string.append('\\');
           }
-        case 74: break;
+        case 75: break;
         case 38: 
           { return symbol("STOP", AutomatonSym.STOP);
           }
-        case 75: break;
+        case 76: break;
         case 55: 
           { return symbol("OBSERVER", AutomatonSym.OBSERVER);
           }
-        case 76: break;
+        case 77: break;
         case 30: 
           { string.append('\r');
           }
-        case 77: break;
+        case 78: break;
         case 5: 
           { return symbol(";", AutomatonSym.SEMICOLON);
           }
-        case 78: break;
+        case 79: break;
         case 18: 
           { yybegin(YYINITIAL); 
                                    return symbol("STRING", AutomatonSym.STRING_LITERAL, 
                                    string.toString());
           }
-        case 79: break;
+        case 80: break;
         case 45: 
           { return symbol("LOCAL", AutomatonSym.LOCAL);
           }
-        case 80: break;
+        case 81: break;
         case 8: 
           { return symbol(")", AutomatonSym.CLOSE_BRACKETS);
           }
-        case 81: break;
+        case 82: break;
         case 40: 
           { return symbol("MATCH", AutomatonSym.MATCH);
           }
-        case 82: break;
+        case 83: break;
         case 12: 
           { string.setLength(0); yybegin(CURLYEXPR);
           }
-        case 83: break;
+        case 84: break;
         case 25: 
           { return symbol("==", AutomatonSym.EQEQ);
           }
-        case 84: break;
+        case 85: break;
         case 52: 
           { return symbol("CONTROL", AutomatonSym.CONTROL);
           }
-        case 85: break;
+        case 86: break;
         case 44: 
           { return symbol("LABEL", AutomatonSym.LABEL);
           }
-        case 86: break;
+        case 87: break;
         case 49: 
           { return symbol("USEALL", AutomatonSym.USEALL);
           }
-        case 87: break;
+        case 88: break;
         case 22: 
           { return symbol("->", AutomatonSym.ARROW);
           }
-        case 88: break;
+        case 89: break;
         case 47: 
           { return symbol("FALSE", AutomatonSym.FALSE);
           }
-        case 89: break;
+        case 90: break;
         case 26: 
           { return symbol("&&", AutomatonSym.AND);
           }
-        case 90: break;
+        case 91: break;
         case 43: 
           { return symbol("EVAL", AutomatonSym.CHECK);
           }
-        case 91: break;
+        case 92: break;
         case 37: 
           { return symbol("EXIT", AutomatonSym.EXIT);
           }
-        case 92: break;
+        case 93: break;
         case 4: 
           { return symbol("INT", AutomatonSym.INTEGER_LITERAL, yytext());
           }
-        case 93: break;
+        case 94: break;
         case 33: 
           { string.append(']');
           }
-        case 94: break;
+        case 95: break;
         case 54: 
           { return symbol("USEFIRST", AutomatonSym.USEFIRST);
           }
-        case 95: break;
+        case 96: break;
         case 23: 
           { return symbol("DO", AutomatonSym.DO);
           }
-        case 96: break;
+        case 97: break;
         case 51: 
           { return symbol("MODIFY", AutomatonSym.MODIFY);
           }
-        case 97: break;
+        case 98: break;
+        case 1: 
+          { error("Illegal character <"+yytext()+">");
+          }
+        case 99: break;
         case 50: 
           { return symbol("TARGET", AutomatonSym.TARGET);
           }
-        case 98: break;
+        case 100: break;
         case 16: 
           { return symbol("+", AutomatonSym.PLUS);
           }
-        case 99: break;
+        case 101: break;
         case 32: 
           { string.append('}');
           }
-        case 100: break;
+        case 102: break;
         case 7: 
           { return symbol("(", AutomatonSym.OPEN_BRACKETS);
           }
-        case 101: break;
+        case 103: break;
         case 13: 
           { string.setLength(0); yybegin(SQUAREEXPR);
           }
-        case 102: break;
+        case 104: break;
         case 28: 
           { string.append('\n');
           }
-        case 103: break;
+        case 105: break;
         case 3: 
           { return symbol("ID", AutomatonSym.IDENTIFIER, yytext());
           }
-        case 104: break;
+        case 106: break;
         case 21: 
           { yybegin(YYINITIAL); 
                                    return symbol("CURLYEXPR", AutomatonSym.SQUAREEXPR, 
                                    string.toString());
           }
-        case 105: break;
+        case 107: break;
         case 36: 
           { return symbol("EVAL", AutomatonSym.EVAL);
           }
-        case 106: break;
+        case 108: break;
         case 39: 
           { return symbol("GOTO", AutomatonSym.GOTO);
-          }
-        case 107: break;
-        case 1: 
-          { error("Fallback error"); throw new Error("Illegal character <"+
-                                                    yytext()+">");
-          }
-        case 108: break;
-        case 56: 
-          { File file = getFile(yytext()); 
-	  if (file != null) yypushStream(new FileReader(file));
           }
         case 109: break;
         case 48: 
@@ -1223,7 +1234,7 @@ class AutomatonScanner implements java_cup.runtime.Scanner, AutomatonSym {
             zzAtEOF = true;
             zzDoEOF();
               {
-                if (yymoreStreams()) yypopStream(); else return symbol("EOF", AutomatonSym.EOF);
+                if (yymoreStreams()) { yypopStream(); filesStack.pop(); } else return symbol("EOF", AutomatonSym.EOF);
               }
           } 
           else {
