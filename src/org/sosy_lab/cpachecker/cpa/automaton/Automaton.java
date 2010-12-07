@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,11 +55,9 @@ public class Automaton {
       }
     }
     if (lInitState == null) {
-      pLogger.log(Level.WARNING, "InitState not found. Automaton \"" + name + "\" is initiated with ErrorState");
-      initState = AutomatonInternalState.ERROR;
-    } else {
-      initState = lInitState;
+      throw new InvalidAutomatonException("Inital state " + pInit + " not found in automaton " + pName);
     }
+    initState = lInitState;
 
     // implicit error State (might be followState of Transitions)
     // pStates.add(AutomatonInternalState.ERROR);
