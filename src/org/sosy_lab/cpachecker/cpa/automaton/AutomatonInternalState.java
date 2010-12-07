@@ -45,13 +45,13 @@ class AutomatonInternalState {
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", emptyTransitionList);
 
   /** Name of this State.  */
-  private String name;
+  private final String name;
   /** Outgoing transitions of this state.  */
-  private List<AutomatonTransition> transitions;
+  private final List<AutomatonTransition> transitions;
   /**
    * determines if all transitions of the state are considered or only the first that matches
    */
-  private boolean mAllTransitions;
+  private final boolean mAllTransitions;
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pAllTransitions) {
     this.name = pName;

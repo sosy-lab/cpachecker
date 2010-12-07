@@ -40,23 +40,28 @@ public class Automaton {
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
-  private Map<String, AutomatonVariable> initVars;
-  private List<AutomatonInternalState> states;
-  private AutomatonInternalState initState;
+  private final Map<String, AutomatonVariable> initVars;
+  private final List<AutomatonInternalState> states;
+  private final AutomatonInternalState initState;
 
   public Automaton(Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInit, LogManager pLogger) throws InvalidAutomatonException {
     this.initVars = pVars;
     this.states = pStates;
+    
+    AutomatonInternalState lInitState = null;
     for (AutomatonInternalState s : pStates) {
       if (s.getName().equals(pInit)) {
-        this.initState = s;
+        lInitState = s;
       }
     }
-    if (initState == null) {
+    if (lInitState == null) {
       pLogger.log(Level.WARNING, "InitState not found. Automaton \"" + name + "\" is initiated with ErrorState");
       initState = AutomatonInternalState.ERROR;
+    } else {
+      initState = lInitState;
     }
+
     // implicit error State (might be followState of Transitions)
     // pStates.add(AutomatonInternalState.ERROR);
 

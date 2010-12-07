@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Preconditions.*;
+
 import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
@@ -42,7 +44,7 @@ class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
-  private AutomatonBoolExpr assertion;
+  private final AutomatonBoolExpr assertion;
   private final List<AutomatonAction> actions;
 
   /**
@@ -56,46 +58,46 @@ class AutomatonTransition {
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       String pFollowStateName) {
-    this.trigger = pTrigger;
-    initAssertions(this, pAssertions);
-    this.actions = ImmutableList.copyOf(pActions);
-    this.followStateName = pFollowStateName;
+    this(pTrigger, pAssertions, pActions, pFollowStateName, null);
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState) {
-    this.trigger = pTrigger;
-    initAssertions(this, pAssertions);
-    this.actions = ImmutableList.copyOf(pActions);
-    this.followState = pFollowState;
-    this.followStateName = pFollowState.getName();
+    
+    this(pTrigger, pAssertions, pActions, pFollowState.getName(), pFollowState);
   }
-  
-  /** this constructor initializes only the assertion!
-   * Use with care
-   * @param pAssertions
-   */
-  private static void initAssertions(AutomatonTransition trans, List<AutomatonBoolExpr> pAssertions) {
+    
+  private AutomatonTransition(AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
+      String pFollowStateName, AutomatonInternalState pFollowState) {
+    
+    this.trigger = checkNotNull(pTrigger);
+    this.actions = ImmutableList.copyOf(pActions);
+    this.followStateName = checkNotNull(pFollowStateName);
+    this.followState = pFollowState;
+    
     if (pAssertions.isEmpty()) {
-      trans.assertion = AutomatonBoolExpr.TRUE;
+      this.assertion = AutomatonBoolExpr.TRUE;
     } else {
+      AutomatonBoolExpr lAssertion = null;
       for (AutomatonBoolExpr nextAssertion : pAssertions) {
-        if (trans.assertion == null) {
+        if (lAssertion == null) {
           // first iteration
-          trans.assertion = nextAssertion;
+          lAssertion = nextAssertion;
         } else {
           // other iterations
-          trans.assertion = new AutomatonBoolExpr.And(trans.assertion, nextAssertion);
+          lAssertion = new AutomatonBoolExpr.And(lAssertion, nextAssertion);
         }
       }
+      this.assertion = lAssertion;
     }
   }
 
   /**
    * Resolves the follow-state relation for this transition.
    */
-  public void setFollowState(List<AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
+  void setFollowState(List<AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
     if (this.followState == null) {
       for (AutomatonInternalState s : pAllStates) {
         if (s.getName().equals(followStateName)) {
