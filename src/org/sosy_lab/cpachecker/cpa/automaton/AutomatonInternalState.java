@@ -38,19 +38,7 @@ class AutomatonInternalState {
   private int stateId = stateIdCounter++;
 
   /** Error State */
-  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR",
-      // single self-loop transition
-      Collections.singletonList(new AutomatonTransition(AutomatonBoolExpr.TRUE,
-                                                        Collections.<AutomatonBoolExpr>emptyList(),
-                                                        Collections.<AutomatonAction>emptyList(),
-                                                        "_predefinedState_ERROR")));
-  static {
-    try {
-      ERROR.setFollowStates(Collections.singletonList(ERROR));
-    } catch (InvalidAutomatonException e) {
-      throw new AssertionError(e);
-    }
-  }
+  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR", Collections.<AutomatonTransition>emptyList());
 
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
