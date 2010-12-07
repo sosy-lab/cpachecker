@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+
+import com.google.common.base.Joiner;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
@@ -39,44 +42,34 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
 
   static class TOP extends AutomatonState {
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
-      super();
-      super.automatonCPA = pAutomatonCPA;
+      super(pAutomatonCPA);
     }
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       return pProperty.toLowerCase().equals("state == top");
     }
     @Override
-    public String getCPAName() {
-      return AutomatonAnalysisNamePrefix +  getAutomatonCPA().getAutomaton().getName();
-    }
-    @Override
-    public boolean isTarget() {
-      return false;
+    public String toString() {
+      return "AutomatonState.TOP";
     }
   }
   static class BOTTOM extends AutomatonState {
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
-      super();
-      super.automatonCPA = pAutomatonCPA;
+      super(pAutomatonCPA);
     }
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       return pProperty.toLowerCase().equals("state == bottom");
     }
     @Override
-    public String getCPAName() {
-      return AutomatonAnalysisNamePrefix +  getAutomatonCPA().getAutomaton().getName();
-    }
-    @Override
-    public boolean isTarget() {
-      return false;
+    public String toString() {
+      return "AutomatonState.BOTTOM";
     }
   }
 
-  private ControlAutomatonCPA automatonCPA;
-  private Map<String, AutomatonVariable> vars;
-  private AutomatonInternalState internalState;
+  private final ControlAutomatonCPA automatonCPA;
+  private final Map<String, AutomatonVariable> vars;
+  private final AutomatonInternalState internalState;
 
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
@@ -88,23 +81,21 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     }
   }
 
-  private AutomatonState() {
-    automatonCPA = null;
-    vars = null;
+  private AutomatonState(ControlAutomatonCPA pAutomatonCPA) {
+    automatonCPA = pAutomatonCPA;
+    vars = Collections.emptyMap();
     internalState = null;
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA) {
-    super();
     vars = pVars;
     internalState = pInternalState;
-    this.automatonCPA = pAutomatonCPA;
+    automatonCPA = pAutomatonCPA;
   }
 
   @Override
   public boolean isTarget() {
-    if (this==this.automatonCPA.getTopState() || this == this.automatonCPA.getBottomState()) return false;
     return internalState == AutomatonInternalState.ERROR;
   }
 
@@ -113,60 +104,33 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     if (super.equals(pObj)) {
       return true;
     }
-
-    if (pObj == null) {
-      return false;
-    }
-
-    /* If one of the states is top or bottom they cannot be equal, Object.equal would have found this.
-     * Because TOP and Bottom do not have internal States this must be returned explicitly.
-     */
-    if (this == getAutomatonCPA().getTopState()
-        || this == getAutomatonCPA().getBottomState()
-        || pObj == getAutomatonCPA().getTopState()
-        || pObj == getAutomatonCPA().getBottomState()) return false;
     if (!(pObj instanceof AutomatonState)) {
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
-    if (! this.internalState.equals(otherState.internalState)) {
+
+    /* If one of the states is top or bottom they cannot be equal, Object.equal would have found this.
+     * Because TOP and Bottom do not have internal States this must be returned explicitly.
+     * AutomatonUnknownState also have internalState==null,
+     * and are only equal to one of themselves.
+     */
+    if (this.internalState == null || otherState.internalState == null) {
       return false;
     }
-    if (this.vars.equals(otherState.vars)) {
-      return true;
-    } else {
-      return false;
-    }
+    
+    return this.internalState.equals(otherState.internalState)
+        && this.vars.equals(otherState.vars);
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   *
-   * I don't use the hashCode, but the method should be redefined every time equals is overwritten.
-   */
   @Override
   public int hashCode() {
-    if (this == getAutomatonCPA().getTopState() || this == getAutomatonCPA().getBottomState()) return super.hashCode();
-    return this.internalState.hashCode() + this.vars.hashCode();
+    return (internalState == null) ? super.hashCode()
+      : (internalState.hashCode() * 17 + vars.hashCode());
   }
 
   @Override
   public String toString() {
-    if (this == getAutomatonCPA().getTopState()) return "AutomatonState.TOP";
-    if (this == getAutomatonCPA().getBottomState()) return "AutomatonState.BOTTOM";
-    StringBuilder v = new StringBuilder();
-    for (AutomatonVariable o : vars.values()) {
-      v.append(' ');
-      v.append(o.getName());
-      v.append('=');
-      v.append(o.getValue());
-      v.append(' ');
-    }
-    return this.internalState.getName() + v;
-  }
-
-  protected ControlAutomatonCPA getAutomatonCPA() {
-    return this.automatonCPA;
+    return internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
   }
 
 
@@ -179,10 +143,10 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
    *
    */
   static class AutomatonUnknownState extends AutomatonState {
-    private AutomatonState previousState;
+    private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
-      super();
+      super(pPreviousState.automatonCPA);
       previousState = pPreviousState;
     }
 
@@ -197,32 +161,19 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     Map<String, AutomatonVariable> getVars() {
       return previousState.getVars();
     }
-    @Override
-    public boolean isTarget() {
-      return false;
-    }
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
       if (!(pObj instanceof AutomatonUnknownState)) {
         return false;
       }
       AutomatonUnknownState otherState = (AutomatonUnknownState) pObj;
-      if (this.previousState.equals(otherState.previousState)) {
-        return true;
-      } else {
-        return false;
-      }
+      return previousState.equals(otherState.previousState);
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     *
-     * I don't use the hashCode, but the method should be redefined every time equals is overwritten.
-     */
     @Override
     public int hashCode() {
       return this.previousState.hashCode() + 724;
@@ -230,13 +181,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
 
     @Override
     public String toString() {
-
       return "AutomatonUnknownState<" + previousState.toString() + ">";
-    }
-
-    @Override
-    protected ControlAutomatonCPA getAutomatonCPA() {
-      return previousState.getAutomatonCPA();
     }
   }
 
@@ -266,9 +211,8 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
   }
   
   @Override
-  public void modifyProperty(String pModification)
-  // allows to set values of Automaton variables like "x:=6"
-      throws InvalidQueryException {
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    // allows to set values of Automaton variables like "x:=6"
     String[] parts = pModification.split(":=");
     if (parts.length != 2)
       throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
@@ -286,18 +230,19 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
       }
     }
   }
+
   @Override
-  public Boolean evaluateProperty(
-      String pProperty) throws InvalidQueryException {
+  public Boolean evaluateProperty(String pProperty) throws InvalidQueryException {
     return Boolean.valueOf(checkProperty(pProperty));
   }
+
   @Override
   public String getCPAName() {
-    return AutomatonState.AutomatonAnalysisNamePrefix + this.getAutomatonCPA().getAutomaton().getName();
+    return AutomatonState.AutomatonAnalysisNamePrefix + automatonCPA.getAutomaton().getName();
   }
 
   AutomatonInternalState getInternalState() {
-    return this.internalState;
+    return internalState;
   }
 
   Map<String, AutomatonVariable> getVars() {

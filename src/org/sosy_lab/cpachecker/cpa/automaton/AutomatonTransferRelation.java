@@ -50,6 +50,8 @@ import com.google.common.base.Preconditions;
  * @author rhein
  */
 class AutomatonTransferRelation implements TransferRelation {
+  
+  private final ControlAutomatonCPA cpa;
   private final LogManager logger;
 
   long totalPostTime = 0;
@@ -58,7 +60,8 @@ class AutomatonTransferRelation implements TransferRelation {
   long actionTime = 0;
   long totalStrengthenTime = 0;
 
-  public AutomatonTransferRelation(Automaton pAutomaton, LogManager pLogger) {
+  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, LogManager pLogger) {
+    this.cpa = pCpa;
     this.logger = pLogger;
   }
 
@@ -76,8 +79,8 @@ class AutomatonTransferRelation implements TransferRelation {
       if (pElement instanceof AutomatonUnknownState) {
         // the last CFA edge could not be processed properly
         // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
-        AutomatonState top = ((AutomatonUnknownState)pElement).getAutomatonCPA().getTopState();
-        return Collections.singleton((AbstractElement)top);
+        AutomatonState top = cpa.getTopState();
+        return Collections.singleton(top);
       }
       if (! (pElement instanceof AutomatonState)) {
         throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-AutomatonState AbstractElements.");
@@ -101,10 +104,10 @@ class AutomatonTransferRelation implements TransferRelation {
    * If the only following state is BOTTOM an empty set is returned.
    */
   private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
-    if (state == state.getAutomatonCPA().getTopState()) {
+    if (state == cpa.getTopState()) {
       return Collections.singleton(state);
     }
-    if (state == state.getAutomatonCPA().getBottomState()) {
+    if (state == cpa.getBottomState()) {
       return Collections.emptySet();
     }
     
@@ -153,20 +156,20 @@ class AutomatonTransferRelation implements TransferRelation {
                 exprArgs.putTransitionVariables(transitionVariables);
                 t.executeActions(exprArgs);
                 actionTime += System.currentTimeMillis() - startAction;
-                AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
+                AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa);
                 if (lSuccessor instanceof AutomatonState.BOTTOM) {
                   return Collections.emptySet();
                 } else {
-                  return Collections.singleton((AbstractElement)lSuccessor);
+                  return Collections.singleton(lSuccessor);
                 }
               }
             } else {
               // cannot yet execute, goto UnknownState
-              return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
+              return Collections.singleton(new AutomatonUnknownState(state));
             }
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, state.getAutomatonCPA());
+            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa);
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
             if (nonDetState) {
               lSuccessors.add(errorState);
@@ -190,7 +193,7 @@ class AutomatonTransferRelation implements TransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime += System.currentTimeMillis() - startAction;
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa);
         // non-det state
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);

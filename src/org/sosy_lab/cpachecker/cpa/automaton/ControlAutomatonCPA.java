@@ -100,22 +100,20 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   private boolean breakOnTargetState = true;
 
   private final Automaton automaton;
-  private final AutomatonTransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
-  private final Statistics stats = new AutomatonStatistics(this);
-
-  private final AutomatonState topState = new AutomatonState.TOP(ControlAutomatonCPA.this);
-  private final AutomatonState bottomState = new AutomatonState.BOTTOM(ControlAutomatonCPA.this);
-
+  private final AutomatonState topState = new AutomatonState.TOP(this);
+  private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
   private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
+  private final AutomatonTransferRelation transferRelation;
+  private final PrecisionAdjustment precisionAdjustment;
+  private final Statistics stats = new AutomatonStatistics(this);
 
   private ControlAutomatonCPA(Automaton automaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
     this.automaton = automaton;
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    transferRelation = new AutomatonTransferRelation(automaton, logger);
+    transferRelation = new AutomatonTransferRelation(this, logger);
     precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
     
     if (export && exportFile != null) {
@@ -142,7 +140,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     }
     automaton = parseAutomatonFile(logger, config);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    transferRelation = new AutomatonTransferRelation(automaton, logger);
+    transferRelation = new AutomatonTransferRelation(this, logger);
     precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
 
     if (export) {
