@@ -74,6 +74,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+
 /**
  * Builder to traverse AST.
  * @author erkan
@@ -96,7 +99,7 @@ public class CFABuilder extends ASTVisitor
 
 	// Data structures for handling goto
 	private Map<String, CFALabelNode> labelMap;
-	private Map<String, List<CFANode>> gotoLabelNeeded;
+	private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
 	// Data structures for handling function declarations
 	private Map<String, CFAFunctionDefinitionNode> cfas;
@@ -130,7 +133,6 @@ public class CFABuilder extends ASTVisitor
 		elseStack = new ArrayDeque<CFANode> ();
 
 		labelMap = new HashMap<String, CFALabelNode> ();
-		gotoLabelNeeded = new HashMap<String, List<CFANode>> ();
 
 		cfas = new HashMap<String, CFAFunctionDefinitionNode>();
 		currentCFA = null;
@@ -506,17 +508,11 @@ public class CFABuilder extends ASTVisitor
 		labelMap.put (labelName, labelNode);
 
 		// Check if any goto's previously analyzed need connections to this label
-		List<CFANode> labelsNeeded = gotoLabelNeeded.get (labelName);
-		if (labelsNeeded != null)
-		{
-			for (CFANode gotoNode : labelsNeeded)
-			{
-				BlankEdge gotoEdge = new BlankEdge("Goto: " + labelName, gotoNode.getLineNumber(), gotoNode, labelNode, true);
-				gotoEdge.addToCFA(logger);
-			}
-
-			gotoLabelNeeded.remove (labelName);
+		for (CFANode gotoNode : gotoLabelNeeded.get(labelName)) {
+			BlankEdge gotoEdge = new BlankEdge("Goto: " + labelName, gotoNode.getLineNumber(), gotoNode, labelNode, true);
+			gotoEdge.addToCFA(logger);
 		}
+		gotoLabelNeeded.removeAll(labelName);
 	}
 
 	private void handleGotoStatement (IASTGotoStatement gotoStatement, 
@@ -544,13 +540,7 @@ public class CFABuilder extends ASTVisitor
 
       gotoEdge.addToCFA(logger);
     } else {
-      List<CFANode> labelsNeeded = gotoLabelNeeded.get(labelName);
-      if (labelsNeeded == null) {
-        labelsNeeded = new ArrayList<CFANode>();
-        gotoLabelNeeded.put(labelName, labelsNeeded);
-      }
-
-      labelsNeeded.add(prevNode);
+      gotoLabelNeeded.put(labelName, prevNode);
     }
 	}
 
