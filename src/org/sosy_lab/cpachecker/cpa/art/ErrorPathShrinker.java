@@ -33,6 +33,7 @@ import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
@@ -621,12 +622,21 @@ public final class ErrorPathShrinker {
         addAllVarsInExpToImportantVars(binExp.getOperand1(), importantVars);
         addAllVarsInExpToImportantVars(binExp.getOperand2(), importantVars);
       }
-      // func();
+      // func(); i.e. "random()" from "value = random();"
       else if (exp instanceof IASTFunctionCallExpression) {
-        // this case is handled as 'getImportantVarsFromFunctionCall'
-        // because of the functionReturnEgde after a functionCall.
-        // so it should never appear.
-        assert (false);
+        final IASTExpression paramExp =
+            ((IASTFunctionCallExpression) exp).getParameterExpression();
+        if (paramExp != null) {
+          addAllVarsInExpToImportantVars(paramExp, importantVars);
+        }
+      }
+
+      // "a, b, c" from "func(a, b, c);"
+      else if (exp instanceof IASTExpressionList) {
+        for (IASTExpression expElem : ((IASTExpressionList) exp)
+            .getExpressions()) {
+          addAllVarsInExpToImportantVars(expElem, importantVars);
+        }
       }
 
       // or b->c;
