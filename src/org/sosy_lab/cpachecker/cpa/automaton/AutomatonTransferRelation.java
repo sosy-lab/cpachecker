@@ -232,7 +232,9 @@ class AutomatonTransferRelation implements TransferRelation {
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
       Collection<? extends AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
       totalStrengthenTime += System.currentTimeMillis() - start;
-      assert (!(lSuccessors instanceof AutomatonUnknownState)): "automaton.strengthen returned an unknownState!";
+      for (AbstractElement succ : lSuccessors) {
+        assert (!(succ instanceof AutomatonUnknownState)): "automaton.strengthen returned an unknownState!";
+      }
       return lSuccessors;
     }
   }
