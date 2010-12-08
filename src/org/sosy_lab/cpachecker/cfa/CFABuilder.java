@@ -497,11 +497,14 @@ public class CFABuilder extends ASTVisitor
 	{
 		String labelName = labelStatement.getName ().toString ();
 
-		CFANode prevNode = locStack.pop ();
 		CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
 
-		BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
-		blankEdge.addToCFA(logger);
+		CFANode prevNode = locStack.pop ();
+		if (prevNode.getNumEnteringEdges() > 0) {
+			// otherwise this label is only reachable via goto, not via normal control flow
+			BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
+			blankEdge.addToCFA(logger);
+		}
 
 		locStack.push (labelNode);
 
