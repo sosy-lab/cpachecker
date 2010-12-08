@@ -81,6 +81,8 @@ public final class ErrorPathShrinker {
     // Set for storing the important variables
     Set<String> importantVars = new LinkedHashSet<String>();
 
+    // Set for storing the global variables, that are important and used 
+    // during proving the edges.
     Set<String> importantVarsForGlobalVars = new LinkedHashSet<String>();
 
     // Path for storing changings of globalVars
@@ -680,9 +682,10 @@ public final class ErrorPathShrinker {
       }
     }
 
-    /** This method handles variable declarations ("int a;"). Expressions like
-     * "int a=b;" are preprocessed by CIL to "int a; \n a=b;", so there is no
-     * need to handle them. The expression "a=b;" is handled as StatementEdge. */
+    /** This method handles variable declarations ("int a;").
+     * Expressions like "int a=b;" are divided by CIL into "int a;" and "a=b;",
+     * so there is no need to handle them. The expression "a=b;" is then
+     * handled as StatementEdge. Global declarations are not divided by CIL. */
     private void handleDeclaration() {
 
       DeclarationEdge declarationEdge =
@@ -695,8 +698,10 @@ public final class ErrorPathShrinker {
        * If the declared variable is important, the edge is important. */
       for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
         final String varName = declarator.getName().getRawSignature();
-        if (IMPORTANT_VARS.contains(varName)) {
+        if (IMPORTANT_VARS.contains(varName)
+            && !varName.equals(declarator.getRawSignature())) {
           addCurrentCFAEdgePairToShortPath();
+
           // the variable is declared in this statement,
           // so it is not important in the CFA before. --> remove it.
           IMPORTANT_VARS.remove(varName);
@@ -707,23 +712,57 @@ public final class ErrorPathShrinker {
       }
     }
 
-    /** This method handles assumptions (a==b, a<=b, true, etc.). Assumptions
-     * always are handled as important edges. This method only adds all
-     * variables in an assumption (expression) to the important variables. */
+    /** This method handles assumptions (a==b, a<=b, true, etc.).
+     * Assumptions are not handled as important edges, if they are part of a
+     * switchStatement. Otherwise this method only adds all variables in an
+     * assumption (expression) to the important variables. */
     private void handleAssumption() {
-
       final IASTExpression assumeExp =
           ((AssumeEdge) CURRENT_CFA_EDGE_PAIR.getSecond()).getExpression();
 
-      addAllVarsInExpToSet(assumeExp, IMPORTANT_VARS,
-          IMPORTANT_VARS_FOR_GLOBAL_VARS);
-      addCurrentCFAEdgePairToShortPath();
-
-      if (!GLOBAL_VARS_PATH.isEmpty()) {
-        addAllVarsInExpToSet(assumeExp, IMPORTANT_VARS_FOR_GLOBAL_VARS,
+      if (!isSwitchStatement(assumeExp)) {
+        addAllVarsInExpToSet(assumeExp, IMPORTANT_VARS,
             IMPORTANT_VARS_FOR_GLOBAL_VARS);
-        GLOBAL_VARS_PATH.addFirst(CURRENT_CFA_EDGE_PAIR);
+        addCurrentCFAEdgePairToShortPath();
+
+        if (!GLOBAL_VARS_PATH.isEmpty()) {
+          addAllVarsInExpToSet(assumeExp, IMPORTANT_VARS_FOR_GLOBAL_VARS,
+              IMPORTANT_VARS_FOR_GLOBAL_VARS);
+          GLOBAL_VARS_PATH.addFirst(CURRENT_CFA_EDGE_PAIR);
+        }
       }
+    }
+
+    /** This method checks, if the current assumption is part of a
+     * switchStatement. Therefore it compares the current assumption with
+     * the expression of the last added CFAEdge.
+     *
+     * @param assumeExp the current assumption
+     * @return is the assumption part of a switchStatement? */
+    private boolean isSwitchStatement(final IASTExpression assumeExp) {
+
+      // Path can be empty at the end of a functionCall ("if (a) return b;")
+      if (!SHORT_PATH.isEmpty()) {
+        final CFAEdge lastEdge = SHORT_PATH.getFirst().getSecond();
+
+        if (assumeExp instanceof IASTBinaryExpression
+            && lastEdge instanceof AssumeEdge) {
+          final IASTExpression lastExp =
+              ((AssumeEdge) lastEdge).getExpression();
+
+          if (lastExp instanceof IASTBinaryExpression) {
+            final IASTExpression currentBinExpOp1 =
+                ((IASTBinaryExpression) assumeExp).getOperand1();
+            final IASTExpression lastBinExpOp1 =
+                ((IASTBinaryExpression) lastExp).getOperand1();
+
+            return (currentBinExpOp1 instanceof IASTIdExpression
+                && lastBinExpOp1 instanceof IASTIdExpression && currentBinExpOp1
+                .getRawSignature().equals(lastBinExpOp1.getRawSignature()));
+          }
+        }
+      }
+      return false;
     }
 
     /** This method adds the current CFAEdgePair in front of the shortPath. */
