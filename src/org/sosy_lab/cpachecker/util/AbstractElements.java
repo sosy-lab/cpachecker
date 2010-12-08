@@ -46,6 +46,19 @@ public final class AbstractElements {
 
   private AbstractElements() { }
   
+  /**
+   * Retrieve one of the wrapped abstract elements by type. If the hierarchy of
+   * (wrapped) abstract elements has several levels, this method searches through
+   * them recursively.
+   *
+   * The type does not need to match exactly, the returned element has just to
+   * be a sub-type of the type passed as argument.
+   *
+   * @param <T> The type of the wrapped element.
+   * @param An abstract element
+   * @param pType The class object of the type of the wrapped element.
+   * @return An instance of an element with type T or null if there is none.
+   */
   public static <T extends AbstractElement> T extractElementByType(AbstractElement pElement, Class<T> pType) {
     if (pType.isInstance(pElement)) {
       return pType.cast(pElement);
@@ -82,6 +95,9 @@ public final class AbstractElements {
     }
   };
   
+  /**
+   * Function object for {@link #extractElementByType(AbstractElement, Class)}.
+   */
   public static <T extends AbstractElement>
                 Function<AbstractElement, T> extractElementByTypeFunction(final Class<T> pType) {
     

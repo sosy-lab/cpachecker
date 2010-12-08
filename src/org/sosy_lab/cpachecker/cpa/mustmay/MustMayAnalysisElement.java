@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperElement {
 
@@ -99,29 +100,8 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
   }
 
   @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-
-    // TODO: should retrieveWrappedElement return itself if this is a subtype of pType?
-
-    for (AbstractElement lElement : mWrappedElements) {
-      if (pType.isAssignableFrom(lElement.getClass())) {
-        return pType.cast(lElement);
-      }
-      else if (lElement instanceof AbstractWrapperElement) {
-        T lResult = ((AbstractWrapperElement)lElement).retrieveWrappedElement(pType);
-
-        if (lResult != null) {
-          return lResult;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  @Override
   public AbstractElementWithLocation retrieveLocationElement() {
-    return retrieveWrappedElement(AbstractElementWithLocation.class);
+    return AbstractElements.extractElementByType(this, AbstractElementWithLocation.class);
   }
 
 }

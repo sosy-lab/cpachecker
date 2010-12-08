@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 /**
  * Waitlist implementation that sorts the abstract elements by the depth of their
@@ -41,14 +41,10 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractElement pElement) {
-    if (pElement instanceof AbstractWrapperElement) {
-      CallstackElement callstackElement =
-        ((AbstractWrapperElement)pElement).retrieveWrappedElement(CallstackElement.class);
-      if (callstackElement != null) {
-        return callstackElement.getDepth();
-      }
-    }
-    return 0;
+    CallstackElement callstackElement =
+      AbstractElements.extractElementByType(pElement, CallstackElement.class);
+  
+    return (callstackElement != null) ? callstackElement.getDepth() : 0;
   }
   
   public static WaitlistFactory factory(WaitlistFactory pSecondaryStrategy) {

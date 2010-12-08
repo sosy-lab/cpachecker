@@ -96,19 +96,6 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
   }
 
   @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    } else if (pType.isAssignableFrom(wrappedElement.getClass())) {
-      return pType.cast(wrappedElement);
-    } else if (wrappedElement instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)wrappedElement).retrieveWrappedElement(pType);
-    } else {
-      return null;
-    }
-  }
-
-  @Override
   public AbstractElementWithLocation retrieveLocationElement() {
     if (wrappedElement instanceof AbstractWrapperElement) {
       return ((AbstractWrapperElement)wrappedElement).retrieveLocationElement();

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByTypeFunction;
+
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -32,10 +36,10 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+
+import com.google.common.base.Predicates;
 
 /**
  * @author Gregor Endler
@@ -65,27 +69,24 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
+      Iterable<UninitializedVariablesElement> projectedReached = transform(pReached, extractElementByTypeFunction(UninitializedVariablesElement.class));
       
       //find all UninitializedVariablesElements and get their warnings
-      for (AbstractElement reachedElement : pReached) {
-        if (reachedElement instanceof AbstractWrapperElement) {
-          UninitializedVariablesElement uninitElement =
-            ((AbstractWrapperElement)reachedElement).retrieveWrappedElement(UninitializedVariablesElement.class);
-          if (uninitElement != null) {
-            Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
-            //warnings are identified by line number and variable name
-            Pair<Integer, String> warningIndex;
-            for(Triple<Integer, String, String> warning : warnings) {
-              //check if a warning has already been displayed
-              warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
-              if (!warningsDisplayed.contains(warningIndex)) {
-                warningsDisplayed.add(warningIndex);
-                pOut.println(warning.getThird());
-                noOfWarnings++;
-              }
-            }
+      for (UninitializedVariablesElement uninitElement : filter(projectedReached, Predicates.notNull())) {
+
+        Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
+        //warnings are identified by line number and variable name
+        Pair<Integer, String> warningIndex;
+        for(Triple<Integer, String, String> warning : warnings) {
+          //check if a warning has already been displayed
+          warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
+          if (!warningsDisplayed.contains(warningIndex)) {
+            warningsDisplayed.add(warningIndex);
+            pOut.println(warning.getThird());
+            noOfWarnings++;
           }
         }
+
       }
       if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");

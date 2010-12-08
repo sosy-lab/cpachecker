@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -74,8 +76,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     ArrayList<PredicateAbstractElement> path = new ArrayList<PredicateAbstractElement>();
     PredicateAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
-      PredicateAbstractElement symbElement =
-        artPair.getFirst().retrieveWrappedElement(PredicateAbstractElement.class);
+      PredicateAbstractElement symbElement = extractElementByType(artPair.getFirst(), PredicateAbstractElement.class);
 
       if (symbElement instanceof AbstractionElement && symbElement != lastElement) {
         path.add(symbElement);
@@ -113,7 +114,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     boolean foundInterpolant = false;
     for (Pair<ARTElement,CFAEdge> artPair : pArtPath) {
       ARTElement ae = artPair.getFirst();
-      PredicateAbstractElement e = ae.retrieveWrappedElement(PredicateAbstractElement.class);
+      PredicateAbstractElement e = extractElementByType(ae, PredicateAbstractElement.class);
 
       assert e instanceof AbstractionElement;
 

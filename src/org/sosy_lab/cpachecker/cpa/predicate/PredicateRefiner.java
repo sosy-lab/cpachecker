@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.Iterables.skip;
+import static com.google.common.collect.Iterables.transform;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -113,19 +116,15 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     ArrayList<PredicateAbstractElement> path = new ArrayList<PredicateAbstractElement>();
     List<ARTElement> artPath = new ArrayList<ARTElement>();
     
-    Iterator<Pair<ARTElement,CFAEdge>> it = pPath.iterator();
-    it.next(); // skip initial element
-    while (it.hasNext()) {
-      ARTElement ae = it.next().getFirst();
-      PredicateAbstractElement symbElement =
-        ae.retrieveWrappedElement(PredicateAbstractElement.class);
-
-      if (symbElement instanceof AbstractionElement) {
-        path.add(symbElement);
+    // copy to the above lists, skipping initial element and non-abstraction elements
+    for (ARTElement ae : transform(skip(pPath, 1), Pair.<ARTElement>getProjectionToFirst())) {
+      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+      if (pe instanceof AbstractionElement) {
+        path.add(pe);
         artPath.add(ae);
       }
     }
-
+    
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
     PredicatePrecision oldPredicatePrecision = null;
     if (oldPrecision instanceof PredicatePrecision) {
@@ -246,7 +245,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       pmapBuilder.putAll(loc, globalPredicates);
     }
     assert firstInterpolationElement != null;
-    assert firstInterpolationElement == firstInterpolationARTElement.retrieveWrappedElement(PredicateAbstractElement.class);
+    assert firstInterpolationElement == extractElementByType(firstInterpolationARTElement, PredicateAbstractElement.class);
 
     ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
     PredicatePrecision newPrecision;

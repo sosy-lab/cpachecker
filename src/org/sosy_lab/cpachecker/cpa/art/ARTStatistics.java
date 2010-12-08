@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 @Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
@@ -160,7 +161,7 @@ public class ARTStatistics implements Statistics {
         } else if (currentElement.isTarget()) {
           color = "red";
         } else {
-          AbstractElement abselem = currentElement.retrieveWrappedElement(PredicateAbstractElement.AbstractionElement.class);
+          AbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.AbstractionElement.class);
           if (abselem != null) {
             color = "blue";
           } else {
