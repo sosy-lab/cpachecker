@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 public final class ErrorPathShrinker {
 
   /** This is only an UtilityClass. */
-  private ErrorPathShrinker() {
+  public ErrorPathShrinker() {
   }
 
   /** Set<String> for storing the global variables. */
@@ -69,7 +69,7 @@ public final class ErrorPathShrinker {
    *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public static Path shrinkErrorPath(final Path targetPath) {
+  public Path shrinkErrorPath(final Path targetPath) {
 
     // first collect all global variables
     findGlobalVarsInPath(targetPath);
@@ -99,10 +99,10 @@ public final class ErrorPathShrinker {
     // so call handlePath again until the longPath is completely handled.
     while (revIterator.hasNext()) {
 
-      new PathHandler(shortErrorPath, revIterator, importantVars,
+      PathHandler pathHandler = new PathHandler(shortErrorPath, revIterator, importantVars,
           importantVarsForGlobalVars, globalVarsPath);
 
-      PathHandler.handlePath();
+      pathHandler.handlePath();
     }
 
     return shortErrorPath;
@@ -112,7 +112,7 @@ public final class ErrorPathShrinker {
    * of global variables.
    *
    * @param path the Path to iterate */
-  private static void findGlobalVarsInPath(final Path path) {
+  private void findGlobalVarsInPath(final Path path) {
 
     // iterate through the Path and collect all important variables
     final Iterator<Pair<ARTElement, CFAEdge>> iterator = path.iterator();
@@ -141,27 +141,27 @@ public final class ErrorPathShrinker {
   }
 
   /** This is a inner Class, that can handle a Path until a functionCallEdge. */
-  private static final class PathHandler {
+  private final class PathHandler {
 
     /** The short Path stores the result of PathHandler.handlePath(). */
-    private static Path                                SHORT_PATH;
+    private final Path                                SHORT_PATH;
 
     /** The reverse iterator runs from lastNode to firstNode. */
-    private static Iterator<Pair<ARTElement, CFAEdge>> REV_ITERATOR;
+    private Iterator<Pair<ARTElement, CFAEdge>> REV_ITERATOR;
 
     /** This Set stores the important variables of the Path. */
-    private static Set<String>                         IMPORTANT_VARS;
+    private Set<String>                         IMPORTANT_VARS;
 
     /** This Set stores the global variables, that are important and used
      * during proving the edges. */
-    private static Set<String>                         IMPORTANT_VARS_FOR_GLOBAL_VARS;
+    private Set<String>                         IMPORTANT_VARS_FOR_GLOBAL_VARS;
 
     /** This Path stores CFAEdges, where globalVars or
      * importantVarsForGlobalVars are assigned.*/
-    private static Path                                GLOBAL_VARS_PATH;
+    private Path                                GLOBAL_VARS_PATH;
 
     /** This is the currently handled CFAEdgePair. */
-    private static Pair<ARTElement, CFAEdge>           CURRENT_CFA_EDGE_PAIR;
+    private Pair<ARTElement, CFAEdge>           CURRENT_CFA_EDGE_PAIR;
 
     /** The Constructor of this Class gets some references (pointers) from the
      * callerFunction, all of them may be changed during 'handlePath()'.
@@ -189,7 +189,7 @@ public final class ErrorPathShrinker {
 
     /** This function gets a Path and shrinks it to a shorter Path,
      * only important edges from the first Path are in the shortPath. */
-    private static void handlePath() {
+    private void handlePath() {
 
       // iterate the Path (backwards) and collect all important variables
       while (REV_ITERATOR.hasNext()) {
@@ -257,7 +257,7 @@ public final class ErrorPathShrinker {
 
     /** This method makes a recursive call of handlePath().
      * After that it merges the result with the current shortPath. */
-    private static void handleJumpStatement() {
+    private void handleJumpStatement() {
 
       // Set for storing the important variables, normally empty when leaving
       // handlePath(), because declarators are removed, except globalVars.
@@ -288,13 +288,13 @@ public final class ErrorPathShrinker {
           possibleImportantVarsForGlobalVars);
 
       // this is a recursive call to handle the Path inside of the function
-      new PathHandler(shortFunctionPath, REV_ITERATOR, possibleVars,
+      PathHandler recPathHandler = new PathHandler(shortFunctionPath, REV_ITERATOR, possibleVars,
           possibleImportantVarsForGlobalVars, functionGlobalVarsPath);
-      PathHandler.handlePath();
+      recPathHandler.handlePath();
 
       /*
-      System.out.println("funcPath:\n" + shortFunctionPath.toString());
-      System.out.println("globPath:\n" + functionGLOBAL_VARS_PATH.toString());
+      System.out.println("funcPath:\n" + shortFunctionPath);
+      System.out.println("globPath:\n" + functionGlobalVarsPath);
       */
 
       // the recursive call stops at the functionStart,
@@ -319,8 +319,8 @@ public final class ErrorPathShrinker {
         // add the important edges in front of the shortPath
         SHORT_PATH.addFirst(returnEdgePair);
         GLOBAL_VARS_PATH.addFirst(returnEdgePair);
-        GLOBAL_VARS_PATH.addAll(0, functionGlobalVarsPath);
         SHORT_PATH.addAll(0, functionGlobalVarsPath);
+        GLOBAL_VARS_PATH.addAll(0, functionGlobalVarsPath);
       }
 
       // "a = f(x)"
@@ -365,7 +365,7 @@ public final class ErrorPathShrinker {
      *
      * @param funcEdge the Edge, where to take the variables from
      * @param possibleImportantVarsForGlobalVars */
-    private static void getImportantVarsFromFunctionCall(
+    private void getImportantVarsFromFunctionCall(
         final FunctionCallEdge funcEdge,
         final Set<String> possibleImportantVarsForGlobalVars) {
 
@@ -393,7 +393,7 @@ public final class ErrorPathShrinker {
     }
 
     /** This method handles statements. */
-    private static void handleStatement() {
+    private void handleStatement() {
 
       IASTExpression statementExp =
           ((StatementEdge) CURRENT_CFA_EDGE_PAIR.getSecond()).getExpression();
@@ -434,7 +434,7 @@ public final class ErrorPathShrinker {
     /** This method handles unary statements (a++, a--).
      *
      * @param unaryExpression the expression to prove */
-    private static void handleUnaryStatement(
+    private void handleUnaryStatement(
         final IASTUnaryExpression unaryExpression) {
 
       // get operand, i.e. "a"
@@ -457,7 +457,7 @@ public final class ErrorPathShrinker {
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private static void handleAssignment(
+    private void handleAssignment(
         final IASTBinaryExpression binaryExpression) {
 
       IASTExpression lParam = binaryExpression.getOperand1();
@@ -494,7 +494,7 @@ public final class ErrorPathShrinker {
      *
      * @param lParam the local name of the variable to assign to
      * @param rightExp the assigning expression */
-    private static void handleAssignmentToVariable(final String lParam,
+    private void handleAssignmentToVariable(final String lParam,
         final IASTExpression rightExp) {
 
       // FIRST add edge to the Path, THEN remove lParam from Set
@@ -531,7 +531,7 @@ public final class ErrorPathShrinker {
     /** This method handles variable declarations ("int a;"). Expressions like
      * "int a=b;" are preprocessed by CIL to "int a; \n a=b;", so there is no
      * need to handle them. The expression "a=b;" is handled as StatementEdge. */
-    private static void handleDeclaration() {
+    private void handleDeclaration() {
 
       DeclarationEdge declarationEdge =
           (DeclarationEdge) CURRENT_CFA_EDGE_PAIR.getSecond();
@@ -558,7 +558,7 @@ public final class ErrorPathShrinker {
     /** This method handles assumptions (a==b, a<=b, true, etc.). Assumptions
      * always are handled as important edges. This method only adds all
      * variables in an assumption (expression) to the important variables. */
-    private static void handleAssumption() {
+    private void handleAssumption() {
 
       final IASTExpression assumeExp =
           ((AssumeEdge) CURRENT_CFA_EDGE_PAIR.getSecond()).getExpression();
@@ -574,7 +574,7 @@ public final class ErrorPathShrinker {
     }
 
     /** This method adds the current CFAEdgePair in front of the shortPath. */
-    private static void addCurrentCFAEdgePairToShortPath() {
+    private void addCurrentCFAEdgePairToShortPath() {
       SHORT_PATH.addFirst(CURRENT_CFA_EDGE_PAIR);
     }
 
@@ -586,7 +586,7 @@ public final class ErrorPathShrinker {
      *
      * @param exp the expression to be divided and added
      * @param importantVars all currently important variables */
-    private static void addAllVarsInExpToImportantVars(
+    private void addAllVarsInExpToImportantVars(
         final IASTExpression exp, final Set<String> importantVars) {
 
       // exp = 8.2 or "return;" (when exp == null),
@@ -649,7 +649,7 @@ public final class ErrorPathShrinker {
      *
      *  @param sourceSet where to read the variables
      *  @param targetSet where to store the variables */
-    private static void addGlobalVarsFromSetToSet(final Set<String> sourceSet,
+    private void addGlobalVarsFromSetToSet(final Set<String> sourceSet,
         final Set<String> targetSet) {
       for (String varName : sourceSet) {
         if (GLOBAL_VARS.contains(varName)) {
