@@ -47,15 +47,10 @@ class AutomatonStatistics implements Statistics {
       ReachedSet pReached) {
 
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
-    out.println("Total time for sucessor computation: " + toTime(trans.totalPostTime));
-    out.println("  Time for transition matches:       " + toTime(trans.matchTime));
-    out.println("  Time for transition assertions:    " + toTime(trans.assertionsTime));
-    out.println("  Time for transition actions:       " + toTime(trans.actionTime));
-    out.println("Total time for strengthen operator:  " + toTime(trans.totalStrengthenTime));
+    out.println("Total time for sucessor computation: " + trans.totalPostTime);
+    out.println("  Time for transition matches:       " + trans.matchTime);
+    out.println("  Time for transition assertions:    " + trans.assertionsTime);
+    out.println("  Time for transition actions:       " + trans.actionTime);
+    out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
   }
-
-  private String toTime(long timeMillis) {
-    return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
-  }
-
 }

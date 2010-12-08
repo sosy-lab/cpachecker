@@ -35,6 +35,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownStat
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -54,11 +56,11 @@ class AutomatonTransferRelation implements TransferRelation {
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
 
-  long totalPostTime = 0;
-  long matchTime = 0;
-  long assertionsTime = 0;
-  long actionTime = 0;
-  long totalStrengthenTime = 0;
+  Timer totalPostTime = new Timer();
+  Timer matchTime = new Timer();
+  Timer assertionsTime = new Timer();
+  Timer actionTime = new Timer();
+  Timer totalStrengthenTime = new Timer();
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, LogManager pLogger) {
     this.cpa = pCpa;
@@ -72,8 +74,9 @@ class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
                       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
-                          Preconditions.checkArgument(pElement instanceof AutomatonState);
-    long start = System.currentTimeMillis();
+    
+    Preconditions.checkArgument(pElement instanceof AutomatonState);
+    totalPostTime.start();
     try {
 
       if (pElement instanceof AutomatonUnknownState) {
@@ -90,7 +93,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return getFollowStates(lCurrentAutomatonState, null, pCfaEdge, false);
     
     } finally {
-      totalPostTime += System.currentTimeMillis() - start;
+      totalPostTime.stop();
     }
   }
   
@@ -114,7 +117,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.singleton(state);
     }
     
-    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>();    
+    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>(2);    
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -122,13 +125,14 @@ class AutomatonTransferRelation implements TransferRelation {
     // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
-    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<AutomatonTransition, Map<Integer, String>>>();
+    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<AutomatonTransition, Map<Integer, String>>>(2);
+    
     for (AutomatonTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
 
-      long startMatch = System.currentTimeMillis();
+      matchTime.start();
       ResultValue<Boolean> match = t.match(exprArgs);      
-      matchTime += System.currentTimeMillis() - startMatch;
+      matchTime.stop();
       if (match.canNotEvaluate()) {
         if (strengthen) {
           logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
@@ -136,68 +140,58 @@ class AutomatonTransferRelation implements TransferRelation {
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
         return Collections.singleton(new AutomatonUnknownState(state));
       } else {
-        if (match.getValue().equals(Boolean.TRUE)) {
+        if (match.getValue()) {
           edgeMatched = true;
-          long startAssertions = System.currentTimeMillis();
+          assertionsTime.start();
           ResultValue<Boolean> assertionsHold = t.assertionsHold(exprArgs);
-          assertionsTime += System.currentTimeMillis() - startAssertions;
+          assertionsTime.stop();
+
           if (assertionsHold.canNotEvaluate()) {
             if (strengthen) {
               logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
             }
             // cannot yet be evaluated
             return Collections.singleton(new AutomatonUnknownState(state));
-          } else if (assertionsHold.getValue().equals(Boolean.TRUE)) {
-            if (t.canExecuteActionsOn(exprArgs)) {
-              Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
-              if (nonDetState) {
-                transitionsToBeTaken.add(Pair.of(t, transitionVariables)); 
-              } else { // not a nondet State, return the first state, that was found
-                long startAction = System.currentTimeMillis();
-                Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
-                exprArgs.setAutomatonVariables(newVars);
-                exprArgs.putTransitionVariables(transitionVariables);
-                t.executeActions(exprArgs);
-                actionTime += System.currentTimeMillis() - startAction;
-                AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa);
-                if (lSuccessor instanceof AutomatonState.BOTTOM) {
-                  return Collections.emptySet();
-                } else {
-                  return Collections.singleton(lSuccessor);
-                }
-              }
-            } else {
+          
+          } else if (assertionsHold.getValue()) {
+            if (!t.canExecuteActionsOn(exprArgs)) {
               // cannot yet execute, goto UnknownState
               return Collections.singleton(new AutomatonUnknownState(state));
             }
+            
+            // delay execution as described above
+            Map<Integer, String> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables()); 
+            transitionsToBeTaken.add(Pair.of(t, transitionVariables)); 
+
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
             AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa);
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
-            if (nonDetState) {
-              lSuccessors.add(errorState);
-            } else {
-              return Collections.singleton(errorState); 
-            }
+            lSuccessors.add(errorState);
+          }
+
+          if (!nonDetState) {
+            // not a nondet State, break on the first matching edge
+            break;
           }
         }
         // do nothing if the edge did not match
       }
     }
+
     if (edgeMatched) {
       // execute Transitions
       for (Pair<AutomatonTransition, Map<Integer, String>> pair : transitionsToBeTaken) {
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
         Map<Integer, String> transitionVariables = pair.getSecond();
-        long startAction = System.currentTimeMillis();
+        actionTime.start();
         Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
         exprArgs.setAutomatonVariables(newVars);
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
-        actionTime += System.currentTimeMillis() - startAction;
+        actionTime.stop();
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa);
-        // non-det state
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } // else add nothing
@@ -228,10 +222,10 @@ class AutomatonTransferRelation implements TransferRelation {
     if (! (pElement instanceof AutomatonUnknownState)) {
       return null;
     } else {
-      long start = System.currentTimeMillis();
+      totalStrengthenTime.start();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
       Collection<? extends AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
-      totalStrengthenTime += System.currentTimeMillis() - start;
+      totalStrengthenTime.stop();
       for (AbstractElement succ : lSuccessors) {
         assert (!(succ instanceof AutomatonUnknownState)): "automaton.strengthen returned an unknownState!";
       }

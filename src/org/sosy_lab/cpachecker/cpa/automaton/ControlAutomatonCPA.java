@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 import com.google.common.base.Preconditions;
@@ -59,7 +60,7 @@ import com.google.common.base.Preconditions;
  * @author rhein
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
+public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Option(name="dotExport")
   private boolean export = false;
@@ -213,6 +214,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   public AutomatonState getTopState() {
     return this.topState;
   }
+  
+  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
