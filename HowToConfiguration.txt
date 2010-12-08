@@ -161,6 +161,10 @@ analysis.useAssumptionCollector = false
 # Currently all refiner require the use of the ARTCPA.
 analysis.useRefinement = false
 
+# use a BMC like algorithm that checks for satisfiability after the analysis has finished
+# works only with PredicateCPA
+analysis.useBMC = false
+
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
 

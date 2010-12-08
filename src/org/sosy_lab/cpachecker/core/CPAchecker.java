@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -128,6 +129,8 @@ public class CPAchecker {
     @Option(name="analysis.useCBMC")
     boolean useCBMC = false;
 
+    @Option(name="analysis.useBMC")
+    boolean useBMC = false;
   }
 
   private final LogManager logger;
@@ -326,6 +329,10 @@ public class CPAchecker {
 
     if (options.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, config, logger);
+    }
+    
+    if (options.useBMC) {
+      algorithm = new BMCAlgorithm(algorithm, config, logger);
     }
 
     if (options.useAssumptionCollector) {
