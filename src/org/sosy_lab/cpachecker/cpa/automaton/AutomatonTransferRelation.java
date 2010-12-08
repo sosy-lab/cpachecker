@@ -104,11 +104,14 @@ class AutomatonTransferRelation implements TransferRelation {
    * If the only following state is BOTTOM an empty set is returned.
    */
   private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
-    if (state == cpa.getTopState()) {
-      return Collections.singleton(state);
-    }
+    Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();
+    }
+    
+    if (state.getInternalState().getTransitions().isEmpty()) {
+      // shortcut
+      return Collections.singleton(state);
     }
     
     Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>();    
@@ -131,7 +134,7 @@ class AutomatonTransferRelation implements TransferRelation {
           logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
+        return Collections.singleton(new AutomatonUnknownState(state));
       } else {
         if (match.getValue().equals(Boolean.TRUE)) {
           edgeMatched = true;
@@ -143,7 +146,7 @@ class AutomatonTransferRelation implements TransferRelation {
               logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
             }
             // cannot yet be evaluated
-            return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
+            return Collections.singleton(new AutomatonUnknownState(state));
           } else if (assertionsHold.getValue().equals(Boolean.TRUE)) {
             if (t.canExecuteActionsOn(exprArgs)) {
               Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
@@ -174,7 +177,7 @@ class AutomatonTransferRelation implements TransferRelation {
             if (nonDetState) {
               lSuccessors.add(errorState);
             } else {
-              return Collections.singleton((AbstractElement)errorState); 
+              return Collections.singleton(errorState); 
             }
           }
         }
@@ -202,7 +205,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      return Collections.singleton((AbstractElement)state);
+      return Collections.singleton(state);
     }
   }
 

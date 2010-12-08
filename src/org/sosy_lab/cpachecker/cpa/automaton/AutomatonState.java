@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.Map;
 
@@ -42,7 +44,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
 
   static class TOP extends AutomatonState {
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
-      super(pAutomatonCPA);
+      super(Collections.<String, AutomatonVariable>emptyMap(),
+            new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
+            pAutomatonCPA);
     }
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
@@ -55,7 +59,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
   }
   static class BOTTOM extends AutomatonState {
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
-      super(pAutomatonCPA);
+      super(Collections.<String, AutomatonVariable>emptyMap(),
+            AutomatonInternalState.BOTTOM,
+            pAutomatonCPA);
     }
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
@@ -81,42 +87,27 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     }
   }
 
-  private AutomatonState(ControlAutomatonCPA pAutomatonCPA) {
-    automatonCPA = pAutomatonCPA;
-    vars = Collections.emptyMap();
-    internalState = null;
-  }
-
   private AutomatonState(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA) {
-    vars = pVars;
-    internalState = pInternalState;
-    automatonCPA = pAutomatonCPA;
+    vars = checkNotNull(pVars);
+    internalState = checkNotNull(pInternalState);
+    automatonCPA = checkNotNull(pAutomatonCPA);
   }
 
   @Override
   public boolean isTarget() {
-    return (internalState != null) && internalState.isTarget();
+    return internalState.isTarget();
   }
 
   @Override
   public boolean equals(Object pObj) {
-    if (super.equals(pObj)) {
+    if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof AutomatonState)) {
+    if (!pObj.getClass().equals(AutomatonState.class)) {
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
-
-    /* If one of the states is top or bottom they cannot be equal, Object.equal would have found this.
-     * Because TOP and Bottom do not have internal States this must be returned explicitly.
-     * AutomatonUnknownState also have internalState==null,
-     * and are only equal to one of themselves.
-     */
-    if (this.internalState == null || otherState.internalState == null) {
-      return false;
-    }
     
     return this.internalState.equals(otherState.internalState)
         && this.vars.equals(otherState.vars);
@@ -146,20 +137,12 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
-      super(pPreviousState.automatonCPA);
+      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA);
       previousState = pPreviousState;
     }
 
     AutomatonState getPreviousState() {
       return previousState;
-    }
-    @Override
-    AutomatonInternalState getInternalState() {
-      return previousState.getInternalState();
-    }
-    @Override
-    Map<String, AutomatonVariable> getVars() {
-      return previousState.getVars();
     }
 
     @Override
