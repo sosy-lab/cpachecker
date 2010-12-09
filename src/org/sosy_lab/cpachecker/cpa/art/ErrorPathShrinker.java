@@ -81,7 +81,7 @@ public final class ErrorPathShrinker {
     // Set for storing the important variables
     Set<String> importantVars = new LinkedHashSet<String>();
 
-    // Set for storing the global variables, that are important and used 
+    // Set for storing the global variables, that are important and used
     // during proving the edges.
     Set<String> importantVarsForGlobalVars = new LinkedHashSet<String>();
 
@@ -363,11 +363,15 @@ public final class ErrorPathShrinker {
           break;
 
         /* There are several BlankEdgeTypes:
-         * a jumpEdge ("goto") and a loopstart ("while") are important,
-         * a labelEdge maybe, a really blank edge is not important.
+         * a loopstart ("while" or "goto loopstart") is important, 
+         * a jumpEdge ("goto") is important, iff it contains the word "error", 
+         * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
-          if (cfaEdge.isJumpEdge() || cfaEdge.getSuccessor().isLoopStart()) {
+          System.out.println(cfaEdge);
+          if (cfaEdge.getSuccessor().isLoopStart()
+              || (cfaEdge.isJumpEdge() && cfaEdge.getRawStatement()
+                  .toLowerCase().contains("error"))) {
             addCurrentCFAEdgePairToShortPath();
           }
           break;
