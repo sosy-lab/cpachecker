@@ -89,9 +89,13 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   
   @Override
   public String toString() {
-    return " Loop starting at node " + getLoopHeadNode()
-         + ", stack depth " + getDepth()
-         + " [" + Integer.toHexString(super.hashCode()) + "]";
+    if (loopHeadNode == null) {
+      return "Loop stack empty";
+    } else {
+      return " Loop starting at node " + loopHeadNode + " in iteration " + iteration
+           + ", stack depth " + depth
+           + " [" + Integer.toHexString(super.hashCode()) + "]";
+    }
   }
   
   @Override
