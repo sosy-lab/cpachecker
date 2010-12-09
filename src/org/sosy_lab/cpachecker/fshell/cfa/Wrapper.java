@@ -84,21 +84,6 @@ public class Wrapper {
     determineAlphaAndOmegaEdges(mEntry, pMainFunction);
   }
   
-  public void addFunctions(String pFileName) {
-    TranslationUnit lTranslationUnit = TranslationUnit.parseFile(pFileName, mLogManager);
-    
-    mTranslationUnit.add(lTranslationUnit);
-    
-    for (String lFunctionName : mTranslationUnit.functionNames()) {
-      if (!lTranslationUnit.contains(lFunctionName)) {
-        Map<CallToReturnEdge, CFAEdge> lMapping = mTranslationUnit.insertCallEdgesRecursively(lFunctionName);
-        mReplacedEdges.putAll(lMapping);
-      }
-    }
-    
-    CFABuilder.insertGlobalDeclarations(mEntry, mTranslationUnit.getGlobalDeclarations(), mLogManager);
-  }
-  
   public Map<CallToReturnEdge, CFAEdge> getReplacedEdges() {
     return mReplacedEdges;
   }
@@ -240,10 +225,6 @@ public class Wrapper {
   
   private TranslationUnit getWrapper(String pWrapperFunction) {
     return TranslationUnit.parseString(pWrapperFunction, mLogManager);
-  }
-  
-  public CFAFunctionDefinitionNode replace(CFAFunctionDefinitionNode pFunctionEntry) {
-    return mTranslationUnit.replace(pFunctionEntry, mLogManager);
   }
 
 }

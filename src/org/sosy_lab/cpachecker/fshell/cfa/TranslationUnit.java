@@ -20,36 +20,20 @@ import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
-public class TranslationUnit {
+class TranslationUnit {
 
-  private Map<String, CFAFunctionDefinitionNode> mCFAs;
-  private List<IASTDeclaration> mGlobalDeclarations;
+  private final Map<String, CFAFunctionDefinitionNode> mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
+  private final List<IASTDeclaration> mGlobalDeclarations = new LinkedList<IASTDeclaration>();
 
   public TranslationUnit() {
-    mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-    mGlobalDeclarations = new LinkedList<IASTDeclaration>();
-  }
-  
-  public TranslationUnit(TranslationUnit pTranslationUnit) {
-    this();
-    
-    mCFAs.putAll(pTranslationUnit.mCFAs);
-    mGlobalDeclarations.addAll(pTranslationUnit.mGlobalDeclarations);
   }
   
   private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<IASTDeclaration> pGlobalDeclarations) {
-    this();
-    
-    if (pCFAs == null) {
-      throw new IllegalArgumentException();
-    }
+    assert pCFAs != null;
     
     mCFAs.putAll(pCFAs);
     mGlobalDeclarations.addAll(pGlobalDeclarations);
@@ -88,22 +72,10 @@ public class TranslationUnit {
     return mCFAs.keySet();
   }
   
-  public Iterable<IASTDeclaration> globalDeclarations() {
-    return mGlobalDeclarations;
-  }
-  
   public List<IASTDeclaration> getGlobalDeclarations() {
     return mGlobalDeclarations;
   }
-  
-  public boolean contains(String pFunctionName) {
-    return mCFAs.containsKey(pFunctionName);
-  }
-  
-  public boolean hasGlobalDeclarations() {
-    return !mGlobalDeclarations.isEmpty();
-  }
-  
+
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
     IASTTranslationUnit ast;
     try {
@@ -186,81 +158,5 @@ public class TranslationUnit {
     CFAFunctionDefinitionNode lEntry = getFunction(pFunction);
     Files.writeFile(pFile, DOTBuilder.generateDOT(mCFAs.values(), lEntry));
   }
-  
-  /**
-   * 
-   * @param pFunctionEntry Function entry node of function that should replace the function with the same name currently used in the CFA.
-   * @return Function entry node of function originally present in the CFA.
-   */
-  public CFAFunctionDefinitionNode replace(CFAFunctionDefinitionNode pFunctionEntry, LogManager lLogManager) {
-    
-    // TODO check for same number and type of parameters?
-    if (!contains(pFunctionEntry.getFunctionName())) {
-      throw new IllegalArgumentException();
-    }
-    
-    CFAFunctionDefinitionNode lOldFunctionEntry = getFunction(pFunctionEntry.getFunctionName());
-    
-    while (lOldFunctionEntry.getNumEnteringEdges() > 0) {
-      CFAEdge lEnteringEdge = lOldFunctionEntry.getEnteringEdge(0);
-      
-      FunctionCallEdge lOldCallEdge = (FunctionCallEdge)lEnteringEdge;
-      
-      // no support for external calls for now
-      if (lOldCallEdge.isExternalCall()) {
-        throw new RuntimeException();
-      }
-      
-      CFANode lPredecessor = lOldCallEdge.getPredecessor();
-      
-      if (lPredecessor.getNumLeavingEdges() != 1) {
-        throw new RuntimeException("Number of leaving edges is " + lPredecessor.getNumLeavingEdges());
-      }
-      
-      CallToReturnEdge lCallSite = lPredecessor.getLeavingSummaryEdge();
-      
-      if (lCallSite == null) {
-        throw new RuntimeException();
-      }
-      
-      CFANode lSuccessor = lCallSite.getSuccessor();
-      
-      if (lSuccessor.getNumEnteringEdges() != 1) {
-        throw new RuntimeException("Number of entering edges is " + lSuccessor.getNumEnteringEdges());
-      }
-      
-      ReturnEdge lOldReturnEdge = (ReturnEdge)lSuccessor.getEnteringEdge(0);
-      
-      FunctionCallEdge lNewCallEdge = new FunctionCallEdge(
-          lOldCallEdge.getRawStatement(),
-          lOldCallEdge.getRawAST(),
-          lOldCallEdge.getLineNumber(),
-          lPredecessor,
-          pFunctionEntry,
-          lOldCallEdge.getArguments(),
-          lOldCallEdge.isExternalCall()
-          );
-      
-      ReturnEdge lNewReturnEdge = new ReturnEdge(
-          lOldReturnEdge.getRawStatement(),
-          lOldReturnEdge.getLineNumber(),
-          pFunctionEntry.getExitNode(),
-          lSuccessor
-          );
-      
-      lNewCallEdge.addToCFA(lLogManager);
-      lPredecessor.removeLeavingEdge(lOldCallEdge);
-      lOldCallEdge.getSuccessor().removeEnteringEdge(lOldCallEdge);
-      
-      lNewReturnEdge.addToCFA(lLogManager);
-      lSuccessor.removeEnteringEdge(lOldReturnEdge);
-      lOldReturnEdge.getPredecessor().removeLeavingEdge(lOldReturnEdge);
-    }
-    
-    // update CFA mapping
-    mCFAs.put(pFunctionEntry.getFunctionName(), pFunctionEntry);
-  
-    return lOldFunctionEntry;
-  }
-  
+
 }
