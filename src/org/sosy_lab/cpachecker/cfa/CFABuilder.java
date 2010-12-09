@@ -94,9 +94,6 @@ public class CFABuilder extends ASTVisitor
 	private Deque<CFANode> loopNextStack; // For the node following the current if / while block
 	private Deque<CFANode> elseStack;
 
-//  switch statements are removed by CIL, also CFA would have been wrong
-//	private Deque<CFANode> switchStartStack = new ArrayDeque<CFANode> ();
-
 	// Data structures for handling goto
 	private Map<String, CFALabelNode> labelMap;
 	private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
@@ -334,7 +331,7 @@ public class CFABuilder extends ASTVisitor
 			handleGotoStatement ((IASTGotoStatement)statement, fileloc);
 		else if (statement instanceof IASTReturnStatement)
 			handleReturnStatement ((IASTReturnStatement)statement, fileloc);
-/* switch statements are removed by CIL, also CFA would have been wrong
+/* switch statements are removed by CIL
 		else if (statement instanceof IASTSwitchStatement)
 			handleSwitchStatement ((IASTSwitchStatement)statement, fileloc);
 		else if (statement instanceof IASTCaseStatement)
@@ -593,63 +590,6 @@ public class CFABuilder extends ASTVisitor
 		edge.addToCFA(logger);
 	}
 
-/* switch statements are removed by CIL, also CFA would have been wrong
-	private void handleSwitchStatement (IASTSwitchStatement switchStatement, IASTFileLocation fileloc)
-	{
-		CFANode prevNode = locStack.pop ();
-		CFANode switchStart = new CFANode (fileloc.getStartingLineNumber ());
-
-		CFANode postLoopNode = new CFANode (fileloc.getEndingLineNumber ());
-		locStack.push (postLoopNode);
-		locStack.push (switchStart);
-
-		switchStartStack.push (switchStart); // Continue shouldn't go to the beginning of a switch, but the beginning of the current loop
-		loopNextStack.push (postLoopNode);   // Break should still just leave the switch, not the loop
-
-		StatementEdge switchEdge = new StatementEdge(switchStatement.getControllerExpression().getRawSignature(), fileloc.getStartingLineNumber(), prevNode, switchStart, switchStatement.getControllerExpression(), false);
-		switchEdge.addToCFA();
-	}
-
-	private void handleCaseStatement (IASTCaseStatement caseStatement, IASTFileLocation fileloc)
-	{
-		CFANode prevNode = locStack.pop ();
-		CFANode switchStart = switchStartStack.peek ();
-
-		CFANode caseNode = new CFANode (fileloc.getStartingLineNumber ());
-		IASTExpression caseExpression = caseStatement.getExpression ();
-
-		AssumeEdge assumeEdge1 = new AssumeEdge(caseExpression.getRawSignature(), fileloc.getStartingLineNumber(), switchStart, caseNode, caseExpression, true);
-		assumeEdge1.addToCFA();
-
-		if (prevNode != switchStart)
-		{
-			BlankEdge assumeEdge2 = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, caseNode);
-			assumeEdge2.addToCFA();
-		}
-
-		locStack.push (caseNode);
-	}
-
-	private void handleDefaultStatement (IASTDefaultStatement defaultStatement, IASTFileLocation fileloc)
-	{
-		CFANode prevNode = locStack.pop ();
-		CFANode switchStart = switchStartStack.peek ();
-
-		CFANode caseNode = new CFANode (fileloc.getStartingLineNumber ());
-
-		BlankEdge blankEdge1 = new BlankEdge("default", fileloc.getStartingLineNumber(), switchStart, caseNode);
-		blankEdge1.addToCFA();
-
-		if (prevNode != switchStart)
-		{
-			BlankEdge blankEdge2 = new BlankEdge("default", fileloc.getStartingLineNumber(), prevNode, caseNode);
-			blankEdge2.addToCFA();
-		}
-
-		locStack.push (caseNode);
-	}
-*/
-
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#leave(org.eclipse.cdt.core.dom.ast.IASTStatement)
 	 */
@@ -706,26 +646,6 @@ public class CFABuilder extends ASTVisitor
 			loopNextStack.pop ();
 			*/
 		}
-/* switch statements are removed by CIL, also CFA would have been wrong
-		else if (statement instanceof IASTSwitchStatement)
-		{
-			CFANode prevNode = locStack.pop ();
-
-			if (!prevNode.hasJumpEdgeLeaving ())
-			{
-				CFANode endNode = loopNextStack.peek ();
-
-				if (!prevNode.hasEdgeTo (endNode))
-				{
-					BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, endNode);
-					blankEdge.addToCFA();
-				}
-			}
-
-			switchStartStack.pop ();
-			loopNextStack.pop ();
-		}
-*/
 		return PROCESS_CONTINUE;
 	}
 
@@ -754,17 +674,6 @@ public class CFABuilder extends ASTVisitor
     for (IASTDeclaration d : globalVars) {
       assert(d instanceof IASTSimpleDeclaration);
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-      // TODO refactor this
-//      if (sd.getDeclarators().length == 1 &&
-//          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-//        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
-//          // do nothing
-//        }
-//        else {
-//          System.out.println(d.getRawSignature());
-//          continue;
-//        }
-//      }
       CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
           sd.getFileLocation().getStartingLineNumber(), cur, n);
