@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFA;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -78,9 +77,7 @@ public class CFAReduction {
 
   
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
-    Set<CFANode> allNodes = new HashSet<CFANode>();
-    
-    dfs(cfa, allNodes, false);
+    Set<CFANode> allNodes = CFA.allNodes(cfa, true);
 
     Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
     
@@ -108,7 +105,7 @@ public class CFAReduction {
     // backwards search to determine all relevant nodes
     Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
-      dfs(n, relevantNodes, true);
+      CFA.dfs(n, relevantNodes, true, true);
     }
     
     if (relevantNodes.size() == allNodes.size()) {
@@ -190,44 +187,6 @@ public class CFAReduction {
           }
           n.addEnteringSummaryEdge(null);
           n.addLeavingSummaryEdge(null);
-        }
-      }
-    }
-  }
-  
-  private void dfs(CFANode start, Set<CFANode> seen, boolean reverse) {
-    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
-    toProcess.push(start);
-    while (!toProcess.isEmpty()) {
-      CFANode n = toProcess.pop();
-      seen.add(n);
-      if (reverse) {
-        for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
-          CFAEdge e = n.getEnteringEdge(i);
-          CFANode s = e.getPredecessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-        if (n.getEnteringSummaryEdge() != null) {
-          CFANode s = n.getEnteringSummaryEdge().getPredecessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-      } else {
-        for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
-          CFAEdge e = n.getLeavingEdge(i);
-          CFANode s = e.getSuccessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-        if (n.getLeavingSummaryEdge() != null) {
-          CFANode s = n.getLeavingSummaryEdge().getSuccessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
         }
       }
     }
