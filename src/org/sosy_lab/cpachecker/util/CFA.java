@@ -157,6 +157,59 @@ public class CFA {
 
 
   /**
+   * Computes the transitive closure of the reachability relation on a set of
+   * nodes.
+   * 
+   * The result is given as a two-dimensional array, where
+   * (result[i][j] == true) iff that the node with id j is reachable from the node with id i.
+   * 
+   * This analysis does not know about the special meaning of function calls/exits,
+   * so if there exist such edges, the analysis may be imprecise because it does
+   * not keep track of the callstack.
+   * 
+   * @param allNodes The set of all nodes to consider.
+   * @param max The highest node id of all nodes in allNodes.
+   * @return A two-dimensional array with the transitive closure.
+   */
+  public static boolean[][] transitiveClosure(Set<CFANode> allNodes, int max) {
+    boolean[][] transitiveClosure = new boolean[max+1][max+1];
+    // all fields are initialized to 'false' by Java
+
+    // transitiveClosure[i][j] means that j is reachable from i (j is a successor of i)
+    
+    // initialize for all direct edges
+    for (CFANode currentNode : allNodes) {
+      final int i = currentNode.getNodeNumber();
+      final boolean[] transitiveClosureI = transitiveClosure[i];
+
+      for (int j = 0; j < currentNode.getNumLeavingEdges(); ++j) {
+        CFAEdge e = currentNode.getLeavingEdge(j);
+        transitiveClosureI[e.getSuccessor().getNodeNumber()] = true;
+      }
+      
+      CFAEdge e = currentNode.getLeavingSummaryEdge();
+      if (e != null) {
+        transitiveClosureI[e.getSuccessor().getNodeNumber()] = true;
+      }
+    }
+    
+    // (Floyd-)Warshall algorithm for transitive closure
+    for (int k = 0; k <= max; k++) {
+      for (int i = 0; i <= max; i++) {
+        final boolean[] transitiveClosureI =  transitiveClosure[i];
+        
+        for (int j = 0; j <= max; j++) {
+//        transitiveClosure[i][j] = transitiveClosure[i][j] || (transitiveClosure[i][k] && transitiveClosure[k][j]); 
+
+          // optimization:
+          transitiveClosureI[j]   = transitiveClosureI[j]   || (transitiveClosureI[k]   && transitiveClosure[k][j]); 
+        }
+      }
+    }
+    return transitiveClosure;
+  }
+  
+  /**
    * Find all nodes that belong to the same loop as a given node.
    * @param node A node of a loop.
    * @return All nodes of the same loop
