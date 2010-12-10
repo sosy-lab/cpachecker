@@ -26,11 +26,14 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -42,30 +45,52 @@ public class LoopstackTransferRelation implements TransferRelation {
   @Option
   private int maxLoopIterations = 0; 
   
+  Map<CFAEdge, CFANode> loopEntryEdges = null;
+  Map<CFAEdge, CFANode> loopExitEdges = null;
+  
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     
+    if (pCfaEdge instanceof FunctionCallEdge) {
+      // such edges do never change loop stack status 
+      // Return here because they might be mis-classified as exit edges
+      // because our idea of a loop contains only those nodes within the same function
+      return Collections.singleton(pElement); 
+    }
+    
     CFANode loc = pCfaEdge.getSuccessor();
     LoopstackElement e = (LoopstackElement)pElement;
-    LoopstackElement result;
 
-    // TODO detect and handle loop exit edges!
-    
-    if (loc.isLoopStart()) {
-      if (loc.equals(e.getLoopHeadNode())) {
-        boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-        result = new LoopstackElement(e.getPreviousElement(), loc, e.getIteration()+1, stop);
-      } else {
-        result = new LoopstackElement(e, loc, 1, false);
-      }
-
-    } else {
-      result = e;
+    CFANode oldLoop = loopExitEdges.get(pCfaEdge);
+    if (oldLoop != null) {
+      assert oldLoop.equals(e.getLoopHeadNode()) : e + " " + oldLoop + " " + pCfaEdge;
+      e = e.getPreviousElement();
     }
-
-    return Collections.singleton(result); 
+    
+    if (pCfaEdge instanceof ReturnEdge) {
+      // such edges may be real loop-exit edges "while () { return; }",
+      // but never loop-entry edges
+      // Return here because they might be mis-classified as entry edges 
+      return Collections.singleton(pElement); 
+    }
+    
+    CFANode newLoop = loopEntryEdges.get(pCfaEdge);
+    if (newLoop != null) {
+      assert loc.isLoopStart();
+      assert newLoop.equals(loc);
+      e = new LoopstackElement(e, loc, 1, false);
+    
+    } else if (loc.isLoopStart()) {
+      // not entering but passing head node -> new iteration
+      assert loc.equals(e.getLoopHeadNode());
+      
+      boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
+      e = new LoopstackElement(e.getPreviousElement(), loc, e.getIteration()+1, stop);
+    }
+    
+    return Collections.singleton(e); 
   }
 
   @Override

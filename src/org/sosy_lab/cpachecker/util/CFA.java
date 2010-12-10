@@ -23,11 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -35,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Sets;
 
 public class CFA {
 
@@ -146,5 +154,76 @@ public class CFA {
       return pNode.isLoopStart();
     }
   };
+
+
+  /**
+   * Find all nodes that belong to the same loop as a given node.
+   * @param node A node of a loop.
+   * @return All nodes of the same loop
+   */
+  public static Sets.SetView<CFANode> findLoopNodes(CFANode node) {
+    return Sets.intersection(transitiveSuccessors(node, false), transitivePredecessors(node, false));
+  }
   
+  /**
+   * Creates two mappings from all loop-entry and loop-exit edges respectively
+   * to the head of the loop.
+   * 
+   * The analysis is purely intraprocedural, so function call/return edges
+   * that leave or re-enter loops will always be considered as loop entry or exit edges.
+   * 
+   * Does not work with nested loops!
+   * 
+   * @param allNodes The set of all nodes of the CFA.
+   * @return Two mappings from loop-entry edges to the head of the loop and from loop-exit edges to the head of the loop.
+   */
+  public static Pair<Map<CFAEdge, CFANode>, Map<CFAEdge, CFANode>> allLoopEntryExitEdges(Set<CFANode> allNodes) {
+    Map<CFAEdge, CFANode> loopEntryEdges = new HashMap<CFAEdge, CFANode>();
+    Map<CFAEdge, CFANode> loopExitEdges = new HashMap<CFAEdge, CFANode>();
+
+    for (CFANode loopHeadNode : filter(allNodes, FILTER_LOOP_HEADS)) {
+      Collection<CFANode> loopNodes = findLoopNodes(loopHeadNode);
+      for (CFANode loopNode : loopNodes) {
+        
+        { // entry edges
+          for (int i = 0; i < loopNode.getNumEnteringEdges(); i++) {
+            CFAEdge e = loopNode.getEnteringEdge(i);
+            
+            if (!loopNodes.contains(e.getPredecessor())) {
+              CFANode old = loopEntryEdges.put(e, loopHeadNode);
+              
+              checkState(old == null, "Edge enters two loops!");
+            }
+          }
+          
+          CFAEdge e = loopNode.getEnteringSummaryEdge();
+          if (e != null && !loopNodes.contains(e.getPredecessor())) {
+            CFANode old = loopEntryEdges.put(e, loopHeadNode);
+            
+            checkState(old == null, "Edge enters two loops!");
+          }
+        }
+        
+        { // exit edges
+          for (int i = 0; i < loopNode.getNumLeavingEdges(); i++) {
+            CFAEdge e = loopNode.getLeavingEdge(i);
+            
+            if (!loopNodes.contains(e.getSuccessor())) {
+              CFANode old = loopExitEdges.put(e, loopHeadNode);
+              
+              checkState(old == null, "Edge exits two loops!");
+            }
+          }
+          
+          CFAEdge e = loopNode.getLeavingSummaryEdge();
+          if (e != null && !loopNodes.contains(e.getSuccessor())) {
+            CFANode old = loopExitEdges.put(e, loopHeadNode);
+            
+            checkState(old == null, "Edge exits two loops!");
+          }
+        }
+      }
+    }
+    return Pair.of(loopEntryEdges, loopExitEdges);
+  }
 }
