@@ -87,23 +87,23 @@ import com.google.common.collect.Multimap;
 public class CFABuilder extends ASTVisitor
 {
 	// Data structure for maintaining our scope stack in a function
-	private Deque<CFANode> locStack;
+	private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
 
 	// Data structures for handling loops & else conditions
-	private Deque<CFANode> loopStartStack;
-	private Deque<CFANode> loopNextStack; // For the node following the current if / while block
-	private Deque<CFANode> elseStack;
+	private final Deque<CFANode> loopStartStack = new ArrayDeque<CFANode>();
+	private final Deque<CFANode> loopNextStack  = new ArrayDeque<CFANode>(); // For the node following the current if / while block
+	private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
 
 	// Data structures for handling goto
-	private Map<String, CFALabelNode> labelMap;
+	private final Map<String, CFALabelNode> labelMap = new HashMap<String, CFALabelNode>();
 	private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
 	// Data structures for handling function declarations
-	private Map<String, CFAFunctionDefinitionNode> cfas;
-	private CFAFunctionDefinitionNode currentCFA;
+	private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
+	private CFAFunctionDefinitionNode currentCFA = null;
 
 	// Data structure for storing global declarations
-	private List<IASTDeclaration> globalDeclarations;
+	private final List<IASTDeclaration> globalDeclarations = new ArrayList<IASTDeclaration>();
 
 	private final LogManager logger;
 
@@ -123,18 +123,6 @@ public class CFABuilder extends ASTVisitor
 		shouldVisitStatements = true;
 		shouldVisitTranslationUnit = false;
 		shouldVisitTypeIds = false;
-
-		locStack = new ArrayDeque<CFANode> ();
-		loopStartStack = new ArrayDeque<CFANode> ();
-		loopNextStack = new ArrayDeque<CFANode> ();
-		elseStack = new ArrayDeque<CFANode> ();
-
-		labelMap = new HashMap<String, CFALabelNode> ();
-
-		cfas = new HashMap<String, CFAFunctionDefinitionNode>();
-		currentCFA = null;
-
-		globalDeclarations = new ArrayList<IASTDeclaration> ();
 	}
 
 	/**
