@@ -1561,7 +1561,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     ExplicitElement newElement = element.clone();
 
     // op2 may be null if this is a "return;" statement
-    Long val = (op2 == null ? 0L : parseLiteral(op2));
+    Long val = (op2 == null ? Long.valueOf(0L) : parseLiteral(op2));
 
     String assignedVar = getvarName(lParam, functionName);
     if (val != null) {
@@ -1637,8 +1637,12 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       }
       break;
+      case IASTLiteralExpression.lk_string_literal: {
+        // can't handle
+        return null;
+      }
       default:
-        assert(false);
+        assert(false) : expression;
         return null;
       }
       // TODO here we assume 32 bit integers!!! This is because CIL
