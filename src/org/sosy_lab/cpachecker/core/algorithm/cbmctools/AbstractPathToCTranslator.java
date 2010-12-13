@@ -539,6 +539,8 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
       lFunctionHeader += lFunctionParameter.getRawSignature();
     }
 
+    mFunctionDecls.add(lFunctionHeader + ");");
+    
     lFunctionHeader += ") \n";
 
     lFunctionHeader += "{";
