@@ -1510,6 +1510,27 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
       break;
       
+    case IASTBinaryExpression.op_equals:
+    case IASTBinaryExpression.op_notequals:
+
+      Long lVal = getExpressionValue(element, lVarInBinaryExp, functionName, cfaEdge);
+      Long rVal = getExpressionValue(element, rVarInBinaryExp, functionName, cfaEdge);
+      
+      if (lVal == null || rVal == null) {
+        newElement.forget(assignedVar);
+      
+      } else {
+        // assign 1 if expression holds, 0 otherwise
+        long result = (lVal.equals(rVal) ? 1 : 0);
+        
+        if (binaryOperator == IASTBinaryExpression.op_notequals) {
+          // negate
+          result = 1 - result;
+        }
+        newElement.assignConstant(assignedVar, result, this.threshold);
+      }
+      break;
+      
     default:
       // TODO warning
       newElement.forget(assignedVar);
