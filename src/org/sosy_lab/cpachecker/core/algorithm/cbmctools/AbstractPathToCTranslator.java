@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
+import com.google.common.base.Preconditions;
+
 /**
  * @author erkan
  *
@@ -64,6 +66,8 @@ public class AbstractPathToCTranslator {
   private static int mFunctionIndex = 0;
 
   public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
+    // TODO convert to non-static fields
+    Preconditions.checkState(mFunctionIndex == 0);
     String ret = "";
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
@@ -111,6 +115,11 @@ public class AbstractPathToCTranslator {
     // replace nondet keyword with cbmc nondet keyword
     ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
     ret = ret.replaceAll("__BLAST_NONDET", "nondet_int()");
+    
+    // cleanup
+    mGlobalDefinitionsList.clear();
+    mFunctionDecls.clear();
+    mFunctionIndex = 0;
     return ret;
   }
 
