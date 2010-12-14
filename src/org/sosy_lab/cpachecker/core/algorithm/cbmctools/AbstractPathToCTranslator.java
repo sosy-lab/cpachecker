@@ -26,6 +26,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
+import static com.google.common.collect.Iterables.concat;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +40,6 @@ import java.util.Stack;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 /**
@@ -61,56 +63,26 @@ import com.google.common.base.Preconditions;
  */
 public class AbstractPathToCTranslator {
 
-  private static List<String> mGlobalDefinitionsList = new ArrayList<String>();
-  private static List<String> mFunctionDecls = null;
+  private static final List<String> mGlobalDefinitionsList = new ArrayList<String>();
+  private static final List<String> mFunctionDecls = new ArrayList<String>();
   private static int mFunctionIndex = 0;
 
   public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
     // TODO convert to non-static fields
     Preconditions.checkState(mFunctionIndex == 0);
-    String ret = "";
+
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
-    mFunctionDecls = new ArrayList<String>();
     for (CFAFunctionDefinitionNode node : pCfas.values()) {
-      FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)node;
-      String lOriginalFunctionDecl = lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature() + " " + node.getFunctionName() + "(";
-
-      boolean lFirstFunctionParameter = true;
-
-      for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
-        if (lFirstFunctionParameter) {
-          lFirstFunctionParameter = false;
-        }
-        else {
-          lOriginalFunctionDecl += ", ";
-        }
-
-        lOriginalFunctionDecl += lFunctionParameter.getRawSignature();
-      }
-
-      lOriginalFunctionDecl += ");";
-
-      mFunctionDecls.add(lOriginalFunctionDecl);
+      // this adds the function declaration to mFunctionDecls
+      startFunction(node, false);
     }
 
     List<StringBuffer> lTranslation = translatePath(artRoot, elementsOnErrorPath);
 
-    if (mFunctionDecls != null) {
-      for (String decl : mFunctionDecls) {
-        mGlobalDefinitionsList.add(decl);
-      }
-    }
-
-    for (String lGlobalString : mGlobalDefinitionsList) {
-      ret = ret + lGlobalString + "\n";
-    }
-
-    for (StringBuffer lProgramString : lTranslation) {
-      ret = ret + lProgramString + "\n";
-    }
+    String ret = Joiner.on('\n').join(concat(mGlobalDefinitionsList, mFunctionDecls, lTranslation));
 
     // replace nondet keyword with cbmc nondet keyword
     ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
@@ -145,7 +117,7 @@ public class AbstractPathToCTranslator {
     ARTElement firstElementsChild = (ARTElement)firstElement.getChildren().toArray()[0];
     // create the first stack element using the first element of the initiating function
     CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
-        startFunction(mFunctionIndex++, firstElement.retrieveLocationElement().getLocationNode()));
+        startFunction(firstElement.retrieveLocationElement().getLocationNode(), true));
     functions.add(firstStackElement);
 
     Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
@@ -196,7 +168,7 @@ public class AbstractPathToCTranslator {
           // create a new function
           ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
           CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
-              startFunction(mFunctionIndex++, firstFunctionElement.retrieveLocationElement().getLocationNode()));
+              startFunction(firstFunctionElement.retrieveLocationElement().getLocationNode(), true));
           functions.add(firstFunctionStackElement);
           newFunctionStack.push(firstFunctionStackElement);
           stack.push(newFunctionStack);
@@ -480,38 +452,27 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
   }
 
-  private static String startFunction(int pFunctionIndex, CFANode pNode) {
+  private static String startFunction(CFANode pNode, boolean pAddIndex) {
     assert(pNode != null);
     assert(pNode instanceof FunctionDefinitionNode);
 
     FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
 
-    IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
-
-    List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
-
-    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
-
-    boolean lFirstFunctionParameter = true;
-
-    for (IASTParameterDeclaration lFunctionParameter : lFunctionParameters) {
-      if (lFirstFunctionParameter) {
-        lFirstFunctionParameter = false;
-      }
-      else {
-        lFunctionHeader += ", ";
-      }
-
-      lFunctionHeader += lFunctionParameter.getRawSignature();
+    List<String> parameters = new ArrayList<String>();
+    for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
+      parameters.add(lFunctionParameter.getRawSignature());
     }
 
-    mFunctionDecls.add(lFunctionHeader + ");");
-    
-    lFunctionHeader += ") \n";
+    String lFunctionHeader =
+        lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature()
+      + " "
+      + lFunctionDefinitionNode.getFunctionName()
+      + (pAddIndex ? "_" + mFunctionIndex++ : "") 
+      + "(" + Joiner.on(", ").join(parameters) + ")";
 
-    lFunctionHeader += "{";
+    mFunctionDecls.add(lFunctionHeader + ";");
 
-    return lFunctionHeader;
+    return lFunctionHeader + " {\n";
   }
 
   private static Stack<Stack<CBMCStackElement>> cloneStack(
