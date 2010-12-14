@@ -305,6 +305,11 @@ public class CPAchecker {
         return Result.UNSAFE;
       }
     }
+    
+    if (reached.hasWaitingElement()) {
+      logger.log(Level.WARNING, "Analysis did not finish, there are still elements to be processed.");
+      return Result.UNKNOWN;
+    }
 
     return Result.SAFE;
   }
