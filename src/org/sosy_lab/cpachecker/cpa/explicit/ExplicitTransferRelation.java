@@ -1508,6 +1508,11 @@ public class ExplicitTransferRelation implements TransferRelation {
       } else {
         newElement.forget(assignedVar);
       }
+      break;
+      
+    default:
+      // TODO warning
+      newElement.forget(assignedVar);
     }
     return newElement;
   }
