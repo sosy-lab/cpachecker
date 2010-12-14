@@ -200,6 +200,16 @@ reachedSet.file = reached.txt
 assumptions.export = false
 assumptions.file = assumptions.txt
 
+# When CBMC considers an error path infeasible,
+# remove the error element from the reached set and continue.
+# WARNING: this is unsound, because the elements of this infeasible path
+# may cover another path that is actually feasible, so use it only for finding bugs.
+cbmc.continueAfterInfeasibleError = false
+
+# file name where to put the path program that is generated as input for CBMC
+# A temporary file is used if this is unspecified.
+cbmc.dumpCBMCfile = 
+
 # Which refinement algorithm to use? (give class name, required for CEGAR)
 # If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be omitted.
 cegar.refiner =

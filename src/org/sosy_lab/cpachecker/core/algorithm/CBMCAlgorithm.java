@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -61,6 +60,9 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
   
+  @Option
+  private boolean continueAfterInfeasibleError = false;
+  
   public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
@@ -75,11 +77,22 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void run(ReachedSet reached) throws CPAException {
 
-    algorithm.run(reached);
-
-    AbstractElement lastElement = reached.getLastElement();
-    if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
-      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath((ARTElement)lastElement);
+    while (reached.hasWaitingElement()) {
+      algorithm.run(reached);
+  
+      AbstractElement lastElement = reached.getLastElement();
+      if (!(lastElement instanceof ARTElement)) {
+        // no analysis possible
+        break;
+      }
+      
+      ARTElement element = (ARTElement)lastElement;
+      if (!element.isTarget()) {
+        // no analysis necessary
+        break;
+      }
+      
+      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath(element);
       
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
       
@@ -92,10 +105,22 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
       
       if (cbmcResult) {
         logger.log(Level.INFO, "CBMC confirms the bug");
+        break;
 
       } else {
-        logger.log(Level.INFO, "CBMC thinks this path contains no bug");
-        // TODO: continue analysis
+        logger.log(Level.INFO, "CBMC thinks this path contains no bug", continueAfterInfeasibleError);
+        
+        reached.remove(element);
+        element.removeFromART();
+
+        // WARNING: continuing analysis is unsound, because the elements of this
+        // infeasible path may cover another path that is actually feasible
+        // We would need to find the first element of this path that is
+        // not reachable and cut the path there.
+        
+        if (!continueAfterInfeasibleError) {
+          break;
+        }
       }
     }
   }
