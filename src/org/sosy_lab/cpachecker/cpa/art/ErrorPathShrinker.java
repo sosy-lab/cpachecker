@@ -238,9 +238,13 @@ public final class ErrorPathShrinker {
       }
     }
 
-    // or b->c;
+    // a fieldReference "b->c" is handled as one variable with the name "b->c".
     else if (exp instanceof IASTFieldReference) {
-      // TODO: what should be added to importantVars?
+      final String varName = exp.getRawSignature();
+      importantVars.add(varName);
+      if (GLOBAL_VARS.contains(varName)) {
+        importantVarsForGlobalVars.add(varName);
+      }
     }
   }
 
@@ -629,9 +633,9 @@ public final class ErrorPathShrinker {
         addCurrentCFAEdgePairToShortPath();
       }
 
-      // TODO assignment to field, a->b = ?
+      // "a->b = ?", assignment to field is handled as assignment to variable.
       else if (lParam instanceof IASTFieldReference) {
-        addCurrentCFAEdgePairToShortPath();
+        handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
       }
 
       // TODO assignment to array cell, a[b] = ?
@@ -749,21 +753,29 @@ public final class ErrorPathShrinker {
       if (!SHORT_PATH.isEmpty()) {
         final CFAEdge lastEdge = SHORT_PATH.getFirst().getSecond();
 
+        //check, if the last edge was an assumption
         if (assumeExp instanceof IASTBinaryExpression
             && lastEdge instanceof AssumeEdge) {
           final IASTExpression lastExp =
               ((AssumeEdge) lastEdge).getExpression();
 
+          // check, if the last egde was like "a==b"
           if (lastExp instanceof IASTBinaryExpression) {
             final IASTExpression currentBinExpOp1 =
                 ((IASTBinaryExpression) assumeExp).getOperand1();
             final IASTExpression lastBinExpOp1 =
                 ((IASTBinaryExpression) lastExp).getOperand1();
 
-            return (currentBinExpOp1 instanceof IASTIdExpression
-                && lastBinExpOp1 instanceof IASTIdExpression && currentBinExpOp1
-                .getRawSignature().equals(lastBinExpOp1.getRawSignature()));
-          }
+            // type can be IASTIdExpression, IASTFieldReference, etc 
+            final boolean isEqualType = currentBinExpOp1.getExpressionType().
+            isSameType(lastBinExpOp1.getExpressionType());
+            
+            // only the first variable of the assignment is checked
+            final boolean isEqualVarName = currentBinExpOp1.getRawSignature().
+            equals(lastBinExpOp1.getRawSignature());
+            
+            return (isEqualType && isEqualVarName);
+          }       
         }
       }
       return false;
