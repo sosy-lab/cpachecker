@@ -26,8 +26,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -116,48 +114,7 @@ public class AbstractPathToCTranslator {
     return ret;
   }
 
-  public static PrintWriter startFunction(int pFunctionIndex, CFANode pNode, Stack<StringWriter> pProgramTextStack) {
-    assert(pNode != null);
-    assert(pNode instanceof FunctionDefinitionNode);
-    assert(pProgramTextStack != null);
-
-    FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
-
-    IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
-
-    List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
-
-    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
-
-    boolean lFirstFunctionParameter = true;
-
-    for (IASTParameterDeclaration lFunctionParameter : lFunctionParameters) {
-      if (lFirstFunctionParameter) {
-        lFirstFunctionParameter = false;
-      }
-      else {
-        lFunctionHeader += ", ";
-      }
-
-      lFunctionHeader += lFunctionParameter.getRawSignature();
-    }
-
-    lFunctionHeader += ")";
-
-    StringWriter lFunctionStringWriter = new StringWriter();
-
-    pProgramTextStack.add(lFunctionStringWriter);
-
-    PrintWriter lProgramText = new PrintWriter(lFunctionStringWriter);
-
-    lProgramText.println(lFunctionHeader);
-
-    lProgramText.println("{");
-
-    return lProgramText;
-  }
-
-  public static List<StringBuffer> translatePath(final ARTElement firstElement,
+  private static List<StringBuffer> translatePath(final ARTElement firstElement,
       Collection<ARTElement> pElementsOnPath) {
 
     //  ARTElement parentElement;
@@ -472,7 +429,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return "";
   }
 
-  public static String processFunctionCall(CFAEdge pCFAEdge){
+  private static String processFunctionCall(CFAEdge pCFAEdge){
 
     FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)pCFAEdge;
 
@@ -514,7 +471,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
   }
 
-  public static String startFunction(int pFunctionIndex, CFANode pNode) {
+  private static String startFunction(int pFunctionIndex, CFANode pNode) {
     assert(pNode != null);
     assert(pNode instanceof FunctionDefinitionNode);
 

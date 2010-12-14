@@ -108,7 +108,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         break;
 
       } else {
-        logger.log(Level.INFO, "CBMC thinks this path contains no bug", continueAfterInfeasibleError);
+        logger.log(Level.INFO, "CBMC thinks this path contains no bug");
         
         reached.remove(element);
         element.removeFromART();
