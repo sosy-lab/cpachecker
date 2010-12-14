@@ -38,6 +38,8 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
+import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
@@ -1095,7 +1097,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   //  }
 
   private ExplicitElement handleDeclaration(ExplicitElement element,
-      DeclarationEdge declarationEdge) {
+      DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
     IASTDeclarator[] declarators = declarationEdge.getDeclarators();
@@ -1121,8 +1123,26 @@ public class ExplicitTransferRelation implements TransferRelation {
         if(declarationEdge instanceof GlobalDeclarationEdge)
         {
           globalVars.add(varName);
-          // global declarations are set to 0
-          newElement.assignConstant(varName, 0, this.threshold);
+          
+          Long v;
+
+          IASTInitializer init = declarator.getInitializer();
+          if (init != null) {
+            if (init instanceof IASTInitializerExpression) {
+              IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+
+              v = getExpressionValue(element, exp, varName, declarationEdge);
+            } else {
+              // TODO show warning
+              v = null;
+            }
+          } else {
+            // global variables without initializer are set to 0 in C
+            v = 0L;
+          }
+          if (v != null) {
+            newElement.assignConstant(varName, v, this.threshold);
+          }
         }
       }
     }
