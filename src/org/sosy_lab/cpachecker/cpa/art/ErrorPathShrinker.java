@@ -368,7 +368,7 @@ public final class ErrorPathShrinker {
          * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
-          System.out.println(cfaEdge);
+//          System.out.println(cfaEdge);
           if (cfaEdge.getSuccessor().isLoopStart()
               || (cfaEdge.isJumpEdge() && cfaEdge.getRawStatement()
                   .toLowerCase().contains("error"))) {

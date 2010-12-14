@@ -64,7 +64,10 @@ public class ARTStatistics implements Statistics {
   @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
 
-  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.core", type=Option.Type.OUTPUT_FILE)
+  private File errorPathCoreFile = new File("ErrorPathCore.txt");
+  
+  @Option(name="errorPath.source", type=Option.Type.OUTPUT_FILE)
   private File errorPathSourceFile = new File("ErrorPath.c");
 
   @Option(name="errorPath.json", type=Option.Type.OUTPUT_FILE)
@@ -86,6 +89,13 @@ public class ARTStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
+    if (   (!exportErrorPath || (errorPathFile == null))
+        && (!exportART       || (artFile == null))) {
+      
+      // shortcut, avoid unnecessary creation of path etc.
+      return;
+    }
+    
     Path targetPath = null;
     ARTElement lastElement = (ARTElement)pReached.getLastElement();
     if (lastElement != null && lastElement.isTarget()) {
@@ -99,23 +109,30 @@ public class ARTStatistics implements Statistics {
         // otherwise create one
         targetPath = AbstractARTBasedRefiner.buildPath(lastElement);
       }
+      
+      if (exportErrorPath && errorPathFile != null) {
+        
+        // the shrinked errorPath only includes the nodes,
+        // that are important for the error, it is not a complete path, 
+        // only some nodes of the targetPath are part of it 
+        ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+        Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+        
+        try {
+          Files.writeFile(errorPathFile, targetPath);
+          Files.writeFile(errorPathCoreFile, shrinkedErrorPath);
+          Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
+          Files.writeFile(errorPathJson, targetPath.toJSON());
+
+        } catch (IOException e) {
+          cpa.getLogger().log(Level.WARNING,
+              "Could not write error path to file (", e.getMessage(), ")");
+        }
+      }
     }
 
     if (exportART && artFile != null) {
       dumpARTToDotFile(pReached, getEdgesOfPath(targetPath));
-    }
-
-    if (exportErrorPath && targetPath != null && errorPathFile != null) {
-      try {
-
-        Files.writeFile(errorPathFile, targetPath);
-        Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
-        Files.writeFile(errorPathJson, targetPath.toJSON());
-
-      } catch (IOException e) {
-        cpa.getLogger().log(Level.WARNING,
-            "Could not write error path to file (", e.getMessage(), ")");
-      }
     }
   }
 

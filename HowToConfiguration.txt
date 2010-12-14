@@ -222,6 +222,9 @@ cpa.art.file = ART.dot
 # export error path to file, if one is found
 cpa.art.errorPath.export = true
 cpa.art.errorPath.file = ErrorPath.txt
+cpa.art.errorPath.core = ErrorPathCore.txt
+cpa.art.errorPath.source = ErrorPath.c
+cpa.art.errorPath.json = ErrorPath.json
 
 # which heuristics should be used to track progress?
 cpa.assumptions.progressobserver.heuristics =
