@@ -372,7 +372,6 @@ public final class ErrorPathShrinker {
          * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
-//          System.out.println(cfaEdge);
           if (cfaEdge.getSuccessor().isLoopStart()
               || (cfaEdge.isJumpEdge() && cfaEdge.getRawStatement()
                   .toLowerCase().contains("error"))) {
@@ -743,7 +742,8 @@ public final class ErrorPathShrinker {
 
     /** This method checks, if the current assumption is part of a
      * switchStatement. Therefore it compares the current assumption with
-     * the expression of the last added CFAEdge.
+     * the expression of the last added CFAEdge. It can also check similar 
+     * assumptions like  "if(x>3) {if(x>4){...}}".
      *
      * @param assumeExp the current assumption
      * @return is the assumption part of a switchStatement? */
@@ -774,7 +774,13 @@ public final class ErrorPathShrinker {
             final boolean isEqualVarName = currentBinExpOp1.getRawSignature().
             equals(lastBinExpOp1.getRawSignature());
             
-            return (isEqualType && isEqualVarName);
+            // switchStatement:     !(x==3);(x==4);   -> operator "=="
+            // similar assumption:  (x>3);(x>4);      -> operator ">"
+            final boolean isEqualOperator =
+                ((IASTBinaryExpression) assumeExp).getOperator() 
+                == ((IASTBinaryExpression) lastExp).getOperator();
+                        
+            return (isEqualType && isEqualVarName && isEqualOperator);
           }       
         }
       }
