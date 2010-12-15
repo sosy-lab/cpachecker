@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.collect.Iterables.transform;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -160,5 +163,17 @@ public final class AbstractElements {
         };
       }
     };    
+  }
+  
+  private static Function<AbstractElement, Iterable<AbstractElement>> AS_ITERABLE
+    = new Function<AbstractElement, Iterable<AbstractElement>>() {
+      @Override
+      public Iterable<AbstractElement> apply(AbstractElement pElement) {
+        return asIterable(pElement);
+      }
+    };
+  
+  public static Iterable<AbstractElement> asIterable(final Iterable<AbstractElement> pElements) {
+    return Iterables.concat(transform(pElements, AS_ITERABLE));
   }
 }

@@ -23,23 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -160,15 +159,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {
-      if (element instanceof AbstractWrapperElement) {
-        CFANode location = ((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode();
-
-        AssumptionExtractor extractor = new AssumptionExtractor();
-        extractor.visit(element);
-        resultAssumption.add(location, extractor.result);
-      } else {
-        assert false;
-      }
+      CFANode location = extractLocation(element);
+      assert location != null;
+      
+      AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+      resultAssumption.add(location, e.getAssumption());
     }
 
     // dump invariants to prevent going further with nodes in
@@ -178,24 +173,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
   }
-
-  
-  /**
-   * Extracts the invariant(s) stored in abstract elements.
-   */
-  private class AssumptionExtractor extends AbstractWrappedElementVisitor {
-    
-    private Formula result = formulaManager.makeTrue();
-    
-    @Override
-    public void process(AbstractElement pElement) {
-      if (pElement instanceof AssumptionStorageElement) {
-        Formula dumpedInvariant = ((AssumptionStorageElement)pElement).getAssumption();
-        result = formulaManager.makeAnd(result, dumpedInvariant);
-      }
-    }
-  }
-  
 
   /**
    * Add to the given map the invariant required to
@@ -211,9 +188,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     if (pos == -1)
       pos = path.size() - 2; // the node before the error node
 
-    Pair<ARTElement, CFAEdge> pair = path.get(pos);
-    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, pair.getFirst());
-    invariant.add(pair.getFirst().retrieveLocationElement().getLocationNode(), formulaManager.makeNot(dataRegion));
+    ARTElement e = path.get(pos).getFirst();
+    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, e);
+    invariant.add(extractLocation(e), formulaManager.makeNot(dataRegion));
   }
 
   /**
@@ -225,7 +202,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       Iterable<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
-      invariant.add(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), formulaManager.makeNot(dataRegion));
+      invariant.add(extractLocation(element), formulaManager.makeNot(dataRegion));
     }
   }
 

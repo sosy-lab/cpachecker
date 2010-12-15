@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.AbstractWrappedElementVisitor;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -70,26 +70,9 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     assert ((AssumptionStorageElement)el).getAssumption().isTrue();
     
-    AssumptionReportingVisitor reportingVisitor = new AssumptionReportingVisitor();
-    for (AbstractElement e : others) {
-      reportingVisitor.visit(e);
-    }
+    Formula assumption = formulaManager.makeTrue();
     
-    Formula assumption = reportingVisitor.assumption;
-    if (assumption.isTrue()) {
-      return null;
-    } else {      
-      return Collections.singleton(new AssumptionStorageElement(assumption));
-    }
-  }
-
-  private final class AssumptionReportingVisitor extends AbstractWrappedElementVisitor {
-
-    private Formula assumption = formulaManager.makeTrue();
-    
-    @Override
-    public void process(AbstractElement element) {
-      // process reported assumptions
+    for (AbstractElement element : AbstractElements.asIterable(others)) {
       if (element instanceof AssumptionReportingElement) {
         Formula inv = ((AssumptionReportingElement)element).getAssumption();
         assumption = formulaManager.makeAnd(assumption, inv);
@@ -100,10 +83,15 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
         boolean stop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
         if (stop) {
           assumption = formulaManager.makeFalse();
-          // TODO we can skip processing the rest of the elements
+          break;
         }
       }
     }
+    
+    if (assumption.isTrue()) {
+      return null;
+    } else {      
+      return Collections.singleton(new AssumptionStorageElement(assumption));
+    }
   }
-
 }
