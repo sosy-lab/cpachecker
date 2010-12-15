@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 
 import java.util.ArrayDeque;
@@ -87,16 +88,29 @@ public final class AbstractElements {
     return e == null ? null : e.getLocationNode();
   }
   
+  public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractElement> pElements) {
+    return transform(pElements,
+      new Function<AbstractElement, CFANode>() {
+        @Override
+        public CFANode apply(AbstractElement pArg0) {
+          return extractLocation(pArg0);
+        }
+      });
+  }
+  
   public static boolean isTargetElement(AbstractElement e) {
     return (e instanceof Targetable) && ((Targetable)e).isTarget();
   }
   
-  public static Predicate<AbstractElement> FILTER_TARGET_ELEMENTS = new Predicate<AbstractElement>() {
-    @Override
-    public boolean apply(AbstractElement pArg0) {
-      return isTargetElement(pArg0);
-    }
-  };
+  public static <T extends AbstractElement> Iterable<T> filterTargetElements(Iterable<T> pElements) {
+    return filter(pElements,
+      new Predicate<AbstractElement>() {
+        @Override
+        public boolean apply(AbstractElement pArg0) {
+          return isTargetElement(pArg0);
+        }
+      });
+  }
   
   /**
    * Function object for {@link #extractElementByType(AbstractElement, Class)}.
@@ -165,7 +179,7 @@ public final class AbstractElements {
     };    
   }
   
-  private static Function<AbstractElement, Iterable<AbstractElement>> AS_ITERABLE
+  private static final Function<AbstractElement, Iterable<AbstractElement>> AS_ITERABLE
     = new Function<AbstractElement, Iterable<AbstractElement>>() {
       @Override
       public Iterable<AbstractElement> apply(AbstractElement pElement) {

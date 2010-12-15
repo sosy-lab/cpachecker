@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
-import static org.sosy_lab.cpachecker.util.AbstractElements.FILTER_TARGET_ELEMENTS;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -101,7 +100,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     
     FormulaManager fmgr = cpa.getFormulaManager();
     Formula program = fmgr.makeFalse();
-    List<AbstractElement> targetElements = Lists.newArrayList(filter(pReachedSet, FILTER_TARGET_ELEMENTS));
+    List<AbstractElement> targetElements = Lists.newArrayList(AbstractElements.filterTargetElements(pReachedSet));
 
     logger.log(Level.FINER, "Found", targetElements.size(), "potential target elements");
     for (PredicateAbstractElement e : transform(targetElements, EXTRACT_PREDICATE_ELEMENT)) {

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -39,16 +41,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFA;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 
 /**
@@ -132,14 +132,7 @@ public class CFAReduction {
       
       lAlgorithm.run(lReached);
 
-      Set<CFANode> errorNodes = new HashSet<CFANode>();
-      for (AbstractElement e : lReached) {
-        if (((Targetable)e).isTarget()) {
-          errorNodes.add(((AbstractWrapperElement)e).retrieveLocationElement().getLocationNode());
-        }
-      }
-
-      return errorNodes;
+      return ImmutableSet.copyOf(extractLocations(filterTargetElements(lReached)));
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");

@@ -31,8 +31,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -45,15 +45,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -162,12 +162,7 @@ class MainCPAStatistics implements Statistics {
             s.printStatistics(out, result, reached);
         }
 
-        HashSet<CFANode> allLocations = new HashSet<CFANode>();
-        for (AbstractElement ae : reached) {
-          if (ae instanceof AbstractWrapperElement) {
-            allLocations.add(((AbstractWrapperElement)ae).retrieveLocationElement().getLocationNode());
-          }
-        }
+        Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));
         
         out.println("\nCPAchecker general statistics");
         out.println("-----------------------------");
