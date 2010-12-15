@@ -33,6 +33,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -44,6 +45,8 @@ import org.sosy_lab.common.configuration.Option.Type;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Closeables;
 import com.google.common.primitives.Primitives;
 
 
@@ -56,7 +59,7 @@ public class Configuration {
   
   public static class Builder {
     
-    private Properties properties = null;
+    private Map<String, String> properties = null;
     private Configuration oldConfig = null;
     private String prefix = null;
     
@@ -64,7 +67,7 @@ public class Configuration {
     
     private void setupProperties() {
       if (properties == null) {
-        properties = new Properties();
+        properties = new HashMap<String, String>();
       }
       if (oldConfig != null) {
         properties.putAll(oldConfig.properties);
@@ -150,9 +153,14 @@ public class Configuration {
       Preconditions.checkNotNull(stream);
       Preconditions.checkState(properties == null);
       Preconditions.checkState(oldConfig == null);
-      setupProperties();
       
-      properties.load(stream);
+      Properties p = new Properties();
+      p.load(stream);
+      
+      properties = new HashMap<String, String>(p.size());
+      for (Map.Entry<Object, Object> e : p.entrySet()) {
+        properties.put((String)e.getKey(), (String)e.getValue());
+      }
       
       return this;
     }
@@ -167,11 +175,14 @@ public class Configuration {
      */
     public Builder loadFromFile(String filename) throws IOException {
       Preconditions.checkNotNull(filename);
-      Preconditions.checkState(oldConfig == null);
-      setupProperties();
       
-      properties.load(new FileInputStream(filename));
-      
+      InputStream stream = null;
+      try {
+        stream = new FileInputStream(filename);
+        loadFromStream(stream);
+      } finally {
+        Closeables.closeQuietly(stream);
+      }
       return this;
     }
 
@@ -185,16 +196,16 @@ public class Configuration {
      * @throws InvalidConfigurationException if the settings contained invalid values for the configuration options of the Configuration class
      */
     public Configuration build() throws InvalidConfigurationException {
-      Properties newProperties;
+      ImmutableMap<String, String> newProperties;
       if (properties == null) {
-        // we can re-use the old properties instance because it will never be changed
+        // we can re-use the old properties instance because it is immutable
         if (oldConfig != null) {
           newProperties = oldConfig.properties;
         } else {
-          newProperties = new Properties();
+          newProperties = ImmutableMap.of();
         }
       } else {
-        newProperties = properties; 
+        newProperties = ImmutableMap.copyOf(properties); 
       }
 
       String newPrefix;
@@ -242,7 +253,7 @@ public class Configuration {
    * Creates a configuration with all values set to default.
    */
   public static Configuration defaultConfiguration() {
-    return new Configuration(new Properties(), "", new HashSet<String>(0));
+    return new Configuration(ImmutableMap.<String, String>of(), "", new HashSet<String>(0));
   }
   
   /**
@@ -274,7 +285,7 @@ public class Configuration {
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
   
-  private final Properties properties;
+  private final ImmutableMap<String, String> properties;
 
   private final String prefix;
 
@@ -283,7 +294,7 @@ public class Configuration {
   /*
    * This constructor does not set the fields annotated with @Option!
    */
-  private Configuration(Properties pProperties, String pPrefix, Set<String> pUnusedProperties) {
+  private Configuration(ImmutableMap<String, String> pProperties, String pPrefix, Set<String> pUnusedProperties) {
     properties = pProperties;
     prefix = (pPrefix.isEmpty() ? "" : (pPrefix + "."));
     unusedProperties = pUnusedProperties;
@@ -293,11 +304,11 @@ public class Configuration {
    * @see Properties#getProperty(String)
    */
   public String getProperty(String key) {
-    String result = properties.getProperty(prefix + key);
+    String result = properties.get(prefix + key);
     unusedProperties.remove(prefix + key);
 
     if (result == null && !prefix.isEmpty()) {
-      result = properties.getProperty(key);
+      result = properties.get(key);
       unusedProperties.remove(key);
     }
     return result;
