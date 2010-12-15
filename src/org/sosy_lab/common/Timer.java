@@ -25,20 +25,28 @@ package org.sosy_lab.common;
 
 /**
  * This Class represents a timer like a chronograph. It can be started and
- * stopped several times. It can return the sum, the average, the maximum and 
+ * stopped several times. It can return the sum, the average, the maximum and
  * the number of those intervals.
- * 
+ *
  * @author Karlheinz Friedberger
  */
 public class Timer {
 
+  /** The time of starting the timer. */
   private long startTime         = 0;
+
+  /** The sum of times of all intervals. */
   private long sumTime           = 0;
+
+  /** The maximal time of all intervals. */
   private long maxTime           = 0;
+
+  /** The number of intervals. */
   private int  numberOfIntervals = 0;
 
-  /** start the timer if it is not running, else start after stopping */
-  public void start() {
+  /** Start the timer. If it was running before, the timer is stopped and then
+   * started again. */
+  public final void start() {
     if (!isRunning()) {
       this.stop();
     }
@@ -48,11 +56,12 @@ public class Timer {
   }
 
   /**
-   * Stop the timer if it is not running, else do nothing.
-   * Returns the number of milliseconds since start() was called.
-   * Returns 0 if timer was not running. 
-   */
-  public long stop() {
+   * Stop the timer if it is running, else do nothing.
+   * Return the number of milliseconds since start() was called.
+   * Return 0 if timer was not running.
+   *
+   * @return time of stopped interval */
+  public final long stop() {
     long endTime = System.currentTimeMillis();
 
     if (isRunning()) {
@@ -67,11 +76,11 @@ public class Timer {
     return 0;
   }
 
-  /**
-   * returns the sum of all intervals. if timer is running, it returns the sum
-   * of the intervals plus the time since the timer has been started
-   */
-  public long getSumTime() {
+  /** Return the sum of all intervals. If timer is running, return the sum
+   * of the intervals plus the time since the timer has been started.
+   *
+   * @return sum of times of all intervals */
+  public final long getSumTime() {
     if (isRunning()) {
       return sumTime + System.currentTimeMillis() - startTime;
     } else {
@@ -79,47 +88,65 @@ public class Timer {
     }
   }
 
-  public long getMaxTime() {
+  /** Return the maximal time of all intervals. If timer is running,
+   * the currently running interval will be ignored.
+   *
+   * @return maximal time */
+  public final long getMaxTime() {
     return maxTime;
   }
 
-  public int getNumberOfIntervals() {
+  /** Return the number of intervals. If timer is running,
+   * the currently running interval will be ignored.
+   *
+   * @return number of intervals */
+  public final int getNumberOfIntervals() {
     return numberOfIntervals;
   }
 
-  /**
-   * returns the average of all intervals. if timer is running, it returns the average
-   * of the intervals plus one interval with the time since the timer has been started
-   */
-  public long getAvgTime() {
+  /** Return the average of all intervals. If timer is running, return the
+   * average of the intervals plus one interval with the time since the
+   * timer has been started.
+   *
+   * @return average time */
+  public final long getAvgTime() {
     return getSumTime() / numberOfIntervals;
   }
 
-  /**some methods for printing*/
-  public String printMaxTime() {
+  /** Return a String with the maximal time of the intervals.
+   *
+   * @return formated String */
+  public final String printMaxTime() {
     return formatTime(getMaxTime());
   }
 
-  public String printAvgTime() {
+  /** Return a String with the average time of the intervals.
+   *
+   * @return formated String */
+  public final String printAvgTime() {
     return formatTime(getAvgTime());
   }
 
+  /** Return a String with the sum of the times of all intervals.
+   *
+   * @return formated String */
   @Override
-  public String toString() {
+  public final String toString() {
     return formatTime(getSumTime());
   }
 
-  /**
-   * formats a given time in milliseconds into a String with the format "12345.123s"
-   * 
-   * @param time
-   * @return formated String
-   */
-  public static String formatTime(long time) {
+  /** Format a given time in milliseconds into a String with the format
+   * "12345.123s".
+   *
+   * @param time time to format
+   * @return formated String */
+  public static String formatTime(final long time) {
     return String.format("%5d.%03ds", time / 1000, time % 1000);
   }
 
-  /** returns if the timer is running */
+  /** Return if the timer is running.
+   *
+   * @return is the timer running? */
   private boolean isRunning() {
     return (startTime != 0);
   }
