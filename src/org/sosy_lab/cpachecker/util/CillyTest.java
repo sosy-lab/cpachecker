@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -43,7 +42,7 @@ public class CillyTest {
   
   @BeforeClass
   public static void setup() throws IOException, InvalidConfigurationException {
-    Configuration config = new Configuration(Collections.<String, String>emptyMap());
+    Configuration config = Configuration.defaultConfiguration();
     logger = new LogManager(config);
   }
   

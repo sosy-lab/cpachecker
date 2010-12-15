@@ -4,10 +4,8 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -82,14 +80,15 @@ public class Task {
 	}
 	
 	public Configuration createConfig() throws IOException, CoreException, InvalidConfigurationException {
-		Map<String, String> overridesMap = new HashMap<String, String>(4);
+		Configuration.Builder config = Configuration.builder();
+		config.loadFromStream(configFile.getContents());
 		
-		overridesMap.put("output.path", getOutputDirectory(false).getProjectRelativePath().toOSString());
-		overridesMap.put("output.disable", "false");
-		overridesMap.put("specification", specificationFile.getProjectRelativePath().toOSString());
-		overridesMap.put("rootDirectory", configFile.getProject().getLocation().toOSString());
+		config.setOption("output.path", getOutputDirectory(false).getProjectRelativePath().toOSString());
+		config.setOption("output.disable", "false");
+		config.setOption("specification", specificationFile.getProjectRelativePath().toOSString());
+		config.setOption("rootDirectory", configFile.getProject().getLocation().toOSString());
 		
-		return new Configuration(configFile.getContents(), overridesMap);
+		return config.build();
 	}
 
 	public String getName() {

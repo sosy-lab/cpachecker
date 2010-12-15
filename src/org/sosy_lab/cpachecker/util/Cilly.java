@@ -27,7 +27,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -44,7 +43,7 @@ public class Cilly {
   public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
 
-    Configuration config = new Configuration(Collections.<String, String>emptyMap());
+    Configuration config = Configuration.defaultConfiguration();
     LogManager logger = new LogManager(config);
     
     if (pArguments.length != 1) {

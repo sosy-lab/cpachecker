@@ -207,7 +207,10 @@ public class CPAMain {
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CONFIGURATION_FILE_OPTION);
 
-    Configuration config = new Configuration(configFile, cmdLineOptions);
+    Configuration config = Configuration.builder()
+                                        .loadFromFile(configFile)
+                                        .setOptions(cmdLineOptions)
+                                        .build();
 
     //normalizeValues();
     return config;

@@ -55,7 +55,7 @@ class AutomatonInternalTests {
       File f = new File("test/config/automata/defaultSpecification.spc");
       //File f = new File("test/config/automata/TestAutomaton.txt");
       
-      Configuration emptyConfig = new Configuration(Collections.<String,String>emptyMap());
+      Configuration emptyConfig = Configuration.defaultConfiguration();
       LogManager logger = new LogManager(emptyConfig);
       ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
       AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), f.getName(), emptyConfig, logger, sf1);

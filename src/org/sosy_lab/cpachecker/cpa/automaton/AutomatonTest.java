@@ -347,7 +347,7 @@ public class AutomatonTest {
 
     LogManager pLogger = null;
     try {
-      pLogger = new LogManager(new Configuration(map));
+      pLogger = new LogManager(Configuration.fromMap(map));
     } catch (InvalidConfigurationException e1) {
       Assert.fail("Test setup failed");
     }
@@ -457,7 +457,7 @@ public class AutomatonTest {
 
 
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
-    Configuration config = new Configuration(pProperties);
+    Configuration config = Configuration.fromMap(pProperties);
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);

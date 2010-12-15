@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.fshell.fql2.translators.ecp;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 
 import org.junit.Before;
@@ -49,7 +48,7 @@ public class CoverageSpecificationTranslatorTest {
   
   @Before
   public void setup() throws InvalidConfigurationException {
-    Configuration config = new Configuration(Collections.<String,String>emptyMap());
+    Configuration config = Configuration.defaultConfiguration();
     LogManager logger = new LogManager(config);
     lCilly = new Cilly(logger);
   }

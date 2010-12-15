@@ -89,7 +89,7 @@ public class CPABuilder {
         }
         
         AutomatonCPAFactory factory = ControlAutomatonCPA.factory();
-        factory.setConfiguration(new Configuration(config, cpaAlias));
+        factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
         factory.setLogger(logger);
         factory.setAutomaton(automaton);
         cpas.add(factory.createInstance());
@@ -119,7 +119,7 @@ public class CPABuilder {
 
     // now use factory to get an instance of the CPA
 
-    factory.setConfiguration(new Configuration(config, cpaAlias));
+    factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
     factory.setLogger(logger);
 
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas);

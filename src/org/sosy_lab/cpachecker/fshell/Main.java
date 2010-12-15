@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.fshell;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -71,7 +70,7 @@ public class Main {
     // TODO implement nicer mechanism for disabling cilly preprocessing
     if (pArguments.length <= 3) {  
       // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
-      Configuration lConfig = new Configuration(Collections.<String,String>emptyMap());
+      Configuration lConfig = Configuration.defaultConfiguration();
       LogManager lLogger = new LogManager(lConfig);
       Cilly lCilly = new Cilly(lLogger);
   

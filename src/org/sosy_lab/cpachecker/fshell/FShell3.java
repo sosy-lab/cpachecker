@@ -1105,7 +1105,10 @@ public class FShell3 {
 
     Configuration lConfiguration = null;
     try {
-      lConfiguration = new Configuration(pPropertiesFile, lCommandLineOptions);
+      lConfiguration = Configuration.builder()
+                                    .loadFromFile(pPropertiesFile)
+                                    .setOptions(lCommandLineOptions)
+                                    .build();
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFA;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -118,12 +116,11 @@ public class CFAReduction {
   }
 
   private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) {      
-    Map<String, String> lProperties = ImmutableMap.of(
-        "output.disable", "true",
-        "specification", "test/config/automata/ErrorLocationAutomaton.txt");
-    
     try {
-      Configuration lConfig = new Configuration(lProperties);
+      Configuration lConfig = Configuration.builder()
+                                           .setOption("output.disable", "true")
+                                           .setOption("specification", "test/config/automata/ErrorLocationAutomaton.txt")
+                                           .build();
       CPABuilder lBuilder = new CPABuilder(lConfig, logger);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
