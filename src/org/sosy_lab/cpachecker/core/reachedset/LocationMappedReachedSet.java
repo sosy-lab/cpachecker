@@ -27,9 +27,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 public class LocationMappedReachedSet extends PartitionedReachedSet {
 
@@ -44,23 +43,8 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
   
   @Override
   protected Object getPartitionKey(AbstractElement pElement) {
-    CFANode location = getLocationFromElement(pElement);
+    CFANode location = AbstractElements.extractLocation(pElement);
     assert location != null : "Location information necessary for LocationMappedReachedSet";
     return location;
-  }
-  
-  public static CFANode getLocationFromElement(AbstractElement element) {
-    if (element instanceof AbstractWrapperElement) {
-      AbstractElementWithLocation locationElement =
-        ((AbstractWrapperElement)element).retrieveLocationElement();
-      assert locationElement != null;
-      return locationElement.getLocationNode();
-
-    } else if (element instanceof AbstractElementWithLocation) {
-      return ((AbstractElementWithLocation)element).getLocationNode();
-
-    } else {
-      return null;
-    }
   }
 }

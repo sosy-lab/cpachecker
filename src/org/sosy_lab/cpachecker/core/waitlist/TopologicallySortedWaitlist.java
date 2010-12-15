@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import static org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet.getLocationFromElement;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
 
@@ -38,7 +37,7 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
 
   @Override
   protected Integer getSortKey(AbstractElement pElement) {
-    return getLocationFromElement(pElement).getTopologicalSortId();
+    return AbstractElements.extractLocation(pElement).getTopologicalSortId();
   }
 
   public static WaitlistFactory factory(WaitlistFactory pSecondaryStrategy) {

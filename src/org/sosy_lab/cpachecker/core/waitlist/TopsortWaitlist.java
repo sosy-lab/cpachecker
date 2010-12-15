@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import static org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet.getLocationFromElement;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.LinkedList;
 
@@ -49,10 +49,10 @@ public class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement
     int resultTopSortId = Integer.MIN_VALUE;
     for (AbstractElement currentElement : waitlist) {
       if ((result == null)
-          || (getLocationFromElement(currentElement).getTopologicalSortId() >
+          || (extractLocation(currentElement).getTopologicalSortId() >
               resultTopSortId)) {
         result = currentElement;
-        resultTopSortId = getLocationFromElement(result).getTopologicalSortId();
+        resultTopSortId = extractLocation(result).getTopologicalSortId();
       }
     }
     waitlist.remove(result);
