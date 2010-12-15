@@ -65,11 +65,17 @@ public class CFAReduction {
   @Option
   private boolean markOnly = false;
   
+  private final Configuration config;
   private final LogManager logger;
   
   public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     
+    if (config.getProperty("specification") == null) {
+      throw new InvalidConfigurationException("Option cfa.removeIrrelevantForErrorLocations is only valid if a specification is given!");
+    }
+    
+    this.config = config;
     this.logger = logger;
   }
 
@@ -117,9 +123,13 @@ public class CFAReduction {
 
   private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) {      
     try {
+      // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
+                                           .copyFrom(config)
                                            .setOption("output.disable", "true")
-                                           .setOption("specification", "test/config/automata/ErrorLocationAutomaton.txt")
+                                           .clearOption("cpa")
+                                           .clearOption("cpas")
+                                           .clearOption("CompositeCPA.cpas")
                                            .build();
       CPABuilder lBuilder = new CPABuilder(lConfig, logger);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();

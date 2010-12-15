@@ -133,8 +133,8 @@ public class Configuration {
      */
     public Builder copyFrom(Configuration oldConfig) {
       Preconditions.checkNotNull(oldConfig);
-      Preconditions.checkState(properties == null);
-      Preconditions.checkState(oldConfig == null);
+      Preconditions.checkState(this.properties == null);
+      Preconditions.checkState(this.oldConfig == null);
       
       this.oldConfig = oldConfig;
       
