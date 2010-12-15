@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -341,15 +340,16 @@ public class AutomatonTest {
     Map<String, AutomatonVariable> pAutomatonVariables = null;
     List<AbstractElement> pAbstractElements = null;
     CFAEdge pCfaEdge = null;
-    Map<String, String> map = new HashMap<String, String>();
-    map.put("log.level", "OFF");
-    map.put("log.consoleLevel", "WARNING");
 
-    LogManager pLogger = null;
+    LogManager pLogger;
     try {
-      pLogger = new LogManager(Configuration.fromMap(map));
+      pLogger = new LogManager(Configuration.builder()
+                                            .setOption("log.level", "OFF")
+                                            .setOption("log.consoleLevel", "WARNING")
+                                            .build());
     } catch (InvalidConfigurationException e1) {
       Assert.fail("Test setup failed");
+      return;
     }
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(pAutomatonVariables, pAbstractElements, pCfaEdge, pLogger);
     args.putTransitionVariable(1, "hi");
@@ -457,7 +457,7 @@ public class AutomatonTest {
 
 
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
-    Configuration config = Configuration.fromMap(pProperties);
+    Configuration config = Configuration.builder().setOptions(pProperties).build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);

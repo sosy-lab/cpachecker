@@ -245,10 +245,6 @@ public class Configuration {
     return new Configuration(new Properties(), "", new HashSet<String>(0));
   }
   
-  public static Configuration fromMap(Map<String, String> pValues) throws InvalidConfigurationException {
-    return Configuration.builder().setOptions(pValues).build();
-  }
-  
   /**
    * Creates a copy of a configuration with just the prefix set to a new value.
    */
