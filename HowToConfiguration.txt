@@ -130,7 +130,7 @@ analysis.interprocedural = true
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
-# remove paths from CFA that cannot lead to an "error location"
+# remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
 
 # export CFA as .dot file
