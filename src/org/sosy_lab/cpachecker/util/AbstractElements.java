@@ -36,10 +36,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -89,13 +91,17 @@ public final class AbstractElements {
   }
   
   public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractElement> pElements) {
-    return transform(pElements,
+    if (pElements instanceof LocationMappedReachedSet) {
+      return ((LocationMappedReachedSet)pElements).getLocations();
+    }
+    
+    return filter(transform(pElements,
       new Function<AbstractElement, CFANode>() {
         @Override
         public CFANode apply(AbstractElement pArg0) {
           return extractLocation(pArg0);
         }
-      });
+      }), Predicates.notNull());
   }
   
   public static boolean isTargetElement(AbstractElement e) {

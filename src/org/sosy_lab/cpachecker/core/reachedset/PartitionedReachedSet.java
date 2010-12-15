@@ -95,4 +95,8 @@ public class PartitionedReachedSet extends ReachedSet {
   protected Set<AbstractElement> getReachedForKey(Object key) {
     return Collections.unmodifiableSet(partitionedReached.get(key));
   }
+  
+  protected Set<?> getKeySet() {
+    return Collections.unmodifiableSet(partitionedReached.keySet());
+  }
 }

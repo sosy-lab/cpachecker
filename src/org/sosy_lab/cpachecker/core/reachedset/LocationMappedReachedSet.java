@@ -47,4 +47,10 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
     assert location != null : "Location information necessary for LocationMappedReachedSet";
     return location;
   }
+  
+  @SuppressWarnings("unchecked")
+  public Set<CFANode> getLocations() {
+    // generic cast is safe because we only put CFANodes into it
+    return (Set<CFANode>)super.getKeySet();
+  }
 }
