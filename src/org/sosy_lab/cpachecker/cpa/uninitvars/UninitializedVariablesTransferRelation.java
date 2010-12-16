@@ -223,7 +223,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private void handleFunctionCall(UninitializedVariablesElement element, FunctionCallEdge callEdge)
                                                                   throws UnrecognizedCCodeException {
     //find functions's parameters and arguments
-    FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
+    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
 

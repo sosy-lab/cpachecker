@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -139,7 +138,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
           List<IASTExpression> actualParams = functionCallEdge.getArguments();
 
-          List<String> formalParameters = ((FunctionDefinitionNode)functionCallEdge.getSuccessor()).getFunctionParameterNames();
+          List<String> formalParameters = functionCallEdge.getSuccessor().getFunctionParameterNames();
 
           // define and declare a variable for each actual parameter of the called function that corresponds to its respective formal parameter
           for(int i = 0; i < formalParameters.size(); i++)

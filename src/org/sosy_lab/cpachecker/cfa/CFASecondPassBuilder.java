@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -169,6 +170,7 @@ public class CFASecondPassBuilder {
     int lineNumber = edge.getLineNumber();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
     assert fDefNode != null;
+    assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
     
     //get the parameter expression
     IASTExpression parameterExpression = functionCall.getParameterExpression();
@@ -183,7 +185,7 @@ public class CFASecondPassBuilder {
     }
     
     // create new edges
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, lineNumber, predecessorNode, fDefNode, parameters);
+    FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
     callEdge.addToCFA(null);
 
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), lineNumber, predecessorNode, successorNode, expr);

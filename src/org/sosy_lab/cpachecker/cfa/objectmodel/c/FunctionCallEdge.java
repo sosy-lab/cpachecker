@@ -38,7 +38,7 @@ public class FunctionCallEdge extends AbstractCFAEdge
 	private final List<IASTExpression> arguments;
 	private final IASTExpression rawAST;
 
-    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments) {
+    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, IASTExpression[] arguments) {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
         if (arguments == null) {
           this.arguments = ImmutableList.of();
@@ -61,5 +61,11 @@ public class FunctionCallEdge extends AbstractCFAEdge
   @Override
   public IASTExpression getRawAST() {
     return rawAST;
+  }
+  
+  @Override
+  public FunctionDefinitionNode getSuccessor() {
+    // the constructor enforces that the successor is always a CFAFunctionDefinitionNode
+    return (FunctionDefinitionNode)super.getSuccessor();
   }
 }

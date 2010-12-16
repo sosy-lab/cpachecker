@@ -1710,7 +1710,7 @@ public class OctTransferRelation implements TransferRelation{
 
   private void handleFunctionCall(OctElement octElement,
                                   FunctionCallEdge callEdge) throws OctagonTransferException {
-    FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
+    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 

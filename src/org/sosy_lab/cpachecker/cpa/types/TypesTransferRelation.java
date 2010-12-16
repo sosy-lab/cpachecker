@@ -93,7 +93,7 @@ public class TypesTransferRelation implements TransferRelation {
 
     case FunctionCallEdge:
       FunctionCallEdge funcCallEdge = (FunctionCallEdge)cfaEdge;
-      FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)funcCallEdge.getSuccessor();
+      FunctionDefinitionNode funcDefNode = funcCallEdge.getSuccessor();
       if (successor.getFunction(funcDefNode.getFunctionName()) == null) {
         // we call a function that was not defined
         // probably "analysis.useFunctionDeclarations" is false
