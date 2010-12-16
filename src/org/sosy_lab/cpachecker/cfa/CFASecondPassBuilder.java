@@ -168,12 +168,12 @@ public class CFASecondPassBuilder {
    * then functionCall is call(b).
    */
   private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCallExpression functionCall) {
-    CFANode node = edge.getPredecessor();
+    CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     IASTExpression expr = edge.getExpression();
     String functionName = functionCall.getFunctionNameExpression().getRawSignature();
-    CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
-
+    int lineNumber = edge.getLineNumber();
+    
     //get the parameter expression
     IASTExpression parameterExpression = functionCall.getParameterExpression();
     IASTExpression[] parameters = null;
@@ -185,32 +185,41 @@ public class CFASecondPassBuilder {
     } else if (parameterExpression != null) {
       parameters = new IASTExpression[] {parameterExpression};
     }
-    FunctionCallEdge callEdge;
 
-    // if the function definition node is null, then this is an external call
-    if(fDefNode == null){
-      assert(createCallEdgesForExternalCalls); // AG
+    CFANode calledNode;
+    boolean isExternal;
+    String ctrEdgeText;
+    
+    CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
+    if (fDefNode != null) {
+      // regular call
+      calledNode = fDefNode;
+      isExternal = false;
+      ctrEdgeText = expr.getRawSignature();
+      
+      // only in this case there is a return edge from exit node of the function
+      CFANode fExitNode = fDefNode.getExitNode();  
+      ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode);
+      returnEdge.addToCFA(null);
 
-      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, edge.getSuccessor(), parameters, true);
-      callEdge.addToCFA(null);
-      CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", edge.getLineNumber(), node, edge.getSuccessor(), expr);
-      calltoReturnEdge.addToCFA(null);
-      node.removeLeavingEdge(edge);
-      successorNode.removeEnteringEdge(edge);
-      return;
+    } else {
+      // external call
+      assert createCallEdgesForExternalCalls;
+      
+      calledNode = successorNode;
+      isExternal = true;
+      ctrEdgeText = "External Call";
     }
-
-    callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, fDefNode, parameters, false);
+    
+    // create new edges
+    FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, lineNumber, predecessorNode, calledNode, parameters, isExternal);
     callEdge.addToCFA(null);
-    // set name of the function
-    // set return edge from exit node of the function
-    ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), cfas.get(functionName).getExitNode(), successorNode);
-    returnEdge.addToCFA(null);
 
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
+    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(ctrEdgeText, lineNumber, predecessorNode, successorNode, expr);
     calltoReturnEdge.addToCFA(null);
 
-    node.removeLeavingEdge(edge);
+    // delete old edge
+    predecessorNode.removeLeavingEdge(edge);
     successorNode.removeEnteringEdge(edge);
   }
 }
