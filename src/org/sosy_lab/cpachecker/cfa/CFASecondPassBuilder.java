@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
@@ -191,7 +191,7 @@ public class CFASecondPassBuilder {
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), lineNumber, predecessorNode, successorNode, expr);
     calltoReturnEdge.addToCFA(null);
 
-    ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fDefNode.getExitNode(), successorNode);
+    FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fDefNode.getExitNode(), successorNode);
     returnEdge.addToCFA(null);
 
     // delete old edge

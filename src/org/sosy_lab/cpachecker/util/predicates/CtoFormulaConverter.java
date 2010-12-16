@@ -334,7 +334,7 @@ public class CtoFormulaConverter {
       break;
     }
 
-    case ReturnEdge: {
+    case FunctionReturnEdge: {
       // get the expression from the summary edge
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();

@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -69,7 +69,7 @@ public class LoopstackTransferRelation implements TransferRelation {
       e = e.getPreviousElement();
     }
     
-    if (pCfaEdge instanceof ReturnEdge) {
+    if (pCfaEdge instanceof FunctionReturnEdge) {
       // such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges
       // Return here because they might be mis-classified as entry edges 

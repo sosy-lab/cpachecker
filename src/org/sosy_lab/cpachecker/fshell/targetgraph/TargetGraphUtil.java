@@ -70,7 +70,7 @@ public class TargetGraphUtil {
           CFAEdgeType lEdgeType = lCFAEdge.getEdgeType();
           
           if (lEdgeType.equals(CFAEdgeType.FunctionCallEdge) ||
-              lEdgeType.equals(CFAEdgeType.ReturnEdge)) {
+              lEdgeType.equals(CFAEdgeType.FunctionReturnEdge)) {
             
             lCurrentTraceEdge = lCFAEdge;
             
@@ -81,7 +81,7 @@ public class TargetGraphUtil {
         CFAEdgeType lEdgeType = lCurrentEdge.getEdgeType();
         
         if (!lEdgeType.equals(CFAEdgeType.FunctionCallEdge) && 
-            !lEdgeType.equals(CFAEdgeType.ReturnEdge)) {
+            !lEdgeType.equals(CFAEdgeType.FunctionReturnEdge)) {
           // basic block consists not only of an interprocedural cfa edge (function call edge or return edge)
           lBasicBlockEntries.add(lCurrentEdge);
         }

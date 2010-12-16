@@ -108,7 +108,7 @@ public class TypesTransferRelation implements TransferRelation {
     case AssumeEdge:
     case StatementEdge:
     case ReturnStatementEdge:
-    case ReturnEdge:
+    case FunctionReturnEdge:
       break;
     case BlankEdge:
       //the first function start dummy edge is the actual start of the entry function

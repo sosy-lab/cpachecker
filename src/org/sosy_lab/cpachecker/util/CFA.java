@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
@@ -107,7 +107,7 @@ public class CFA {
       if (reverse) {
         for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
           CFAEdge e = n.getEnteringEdge(i);
-          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof ReturnEdge)) {
+          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
             continue;
           }
           
@@ -125,7 +125,7 @@ public class CFA {
       } else {
         for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
           CFAEdge e = n.getLeavingEdge(i);
-          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof ReturnEdge)) {
+          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
             continue;
           }
 

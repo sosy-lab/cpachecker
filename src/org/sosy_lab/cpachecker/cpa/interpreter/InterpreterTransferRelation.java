@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -165,8 +165,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
-    case ReturnEdge: {
-      ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
+    case FunctionReturnEdge: {
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(explicitElement, functionReturnEdge);
       
       // TODO remove
@@ -209,7 +209,7 @@ public class InterpreterTransferRelation implements TransferRelation {
    * @return new abstract element.
    */
   private InterpreterElement handleFunctionReturn(InterpreterElement element,
-      ReturnEdge functionReturnEdge)
+      FunctionReturnEdge functionReturnEdge)
   throws UnrecognizedCCodeException {
 
     CallToReturnEdge summaryEdge =

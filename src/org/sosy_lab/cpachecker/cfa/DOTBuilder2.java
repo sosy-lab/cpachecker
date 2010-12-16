@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -174,7 +174,7 @@ public final class DOTBuilder2 {
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (predecessor.getLeavingSummaryEdge() != null)
-          || (edge instanceof ReturnEdge)
+          || (edge instanceof FunctionReturnEdge)
           || (edge instanceof AssumeEdge)
           || (edge instanceof FunctionCallEdge)) {
         // no, it does not
@@ -262,7 +262,7 @@ public final class DOTBuilder2 {
     
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof ReturnEdge) {
+      if (edge instanceof FunctionReturnEdge) {
         return "";
       }
       if (edge instanceof FunctionCallEdge) {

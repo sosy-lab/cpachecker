@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -153,10 +153,10 @@ public class OctTransferRelation implements TransferRelation{
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
-    case ReturnEdge:
+    case FunctionReturnEdge:
     {
       octElement = octElement.clone ();
-      ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
       handleFunctionReturn(octElement, functionReturnEdge);
       break;
     }
@@ -1986,7 +1986,7 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private void handleFunctionReturn(OctElement octElement,
-                                    ReturnEdge functionReturnEdge) throws OctagonTransferException {
+                                    FunctionReturnEdge functionReturnEdge) throws OctagonTransferException {
 
 
     // TODO: The method summaryEdge.extractAbstractElement() has been removed.

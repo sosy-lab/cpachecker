@@ -30,7 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -53,9 +53,9 @@ public class CallstackTransferRelation implements TransferRelation {
 
         return Collections.singleton(new CallstackElement(element, functionName, callNode));
       }
-    case ReturnEdge:
+    case FunctionReturnEdge:
       {
-        ReturnEdge cfaEdge = (ReturnEdge)pCfaEdge;
+        FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
         
         CallstackElement element = (CallstackElement)pElement;
         

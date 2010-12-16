@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -124,10 +124,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       }
       break;
 
-    case ReturnEdge:
+    case FunctionReturnEdge:
       //handle statement like a = func(x) in the CallToReturnEdge
-      ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
-      CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)cfaEdge;
+      CallToReturnEdge ctrEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
       break;
 

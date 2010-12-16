@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -124,8 +124,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       // this is a return edge from function, this is different from return statement
       // of the function. See case in statement edge for details
-      case ReturnEdge:
-        successor = handleFunctionReturn(intervalElement, (ReturnEdge)cfaEdge);
+      case FunctionReturnEdge:
+        successor = handleFunctionReturn(intervalElement, (FunctionReturnEdge)cfaEdge);
         break;
 
       default:
@@ -146,7 +146,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    */
-  private IntervalAnalysisElement handleFunctionReturn(IntervalAnalysisElement element, ReturnEdge functionReturnEdge)
+  private IntervalAnalysisElement handleFunctionReturn(IntervalAnalysisElement element, FunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException
   {
     CallToReturnEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();

@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -271,9 +271,9 @@ public class PointerTransferRelation implements TransferRelation {
         handleFunctionCall(successor, cfaEdge);
         break;
 
-      case ReturnEdge:
+      case FunctionReturnEdge:
         // now handle the complete a = func(x) statement in the CallToReturnEdge
-        ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
+        FunctionReturnEdge returnEdge = (FunctionReturnEdge)cfaEdge;
         CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
         handleReturnFromFunction(successor, ctrEdge.getExpression(), ctrEdge);
         break;

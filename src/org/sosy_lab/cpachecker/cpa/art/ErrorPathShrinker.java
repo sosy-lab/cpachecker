@@ -382,7 +382,7 @@ public final class ErrorPathShrinker {
 
           // this is a return edge from function, this is different from return
           // statement of the function. See case in statement edge for details
-        case ReturnEdge:
+        case FunctionReturnEdge:
           // TODO: what to do?
           break;
 
