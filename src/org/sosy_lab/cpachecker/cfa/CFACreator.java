@@ -51,9 +51,6 @@ public class CFACreator {
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
   private String mainFunctionName = "main";
 
-  @Option(name="analysis.noExternalCalls")
-  private boolean noExternalCalls = true;
-
   @Option(name="analysis.interprocedural")
   private boolean interprocedural = true;
 
@@ -125,7 +122,7 @@ public class CFACreator {
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
   
-      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas, noExternalCalls);
+      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
       Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
   
       // remove all functions which are never reached from cfas

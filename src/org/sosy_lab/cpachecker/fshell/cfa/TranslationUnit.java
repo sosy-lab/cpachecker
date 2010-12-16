@@ -147,7 +147,7 @@ class TranslationUnit {
   }
   
   public void insertCallEdgesRecursively(String pEntryFunction) {
-    CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs, true);
+    CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs);
     lBuilder.insertCallEdgesRecursively(pEntryFunction);
   }
   

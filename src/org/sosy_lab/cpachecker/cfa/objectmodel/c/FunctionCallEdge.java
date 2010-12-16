@@ -37,9 +37,8 @@ public class FunctionCallEdge extends AbstractCFAEdge
 {
 	private final List<IASTExpression> arguments;
 	private final IASTExpression rawAST;
-	private final boolean isExternalCall;
 
-    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
+    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments) {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
         if (arguments == null) {
           this.arguments = ImmutableList.of();
@@ -47,7 +46,6 @@ public class FunctionCallEdge extends AbstractCFAEdge
           this.arguments = ImmutableList.copyOf(arguments);
         }
         this.rawAST = rawAST;
-        this.isExternalCall = isExternalCall;
     }
 
     @Override
@@ -66,6 +64,6 @@ public class FunctionCallEdge extends AbstractCFAEdge
   }
 
 	public boolean isExternalCall() {
-		return this.isExternalCall;
+		return false;
 	}
 }
