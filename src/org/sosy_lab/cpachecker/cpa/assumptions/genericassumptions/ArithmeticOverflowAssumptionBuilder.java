@@ -257,7 +257,7 @@ implements GenericAssumptionBuilder
       break;
     case FunctionCallEdge:
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
-      if(fcallEdge.getArguments() != null){
+      if (!fcallEdge.getArguments().isEmpty()) {
         FunctionDefinitionNode fdefnode = (FunctionDefinitionNode)fcallEdge.getSuccessor();
         List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTParameterDeclaration paramdecl : formalParams)

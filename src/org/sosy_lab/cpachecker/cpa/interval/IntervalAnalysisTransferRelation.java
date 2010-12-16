@@ -240,12 +240,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<String> parameterNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments  = callEdge.getArguments();
+    List<IASTExpression> arguments  = callEdge.getArguments();
 
-    if(arguments == null)
-      arguments = new IASTExpression[0];
-
-    assert(parameterNames.size() == arguments.length);
+    assert(parameterNames.size() == arguments.size());
 
     IntervalAnalysisElement newElement = new IntervalAnalysisElement(previousElement);
 
@@ -257,9 +254,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
-    for(int i = 0; i < arguments.length; i++)
+    for(int i = 0; i < arguments.size(); i++)
     {
-      Interval interval = getInterval(previousElement, arguments[i], callerFunctionName, callEdge);
+      Interval interval = getInterval(previousElement, arguments.get(i), callerFunctionName, callEdge);
 
       String formalParameterName = constructVariableName(parameterNames.get(i), calledFunctionName);
 

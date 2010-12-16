@@ -1724,13 +1724,9 @@ public class OctTransferRelation implements TransferRelation{
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments = callEdge.getArguments();
+    List<IASTExpression> arguments = callEdge.getArguments();
 
-    if (arguments == null) {
-      arguments = new IASTExpression[0];
-    }
-
-    assert (paramNames.size() == arguments.length);
+    assert (paramNames.size() == arguments.size());
 
     OctElement newOctElement = new OctElement();
 
@@ -1769,8 +1765,8 @@ public class OctTransferRelation implements TransferRelation{
       }
     }
 
-    for(int i=0; i<arguments.length; i++){
-      IASTExpression arg = arguments[i];
+    for(int i=0; i<arguments.size(); i++){
+      IASTExpression arg = arguments.get(i);
 
       if(arg instanceof IASTIdExpression){
         IASTIdExpression idExp = (IASTIdExpression) arg;

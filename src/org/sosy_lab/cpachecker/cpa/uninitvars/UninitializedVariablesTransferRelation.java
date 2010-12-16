@@ -134,11 +134,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //if the function is external, display warnings for uninitialized arguments
       if (callEdge.isExternalCall()) {
         if (printWarnings) {
-          IASTExpression[] args = callEdge.getArguments();
-          if (args != null) {
-            for (IASTExpression exp : args) {
-              isExpressionUninitialized(successor, exp, cfaEdge);
-            }
+          for (IASTExpression exp : callEdge.getArguments()) {
+            isExpressionUninitialized(successor, exp, cfaEdge);
           }
         }
         //if there possibly is an assignment, we need to set the initialization status of the variable
@@ -245,17 +242,17 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     //find functions's parameters and arguments
     FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments = callEdge.getArguments();
+    List<IASTExpression> arguments = callEdge.getArguments();
 
-    if (arguments != null) {
+    if (!arguments.isEmpty()) {
 
       int numOfParams = paramNames.size();
 
       //if the following  is the case, this is a varargs function and thus can take any number of arguments
-      if (numOfParams < arguments.length) {
+      if (numOfParams < arguments.size()) {
         //then, for unnamed parameters, only check for use of uninitialized variables
-        for (int j = numOfParams; j < arguments.length; j++) {
-          isExpressionUninitialized(element, arguments[j], callEdge);
+        for (int j = numOfParams; j < arguments.size(); j++) {
+          isExpressionUninitialized(element, arguments.get(j), callEdge);
         }
       }
 
@@ -264,7 +261,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {
-        if(isExpressionUninitialized(element, arguments[i], callEdge)) {
+        if(isExpressionUninitialized(element, arguments.get(i), callEdge)) {
           uninitParameters.add(paramNames.get(i));
         } else {
           initParameters.add(paramNames.get(i));

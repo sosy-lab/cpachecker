@@ -601,19 +601,19 @@ public class PointerTransferRelation implements TransferRelation {
     String funcName = funcDefNode.getFunctionName();
 
     List<String> formalParameters = funcDefNode.getFunctionParameterNames();
-    IASTExpression[] actualParameters = ((FunctionCallEdge)cfaEdge).getArguments();
+    List<IASTExpression> actualParameters = ((FunctionCallEdge)cfaEdge).getArguments();
 
     // TODO: relocate parameter handling to strengthen operator
 
     if (formalParameters != null && formalParameters.size() > 0
-        && actualParameters != null && actualParameters.length > 0) {
+        && !actualParameters.isEmpty()) {
 
       ArrayList<Pointer> actualValues = new ArrayList<Pointer>();
 
-      assert formalParameters.size() == actualParameters.length;
+      assert formalParameters.size() == actualParameters.size();
 
-      for (int i = 0; i < actualParameters.length; i++) {
-        IASTExpression parameter = actualParameters[i];
+      for (int i = 0; i < actualParameters.size(); i++) {
+        IASTExpression parameter = actualParameters.get(i);
 
         if (parameter instanceof IASTIdExpression) {
           Pointer p = element.lookupPointer(parameter.getRawSignature());

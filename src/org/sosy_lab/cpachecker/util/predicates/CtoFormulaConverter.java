@@ -521,16 +521,12 @@ public class CtoFormulaConverter {
           "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
     } else {
 
-      IASTExpression[] actualParams = edge.getArguments();
-      int paramsCount = (actualParams == null ? 0 : actualParams.length);
+      List<IASTExpression> actualParams = edge.getArguments();
       
       FunctionDefinitionNode fn = (FunctionDefinitionNode)edge.getSuccessor();
       List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
       
-      assert formalParams.size() == paramsCount;
-      if (paramsCount == 0) {
-        return fmgr.makeTrue();
-      }
+      assert formalParams.size() == actualParams.size();
 
       String calledFunction = fn.getFunctionName();
       
@@ -551,7 +547,7 @@ public class CtoFormulaConverter {
         }
         
         // get value of actual parameter
-        Formula actualParam = buildTerm(actualParams[i++], callerFunction, ssa);
+        Formula actualParam = buildTerm(actualParams.get(i++), callerFunction, ssa);
         
         Formula eq = makeAssignment(formalParamName, calledFunction, actualParam, ssa);
         

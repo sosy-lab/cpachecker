@@ -273,12 +273,8 @@ public final class ErrorPathShrinker {
 
     // get a list with the expressions "x" and "y" from "f(x,y)"
     // all variables in the expressions are important
-    final IASTExpression[] listOfExp = funcEdge.getArguments();
-
-    if (listOfExp != null) {
-      for (IASTExpression exp : listOfExp) {
-        addAllVarsInExpToSet(exp, importantVars, importantVarsForGlobalVars);
-      }
+    for (IASTExpression exp : funcEdge.getArguments()) {
+      addAllVarsInExpToSet(exp, importantVars, importantVarsForGlobalVars);
     }
   }
 

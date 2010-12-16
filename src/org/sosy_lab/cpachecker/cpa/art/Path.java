@@ -137,7 +137,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
         case FunctionCallEdge:
           FunctionCallEdge functionCallEdge = (FunctionCallEdge)currentEdge;
 
-          IASTExpression[] actualParams = functionCallEdge.getArguments();
+          List<IASTExpression> actualParams = functionCallEdge.getArguments();
 
           List<String> formalParameters = ((FunctionDefinitionNode)functionCallEdge.getSuccessor()).getFunctionParameterNames();
 
@@ -147,7 +147,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
             sb.append("int " + formalParameters.get(i) + ";\n");
             sb.append(formalParameters.get(i));
             sb.append(" = ");
-            sb.append(actualParams[i].getRawSignature());
+            sb.append(actualParams.get(i).getRawSignature());
             sb.append(";\n");
           }
 

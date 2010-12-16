@@ -320,13 +320,9 @@ public class ExplicitTransferRelation implements TransferRelation {
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments = callEdge.getArguments();
+    List<IASTExpression> arguments = callEdge.getArguments();
 
-    if (arguments == null) {
-      arguments = new IASTExpression[0];
-    }
-
-    assert (paramNames.size() == arguments.length);
+    assert (paramNames.size() == arguments.size());
 
     ExplicitElement newElement = new ExplicitElement(element);
 
@@ -337,8 +333,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
 
-    for(int i=0; i<arguments.length; i++){
-      IASTExpression arg = arguments[i];
+    for (int i=0; i<arguments.size(); i++){
+      IASTExpression arg = arguments.get(i);
       if (arg instanceof IASTCastExpression) {
         // ignore casts
         arg = ((IASTCastExpression)arg).getOperand();

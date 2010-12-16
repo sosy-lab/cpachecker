@@ -421,19 +421,15 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     boolean lFirstArgument = true;
 
-    IASTExpression[] lArguments = lFunctionCallEdge.getArguments();
-
-    if (lArguments != null) {
-      for (IASTExpression lArgument : lArguments) {
-        if (lFirstArgument) {
-          lFirstArgument = false;
-        }
-        else {
-          lArgumentString += ", ";
-        }
-
-        lArgumentString += lArgument.getRawSignature();
+    for (IASTExpression lArgument : lFunctionCallEdge.getArguments()) {
+      if (lFirstArgument) {
+        lFirstArgument = false;
       }
+      else {
+        lArgumentString += ", ";
+      }
+
+      lArgumentString += lArgument.getRawSignature();
     }
 
     lArgumentString += ")";
