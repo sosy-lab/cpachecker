@@ -315,6 +315,27 @@ public class PointerTransferRelation implements TransferRelation {
   private void handleDeclaration(PointerElement element, CFAEdge edge,
       IASTDeclarator[] declarators, IASTDeclSpecifier specifier) throws CPATransferException {
 
+    if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+      // ignore, this is a type definition, not a variable declaration
+      return;
+    }
+    
+    if (specifier instanceof IASTElaboratedTypeSpecifier && declarators.length == 0) {
+      // ignore struct prototypes
+      return;
+    }
+    
+    if (declarators == null || declarators.length != 1) {
+      throw new UnrecognizedCCodeException("not expected in CIL", edge,
+                                    specifier.getParent());
+    }
+
+    IASTDeclarator declarator = declarators[0];
+    
+    if (declarator instanceof IASTFunctionDeclarator) {
+      return;
+    }
+    
     if (specifier instanceof IASTCompositeTypeSpecifier
         || specifier instanceof IASTElaboratedTypeSpecifier
         || specifier instanceof IASTEnumerationSpecifier) {
@@ -326,13 +347,8 @@ public class PointerTransferRelation implements TransferRelation {
       if (specifier instanceof IASTElaboratedTypeSpecifier) {
         // declaration of pointer to struct
         
-        if (declarators.length == 0) {
-          // ignore struct prototypes
-          return;
-        }
-        
-        String varName = declarators[0].getName().toString();
-        IASTPointerOperator[] operators = declarators[0].getPointerOperators();
+        String varName = declarator.getName().toString();
+        IASTPointerOperator[] operators = declarator.getPointerOperators();
         
         if (operators != null && operators.length > 0) {
           // pointer
@@ -362,7 +378,7 @@ public class PointerTransferRelation implements TransferRelation {
           missing = new MissingInformation();
           missing.typeInformationPointer = ptr;
           missing.typeInformationEdge = edge;
-          missing.typeInformationDeclarator = declarators[0];
+          missing.typeInformationDeclarator = declarator;
           
         } else {
           // variable on stack: ignore, because cil resolves fields to variables
@@ -373,23 +389,9 @@ public class PointerTransferRelation implements TransferRelation {
       return;
     }
 
-    if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
-      // ignore, this is a type definition, not a variable declaration
-      return;
-    }
-    
-    if (declarators == null || declarators.length != 1) {
-      throw new UnrecognizedCCodeException("not expected in CIL", edge,
-                                    specifier.getParent());
-    }
+    String varName = declarator.getName().toString();
 
-    if (declarators[0] instanceof IASTFunctionDeclarator) {
-      return;
-    }
-
-    String varName = declarators[0].getName().toString();
-
-    if (declarators[0] instanceof IASTArrayDeclarator) {
+    if (declarator instanceof IASTArrayDeclarator) {
       Pointer p = new Pointer(1);
       if (edge instanceof GlobalDeclarationEdge) {
         element.addNewGlobalPointer(varName, p);
@@ -397,18 +399,18 @@ public class PointerTransferRelation implements TransferRelation {
         element.addNewLocalPointer(varName, p);
       }
 
-      //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarators[0]).)
+      //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarator).)
       IASTArrayModifier[] modifiers =
-          ((IASTArrayDeclarator)(declarators[0])).getArrayModifiers();
+          ((IASTArrayDeclarator)(declarator)).getArrayModifiers();
       if (modifiers.length != 1 || modifiers[0] == null) {
         throw new UnrecognizedCCodeException("unsupported array declaration",
-                                                     edge, declarators[0]);
+                                                     edge, declarator);
       }
 
       IASTExpression lengthExpression = modifiers[0].getConstantExpression();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported",
-            edge, declarators[0]);
+            edge, declarator);
       }
 
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
@@ -422,11 +424,11 @@ public class PointerTransferRelation implements TransferRelation {
       missing = new MissingInformation();
       missing.typeInformationPointer = p;
       missing.typeInformationEdge = edge;
-      missing.typeInformationDeclarator = declarators[0];
+      missing.typeInformationDeclarator = declarator;
 
     } else {
 
-      IASTPointerOperator[] operators = declarators[0].getPointerOperators();
+      IASTPointerOperator[] operators = declarator.getPointerOperators();
       if (operators != null && operators.length > 0) {
         Pointer p = new Pointer(operators.length);
         if (edge instanceof GlobalDeclarationEdge) {
@@ -446,7 +448,7 @@ public class PointerTransferRelation implements TransferRelation {
         missing = new MissingInformation();
         missing.typeInformationPointer = p;
         missing.typeInformationEdge = edge;
-        missing.typeInformationDeclarator = declarators[0];
+        missing.typeInformationDeclarator = declarator;
 
         // initializers do not need to be considered, because they have to be
         // constant and constant pointers are considered null
