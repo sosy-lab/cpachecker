@@ -167,7 +167,7 @@ public final class DOTBuilder2 {
     
     @Override
     void visitEdge(CFAEdge edge) {
-      CFANode predecessor = edge.getPredecessor();      
+      CFANode predecessor = edge.getPredecessor();
 
       // check if it qualifies for a comboEdge
       if (    predecessor.isLoopStart() 
@@ -176,7 +176,7 @@ public final class DOTBuilder2 {
           || (predecessor.getLeavingSummaryEdge() != null)
           || (edge instanceof ReturnEdge)
           || (edge instanceof AssumeEdge)
-          || (edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall())) {
+          || (edge instanceof FunctionCallEdge)) {
         // no, it does not
         
         func2nodes.put(predecessor.getFunctionName(), predecessor);
@@ -265,8 +265,7 @@ public final class DOTBuilder2 {
       if (edge instanceof ReturnEdge) {
         return "";
       }
-      if (edge instanceof FunctionCallEdge 
-          && !((FunctionCallEdge)edge).isExternalCall()) {
+      if (edge instanceof FunctionCallEdge) {
        //create the function node
         String ret = "node [shape = component label=\"" + edge.getSuccessor().getFunctionName() + "\"]; " + (++virtFuncCallNodeIdCounter) + ";\n";
         int from = edge.getPredecessor().getNodeNumber();

@@ -47,10 +47,6 @@ public class CallstackTransferRelation implements TransferRelation {
     case FunctionCallEdge:
       {
         FunctionCallEdge cfaEdge = (FunctionCallEdge)pCfaEdge;
-        if (cfaEdge.isExternalCall()) {
-          break;
-        }
-    
         CallstackElement element = (CallstackElement)pElement;
         String functionName = cfaEdge.getSuccessor().getFunctionName();
         CFANode callNode = cfaEdge.getPredecessor();

@@ -174,8 +174,7 @@ public final class DOTBuilder {
 				line = line + edgeText;
 				line = line + "\"];";
 				DOTWriter dw;
-				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) ||
-						edge instanceof ReturnEdge){
+				if ((edge instanceof FunctionCallEdge) || edge instanceof ReturnEdge){
 					dw = subGraphWriters.get(MAIN_GRAPH);
 				}
 				else{

@@ -147,16 +147,7 @@ public class OctTransferRelation implements TransferRelation{
     {
       octElement = octElement.clone ();
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-
-      // TODO check later
-      // call to an external function
-      if(functionCallEdge.isExternalCall())
-      {
-        handleExternalFunctionCall(octElement, functionCallEdge);
-      }
-      else{
-        handleFunctionCall(octElement, functionCallEdge);
-      }
+      handleFunctionCall(octElement, functionCallEdge);
       break;
     }
 
@@ -1901,49 +1892,6 @@ public class OctTransferRelation implements TransferRelation{
       array[i] = new Num(0);
     }
   }
-
-  //	TODO implement again
-  /**
-   * Handles calls to external function calls. Basically we drop
-   * all information about the variable that gets the value of this
-   * function call. If the external call modifies the state, a stub
-   * should be provided.
-   * @param octElement Abstract element to be updated.
-   * @param functionCallEdge Call edge to the external function.
-   * @throws OctagonTransferException
-   */
-  private void handleExternalFunctionCall(OctElement octElement,
-                                          FunctionCallEdge functionCallEdge) throws OctagonTransferException {
-
-//  // get the summary edge from call site to return site
-//  IASTExpression expr = functionCallEdge.getSuccessor().getEnteringSummaryEdge().getExpression();
-//  String functionName = functionCallEdge.getPredecessor().getFunctionName();
-//  if(expr instanceof IASTBinaryExpression){
-//  IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expr;
-//  IASTExpression leftHandSideExp = binaryExpression.getOperand1();
-//  if(leftHandSideExp instanceof IASTIdExpression){
-//  IASTIdExpression variable = (IASTIdExpression)leftHandSideExp;
-//  String variableName = variable.getRawSignature();
-//  // TODO fix
-//  int varid = octElement.getVarId(variableName);
-//  octElement.update(LibraryAccess.forget(octElement, varid));
-//  }
-//  else if(leftHandSideExp instanceof IASTUnaryExpression){
-//  System.out.println("Unary" + expr.getRawSignature());
-//  assert(false);
-//  }
-//  else {
-//  throw new OctagonTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
-//  }
-//  }
-//  else if(expr instanceof IASTFunctionCallExpression){
-//  return;
-//  }
-//  else{
-//  throw new OctagonTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
-//  }
-  }
-
 
   private void handleExitFromFunction(OctElement octElement,
                                       IASTExpression expression, StatementEdge statementEdge) throws OctagonTransferException {

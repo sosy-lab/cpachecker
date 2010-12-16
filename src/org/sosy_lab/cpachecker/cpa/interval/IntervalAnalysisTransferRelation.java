@@ -120,13 +120,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge)cfaEdge;
-
-        // TODO external function call
-        if(functionCallEdge.isExternalCall())
-          throw new UnrecognizedCCodeException("external function calls not yet supported", functionCallEdge);
-
-        else
-          successor = handleFunctionCall(intervalElement, functionCallEdge);
+        successor = handleFunctionCall(intervalElement, functionCallEdge);
         break;
 
       // this is a return edge from function, this is different from return statement

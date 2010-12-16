@@ -516,11 +516,6 @@ public class CtoFormulaConverter {
   private Formula makeFunctionCall(FunctionCallEdge edge,
       String callerFunction, SSAMapBuilder ssa) throws CPATransferException {
     
-    if (edge.isExternalCall()) {
-      throw new UnrecognizedCFAEdgeException(
-          "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
-    } else {
-
       List<IASTExpression> actualParams = edge.getArguments();
       
       FunctionDefinitionNode fn = (FunctionDefinitionNode)edge.getSuccessor();
@@ -555,7 +550,6 @@ public class CtoFormulaConverter {
       }
 
       return result;
-    }
   }
 
   private Formula makeReturn(IASTExpression exp, String function, SSAMapBuilder ssa)

@@ -155,23 +155,11 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-
-      if (functionCallEdge.isExternalCall()) {
-        // call to an external function
-        // TODO external function call
-        throw new UnrecognizedCCodeException("external function calls not yet supported", functionCallEdge);
-//      try {
-//      handleExternalFunctionCall(expAnalysisElement, functionCallEdge);
-//      } catch (ExplicitTransferException e) {
-//        CPAMain.logManager.logException(Level.WARNING, e, "");
-//      }
-      } else {
-        successor = handleFunctionCall(explicitElement, functionCallEdge);
-        
-        // TODO remove
-        if (successor == null) {
-          throw new RuntimeException();
-        }
+      successor = handleFunctionCall(explicitElement, functionCallEdge);
+      
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
       }
       break;
     }

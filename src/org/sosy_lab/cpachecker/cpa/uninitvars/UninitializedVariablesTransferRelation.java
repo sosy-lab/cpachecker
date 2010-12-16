@@ -130,24 +130,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     case FunctionCallEdge:
       //on calling a function, check initialization status of the parameters
-      FunctionCallEdge callEdge = (FunctionCallEdge)cfaEdge;
-      //if the function is external, display warnings for uninitialized arguments
-      if (callEdge.isExternalCall()) {
-        if (printWarnings) {
-          for (IASTExpression exp : callEdge.getArguments()) {
-            isExpressionUninitialized(successor, exp, cfaEdge);
-          }
-        }
-        //if there possibly is an assignment, we need to set the initialization status of the variable
-        if (callEdge.getSuccessor().getEnteringSummaryEdge().getExpression()
-            instanceof IASTBinaryExpression) {
-          CallToReturnEdge ctr = callEdge.getSuccessor().getEnteringSummaryEdge();
-          handleStatement(successor, ctr.getExpression(), ctr);
-        }
-        //if the function is internal, handle separately
-      } else {
-        handleFunctionCall(successor, callEdge);
-      }
+      handleFunctionCall(successor, (FunctionCallEdge)cfaEdge);
       break;
 
     case BlankEdge:

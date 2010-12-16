@@ -62,8 +62,4 @@ public class FunctionCallEdge extends AbstractCFAEdge
   public IASTExpression getRawAST() {
     return rawAST;
   }
-
-	public boolean isExternalCall() {
-		return false;
-	}
 }
