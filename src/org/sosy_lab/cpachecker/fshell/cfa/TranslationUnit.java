@@ -18,9 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
@@ -148,10 +146,9 @@ class TranslationUnit {
     }
   }
   
-  public Map<CallToReturnEdge, CFAEdge> insertCallEdgesRecursively(String pEntryFunction) {
+  public void insertCallEdgesRecursively(String pEntryFunction) {
     CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs, true);
     lBuilder.insertCallEdgesRecursively(pEntryFunction);
-    return lBuilder.getMappingToReplacedEdges();
   }
   
   public void toDot(String pFunction, File pFile) throws IOException {

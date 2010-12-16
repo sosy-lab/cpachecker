@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +53,6 @@ public class CFASecondPassBuilder {
 
   private final Map<String, CFAFunctionDefinitionNode> cfas;
   private final boolean createCallEdgesForExternalCalls;
-
-  private final Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
   
   /**
    * Class constructor.
@@ -65,15 +62,6 @@ public class CFASecondPassBuilder {
       boolean noCallEdgesForExternalCalls) {
     this.cfas = cfas;
     createCallEdgesForExternalCalls = !noCallEdgesForExternalCalls;
-    
-    mReplacedEdges = new HashMap<CallToReturnEdge, CFAEdge>();
-  }
-  
-  /** 
-   * @return A mapping of CallToReturnEdge objects to the cfa edges replaced by these objects
-   */
-  public Map<CallToReturnEdge, CFAEdge> getMappingToReplacedEdges() {
-    return mReplacedEdges;
   }
   
   /**
@@ -211,9 +199,6 @@ public class CFASecondPassBuilder {
       calltoReturnEdge.addToCFA(null);
       node.removeLeavingEdge(edge);
       successorNode.removeEnteringEdge(edge);
-      
-      mReplacedEdges.put(calltoReturnEdge, edge);
-      
       return;
     }
 
@@ -229,8 +214,5 @@ public class CFASecondPassBuilder {
 
     node.removeLeavingEdge(edge);
     successorNode.removeEnteringEdge(edge);
-    
-    mReplacedEdges.put(calltoReturnEdge, edge);
-
   }
 }

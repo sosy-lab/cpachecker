@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -52,8 +51,6 @@ public class Wrapper {
   private CFAEdge mOmegaEdge;
   
   private TranslationUnit mTranslationUnit;
-  
-  private Map<CallToReturnEdge, CFAEdge> mReplacedEdges;
 
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
     this(pMainFunction, pCFAs, pLogManager, getWrapperCFunction(pMainFunction));
@@ -64,7 +61,6 @@ public class Wrapper {
   }
   
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager, String pWrapperSource, String pEntryFunction) {
-    mReplacedEdges = new HashMap<CallToReturnEdge, CFAEdge>();
     mLogManager = pLogManager;
     
     TranslationUnit lWrapper = getWrapper(pWrapperSource);
@@ -74,7 +70,7 @@ public class Wrapper {
     mTranslationUnit.add(pCFAs);
     
     for (String lFunctionName : mTranslationUnit.functionNames()) {
-      mReplacedEdges.putAll(mTranslationUnit.insertCallEdgesRecursively(lFunctionName));
+      mTranslationUnit.insertCallEdgesRecursively(lFunctionName);
     }
     
     mEntry = mTranslationUnit.getFunction(pEntryFunction);
@@ -82,10 +78,6 @@ public class Wrapper {
     CFABuilder.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
     
     determineAlphaAndOmegaEdges(mEntry, pMainFunction);
-  }
-  
-  public Map<CallToReturnEdge, CFAEdge> getReplacedEdges() {
-    return mReplacedEdges;
   }
   
   private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
