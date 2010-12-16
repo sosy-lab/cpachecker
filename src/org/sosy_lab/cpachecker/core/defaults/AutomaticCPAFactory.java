@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -42,8 +47,19 @@ import com.google.common.collect.MutableClassToInstanceMap;
 /**
  * CPAFactory implementation that can be used to automatically instantiate
  * classes with a single constructor that has parameters.
+ * 
+ * Parameters can be marked as optional with an annotation to specify that the
+ * factory may pass null for them.
  */
 public class AutomaticCPAFactory implements CPAFactory {
+  
+  /**
+   * Marker interface for optional constructor parameters.
+   * The factory may decide to pass null for such parameters.
+   */
+  @Target(ElementType.PARAMETER)
+  @Retention(RetentionPolicy.RUNTIME)
+  public static @interface Optional { }
   
   private final Class<? extends ConfigurableProgramAnalysis> type;
   private final ClassToInstanceMap<Object> injects = MutableClassToInstanceMap.create();
@@ -69,16 +85,27 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
     Constructor<?> cons = allConstructors[0];
     cons.setAccessible(true);
-    
+        
     Class<?> formalParameters[] = cons.getParameterTypes();
+    Annotation parameterAnnotations[][] = cons.getParameterAnnotations();
+    
     Object actualParameters[] = new Object[formalParameters.length];
     for (int i = 0; i < formalParameters.length; i++) {
       Class<?> formalParam = formalParameters[i];
       Object actualParam = injects.get(formalParam);
 
-      Preconditions.checkNotNull(actualParam,
-          formalParam.getSimpleName() + " instance needed to create " + type.getSimpleName() + "-CPA!");
-
+      boolean optional = false;
+      for (Annotation a : parameterAnnotations[i]) {
+        if (a instanceof Optional) {
+          optional = true;
+          break;
+        }
+      }
+      
+      if (!optional) {
+        Preconditions.checkNotNull(actualParam,
+            formalParam.getSimpleName() + " instance needed to create " + type.getSimpleName() + "-CPA!");
+      }
       actualParameters[i] = actualParam;
     }
     
@@ -98,8 +125,25 @@ public class AutomaticCPAFactory implements CPAFactory {
           "without an accessible constructor!");
     }
   }
+
+  @Override
+  public CPAFactory setLogger(LogManager pLogger) {
+    return set(pLogger, LogManager.class);
+  }
+
+  @Override
+  public CPAFactory setConfiguration(Configuration pConfiguration) {
+    return set(pConfiguration, Configuration.class);
+  }
+
+  @Override
+  public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
+      throws UnsupportedOperationException {
+    return set(pChild, ConfigurableProgramAnalysis.class);
+  }
   
-  protected <T> CPAFactory storeInject(T obj, Class<T> cls) {
+  @Override
+  public <T> CPAFactory set(T obj, Class<T> cls) throws UnsupportedOperationException {
     Preconditions.checkNotNull(cls);
     Preconditions.checkNotNull(obj);
     Preconditions.checkState(!injects.containsKey(cls),
@@ -107,22 +151,6 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     injects.put(cls, obj);
     return this;
-  }
-
-  @Override
-  public CPAFactory setLogger(LogManager pLogger) {
-    return storeInject(pLogger, LogManager.class);
-  }
-
-  @Override
-  public CPAFactory setConfiguration(Configuration pConfiguration) {
-    return storeInject(pConfiguration, Configuration.class);
-  }
-
-  @Override
-  public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
-      throws UnsupportedOperationException {
-    return storeInject(pChild, ConfigurableProgramAnalysis.class);
   }
 
   @Override

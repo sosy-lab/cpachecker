@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA.AutomatonCPAFactory;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -88,10 +87,10 @@ public class CPABuilder {
           throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
         }
         
-        AutomatonCPAFactory factory = ControlAutomatonCPA.factory();
+        CPAFactory factory = ControlAutomatonCPA.factory();
         factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
         factory.setLogger(logger);
-        factory.setAutomaton(automaton);
+        factory.set(automaton, Automaton.class);
         cpas.add(factory.createInstance());
         logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
       }

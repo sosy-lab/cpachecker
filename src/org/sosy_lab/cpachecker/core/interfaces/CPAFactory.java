@@ -94,6 +94,16 @@ public interface CPAFactory {
   public CPAFactory setChildren(List<ConfigurableProgramAnalysis> children) throws UnsupportedOperationException;
 
   /**
+   * Provides an object of arbitrary type to the CPA.
+   * @param <T> the type of the object
+   * @param object the object to be given to the CPA
+   * @param cls the class object for the type
+   * @return this
+   * @throws UnsupportedOperationException if this factory does not support storing objects of this type
+   */
+  public <T> CPAFactory set(T object, Class<T> cls) throws UnsupportedOperationException;
+  
+  /**
    * Returns a new instance of the CPA belonging to this CPAFactory, using the
    * objects passed to the other methods of this CPAFactory before. If this is not
    * possible, an exception (either a CPAException or a RuntimeException) may be thrown.

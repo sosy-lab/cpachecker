@@ -36,7 +36,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -53,8 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
-import com.google.common.base.Preconditions;
-
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  * @author rhein
@@ -68,30 +67,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE)
   private File exportFile = new File("automaton.dot");
 
-  public static class AutomatonCPAFactory extends AbstractCPAFactory {
-
-    private Automaton mAutomaton = null;
-    
-    public CPAFactory setAutomaton(Automaton pAutomaton) {
-      Preconditions.checkNotNull(pAutomaton);
-      Preconditions.checkState(mAutomaton == null, "setAutomaton called twice on AutomatonCPAFactory");
-      
-      mAutomaton = pAutomaton;
-      return this;
-    }
-    
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      if (mAutomaton == null) {
-        return new ControlAutomatonCPA(getConfiguration(), getLogger());
-      } else {
-        return new ControlAutomatonCPA(mAutomaton, getConfiguration(), getLogger()); 
-      }
-    }
-  }
-
-  public static AutomatonCPAFactory factory() {
-    return new AutomatonCPAFactory();
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
   @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE)
@@ -110,12 +87,29 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  private ControlAutomatonCPA(Automaton automaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
-    this.automaton = automaton;
-    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
+    
     transferRelation = new AutomatonTransferRelation(this, logger);
     precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
+  
+    if (pAutomaton != null) {
+      this.automaton = pAutomaton;
+    
+    } else if (inputFile == null) {
+      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
+    
+    } else {
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger);
+      if (lst.isEmpty()) {
+        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
+      } else if (lst.size() > 1) {
+        throw new InvalidConfigurationException("Found " + lst.size() + " automata in the File " + inputFile.getAbsolutePath() + " The CPA can only handle ONE Automaton!");
+      }
+      
+      this.automaton = lst.get(0);
+    }
+    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     
     if (export && exportFile != null) {
       try {
@@ -123,48 +117,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       } catch (FileNotFoundException e) {
         logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
       }
-    }
-  }
-  
-  /**
-   * Loads a Automaton from the argument DefinitionFile.
-   * The argument mergeType is ignored.
-   * @param mergeType
-   * @param pStopType
-   * @throws FileNotFoundException
-   * @throws InvalidConfigurationException
-   */
-  protected ControlAutomatonCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this, ControlAutomatonCPA.class);
-    if (inputFile == null) {
-      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
-    }
-    automaton = parseAutomatonFile(logger, config);
-    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    transferRelation = new AutomatonTransferRelation(this, logger);
-    precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
-
-    if (export) {
-      try {
-        this.automaton.writeDotFile(new PrintStream(exportFile));
-      } catch (FileNotFoundException e) {
-        logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
-      }
-    }
-  }
-
-  private Automaton parseAutomatonFile(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
-    if (inputFile != null) {
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, pLogger);
-      if (lst.size() == 1) {
-        return lst.get(0);
-      } else if (lst.size() > 1) {
-        throw new InvalidConfigurationException("Found " + lst.size() + " automata in the File " + inputFile.getAbsolutePath() + " The CPA can only handle ONE Automaton!");
-      } else { // lst.size == 0
-        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
-      }
-    } else {
-      throw new InvalidConfigurationException("No Specification file was given.");
     }
   }
 
