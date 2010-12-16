@@ -33,7 +33,7 @@ public abstract class CFAFunctionDefinitionNode extends CFANode {
     this.exitNode = exitNode;
   }
 
-  public CFANode getExitNode() {
+  public CFAFunctionExitNode getExitNode() {
     return this.exitNode;
   }
 }
