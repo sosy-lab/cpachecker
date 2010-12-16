@@ -98,81 +98,79 @@ public class CFASecondPassBuilder {
    * @param initialNode CFANode where to start processing
    * @return a list of all function calls encountered (may contain duplicates)
    */
-  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode){
+  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode) {
     // we use a worklist algorithm
-    Deque<CFANode> workList = new ArrayDeque<CFANode> ();
-    Deque<CFANode> processedList = new ArrayDeque<CFANode> ();
+    Deque<CFANode> workList = new ArrayDeque<CFANode>();
+    Set<CFANode> processed = new HashSet<CFANode>();
     ArrayList<String> calledFunctions = new ArrayList<String>();
 
-    workList.addLast (initialNode);
-    processedList.addLast (initialNode);
+    workList.addLast(initialNode);
 
-    while (!workList.isEmpty ())
-    {
-      CFANode node = workList.pollFirst ();
-      int numLeavingEdges = node.getNumLeavingEdges ();
+    while (!workList.isEmpty()) {
+      CFANode node = workList.pollFirst();
+      if (!processed.add(node)) {
+        // already handled
+        continue;
+      }
+      
+      int numLeavingEdges = node.getNumLeavingEdges();
 
-      for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
-      {
-        CFAEdge edge = node.getLeavingEdge (edgeIdx);
-        CFANode successorNode = edge.getSuccessor();
-        if(edge instanceof StatementEdge)
-        {
-          IASTExpression expr = ((StatementEdge)edge).getExpression();
+      for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
+        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+        if (edge instanceof StatementEdge) {
+          StatementEdge statement = (StatementEdge)edge;
+          IASTExpression expr = statement.getExpression();
 
-          // if expression is a binary expression
-          if(expr instanceof IASTBinaryExpression){
+          // if statement is of the form x = call(a,b);
+          if (expr instanceof IASTBinaryExpression) {
             IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
-            // if statement is of the form x = call(a,b);
-            if(operand2 instanceof IASTFunctionCallExpression &&
-                shouldCreateCallEdges((IASTFunctionCallExpression)operand2)) {
-
+            if (shouldCreateCallEdges(operand2)) {
               IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)operand2;
               calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
-              createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
+              createCallAndReturnEdges(statement, functionCall);
             }
-          }
-
+          
           // if expression is function call, e.g. call(a,b);
-          else if(expr instanceof IASTFunctionCallExpression &&
-              shouldCreateCallEdges((IASTFunctionCallExpression)expr)){
+          } else if (shouldCreateCallEdges(expr)) {
             IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)expr;
             calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
-            createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
+            createCallAndReturnEdges(statement, functionCall);
           }
         }
 
-        // if the node is not already processed and if successor node is not
-        // on a different CFA, add successor node to the worklist
-        if(!processedList.contains(successorNode) &&
-            node.getFunctionName().equals(successorNode.getFunctionName())){
+        // if successor node is not on a different CFA, add it to the worklist
+        CFANode successorNode = edge.getSuccessor();
+        if (node.getFunctionName().equals(successorNode.getFunctionName())) {
           workList.add(successorNode);
         }
       }
-      // node is processed
-      processedList.add(node);
     }
     return calledFunctions;
   }
 
-  private boolean shouldCreateCallEdges(IASTFunctionCallExpression f) {
-    if (createCallEdgesForExternalCalls) return true;
+  private boolean shouldCreateCallEdges(IASTExpression e) {
+    if (!(e instanceof IASTFunctionCallExpression)) {
+      return false;
+    }
+    if (createCallEdgesForExternalCalls) {
+      return true;
+    }
+    IASTFunctionCallExpression f = (IASTFunctionCallExpression)e;
     String name = f.getFunctionNameExpression().getRawSignature();
-    CFAFunctionDefinitionNode fDefNode = cfas.get(name);
-    return fDefNode != null;
+    return cfas.containsKey(name);
   }
 
   /**
    * inserts call, return and summary edges from a node to its successor node.
-   * @param node The node which is the call site.
-   * @param successorNode The first node of the called function.
    * @param edge The function call edge.
-   * @param expr The function call expression.
    * @param functionCall If the call was an assignment from the function call
    * this keeps only the function call expression, e.g. if statement is a = call(b);
-   * then expr is a = call(b); and functionCall is call(b).
+   * then functionCall is call(b).
    */
-  private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
+  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCallExpression functionCall) {
+    CFANode node = edge.getPredecessor();
+    CFANode successorNode = edge.getSuccessor();
+    IASTExpression expr = edge.getExpression();
     String functionName = functionCall.getFunctionNameExpression().getRawSignature();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
 
