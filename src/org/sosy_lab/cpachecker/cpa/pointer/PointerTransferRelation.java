@@ -273,7 +273,7 @@ public class PointerTransferRelation implements TransferRelation {
 
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
-            IASTDeclarator[] declarators = {dec.getDeclarator()};
+            List<IASTDeclarator> declarators = Collections.singletonList(dec.getDeclarator());
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
             handleDeclaration(successor, cfaEdge, declarators, declSpecifier);
           }
@@ -313,24 +313,24 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
-      IASTDeclarator[] declarators, IASTDeclSpecifier specifier) throws CPATransferException {
+      List<IASTDeclarator> declarators, IASTDeclSpecifier specifier) throws CPATransferException {
 
     if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
     
-    if (specifier instanceof IASTElaboratedTypeSpecifier && declarators.length == 0) {
+    if (specifier instanceof IASTElaboratedTypeSpecifier && declarators.isEmpty()) {
       // ignore struct prototypes
       return;
     }
     
-    if (declarators == null || declarators.length != 1) {
+    if (declarators.size() != 1) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge,
                                     specifier.getParent());
     }
 
-    IASTDeclarator declarator = declarators[0];
+    IASTDeclarator declarator = declarators.get(0);
     
     if (declarator instanceof IASTFunctionDeclarator) {
       return;

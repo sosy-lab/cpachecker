@@ -216,13 +216,11 @@ public class OctTransferRelation implements TransferRelation{
   private void handleDeclaration(OctElement octElement,
                                  DeclarationEdge declarationEdge) {
 
-    IASTDeclarator[] declarators = declarationEdge.getDeclarators();
+    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
     // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
 
     for (IASTDeclarator declarator : declarators)
     {
-      if(declarator != null)
-      {
         // get the variable name in the declarator
         String varName = declarator.getName().toString();
 
@@ -253,7 +251,6 @@ public class OctTransferRelation implements TransferRelation{
         {
           octElement.update(LibraryAccess.addDimension(octElement, 1));
         }
-      }
     }
   }
 

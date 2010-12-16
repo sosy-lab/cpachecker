@@ -1083,13 +1083,11 @@ public class ExplicitTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
-    IASTDeclarator[] declarators = declarationEdge.getDeclarators();
+    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
     // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
 
     for (IASTDeclarator declarator : declarators)
     {
-      if(declarator != null)
-      {
         // get the variable name in the declarator
         String varName = declarator.getName().toString();
 
@@ -1127,7 +1125,6 @@ public class ExplicitTransferRelation implements TransferRelation {
             newElement.assignConstant(varName, v, this.threshold);
           }
         }
-      }
     }
     return newElement;
   }

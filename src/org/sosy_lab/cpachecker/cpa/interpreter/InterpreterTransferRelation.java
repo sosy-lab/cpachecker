@@ -1182,13 +1182,11 @@ public class InterpreterTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge) {
 
     InterpreterElement newElement = element.clone();
-    IASTDeclarator[] declarators = declarationEdge.getDeclarators();
+    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
     // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
 
     for (IASTDeclarator declarator : declarators)
     {
-      if(declarator != null)
-      {
         // get the variable name in the declarator
         String varName = declarator.getName().toString();
 
@@ -1209,7 +1207,6 @@ public class InterpreterTransferRelation implements TransferRelation {
           // FIXME this forgets initializers!
           newElement.assignConstant(varName, 0);
         }
-      }
     }
     
     return newElement;

@@ -376,7 +376,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeDeclaration(IASTDeclSpecifier spec,
-      IASTDeclarator[] declarators, boolean isGlobal, CFAEdge edge,
+      List<IASTDeclarator> declarators, boolean isGlobal, CFAEdge edge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
 
     if (spec instanceof IASTEnumerationSpecifier) {

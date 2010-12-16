@@ -187,8 +187,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (declaration.getDeclSpecifier().getStorageClass() != IASTDeclSpecifier.sc_typedef) {
 
       for (IASTDeclarator declarator : declaration.getDeclarators()) {
-        if (declarator != null) {
-
           String varName;
           //in case of a nested declarator, get the variable name from the inner declarator
           if (declarator.getNestedDeclarator() != null) {
@@ -214,7 +212,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           } else {
             setInitialized(element, varName);
           }
-        }
       }
     }
   }

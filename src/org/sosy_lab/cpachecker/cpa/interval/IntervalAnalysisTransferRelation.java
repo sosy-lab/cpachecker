@@ -536,8 +536,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     for(IASTDeclarator declarator : declarationEdge.getDeclarators())
     {
-      if(declarator != null)
-      {
         // ignore pointer variables
         if(declarator.getPointerOperators().length > 0)
           continue;
@@ -545,7 +543,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         // if this is a global variable, add it to the list of global variables
         if(declarationEdge.isGlobal())
           globalVars.add(declarator.getName().toString());
-      }
     }
 
     return newElement;

@@ -162,10 +162,9 @@ public final class ErrorPathShrinker {
          * "int a,b,c;"  -->  CIL  -->  "int a;  int b;  int c;". */
         for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
 
-          // if a variable (declarator) is not null and no pointer variable,
+          // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables
-          if ((declarator != null)
-              && (declarator.getPointerOperators().length == 0)) {
+          if (declarator.getPointerOperators().length == 0) {
             GLOBAL_VARS.add(declarator.getName().toString());
           }
         }

@@ -132,11 +132,11 @@ public class TypesTransferRelation implements TransferRelation {
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
-    IASTDeclarator[] declarators = declarationEdge.getDeclarators();
+    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
 
-    if ((declarators.length == 1)
-        && (declarators[0] instanceof IASTFunctionDeclarator)) {
-      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarators[0], specifier);
+    if ((declarators.size() == 1)
+        && (declarators.get(0) instanceof IASTFunctionDeclarator)) {
+      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarators.get(0), specifier);
 
     } else {
 
