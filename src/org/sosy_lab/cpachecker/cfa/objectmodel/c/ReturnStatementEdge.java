@@ -28,36 +28,43 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+public class ReturnStatementEdge extends AbstractCFAEdge {
+  
+  private final IASTExpression expression;
+  private final IASTStatement rawAST;
 
+  public ReturnStatementEdge(IASTStatement rawAST, int lineNumber, CFANode predecessor, CFAFunctionExitNode successor,
+                             IASTExpression expression) {
+      super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
+      this.expression = expression;
+      this.rawAST = rawAST;
+  }
 
-public class StatementEdge extends AbstractCFAEdge
-{
-    private final IASTExpression expression;
-    private final IASTStatement rawAST;
+  @Override
+  public boolean isJumpEdge() {
+    return true;
+  }
 
-    public StatementEdge(IASTStatement rawAST, int lineNumber, CFANode predecessor, CFANode successor,
-                              IASTExpression expression)
-    {
-        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
-        this.expression = expression;
-        this.rawAST = rawAST;
-    }
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.ReturnStatementEdge;
+  }
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.StatementEdge;
-    }
+  public IASTExpression getExpression() {
+    return expression;
+  }
 
-    public IASTExpression getExpression ()
-    {
-        return expression;
-    }
-
-    @Override
-    public IASTStatement getRawAST() {
-      return rawAST;
-    }
+  @Override
+  public IASTStatement getRawAST() {
+    return rawAST;
+  }
+  
+  @Override
+  public CFAFunctionExitNode getSuccessor() {
+    // the constructor enforces that the successor is always a CFAFunctionExitNode
+    return (CFAFunctionExitNode)super.getSuccessor();
+  }
 }

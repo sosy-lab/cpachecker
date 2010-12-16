@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.util.assumptions.DummyASTBinaryExpression;
 import org.sosy_lab.cpachecker.util.assumptions.DummyASTIdExpression;
@@ -274,6 +275,13 @@ implements GenericAssumptionBuilder
 
       if(stmtEdge.getExpression() != null){
         stmtEdge.getExpression().accept(visitor);
+      }
+      break;
+    case ReturnStatementEdge:
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge) pEdge;
+
+      if(returnEdge.getExpression() != null){
+        returnEdge.getExpression().accept(visitor);
       }
       break;
     }

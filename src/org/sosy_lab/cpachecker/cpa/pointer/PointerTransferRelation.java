@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -241,6 +242,23 @@ public class PointerTransferRelation implements TransferRelation {
       case StatementEdge:
         handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(),
                                                       (StatementEdge)cfaEdge);
+        break;
+        
+      case ReturnStatementEdge:
+        // this is the return-statement of a function
+
+        // Normally, the resultPointer is there, but if we know through a type
+        // information CPA that this function does not return a pointer, it's not.
+
+        IASTExpression expression = ((ReturnStatementEdge)cfaEdge).getExpression();
+        if (expression != null) {
+          // non-void function
+          Pointer resultPointer = successor.lookupPointer(RETURN_VALUE_VARIABLE);
+          if (resultPointer != null) {
+            handleAssignment(successor, RETURN_VALUE_VARIABLE, resultPointer,
+                false, expression, cfaEdge);
+          }
+        }
         break;
 
       case AssumeEdge:
@@ -783,22 +801,7 @@ public class PointerTransferRelation implements TransferRelation {
       IASTExpression expression, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
-    if (cfaEdge.isJumpEdge()) {
-      // this is the return-statement of a function
-
-      // Normally, the resultPointer is there, but if we know through a type
-      // information CPA that this function does not return a pointer, it's not.
-
-      if (expression != null) {
-        // non-void function
-        Pointer resultPointer = element.lookupPointer(RETURN_VALUE_VARIABLE);
-        if (resultPointer != null) {
-          handleAssignment(element, RETURN_VALUE_VARIABLE, resultPointer,
-              false, expression, cfaEdge);
-        }
-      }
-
-    } else if (expression instanceof IASTUnaryExpression) {
+    if (expression instanceof IASTUnaryExpression) {
       // this is an unary operation (a++)
 
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;

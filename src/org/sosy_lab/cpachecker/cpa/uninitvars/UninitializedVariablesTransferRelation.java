@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -111,6 +112,16 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     case StatementEdge:
       handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
+      break;
+      
+    case ReturnStatementEdge:
+      //this is the return-statement of a function
+      //set a local variable tracking the return statement's initialization status
+      if (isExpressionUninitialized(successor, ((ReturnStatementEdge)cfaEdge).getExpression(), cfaEdge)) {
+        setUninitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
+      } else {
+        setInitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
+      }
       break;
 
     case ReturnEdge:
@@ -268,16 +279,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                IASTExpression expression, CFAEdge cfaEdge)
                                throws UnrecognizedCCodeException {
 
-    if ((cfaEdge instanceof StatementEdge) && ((StatementEdge)cfaEdge).isJumpEdge()) {
-      //this is the return-statement of a function
-      //set a local variable tracking the return statement's initialization status
-      if (isExpressionUninitialized(element, expression, cfaEdge)) {
-        setUninitialized(element, "CPAChecker_UninitVars_FunctionReturn");
-      } else {
-        setInitialized(element, "CPAChecker_UninitVars_FunctionReturn");
-      }
-
-    } else if (expression instanceof IASTFunctionCallExpression) {
+    if (expression instanceof IASTFunctionCallExpression) {
       //in case of a return edge, remove the local context of the function from which we returned
       if (cfaEdge instanceof CallToReturnEdge) {
         element.returnFromFunction();

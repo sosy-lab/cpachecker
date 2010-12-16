@@ -107,6 +107,7 @@ public class TypesTransferRelation implements TransferRelation {
 
     case AssumeEdge:
     case StatementEdge:
+    case ReturnStatementEdge:
     case ReturnEdge:
       break;
     case BlankEdge:

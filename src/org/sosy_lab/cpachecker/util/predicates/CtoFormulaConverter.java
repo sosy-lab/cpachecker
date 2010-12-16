@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -297,12 +298,13 @@ public class CtoFormulaConverter {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge)edge;
-
-      if (statementEdge.isJumpEdge()) {
-        edgeFormula = makeReturn(statementEdge.getExpression(), function, ssa);
-      } else {
-        edgeFormula = makeStatement(statementEdge.getExpression(), function, ssa);
-      }
+      edgeFormula = makeStatement(statementEdge.getExpression(), function, ssa);
+      break;
+    }
+    
+    case ReturnStatementEdge: {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa);
       break;
     }
     

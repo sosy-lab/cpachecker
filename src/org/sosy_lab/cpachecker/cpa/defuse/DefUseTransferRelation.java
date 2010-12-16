@@ -35,6 +35,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -113,6 +114,13 @@ public class DefUseTransferRelation implements TransferRelation
     {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTExpression expression = statementEdge.getExpression ();
+      defUseElement = handleExpression (defUseElement, expression, cfaEdge);
+      break;
+    }
+    case ReturnStatementEdge:
+    {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge) cfaEdge;
+      IASTExpression expression = returnEdge.getExpression ();
       defUseElement = handleExpression (defUseElement, expression, cfaEdge);
       break;
     }

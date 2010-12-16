@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
@@ -369,13 +370,21 @@ public class AbstractPathToCTranslator {
       String ret = "";
 
       if (lExpression != null) {
-        if(lStatementEdge.isJumpEdge()){
-          ret = ret + "return ";
-        }
-        ret = ret + lStatementEdge.getExpression().getRawSignature() + ";";
+        ret = lStatementEdge.getExpression().getRawSignature() + ";";
       }
 
       return (ret);
+    }
+    case ReturnStatementEdge: {
+      ReturnStatementEdge lStatementEdge = (ReturnStatementEdge)pCFAEdge;
+
+      IASTExpression lExpression = lStatementEdge.getExpression();
+
+      if (lExpression != null) {
+        return "return " + lExpression.getRawSignature() + ";";
+      } else {
+        return "return;";
+      }
     }
     case DeclarationEdge: {
       DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
@@ -338,17 +339,14 @@ public final class ErrorPathShrinker {
 
         // if edge is a statement edge, e.g. a = b + c
         case StatementEdge:
+          // this is a regular statement
+          handleStatement();
+          break;
 
+        case ReturnStatementEdge:
           // this is the statement edge which leads the function to the
           // last node of its CFA (not same as a return edge)
-          if (cfaEdge.isJumpEdge()) {
-            handleJumpStatement();
-          }
-
-          // this is a regular statement
-          else {
-            handleStatement();
-          }
+          handleJumpStatement();
           break;
 
         // edge is a declaration edge, e.g. int a;
@@ -406,7 +404,7 @@ public final class ErrorPathShrinker {
 
       // in the expression "return r" the value "r" is possibly important.
       final IASTExpression returnExp =
-          ((StatementEdge) CURRENT_CFA_EDGE_PAIR.getSecond()).getExpression();
+          ((ReturnStatementEdge) CURRENT_CFA_EDGE_PAIR.getSecond()).getExpression();
       addAllVarsInExpToSet(returnExp, possibleVars,
           IMPORTANT_VARS_FOR_GLOBAL_VARS);
 

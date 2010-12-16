@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -96,21 +97,21 @@ public class OctTransferRelation implements TransferRelation{
 
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTExpression expression = statementEdge.getExpression ();
+      handleStatement (octElement, expression, cfaEdge);
+      break;
+    }
+    
+    case ReturnStatementEdge:
+    {
+      octElement = octElement.clone ();
 
+      ReturnStatementEdge statementEdge = (ReturnStatementEdge) cfaEdge;
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      if(statementEdge.isJumpEdge())
-      {
-        handleExitFromFunction(octElement, expression, statementEdge);
-      }
-
-      // this is a regular statement
-      else{
-        handleStatement (octElement, expression, cfaEdge);
-      }
+      handleExitFromFunction(octElement, statementEdge.getExpression(), statementEdge);
       break;
     }
 
@@ -1890,7 +1891,7 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private void handleExitFromFunction(OctElement octElement,
-                                      IASTExpression expression, StatementEdge statementEdge) throws OctagonTransferException {
+                                      IASTExpression expression, ReturnStatementEdge statementEdge) throws OctagonTransferException {
 
     String functionName = statementEdge.getPredecessor().getFunctionName();
 

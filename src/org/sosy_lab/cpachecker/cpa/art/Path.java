@@ -109,6 +109,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
       {
         case DeclarationEdge:
         case StatementEdge:
+        case ReturnStatementEdge:
           sb.append(currentEdge.getRawStatement());
           sb.append("\n");
 

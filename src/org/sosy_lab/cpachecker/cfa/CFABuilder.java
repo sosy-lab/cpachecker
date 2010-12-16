@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
@@ -349,7 +350,7 @@ public class CFABuilder extends ASTVisitor
 		CFANode prevNode = locStack.pop ();
 		CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
-		StatementEdge edge = new StatementEdge(exprStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression(), false);
+		StatementEdge edge = new StatementEdge(exprStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression());
 		edge.addToCFA(logger);
 
 		locStack.push (nextNode);
@@ -572,9 +573,9 @@ public class CFABuilder extends ASTVisitor
 	private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.peek ();
-		CFANode nextNode = currentCFA.getExitNode();
+		CFAFunctionExitNode nextNode = currentCFA.getExitNode();
 
-		StatementEdge edge = new StatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue(), true);
+		ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue());
 		edge.addToCFA(logger);
 	}
 

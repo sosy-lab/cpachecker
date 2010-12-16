@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -92,14 +93,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
         StatementEdge statementEdge = (StatementEdge)cfaEdge;
+        successor = handleStatement(intervalElement, statementEdge.getExpression(), cfaEdge);
+        break;
 
         // this is the statement edge which leads the function to the last node of its CFA (not same as a return edge)
-        if (statementEdge.isJumpEdge())
-          successor = handleExitFromFunction(intervalElement, statementEdge.getExpression(), statementEdge);
-
-        // this is a regular statement
-        else
-          successor = handleStatement(intervalElement, statementEdge.getExpression(), cfaEdge);
+      case ReturnStatementEdge:
+        ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+        successor = handleExitFromFunction(intervalElement, returnEdge.getExpression(), returnEdge);
         break;
 
       // edge is a declaration edge, e.g. int a;
@@ -265,14 +265,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @author loewe
    * @param element the analysis element
    * @param expression the expression
-   * @param StatementEdge the CFA edge corresponding to this statement
+   * @param ReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisElement handleExitFromFunction(IntervalAnalysisElement element, IASTExpression expression, StatementEdge statementEdge)
+  private IntervalAnalysisElement handleExitFromFunction(IntervalAnalysisElement element, IASTExpression expression, ReturnStatementEdge returnEdge)
     throws UnrecognizedCCodeException
   {
     // assign the value of the function return to a new variable
-    return handleAssignmentToVariable(element, RETURN_VARIABLE_BASE_NAME, expression, statementEdge);
+    return handleAssignmentToVariable(element, RETURN_VARIABLE_BASE_NAME, expression, returnEdge);
   }
 
   /**

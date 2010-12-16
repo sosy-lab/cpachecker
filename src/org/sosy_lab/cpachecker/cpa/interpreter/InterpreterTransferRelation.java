@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -92,28 +93,27 @@ public class InterpreterTransferRelation implements TransferRelation {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-
-      if (statementEdge.isJumpEdge()) {
-        // this statement is a function return, e.g. return (a);
-        // note that this is different from return edge
-        // this is a statement edge which leads the function to the
-        // last node of its CFA, where return edge is from that last node
-        // to the return site of the caller function
-
-        successor = handleExitFromFunction(explicitElement, statementEdge.getExpression(), statementEdge);
+      successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge);
         
-        // TODO remove
-        if (successor == null) {
-          throw new RuntimeException();
-        }
-      } else {
-        // this is a regular statement
-        successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge);
-        
-        // TODO remove
-        if (successor == null) {
-          throw new RuntimeException();
-        }
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
+      }
+      break;
+    }
+    
+    case ReturnStatementEdge: {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+      // this statement is a function return, e.g. return (a);
+      // note that this is different from return edge
+      // this is a statement edge which leads the function to the
+      // last node of its CFA, where return edge is from that last node
+      // to the return site of the caller function
+      successor = handleExitFromFunction(explicitElement, returnEdge.getExpression(), returnEdge);
+      
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
       }
       break;
     }
@@ -388,10 +388,10 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleExitFromFunction(InterpreterElement element,
       IASTExpression expression,
-      StatementEdge statementEdge)
+      ReturnStatementEdge returnEdge)
   throws UnrecognizedCCodeException {
 
-    InterpreterElement lSuccessor = handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, statementEdge); 
+    InterpreterElement lSuccessor = handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge); 
     
     if (lSuccessor == null) {
       throw new RuntimeException();
