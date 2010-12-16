@@ -78,7 +78,10 @@ public class CFACreator {
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
   
+  public final Timer conversionTime = new Timer();
+  public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
+  public final Timer exportTime = new Timer();
   
   public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -98,8 +101,10 @@ public class CFACreator {
   public void createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
   
     // Build CFA
+    conversionTime.start();
     final CFABuilder builder = new CFABuilder(logger);
     ast.accept(builder);
+    conversionTime.stop();
   
     final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
@@ -107,6 +112,8 @@ public class CFACreator {
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
     }
+    
+    processingTime.start();
     
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
@@ -129,6 +136,8 @@ public class CFACreator {
       // add global variables at the beginning of main
       CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
     }
+    
+    processingTime.stop();
 
     // check the CFA of each function
     for (CFAFunctionDefinitionNode cfa : cfas.values()) {
@@ -155,7 +164,9 @@ public class CFACreator {
   
     // check the super CFA starting at the main function
     assert CFACheck.check(mainFunction);
-  
+ 
+    exportTime.start();
+    
     // write CFA to file
     if (exportCfa && exportCfaFile != null) {
       try {
@@ -181,6 +192,8 @@ public class CFACreator {
         // continue with analysis
       }
     }  
+    
+    exportTime.stop();
     
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
   
