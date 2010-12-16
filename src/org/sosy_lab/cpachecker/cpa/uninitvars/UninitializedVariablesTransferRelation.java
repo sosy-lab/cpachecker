@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -198,7 +197,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //otherwise there is only one declarator
             varName = declarator.getName().toString();
           }
-          if (declaration instanceof GlobalDeclarationEdge) {
+          if (declaration.isGlobal()) {
             globalVars.add(varName);
           }
 
@@ -528,6 +527,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     boolean typesCPAPresent = false;
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
+      DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
 
       for (AbstractElement other : otherElements) {
 
@@ -544,11 +544,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //and set it uninitialized (since it is only declared at this point); do this recursively for all
             //fields that are structs themselves
             if (t.getTypeClass() == TypeClass.STRUCT &&
-                !(((DeclarationEdge)cfaEdge).getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
+                !(declEdge.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
 
               handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
                                       (Type.CompositeType)t, lastAdded, lastAdded, 
-                                      cfaEdge instanceof GlobalDeclarationEdge);
+                                      declEdge.isGlobal());
             }
           }
         }

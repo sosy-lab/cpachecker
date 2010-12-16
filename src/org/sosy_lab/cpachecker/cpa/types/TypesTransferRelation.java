@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -151,7 +150,7 @@ public class TypesTransferRelation implements TransferRelation {
           element.addTypedef(thisName, thisType);
         } else {
           String functionName = null;
-          if (!(declarationEdge instanceof GlobalDeclarationEdge)) {
+          if (!(declarationEdge.isGlobal())) {
             functionName = declarationEdge.getSuccessor().getFunctionName();
           }
 

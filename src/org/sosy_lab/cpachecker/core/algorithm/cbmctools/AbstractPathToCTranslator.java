@@ -380,7 +380,7 @@ public class AbstractPathToCTranslator {
     case DeclarationEdge: {
       DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;
 
-      if (lDeclarationEdge instanceof org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge) {
+      if (lDeclarationEdge.isGlobal()) {
         mGlobalDefinitionsList.add(lDeclarationEdge.getRawStatement());
       }
       else {

@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -1104,7 +1103,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           continue;
         }
         // if this is a global variable, add to the list of global variables
-        if(declarationEdge instanceof GlobalDeclarationEdge)
+        if(declarationEdge.isGlobal())
         {
           globalVars.add(varName);
           
