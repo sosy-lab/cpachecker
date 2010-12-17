@@ -38,6 +38,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -169,6 +170,7 @@ public class CFASecondPassBuilder {
     String functionName = functionCall.getFunctionNameExpression().getRawSignature();
     int lineNumber = edge.getLineNumber();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
+    CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
     assert fDefNode != null;
     assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
     
@@ -183,19 +185,22 @@ public class CFASecondPassBuilder {
     } else if (parameterExpression != null) {
       parameters = new IASTExpression[] {parameterExpression};
     }
-    
-    // create new edges
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
-    callEdge.addToCFA(null);
-
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), lineNumber, predecessorNode, successorNode, expr);
-    calltoReturnEdge.addToCFA(null);
-
-    FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fDefNode.getExitNode(), successorNode);
-    returnEdge.addToCFA(null);
 
     // delete old edge
     predecessorNode.removeLeavingEdge(edge);
     successorNode.removeEnteringEdge(edge);
+    
+    // create new edges
+    FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
+    predecessorNode.addLeavingEdge(callEdge);
+    fDefNode.addEnteringEdge(callEdge);
+
+    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), lineNumber, predecessorNode, successorNode, expr);
+    predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
+    successorNode.addEnteringSummaryEdge(calltoReturnEdge);
+
+    FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode);
+    fExitNode.addLeavingEdge(returnEdge);
+    successorNode.addEnteringEdge(returnEdge);
   }
 }

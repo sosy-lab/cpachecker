@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-import java.util.logging.Level;
-
 import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.sosy_lab.common.LogManager;
 
 import com.google.common.base.Preconditions;
 
@@ -48,48 +45,6 @@ public abstract class AbstractCFAEdge implements CFAEdge
       this.successor = successor;
       this.rawStatement = rawStatement;
       this.lineNumber = lineNumber;
-    }
-
-    /**
-     * This method registers adds this edge to the leaving and entering edges
-     * of its predecessor and successor respectively.
-     * @param logger TODO
-     */
-    public void addToCFA(LogManager logger) {
-      CFANode predecessor = getPredecessor();
-      CFANode successor = getSuccessor();
-
-      if (predecessor.hasJumpEdgeLeaving()) {
-        assert predecessor.getNumLeavingEdges() == 1;
-
-        // the code following a jump statement is only reachable if there is a label
-        if (!(successor instanceof CFALabelNode) || isJumpEdge()) {
-          logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + this.getRawStatement());
-        }
-
-        // don't add this edge to the CFA
-
-      } else {
-        if (this.isJumpEdge()) {
-
-          for (int i = predecessor.getNumLeavingEdges()-1; i >= 0; i--) {
-            CFAEdge otherEdge = predecessor.getLeavingEdge(i);
-            CFANode otherEdgeSuccessor = otherEdge.getSuccessor();
-
-            if (!(otherEdgeSuccessor instanceof CFALabelNode
-                  || otherEdge.getRawStatement().isEmpty())) {
-              // don't log if the dead code begins with a blank edge, this is most often a false positive
-              logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + otherEdge.getRawStatement());
-            }
-
-            predecessor.removeLeavingEdge(otherEdge);
-            otherEdgeSuccessor.removeEnteringEdge(otherEdge);
-          }
-        }
-
-        predecessor.addLeavingEdge(this);
-        successor.addEnteringEdge(this);
-      }
     }
 
     @Override
