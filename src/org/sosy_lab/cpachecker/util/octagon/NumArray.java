@@ -23,18 +23,34 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-public class CTester {
+public class NumArray {
 
-	public native void test ();
+  private final long array;
 
-	static
-	{
-		System.loadLibrary("JOct");
-	}
+  public NumArray(long l){
+    array = l;
+  }
 
-	public static void main(String[] args) {
-		CTester c = new CTester();
-		c.test();
-	}
+  public long getArray() {
+    return array;
+  }
+  
+  @Override
+  public String toString() {
+    // TODO
+    return super.toString();
+  }
 
+  @Override
+  public boolean equals(Object pObj) {
+    if(!(pObj instanceof NumArray))
+      return false;
+    NumArray otherArr = (NumArray) pObj;
+    return this.array == otherArr.array;
+  }
+
+  @Override
+  public int hashCode() {
+    return (int)array;
+  }
 }

@@ -29,6 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
 public class OctagonCPA implements ConfigurableProgramAnalysis{
@@ -70,9 +72,10 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
       octagonMergeOp = MergeSepOperator.getInstance();
     }
     else if(mergeType.equals("join")){
-      octagonMergeOp = new OctMergeJoin ();
+      octagonMergeOp = new MergeJoinOperator (octagonDomain);
     } else {
-      throw new RuntimeException();
+      // default is sep
+      octagonMergeOp = MergeSepOperator.getInstance();
     }
 
     StopOperator octagonStopOp = new StopSepOperator(octagonDomain);
@@ -81,6 +84,8 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     this.mergeOperator = octagonMergeOp;
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    
+    assert(OctagonManager.init());
   }
 
   @Override
@@ -88,8 +93,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   {
     return abstractDomain;
   }
-
-
 
   @Override
   public TransferRelation getTransferRelation ()
@@ -116,7 +119,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return new OctElement ();
+    return new OctElement();
   }
 
   @Override

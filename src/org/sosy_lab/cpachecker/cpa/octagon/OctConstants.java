@@ -27,6 +27,5 @@ public class OctConstants {
 
 	public static final int wideningThreshold = 2;
 	public static boolean useWidening = true;
-	public static boolean useLazyIncAlgorithm = false;
 
 }
