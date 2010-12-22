@@ -30,23 +30,46 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 public class IntervalAnalysisElement implements AbstractElement
 {
+  /**
+   * the intervals of the element
+   */
   private Map<String, Interval> intervals;
 
+  /**
+   * the reference counts of the element
+   */
   private Map<String, Integer> referenceCounts;
 
-  // element from the previous context, used solely for return edges
+  /**
+   * the element from the previous context, used solely for return edges
+   */
   private final IntervalAnalysisElement previousElement;
 
+  /**
+   *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
+   */
   public IntervalAnalysisElement()
   {
     this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), null);
   }
 
+  /**
+   * This method acts as constructor, which initializes the intervals and reference counts to empty maps and the previous element to the respective object.
+   *
+   * @param previousElement from the previous context
+   */
   public IntervalAnalysisElement(IntervalAnalysisElement previousElement)
   {
     this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), previousElement);
   }
 
+  /**
+   * This method acts as constructor, which initializes the intervals, the reference counts and the previous element to the respective objects.
+   *
+   * @param intervals the intervals
+   * @param referencesMap the reference counts
+   * @param previousElement from the previous context
+   */
   public IntervalAnalysisElement(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisElement previousElement)
   {
     this.intervals        = intervals;
@@ -56,17 +79,34 @@ public class IntervalAnalysisElement implements AbstractElement
     this.previousElement  = previousElement;
   }
 
+  /**
+   * This method returns the intervals of a given variable.
+   *
+   * @param variableName the name of the variable
+   * @return the intervals of the variable
+   */
   // see ExplicitElement::getValueFor
   public Interval getInterval(String variableName)
   {
     return intervals.get(variableName);
   }
 
+  /**
+   * This method returns the previous element
+   *
+   * @return the previous element
+   */
   public IntervalAnalysisElement getPreviousElement()
   {
     return previousElement;
   }
 
+  /**
+   * This method determines if this element contains an interval for a variable.
+   *
+   * @param variableName the name of the variable
+   * @return true, if this element contains an interval for the given variable
+   */
   public boolean contains(String variableName)
   {
     return intervals.containsKey(variableName);
@@ -120,6 +160,12 @@ public class IntervalAnalysisElement implements AbstractElement
     return this;
   }
 
+  /**
+   * This element joins this element with a reached element.
+   *
+   * @param reachedElement the reached element to join this element with
+   * @return a new element representing the join of this element and the reached element
+   */
   public IntervalAnalysisElement join(IntervalAnalysisElement reachedElement)
   {
     Map<String, Interval> newIntervals = new HashMap<String, Interval>();
@@ -173,6 +219,9 @@ public class IntervalAnalysisElement implements AbstractElement
     return true;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
   @Override
   public IntervalAnalysisElement clone()
   {
@@ -189,6 +238,9 @@ public class IntervalAnalysisElement implements AbstractElement
     return newElement;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
   @Override
   public boolean equals(Object other)
   {
@@ -215,19 +267,25 @@ public class IntervalAnalysisElement implements AbstractElement
     return true;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
   @Override
   public int hashCode()
   {
     return intervals.hashCode();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
   @Override
   public String toString()
   {
-    String result = "[";
+    String result = "[\n";
 
     for (String key: intervals.keySet())
-      result += " <" + key + " = " + intervals.get(key) + " :: " + referenceCounts.get(key) + "> ";
+      result += " <" + key + " = " + intervals.get(key) + " :: " + referenceCounts.get(key) + ">\n";
 
     return result + "] size->  " + intervals.size();
   }

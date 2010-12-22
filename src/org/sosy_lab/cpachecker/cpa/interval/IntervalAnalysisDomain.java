@@ -28,12 +28,18 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 public class IntervalAnalysisDomain implements AbstractDomain
 {
+    /* (non-Javadoc)
+     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.AbstractElement)
+     */
     @Override
     public boolean isLessOrEqual(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {
       return ((IntervalAnalysisElement)currentAbstractElement).isLessOrEqual((IntervalAnalysisElement)reachedAbstractElement);
     }
 
+    /* (non-Javadoc)
+     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.AbstractElement)
+     */
     @Override
     public AbstractElement join(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
     {

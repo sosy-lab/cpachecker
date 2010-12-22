@@ -5,8 +5,14 @@ import java.util.Collections;
 
 public class Interval
 {
+  /**
+   * the lower bound of the interval
+   */
   protected Long low;
 
+  /**
+   * the upper bound of the interval
+   */
   protected Long high;
 
   /**
@@ -19,10 +25,20 @@ public class Interval
    */
   public static final Interval EMPTY = createEmptyInterval();
 
+  /**
+   * This method acts as constructor for an empty interval.
+   *
+   */
   private Interval()
   {
   }
 
+  /**
+   * This method acts as constructor for an integer-based interval.
+   *
+   * @param low the lower bound
+   * @param high the upper bound
+   */
   public Interval(Integer low, Integer high)
   {
     this.low  = low.longValue();
@@ -30,6 +46,12 @@ public class Interval
     this.high = high.longValue();
   }
 
+  /**
+   * This method acts as constructor for a long-based interval.
+   *
+   * @param low the lower bound
+   * @param high the upper bound
+   */
   public Interval(Long low, Long high)
   {
     this.low  = low;
@@ -37,6 +59,11 @@ public class Interval
     this.high = high;
   }
 
+  /**
+   * This method acts as constructor for a single-value interval.
+   *
+   * @param value for the lower and upper bound
+   */
   public Interval(Long value)
   {
     this.low  = value;
@@ -44,26 +71,49 @@ public class Interval
     this.high = value;
   }
 
+  /**
+   * This method returns the lower bound of the interval.
+   *
+   * @return the lower bound
+   */
   public Long getLow()
   {
     return low;
   }
 
+  /**
+   * This method returns the upper bound of the interval.
+   *
+   * @return the upper bound
+   */
   public Long getHigh()
   {
     return high;
   }
 
+  /**
+   * This method set the lower bound of the interval.
+   *
+   * @param the lower bound
+   */
   public void setLow(Long low)
   {
     this.low = low;
   }
 
+  /**
+   * This method sets the upper bound of the interval.
+   *
+   * @param the upper bound
+   */
   public void setHigh(Long high)
   {
     this.high = high;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
   @Override
   public boolean equals(Object other)
   {
@@ -83,9 +133,15 @@ public class Interval
       return false;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
   @Override
   public int hashCode()
   {
+    if(isEmpty())
+      return 0;
+
     int result = 17;
 
     result = 31 * result + low.hashCode();
@@ -94,6 +150,9 @@ public class Interval
     return result;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
   @Override
   public Interval clone()
   {
@@ -139,6 +198,48 @@ public class Interval
   }
 
   /**
+   * This method determines of this interval is less than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the upper bound of this interval is strictly lower than the lower bound of the other interval, else false
+   */
+  public boolean isLessThan(Interval other)
+  {
+    return !isEmpty() && !other.isEmpty() && high < other.low;
+  }
+
+  /**
+   * This method determines of this interval is greater than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the lower bound of this interval is strictly greater than the upper bound of the other interval, else false
+   */
+  public boolean isGreaterThan(Interval other)
+  {
+    return !isEmpty() && !other.isEmpty() && low > other.high;
+  }
+
+  /**
+   * This method determines if this interval represents a false value.
+   *
+   * @return true if this interval represents only values in the interval [0, 0].
+   */
+  public boolean isFalse()
+  {
+    return equals(FALSE);
+  }
+
+  /**
+   * This method determines if this interval represents a true value.
+   *
+   * @return true if this interval represents values that are strictly less than 0 or greater than 0.
+   */
+  public boolean isTrue()
+  {
+    return high < 0 || low > 0;
+  }
+
+  /**
    * This method creates a new interval instance with the lower and upper bounds being the minimum of both the lower and upper bounds, respectively.
    *
    * @param other the other interval
@@ -164,11 +265,17 @@ public class Interval
     return interval;
   }
 
+  /**
+   * This method returns a new interval with a limited, i.e. higher, lower bound.
+   *
+   * @param other the interval to limit this interval
+   * @return the new interval with the upper bound of this interval and the lower bound set to the maximum of this interval's and the other interval's lower bound or an empty interval if this interval is less than the other interval.
+   */
   public Interval limitLowerBoundBy(Interval other)
   {
     Interval interval = null;
 
-    if(high < other.low)
+    if(isEmpty() || other.isEmpty() || high < other.low)
       interval = createEmptyInterval();
 
     else
@@ -177,11 +284,17 @@ public class Interval
     return interval;
   }
 
+  /**
+   * This method returns a new interval with a limited, i.e. lower, upper bound.
+   *
+   * @param other the interval to limit this interval
+   * @return the new interval with the lower bound of this interval and the upper bound set to the minimum of this interval's and the other interval's upper bound or an empty interval if this interval is greater than the other interval.
+   */
   public Interval limitUpperBoundBy(Interval other)
   {
     Interval interval = null;
 
-    if(low > other.high)
+    if(isEmpty() || other.isEmpty() || low > other.high)
       interval = createEmptyInterval();
 
     else
@@ -217,103 +330,152 @@ public class Interval
                && low <= other.low && other.high <= high);
   }
 
+  /**
+   * This method adds an interval from this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param interval the interval to add
+   * @return a new interval with the respective bounds
+   */
   public Interval plus(Interval interval)
   {
+    if(isEmpty() || interval.isEmpty())
+      return createEmptyInterval();
+
     Interval result = new Interval(low + interval.low, high + interval.high);
 
+    // handle underflow and overflow
     if((Long.signum(low) + Long.signum(interval.low) == -2) && Long.signum(result.low) == +1)
       result.low = Long.MIN_VALUE;
+
     else if((Long.signum(low) + Long.signum(interval.low) == 2) && Long.signum(result.low) == -1)
       result.low = Long.MAX_VALUE;
 
     if((Long.signum(high) + Long.signum(interval.high) == -2) && Long.signum(result.high) == +1)
       result.high = Long.MIN_VALUE;
+
     else if((Long.signum(high) + Long.signum(interval.high) == 2) && Long.signum(result.high) == -1)
       result.high = Long.MAX_VALUE;
 
     return result;
   }
 
+  /**
+   * This method adds a constant offset to this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param offset the constant offset to add
+   * @return a new interval with the respective bounds
+   */
   public Interval plus(int offset)
   {
     return plus(new Interval(offset, offset));
   }
 
+  /**
+   * This method subtracts an interval from this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param interval the interval to subtract
+   * @return a new interval with the respective bounds
+   */
   public Interval minus(Interval interval)
   {
     return plus(new Interval(interval.low * (-1), interval.high * (-1)));
-
-/* probably faster, but somewhat redundant
-    Interval result = new Interval(low - interval.high, high - interval.low);
-
-    if((Long.signum(low) == -1 && Long.signum(interval.high) == +1) && Long.signum(result.low) == 1)
-      result.low = Long.MIN_VALUE;
-    else if((Long.signum(low) == +1 && Long.signum(interval.high) == -1) && Long.signum(result.low) == -1)
-      result.low = Long.MAX_VALUE;
-
-    if((Long.signum(high) == -1 && Long.signum(interval.low) == +1) && Long.signum(result.high) == 1)
-      result.high = Long.MIN_VALUE;
-    else if((Long.signum(high) == +1 && Long.signum(interval.low) == -1) && Long.signum(result.high) == -1)
-      result.high = Long.MAX_VALUE;
-
-    return result;
-*/
   }
 
+  /**
+   * This method subtracts a constant offset to this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param offset the constant offset to subtract
+   * @return a new interval with the respective bounds
+   */
   public Interval minus(int offset)
   {
     return plus(-offset);
   }
 
-  public Interval times(Interval interval)
+  /**
+   * This method multiplies this interval with another interval.
+   *
+   * @param other interval to multiply this interval with
+   * @return new interval that represents the multiplication of the two intervals
+   */
+  public Interval times(Interval other)
   {
     Long[] values = {
-                      low.longValue() * interval.low.longValue(),
-                      low.longValue() * interval.high.longValue(),
-                      high.longValue() * interval.low.longValue(),
-                      high.longValue() * interval.high.longValue()
+                      low.longValue() * other.low.longValue(),
+                      low.longValue() * other.high.longValue(),
+                      high.longValue() * other.low.longValue(),
+                      high.longValue() * other.high.longValue()
                     };
 
     return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
   }
 
+  /**
+   * This method negates this interval.
+   *
+   * @return new negated interval
+   */
   public Interval negate()
   {
-    Long temp  = low;
-
-    low     = high.longValue() * (-1);
-
-    high    = temp.longValue() * (-1);
-
-    return this;
+    return new Interval(high.longValue() * (-1), low.longValue() * (-1));
   }
 
+  /**
+   * This method determines whether the interval is empty or not.
+   *
+   * @return true, if the interval is empty, i.e. the lower and upper bounds are null
+   */
   public boolean isEmpty()
   {
     return low == null && high == null;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
   @Override
   public String toString()
   {
     return "[" + low + "; " + high + "]";
   }
 
+  /**
+   * This method is a factory method for an empty interval
+   *
+   * @return an empty interval
+   */
   private static Interval createEmptyInterval()
   {
     return new Interval();
   }
 
+  /**
+   * This method is a factory method for an unbounded interval
+   *
+   * @return an unbounded interval, i.e. the lower and upper bound are set to Long.MIN_VALUE and Long.MAX_VALUE respectively
+   */
   public static Interval createUnboundInterval()
   {
     return new Interval(Long.MIN_VALUE, Long.MAX_VALUE);
   }
 
+  /**
+   * This method is a factory method for a lower bounded interval.
+   *
+   * @param lowerBound the lower bound to set
+   * @return a lower bounded interval, i.e. the lower bound is set to the given lower bound, the upper bound is set to Long.MAX_VALUE
+   */
   public static Interval createLowerBoundedInterval(Long lowerBound)
   {
     return new Interval(lowerBound, Long.MAX_VALUE);
   }
 
+  /**
+   * This method is a factory method for an upper bounded interval.
+   *
+   * @param upperBound the upper bound to set
+   * @return an upper bounded interval, i.e. the lower bound is set to Long.MIN_VALUE, the upper bound is set to the given upper bound
+   */
   public static Interval createUpperBoundedInterval(Long upperBound)
   {
     return new Interval(Long.MIN_VALUE, upperBound);
