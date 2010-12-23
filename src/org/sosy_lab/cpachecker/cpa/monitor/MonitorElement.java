@@ -36,7 +36,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   private final int branchesOnPath;
   private final int pathLength;
 
-  private final boolean shouldStop = false;
+  private boolean shouldStop = false;
   
   protected MonitorElement(AbstractElement pWrappedElement,
       int pathLength, int branchesOnPath, long totalTimeOnPath) {
@@ -74,6 +74,10 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     return shouldStop;
   }
 
+  public void setAsStopElement(){
+    shouldStop = true;
+  }
+  
   public int getNoOfNodesOnPath() {
     return pathLength;
   }
