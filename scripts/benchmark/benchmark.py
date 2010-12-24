@@ -6,12 +6,9 @@ from xml.etree.ElementTree import ElementTree
 
 import glob
 import itertools
-import json
 import logging
 import os
 import resource
-import shlex
-import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -22,12 +19,6 @@ class Benchmark:
 class Test:
     pass
 
-class Kill(Exception):
-    pass
-
-def kill_handler(signum, frame):
-    raise Kill()
-
 def run(args, rlimits):
     def setrlimits():
         for rsrc, limits in rlimits.items():
@@ -36,26 +27,25 @@ def run(args, rlimits):
     p = subprocess.Popen(args,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          preexec_fn=setrlimits)
-    try:
-        (stdoutdata, stderrdata) = p.communicate()
-    except Kill:
-        logging.debug("sigkill!")
+    (stdoutdata, stderrdata) = p.communicate()
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
     timedelta = (ru_after.ru_utime + ru_after.ru_stime)\
         - (ru_before.ru_utime + ru_before.ru_stime)
-    return (stdoutdata, stderrdata, timedelta)
+    returncode = p.returncode
+    logging.debug("My subprocess returned returncode {0}.".format(returncode))
+    return (returncode, stdoutdata, stderrdata, timedelta)
 
 def run_cbmc(options, sourcefile, rlimits):
     assert "--xml-ui" in options
     args = ["cbmc"] + options + [sourcefile]
-    (stdoutdata, stderrdata, timedelta) = run(args, rlimits)
+    (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
     tree = ET.fromstring(stdoutdata)
     status = tree.findtext('cprover-status')
     return (status, timedelta)
 
 def run_cpachecker(options, sourcefile, rlimits):
     args = ["cpachecker"] + options + [sourcefile]
-    (stdoutdata, stderrdata, timedelta) = run_subprocess(args, rlimits)
+    (returncode, stdoutdata, stderrdata, timedelta) = run_subprocess(args, rlimits)
     status = None
     for line in stdoutdata:
         if (line.find('java.lang.OutOfMemoryError') != -1) or\
@@ -80,12 +70,23 @@ def run_cpachecker(options, sourcefile, rlimits):
 
 def run_satabs(options, sourcefile, rlimits):
     args = ["satabs"] + options + [sourcefile]
-    (stdoutdata, stderrdata, timedelta) = run_subprocess(args, rlimits)
+    (returncode, stdoutdata, stderrdata, timedelta) = run_subprocess(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in stdoutdata:
         status = "SUCCESS"
     else:
         status = "FAILURE"
     return (status, timedelta)
+
+def ordinal_numeral(number):
+    last_cipher = number % 10
+    if last_cipher == 1:
+        return "{0}st".format(number)
+    elif last_cipher == 2:
+        return "{0}nd".format(number)
+    elif last_cipher == 3:
+        return "{0}rd".format(number)
+    else:
+        return "{0}th".format(number)
 
 def load_benchmark(path):
     try:
@@ -95,23 +96,35 @@ def load_benchmark(path):
     except ImportError:
         logging.debug("I cannot import xmlval so I'm skipping the validation.")
         logging.debug("If you want xml validation please install pyxml.")
+    benchmark_path = path
+    logging.debug("I'm loading the benchmark {0}.".format(benchmark_path))
     tree = ElementTree()
     root = tree.parse(path)
     benchmark = Benchmark()
     benchmark.tool = root.get("tool")
+    logging.debug("The tool to be benchmarked is {0}.".format(repr(benchmark.tool)))
     benchmark.tests = []
     for test in root.findall("test"):
         t = Test()
         t.sourcefiles = []
-        for sourcefiles in test.findall("sourcefiles"):
-            path = os.path.expandvars(os.path.expanduser(sourcefiles.text))
-            t.sourcefiles += glob.glob(path)
+        sourcefiles_tags = test.findall("sourcefiles")
+        for sourcefiles_tag in sourcefiles_tags:
+            sourcefiles_path = os.path.expandvars(os.path.expanduser(sourcefiles_tag.text))
+            if sourcefiles_path != sourcefiles_tag.text:
+                logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}.".format(
+                        repr(sourcefiles_tag.text), repr(sourcefiles_path))) 
+            pathnames = glob.glob(sourcefiles_path)
+            if len(pathnames) == 0:
+                logging.debug("I found no pathnames matching {0}.".format(repr(sourcefiles_path)))
+            else:
+                t.sourcefiles += pathnames
         t.options = []
         for option in test.find("options").findall("option"):
             t.options.append(option.get("name"))
             if option.text is not None:
                 t.options.append(option.text)
         benchmark.tests.append(t)
+    testnum = len(benchmark.tests)
     return benchmark
 
 def main(argv=None):
@@ -131,12 +144,22 @@ def main(argv=None):
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
     rlimits = {}
-    for i in xrange(1, len(args)):
-        benchmark = load_benchmark(args[i])
+    for arg in args[1:]:
+        benchmark = load_benchmark(arg)
         run_func = eval("run_" + benchmark.tool)
-    #signal.signal(signal.SIGKILL, kill_handler)
-        logging.debug("I'm benchmarking '{0}'.".format(args[i]))
+        if len(benchmark.tests) == 1:
+            logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(arg)))
+        else:
+            logging.debug("I'm benchmarking {0} consisting of {1} tests.".format(
+                    repr(arg), len(benchmark.tests)))
         for test in benchmark.tests:
+            if len(test.sourcefiles) == 1:
+                logging.debug("The {0} test consists of 1 sourcefile.".format(
+                        ordinal_numeral(benchmark.tests.index(test) + 1)))
+            else:
+                logging.debug("The {0} test consists of {1} sourcefiles.".format(
+                        ordinal_numeral(benchmark.tests.index(test) + 1),
+                        len(test.sourcefiles)))
             for sourcefile in test.sourcefiles:
                 logging.debug("I'm running 'cbmc {0} {1}'.".format(
                         " ".join(test.options), sourcefile))
@@ -144,7 +167,8 @@ def main(argv=None):
                                                sourcefile,
                                                rlimits)
                 print ",".join([sourcefile, status, str(timedelta)])
-    
+        logging.debug("I think my job is done. Have a nice day!")
+
 if __name__ == "__main__":
     try:
         sys.exit(main())
