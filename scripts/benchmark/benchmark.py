@@ -29,7 +29,7 @@ def run(args, rlimits):
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              preexec_fn=setrlimits)
     except OSError:
-        logging.critical("I caught an OSError. Assure that the directory containing the tool to be benchmarked is included in the PATH environment variable.")
+        logging.critical("I caught an OSError. Assure that the directory containing the tool to be benchmarked is included in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
     (stdoutdata, stderrdata) = p.communicate()
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -49,7 +49,7 @@ def run_cbmc(options, sourcefile, rlimits):
 
 def run_cpachecker(options, sourcefile, rlimits):
     args = ["cpachecker"] + options + [sourcefile]
-    (returncode, stdoutdata, stderrdata, timedelta) = run_subprocess(args, rlimits)
+    (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
     status = None
     for line in stdoutdata:
         if (line.find('java.lang.OutOfMemoryError') != -1) or\
@@ -74,7 +74,7 @@ def run_cpachecker(options, sourcefile, rlimits):
 
 def run_satabs(options, sourcefile, rlimits):
     args = ["satabs"] + options + [sourcefile]
-    (returncode, stdoutdata, stderrdata, timedelta) = run_subprocess(args, rlimits)
+    (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in stdoutdata:
         status = "SUCCESS"
     else:
@@ -168,8 +168,8 @@ def main(argv=None):
                         ordinal_numeral(benchmark.tests.index(test) + 1),
                         len(test.sourcefiles)))
             for sourcefile in test.sourcefiles:
-                logging.debug("I'm running 'cbmc {0} {1}'.".format(
-                        " ".join(test.options), sourcefile))
+                logging.debug("I'm running '{0} {1} {2}'.".format(
+                        benchmark.tool, " ".join(test.options), sourcefile))
                 (status, timedelta) = run_func(test.options,
                                                sourcefile,
                                                rlimits)
