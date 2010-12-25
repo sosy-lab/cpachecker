@@ -24,9 +24,13 @@ def run(args, rlimits):
         for rsrc, limits in rlimits.items():
             resource.setrlimit(rsrc, limits)
     ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
-    p = subprocess.Popen(args,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         preexec_fn=setrlimits)
+    try:
+        p = subprocess.Popen(args,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             preexec_fn=setrlimits)
+    except OSError:
+        logging.critical("I caught an OSError. Assure that the directory containing the tool to be benchmarked is included in the PATH environment variable.")
+        sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
     (stdoutdata, stderrdata) = p.communicate()
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
     timedelta = (ru_after.ru_utime + ru_after.ru_stime)\
@@ -144,6 +148,9 @@ def main(argv=None):
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
     rlimits = {}
+    for arg in args[1:]:
+        if not os.path.exists(arg) or not os.path.isfile(arg):
+            parser.error("File {0} does not exist.".format(repr(arg)))
     for arg in args[1:]:
         benchmark = load_benchmark(arg)
         run_func = eval("run_" + benchmark.tool)
