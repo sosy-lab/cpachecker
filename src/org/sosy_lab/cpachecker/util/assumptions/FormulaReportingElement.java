@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import java.util.Collection;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
@@ -37,6 +41,6 @@ public interface FormulaReportingElement {
   /**
    * Returns a formula over-approximating the element
    */
-  public Formula getFormulaApproximation();
-
+  public Collection<? extends Formula> getFormulaApproximation();
+  
 }

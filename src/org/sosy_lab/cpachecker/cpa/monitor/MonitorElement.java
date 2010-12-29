@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 
@@ -84,12 +90,30 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   
   @Override
   public String toString() {
-    return "No of nodes> " + this.pathLength
-    + "\n Total time> " + this.totalTimeOnPath 
-    + "\n Number of Branches" + branchesOnPath;
+    return "No of nodes: " + this.pathLength
+    + " Total time: " + this.totalTimeOnPath 
+    + " Number of Branches: " + branchesOnPath
+    + " Wrapped elem: " + getWrappedElements();
   }
 
   public int getNoOfBranchesOnPath() {
     return branchesOnPath;
   }
+
+  @Override
+  public Collection<? extends Formula> getFormulaApproximation() {
+
+    List<Formula> formulasList = new ArrayList<Formula>();
+    
+    Iterable<? extends AbstractElement> wrappedElements = getWrappedElements();
+    
+    for(AbstractElement elem: wrappedElements){
+      if(elem instanceof FormulaReportingElement){
+        FormulaReportingElement fRepElement = (FormulaReportingElement) elem;
+        formulasList.addAll(fRepElement.getFormulaApproximation());
+      }
+    }
+    return formulasList;
+  }
+  
 }

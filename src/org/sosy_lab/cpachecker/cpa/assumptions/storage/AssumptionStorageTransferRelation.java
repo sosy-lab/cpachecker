@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -68,7 +69,8 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
-    assert ((AssumptionStorageElement)el).getAssumption().isTrue();
+    AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
+    assert (asmptStorageElem.getAssumption().isTrue());
     
     Formula assumption = formulaManager.makeTrue();
     
@@ -82,7 +84,8 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
       if (element instanceof AvoidanceReportingElement) {
         boolean stop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
         if (stop) {
-          assumption = formulaManager.makeFalse();
+          assumption = ReportingUtils.extractReportedFormulas(formulaManager, element);
+          assumption = formulaManager.makeNot(assumption);
           break;
         }
       }

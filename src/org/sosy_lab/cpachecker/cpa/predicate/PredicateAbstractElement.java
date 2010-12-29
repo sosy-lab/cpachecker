@@ -23,11 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -37,7 +42,7 @@ import com.google.common.base.Predicate;
  *
  * @author Erkan
  */
-public class PredicateAbstractElement implements AbstractElement, Partitionable {
+public class PredicateAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
   public static Predicate<AbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<AbstractElement>() {
     @Override
@@ -146,4 +151,10 @@ public class PredicateAbstractElement implements AbstractElement, Partitionable 
   public Object getPartitionKey() {
     return abstractionFormula;
   }
+
+  @Override
+  public Collection<? extends Formula> getFormulaApproximation() {
+    return Collections.singleton(getAbstractionFormula().asFormula());
+  }
+
 }

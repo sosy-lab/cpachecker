@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Objects;
 
@@ -116,5 +119,10 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   @Override
   public int hashCode() {
     return iteration * 17 + (loopHeadNode == null ? 0 : loopHeadNode.hashCode());
+  }
+
+  @Override
+  public Collection<? extends Formula> getFormulaApproximation() {
+    return null;
   }  
 }
