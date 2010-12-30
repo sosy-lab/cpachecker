@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -104,14 +106,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final Algorithm innerAlgorithm;
   private final FormulaManager formulaManager;
   private final AssumptionWithLocation resultAssumption;
-
+  private final AssumptionStorageCPA cpa;
+  
   public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
 
     this.logger = logger;
     innerAlgorithm = algo;
-    AssumptionStorageCPA cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionStorageCPA.class);
+    cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionStorageCPA.class);
     if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
@@ -164,6 +167,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       
       AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
       resultAssumption.add(location, e.getAssumption());
+    }
+    
+    // collect assumptions from assumption storage transfer relation
+    AssumptionStorageTransferRelation trRel = (AssumptionStorageTransferRelation) cpa.getTransferRelation();
+    for(Entry<CFANode,Formula> entry: trRel.getGeneratedAssumptionsMap().entries()){
+      resultAssumption.add(entry.getKey(), entry.getValue());
     }
 
     // dump invariants to prevent going further with nodes in
