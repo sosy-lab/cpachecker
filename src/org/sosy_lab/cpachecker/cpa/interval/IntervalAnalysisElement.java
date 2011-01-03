@@ -92,6 +92,32 @@ public class IntervalAnalysisElement implements AbstractElement
   }
 
   /**
+   * This method returns the reference count for a given variable.
+   *
+   * @param variableName of the variable to query the reference count on
+   * @return the reference count of the variable, or 0 if the the variable is not yet referenced
+   */
+  private Integer getReferenceCount(String variableName)
+  {
+    return (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
+  }
+
+  /**
+   * This method determines whether or not the reference count for a given variable exceeds a given threshold.
+   *
+   * @param variableName the name of the variable
+   * @param threshold the threshold
+   * @return true, if the reference count of the variable exceeds the given threshold, else false
+   */
+  @Deprecated
+  public boolean exceedsThreshold(String variableName, Integer threshold)
+  {
+    Integer referenceCount = (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
+
+    return referenceCount > threshold;
+  }
+
+  /**
    * This method returns the previous element
    *
    * @return the previous element
@@ -126,7 +152,7 @@ public class IntervalAnalysisElement implements AbstractElement
     // only add the interval if it is not already present
     if(!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval))
     {
-      int referenceCount = (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
+      int referenceCount = getReferenceCount(variableName);
 
       if(referenceCount < pThreshold)
       {
@@ -136,7 +162,10 @@ public class IntervalAnalysisElement implements AbstractElement
       }
 
       else
+      {
+        //System.err.println("\n\n\n\n\n\n\n\n\nexceeded threshold for variable " + variableName + "\n\n\n\n\n\n\n\n\n\n\n\n");
         removeInterval(variableName);
+      }
     }
 
     return this;
@@ -152,10 +181,7 @@ public class IntervalAnalysisElement implements AbstractElement
   public IntervalAnalysisElement removeInterval(String variableName)
   {
     if(intervals.containsKey(variableName))
-    {
-      // TODO: why no reduction of referenceCount?
       intervals.remove(variableName);
-    }
 
     return this;
   }
@@ -184,12 +210,12 @@ public class IntervalAnalysisElement implements AbstractElement
         newIntervals.put(variableName, union);
 
         // update the references
-        newReferences.put(variableName, Math.max(referenceCounts.get(variableName), reachedElement.referenceCounts.get(variableName)));
+        newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedElement.getReferenceCount(variableName)));
       }
 
       // if the first map does not contain the variable, update the references
       else
-        newReferences.put(variableName, reachedElement.referenceCounts.get(variableName));
+        newReferences.put(variableName, reachedElement.getReferenceCount(variableName));
     }
 
     return new IntervalAnalysisElement(newIntervals, newReferences, previousElement);
@@ -229,11 +255,11 @@ public class IntervalAnalysisElement implements AbstractElement
 
     // clone the intervals ...
     for(String variableName : intervals.keySet())
-      newElement.intervals.put(variableName, intervals.get(variableName).clone());
+      newElement.intervals.put(variableName, getInterval(variableName).clone());
 
     // ... and clone the reference count
     for(String variableName : referenceCounts.keySet())
-      newElement.referenceCounts.put(variableName, referenceCounts.get(variableName).intValue());
+      newElement.referenceCounts.put(variableName, getReferenceCount(variableName).intValue());
 
     return newElement;
   }
@@ -285,7 +311,7 @@ public class IntervalAnalysisElement implements AbstractElement
     String result = "[\n";
 
     for (String key: intervals.keySet())
-      result += " <" + key + " = " + intervals.get(key) + " :: " + referenceCounts.get(key) + ">\n";
+      result += " <" + key + " = " + getInterval(key) + " :: " + getReferenceCount(key) + ">\n";
 
     return result + "] size->  " + intervals.size();
   }
