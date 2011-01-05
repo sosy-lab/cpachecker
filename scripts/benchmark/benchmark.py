@@ -20,6 +20,8 @@ class Test:
     pass
 
 def run(args, rlimits):
+    args = map(lambda arg: os.path.expandvars(arg), args)
+    args = map(lambda arg: os.path.expanduser(arg), args)
     def setrlimits():
         for rsrc, limits in rlimits.items():
             resource.setrlimit(rsrc, limits)
@@ -104,13 +106,14 @@ def ordinal_numeral(number):
         return "{0}th".format(number)
 
 def load_benchmark(path):
-    try:
-        from xml.parsers.xmlproc  import xmlval
-        validator = xmlval.XMLValidator()
-        validator.parse_resource(path)
-    except ImportError:
-        logging.debug("I cannot import xmlval so I'm skipping the validation.")
-        logging.debug("If you want xml validation please install pyxml.")
+    ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
+    # try:
+    #     from xml.parsers.xmlproc  import xmlval
+    #     validator = xmlval.XMLValidator()
+    #     validator.parse_resource(path)
+    # except ImportError:
+    #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
+    #     logging.debug("If you want xml validation please install pyxml.")
     benchmark_path = path
     logging.debug("I'm loading the benchmark {0}.".format(benchmark_path))
     tree = ElementTree()
