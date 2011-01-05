@@ -62,14 +62,12 @@ def run_cpachecker(options, sourcefile, rlimits):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
-    for line in stdoutdata:
-        if (line.find('java.lang.OutOfMemoryError') != -1) or\
-                line.startswith('out of memory'):
+    for line in stdoutdata.splitlines():
+        if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
             status = 'OUT OF MEMORY'
         elif line.find('SIGSEGV') != -1:
             status = 'SEGMENTATION FAULT'
-        elif (status is None or status == "ERROR (1)") and\
-                line.find('Exception') != -1:
+        elif (status is None or status == "ERROR (1)") and line.find('Exception') != -1:
             status = 'EXCEPTION'
         elif status is None and line.startswith('Error location(s) reached?'):
             line = line[26:].strip()
