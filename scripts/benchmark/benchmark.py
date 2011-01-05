@@ -68,7 +68,7 @@ def run_cpachecker(options, sourcefile, rlimits):
             status = 'OUT OF MEMORY'
         elif line.find('SIGSEGV') != -1:
             status = 'SEGMENTATION FAULT'
-        elif status is None or status == "ERROR (1)" and\
+        elif (status is None or status == "ERROR (1)") and\
                 line.find('Exception') != -1:
             status = 'EXCEPTION'
         elif status is None and line.startswith('Error location(s) reached?'):
