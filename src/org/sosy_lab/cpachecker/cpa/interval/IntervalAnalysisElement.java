@@ -204,10 +204,7 @@ public class IntervalAnalysisElement implements AbstractElement
       if(intervals.containsKey(variableName))
       {
         // update the interval
-        Interval currentInterval  = intervals.get(variableName);
-        Interval reachedInterval  = reachedElement.intervals.get(variableName);
-        Interval union            = currentInterval.union(reachedInterval);
-        newIntervals.put(variableName, union);
+        newIntervals.put(variableName, getInterval(variableName).union(reachedElement.getInterval(variableName)));
 
         // update the references
         newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedElement.getReferenceCount(variableName)));

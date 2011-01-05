@@ -454,7 +454,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // a > b, a > 1
     else if(operator == IASTBinaryExpression.op_greaterThan)
     {
-      if(tmpInterval1.isLessThan(tmpInterval2))
+      if(tmpInterval1.isGreaterThan(tmpInterval2))
       {
         if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1)), threshold);
         if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1)), threshold);

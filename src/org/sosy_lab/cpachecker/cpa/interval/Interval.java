@@ -236,7 +236,7 @@ public class Interval
    */
   public boolean isTrue()
   {
-    return high < 0 || low > 0;
+    return !isEmpty() && (high < 0 || low > 0);
   }
 
   /**
@@ -311,9 +311,12 @@ public class Interval
    */
   public boolean intersects(Interval other)
   {
-     return (low >= other.low && low <= other.high)
-         || (high >= other.low && high <= other.high)
-         || (low <= other.low && high >= other.high);
+      if(isEmpty() || other.isEmpty())
+        return false;
+
+      return (low >= other.low && low <= other.high)
+        || (high >= other.low && high <= other.high)
+        || (low <= other.low && high >= other.high);
   }
 
   /**
