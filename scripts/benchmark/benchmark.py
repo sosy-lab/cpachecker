@@ -50,7 +50,16 @@ def run_cbmc(options, sourcefile, rlimits):
 def run_cpachecker(options, sourcefile, rlimits):
     args = ["cpachecker"] + options + [sourcefile]
     (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
-    status = None
+    if returncode == 0:
+        status = None
+    elif returncode == 134:
+        status = "ABORTED (probably by Mathsat)"
+    elif returncode == 137:
+        status = "KILLED BY SIGNAL 9 (probably ulimit)"
+    elif returncode == 143:
+        status = "KILLED"
+    else:
+        status = "ERROR ({0})".format(returncode)
     for line in stdoutdata:
         if (line.find('java.lang.OutOfMemoryError') != -1) or\
                 line.startswith('out of memory'):
@@ -70,6 +79,8 @@ def run_cpachecker(options, sourcefile, rlimits):
                 status = 'UNKNOWN'
         if status is None and line.startswith('#Test cases computed:'):
             status = 'OK'
+    if status is None:
+        status = "UNKNOWN"
     return (status, timedelta)
 
 def run_satabs(options, sourcefile, rlimits):
