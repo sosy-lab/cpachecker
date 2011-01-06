@@ -1,5 +1,7 @@
 
-void abort();
+void abort() {
+
+}
 
 struct foo 
 { 
@@ -9,11 +11,23 @@ struct foo
 
 void bar (struct foo *a) 
 {
-  if (a->c == 0) 
-  {
-    *((char *)a + sizeof(int)) = 1;
+  char a_c;
+  char* a_c_addr;
+  int tmp1;
+  int tmp2;
 
-    if (a->c != 0)
+  a_c = a->c;
+  tmp1 = (a_c == 0);
+
+  if (tmp1)
+  {
+    a_c_addr = (char *)a + sizeof(int);
+    *a_c_addr = 1;
+
+    a_c = a->c;
+    tmp2 = (a_c != 0);
+
+    if (tmp2)
     {
       abort();
     }

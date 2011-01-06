@@ -1,5 +1,7 @@
 
-void abort();
+void abort() {
+
+}
 
 int f(int x) 
 { 
@@ -13,12 +15,16 @@ int f(int x)
 int h(int x, int y) 
 {
   int tmp;
+  int tmp2;
+  int tmp3;
 
   if (x != y)
   {
     tmp = f(x);
+    tmp2 = x + 10;
+    tmp3 = (tmp == tmp2);
 
-    if (tmp == x + 10)
+    if (tmp3)
     {
 ERROR: ;
       abort();  /* error */
