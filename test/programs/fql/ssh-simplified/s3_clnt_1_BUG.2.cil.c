@@ -1,7 +1,7 @@
-int input();
-
 int ssl3_connect(int initial_state ) 
 { 
+	int __BLAST_NONDET;
+
   int s__info_callback ;
   int s__in_handshake ;
   int s__state ;
@@ -63,19 +63,42 @@ int ssl3_connect(int initial_state )
   long __cil_tmp63 ;
   long __cil_tmp64 ;
 
-  s__ctx__stats__sess_connect_renegotiate = input();
+  s__ctx__stats__sess_connect_renegotiate = __BLAST_NONDET;
+
+  s__version = __BLAST_NONDET;
+  s__init_buf___0 = __BLAST_NONDET;
+  tmp___3 = __BLAST_NONDET;
+  tmp___4 = __BLAST_NONDET;
+  tmp___5 = __BLAST_NONDET;
+  tmp___6 = __BLAST_NONDET;
+  tmp___7 = __BLAST_NONDET;
+  tmp___8 = __BLAST_NONDET;
+  tmp___9 = __BLAST_NONDET;
+  s__debug = __BLAST_NONDET;
+  s__wbio = __BLAST_NONDET;
+  s__bbio = __BLAST_NONDET;
+  s__hit = __BLAST_NONDET;
+  s__s3__tmp__reuse_message = __BLAST_NONDET;
+  s__s3__tmp__new_cipher__algorithms = __BLAST_NONDET;
+  s__s3__tmp__cert_req = __BLAST_NONDET;
+  s__s3__tmp__new_cipher = __BLAST_NONDET;
+  s__s3__tmp__new_compression = __BLAST_NONDET;
+  s__s3__tmp__new_compression__id = __BLAST_NONDET;
+  s__s3__tmp__next_state___0 = __BLAST_NONDET;
+  s__s3__flags = __BLAST_NONDET;
+  num1 = __BLAST_NONDET;
 
   {
   	s__state = initial_state;
 	blastFlag = 0;
-  	tmp = (unsigned long )input();
+  	tmp = (unsigned long )__BLAST_NONDET;
   	cb = 0;
   	ret = -1;
   	skip = 0;
   	tmp___0 = 0;
 
-  	s__info_callback = input();
-  	s__ctx__info_callback = input();
+  	s__info_callback = __BLAST_NONDET;
+  	s__ctx__info_callback = __BLAST_NONDET;
 
 	if (s__info_callback != 0) 
 	{
@@ -89,7 +112,7 @@ int ssl3_connect(int initial_state )
     		}
   	}
 
-	s__in_handshake = input();
+	s__in_handshake = __BLAST_NONDET;
   	s__in_handshake = s__in_handshake + 1;
 
   	{
@@ -268,7 +291,7 @@ int ssl3_connect(int initial_state )
 #line 213
                                                                         if (s__init_buf___0 == 0) {
 #line 214
-                                                                          buf = input();
+                                                                          buf = __BLAST_NONDET;
 #line 215
                                                                           if (buf == 0) {
 #line 216
@@ -308,7 +331,7 @@ int ssl3_connect(int initial_state )
 #line 249
                                                                         s__shutdown = 0;
 #line 250
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 251
                                                                         if (blastFlag == 0) {
 #line 252
@@ -330,7 +353,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4384: ;
                                                                         switch_1_4385: 
 #line 271
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 272
                                                                         if (blastFlag == 1) {
 #line 273
@@ -359,7 +382,7 @@ int ssl3_connect(int initial_state )
                                                                           skip = 1;
                                                                         } else {
 #line 294
-                                                                          ret = input();
+                                                                          ret = __BLAST_NONDET;
 #line 295
                                                                           if (blastFlag == 2) {
 #line 296
@@ -378,7 +401,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4416: ;
                                                                         switch_1_4417: 
 #line 311
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 312
                                                                         if (blastFlag == 3) {
 #line 313
@@ -402,7 +425,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4432: ;
                                                                         switch_1_4433: 
 #line 333
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 334
                                                                         if (blastFlag == 4) {
                                                                           goto ERROR;
@@ -419,7 +442,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4448: ;
                                                                         switch_1_4449: 
 #line 349
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 350
                                                                         if (blastFlag == 4) {
 #line 351
@@ -445,7 +468,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4466: ;
                                                                         switch_1_4467: 
 #line 371
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 372
                                                                         if (ret <= 0) {
                                                                           goto end;
@@ -458,7 +481,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4480: ;
                                                                         switch_1_4481: 
 #line 382
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 383
                                                                         if (ret <= 0) {
                                                                           goto end;
@@ -481,7 +504,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4496: ;
                                                                         switch_1_4497: 
 #line 399
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 400
                                                                         if (ret <= 0) {
                                                                           goto end;
@@ -496,7 +519,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4512: ;
                                                                         switch_1_4513: 
 #line 411
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 412
                                                                         if (ret <= 0) {
                                                                           goto end;
@@ -531,7 +554,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4528: ;
                                                                         switch_1_4529: 
 #line 440
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 441
                                                                         if (ret <= 0) {
                                                                           goto end;
@@ -575,7 +598,7 @@ int ssl3_connect(int initial_state )
                                                                         switch_1_4560: ;
                                                                         switch_1_4561: 
 #line 464
-                                                                        ret = input();
+                                                                        ret = __BLAST_NONDET;
 #line 465
                                                                         if (ret <= 0) {
                                                                           goto end;
@@ -700,7 +723,7 @@ int ssl3_connect(int initial_state )
 			{
         			if (s__debug) 
 				{
-          				ret = input();
+          				ret = __BLAST_NONDET;
 
           				if (ret <= 0) 
 					{

@@ -39,7 +39,7 @@ public class SSHSimplified extends ExperimentalSeries {
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
-                                        false);
+                                        true);
     
     FShell3Result lResult = execute(lArguments);
     
