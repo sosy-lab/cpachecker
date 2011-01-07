@@ -84,7 +84,7 @@ public class ExplicitDomain implements AbstractDomain {
         // if there is the same variable
         if(constantsMap1.containsKey(key)){
           // if they have same values, set the value to it
-          if(constantsMap1.get(key) == constantsMap2.get(key)){
+          if(constantsMap1.get(key).equals(constantsMap2.get(key))){
             newConstantsMap.put(key, constantsMap1.get(key));
           }
           // update references map
