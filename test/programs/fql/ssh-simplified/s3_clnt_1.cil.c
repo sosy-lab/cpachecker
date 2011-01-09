@@ -68,6 +68,33 @@ int ssl3_connect(int initial_state )
   long __cil_tmp63 ;
   long __cil_tmp64 ;
   //__BLAST_NONDET = random();
+
+
+  s__wbio = __BLAST_NONDET;
+  s__bbio = __BLAST_NONDET;
+
+  s__s3__tmp__new_cipher__algorithms = __BLAST_NONDET;
+  s__s3__tmp__new_cipher = __BLAST_NONDET;
+  s__s3__tmp__cert_req = __BLAST_NONDET;
+  s__s3__tmp__new_compression = __BLAST_NONDET;
+  s__s3__tmp__new_compression__id = __BLAST_NONDET;
+  s__s3__flags = __BLAST_NONDET;
+
+
+  tmp___0 = __BLAST_NONDET;
+  tmp___1 = __BLAST_NONDET;
+  tmp___2 = __BLAST_NONDET;
+  tmp___3 = __BLAST_NONDET;
+  tmp___4 = __BLAST_NONDET;
+  tmp___5 = __BLAST_NONDET;
+  tmp___6 = __BLAST_NONDET;
+  tmp___7 = __BLAST_NONDET;
+  tmp___8 = __BLAST_NONDET;
+  tmp___9 = __BLAST_NONDET;
+
+  num1 = __BLAST_NONDET;
+
+
   {
 #line 60
   s__state = initial_state;
