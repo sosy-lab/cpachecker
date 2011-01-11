@@ -431,9 +431,6 @@ public class OctTransferRelation implements TransferRelation{
 
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
-      if(op1.getRawSignature().equals("l")){
-//        System.out.println("EXP: " + expression.getRawSignature() + " tv " + truthValue);
-      }
       return propagateBooleanExpression(pElement, opType, op1, op2, functionName, truthValue);
     }
     // Unary operation
@@ -503,10 +500,6 @@ public class OctTransferRelation implements TransferRelation{
       IASTExpression op2, String functionName, boolean truthValue) 
   throws UnrecognizedCFAEdgeException {
 
-//    if(op1 != null && op2 != null & op1.getRawSignature().equals("l")){
-//      System.out.println("op1 " + op1.getRawSignature() + " op2 " + 
-//          op2.getRawSignature() + " optype " + opType + " tv " +truthValue);
-//    }
     // a (bop) ?
     if(op1 instanceof IASTIdExpression || 
         op1 instanceof IASTFieldReference ||
@@ -854,8 +847,8 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement forgetElement(OctElement pElement,
       String pVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    pElement.forget(pVariableName);
+    return pElement;
   }
 
   private AbstractElement addSmallerEqConstraint(OctElement pElement,
@@ -975,15 +968,24 @@ public class OctTransferRelation implements TransferRelation{
             return assignConstant(pElement, varName, v.longValue());
           }
         }
+        else{
+          String variableName = getvarName(varName, declarationEdge.getPredecessor().getFunctionName());
+          return declareVariable(pElement, variableName);
+        }
     }
     assert(false);
     return null;
   }
 
+  private OctElement declareVariable(OctElement pElement, String pVariableName) {
+    pElement.declareVariable(pVariableName);
+    return pElement;
+  }
+
   private OctElement assignConstant(OctElement pElement, String pVarName,
       long pLongValue) {
-    // TODO Auto-generated method stub
-    return null;
+    pElement.assignConstant(pVarName, pLongValue);
+    return pElement;
   }
 
   private OctElement handleStatement(OctElement pElement,
@@ -1444,7 +1446,6 @@ public class OctTransferRelation implements TransferRelation{
 
   private OctElement assignVariable(OctElement pElement, String pLeftVarName,
       String pRightVarName) {
-    // TODO Auto-generated method stub
     return null;
   }
 

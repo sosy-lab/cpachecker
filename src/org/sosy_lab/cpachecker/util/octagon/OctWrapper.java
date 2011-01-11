@@ -83,7 +83,15 @@ public class OctWrapper {
 	/* Transfer Functions */
 	public native long J_forget (long oct, int k, boolean dest);		//oct_t* oct_forget (oct_t* m, var_t k, bool destructive)
 	//public native long J_addBinConstraints (long oct, int nb, Constraint[] consArray, boolean dest);    //oct_t* oct_add_bin_constraints ( oct_t* m, unsigned int nb, const oct_cons* cons, bool destructive)
-	public native long J_assingVar (long oct, int k, long array, boolean dest);	// oct_t* oct_assign_variable ( oct_t* m, var_t x, const num_t* tab,bool destructive
+	public native long J_assingVar (long oct, int k, long array, boolean dest);	// oct_t* oct_assign_variable ( oct_t* m, var_t x, const num_t* tab,bool destructive)
+	// options for add J_addBinConstraints
+	//  px   = 0,  /*    x <= c  (y ignored) */
+	//  mx   = 1,  /*   -x <= c  (y ignored) */
+	//  pxpy = 2,  /*  x+y <= c */
+	//  pxmy = 3,  /*  x-y <= c */
+	//  mxpy = 4,  /* -x+y <= c */
+	//  mxmy = 5   /* -x-y <= c */
+	public native long J_addBinConstraints (long oct, int k, long array, boolean dest); // oct_t* oct_add_bin_constraints ( oct_t* m, unsigned int nb, const oct_cons* cons, bool destructive)
 	public native long J_substituteVar (long oct, int x, long array, boolean dest);	//oct_t* oct_substitute_variable ( oct_t* m, var_t x, const num_t* tab, bool destructive)
 	public native long J_addConstraint (long oct, long array, boolean dest);	//oct_t* oct_add_constraint ( oct_t* m, const num_t* tab, bool destructive)
 	public native long J_intervAssingVar (long oct, int k, long array, boolean dest);	// oct_t* oct_inter_assign_variable ( oct_t* m, var_t x, const num_t* tab,bool destructive

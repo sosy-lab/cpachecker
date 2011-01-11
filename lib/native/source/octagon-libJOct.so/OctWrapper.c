@@ -261,8 +261,13 @@ JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_
 JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1assingVar
 (JNIEnv *env, jobject obj, jlong oct1, jint in, jlong arr, jboolean b){
 	num_t* tab = arr;
-	oct_t* ret =  oct_assign_variable (oct1, in, tab, b);
-	return ret;
+	return  oct_assign_variable (oct1, in, tab, b);
+}
+
+JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1addBinConstraints
+(JNIEnv *env, jobject obj, jlong oct1, jint in, jlong arr, jboolean b){
+	oct_cons* constraints = arr;
+	return oct_add_bin_constraints(oct1, in, constraints, b);
 }
 
 /*

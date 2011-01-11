@@ -257,6 +257,14 @@ JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_octagon_OctWrapper
+ * Method:    J_addBinConstraints
+ * Signature: (JIJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1addBinConstraints
+  (JNIEnv *, jclass, jlong, jint, jlong, jboolean);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_octagon_OctWrapper
  * Method:    J_substituteVar
  * Signature: (JIJZ)J
  */
