@@ -155,6 +155,11 @@ public class OctagonManager {
     return new Octagon(l);
   }
   
+  public static Octagon addBinConstraint(Octagon oct, int noOfConstraints, NumArray array){
+    long  l = wrapper.J_addBinConstraints(oct.getOctId(), noOfConstraints, array.getArray(), false);
+    return new Octagon(l);
+  }
+  
   public static Octagon substituteVar (Octagon oct, int x, NumArray array){
     long l = wrapper.J_substituteVar(oct.getOctId(), x, array.getArray(), false);
     return new Octagon(l);

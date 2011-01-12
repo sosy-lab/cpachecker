@@ -266,8 +266,15 @@ JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_
 
 JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1addBinConstraints
 (JNIEnv *env, jobject obj, jlong oct1, jint in, jlong arr, jboolean b){
-	oct_cons* constraints = arr;
-	return oct_add_bin_constraints(oct1, in, constraints, b);
+	num_t* numarray = arr;
+	oct_cons oc;
+	oc.type = numarray[0];
+	oc.x = numarray[1];
+	oc.y = numarray[2];
+	oc.c = numarray[3];
+	printf("oct constraint = x:%i y:%i c:%i type:%i\n",
+		     oc.x,oc.y,num_get_int(&oc.c),oc.type);
+	return oct_add_bin_constraints(oct1, in, &oc, b);
 }
 
 /*

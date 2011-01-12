@@ -52,6 +52,11 @@ public class OctDomain implements AbstractDomain{
       return true;
     }
 
+    System.out.println("Octagon 1: ");
+    OctagonManager.print(octElement1.getOctagon());
+    System.out.println("Octagon 2: ");
+    OctagonManager.print(octElement2.getOctagon());
+
     int result = OctagonManager.isIncludedInLazy(octElement1.getOctagon(), octElement2.getOctagon());
     if(result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);

@@ -59,6 +59,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
+
+import com.ibm.icu.impl.duration.impl.DataRecord.EPluralization;
 /**
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
@@ -853,8 +855,10 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement addSmallerEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
+    int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
+    pElement.addConstraint(3, lVarIdx, rVarIdx, 0);
+    return pElement;
   }
 
   private AbstractElement addSmallerConstraint(OctElement pElement,
@@ -865,8 +869,10 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement addGreaterEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
+    int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
+    pElement.addConstraint(4, lVarIdx, rVarIdx, 0);
+    return pElement;
   }
 
   private AbstractElement addGreaterConstraint(OctElement pElement,
@@ -883,14 +889,16 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement addEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
+    addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
+    return pElement;
   }
 
   private AbstractElement addSmallerEqConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
-    // TODO Auto-generated method stub
-    return null;
+    int varIdx = pElement.getVariableIndexFor(pVariableName);
+    pElement.addConstraint(0, varIdx, 0, (int)pValueOfLiteral);
+    return pElement;
   }
 
   private AbstractElement addSmallerConstraint(OctElement pElement,
@@ -901,8 +909,9 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement addGreaterEqConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
-    // TODO Auto-generated method stub
-    return null;
+    int varIdx = pElement.getVariableIndexFor(pVariableName);
+    pElement.addConstraint(1, varIdx, 0, (0 - (int)pValueOfLiteral));
+    return pElement;
   }
 
   private AbstractElement addGreaterConstraint(OctElement pElement,
@@ -913,8 +922,9 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement addEqConstraint(OctElement pElement,
       String pVariableName, long pI) {
-    // TODO Auto-generated method stub
-    return null;
+    addGreaterEqConstraint(pElement, pVariableName, pI);
+    addSmallerEqConstraint(pElement, pVariableName, pI);
+    return pElement;
   }
 
   private AbstractElement addIneqConstraint(OctElement pElement,

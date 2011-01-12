@@ -137,7 +137,7 @@ public class OctElement implements AbstractElement{
     OctagonManager.num_clear_n(arr, size() + 1);
   }
 
-  private int getVariableIndexFor(String pVariableName){
+  protected int getVariableIndexFor(String pVariableName){
     return variableToIndexMap.get(pVariableName);
   }
 
@@ -160,6 +160,19 @@ public class OctElement implements AbstractElement{
     return variableToIndexMap.size();
   }
 
+  public void addConstraint(int pType, int pLVarIdx, int pRVarIdx, int pConstant) {
+    NumArray arr = OctagonManager.init_num_t(4);
+    OctagonManager.num_set_int(arr, 0, pType);
+    OctagonManager.num_set_int(arr, 1, pLVarIdx);
+    OctagonManager.num_set_int(arr, 2, pRVarIdx);
+    OctagonManager.num_set_int(arr, 3, pConstant);
+    OctagonManager.print(octagon);
+    octagon = OctagonManager.addBinConstraint(octagon, 1, arr);
+    OctagonManager.print(octagon);
+    OctagonManager.num_clear_n(arr, 4);
+  }
+
+  
   //	/**
   //	 * Update the element with a new octagon element. This method is accessed frequently by {@link OctTransferRelation}
   //	 * to update the current region.
