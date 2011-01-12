@@ -861,12 +861,16 @@ public class OctTransferRelation implements TransferRelation{
     return pElement;
   }
 
+  // Note that this only works if both variables are integers
   private AbstractElement addSmallerConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
+    int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
+    pElement.addConstraint(3, lVarIdx, rVarIdx, -1);
+    return pElement;
   }
 
+  
   private AbstractElement addGreaterEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
@@ -874,17 +878,22 @@ public class OctTransferRelation implements TransferRelation{
     pElement.addConstraint(4, lVarIdx, rVarIdx, 0);
     return pElement;
   }
-
+  
+  // Note that this only works if both variables are integers
   private AbstractElement addGreaterConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
+    int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
+    pElement.addConstraint(4, lVarIdx, rVarIdx, -1);
+    return pElement;
   }
 
+  // Note that this only works if both variables are integers
   private AbstractElement addIneqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    // TODO Auto-generated method stub
-    return null;
+    addGreaterConstraint(pElement, pRightVariableName, pLeftVariableName);
+    addSmallerConstraint(pElement, pRightVariableName, pLeftVariableName);
+    return pElement;
   }
 
   private AbstractElement addEqConstraint(OctElement pElement,
@@ -901,10 +910,12 @@ public class OctTransferRelation implements TransferRelation{
     return pElement;
   }
 
+  // Note that this only works if both variables are integers
   private AbstractElement addSmallerConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
-    // TODO Auto-generated method stub
-    return null;
+    int varIdx = pElement.getVariableIndexFor(pVariableName);
+    pElement.addConstraint(0, varIdx, 0, (int)pValueOfLiteral-1);
+    return pElement;
   }
 
   private AbstractElement addGreaterEqConstraint(OctElement pElement,
@@ -913,24 +924,28 @@ public class OctTransferRelation implements TransferRelation{
     pElement.addConstraint(1, varIdx, 0, (0 - (int)pValueOfLiteral));
     return pElement;
   }
-
+  
+  // Note that this only works if both variables are integers
   private AbstractElement addGreaterConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
-    // TODO Auto-generated method stub
-    return null;
+    int varIdx = pElement.getVariableIndexFor(pVariableName);
+    pElement.addConstraint(1, varIdx, 0, (-1 - (int)pValueOfLiteral));
+    return pElement;
   }
-
+  
   private AbstractElement addEqConstraint(OctElement pElement,
       String pVariableName, long pI) {
     addGreaterEqConstraint(pElement, pVariableName, pI);
     addSmallerEqConstraint(pElement, pVariableName, pI);
     return pElement;
   }
-
+  
+  // Note that this only works if both variables are integers
   private AbstractElement addIneqConstraint(OctElement pElement,
       String pVariableName, long pI) {
-    // TODO Auto-generated method stub
-    return null;
+    addGreaterConstraint(pElement, pVariableName, pI);
+    addSmallerConstraint(pElement, pVariableName, pI);
+    return pElement;
   }
 
   private OctElement handleDeclaration(OctElement pElement,

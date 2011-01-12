@@ -166,7 +166,6 @@ public class OctElement implements AbstractElement{
     OctagonManager.num_set_int(arr, 1, pLVarIdx);
     OctagonManager.num_set_int(arr, 2, pRVarIdx);
     OctagonManager.num_set_int(arr, 3, pConstant);
-    OctagonManager.print(octagon);
     octagon = OctagonManager.addBinConstraint(octagon, 1, arr);
     OctagonManager.print(octagon);
     OctagonManager.num_clear_n(arr, 4);
