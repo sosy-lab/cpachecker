@@ -134,6 +134,7 @@ public class OctElement implements AbstractElement{
   public void assignConstant(String pVariableName, long pLongValue) {
     NumArray arr = getArrayForLiteral(pLongValue);
     octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pVariableName), arr);
+    OctagonManager.print(octagon);
     OctagonManager.num_clear_n(arr, size() + 1);
   }
 
@@ -171,6 +172,77 @@ public class OctElement implements AbstractElement{
     OctagonManager.num_clear_n(arr, 4);
   }
 
+  public void assignVariable(String pLeftVarName, String pRightVarName, int coef) {
+    NumArray arr = getArrayForVariable(getVariableIndexFor(pRightVarName), coef);
+    octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pLeftVarName), arr);
+    OctagonManager.num_clear_n(arr, size() + 1);    
+  }
+
+  private NumArray getArrayForVariable(int pVariableIndexFor, int coef) {
+    NumArray arr = OctagonManager.init_num_t(size() + 1);
+    for(int i = 0; i<variableToIndexMap.size(); i++){
+      if(i == pVariableIndexFor){
+        OctagonManager.num_set_int(arr, i, coef);
+      }
+      else{
+        OctagonManager.num_set_int(arr, i, 0);
+      }
+    }
+    OctagonManager.num_set_int(arr, size(), 0);
+    return arr;
+  }
+
+  public void assignmentOfBinaryExp(String pAssignedVar, String pLeftVarName,
+      int pLeftVarCoef, String pRightVarName, int pRightVarCoef, int pConstVal) {
+    int leftVarIdx;
+    int rightVarIdx;
+    int leftVarCoef;
+    int rightVarCoef;
+    
+    if(pLeftVarName == null){
+      leftVarIdx = -1;
+      leftVarCoef = 0;
+    }
+    else{
+      leftVarIdx = getVariableIndexFor(pLeftVarName);
+      leftVarCoef = pLeftVarCoef;
+    }
+    
+    if(pRightVarName == null){
+      rightVarIdx = -1;
+      rightVarCoef = 0;
+    }
+    else{
+      System.out.println(pRightVarName);
+      rightVarIdx = getVariableIndexFor(pRightVarName);
+      rightVarCoef = pRightVarCoef;
+    }
+    
+    int idxForAssignedVar = getVariableIndexFor(pAssignedVar);
+    
+    NumArray arr = getArrayForVariableAndConstant(
+       leftVarIdx, leftVarCoef, rightVarIdx, rightVarCoef, pConstVal);
+    
+    octagon = OctagonManager.assingVar(octagon, idxForAssignedVar, arr);
+    OctagonManager.num_clear_n(arr, size() + 1);
+  }
+
+  private NumArray getArrayForVariableAndConstant(int pLeftVarIdx, int pLeftVarCoef, int pRightVarIdx, int pRightVarCoef, int pConstVal) {
+    NumArray arr = OctagonManager.init_num_t(size() + 1);
+    for(int i = 0; i<variableToIndexMap.size(); i++){
+      if(i == pLeftVarIdx){
+        OctagonManager.num_set_int(arr, i, pLeftVarCoef);
+      }
+      else if(i == pRightVarIdx){
+        OctagonManager.num_set_int(arr, i, pRightVarCoef);
+      }
+      else{
+        OctagonManager.num_set_int(arr, i, 0);
+      }
+    }
+    OctagonManager.num_set_int(arr, size(), pConstVal);
+    return arr;
+  }
   
   //	/**
   //	 * Update the element with a new octagon element. This method is accessed frequently by {@link OctTransferRelation}
