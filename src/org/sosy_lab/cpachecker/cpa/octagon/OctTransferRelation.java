@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
@@ -42,25 +41,23 @@ import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.utils.coff.PE;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.OctagonTransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
-
-import com.ibm.icu.impl.duration.impl.DataRecord.EPluralization;
 /**
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
@@ -91,6 +88,7 @@ public class OctTransferRelation implements TransferRelation{
     //System.out.println(cfaEdge);
     // octElement is the region of the current state
     // this state will be updated using the edge
+    
     OctElement octElement = null;
     try {
       octElement = (OctElement)((OctElement)element).clone();
@@ -110,7 +108,7 @@ public class OctTransferRelation implements TransferRelation{
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTExpression expression = statementEdge.getExpression ();
       try {
-        handleStatement (octElement, expression, cfaEdge);
+        octElement = handleStatement (octElement, expression, cfaEdge);
       } catch (UnrecognizedCCodeException e) {
         e.printStackTrace();
       }
@@ -139,7 +137,7 @@ public class OctTransferRelation implements TransferRelation{
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       try {
-        handleDeclaration (octElement, declarationEdge);
+        octElement = handleDeclaration (octElement, declarationEdge);
       } catch (UnrecognizedCCodeException e) {
         e.printStackTrace();
       }
@@ -152,7 +150,7 @@ public class OctTransferRelation implements TransferRelation{
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
       IASTExpression expression = assumeEdge.getExpression();
       try {
-        handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
+        octElement = (OctElement)handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
       } catch (UnrecognizedCFAEdgeException e) {
         e.printStackTrace();
       }
@@ -199,6 +197,15 @@ public class OctTransferRelation implements TransferRelation{
       break;
     }
     }
+    
+//    System.out.println("------------------ " + cfaEdge);
+    if (octElement == null || octElement.isEmpty()) {
+//      System.out.println("[ empty ]");
+      return Collections.emptySet();
+    }
+    
+//    octElement.printOctagon();
+//    System.out.println("=======================");
     return Collections.singleton(octElement);
   }
 
@@ -914,7 +921,7 @@ public class OctTransferRelation implements TransferRelation{
   private AbstractElement addSmallerConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
-    pElement.addConstraint(0, varIdx, 0, (int)pValueOfLiteral-1);
+    pElement.addConstraint(0, varIdx, -1, (int)pValueOfLiteral-1);
     return pElement;
   }
 
@@ -943,9 +950,20 @@ public class OctTransferRelation implements TransferRelation{
   // Note that this only works if both variables are integers
   private AbstractElement addIneqConstraint(OctElement pElement,
       String pVariableName, long pI) {
-    addGreaterConstraint(pElement, pVariableName, pI);
-    addSmallerConstraint(pElement, pVariableName, pI);
-    return pElement;
+    OctElement newElem1 = null;
+    try {
+      newElem1 = (OctElement)pElement.clone();
+    } catch (CloneNotSupportedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    addEqConstraint(newElem1, pVariableName, pI);
+    if(newElem1.isEmpty()){
+      return pElement;
+    }
+    else{
+      return null;
+    }
   }
 
   private OctElement handleDeclaration(OctElement pElement,
@@ -994,7 +1012,7 @@ public class OctTransferRelation implements TransferRelation{
         declareVariable(pElement, variableName);
 
         if (v != null) {
-          return assignConstant(pElement, varName, v.longValue());
+          return assignConstant(pElement, variableName, v.longValue());
         }
       }
       else{
@@ -1079,8 +1097,7 @@ public class OctTransferRelation implements TransferRelation{
 
   private OctElement shiftConstant(OctElement pElement, String pVarName,
       int pShift) {
-    // TODO Auto-generated method stub
-    return null;
+    return assignmentOfBinaryExp(pElement, pVarName, pVarName, 1, null, -1, pShift);
   }
 
   private OctElement handleBinaryStatement(OctElement pElement,
@@ -1195,22 +1212,19 @@ public class OctTransferRelation implements TransferRelation{
       } else {
         throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
       }
-      //      return element.clone();
+            return pElement;
 
     } else if (op1 instanceof IASTFieldReference) {
       // TODO assignment to field
-      //      return element.clone();
+            return pElement;
 
     } else if (op1 instanceof IASTArraySubscriptExpression) {
       // TODO assignment to array cell
-      //      return element.clone();
+            return pElement;
 
     } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
     }
-
-    assert(false);
-    return null;
   }
 
   private OctElement handleAssignmentToVariable(OctElement pElement,
@@ -1772,7 +1786,34 @@ public class OctTransferRelation implements TransferRelation{
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) {
+
+    assert element instanceof OctElement;
+    OctElement octagonElement = (OctElement)element;
+
+    for (AbstractElement ae : otherElements) {
+      if (ae instanceof PointerElement) {
+        return strengthen(octagonElement, (PointerElement)ae, cfaEdge, precision);
+      }
+      else if(ae instanceof AssumptionStorageElement){
+        return strengthen(octagonElement, (AssumptionStorageElement)ae, cfaEdge, precision);
+      }
+    }
     return null;
-    // TODO implement error detection algo.
+  
+    
+  }
+
+  private Collection<? extends AbstractElement> strengthen(
+      OctElement pOctagonElement, AssumptionStorageElement pAe,
+      CFAEdge pCfaEdge, Precision pPrecision) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  private Collection<? extends AbstractElement> strengthen(
+      OctElement pOctagonElement, PointerElement pAe, CFAEdge pCfaEdge,
+      Precision pPrecision) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

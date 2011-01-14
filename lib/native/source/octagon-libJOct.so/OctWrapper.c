@@ -272,8 +272,6 @@ JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_
 	oc.x = numarray[1];
 	oc.y = numarray[2];
 	oc.c = numarray[3];
-	printf("oct constraint = x:%i y:%i c:%i type:%i\n",
-		     oc.x,oc.y,num_get_int(&oc.c),oc.type);
 	return oct_add_bin_constraints(oct1, in, &oc, b);
 }
 
