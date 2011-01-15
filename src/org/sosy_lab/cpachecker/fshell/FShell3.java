@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
+import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathCPA;
 import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardElement;
@@ -93,7 +94,7 @@ public class FShell3 {
   private final ConfigurableProgramAnalysis mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
-  private final PredicateCPA mPredicateCPA;
+  private final ConfigurableProgramAnalysis mPredicateCPA;
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
   private final GuardedEdgeLabel mAlphaLabel;
@@ -182,12 +183,22 @@ public class FShell3 {
     // cfa path CPA
     mCFAPathCPA = CFAPathCPA.getInstance();
     
+    // TODO make configurable
+    boolean lUseCache = true;
+    
     // predicate abstraction CPA
     CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
     lPredicateCPAFactory.setConfiguration(mConfiguration);
     lPredicateCPAFactory.setLogger(mLogManager);
     try {
-      mPredicateCPA = (PredicateCPA)lPredicateCPAFactory.createInstance();
+      ConfigurableProgramAnalysis lPredicateCPA = lPredicateCPAFactory.createInstance();
+      
+      if (lUseCache) {
+        mPredicateCPA = new CacheCPA(lPredicateCPA);
+      }
+      else {
+        mPredicateCPA = lPredicateCPA;
+      }
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
