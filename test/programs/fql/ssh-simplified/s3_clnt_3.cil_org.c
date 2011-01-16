@@ -56,6 +56,22 @@ int ssl3_connect(int initial_state )
   int __BLAST_NONDET ;
   int blastFlag ;
 
+  tmp___0 = __BLAST_NONDET;
+  tmp___1 = __BLAST_NONDET;
+  tmp___2 = __BLAST_NONDET;
+  tmp___3 = __BLAST_NONDET;
+  tmp___4 = __BLAST_NONDET;
+  tmp___5 = __BLAST_NONDET;
+  tmp___6 = __BLAST_NONDET;
+  tmp___7 = __BLAST_NONDET;
+  tmp___8 = __BLAST_NONDET;
+  tmp___9 = __BLAST_NONDET;
+
+  s__info_callback = __BLAST_NONDET;
+  s__ctx__info_callback = __BLAST_NONDET;
+  s__in_handshake = __BLAST_NONDET;
+  s__ctx__stats__sess_connect_renegotiate = __BLAST_NONDET;
+
   {
   s__state = initial_state;
   blastFlag = 0;
