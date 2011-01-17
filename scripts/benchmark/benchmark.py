@@ -139,6 +139,10 @@ def load_benchmark(path):
                 logging.debug("I found no pathnames matching {0}.".format(repr(sourcefiles_path)))
             else:
                 t.sourcefiles += pathnames
+
+        # make alphabetical order of filenames
+        t.sourcefiles.sort();
+
         t.options = []
         for option in test.find("options").findall("option"):
             t.options.append(option.get("name"))
