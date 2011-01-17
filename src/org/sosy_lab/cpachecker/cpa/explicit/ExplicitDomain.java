@@ -95,6 +95,6 @@ public class ExplicitDomain implements AbstractDomain {
           newReferencesMap.put(key, referencesMap2.get(key));
         }
       }
-      return new ExplicitElement(newConstantsMap, newReferencesMap, ExplicitElement2.getPreviousElement());
+      return new ExplicitElement(newConstantsMap, newReferencesMap, ExplicitElement1.getPreviousElement());
   }
 }
