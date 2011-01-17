@@ -45,7 +45,12 @@ def run_cbmc(options, sourcefile, rlimits):
     assert "--xml-ui" in options
     args = ["cbmc"] + options + [sourcefile]
     (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
-    tree = ET.fromstring(stdoutdata)
+    
+    #an empty tag cannot be parsed into a tree
+    stdoutdataCorrect = stdoutdata.replace("<>","<emptyTag>")
+    stdoutdataCorrect = stdoutdataCorrect.replace("</>","</emptyTag>")
+    
+    tree = ET.fromstring(stdoutdataCorrect)
     status = tree.findtext('cprover-status')
     return (status, timedelta)
 
@@ -179,13 +184,24 @@ def main(argv=None):
                 logging.debug("The {0} test consists of {1} sourcefiles.".format(
                         ordinal_numeral(benchmark.tests.index(test) + 1),
                         len(test.sourcefiles)))
+
+            # print nice table with results, one file per line
+            maxLengthOfFileName = 0
+            maxLengthOfStatus = 8
+            for sourcefile in test.sourcefiles:
+                maxLengthOfFileName = max(len(sourcefile), maxLengthOfFileName)
             for sourcefile in test.sourcefiles:
                 logging.debug("I'm running '{0} {1} {2}'.".format(
                         benchmark.tool, " ".join(test.options), sourcefile))
                 (status, timedelta) = run_func(test.options,
                                                sourcefile,
                                                rlimits)
-                print ",".join([sourcefile, status, str(timedelta)])
+                print " ".join([sourcefile,
+				 " "*(maxLengthOfFileName - len(sourcefile)), 
+				 status, 
+				 " "*(maxLengthOfStatus - len(status)),
+				 str(timedelta)])
+        
         logging.debug("I think my job is done. Have a nice day!")
 
 if __name__ == "__main__":
