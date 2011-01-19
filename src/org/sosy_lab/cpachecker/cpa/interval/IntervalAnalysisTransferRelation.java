@@ -450,27 +450,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // a is always greater than b, so a can't be less than b, so there can't be a successor
       else
         element = null;
-
-      /*
-      if(tmpInterval1.isLessThan(tmpInterval2))
-      {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1)), threshold);
-      }
-
-      // a is greater than b, so a can't be less than b, so there can't be a successor
-      else
-        element = null;*/
-
-      // a is greater than b, so a can't be less than b, so there can't be a successor
-      /*if(tmpInterval1.isGreaterThan(tmpInterval2))
-        element = null;
-
-      else
-      {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1)), threshold);
-      }*/
     }
 
     // a > b, a > 1
@@ -486,26 +465,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // a is always less than b, so a can't be greater than b, so there can't be a successor
       else
         element = null;
-      /*
-      if(tmpInterval1.isGreaterThan(tmpInterval2))
-      {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1)), threshold);
-      }
-
-      // a is less than b, so a can't be greater than b, so there can't be a successor
-      else
-        element = null;
-
-      // a is less than b, so a can't be greater than b, so there can't be a successor
-      if(tmpInterval1.isLessThan(tmpInterval2))
-        element = null;
-
-      else
-      {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1)), threshold);
-      }*/
     }
 
     // a == b, a == 1

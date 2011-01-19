@@ -227,7 +227,7 @@ public class Interval
    */
   public boolean mayBeLessThan(Interval other)
   {
-    return !isEmpty() && !other.isEmpty() && low < other.high;
+    return isEmpty() || (!isEmpty() && !other.isEmpty() && low < other.high);
   }
 
   /**
@@ -238,7 +238,7 @@ public class Interval
    */
   public boolean mayBeGreaterThan(Interval other)
   {
-    return !isEmpty() && !other.isEmpty() && high > other.low;
+    return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high > other.low);
   }
 
   /**
