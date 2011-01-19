@@ -34,7 +34,10 @@ public class SSHSimplified006 extends ExperimentalSeries {
   
   @Test
   public void ssh_006() throws Exception {
-    String lCFile = "s3_clnt_3.cil_org.c";
+
+    // sources are not preprocessed, so we skip this example
+
+    /*String lCFile = "s3_clnt_3.cil_org.c";
     
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
@@ -47,7 +50,7 @@ public class SSHSimplified006 extends ExperimentalSeries {
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
-    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());*/
   }
   
 }
