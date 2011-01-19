@@ -64,9 +64,34 @@ int ssl3_accept(int initial_state )
   int __cil_tmp60 ;
   unsigned long __cil_tmp61 ;
 
+  tmp = __BLAST_NONDET;
+  s__info_callback = __BLAST_NONDET;
+  s__ctx__info_callback = __BLAST_NONDET;
+  tmp___1 = __BLAST_NONDET;
+  tmp___2 = __BLAST_NONDET;
+  tmp___3 = __BLAST_NONDET;
+  tmp___4 = __BLAST_NONDET;
+  tmp___5 = __BLAST_NONDET;
+  tmp___6 = __BLAST_NONDET;
+  tmp___7 = __BLAST_NONDET;
+  tmp___8 = __BLAST_NONDET;
+  tmp___9 = __BLAST_NONDET;
+  tmp___10 = __BLAST_NONDET;
+  s__cert = __BLAST_NONDET;
+  s__s3__tmp__reuse_message = __BLAST_NONDET;
+  s__debug = __BLAST_NONDET;
+  s__hit = __BLAST_NONDET;
+  s__s3__tmp__new_cipher__algorithms = __BLAST_NONDET;
+  s__options = __BLAST_NONDET;
+  s__cert__pkeys__AT0__privatekey = __BLAST_NONDET;
+  s__verify_mode = __BLAST_NONDET;
+  s__session__peer = __BLAST_NONDET;
+  s__s3__tmp__new_cipher__algo_strength = __BLAST_NONDET;
+  s__s3__tmp__new_cipher = __BLAST_NONDET;
+  num1 = __BLAST_NONDET;
+
   {
 #line 60
-__BLAST_NONDET = random();
   s__state = initial_state;
 #line 61
   blastFlag = 0;
