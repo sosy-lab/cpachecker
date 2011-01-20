@@ -92,7 +92,7 @@ public class CProver {
     }
     assert(cFile != null);
     try {
-      logger.log(Level.INFO, "Starting CBMC verification.");
+      logger.log(Level.FINE, "Starting CBMC verification.");
       CBMCExecutor cbmc = new CBMCExecutor(logger, cFile);
       cbmc.join();
       logger.log(Level.FINER, "CBMC finished.");

@@ -108,8 +108,16 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         break;
 
       } else {
-        logger.log(Level.INFO, "CBMC thinks this path contains no bug");
+        Set<ARTElement> parents = element.getParents();
         
+        // remove re-added parents to prevent computing
+        // the same error element over and over
+        for(ARTElement parent: parents){
+          reached.remove(parent);
+          parent.removeFromART();
+        }
+        
+        // remove the error element
         reached.remove(element);
         element.removeFromART();
 
@@ -119,6 +127,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         // not reachable and cut the path there.
         
         if (!continueAfterInfeasibleError) {
+          logger.log(Level.INFO, "CBMC thinks this path contains no bug");
           break;
         }
       }
