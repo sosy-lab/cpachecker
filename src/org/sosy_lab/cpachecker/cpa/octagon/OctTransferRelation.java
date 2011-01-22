@@ -201,7 +201,7 @@ public class OctTransferRelation implements TransferRelation{
     
 //    System.out.println("------------------ " + cfaEdge);
     if (octElement == null || octElement.isEmpty()) {
-//      System.out.println("[ empty ]");
+      System.out.println("[ empty ]");
       return Collections.emptySet();
     }
     
@@ -817,16 +817,43 @@ public class OctTransferRelation implements TransferRelation{
   // Note that this only works if both variables are integers
   private AbstractElement addIneqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
-    addGreaterConstraint(pElement, pRightVariableName, pLeftVariableName);
-    addSmallerConstraint(pElement, pRightVariableName, pLeftVariableName);
-    return pElement;
+    OctElement newElem1 = null;
+    try {
+      newElem1 = (OctElement)pElement.clone();
+    } catch (CloneNotSupportedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    addEqConstraint(newElem1, pLeftVariableName, pRightVariableName);
+    if(! newElem1.isEmpty()){
+      return null;
+    }
+    else{
+      return pElement;
+    }
   }
 
   private AbstractElement addEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
+//    addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
+//    addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
+//    return pElement;
+
+    OctElement newElem1 = null;
+    try {
+      newElem1 = (OctElement)pElement.clone();
+    } catch (CloneNotSupportedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
     addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
-    return pElement;
+    if(newElem1.isEmpty()){
+      return null;
+    }
+    else{
+      return assignVariable(pElement, pLeftVariableName, pRightVariableName, 1);
+    }
   }
 
   private AbstractElement addSmallerEqConstraint(OctElement pElement,
@@ -861,9 +888,26 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement addEqConstraint(OctElement pElement,
       String pVariableName, long pI) {
-    addGreaterEqConstraint(pElement, pVariableName, pI);
+//    addGreaterEqConstraint(pElement, pVariableName, pI);
+//    addSmallerEqConstraint(pElement, pVariableName, pI);
+//    return pElement;
+    
+    OctElement newElem1 = null;
+    try {
+      newElem1 = (OctElement)pElement.clone();
+    } catch (CloneNotSupportedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     addSmallerEqConstraint(pElement, pVariableName, pI);
-    return pElement;
+    addGreaterEqConstraint(pElement, pVariableName, pI);
+    if(newElem1.isEmpty()){
+      return null;
+    }
+    else{
+      return assignConstant(pElement, pVariableName, pI);
+    }
+    
   }
 
   // Note that this only works if both variables are integers
@@ -877,11 +921,11 @@ public class OctTransferRelation implements TransferRelation{
       e.printStackTrace();
     }
     addEqConstraint(newElem1, pVariableName, pI);
-    if(newElem1.isEmpty()){
+    if(! newElem1.isEmpty()){
       return pElement;
     }
     else{
-      return null;
+      return pElement;
     }
   }
 
