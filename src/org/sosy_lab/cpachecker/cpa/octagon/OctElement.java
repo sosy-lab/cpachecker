@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import java.util.Map.Entry;
+
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
@@ -48,9 +50,7 @@ public class OctElement implements AbstractElement{
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
 
-  private final OctElement previousElement;
-
-  private static int varId = 0;
+  private OctElement previousElement;
 
   // also top element
   public OctElement() {
@@ -94,6 +94,10 @@ public class OctElement implements AbstractElement{
     return previousElement;
   }
 
+  public void setPreviousElement(OctElement pPreviousElement) {
+    this.previousElement = pPreviousElement;
+  }
+
   public BiMap<String, Integer> getVariableToIndexMap() {
     return variableToIndexMap;
   }
@@ -109,9 +113,13 @@ public class OctElement implements AbstractElement{
   @Override
   protected Object clone() throws CloneNotSupportedException {
     Octagon newOct = OctagonManager.full_copy(octagon);
-    // TODO
-    return new OctElement(newOct, variableToIndexMap, this);
-    //    return null;
+    BiMap<String, Integer> newMap = HashBiMap.create();
+
+    for(Entry<String, Integer> e: variableToIndexMap.entrySet()){
+      newMap.put(e.getKey(), e.getValue());
+    }
+
+    return new OctElement(newOct, newMap, this.previousElement);
   }
 
   public boolean addVar(String pVarName, String pFunctionName, boolean pIsGlobal) {
@@ -143,7 +151,7 @@ public class OctElement implements AbstractElement{
 
   public void declareVariable(String pVariableName) {
     assert(!variableToIndexMap.containsKey(pVariableName));
-    variableToIndexMap.put(pVariableName, varId++);
+    variableToIndexMap.put(pVariableName, size());
     octagon = OctagonManager.addDimensionAndEmbed(octagon, 1);
   }
 
@@ -171,9 +179,16 @@ public class OctElement implements AbstractElement{
   }
 
   public void assignVariable(String pLeftVarName, String pRightVarName, int coef) {
-    NumArray arr = getArrayForVariable(getVariableIndexFor(pRightVarName), coef);
-    octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pLeftVarName), arr);
-    OctagonManager.num_clear_n(arr, size() + 1);    
+
+    if(pLeftVarName.contains("NONDET") || pRightVarName.contains("NONDET")){
+      forget(pLeftVarName);
+    }
+    
+    else{
+      NumArray arr = getArrayForVariable(getVariableIndexFor(pRightVarName), coef);
+      octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pLeftVarName), arr);
+      OctagonManager.num_clear_n(arr, size() + 1);
+    }
   }
 
   private NumArray getArrayForVariable(int pVariableIndexFor, int coef) {
@@ -244,4 +259,18 @@ public class OctElement implements AbstractElement{
   public boolean isEmpty() {
     return OctagonManager.isEmpty(octagon);
   }
+
+  // keep pSizeOfpreviousElem dimensions at the beginning and remove the rest
+  public void removeLocalVariables(OctElement pPreviousElem, int noOfGlobalVars) {
+    int noOfLocalVars = (size()- pPreviousElem.size());
+
+    for(int i = size(); i>pPreviousElem.size(); i--){
+      String s = variableToIndexMap.inverse().get(i-1);
+      variableToIndexMap.remove(s);
+    }
+
+    octagon = OctagonManager.removeDimension(octagon, noOfLocalVars);
+    assert(OctagonManager.dimension(octagon) == size());
+  }
+
 }

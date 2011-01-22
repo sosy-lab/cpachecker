@@ -92,7 +92,7 @@ public class OctDomain implements AbstractDomain{
     BiMap<String, Integer> newMap = 
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
-      // TODO should it bu null
+      // TODO should it be null
       return new OctElement(newOctagon, newMap, null);
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
