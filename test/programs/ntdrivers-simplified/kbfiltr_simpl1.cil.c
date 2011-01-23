@@ -378,7 +378,7 @@ int main(void)
 
   {
   {
-__BLAST_NONDET = random();
+//__BLAST_NONDET = random();
 KernelMode = 0 ;
  Executive  = 0;
 s  = 0;

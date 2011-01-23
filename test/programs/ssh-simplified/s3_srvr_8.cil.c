@@ -66,7 +66,7 @@ int ssl3_accept(int initial_state )
 
   {
 #line 60
-__BLAST_NONDET = random();
+//__BLAST_NONDET = random();
   s__state = initial_state;
 #line 61
   blastFlag = 0;

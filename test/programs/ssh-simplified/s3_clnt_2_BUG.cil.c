@@ -70,7 +70,7 @@ int ssl3_connect(int initial_state )
 
   {
 #line 60
- __BLAST_NONDET = random();
+// __BLAST_NONDET = random();
   s__state = initial_state;
 #line 61
   blastFlag = 0;
