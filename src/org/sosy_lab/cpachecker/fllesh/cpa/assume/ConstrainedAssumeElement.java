@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.assume;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
 public class ConstrainedAssumeElement implements AssumeElement {
 

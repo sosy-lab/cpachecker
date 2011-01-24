@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTStatement extends IASTNode implements
+public final class IASTStatement extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTStatement {
 
   public IASTStatement(String pRawSignature, IASTFileLocation pFileLocation) {

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 

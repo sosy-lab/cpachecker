@@ -32,33 +32,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASTVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTASMDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBreakStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompoundStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTContinueStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarationStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
-import org.sosy_lab.cpachecker.cfa.ast.IASTGotoStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLabelStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNullStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTProblem;
-import org.sosy_lab.cpachecker.cfa.ast.IASTProblemDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTProblemStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStandardFunctionDeclarator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTranslationUnit;
-import org.sosy_lab.cpachecker.cfa.ast.IASTWhileStatement;
+import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
+import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
+import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
+import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
+import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
+import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
+import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTProblem;
+import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
+import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
@@ -85,8 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
  */
 public class CFABuilder extends ASTVisitor
 {
-
-  // Data structure for maintaining our scope stack in a function
+	// Data structure for maintaining our scope stack in a function
 	private Deque<CFANode> locStack;
 
 	// Data structures for handling loops & else conditions
