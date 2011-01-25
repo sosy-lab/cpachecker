@@ -56,6 +56,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
   private final LogManager logger;
+  public static boolean didCBMCReportUP = false;
 
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
@@ -104,6 +105,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       
       if (cbmcResult) {
+        didCBMCReportUP = false;
         logger.log(Level.INFO, "CBMC confirms the bug");
         break;
 
@@ -125,7 +127,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         // infeasible path may cover another path that is actually feasible
         // We would need to find the first element of this path that is
         // not reachable and cut the path there.
-        
+        didCBMCReportUP = true;
         if (!continueAfterInfeasibleError) {
           logger.log(Level.INFO, "CBMC thinks this path contains no bug");
           break;

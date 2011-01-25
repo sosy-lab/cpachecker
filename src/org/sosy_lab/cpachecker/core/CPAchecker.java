@@ -310,6 +310,11 @@ public class CPAchecker {
       logger.log(Level.WARNING, "Analysis did not finish, there are still elements to be processed.");
       return Result.UNKNOWN;
     }
+    
+    if (CBMCAlgorithm.didCBMCReportUP){
+      logger.log(Level.WARNING, "Analysis finished but is unsound due to cbmc interaction");
+      return Result.UNKNOWN;
+    }
 
     return Result.SAFE;
   }
