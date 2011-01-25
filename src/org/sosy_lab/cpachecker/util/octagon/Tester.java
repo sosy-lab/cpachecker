@@ -102,38 +102,85 @@ public class Tester {
 //		System.out.println("Removing 1 and 2 from 2 -->");
 //		ow.J_print(ow.J_removeDimensionAtPosition(random_oct2, 1, 2, true));
 
-		OctElement octelem = new OctElement();
-		octelem.addVar("a", "main");
-		octelem.addVar("b", "main");
-		octelem.addVar("c", "main");
-		octelem.addVar("d", "main");
-		octelem.addVar("e", "main");
-
-		octelem.update(LibraryAccess.addDimension(octelem, 5));
-
-		Num[] array = new Num[octelem.getNumberOfVars()+1];
-
-		for(int i=0; i<array.length-1; i++){
-			array[i] = new Num(0);
-		}
-
-		array[array.length-1] = new Num(44);
-		//array[variableId] = new Num(1);
-
-		int lvar = octelem.getVariableId(new ArrayList<String>(), "c", "main");
-		System.out.println(octelem.getOctagon().getDimension());
-		octelem.update(LibraryAccess.assignVar(octelem, lvar, array));
-		System.out.println("==== 1 ==== \n" + octelem);
-
-		for(int i=0; i<array.length-1; i++){
-			array[i] = new Num(0);
-		}
-		array[array.length-1] = new Num(124);
-		array[0] = new Num(1);
-		array[2] = new Num(1);
-		octelem.update(LibraryAccess.addConstraint(octelem, array));
-
-		System.out.println("==== 2 ==== \n" + octelem);
+	  System.out.println("Init: " + ow.J_init());
+	  long oct1 = ow.J_universe(0);
+//	  long oct2 = ow.J_copy(oct1);
+    long array = ow.J_init_n(3);
+    ow.J_num_set_int(array, 0, 0);
+    ow.J_num_set_int(array, 1, 0);
+    ow.J_num_set_int(array, 2, 2);
+//    System.out.println(ow.J_num_get_int(array, 0));
+//    System.out.println(ow.J_num_get_int(array, 1));
+//    System.out.println(ow.J_num_get_int(array, 2));
+//    System.out.println(ow.J_num_get_int(array, 3));
+//    System.out.println(ow.J_num_get_int(array, 4));
+//    ow.J_assingVar(oct1, 0, array, true);
+//    ow.J_num_set_int(array, 0, 0);
+//    ow.J_num_set_int(array, 1, 0);
+//    ow.J_num_set_int(array, 2, 4);
+//    ow.J_assingVar(oct1, 1, array, true);
+//    System.out.println("oct1 >> " + oct1);
+//    ow.J_print(oct1);
+//    System.out.println("===================");
+//    long oct2 = ow.J_full_copy(oct1);
+    
+//    ow.J_num_set_int(array, 0, 0);
+//    ow.J_num_set_int(array, 1, 0);
+//    ow.J_num_set_int(array, 2, 4);
+//    ow.J_assingVar(oct1, 1, array, true);
+    
+//    System.out.println("oct1 >> " + oct1);
+//    ow.J_print(oct1);
+//    System.out.println("..............................");
+//    System.out.println("oct2 >> " + oct2);
+//    ow.J_print(oct2);
+    
+//    System.out.println("oct2 >> " + oct2);
+//    ow.J_print(oct2);
+//	  long oct = ow.J_intersection(oct1, oct2, false);
+//	  System.out.println(ow.J_dimension(oct));
+//	  System.out.println(ow.J_isEmpty(oct1));
+//	  System.out.println("oct1 >> " + oct1);
+//    ow.J_print(oct1);
+//    System.out.println("oct2 >> " + oct2);
+//    ow.J_print(oct2);
+//	  System.out.println("oct >> " + oct);
+//	  ow.J_print(oct);
+	  
+	  
+	  
+//		OctElement octelem = new OctElement();
+//		octelem.addVar("a", "main");
+//		octelem.addVar("b", "main");
+//		octelem.addVar("c", "main");
+//		octelem.addVar("d", "main");
+//		octelem.addVar("e", "main");
+//
+//		octelem.update(LibraryAccess.addDimension(octelem, 5));
+//
+//		Num[] array = new Num[octelem.getNumberOfVars()+1];
+//
+//		for(int i=0; i<array.length-1; i++){
+//			array[i] = new Num(0);
+//		}
+//
+//		array[array.length-1] = new Num(44);
+//		//array[variableId] = new Num(1);
+//
+//		int lvar = octelem.getVariableId(new ArrayList<String>(), "c", "main");
+////		System.out.println(octelem.getOctagon().getDimension());
+//		octelem.update(LibraryAccess.assignVar(octelem, lvar, array));
+//		System.out.println("==== 1 ==== \n" + octelem);
+//
+//		for(int i=0; i<array.length-1; i++){
+//			array[i] = new Num(0);
+//		}
+//		array[array.length-1] = new Num(124);
+//		array[0] = new Num(1);
+//		array[2] = new Num(1);
+//		octelem.update(LibraryAccess.addConstraint(octelem, array));
+//
+//		System.out.println("==== 2 ==== \n" + octelem);
 
 
 	}

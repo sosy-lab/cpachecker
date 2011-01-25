@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -92,7 +92,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
    * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedSet pElements) {
     CompositeElement comp = (CompositeElement) pElement;
@@ -104,20 +104,21 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     ImmutableList.Builder<Precision> outPrecisions = ImmutableList.builder();
 
     boolean modified = false;
-
+    Action action = Action.CONTINUE;
+    
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedSet slice =
         new UnmodifiableReachedSetView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractElement oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Pair<AbstractElement,Precision> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
-      if (out == null) {
-        // element is not reachable
-        return null;
-      }
+      Triple<AbstractElement,Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
       AbstractElement newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
+      if (out.getThird() == Action.BREAK) {
+        action = Action.BREAK;
+      }
+
       if ((newElement != oldElement) || (newPrecision != oldPrecision)) {
         // something has changed
         modified = true;
@@ -127,12 +128,10 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (modified) {
-      // TODO for now we just take the input call stack, that may be wrong, but how to construct
-      // a proper one in case this _is_ wrong?
-      return new Pair<AbstractElement, Precision>(new CompositeElement(outElements.build()),
-          new CompositePrecision(outPrecisions.build()));
+      return new Triple<AbstractElement, Precision, Action>(new CompositeElement(outElements.build()),
+          new CompositePrecision(outPrecisions.build()), action);
     } else {
-      return new Pair<AbstractElement, Precision>(pElement, pPrecision);
+      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, action);
     }
   }
 

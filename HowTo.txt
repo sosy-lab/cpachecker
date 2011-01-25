@@ -27,7 +27,8 @@ Running CPAchecker:
    Several types of example programs can be found in test/programs/
    If you use your own program, remember to pre-process it with CIL (see above).
    Example: test/programs/simple/loop1.c
-6. Choose a configuration file. This file defines for example which CPAs are used.
+6. If you want to enable certain analyses like predicate analysis,
+   choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory test/config/.
    Example: test/config/explicitAnalysisInf.properties
    The configuration options used in this file are explained in HowToConfiguration.txt.
@@ -36,8 +37,8 @@ Running CPAchecker:
    as the default specification. With this one, CPAchecker will look for labels
    named "ERROR" and assertions in the source code file.
    Other examples for specifications can be found in test/config/automata/.
-8. Execute "scripts/cpa.sh -config <CONFIG_FILE> [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
-   The specification is optional if already specified in the configuration file.
+8. Execute "scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
+   Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in HowToConfiguration.txt.
    Example: scripts/cpa.sh -config test/config/explicitAnalysisInf.properties test/programs/simple/loop1.c
@@ -66,14 +67,15 @@ Building and running CPAchecker from within Eclipse:
 ----------------------------------------------------
 1. Install Eclipse 3.5 or 3.6 with JDT.
    http://www.eclipse.org/
-2. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
+2. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org,
+   Eclipse update site: http://subclipse.tigris.org/update_1.6.x)
    Create new project from SVN repository
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
 3. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
    and "Bundle 'org.eclipse.cdt.core' cannot be resolved'".
 4. Follow the instructions in section "Running CPAchecker", but instead of step 8
    create an Eclipse run configuration with main class "org.sosy_lab.cpachecker.cmdline.CPAMain",
-   program arguments "-config <CONFIG_FILE> [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
+   program arguments "[ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
    and VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
    Replace <ENVIRONMENT> with one of the following depending on your system:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32

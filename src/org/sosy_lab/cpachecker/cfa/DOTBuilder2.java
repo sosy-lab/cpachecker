@@ -31,21 +31,21 @@ import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.json.simple.JSONObject;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -82,7 +82,7 @@ public final class DOTBuilder2 {
     CFAVisitor vis = new CompositeCFAVisitor(jsoner, dotter);
     traverse(cfa, vis);
     dotter.writeFiles(outdir);
-    jsoner.writeJSON(outdir);
+    Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
   }
  
   private static void addLeavingEdges(CFANode node, Deque<CFAEdge> waitingEdgeList) {
@@ -156,84 +156,47 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends CFAVisitor {
     
-    Map<String, List<CFANode>> func2nodes = Maps.newHashMap();
-    Map<String, List<CFAEdge>> func2edges = Maps.newHashMap();
-    Map<String, List<List<CFAEdge>>> func2comboedge = Maps.newHashMap();
-    Set<CFANode> visitedNodes = Sets.newHashSet();    
-    JSONObject node2combo = new JSONObject();
-    JSONObject virtFuncCallEdges = new JSONObject();    
+    private final ListMultimap<String, CFANode> func2nodes = ArrayListMultimap.create();
+    private final ListMultimap<String, CFAEdge> func2edges = ArrayListMultimap.create();
+    private final ListMultimap<String, List<CFAEdge>> func2comboedge = ArrayListMultimap.create();
+    private final JSONObject node2combo = new JSONObject();
+    private final JSONObject virtFuncCallEdges = new JSONObject();    
     private int virtFuncCallNodeIdCounter = 100000;
     
-    List<CFAEdge> combo = null;
-    boolean comboQualified;
-    CFANode toAdd = null;
+    private List<CFAEdge> currentComboEdge = null;
     
-    private void flushNode() {
-      comboQualified = false;
-      combo = null;
-      if (toAdd != null) {
-        List<CFANode> nodes = func2nodes.get(toAdd.getFunctionName());
-        if (nodes == null) { 
-          nodes = Lists.newArrayList();
-          func2nodes.put(toAdd.getFunctionName(), nodes);
-        }
-        nodes.add(toAdd);
-        toAdd = null;
-      }
-    }
-
-    private void addEdge(CFAEdge edge) {
-      List<CFAEdge> edges = func2edges.get(edge.getPredecessor().getFunctionName());
-      if (edges == null) { 
-        edges = Lists.newArrayList();
-        func2edges.put(edge.getPredecessor().getFunctionName(), edges);
-      }
-      edges.add(edge);
-    }
-    
-    private void addComboEdge(CFAEdge edge) {
-      if (combo == null) {
-        List<List<CFAEdge>> combos = func2comboedge.get(edge.getPredecessor().getFunctionName());
-        if (combos == null) {          
-          combos = Lists.newArrayList();          
-          func2comboedge.put(edge.getPredecessor().getFunctionName(), combos);
-        }
-        combo = Lists.newArrayList();
-        combos.add(combo);
-      }
-      combo.add(edge);
-    }
-    
-    void visitNode(CFANode node) {
-      toAdd = node;      
-      comboQualified = !(node instanceof CFAErrorNode) && !node.isLoopStart() 
-          && node.getNumEnteringEdges() == 1 && node.getNumLeavingEdges() == 1 
-          && node.getLeavingSummaryEdge() == null;
-      if (!comboQualified) {
-        flushNode();
-      }
-    }
-
     @Override
     void visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
-      if (!visitedNodes.contains(predecessor)) {
-        visitNode(predecessor);
-      } else {
-        combo = null;
-      }
-      if (!comboQualified || edge instanceof ReturnEdge || edge instanceof AssumeEdge 
-          || (edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall())) {
+
+      // check if it qualifies for a comboEdge
+      if (    predecessor.isLoopStart() 
+          || (predecessor.getNumEnteringEdges() != 1)
+          || (predecessor.getNumLeavingEdges() != 1)
+          || (predecessor.getLeavingSummaryEdge() != null)
+          || (edge instanceof FunctionReturnEdge)
+          || (edge instanceof AssumeEdge)
+          || (edge instanceof FunctionCallEdge)) {
+        // no, it does not
         
-        flushNode();
-        addEdge(edge);
+        func2nodes.put(predecessor.getFunctionName(), predecessor);
+        func2edges.put(predecessor.getFunctionName(), edge);
+        currentComboEdge = null;
+
       } else {
-        addComboEdge(edge);
+        // add combo edge
+        if (currentComboEdge == null) {
+          currentComboEdge = Lists.newArrayList();
+          func2comboedge.put(predecessor.getFunctionName(), currentComboEdge);
+        }
+        currentComboEdge.add(edge);
       }
+
+      // last, handle successor if necessary
       CFANode successor = edge.getSuccessor();
       if (successor.getNumLeavingEdges() == 0 && successor.getLeavingSummaryEdge() == null) {
-        visitNode(successor);
-        flushNode();
+        func2nodes.put(successor.getFunctionName(), successor);
+        currentComboEdge = null;
       }
     }
     
@@ -242,27 +205,24 @@ public final class DOTBuilder2 {
       for (String funcname: func2nodes.keySet()) {
         List<CFANode> nodes = func2nodes.get(funcname);
         List<CFAEdge> edges = func2edges.get(funcname);
-        List<List<CFAEdge>> combos = func2comboedge.get(funcname);
         
         Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
         try {
           out.write("digraph " + funcname + " {\n");
-          StringBuffer outb = new StringBuffer();
+          StringBuilder outb = new StringBuilder();
           //write comboedges
-          if (combos != null) {
-            for (List<CFAEdge> combo: combos) {
-              if (combo.size() == 1) {
-                edges.add(combo.get(0));
-                nodes.add(combo.get(0).getPredecessor());
-              } else {
-                outb.append(comboToDot(combo));
-                CFAEdge first = combo.get(0);
-                CFAEdge last = combo.get(combo.size() - 1);
-                outb.append("" + first.getPredecessor().getNodeNumber());
-                outb.append(" -> ");
-                outb.append("" + last.getSuccessor().getNodeNumber());
-                outb.append("[label=\"\" ];\n");
-              }
+          for (List<CFAEdge> combo: func2comboedge.get(funcname)) {
+            if (combo.size() == 1) {
+              edges.add(combo.get(0));
+              nodes.add(combo.get(0).getPredecessor());
+            } else {
+              outb.append(comboToDot(combo));
+              CFAEdge first = combo.get(0);
+              CFAEdge last = combo.get(combo.size() - 1);
+              outb.append("" + first.getPredecessor().getNodeNumber());
+              outb.append(" -> ");
+              outb.append("" + last.getSuccessor().getNodeNumber());
+              outb.append("[label=\"\" ];\n");
             }
           }
 
@@ -274,39 +234,23 @@ public final class DOTBuilder2 {
           out.write(outb.toString());
           
           //write edges
-          if (edges != null) {
-            for (CFAEdge edge: edges) {
-              out.write(edgeToDot(edge));
-            }
+          for (CFAEdge edge: edges) {
+            out.write(edgeToDot(edge));
           }
           out.write("}");
         } finally {
           out.close();
         }
-        
-        Writer json = new OutputStreamWriter(new FileOutputStream(new File(outdir, "combinednodes.json")), "UTF-8");
-        try {
-          json.write(node2combo.toJSONString());
-        } finally {
-          json.close();
-        }
-        
-        json = new OutputStreamWriter(new FileOutputStream(new File(outdir, "fcalledges.json")), "UTF-8");
-        try {
-          json.write(virtFuncCallEdges.toJSONString());
-        } finally {
-          json.close();
-        }
-        
       }
+      
+      Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
+      Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString()); 
     }
     
-    private String nodeToDot(CFANode node) {
+    private static String nodeToDot(CFANode node) {
       String shape = "circle";
     
-      if (node instanceof CFAErrorNode) {
-        shape = "tripleoctagon";
-      } else if(node.isLoopStart()){
+      if(node.isLoopStart()){
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
           node.getLeavingEdge(0) instanceof AssumeEdge) {
@@ -318,11 +262,10 @@ public final class DOTBuilder2 {
     
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof ReturnEdge) {
+      if (edge instanceof FunctionReturnEdge) {
         return "";
       }
-      if (edge instanceof FunctionCallEdge 
-          && !((FunctionCallEdge)edge).isExternalCall()) {
+      if (edge instanceof FunctionCallEdge) {
        //create the function node
         String ret = "node [shape = component label=\"" + edge.getSuccessor().getFunctionName() + "\"]; " + (++virtFuncCallNodeIdCounter) + ";\n";
         int from = edge.getPredecessor().getNodeNumber();
@@ -351,7 +294,7 @@ public final class DOTBuilder2 {
     @SuppressWarnings("unchecked")
     private String comboToDot(List<CFAEdge> combo) {
       CFAEdge first = combo.get(0);      
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
       sb.append(" [style=\"filled,bold\" penwidth=1 fillcolor=\"white\" fontname=\"Courier New\" shape=\"Mrecord\" label=");
@@ -377,9 +320,9 @@ public final class DOTBuilder2 {
    *
    */
   private static class CFAJSONBuilder extends CFAVisitor {
-    JSONObject nodes = new JSONObject();
-    JSONObject edges = new JSONObject();
-    Set<CFANode> visited = Sets.newHashSet();
+    private final JSONObject nodes = new JSONObject();
+    private final JSONObject edges = new JSONObject();
+    private final Set<CFANode> visited = Sets.newHashSet();
     
     @SuppressWarnings("unchecked")
     void visitNode(CFANode node) {
@@ -408,15 +351,6 @@ public final class DOTBuilder2 {
       jedge.put("type", edge.getEdgeType().toString());
 
       edges.put("" + src + "->" + target, jedge);    
-    }
-    
-    void writeJSON(File outdir) throws IOException {
-      Writer json = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfainfo.json")), "UTF-8");
-      try {
-        json.write(getJSON().toJSONString());
-      } finally {
-        json.close();
-      }      
     }
     
     @SuppressWarnings("unchecked")

@@ -23,23 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
+import java.util.List;
+
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.collect.ImmutableList;
+
 
 public class FunctionCallEdge extends AbstractCFAEdge
 {
-	private final IASTExpression[] functionArguments;
+	private final List<IASTExpression> arguments;
 	private final IASTExpression rawAST;
-	private final boolean isExternalCall;
 
-    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
+    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, IASTExpression[] arguments) {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
-        this.functionArguments = arguments;
+        if (arguments == null) {
+          this.arguments = ImmutableList.of();
+        } else {
+          this.arguments = ImmutableList.copyOf(arguments);
+        }
         this.rawAST = rawAST;
-        this.isExternalCall = isExternalCall;
     }
 
     @Override
@@ -48,16 +54,18 @@ public class FunctionCallEdge extends AbstractCFAEdge
         return CFAEdgeType.FunctionCallEdge;
     }
 
-    public IASTExpression[] getArguments(){
-    	return this.functionArguments;
-    }
-
+  public List<IASTExpression> getArguments() {
+    return arguments;
+  }
+    
   @Override
   public IASTExpression getRawAST() {
     return rawAST;
   }
-
-	public boolean isExternalCall() {
-		return this.isExternalCall;
-	}
+  
+  @Override
+  public FunctionDefinitionNode getSuccessor() {
+    // the constructor enforces that the successor is always a CFAFunctionDefinitionNode
+    return (FunctionDefinitionNode)super.getSuccessor();
+  }
 }

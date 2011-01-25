@@ -48,11 +48,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -71,28 +70,24 @@ public class CPASelfCheck {
    * @param args
    */
   public static void main(String[] args) {
-    Configuration cpaConfig = null;
+    CPAchecker cpachecker = null;
     try {
-      cpaConfig = CPAMain.createConfiguration(args);
-    } catch (InvalidCmdlineArgumentException e) {
-      System.err.println("Could not parse command line arguments: " + e.getMessage());
-      System.exit(1);
-    } catch (IOException e) {
-      System.err.println("Could not read config file " + e.getMessage());
-      System.exit(1);
-    }
-    try {
+      Configuration cpaConfig = null;
+      try {
+        cpaConfig = CPAMain.createConfiguration(args);
+      } catch (InvalidCmdlineArgumentException e) {
+        System.err.println("Could not parse command line arguments: " + e.getMessage());
+        System.exit(1);
+      } catch (IOException e) {
+        System.err.println("Could not read config file " + e.getMessage());
+        System.exit(1);
+      }
+
       logManager = new LogManager(cpaConfig);
+      cpachecker = new CPAchecker(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
-    }
-
-    CPAchecker cpachecker = null;
-    try {
-      cpachecker = new CPAchecker(cpaConfig, logManager);
-    } catch (InvalidConfigurationException e) {
-      logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
     }
 
     try {
@@ -128,9 +123,6 @@ public class CPASelfCheck {
 
         boolean ok = true;
         // check domain and lattice
-        ok &= checkSingletonBottomTop(cpa, cpaInst, main);
-        ok &= checkBottomLessThanTop(cpa, cpaInst, main);
-        ok &= checkInitialElementInLattice(cpa, cpaInst, main);
         ok &= checkJoin(cpa, cpaInst, main);
         /// TODO checking the invariantes of the transfer relation is a bit more work ...
         // check merge
@@ -181,63 +173,20 @@ public class CPASelfCheck {
     return true;
   }
 
-  private static boolean checkSingletonBottomTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
-    Constructor<ConfigurableProgramAnalysis> ct = pCpa.getConstructor(String.class, String.class);
-    Object argumentlist[] = {"sep", "sep"};
-    ConfigurableProgramAnalysis inst2 = ct.newInstance(argumentlist);
-
-    // maybe use equals, but elements should really be static
-    boolean ok = true;
-    ok &= ensure(pCpaInst.getAbstractDomain().getBottomElement() == inst2.getAbstractDomain().getBottomElement(),
-        "Bottom elements are not the same!");
-    ok &= ensure(pCpaInst.getAbstractDomain().getTopElement() == inst2.getAbstractDomain().getTopElement(),
-        "Top elements are not the same!");
-    return ok;
-  }
-
-  private static boolean checkBottomLessThanTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
-    AbstractElement bottom = pCpaInst.getAbstractDomain().getBottomElement();
-    AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
-
-    boolean ok = true;
-    ok &= ensure(le.satisfiesPartialOrder(bottom, top), "Bottom is not less or equal to top!");
-    ok &= ensure(!le.satisfiesPartialOrder(top, bottom), "Top is less or equal to bottom!");
-    return ok;
-  }
-
-
-  private static boolean checkInitialElementInLattice(
-                                                   Class<ConfigurableProgramAnalysis> pCpa,
-                                                   ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
-    AbstractElement bottom = pCpaInst.getAbstractDomain().getBottomElement();
-    AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
-    AbstractElement initial = pCpaInst.getInitialElement(pMain);
-
-    boolean ok = true;
-    ok &= ensure(le.satisfiesPartialOrder(bottom, initial), "Initial element is not greater or equal bottom!");
-    ok &= ensure(le.satisfiesPartialOrder(initial, top), "Initial element is not less or equal top!");
-    return ok;
-  }
-
   private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
                                 ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
-    JoinOperator join = pCpaInst.getAbstractDomain().getJoinOperator();
-    AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
+    AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
 
     boolean ok = true;
-    ok &= ensure(le.satisfiesPartialOrder(initial, join.join(initial,initial)),
+    ok &= ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
-    ok &= ensure(le.satisfiesPartialOrder(top, join.join(initial, top)), "Join with top is unsound!");
     return ok;
   }
 
   private static boolean checkMergeSoundness(Class<ConfigurableProgramAnalysis> pCpa,
                                  ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
-    PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
+    AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
@@ -245,7 +194,7 @@ public class CPASelfCheck {
     boolean ok = true;
     ok &= ensure(merge != null, "Merge-hack: mergeOperator is null!");
     if (!ok) return false;
-    ok &= ensure(le.satisfiesPartialOrder(initial, merge.merge(initial,initial,initialPrec)),
+    ok &= ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
         "Merging same elements was unsound!");
     return ok;
   }

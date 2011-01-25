@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.art;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,7 +43,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) {
 
     Preconditions.checkArgument(pElement instanceof ARTElement);
@@ -54,19 +54,15 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractElement oldElement = element.getWrappedElement();
     
-    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
-
-    if (unwrappedResult == null) {
-      // element is not reachable
-      return null;
-    }
+    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
+    Action action = unwrappedResult.getThird();
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Pair<AbstractElement, Precision>(pElement, oldPrecision);
+      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
     }
       
     ARTElement resultElement = new ARTElement(newElement, null);
@@ -86,6 +82,6 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
       covered.setCovered(resultElement);
     }
 
-    return new Pair<AbstractElement, Precision>(resultElement, newPrecision);
+    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }
 }

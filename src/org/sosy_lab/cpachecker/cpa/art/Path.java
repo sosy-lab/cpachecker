@@ -24,15 +24,22 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.LinkedList;
+import java.util.List;
 
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
- * Path contains a path throught the ART that starts at the root node.
+ * Path contains a path through the ART that starts at the root node.
  * It is implemented as a list of pairs of an ARTElement and a CFAEdge,
  * where the edge of a pair is the outgoing edge of the element.
  * The first pair contains the root node of the ART.
@@ -45,11 +52,11 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   public String toString() {
     StringBuilder sb = new StringBuilder();
 
-    for (Pair<ARTElement, CFAEdge> pair : this) {
+    for (CFAEdge edge : asEdgesList()) {
       sb.append("Line ");
-      sb.append(pair.getSecond().getLineNumber());
+      sb.append(edge.getLineNumber());
       sb.append(": ");
-      sb.append(pair.getSecond());
+      sb.append(edge);
       sb.append("\n");
     }
 
@@ -69,8 +76,108 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
       elem.put("desc", edge.getRawStatement().replaceAll("\n", " "));
       elem.put("line", edge.getLineNumber());
       path.add(elem);
-    }    
+    }
     return path;
   }
+
+  public List<CFAEdge> asEdgesList() {
+    Function<Pair<ARTElement, CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
+    return Lists.transform(this, projectionToSecond);
+  }
   
+  /**
+   * This method returns the path as C source code, intended to be used with CBMC.
+   *
+   * @return the path as C source code
+   */
+  public String toSourceCode()
+  {
+    StringBuilder sb = new StringBuilder();
+
+    CFAEdgeType currentEdgeType;
+
+    sb.append("int main()");
+    sb.append("\n");
+    sb.append("{");
+    sb.append("\n");
+
+    for(CFAEdge currentEdge : asEdgesList())
+    {
+      currentEdgeType = currentEdge.getEdgeType();
+
+      switch (currentEdgeType)
+      {
+        case DeclarationEdge:
+        case StatementEdge:
+        case ReturnStatementEdge:
+          sb.append(currentEdge.getRawStatement());
+          sb.append("\n");
+
+          break;
+
+        case AssumeEdge:
+          AssumeEdge assumeEdge = (AssumeEdge)currentEdge;
+          sb.append("__CPROVER_assume(");
+
+          if(assumeEdge.getTruthAssumption())
+            sb.append(assumeEdge.getExpression().getRawSignature());
+
+          else
+          {
+            sb.append("!(");
+            sb.append(assumeEdge.getExpression().getRawSignature());
+            sb.append(")");
+          }
+
+          sb.append(");");
+          sb.append("\n");
+
+          break;
+
+        case FunctionCallEdge:
+          FunctionCallEdge functionCallEdge = (FunctionCallEdge)currentEdge;
+
+          List<IASTExpression> actualParams = functionCallEdge.getArguments();
+
+          List<String> formalParameters = functionCallEdge.getSuccessor().getFunctionParameterNames();
+
+          // define and declare a variable for each actual parameter of the called function that corresponds to its respective formal parameter
+          for(int i = 0; i < formalParameters.size(); i++)
+          {
+            sb.append("int " + formalParameters.get(i) + ";\n");
+            sb.append(formalParameters.get(i));
+            sb.append(" = ");
+            sb.append(actualParams.get(i).getRawSignature());
+            sb.append(";\n");
+          }
+
+          break;
+
+        case BlankEdge:
+          if(currentEdge.isJumpEdge())
+          {
+            String statement = currentEdge.getRawStatement();
+            if(isGotoErrorStateLabel(statement))
+            {
+              sb.append("goto ERROR;");
+              sb.append("\n");
+
+              sb.append("ERROR:");
+              sb.append("\n");
+            }
+          }
+
+          break;
+      }
+    }
+
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  private boolean isGotoErrorStateLabel(String statement)
+  {
+    return statement.contains("Goto: ERROR");
+  }
 }

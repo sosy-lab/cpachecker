@@ -53,10 +53,6 @@ public class AlwaysTopTransferRelation implements TransferRelation {
     assert(pPrecision != null);
     assert(pCfaEdge != null);
 
-    if (AlwaysTopBottomElement.getInstance().equals(pElement)) {
-      return Collections.emptySet();
-    }
-
     return Collections.singleton(AlwaysTopTopElement.getInstance());
   }
 

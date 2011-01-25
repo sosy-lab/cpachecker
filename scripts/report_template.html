@@ -121,14 +121,26 @@
                     </div>
                 </td>
                 <td colspan="2">
-                    <div class="toolbar">
+                <div>
+					<div id="zoomSliderContainer" onmousemove="setZoomLevel();" onmouseup="setZoomLevel();zoom();" style="width:500px; overflow-x:scroll; overflow-y:hidden; float:left; margin-left:5px; margin-right:5px;">
+						<div id="zoomSliderContent" style="width:1450px; height:18px;">
+							<div id="zoomLevelLabel" style="position:absolute; left:500px; width:500px; text-align:center;">
+								100
+							</div>
+							<span style="position:absolute; left:500px; width:550px; text-align:center;">
+								%
+							</span>
+						</div>
+					</div>
+                    <div class="toolbar" onclick="setActiveWindow(event);">
                         <a class="action" id="show_cfa">CFA</a>
                         <a class="action" id="show_art">ART</a>
                         <a class="action" id="show_cil">CIL</a>
                         <a class="action" id="show_log">Log</a>                        
                         <a class="action" id="show_stats">Statistics</a> 
                         <a class="action" id="show_conf">Configuration</a> 
-                    </div>                 
+					</div>
+				</div>
                 </td>
                 
             <tr>
@@ -159,6 +171,67 @@
             </tr>
         </table>
         <script>
+        
+	       	var activeWindow    = "cfawin";
+
+			var zoomLevel		= new Array();
+			zoomLevel["cfawin"]	= 100;
+			zoomLevel["artwin"]	= 100;
+			
+			var scrOffset		= new Array();
+			scrOffset["cfawin"]	= 0;
+			scrOffset["artwin"]	= 0;
+			
+			function setActiveWindow(event)
+			{
+				if(event.target.className != 'action')
+					return;
+
+				slider = document.getElementById('zoomSliderContainer');
+				
+				win = 'none';
+				if(event.target.id == "show_cfa")
+					win = "cfawin";
+				else if(event.target.id == "show_art")
+					win = "artwin";
+
+				if(win == 'none')
+				  slider.style.visibility = "hidden";
+				
+				else
+				{
+				  activeWindow = win;
+
+				  slider.style.visibility = "visible";
+				
+				  slider.scrollLeft = 1000 - zoomLevel[activeWindow] * 10;
+				
+				  setZoomLevel();
+				}
+			}
+
+		    function setZoomLevel()
+		    {
+              diff = document.getElementById('zoomSliderContainer').scrollLeft - scrOffset[activeWindow];
+              
+              scrOffset[activeWindow] = document.getElementById('zoomSliderContainer').scrollLeft;
+
+		      zoomLevel[activeWindow] = zoomLevel[activeWindow] - (diff / 10);
+		      
+		      document.getElementById('zoomLevelLabel').innerHTML =  Math.round(zoomLevel[activeWindow]);
+		    }
+
+            function zoom()
+            {
+			  graph = window.frames[activeWindow].document.getElementsByClassName("graph")[0];
+
+			  transforms = graph.getAttribute("transform").split(" ");
+
+			  newScale = Math.round(zoomLevel[activeWindow]) / 100;
+			  
+			  graph.setAttribute("transform", "scale(" + newScale + ") " + transforms[1] + " " + transforms[2] + transforms[3]);
+            }
+
             // ignore console.log and console.debug when firebug is turned off or not installed
             if (!window.console) {
                 window.console = {
@@ -611,18 +684,6 @@
                     self.selection = nodeid;
                 };
                 
-                //modify the color of an edge
-                self.set_edge_color = function(edgeid, color) {
-                    var svgedge = self.svgdoc.getElementById('' + edgeid[0] + '->' + edgeid[1]);
-                    if (svgedge != undefined) {                    
-                        var path = svgedge.getElementsByTagName('path')[0];
-                        var poly = svgedge.getElementsByTagName('polygon')[0];
-                        path.setAttribute('stroke', color);
-                        poly.setAttribute('stroke', color);
-                        poly.setAttribute('fill', color);
-                    }
-                };
-                
                 //draw an arrow at a specific position
                 self.draw_arrow = function(x,y) {
                     var svgns = "http://www.w3.org/2000/svg";
@@ -757,22 +818,10 @@
                 }                
             }
 
-            function draw_error_path_art() {
-                if (viewer.data.errorpath.length > 0) {
-                    var prev = viewer.data.errorpath[0];
-                    for (var i = 1; i < viewer.data.errorpath.length; i++) {
-                        var curr = viewer.data.errorpath[i];
-                        viewer.windows.artwin.set_edge_color([prev.artelem, curr.artelem], 'red');                        
-                        prev = curr;                                                
-                    }
-                }
-            }
-
             console.log('init main');
             viewer.windows.cfawin.handlers.add('cfa_loaded', function() {
                 console.log('draw error path!');
                 draw_error_path_cfa();
-
             });
             
             
@@ -833,7 +882,6 @@
                     console.log('ART DOM seems to be ready.');                    
                     clearInterval(task);
                     viewer.windows.artwin.onready();
-                    draw_error_path_art();
                 }
             }, 1000);
             

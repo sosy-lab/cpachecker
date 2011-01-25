@@ -33,12 +33,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
 import com.google.common.base.Joiner;
 
@@ -139,12 +138,7 @@ public final class DOTBuilder {
 
 			visitedNodes.add (node);
 
-			// AG - give a shape also to error nodes
-			if (node instanceof CFAErrorNode) {
-			    nodeWriter.add(node.getNodeNumber(),
-			            "tripleoctagon");
-			}
-			else if(node.isLoopStart()){
+			if(node.isLoopStart()){
 				nodeWriter.add(node.getNodeNumber(), "doublecircle");
 			}
 
@@ -180,8 +174,7 @@ public final class DOTBuilder {
 				line = line + edgeText;
 				line = line + "\"];";
 				DOTWriter dw;
-				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) ||
-						edge instanceof ReturnEdge){
+				if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
 					dw = subGraphWriters.get(MAIN_GRAPH);
 				}
 				else{

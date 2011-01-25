@@ -23,115 +23,171 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Map;
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFA;
+
+import com.google.common.collect.ImmutableSet;
 
 
 /**
  * Perform a (very) simple cone-of-influence reduction on the given CFA.
  * That is, get rid of all the nodes/edges that are not reachable from the
- * error location(s).
+ * error location(s) and assert(s).
  *
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
+@Options(prefix="cfa.pruning")
 public class CFAReduction {
-
-  public CFAReduction() {}
-
-  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
-    Map<CFANode, Integer> dfsMap = new HashMap<CFANode, Integer>();
-    Map<CFANode, Integer> dfsMapFromError = new HashMap<CFANode, Integer>();
-    dfs(cfa, dfsMap, false);
-    for (CFANode n : dfsMap.keySet()) {
-      if (n instanceof CFAErrorNode) {
-        dfs(n, dfsMapFromError, true);
-      }
+  
+  @Option
+  private boolean markOnly = false;
+  
+  private final Configuration config;
+  private final LogManager logger;
+  
+  public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
+    
+    if (config.getProperty("specification") == null) {
+      throw new InvalidConfigurationException("Option cfa.removeIrrelevantForErrorLocations is only valid if a specification is given!");
     }
+    
+    this.config = config;
+    this.logger = logger;
+  }
+
+  
+  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
+    Set<CFANode> allNodes = CFA.allNodes(cfa, true);
+
+    Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
+    
+    if (errorNodes.isEmpty()) {
+      // shortcut, all nodes are irrelevant
+      if (markOnly) {
+        for (CFANode n : allNodes) {
+          n.setIrrelevant();
+        }
+      } else {
+        // remove all outgoing edges of first node
+        for (int i = cfa.getNumLeavingEdges() - 1; i >= 0; i--) {
+          cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
+        }
+        cfa.addLeavingSummaryEdge(null);
+      }
+      return;
+    }
+    
+    if (errorNodes.size() == allNodes.size()) {
+      // shortcut, no node is irrelevant
+      return;
+    }
+    
+    // backwards search to determine all relevant nodes
+    Set<CFANode> relevantNodes = new HashSet<CFANode>();
+    for (CFANode n : errorNodes) {
+      CFA.dfs(n, relevantNodes, true, true);
+    }
+    
+    if (relevantNodes.size() == allNodes.size()) {
+      // shortcut, no node is irrelevant
+      return;
+    }
+
     // now detach all the nodes not visited
-    for (CFANode n : dfsMap.keySet()) {
-      if (!dfsMapFromError.containsKey(n)) {
+    pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
+  }
+
+  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) {      
+    try {
+      // create new configuration based on existing config but with default set of CPAs
+      Configuration lConfig = Configuration.builder()
+                                           .copyFrom(config)
+                                           .setOption("output.disable", "true")
+                                           .clearOption("cpa")
+                                           .clearOption("cpas")
+                                           .clearOption("CompositeCPA.cpas")
+                                           .build();
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
+      PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
+      lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
+      
+      lAlgorithm.run(lReached);
+
+      return ImmutableSet.copyOf(extractLocations(filterTargetElements(lReached)));
+
+    } catch (CPAException e) {
+      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
+      logger.logException(Level.ALL, e, "");
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
+      logger.logException(Level.ALL, e, "");
+    }
+    return allNodes;
+  }
+
+    
+  private void pruneIrrelevantNodes(Set<CFANode> allNodes,
+      Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
+    for (CFANode n : allNodes) {
+      if (!relevantNodes.contains(n)) {
+        boolean irrelevant = true;
         int edgeIndex = 0;
         while (n.getNumEnteringEdges() > edgeIndex) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
-          if(!(prevNode instanceof CFAErrorNode)){
-            prevNode.removeLeavingEdge(removedEdge);
-            n.removeEnteringEdge(removedEdge);
+          if(!(errorNodes.contains(prevNode))) {
+            // do not remove the direct successors of error nodes
+            irrelevant = false;
+            if (!markOnly) {
+              prevNode.removeLeavingEdge(removedEdge);
+              n.removeEnteringEdge(removedEdge);
+            } else {
+              ++edgeIndex;
+            }
           } else {
             ++edgeIndex;
           }
         }
-        while (n.getNumLeavingEdges() > 0) {
-          CFAEdge removedEdge = n.getLeavingEdge(0);
-          n.removeLeavingEdge(removedEdge);
-          CFANode succNode = removedEdge.getSuccessor();
-          succNode.removeEnteringEdge(removedEdge);
-        }
-        n.addEnteringSummaryEdge(null);
-        n.addLeavingSummaryEdge(null);
-      }
-    }
-  }
-
-  private void dfs(CFANode start, Map<CFANode, Integer> dfsMarked,
-                   boolean reverse) {
-    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
-
-    toProcess.push(start);
-    while (!toProcess.isEmpty()) {
-      CFANode n = toProcess.peek();
-      if (dfsMarked.containsKey(n) && dfsMarked.get(n) == 1) {
-        toProcess.pop();
-        continue;
-      }
-      boolean finished = true;
-      dfsMarked.put(n, -1);
-      if (reverse) {
-        for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
-          CFAEdge e = n.getEnteringEdge(i);
-          CFANode s = e.getPredecessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
-            toProcess.push(s);
-            finished = false;
+        if (markOnly) {
+          if (irrelevant) {
+            n.setIrrelevant();
           }
-        }
-        if (n.getEnteringSummaryEdge() != null) {
-          CFANode s = n.getEnteringSummaryEdge().getPredecessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
-            toProcess.push(s);
-            finished = false;
+        } else {
+          while (n.getNumLeavingEdges() > 0) {
+            CFAEdge removedEdge = n.getLeavingEdge(0);
+            n.removeLeavingEdge(removedEdge);
+            CFANode succNode = removedEdge.getSuccessor();
+            succNode.removeEnteringEdge(removedEdge);
           }
+          n.addEnteringSummaryEdge(null);
+          n.addLeavingSummaryEdge(null);
         }
-      } else {
-        for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
-          CFAEdge e = n.getLeavingEdge(i);
-          CFANode s = e.getSuccessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
-            toProcess.push(s);
-            finished = false;
-          }
-        }
-        if (n.getLeavingSummaryEdge() != null) {
-          CFANode s = n.getLeavingSummaryEdge().getSuccessor();
-          if (!dfsMarked.containsKey(s) || dfsMarked.get(s) == 0) {
-            toProcess.push(s);
-            finished = false;
-          }
-        }
-      }
-      if (finished) {
-        toProcess.pop();
-        dfsMarked.put(n, 1);
       }
     }
   }

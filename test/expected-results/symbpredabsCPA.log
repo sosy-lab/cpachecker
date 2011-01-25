@@ -1,88 +1,88 @@
 INSTANCE                                                   	    TIME	OUTCOME		Reached	Refinements	Abstractions		Blocksize
 ---------------------------------------------------------------------------------------------------------------------------------------------------------
-test/programs/locks/test_locks_10.c                        	   1.136	SAFE           	141    	0              	4 (1 cached)          	61
-test/programs/locks/test_locks_11.c                        	   1.718	SAFE           	154    	0              	4 (1 cached)          	67
-test/programs/locks/test_locks_12.c                        	   1.532	SAFE           	167    	0              	4 (1 cached)          	73
-test/programs/locks/test_locks_13.c                        	   1.555	SAFE           	180    	0              	4 (1 cached)          	79
-test/programs/locks/test_locks_14.c                        	   1.818	SAFE           	193    	0              	4 (1 cached)          	85
-test/programs/locks/test_locks_15.c                        	   1.440	SAFE           	206    	0              	4 (1 cached)          	91
-test/programs/locks/test_locks_5.c                         	   1.362	SAFE           	76     	0              	4 (1 cached)          	31
-test/programs/locks/test_locks_6.c                         	   1.575	SAFE           	89     	0              	4 (1 cached)          	37
-test/programs/locks/test_locks_7.c                         	   0.886	SAFE           	102    	0              	4 (1 cached)          	43
-test/programs/locks/test_locks_8.c                         	   1.054	SAFE           	115    	0              	4 (1 cached)          	49
-test/programs/locks/test_locks_9.c                         	   0.707	SAFE           	128    	0              	4 (1 cached)          	55
-test/programs/ntdrivers-simplified/cdaudio_simpl1.cil.c    	  45.336	SAFE           	4388   	675            	87244 (84401 cached)  	185
-test/programs/ntdrivers-simplified/cdaudio_simpl1_BUG.cil.c	  29.933	UNSAFE         	3963   	332            	54664 (53417 cached)  	185
-test/programs/ntdrivers-simplified/diskperf_simpl1.cil.c   	  38.606	SAFE           	2260   	486            	29443 (24954 cached)  	51
-test/programs/ntdrivers-simplified/floppy_simpl3.cil.c     	  18.631	SAFE           	1886   	355            	12047 (9700 cached)   	61
-test/programs/ntdrivers-simplified/floppy_simpl3_BUG.cil.c 	  11.839	UNSAFE         	1185   	241            	6254 (5255 cached)    	61
-test/programs/ntdrivers-simplified/floppy_simpl4.cil.c     	  33.305	SAFE           	2681   	840            	27752 (24563 cached)  	115
-test/programs/ntdrivers-simplified/floppy_simpl4_BUG.cil.c 	  24.176	UNSAFE         	2001   	623            	19311 (17594 cached)  	115
-test/programs/ntdrivers-simplified/kbfiltr_simpl1.cil.c    	   4.334	SAFE           	697    	28             	595 (301 cached)      	50
-test/programs/ntdrivers-simplified/kbfiltr_simpl2.cil.c    	   5.819	SAFE           	1294   	83             	2580 (2020 cached)    	58
-test/programs/ntdrivers-simplified/kbfiltr_simpl2_BUG.cil.c	   3.944	UNSAFE         	984    	49             	555 (346 cached)      	58
-test/programs/ntdrivers/cdaudio.BUG.i.cil.c                	  68.792	UNSAFE         	4399   	602            	63257 (60897 cached)  	188
-test/programs/ntdrivers/cdaudio.i.cil.c                    	 150.539	SAFE           	6309   	1026           	138200 (133294 cached)	188
-test/programs/ntdrivers/diskperf.BUG.i.cil.c               	  10.884	UNSAFE         	1587   	70             	2978 (2501 cached)    	361
-test/programs/ntdrivers/diskperf.i.cil.c                   	  72.261	SAFE           	3245   	335            	41053 (35739 cached)  	361
-test/programs/ntdrivers/floppy.BUG.i.cil.c                 	  66.905	UNSAFE         	2941   	634            	26546 (25083 cached)  	220
-test/programs/ntdrivers/floppy.i.cil.c                     	 171.592	SAFE           	4805   	1627           	81234 (77277 cached)  	220
-test/programs/ntdrivers/kbfiltr.BUG.i.cil.c                	  20.405	UNSAFE         	2029   	198            	5096 (4113 cached)    	175
-test/programs/ntdrivers/kbfiltr.i.cil.c                    	  14.495	SAFE           	1954   	134            	3352 (2617 cached)    	175
-test/programs/ntdrivers/parport.BUG.i.cil.c                	  29.388	UNSAFE         	1891   	42             	3905 (3349 cached)    	332
+test/programs/locks/test_locks_10.c                        	  0.862s	SAFE           	141    	0              	2                     	64
+test/programs/locks/test_locks_11.c                        	  1.138s	SAFE           	154    	0              	2                     	70
+test/programs/locks/test_locks_12.c                        	  1.238s	SAFE           	167    	0              	2                     	76
+test/programs/locks/test_locks_13.c                        	  1.176s	SAFE           	180    	0              	2                     	82
+test/programs/locks/test_locks_14.c                        	  1.028s	SAFE           	193    	0              	2                     	88
+test/programs/locks/test_locks_15.c                        	  1.257s	SAFE           	206    	0              	2                     	94
+test/programs/locks/test_locks_5.c                         	  2.280s	SAFE           	76     	0              	2                     	34
+test/programs/locks/test_locks_6.c                         	  1.056s	SAFE           	89     	0              	2                     	40
+test/programs/locks/test_locks_7.c                         	  1.771s	SAFE           	102    	0              	2                     	46
+test/programs/locks/test_locks_8.c                         	  1.064s	SAFE           	115    	0              	2                     	52
+test/programs/locks/test_locks_9.c                         	  2.069s	SAFE           	128    	0              	2                     	58
+test/programs/ntdrivers-simplified/cdaudio_simpl1.cil.c    	  4.870s	SAFE           	4235   	0              	1                     	190
+test/programs/ntdrivers-simplified/cdaudio_simpl1_BUG.cil.c	  5.397s	UNSAFE         	4230   	1              	1                     	190
+test/programs/ntdrivers-simplified/diskperf_simpl1.cil.c   	  4.435s	SAFE           	2044   	2              	6                     	125
+test/programs/ntdrivers-simplified/floppy_simpl3.cil.c     	  3.348s	SAFE           	1466   	2              	6                     	306
+test/programs/ntdrivers-simplified/floppy_simpl3_BUG.cil.c 	  3.113s	UNSAFE         	1469   	3              	6                     	306
+test/programs/ntdrivers-simplified/floppy_simpl4.cil.c     	  3.615s	SAFE           	2032   	2              	6                     	304
+test/programs/ntdrivers-simplified/floppy_simpl4_BUG.cil.c 	  4.384s	UNSAFE         	2035   	3              	6                     	304
+test/programs/ntdrivers-simplified/kbfiltr_simpl1.cil.c    	  1.233s	SAFE           	596    	0              	0                     	0
+test/programs/ntdrivers-simplified/kbfiltr_simpl2.cil.c    	  1.930s	SAFE           	1174   	0              	0                     	0
+test/programs/ntdrivers-simplified/kbfiltr_simpl2_BUG.cil.c	  1.752s	UNSAFE         	1177   	1              	0                     	0
+test/programs/ntdrivers/cdaudio.BUG.i.cil.c                	  8.434s	UNSAFE         	6346   	4              	16                    	233
+test/programs/ntdrivers/cdaudio.i.cil.c                    	  7.952s	SAFE           	5988   	3              	15                    	233
+test/programs/ntdrivers/diskperf.BUG.i.cil.c               	  6.075s	UNSAFE         	2964   	2              	4                     	272
+test/programs/ntdrivers/diskperf.i.cil.c                   	  7.728s	SAFE           	2977   	2              	6                     	272
+test/programs/ntdrivers/floppy.BUG.i.cil.c                 	 26.341s	UNSAFE         	8606   	35             	567                   	339
+test/programs/ntdrivers/floppy.i.cil.c                     	 34.304s	SAFE           	8718   	37             	596                   	339
+test/programs/ntdrivers/kbfiltr.BUG.i.cil.c                	  2.841s	UNSAFE         	1721   	1              	0                     	0
+test/programs/ntdrivers/kbfiltr.i.cil.c                    	  3.044s	SAFE           	1718   	0              	0                     	0
+test/programs/ntdrivers/parport.BUG.i.cil.c                	      -1	OUT OF MEMORY
 test/programs/ntdrivers/parport.i.cil.c                    	      -1	OUT OF MEMORY
-test/programs/ssh-simplified/s3_clnt_1.cil.c               	  13.040	SAFE           	3911   	6              	60 (3 cached)         	77
-test/programs/ssh-simplified/s3_clnt_1_BUG.cil.c           	  10.247	UNSAFE         	1731   	4              	17 (2 cached)         	77
-test/programs/ssh-simplified/s3_clnt_2.cil.c               	  11.220	SAFE           	6010   	5              	46 (3 cached)         	78
-test/programs/ssh-simplified/s3_clnt_2_BUG.cil.c           	   4.337	UNSAFE         	1739   	4              	16 (1 cached)         	78
-test/programs/ssh-simplified/s3_clnt_3.cil.c               	   8.362	SAFE           	4979   	5              	43 (2 cached)         	87
-test/programs/ssh-simplified/s3_clnt_3_BUG.cil.c           	   3.993	UNSAFE         	1794   	4              	17 (2 cached)         	87
-test/programs/ssh-simplified/s3_clnt_4.cil.c               	   8.543	SAFE           	5122   	6              	57 (2 cached)         	78
-test/programs/ssh-simplified/s3_clnt_4_BUG.cil.c           	   3.993	UNSAFE         	1739   	5              	23 (2 cached)         	78
-test/programs/ssh-simplified/s3_srvr_1.cil.c               	  39.007	SAFE           	20304  	5              	284 (1 cached)        	75
-test/programs/ssh-simplified/s3_srvr_1_BUG.cil.c           	   3.092	UNSAFE         	1250   	4              	14 (0 cached)         	75
-test/programs/ssh-simplified/s3_srvr_2.cil.c               	 109.636	SAFE           	22328  	7              	133 (3 cached)        	76
-test/programs/ssh-simplified/s3_srvr_2_BUG.cil.c           	   3.599	UNSAFE         	1233   	4              	14 (2 cached)         	76
-test/programs/ssh-simplified/s3_srvr_3.cil.c               	  18.762	SAFE           	17337  	6              	89 (3 cached)         	76
-test/programs/ssh-simplified/s3_srvr_4.cil.c               	  84.849	SAFE           	22328  	7              	117 (1 cached)        	76
-test/programs/ssh-simplified/s3_srvr_6.cil.c               	      -1	OUT OF MEMORY
-test/programs/ssh-simplified/s3_srvr_7.cil.c               	  18.123	SAFE           	18121  	7              	91 (3 cached)         	76
-test/programs/ssh-simplified/s3_srvr_8.cil.c               	  15.956	SAFE           	18513  	5              	81 (2 cached)         	76
-test/programs/ssh/s3_clnt.blast.01.BUG.i.cil.c             	   4.602	UNSAFE         	2388   	5              	20 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.01.i.cil.c                 	  53.934	SAFE           	5182   	5              	52 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.02.BUG.i.cil.c             	   3.921	UNSAFE         	2043   	5              	19 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.02.i.cil.c                 	  10.940	SAFE           	8023   	5              	50 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.03.BUG.i.cil.c             	   6.399	UNSAFE         	2043   	4              	14 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.03.i.cil.c                 	  10.855	SAFE           	5755   	5              	43 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.04.BUG.i.cil.c             	   4.484	UNSAFE         	2043   	5              	19 (0 cached)         	52
-test/programs/ssh/s3_clnt.blast.04.i.cil.c                 	  16.319	SAFE           	8347   	5              	50 (0 cached)         	52
-test/programs/ssh/s3_srvr.blast.01.BUG.i.cil.c             	   3.424	UNSAFE         	1508   	4              	11 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.01.i.cil.c                 	  30.109	SAFE           	24761  	5              	99 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.02.BUG.i.cil.c             	   3.318	UNSAFE         	1485   	4              	11 (0 cached)         	53
-test/programs/ssh/s3_srvr.blast.02.i.cil.c                 	  39.965	SAFE           	24258  	6              	94 (0 cached)         	53
-test/programs/ssh/s3_srvr.blast.03.BUG.i.cil.c             	   3.082	UNSAFE         	1485   	3              	8 (0 cached)          	53
-test/programs/ssh/s3_srvr.blast.03.i.cil.c                 	  35.593	SAFE           	24258  	6              	101 (0 cached)        	53
-test/programs/ssh/s3_srvr.blast.04.BUG.i.cil.c             	   2.174	UNSAFE         	1485   	4              	11 (0 cached)         	54
-test/programs/ssh/s3_srvr.blast.04.i.cil.c                 	  53.431	SAFE           	24258  	8              	108 (0 cached)        	54
-test/programs/ssh/s3_srvr.blast.06.BUG.i.cil.c             	   6.395	UNSAFE         	2624   	6              	22 (0 cached)         	57
-test/programs/ssh/s3_srvr.blast.06.i.cil.c                 	  60.161	SAFE           	28542  	6              	94 (0 cached)         	57
-test/programs/ssh/s3_srvr.blast.07.BUG.i.cil.c             	  18.130	UNSAFE         	2381   	6              	19 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.07.i.cil.c                 	  15.492	SAFE           	19855  	6              	81 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.08.BUG.i.cil.c             	   7.515	UNSAFE         	4000   	7              	32 (0 cached)         	56
-test/programs/ssh/s3_srvr.blast.08.i.cil.c                 	  43.636	SAFE           	25770  	6              	112 (0 cached)        	56
-test/programs/ssh/s3_srvr.blast.09.BUG.i.cil.c             	   3.938	UNSAFE         	2381   	5              	17 (0 cached)         	56
-test/programs/ssh/s3_srvr.blast.09.i.cil.c                 	  11.176	SAFE           	19855  	5              	65 (0 cached)         	56
-test/programs/ssh/s3_srvr.blast.10.BUG.i.cil.c             	   5.255	UNSAFE         	3882   	6              	27 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.10.i.cil.c                 	  46.750	SAFE           	25014  	6              	100 (0 cached)        	55
-test/programs/ssh/s3_srvr.blast.11.BUG.i.cil.c             	   5.255	UNSAFE         	2061   	6              	19 (0 cached)         	54
-test/programs/ssh/s3_srvr.blast.11.i.cil.c                 	  21.176	SAFE           	19855  	7              	94 (0 cached)         	54
-test/programs/ssh/s3_srvr.blast.12.BUG.i.cil.c             	   3.620	UNSAFE         	2414   	5              	17 (0 cached)         	54
-test/programs/ssh/s3_srvr.blast.12.i.cil.c                 	  64.561	SAFE           	26274  	5              	92 (0 cached)         	54
-test/programs/ssh/s3_srvr.blast.13.BUG.i.cil.c             	   3.712	UNSAFE         	2373   	6              	20 (0 cached)         	54
-test/programs/ssh/s3_srvr.blast.13.i.cil.c                 	  44.429	SAFE           	25455  	9              	115 (0 cached)        	54
-test/programs/ssh/s3_srvr.blast.14.BUG.i.cil.c             	   5.579	UNSAFE         	2484   	5              	18 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.14.i.cil.c                 	  43.754	SAFE           	27030  	5              	91 (0 cached)         	55
-test/programs/ssh/s3_srvr.blast.15.BUG.i.cil.c             	   6.858	UNSAFE         	4118   	6              	27 (0 cached)         	57
-test/programs/ssh/s3_srvr.blast.15.i.cil.c                 	  26.911	SAFE           	26526  	5              	94 (0 cached)         	57
-test/programs/ssh/s3_srvr.blast.16.BUG.i.cil.c             	   4.013	UNSAFE         	2554   	5              	17 (0 cached)         	56
-test/programs/ssh/s3_srvr.blast.16.i.cil.c                 	 413.792	SAFE           	27786  	6              	123 (0 cached)        	56
+test/programs/ssh-simplified/s3_clnt_1.cil.c               	 14.418s	SAFE           	4500   	7              	58                    	80
+test/programs/ssh-simplified/s3_clnt_1_BUG.cil.c           	  2.487s	UNSAFE         	1731   	4              	13                    	80
+test/programs/ssh-simplified/s3_clnt_2.cil.c               	 11.726s	SAFE           	5418   	5              	50                    	81
+test/programs/ssh-simplified/s3_clnt_2_BUG.cil.c           	  4.171s	UNSAFE         	1739   	4              	13                    	81
+test/programs/ssh-simplified/s3_clnt_3.cil.c               	  6.175s	SAFE           	4674   	4              	29                    	90
+test/programs/ssh-simplified/s3_clnt_3_BUG.cil.c           	  3.790s	UNSAFE         	1794   	4              	13                    	90
+test/programs/ssh-simplified/s3_clnt_4.cil.c               	 12.479s	SAFE           	4234   	5              	41                    	81
+test/programs/ssh-simplified/s3_clnt_4_BUG.cil.c           	  3.532s	UNSAFE         	1739   	4              	13                    	81
+test/programs/ssh-simplified/s3_srvr_1.cil.c               	 63.084s	SAFE           	37840  	5              	145                   	79
+test/programs/ssh-simplified/s3_srvr_1_BUG.cil.c           	  3.181s	UNSAFE         	1250   	4              	10                    	79
+test/programs/ssh-simplified/s3_srvr_2.cil.c               	 75.978s	SAFE           	22328  	6              	108                   	80
+test/programs/ssh-simplified/s3_srvr_2_BUG.cil.c           	  2.542s	UNSAFE         	1233   	3              	7                     	80
+test/programs/ssh-simplified/s3_srvr_3.cil.c               	 10.852s	SAFE           	17337  	5              	77                    	80
+test/programs/ssh-simplified/s3_srvr_4.cil.c               	 10.223s	SAFE           	17386  	5              	72                    	80
+test/programs/ssh-simplified/s3_srvr_6.cil.c               	269.114s	SAFE           	26108  	6              	110                   	80
+test/programs/ssh-simplified/s3_srvr_7.cil.c               	 97.381s	SAFE           	23273  	9              	115                   	80
+test/programs/ssh-simplified/s3_srvr_8.cil.c               	 32.875s	SAFE           	23777  	5              	102                   	80
+test/programs/ssh/s3_clnt.blast.01.BUG.i.cil.c             	  5.975s	UNSAFE         	2388   	5              	19                    	52
+test/programs/ssh/s3_clnt.blast.01.i.cil.c                 	 31.749s	SAFE           	6169   	6              	57                    	52
+test/programs/ssh/s3_clnt.blast.02.BUG.i.cil.c             	  3.831s	UNSAFE         	2043   	4              	13                    	52
+test/programs/ssh/s3_clnt.blast.02.i.cil.c                 	  8.659s	SAFE           	4783   	5              	40                    	52
+test/programs/ssh/s3_clnt.blast.03.BUG.i.cil.c             	  2.550s	UNSAFE         	2043   	4              	13                    	52
+test/programs/ssh/s3_clnt.blast.03.i.cil.c                 	  6.518s	SAFE           	4459   	5              	34                    	52
+test/programs/ssh/s3_clnt.blast.04.BUG.i.cil.c             	  3.068s	UNSAFE         	2043   	4              	13                    	52
+test/programs/ssh/s3_clnt.blast.04.i.cil.c                 	 17.276s	SAFE           	8023   	6              	61                    	52
+test/programs/ssh/s3_srvr.blast.01.BUG.i.cil.c             	  3.601s	UNSAFE         	1508   	4              	10                    	55
+test/programs/ssh/s3_srvr.blast.01.i.cil.c                 	  9.984s	SAFE           	19315  	5              	75                    	55
+test/programs/ssh/s3_srvr.blast.02.BUG.i.cil.c             	  3.619s	UNSAFE         	1485   	4              	10                    	53
+test/programs/ssh/s3_srvr.blast.02.i.cil.c                 	154.531s	SAFE           	24258  	7              	123                   	53
+test/programs/ssh/s3_srvr.blast.03.BUG.i.cil.c             	  3.528s	UNSAFE         	1485   	4              	10                    	53
+test/programs/ssh/s3_srvr.blast.03.i.cil.c                 	  9.854s	SAFE           	18924  	5              	75                    	53
+test/programs/ssh/s3_srvr.blast.04.BUG.i.cil.c             	  2.105s	UNSAFE         	1485   	4              	10                    	54
+test/programs/ssh/s3_srvr.blast.04.i.cil.c                 	 43.779s	SAFE           	24258  	7              	105                   	54
+test/programs/ssh/s3_srvr.blast.06.BUG.i.cil.c             	  5.848s	UNSAFE         	2624   	6              	21                    	57
+test/programs/ssh/s3_srvr.blast.06.i.cil.c                 	 73.862s	SAFE           	28542  	5              	89                    	57
+test/programs/ssh/s3_srvr.blast.07.BUG.i.cil.c             	  5.141s	UNSAFE         	2381   	6              	18                    	55
+test/programs/ssh/s3_srvr.blast.07.i.cil.c                 	 26.282s	SAFE           	25455  	7              	97                    	55
+test/programs/ssh/s3_srvr.blast.08.BUG.i.cil.c             	  5.650s	UNSAFE         	4000   	5              	23                    	56
+test/programs/ssh/s3_srvr.blast.08.i.cil.c                 	 50.497s	SAFE           	25770  	5              	89                    	56
+test/programs/ssh/s3_srvr.blast.09.BUG.i.cil.c             	  4.932s	UNSAFE         	2381   	5              	16                    	56
+test/programs/ssh/s3_srvr.blast.09.i.cil.c                 	 34.191s	SAFE           	22655  	8              	98                    	56
+test/programs/ssh/s3_srvr.blast.10.BUG.i.cil.c             	  6.589s	UNSAFE         	3882   	7              	31                    	55
+test/programs/ssh/s3_srvr.blast.10.i.cil.c                 	 16.208s	SAFE           	19512  	6              	86                    	55
+test/programs/ssh/s3_srvr.blast.11.BUG.i.cil.c             	  5.428s	UNSAFE         	2061   	5              	13                    	54
+test/programs/ssh/s3_srvr.blast.11.i.cil.c                 	 37.967s	SAFE           	25455  	7              	97                    	54
+test/programs/ssh/s3_srvr.blast.12.BUG.i.cil.c             	  4.638s	UNSAFE         	2414   	5              	18                    	54
+test/programs/ssh/s3_srvr.blast.12.i.cil.c                 	 64.127s	SAFE           	26274  	6              	97                    	54
+test/programs/ssh/s3_srvr.blast.13.BUG.i.cil.c             	  5.223s	UNSAFE         	2373   	6              	19                    	54
+test/programs/ssh/s3_srvr.blast.13.i.cil.c                 	 24.069s	SAFE           	19855  	8              	91                    	54
+test/programs/ssh/s3_srvr.blast.14.BUG.i.cil.c             	  4.190s	UNSAFE         	2484   	5              	18                    	55
+test/programs/ssh/s3_srvr.blast.14.i.cil.c                 	 47.271s	SAFE           	27455  	5              	93                    	55
+test/programs/ssh/s3_srvr.blast.15.BUG.i.cil.c             	  6.570s	UNSAFE         	4118   	5              	23                    	57
+test/programs/ssh/s3_srvr.blast.15.i.cil.c                 	 85.398s	SAFE           	26526  	6              	111                   	57
+test/programs/ssh/s3_srvr.blast.16.BUG.i.cil.c             	 22.466s	UNSAFE         	2554   	5              	18                    	56
+test/programs/ssh/s3_srvr.blast.16.i.cil.c                 	 62.348s	SAFE           	27786  	5              	91                    	56

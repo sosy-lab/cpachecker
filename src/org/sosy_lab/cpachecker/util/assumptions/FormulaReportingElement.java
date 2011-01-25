@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import java.util.Collection;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * Interface to implement in order for an object (typically abstract element)
- * to be able to be over-approximated by a symbolic formula representing
+ * to be able to be over-approximated by a formula representing
  * the abstract element.
  *
  * @author g.theoduloz
@@ -35,8 +39,8 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 public interface FormulaReportingElement {
 
   /**
-   * Returns a symbolic formula over-approximating the element
+   * Returns a formula over-approximating the element
    */
-  public SymbolicFormula getFormulaApproximation();
-
+  public Collection<? extends Formula> getFormulaApproximation();
+  
 }

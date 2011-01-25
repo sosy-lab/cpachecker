@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -38,29 +43,26 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
+@Options(prefix="cpa.octagon")
 public class OctagonCPA implements ConfigurableProgramAnalysis{
 
-  private static class OctagonCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      String mergeType = getConfiguration().getProperty("cpas.octagon.merge");
-      return new OctagonCPA(mergeType);
-    }
-  }
-
   public static CPAFactory factory() {
-    return new OctagonCPAFactory();
+    return AutomaticCPAFactory.forType(OctagonCPA.class);
   }
 
-  private AbstractDomain abstractDomain;
-  private TransferRelation transferRelation;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private PrecisionAdjustment precisionAdjustment;
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
+  private String mergeType = "SEP";
+  
+  private final AbstractDomain abstractDomain;
+  private final TransferRelation transferRelation;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final PrecisionAdjustment precisionAdjustment;
 
-  private OctagonCPA(String mergeType) {
+  private OctagonCPA(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     OctDomain octagonDomain = new OctDomain ();
 
     this.transferRelation = new OctTransferRelation ();
@@ -70,15 +72,20 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
       octagonMergeOp = MergeSepOperator.getInstance();
     }
     else if(mergeType.equals("join")){
-      octagonMergeOp = new OctMergeJoin ();
+      octagonMergeOp = new MergeJoinOperator (octagonDomain);
+    } else {
+      // default is sep
+      octagonMergeOp = MergeSepOperator.getInstance();
     }
 
-    StopOperator octagonStopOp = new StopSepOperator(octagonDomain.getPartialOrder());
+    StopOperator octagonStopOp = new StopSepOperator(octagonDomain);
 
     this.abstractDomain = octagonDomain;
     this.mergeOperator = octagonMergeOp;
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    
+    assert(OctagonManager.init());
   }
 
   @Override
@@ -86,8 +93,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   {
     return abstractDomain;
   }
-
-
 
   @Override
   public TransferRelation getTransferRelation ()
@@ -114,7 +119,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return new OctElement ();
+    return new OctElement();
   }
 
   @Override

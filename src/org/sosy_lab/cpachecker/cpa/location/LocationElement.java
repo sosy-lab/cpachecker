@@ -23,17 +23,73 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
+import com.google.common.base.Preconditions;
+
 public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
+  
+  static class LocationElementFactory {
+    private LocationElement[] elements = null;
+
+    public void initialize(CFANode initialNode) {
+      if (elements != null) {
+        // multiple calls are allowed, but only with nodes of the same CFA
+        Preconditions.checkState(elements[initialNode.getNodeNumber()].getLocationNode().equals(initialNode));
+        return;
+      }
+
+      SortedSet<CFANode> seenNodes = new TreeSet<CFANode>();
+      Deque<CFANode> waitlist = new ArrayDeque<CFANode>();
+      seenNodes.add(initialNode);
+      waitlist.add(initialNode);
+      
+      while (!waitlist.isEmpty()) {
+        CFANode n = waitlist.pop();
+        
+        CFAEdge edge = n.getLeavingSummaryEdge();
+        if (edge != null) {
+          CFANode succ = edge.getSuccessor();
+          if (seenNodes.add(succ)) {
+            waitlist.push(succ);
+          }
+        }
+        
+        for (int i = 0; i < n.getNumLeavingEdges(); i++) {
+          edge = n.getLeavingEdge(i);
+          CFANode succ = edge.getSuccessor();
+          if (seenNodes.add(succ)) {
+            waitlist.push(succ);
+          }
+        }
+      }
+      
+      int maxNodeNumber = seenNodes.last().getNodeNumber();
+      elements = new LocationElement[maxNodeNumber+1];
+      for (CFANode n : seenNodes) {
+        elements[n.getNodeNumber()] = new LocationElement(n);
+      }
+    }
+        
+    public LocationElement getElement(CFANode node) {
+      return Preconditions.checkNotNull(elements[node.getNodeNumber()]);
+    }
+  }
+  
     private final CFANode locationNode;
 
-    public LocationElement (CFANode locationNode)
+    private LocationElement (CFANode locationNode)
     {
         this.locationNode = locationNode;
     }
@@ -45,37 +101,9 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     @Override
-    public boolean equals (Object other)
-    {
-      if (other == null) {
-        return false;
-      }
-
-      if (!(other instanceof LocationElement)) {
-        return false;
-      }
-
-      if (((LocationElement)other).locationNode == null) {
-        if (locationNode != null) {
-          return false;
-        }
-        else {
-          assert(false);
-        }
-      }
-
-        return locationNode.getNodeNumber () == ((LocationElement)other).locationNode.getNodeNumber ();
-    }
-
-    @Override
     public String toString ()
     {
         return Integer.toString (locationNode.getNodeNumber ());
-    }
-
-    @Override
-    public int hashCode() {
-    	return locationNode.getNodeNumber();
     }
 
     @Override
@@ -118,6 +146,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     
     @Override
     public Object getPartitionKey() {
-      return locationNode;
+      return this;
     }
+    
+    // no equals and hashCode because there is always only one element per CFANode
 }

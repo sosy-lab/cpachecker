@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
  * Static methods used as helpers to manipulate elements implementing
@@ -44,25 +45,32 @@ public class ReportingUtils {
    * the given abstract element, according to reported
    * formulas
    */
-  public static SymbolicFormula extractReportedFormulas(SymbolicFormulaManager manager, AbstractElement element)
+  public static Formula extractReportedFormulas(FormulaManager manager, AbstractElement element)
   {
-    SymbolicFormula result = manager.makeTrue();
+    Formula result = manager.makeTrue();
 
     // If it is a wrapper, add its sub-element's assertions
-    if (element instanceof AbstractWrapperElement)
-    {
-      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-        result = manager.makeAnd(result, extractReportedFormulas(manager, subel));
-    }
+//    if (element instanceof AbstractWrapperElement)
+//    {
+//      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
+//        result = manager.makeAnd(result, extractReportedFormulas(manager, subel));
+//    }
 
     // If the element can be approximated by a formula, conjunct its approximation
     if (element instanceof FormulaReportingElement) {
       FormulaReportingElement repel = (FormulaReportingElement) element;
-      SymbolicFormula symbolicFormula = repel.getFormulaApproximation();
-      result = manager.makeAnd(result, symbolicFormula);
+      Collection<? extends Formula> formulaList = repel.getFormulaApproximation();
+      
+      if(formulaList != null){
+        for(Formula f: formulaList){
+          if(f == null){
+            f = manager.makeTrue();
+          }
+          result = manager.makeAnd(result, f);
+        }
+      }
     }
 
     return result;
   }
-
 }

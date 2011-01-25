@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker">
+  <test>
+    <sourcefiles>test/programs/simple/*.cil.c</sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/symbpredabsCPA.properties</option>
+    </options>
+  </test>
+</benchmark>

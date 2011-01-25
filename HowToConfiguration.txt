@@ -54,26 +54,34 @@ has to be prefixed with the identifier of the CPA as described above.
 
 A simple example (the first line could be ommitted as it's the default):
 cpa = cpa.composite.CompositeCPA
-CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitAnalysisCPA explicitCPA
-explicitCPA.cpas.explicit.threshold = 10
+CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA explicitCPA
+explicitCPA.cpa.explicit.threshold = 10
 
 A more complex example:
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
-composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automatonanalysis.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.symbpredabs.SymbPredAbsCPA
-ErrorLocationAutomaton.automatonAnalysis.inputFile = test/config/automata/ErrorLocationAutomaton.txt
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.predicate.PredicateCPA
+ErrorLocationAutomaton.cpa.automaton.inputFile = test/config/automata/ErrorLocationAutomaton.txt
 
 Note that instead of manually specifying an ObserverAutomatonCPA, you can
 use the option "specification". The following example is identical to the last one:
 
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
-composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.symbpredabs.SymbPredAbsCPA
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
 specification = test/config/automata/ErrorLocationAutomaton.txt
 
 
 Valid configuration options and default values
 ----------------------------------------------
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = .
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
 
 # directory to put all output files in
 output.path = test/output/
@@ -113,27 +121,25 @@ analysis.programs =
 # C dialect for parser (GNUC or C99)
 parser.dialect = GNUC
 
-# combine series of simple statements in the CFA (currently not suppported)
-cfa.combineBlockStatements = false
-
-# remove all declarations from CFA
-cfa.removeDeclarations = false
-
-# don't create interprocedural call/return edges for external function calls
-analysis.noExternalCalls = true
-
 # run interprocedural analysis
 analysis.interprocedural = true
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
-# remove paths from CFA that cannot lead to an "error location"
+# remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
 
 # export CFA as .dot file
 cfa.export = true
 cfa.file = cfa.dot
+
+# write some statistics to disk
+statistics.export = true
+statistics.file = Statistics.txt
+
+# track memory usage of JVM during runtime
+statistics.memory = true
 
 # entry function
 analysis.entryFunction = main
@@ -152,14 +158,32 @@ analysis.useAssumptionCollector = false
 # Currently all refiner require the use of the ARTCPA.
 analysis.useRefinement = false
 
+# use a BMC like algorithm that checks for satisfiability after the analysis has finished
+# works only with PredicateCPA
+analysis.useBMC = false
+
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
+
+# dump CBMC file to the specified file in the output folder for debugging purposes
+cbmc.dumpCBMCfile = cbmc.c
 
 # Which CPA to use?
 cpa = cpa.composite.CompositeCPA
 
-# which strategy to adopt for visiting states? dfs, bfs, or topsort
+# which strategy to adopt for visiting states? (DFS, BFS, RAND or TOPSORT)
 analysis.traversal = dfs
+
+# handle states with a deeper callstack first?
+# This needs the CallstackCPA to have any effect.
+analysis.traversal.useCallstack = false
+
+# Use an implementation of topsort strategy that allows to select
+# a secondary strategy that is used if there are two elements with
+# the same topsort id.
+# The secondary strategy is selected with "analysis.traversal" (see above).
+# The secondary strategy may not be TOPSORT.
+analysis.traversal.useTopsort = false
 
 # print reached set to text file
 reachedSet.export = true
@@ -172,6 +196,16 @@ reachedSet.file = reached.txt
 # write collected assumptions to file
 assumptions.export = false
 assumptions.file = assumptions.txt
+
+# When CBMC considers an error path infeasible,
+# remove the error element from the reached set and continue.
+# WARNING: this is unsound, because the elements of this infeasible path
+# may cover another path that is actually feasible, so use it only for finding bugs.
+cbmc.continueAfterInfeasibleError = false
+
+# file name where to put the path program that is generated as input for CBMC
+# A temporary file is used if this is unspecified.
+cbmc.dumpCBMCfile = 
 
 # Which refinement algorithm to use? (give class name, required for CEGAR)
 # If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be omitted.
@@ -186,158 +220,211 @@ cegar.restartOnRefinement = false
 #------------------------------------------------------------------------------
 
 # which merge operator to use for ARTCPA? only use sep here if all other CPAs also use sep
-cpas.art.merge = join
+cpa.art.merge = join
 
 # export final ART as .dot file
-ART.export = true
-ART.file = ART.dot
+cpa.art.export = true
+cpa.art.file = ART.dot
 
 # export error path to file, if one is found
-cpas.art.errorPath.export = true
-cpas.art.errorPath.file = ErrorPath.txt
+cpa.art.errorPath.export = true
+cpa.art.errorPath.file = ErrorPath.txt
+cpa.art.errorPath.core = ErrorPathCore.txt
+cpa.art.errorPath.source = ErrorPath.c
+cpa.art.errorPath.json = ErrorPath.json
 
-# which merge operator to use for ExplicitAnalysisCPA (join or sep)
-cpas.explicit.merge = sep
-
-# threshold for amount of different values that are tracked for one variable in
-# ExplicitAnalysisCPA (0 means infinitely)
-cpas.explicit.threshold = 0
+# which heuristics should be used to track progress?
+cpa.assumptions.progressobserver.heuristics =
 
 # file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
-automatonAnalysis.inputFile =
+cpa.automaton.inputFile =
+
+# signal the analysis to break in case of reached error state
+cpa.automaton.breakOnTargetState = true
 
 # export automaton to file
-automatonAnalysis.dotExport = false
+cpa.automaton.dotExport = false
 
 # file for saving the automaton in DOT format
-automatonAnalysis.dotExportFile = automaton.txt
+cpa.automaton.dotExportFile = automaton.txt
 
-# which merge operator to use for PointerAnalysisCPA? (join or sep)
-cpas.pointeranalysis.merge = sep
+# which merge operator to use for DefUseCPA (join or sep)
+cpa.defuse.merge = sep
+
+# which merge operator to use for ExplicitCPA (join or sep)
+cpa.explicit.merge = sep
+
+# threshold for amount of different values that are tracked for one variable in
+# ExplicitCPA (0 means infinitely)
+cpa.explicit.threshold = 0
+
+# threshold for unrolling loops of the program (0 is infinite)
+# works only if assumption storage CPA is enabled,
+# because otherwise it would be unsound
+cpa.loopstack.maxLoopIterations = 0
+
+# which merge operator to use for OctagonCPA? (join or sep)
+cpa.octagon.merge = sep
+
+# which merge operator to use for PointerCPA? (join or sep)
+cpa.pointer.merge = sep
 
 # print warnings during analysis when unsafe pointer operations are found
-cpas.pointeranalysis.printWarnings = true
+cpa.pointer.printWarnings = true
 
 # which merge operator to use for UninitializedVariablesCPA? (join or sep)
-uninitVars.merge = sep
+cpa.uninitvars.merge = sep
 
 # which stop operator to use for UninitializedVariablesCPA (join or sep)
-uninitVars.stop = sep
+cpa.uninitvars.stop = sep
 
 # print warnings during analysis when uninitialized variables are used
-uninitVars.printWarnings = true
+cpa.uninitvars.printWarnings = true
 
 #------------------------------------------------------------------------------
 # Options for Predicate Abstraction
 #------------------------------------------------------------------------------
 
 # which solver to use? (mathsat, yices)
-cpas.symbpredabs.explicit.abstraction.solver = mathsat
+cpa.predicate.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
-cpas.symbpredabs.interpolatingProver = mathsat
+cpa.predicate.interpolatingProver = mathsat
 
 # get an initial set of predicates from a file in MSAT format
-cpas.symbpredabs.abstraction.initialPredicates =
+cpa.predicate.abstraction.initialPredicates =
 
-# cache queries to mathsat
-cpas.symbpredabs.mathsat.useCache = true
+# use caching where possible
+cpa.predicate.useCache = true
+cpa.predicate.blk.useCache = true
 
+# when transforming code to formula,
+# add predicates that help producing more precise error paths
+# (not necessary for SBE)
+cpa.predicate.addBranchingInformation = true
 
 # initialize all variables to 0 when they are declared
-cpas.symbpredabs.initAllVars = false
+cpa.predicate.initAllVars = false
 
 # if initAllVars is true, we get rid of all non-determinism. This might not be
 # desirable. If the following property is set to a non-empty value, all
 # variables starting with this prefix will not be initialized automatically
-cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET
+cpa.predicate.noAutoInitPrefix = __BLAST_NONDET
+
+# list of functions that should be considered as giving a non-deterministic
+# return value
+# Only predicate analysis honors this option.
+# If you specify this option, the default values are not added automatically
+# to the list, so you need to specify them explicitly if you need them.
+# Mentioning a function in this list has only an effect, if it is an
+# "external function", i.e., no source is given in the code for this function.
+cpa.predicate.nondetFunctions = int_nondet, malloc, nondet_int, random
 
 # use uninterpreted functions for *, & and array access
-cpas.symbpredabs.mathsat.lvalsAsUif = false
+cpa.predicate.mathsat.lvalsAsUif = false
 
 # encode program variables as INTEGERs in MathSAT, instead of using
 # REALs. Since interpolation is not really supported by the laz solver, when
 # computing interpolants we still use the LA solver, but encoding variables
 # as ints might still be a good idea: we can tighten strict inequalities, and
 # split negated equalities
-cpas.symbpredabs.mathsat.useIntegers = false
+cpa.predicate.mathsat.useIntegers = false
 
 
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
-cpas.symbpredabs.blk.threshold = 0
+cpa.predicate.blk.threshold = 0
 
 # force abstractions on function call/return
-cpas.symbpredabs.blk.functions = true
+cpa.predicate.blk.functions = true
 
 # force abstractions for each loop iteration
-cpas.symbpredabs.blk.loops = true
+cpa.predicate.blk.loops = true
 
 # require that both the threshold and (functions or loops) have to be fulfilled to compute an abstraction
-cpas.symbpredabs.blk.requiredThresholdAndLBE = false
+cpa.predicate.blk.requiredThresholdAndLBE = false
 
 
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than blocksize)
-cpas.symbpredabs.satCheckBlockSize = 0
+cpa.predicate.satCheckBlockSize = 0
 
+# always check satisfiability at end of block, even if precision is empty
+cpa.predicate.checkBlockFeasibility = true
+
+# check satisfiability when a target state has been found (should be true)
+cpa.predicate.targetStateSatCheck = true
 
 # whether to include the symbolic path formula in the coverage checks or do only the fast abstract checks
-cpas.symbpredabs.symbolicCoverageCheck = false
+cpa.predicate.symbolicCoverageCheck = false
 
 # use a combination of theories (this is incomplete)
-cpas.symbpredabs.mathsat.useDtc = false
+cpa.predicate.mathsat.useDtc = false
 
 # try to add some useful static-learning-like axioms for bitwise
 # operations (which are encoded as UFs): essentially, we simply collect all
 # the numbers used in bitwise operations, and add axioms like (0 & n = 0)
-cpas.symbpredabs.useBitwiseAxioms = false
+cpa.predicate.useBitwiseAxioms = false
 
 # apply deletion-filter to the abstract counterexample, to get a
 # minimal set of blocks, before applying interpolation-based refinement
-cpas.symbpredabs.explicit.getUsefulBlocks = false
+cpa.predicate.refinement.getUsefulBlocks = false
 
 # use incremental search in counterexample analysis, to find the minimal infeasible prefix
-cpas.symbpredabs.shortestCexTrace = false
+cpa.predicate.refinement.shortestCexTrace = false
 
 # if shortestCexTrace is used, start from the end with the incremental search
-cpas.symbpredabs.shortestCexTraceUseSuffix = false
+cpa.predicate.refinement.shortestCexTraceUseSuffix = false
 
 # if shortestCexTrace is used, alternatingly search from start and end of the trace
-cpas.symbpredabs.shortestCexTraceUseZigZag = false
+cpa.predicate.refinement.shortestCexTraceUseZigZag = false
 
 # whether to use Boolean (false) or Cartesian (true) abstraction
-cpas.symbpredabs.abstraction.cartesian = false
+cpa.predicate.abstraction.cartesian = false
+
+# only use the atoms from the interpolants as predicates,
+# and not the whole interpolant
+cpa.predicate.refinement.atomicPredicates = true
 
 # split arithmetic equalities when extracting predicates from interpolants
-cpas.symbpredabs.refinement.splitItpAtoms = false
+cpa.predicate.refinement.splitItpAtoms = false
 
 # refinement will try to build "well-scoped" predicates, by cutting spurious
 # traces as explained in Section 5.2 of the paper "Abstractions From Proofs"
 # (this does not work with function inlining)
 # THIS FEATURE IS CURRENTLY NOT AVAILABLE. 
-cpas.symbpredabs.refinement.addWellScopedPredicates = false
+cpa.predicate.refinement.addWellScopedPredicates = false
 
 # refinement will add all discovered predicates to all the locations in the abstract trace
-cpas.symbpredabs.refinement.addPredicatesGlobally = false
+cpa.predicate.refinement.addPredicatesGlobally = false
+
+# skip refinement if input formula is larger than this amount of bytes
+# (ignored if 0)
+cpa.predicate.refinement.maxRefinementSize = 0
 
 
 # where to dump the counterexample formula in case the error location is reached
-cpas.symbpredabs.refinement.msatCexFile = counterexample.msat
+cpa.predicate.refinement.msatCexFile = counterexample.msat
 
 # export final predicate map, if the error location is not reached
-cpas.symbpredabs.predmap.export = true
-cpas.symbpredabs.predmap.file = predmap.txt
+cpa.predicate.predmap.export = true
+cpa.predicate.predmap.file = predmap.txt
 
 # export one satisfying assignment for the error path
-cpas.symbpredabs.errorPath.export = true
-cpas.symbpredabs.errorPath.file = ErrorPathAssignment.txt
+cpa.predicate.errorPath.export = true
+cpa.predicate.errorPath.file = ErrorPathAssignment.txt
 
 # dump the abstraction formulas if they took to long
-cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
+cpa.predicate.abstraction.dumpHardQueries = false
+
+# time limit for refinement (0 is infinitely long)
+cpa.predicate.refinement.timelimit = 0
+
+# try again with a second solver if refinement timed out
+cpa.predicate.refinement.changesolverontimeout = false
 
 # dump all interpolation problems
-cpas.symbpredabs.dumpInterpolationProblems = false
+cpa.predicate.refinement.dumpInterpolationProblems = false
 
 # where to dump interpolation and abstraction problems (format string)
-cpas.symbpredabs.formulaDumpFilePattern = %s%04d-%s%03d.msat
+cpa.predicate.formulaDumpFilePattern = %s%04d-%s%03d.msat

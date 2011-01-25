@@ -32,18 +32,21 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 public class CFANode implements Comparable<CFANode>
 {
 	private int lineNumber;
-    protected List<CFAEdge> leavingEdges;
-    protected List<CFAEdge> enteringEdges;
+    private List<CFAEdge> leavingEdges;
+    private List<CFAEdge> enteringEdges;
     private int nodeNumber;
     // is start node of a loop?
     private boolean isLoopStart = false;
     // in which function is that node?
     private final String functionName;
     // list of summary edges
-    protected CallToReturnEdge leavingSummaryEdge;
-    protected CallToReturnEdge enteringSummaryEdge;
+    private CallToReturnEdge leavingSummaryEdge;
+    private CallToReturnEdge enteringSummaryEdge;
     // topological sort id, smaller if it appears later in sorting
     private int topologicalSortId;
+    
+    // flag whether the error condition is reachable from this node
+    private boolean isRelevant = true;
 
     private static int nextNodeNumber = 0;
 
@@ -169,7 +172,15 @@ public class CFANode implements Comparable<CFANode>
     public CallToReturnEdge getLeavingSummaryEdge(){
     	return leavingSummaryEdge;
     }
+    
+    public boolean isRelevant() {
+      return isRelevant;
+    }
 
+    public void setIrrelevant() {
+      isRelevant = false;
+    }
+    
     @Override
     public boolean equals(Object other) {
       if (other == this) {
@@ -179,10 +190,6 @@ public class CFANode implements Comparable<CFANode>
         return false;
       }
       return getNodeNumber() == ((CFANode)other).getNodeNumber();
-    }
-
-    public static int getFinalNumberOfNodes(){
-    	return nextNodeNumber;
     }
 
     @Override

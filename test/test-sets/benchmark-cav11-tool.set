@@ -1,0 +1,4 @@
+test/programs/ntdrivers-simplified/*.cil.c
+test/programs/ssh-simplified/*.cil.c
+test/programs/systemc/*.cil.c
+

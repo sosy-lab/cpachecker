@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
 
 /**
  * Interface to implement in order for an object to be able to
@@ -40,6 +42,6 @@ public interface AssumptionReportingElement {
    *         for the given element, or the value null representing
    *         the assumption true.
    */
-  public AssumptionWithLocation getAssumptionWithLocation();
+  public Formula getAssumption();
 
 }

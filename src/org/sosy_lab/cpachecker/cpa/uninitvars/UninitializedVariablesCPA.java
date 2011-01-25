@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -53,18 +54,18 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 /**
  * @author Philipp Wendler
  */
-@Options
+@Options(prefix="cpa.uninitvars")
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option(name="uninitVars.printWarnings")
+  @Option
   private String printWarnings = "true";
-  @Option(name="uninitVars.merge", values={"sep", "join"})
+  @Option(name="merge", values={"sep", "join"})
   private String mergeType = "sep";
-  @Option(name="uninitVars.stop", values={"sep", "join"})
+  @Option(name="stop", values={"sep", "join"})
   private String stopType = "sep";
 
   private final AbstractDomain abstractDomain;
@@ -83,18 +84,16 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
-    }
-    if(mergeType.equals("join")) {
-      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
+    } else if(mergeType.equals("join")) {
+      mergeOp = new MergeJoinOperator(domain);
     }
 
     StopOperator stopOp = null;
 
     if(stopType.equals("sep")) {
-      stopOp = new StopSepOperator(domain.getPartialOrder());
-    }
-    if(stopType.equals("join")){
-      stopOp = new UninitializedVariablesStopJoin(domain);
+      stopOp = new StopSepOperator(domain);
+    } else if(stopType.equals("join")){
+      stopOp = new StopJoinOperator(domain);
     }
 
     this.abstractDomain = domain;

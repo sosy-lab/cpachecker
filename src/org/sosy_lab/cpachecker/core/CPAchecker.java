@@ -24,9 +24,14 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
@@ -39,7 +44,8 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -51,6 +57,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
@@ -65,6 +75,31 @@ public class CPAchecker {
     NORMAL, LOCATIONMAPPED, PARTITIONED
   }
   
+  public static interface CPAcheckerMXBean {
+    public int getReachedSetSize();
+    
+    public void stop();
+  }
+  
+  private class CPAcheckerBean implements CPAcheckerMXBean {
+    private final ReachedSet reached;
+    
+    public CPAcheckerBean(ReachedSet pReached) {
+      reached = pReached;
+    }
+
+    @Override
+    public int getReachedSetSize() {
+      return reached.size();
+    }
+    
+    @Override
+    public void stop() {
+      CPAchecker.requireStopAsap();
+    }
+    
+  }
+  
   @Options
   private static class CPAcheckerOptions {
 
@@ -74,7 +109,13 @@ public class CPAchecker {
     // algorithm options
 
     @Option(name="analysis.traversal")
-    ReachedSet.TraversalMethod traversalMethod = ReachedSet.TraversalMethod.DFS;
+    Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
+
+    @Option(name="analysis.traversal.useCallstack")
+    boolean useCallstack = false;
+
+    @Option(name="analysis.traversal.useTopsort")
+    boolean useTopSort = false;
 
     @Option(name="analysis.reachedSet")
     ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
@@ -88,6 +129,8 @@ public class CPAchecker {
     @Option(name="analysis.useCBMC")
     boolean useCBMC = false;
 
+    @Option(name="analysis.useBMC")
+    boolean useBMC = false;
   }
 
   private final LogManager logger;
@@ -121,47 +164,40 @@ public class CPAchecker {
     config.inject(options);
   }
 
-  protected Configuration getConfiguration() {
-    return config;
-  }
-
-  protected LogManager getLogger() {
-    return logger;
-  }
-  
   public CPAcheckerResult run(String filename) {
 
-    logger.log(Level.FINE, "Analysis Started");
+    logger.log(Level.INFO, "CPAchecker started");
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
     Result result = Result.UNKNOWN;
 
     try {
+      stats = new MainCPAStatistics(config, logger);
+
       // parse code file
-      IASTTranslationUnit ast = parse(filename);
-
-      stats = new MainCPAStatistics(getConfiguration(), logger);
-
-      // start measuring time
-      stats.startProgramTimer();
+      IASTTranslationUnit ast = parse(filename, stats);
 
       // create CFA
-      CFACreator cfaCreator = new CFACreator(getConfiguration(), logger);
+      stats.cfaCreationTime.start();
+      CFACreator cfaCreator = new CFACreator(config, logger);
+      stats.setCFACreator(cfaCreator);
       cfaCreator.createCFA(ast);
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
-
+      stats.cfaCreationTime.stop();
+      
       if (cfas.isEmpty()) {
         // empty program, do nothing
         return new CPAcheckerResult(Result.UNKNOWN, null, null);
       }
 
+      stats.cpaCreationTime.start();
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
 
-      Set<String> unusedProperties = getConfiguration().getUnusedProperties();
+      Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
             Joiner.on("\n ").join(unusedProperties), "\n");
@@ -170,7 +206,29 @@ public class CPAchecker {
       if (!requireStopAsap) {
         reached = createInitialReachedSet(cpa, mainFunction);
 
+        // register management interface for CPAchecker
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        ObjectName name = null;
+        try {
+          name = new ObjectName("org.sosy_lab.cpachecker:type=CPAchecker");
+          CPAcheckerMXBean mxbean = new CPAcheckerBean(reached);
+          mbs.registerMBean(mxbean, name);
+        } catch (JMException e) {
+          logger.logException(Level.WARNING, e, "Error during registration of management interface");
+        }
+
+        stats.cpaCreationTime.stop();
+        
         result = runAlgorithm(algorithm, reached, stats);
+        
+        // unregister management interface for CPAchecker
+        if (name != null) {
+          try {
+            mbs.unregisterMBean(name);
+          } catch (JMException e) {
+            logger.logException(Level.WARNING, e, "Error during unregistration of management interface");
+          }
+        }
       }
 
     } catch (IOException e) {
@@ -189,6 +247,15 @@ public class CPAchecker {
 
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+     
+    } catch (UnsatisfiedLinkError e) {
+      if (e.getMessage().contains("libgmpxx.so.4")) {
+        logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
+            + "Please install libgmpxx.so.4 and try again.\n"
+            + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
+      } else {
+        logger.logException(Level.SEVERE, e, null);
+      }
 
     } catch (ForceStopCPAException e) {
       // CPA must exit because it was asked to
@@ -208,9 +275,13 @@ public class CPAchecker {
    * @throws IOException If file cannot be read.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  protected IASTTranslationUnit parse(String filename) throws IOException, CoreException {
+  private IASTTranslationUnit parse(String filename, final MainCPAStatistics stats) throws IOException, CoreException {
     logger.log(Level.FINE, "Starting parsing of file");
+    stats.parseTime.start();
+
     IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
+    
+    stats.parseTime.stop();
     logger.log(Level.FINE, "Parser Finished");
     return ast;
   }
@@ -220,11 +291,12 @@ public class CPAchecker {
           final MainCPAStatistics stats) throws CPAException {
 
     logger.log(Level.INFO, "Starting analysis...");
-    stats.startAnalysisTimer();
+    stats.analysisTime.start();
 
     algorithm.run(reached);
 
-    stats.stopAnalysisTimer();
+    stats.analysisTime.stop();
+    stats.programTime.stop();
     logger.log(Level.INFO, "Analysis finished.");
 
     for (AbstractElement reachedElement : reached) {
@@ -233,6 +305,16 @@ public class CPAchecker {
         return Result.UNSAFE;
       }
     }
+    
+    if (reached.hasWaitingElement()) {
+      logger.log(Level.WARNING, "Analysis did not finish, there are still elements to be processed.");
+      return Result.UNKNOWN;
+    }
+    
+    if (CBMCAlgorithm.didCBMCReportUP){
+      logger.log(Level.WARNING, "Analysis finished but is unsound due to cbmc interaction");
+      return Result.UNKNOWN;
+    }
 
     return Result.SAFE;
   }
@@ -240,7 +322,7 @@ public class CPAchecker {
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(getConfiguration(), logger);
+    CPABuilder builder = new CPABuilder(config, logger);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
     if (cpa instanceof StatisticsProvider) {
@@ -256,15 +338,19 @@ public class CPAchecker {
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
     if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, getConfiguration(), logger);
+      algorithm = new CEGARAlgorithm(algorithm, config, logger);
+    }
+    
+    if (options.useBMC) {
+      algorithm = new BMCAlgorithm(algorithm, config, logger);
     }
 
     if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectionAlgorithm(algorithm, getConfiguration(), logger);
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
     }
 
     if (options.useCBMC) {
-      algorithm = new CBMCAlgorithm(cfas, algorithm, logger);
+      algorithm = new CBMCAlgorithm(cfas, algorithm, config, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {
@@ -282,17 +368,25 @@ public class CPAchecker {
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
     
+    WaitlistFactory waitlistFactory = options.traversalMethod;
+    if (options.useTopSort) {
+      waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
+    }
+    if (options.useCallstack) {
+      waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
+    }
+    
     ReachedSet reached;
     switch (options.reachedSet) {
     case PARTITIONED:
-      reached = new PartitionedReachedSet(options.traversalMethod);
+      reached = new PartitionedReachedSet(waitlistFactory);
       break;
     case LOCATIONMAPPED:
-      reached = new LocationMappedReachedSet(options.traversalMethod);
+      reached = new LocationMappedReachedSet(waitlistFactory);
       break;
     case NORMAL:
     default:
-      reached = new ReachedSet(options.traversalMethod);
+      reached = new ReachedSet(waitlistFactory);
     }
 
     reached.add(initialElement, initialPrecision);

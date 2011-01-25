@@ -1,14 +1,24 @@
 
-void abort();
+void abort() {
+
+}
 
 int f(int x, int y) {
   int z;
+  int tmp1;
+  int tmp2;
+  int tmp3;
 
   z = y;
 
-  if (x == z)
+  tmp1 = (x == z);
+
+  if (tmp1)
   {
-    if (y == x + 10)
+	tmp2 = (x + 10);
+	tmp3 = (y == tmp2);
+
+    if (tmp3)
     {
       abort();
     }

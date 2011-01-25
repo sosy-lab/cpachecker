@@ -116,7 +116,9 @@ JNIEXPORT jint JNICALL Java_mathsat_api_msat_1set_1option
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_option = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_option == NULL) return 0; /* out of memory error */
 arg3_value = (char *)(*jenv)->GetStringUTFChars(jenv, arg3, NULL);
+if (arg3_value == NULL) return 0; /* out of memory error */
 
   msat_set_option_retval = msat_set_option(arg1_e, arg2_option, arg3_value);
 
@@ -139,6 +141,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1declare_1variable
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_name = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_name == NULL) return 0; /* out of memory error */
 arg3_type = arg3;
 
   msat_declare_variable_retval = msat_declare_variable(arg1_e, arg2_name, arg3_type);
@@ -163,9 +166,11 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1declare_1uif
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_name = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_name == NULL) return 0; /* out of memory error */
 arg3_out_type = arg3;
 arg4_num_args = arg4;
 arg5_args_types = (int *)((*jenv)->GetIntArrayElements(jenv, arg5, NULL));
+if (arg5_args_types == NULL) return 0; /* out of memory error */
 
 
   msat_declare_uif_retval = msat_declare_uif(arg1_e, arg2_name, arg3_out_type, arg4_num_args, arg5_args_types);
@@ -534,6 +539,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1make_1number
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_num_rep = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_num_rep == NULL) return 0; /* out of memory error */
 
   msat_make_number_retval = msat_make_number(arg1_e, arg2_num_rep);
 
@@ -600,6 +606,7 @@ arg2_func.repr = (void *)((size_t)arg2);
 {
   size_t i, sz;
   jlong *tmp = (jlong *)((*jenv)->GetLongArrayElements(jenv, arg3, NULL));
+  if (tmp == NULL) return 0; /* out of memory error */
   sz = (size_t)((*jenv)->GetArrayLength(jenv, arg3));
   arg3_args = (msat_term *)malloc(sizeof(msat_term) * sz);
   for (i = 0; i < sz; ++i) {
@@ -1195,6 +1202,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1from_1string
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_repr = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_repr == NULL) return 0; /* out of memory error */
 
   msat_from_string_retval = msat_from_string(arg1_e, arg2_repr);
 
@@ -1216,7 +1224,9 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1from_1string_1and_1name
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_repr = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_repr == NULL) return 0; /* out of memory error */
 arg3_name = (char *)(*jenv)->GetStringUTFChars(jenv, arg3, NULL);
+if (arg3_name == NULL) return 0; /* out of memory error */
 
   msat_from_string_and_name_retval = msat_from_string_and_name(arg1_e, arg2_repr, arg3_name);
 
@@ -1263,6 +1273,7 @@ arg2_t.repr = (void *)((size_t)arg2);
 {
   size_t i, sz;
   jlong *tmp = (jlong *)((*jenv)->GetLongArrayElements(jenv, arg3, NULL));
+  if (tmp == NULL) return 0; /* out of memory error */
   sz = (size_t)((*jenv)->GetArrayLength(jenv, arg3));
   arg3_newargs = (msat_term *)malloc(sizeof(msat_term) * sz);
   for (i = 0; i < sz; ++i) {
@@ -1291,6 +1302,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1from_1msat
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_data = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_data == NULL) return 0; /* out of memory error */
 
   msat_from_msat_retval = msat_from_msat(arg1_e, arg2_data);
 
@@ -1311,6 +1323,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1from_1smt
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_data = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_data == NULL) return 0; /* out of memory error */
 
   msat_from_smt_retval = msat_from_smt(arg1_e, arg2_data);
 
@@ -1331,6 +1344,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1from_1foci
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_data = (char *)(*jenv)->GetStringUTFChars(jenv, arg2, NULL);
+if (arg2_data == NULL) return 0; /* out of memory error */
 
   msat_from_foci_retval = msat_from_foci(arg1_e, arg2_data);
 
@@ -1356,6 +1370,8 @@ arg2_term.repr = (void *)((size_t)arg2);
 
   msat_to_msat_jretval = (*jenv)->NewStringUTF(jenv, msat_to_msat_retval);
 
+  free(msat_to_msat_retval);
+
   return msat_to_msat_jretval;
 
 }
@@ -1374,6 +1390,8 @@ arg2_term.repr = (void *)((size_t)arg2);
   msat_to_smtlib_retval = msat_to_smtlib(arg1_e, arg2_term);
 
   msat_to_smtlib_jretval = (*jenv)->NewStringUTF(jenv, msat_to_smtlib_retval);
+
+  free(msat_to_smtlib_retval);
 
   return msat_to_smtlib_jretval;
 
@@ -2399,6 +2417,8 @@ arg1_d.repr = (void *)((size_t)arg1);
 
   msat_decl_get_name_jretval = (*jenv)->NewStringUTF(jenv, msat_decl_get_name_retval);
 
+  free(msat_decl_get_name_retval);
+
   return msat_decl_get_name_jretval;
 
 }
@@ -2418,6 +2438,8 @@ arg2_t.repr = (void *)((size_t)arg2);
 
   msat_term_get_name_jretval = (*jenv)->NewStringUTF(jenv, msat_term_get_name_retval);
 
+  free(msat_term_get_name_retval);
+
   return msat_term_get_name_jretval;
 
 }
@@ -2434,6 +2456,8 @@ arg1_t.repr = (void *)((size_t)arg1);
   msat_term_repr_retval = msat_term_repr(arg1_t);
 
   msat_term_repr_jretval = (*jenv)->NewStringUTF(jenv, msat_term_repr_retval);
+
+  free(msat_term_repr_retval);
 
   return msat_term_repr_jretval;
 
@@ -2564,6 +2588,7 @@ JNIEXPORT jint JNICALL Java_mathsat_api_msat_1all_1sat
     important = malloc(sizeof(msat_term) * len);
 
     larr = (*jenv)->GetLongArrayElements(jenv, arg2, NULL);
+    if (larr == NULL) return 0; /* out of memory error */
     for (i = 0; i < len; ++i) {
         important[i].repr = (void *)((size_t)larr[i]);
     }
@@ -3001,6 +3026,7 @@ JNIEXPORT jint JNICALL Java_mathsat_api_msat_1tcc_1all_1sat
     important = malloc(sizeof(msat_term) * len);
 
     larr = (*jenv)->GetLongArrayElements(jenv, arg2, NULL);
+    if (larr == NULL) return 0; /* out of memory error */
     for (i = 0; i < len; ++i) {
         important[i].repr = (void *)((size_t)larr[i]);
     }
@@ -3078,6 +3104,7 @@ JNIEXPORT jlong JNICALL Java_mathsat_api_msat_1get_1interpolant
 
 arg1_e.repr = (void *)((size_t)arg1);
 arg2_groups_of_a = (int *)((*jenv)->GetIntArrayElements(jenv, arg2, NULL));
+if (arg2_groups_of_a == NULL) return 0; /* out of memory error */
 
 arg3_n = arg3;
 

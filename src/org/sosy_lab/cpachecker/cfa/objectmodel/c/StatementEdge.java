@@ -36,24 +36,13 @@ public class StatementEdge extends AbstractCFAEdge
 {
     private final IASTExpression expression;
     private final IASTStatement rawAST;
-    private final boolean jumpEdge;
 
     public StatementEdge(IASTStatement rawAST, int lineNumber, CFANode predecessor, CFANode successor,
-                              IASTExpression expression, boolean jumpEdge)
+                              IASTExpression expression)
     {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
         this.expression = expression;
         this.rawAST = rawAST;
-        this.jumpEdge = jumpEdge;
-    }
-
-    /**
-     * Gives information whether this edge is a return statement.
-     */
-    @Override
-    public boolean isJumpEdge ()
-    {
-        return jumpEdge;
     }
 
     @Override

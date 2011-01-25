@@ -45,31 +45,7 @@ public class SingletonPrecision implements Precision {
   }
   
   @Override
-  public boolean isBreak() {
-    return false;
-  }
-  
-  @Override
   public String toString() {
     return "no precision";
-  }
-  
-  private static class BreakPrecision implements Precision {
-    
-    private final static BreakPrecision mBreakInstance = new BreakPrecision(); 
-    
-    @Override
-    public boolean isBreak() {
-      return true;
-    }
-    
-    @Override
-    public String toString() {
-      return "BREAK";
-    }
-  }
-  
-  public static Precision getBreakInstance() {
-    return BreakPrecision.mBreakInstance;
   }
 }

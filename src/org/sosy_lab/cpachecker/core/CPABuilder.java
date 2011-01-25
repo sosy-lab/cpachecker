@@ -40,11 +40,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.Automaton;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA.AutomatonCPAFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
@@ -87,10 +87,10 @@ public class CPABuilder {
           throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
         }
         
-        AutomatonCPAFactory factory = ControlAutomatonCPA.factory();
-        factory.setConfiguration(new Configuration(config, cpaAlias));
+        CPAFactory factory = ControlAutomatonCPA.factory();
+        factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
         factory.setLogger(logger);
-        factory.setAutomaton(automaton);
+        factory.set(automaton, Automaton.class);
         cpas.add(factory.createInstance());
         logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
       }
@@ -118,7 +118,7 @@ public class CPABuilder {
 
     // now use factory to get an instance of the CPA
 
-    factory.setConfiguration(new Configuration(config, cpaAlias));
+    factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
     factory.setLogger(logger);
 
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas);
@@ -174,6 +174,9 @@ public class CPABuilder {
       Method factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
       factoryObj = factoryMethod.invoke(null, (Object[])null);
     
+    } catch (NullPointerException e) {
+      throw new CPAException("The factory method of the CPA " + cpaName + " is not static!");
+      
     } catch (NoSuchMethodException e) {
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
     
@@ -206,6 +209,12 @@ public class CPABuilder {
     String childrenOptionName = cpaAlias + ".cpas";
     String childCpaName = config.getProperty(childOptionName);
     String childrenCpaNames = config.getProperty(childrenOptionName);
+
+    if (childrenCpaNames == null && childCpaName == null && cpaAlias.equals("CompositeCPA")
+        && cpas != null && !cpas.isEmpty()) {
+      // if a specification was given, but no CPAs, insert a LocationCPA
+      childrenCpaNames = LocationCPA.class.getCanonicalName();
+    }
 
     if (childCpaName != null) {
       // only one child CPA

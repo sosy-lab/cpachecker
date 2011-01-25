@@ -30,7 +30,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
  *
  * @author g.theoduloz
  */
-public interface AvoidanceReportingElement {
+public interface AvoidanceReportingElement extends FormulaReportingElement{
 
   /**
    * Returns true if an invariant must be added so as to avoid

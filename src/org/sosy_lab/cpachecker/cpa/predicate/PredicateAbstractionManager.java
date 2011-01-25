@@ -1,0 +1,529 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2010  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.predicate;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+
+import org.sosy_lab.common.Files;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
+
+
+@Options(prefix="cpa.predicate")
+class PredicateAbstractionManager extends PathFormulaManagerImpl {
+
+  static class Stats {
+    public int numCallsAbstraction = 0;
+    public int numSymbolicAbstractions = 0;
+    public int numSatCheckAbstractions = 0;
+    public int numCallsAbstractionCached = 0;
+    public long abstractionSolveTime = 0;
+    public long abstractionMaxSolveTime = 0;
+    
+    public long abstractionBddTime = 0;
+    public long abstractionMaxBddTime = 0;
+    public long allSatCount = 0;
+    public int maxAllSatCount = 0;
+  }
+  
+  final Stats stats;
+
+  protected final AbstractionManager amgr;
+  protected final TheoremProver thmProver;
+
+  @Option(name="abstraction.cartesian")
+  private boolean cartesianAbstraction = false;
+
+  @Option(name="abstraction.dumpHardQueries")
+  private boolean dumpHardAbstractions = false;
+
+  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE)
+  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
+  protected final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
+  
+  @Option
+  protected boolean useBitwiseAxioms = false;
+  
+  @Option
+  private boolean useCache = true;
+  
+  private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  //cache for cartesian abstraction queries. For each predicate, the values
+  // are -1: predicate is false, 0: predicate is don't care,
+  // 1: predicate is true
+  private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
+  private final Map<Formula, Boolean> feasibilityCache;
+
+  public PredicateAbstractionManager(
+      RegionManager pRmgr,
+      FormulaManager pFmgr,
+      TheoremProver pThmProver,
+      Configuration config,
+      LogManager pLogger) throws InvalidConfigurationException {
+    super(pFmgr, config, pLogger);
+    config.inject(this, PredicateAbstractionManager.class);
+    
+    if (formulaDumpFile != null) {
+      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
+    } else {
+      dumpHardAbstractions = false;
+      formulaDumpFilePattern = null;
+    }
+
+    stats = new Stats();
+    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
+    thmProver = pThmProver;
+
+    if (useCache) {
+      abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();
+    } else {
+      abstractionCache = null;
+    }
+    if (useCache && cartesianAbstraction) {
+      cartesianAbstractionCache = new HashMap<Pair<Formula, AbstractionPredicate>, Byte>();
+      feasibilityCache = new HashMap<Formula, Boolean>();
+    } else {
+      cartesianAbstractionCache = null;
+      feasibilityCache = null;
+    }
+  }
+
+  /**
+   * Abstract post operation.
+   */
+  public AbstractionFormula buildAbstraction(
+      AbstractionFormula abstractionFormula, PathFormula pathFormula,
+      Collection<AbstractionPredicate> predicates) {
+
+    stats.numCallsAbstraction++;
+
+    if (predicates.isEmpty()) {
+      stats.numSymbolicAbstractions++;
+      return makeTrueAbstractionFormula(pathFormula.getFormula());
+    }
+
+    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    logger.log(Level.ALL, "Path formula:", pathFormula);
+    logger.log(Level.ALL, "Predicates:", predicates);
+    
+    Formula absFormula = abstractionFormula.asFormula();
+    Formula symbFormula = buildFormula(pathFormula.getFormula());
+    Formula f = fmgr.makeAnd(absFormula, symbFormula);
+    
+    // caching
+    Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
+    if (useCache) {
+      absKey = Pair.of(f, predicates);
+      AbstractionFormula result = abstractionCache.get(absKey);
+
+      if (result != null) {
+        // create new abstraction object to have a unique abstraction id
+        result = new AbstractionFormula(result.asRegion(), result.asFormula(), result.getBlockFormula());
+        logger.log(Level.ALL, "Abstraction was cached, result is", result);
+        stats.numCallsAbstractionCached++;
+        return result;
+      }
+    }
+    
+    Region abs;
+    if (cartesianAbstraction) {
+      abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
+    } else {
+      abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
+    }
+    
+    Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
+    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
+
+    if (useCache) {
+      abstractionCache.put(absKey, result);
+    }
+    
+    return result;
+  }
+
+  private Region buildCartesianAbstraction(Formula f, SSAMap ssa,
+      Collection<AbstractionPredicate> predicates) {
+    final RegionManager rmgr = amgr.getRegionManager();  
+    
+    byte[] predVals = null;
+    final byte NO_VALUE = -2;
+    if (useCache) {
+      predVals = new byte[predicates.size()];
+      int predIndex = -1;
+      for (AbstractionPredicate p : predicates) {
+        ++predIndex;
+        Pair<Formula, AbstractionPredicate> key = Pair.of(f, p);
+        if (cartesianAbstractionCache.containsKey(key)) {
+          predVals[predIndex] = cartesianAbstractionCache.get(key);
+        } else {
+          predVals[predIndex] = NO_VALUE;
+        }
+      }
+    }
+
+    boolean skipFeasibilityCheck = false;
+    if (useCache) {
+      if (feasibilityCache.containsKey(f)) {
+        skipFeasibilityCheck = true;
+        if (!feasibilityCache.get(f)) {
+          // abstract post leads to false, we can return immediately
+          return rmgr.makeFalse();
+        }
+      }
+    }
+
+    Timer solveTimer = new Timer();
+    solveTimer.start();
+
+    thmProver.init();
+    try {
+
+      if (!skipFeasibilityCheck) {
+        //++stats.abstractionNumMathsatQueries;
+        boolean unsat = thmProver.isUnsat(f);
+        if (useCache) {
+          feasibilityCache.put(f, !unsat);
+        }
+        if (unsat) {
+          return rmgr.makeFalse();
+        }
+      } else {
+        //++stats.abstractionNumCachedQueries;
+      }
+
+      thmProver.push(f);
+      try {
+        Timer totBddTimer = new Timer();
+
+        Region absbdd = rmgr.makeTrue();
+
+        // check whether each of the predicate is implied in the next state...
+
+        int predIndex = -1;
+        for (AbstractionPredicate p : predicates) {
+          ++predIndex;
+          if (useCache && predVals[predIndex] != NO_VALUE) {
+            
+            totBddTimer.start();
+            Region v = p.getAbstractVariable();
+            if (predVals[predIndex] == -1) { // pred is false
+              v = rmgr.makeNot(v);
+              absbdd = rmgr.makeAnd(absbdd, v);
+            } else if (predVals[predIndex] == 1) { // pred is true
+              absbdd = rmgr.makeAnd(absbdd, v);
+            }
+            totBddTimer.stop();
+            
+            //++stats.abstractionNumCachedQueries;
+          } else {            
+            logger.log(Level.ALL, "DEBUG_1",
+                "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
+
+            // instantiate the definition of the predicate
+            Formula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
+            Formula predFalse = fmgr.makeNot(predTrue);
+
+            // check whether this predicate has a truth value in the next
+            // state
+            byte predVal = 0; // pred is neither true nor false
+
+            //++stats.abstractionNumMathsatQueries;
+            boolean isTrue = thmProver.isUnsat(predFalse);
+
+            if (isTrue) {
+              totBddTimer.start();
+              Region v = p.getAbstractVariable();
+              absbdd = rmgr.makeAnd(absbdd, v);
+              totBddTimer.stop();
+
+              predVal = 1;
+            } else {
+              // check whether it's false...
+              //++stats.abstractionNumMathsatQueries;
+              boolean isFalse = thmProver.isUnsat(predTrue);
+
+              if (isFalse) {
+                totBddTimer.start();
+                Region v = p.getAbstractVariable();
+                v = rmgr.makeNot(v);
+                absbdd = rmgr.makeAnd(absbdd, v);
+                totBddTimer.stop();
+
+                predVal = -1;
+              }
+            }
+
+            if (useCache) {
+              cartesianAbstractionCache.put(Pair.of(f, p), predVal);
+            }
+          }
+        }     
+        solveTimer.stop();
+
+        // update statistics
+        
+        long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
+        
+        stats.abstractionMaxBddTime =
+          Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
+        stats.abstractionBddTime += totBddTimer.getSumTime();
+        
+        stats.abstractionSolveTime += solveTime;
+        stats.abstractionMaxSolveTime =
+          Math.max(solveTime, stats.abstractionMaxSolveTime);
+
+        return absbdd;
+
+      } finally {
+        thmProver.pop();
+      }
+
+    } finally {
+      thmProver.reset();
+    }
+  }
+
+  private Formula buildFormula(Formula symbFormula) {
+
+    if (useBitwiseAxioms) {
+      Formula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
+      if (!bitwiseAxioms.isTrue()) {
+        symbFormula = fmgr.makeAnd(symbFormula, bitwiseAxioms);
+
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+      }
+    }
+    
+    return symbFormula;
+  }
+
+  private Region buildBooleanAbstraction(Formula f, SSAMap ssa,
+      Collection<AbstractionPredicate> predicates) {
+
+    // first, create the new formula corresponding to
+    // (symbFormula & edges from e to succ)
+    // TODO - at the moment, we assume that all the edges connecting e and
+    // succ have no statement or assertion attached (i.e. they are just
+    // return edges or gotos). This might need to change in the future!!
+    // (So, for now we don't need to to anything...)
+
+    // build the definition of the predicates, and instantiate them
+    // also collect all predicate variables so that the solver knows for which
+    // variables we want to have the satisfying assignments
+    Formula predDef = fmgr.makeTrue();
+    List<Formula> predVars = new ArrayList<Formula>(predicates.size());
+
+    for (AbstractionPredicate p : predicates) {
+      // get propositional variable and definition of predicate
+      Formula var = p.getSymbolicVariable();
+      Formula def = p.getSymbolicAtom();
+      if (def.isFalse()) {
+        continue;
+      }
+      def = fmgr.instantiate(def, ssa);
+      
+      // build the formula (var <-> def) and add it to the list of definitions
+      Formula equiv = fmgr.makeEquivalence(var, def);
+      predDef = fmgr.makeAnd(predDef, equiv);
+
+      predVars.add(var);
+    }
+    if (predVars.isEmpty()) {
+      stats.numSatCheckAbstractions++;
+    }
+
+    // the formula is (abstractionFormula & pathFormula & predDef)
+    Formula fm = fmgr.makeAnd(f, predDef);
+
+    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
+
+    final Timer solveTimer = new Timer();
+    solveTimer.start();
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr);
+    solveTimer.stop();
+    
+    // update statistics
+    int numModels = allSatResult.getCount();
+    if (numModels < Integer.MAX_VALUE) {
+      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+      stats.allSatCount += numModels;
+    }
+    
+    long bddTime   = allSatResult.getTotalTime();
+    long solveTime = solveTimer.getSumTime() - bddTime;
+
+    stats.abstractionSolveTime += solveTime;
+    stats.abstractionBddTime   += bddTime;
+
+    stats.abstractionMaxBddTime =
+      Math.max(bddTime, stats.abstractionMaxBddTime);
+    stats.abstractionMaxSolveTime =
+      Math.max(solveTime, stats.abstractionMaxSolveTime);
+
+    // TODO dump hard abst
+    if (solveTime > 10000 && dumpHardAbstractions) {
+      // we want to dump "hard" problems...
+      String dumpFile = String.format(formulaDumpFilePattern,
+                               "abstraction", stats.numCallsAbstraction, "input", 0);
+      dumpFormulaToFile(f, new File(dumpFile));
+
+      dumpFile = String.format(formulaDumpFilePattern,
+                               "abstraction", stats.numCallsAbstraction, "predDef", 0);
+      dumpFormulaToFile(predDef, new File(dumpFile));
+
+      dumpFile = String.format(formulaDumpFilePattern,
+                               "abstraction", stats.numCallsAbstraction, "predVars", 0);
+      printFormulasToFile(predVars, new File(dumpFile));
+    }
+
+    Region result = allSatResult.getResult();
+    logger.log(Level.ALL, "Abstraction computed, result is", result);
+    return result;
+  }
+
+  /**
+   * Checks if (a1 & p1) => a2
+   */
+  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
+    Formula absFormula = a1.asFormula();
+    Formula symbFormula = buildFormula(p1.getFormula()); 
+    Formula a = fmgr.makeAnd(absFormula, symbFormula);
+
+    Formula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
+
+    Formula toCheck = fmgr.makeAnd(a, fmgr.makeNot(b));
+
+    thmProver.init();
+    try {
+      return thmProver.isUnsat(toCheck);
+    } finally {
+      thmProver.reset();
+    }
+  }
+  
+  /**
+   * Checks if an abstraction formula and a pathFormula are unsatisfiable.
+   * @param pAbstractionFormula the abstraction formula
+   * @param pPathFormula the path formula
+   * @return unsat(pAbstractionFormula & pPathFormula)
+   */
+  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
+    Formula absFormula = abstractionFormula.asFormula();
+    Formula symbFormula = buildFormula(pathFormula.getFormula());
+    Formula f = fmgr.makeAnd(absFormula, symbFormula);
+    logger.log(Level.ALL, "Checking satisfiability of formula", f);
+
+    thmProver.init();
+    try {
+      return thmProver.isUnsat(f);
+    } finally {
+      thmProver.reset();
+    }
+  }
+
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
+    PathFormula pathFormula = makeEmptyPathFormula();
+    for (CFAEdge edge : pPath) {
+      pathFormula = makeAnd(pathFormula, edge);
+    }
+    Formula f = pathFormula.getFormula();
+    // ignore reachingPathsFormula here because it is just a simple path
+    
+    thmProver.init();
+    try {
+      thmProver.push(f);
+      if (thmProver.isUnsat(fmgr.makeTrue())) {
+        return new CounterexampleTraceInfo();
+      } else {
+        return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
+      }
+    } finally {
+      thmProver.reset();
+    }
+  }
+
+  protected void dumpFormulaToFile(Formula f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, fmgr.dumpFormula(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+
+  private static final Joiner LINE_JOINER = Joiner.on('\n');
+
+  protected void printFormulasToFile(Iterable<Formula> f, File outputFile) {
+    try {
+      Files.writeFile(outputFile, LINE_JOINER.join(f));
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+    }
+  }
+
+  // delegate methods
+  
+  public AbstractionPredicate makeFalsePredicate() {
+    return amgr.makeFalsePredicate();
+  }
+
+  public AbstractionFormula makeTrueAbstractionFormula(
+      Formula pPreviousBlockFormula) {
+    return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
+  }
+}

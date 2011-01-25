@@ -69,6 +69,10 @@ public class InterpreterElement implements AbstractElement {
     return mInputIndex;
   }
 
+  public void setInputIndex(int pIndex) {
+    mInputIndex = pIndex;
+  }
+  
   // TODO change
   public void incIndex() {
     mInputIndex = mInputIndex + 1;
@@ -87,7 +91,7 @@ public class InterpreterElement implements AbstractElement {
     }
     
     if(nameOfVar.contains(noAutoInitPrefix)){
-      throw new RuntimeException();
+      throw new RuntimeException(nameOfVar);
     }
 
     mConstantsMap.put(nameOfVar, value);

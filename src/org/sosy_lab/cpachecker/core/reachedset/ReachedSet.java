@@ -27,22 +27,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
+import com.google.common.collect.Iterables;
+
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import org.sosy_lab.common.Pair;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -59,8 +57,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
   private AbstractElement lastElement = null;
   private AbstractElement firstElement = null;
-  private final LinkedList<AbstractElement> waitlist;
-  private final TraversalMethod traversal;
+  private final Waitlist waitlist;
 
   private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair =
     new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
@@ -69,24 +66,16 @@ public class ReachedSet implements UnmodifiableReachedSet {
       public Pair<AbstractElement, Precision> apply(
                   AbstractElement element) {
 
-        return new Pair<AbstractElement, Precision>(element, getPrecision(element));
+        return Pair.of(element, getPrecision(element));
       }
 
   };
 
-  public ReachedSet(TraversalMethod traversal) {
-    Preconditions.checkNotNull(traversal);
-
+  public ReachedSet(WaitlistFactory waitlistFactory) {
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    waitlist = new LinkedList<AbstractElement>();
-    this.traversal = traversal;
-  }
-
-  //enumerator for traversal methods
-  public enum TraversalMethod {
-    DFS, BFS, TOPSORT, RAND
+    waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   public void add(AbstractElement element, Precision precision) {
@@ -100,7 +89,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
 
-  public void addAll(Collection<Pair<AbstractElement, Precision>> toAdd) {
+  public void addAll(Iterable<Pair<AbstractElement, Precision>> toAdd) {
     for (Pair<AbstractElement, Precision> pair : toAdd) {
       add(pair.getFirst(), pair.getSecond());
     }
@@ -130,7 +119,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
     reached.remove(element);
   }
 
-  public void removeAll(Collection<? extends AbstractElement> toRemove) {
+  public void removeAll(Iterable<? extends AbstractElement> toRemove) {
     for (AbstractElement element : toRemove) {
       remove(element);
     }
@@ -200,44 +189,12 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
   @Override
-  public List<AbstractElement> getWaitlist() {
-    return Collections.unmodifiableList(waitlist);
+  public Iterable<AbstractElement> getWaitlist() {
+    return Iterables.unmodifiableIterable(waitlist);
   }
 
   public AbstractElement popFromWaitlist() {
-    AbstractElement result = null;
-
-    switch(traversal) {
-    case BFS:
-      result = waitlist.removeFirst();
-      break;
-
-    case DFS:
-      result = waitlist.removeLast();
-      break;
-
-    case RAND:
-      Random rand = new Random();
-      int randInd = rand.nextInt(waitlist.size());
-      result = waitlist.get(randInd);
-      break;
-
-    case TOPSORT:
-    default:
-      int resultTopSortId = Integer.MIN_VALUE;
-      for (AbstractElement currentElement : waitlist) {
-        if ((result == null)
-            || (getLocationFromElement(currentElement).getTopologicalSortId() >
-                resultTopSortId)) {
-          result = currentElement;
-          resultTopSortId = getLocationFromElement(result).getTopologicalSortId();
-        }
-      }
-      waitlist.remove(result);
-      break;
-    }
-
-    return result;
+    return waitlist.pop();
   }
 
   @Override
@@ -271,20 +228,5 @@ public class ReachedSet implements UnmodifiableReachedSet {
   @Override
   public String toString() {
     return reached.keySet().toString();
-  }
-  
-  protected CFANode getLocationFromElement(AbstractElement element) {
-    if (element instanceof AbstractWrapperElement) {
-      AbstractElementWithLocation locationElement =
-        ((AbstractWrapperElement)element).retrieveLocationElement();
-      assert locationElement != null;
-      return locationElement.getLocationNode();
-
-    } else if (element instanceof AbstractElementWithLocation) {
-      return ((AbstractElementWithLocation)element).getLocationNode();
-
-    } else {
-      return null;
-    }
   }
 }

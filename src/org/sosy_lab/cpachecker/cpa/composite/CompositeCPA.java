@@ -72,7 +72,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
       CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
-      CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
+      CompositeStopOperator compositeStop = new CompositeStopOperator(stopOperators.build());
       CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
@@ -108,7 +108,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  private CompositeCPA (AbstractDomain abstractDomain,
+  protected CompositeCPA (AbstractDomain abstractDomain,
       TransferRelation transferRelation,
       MergeOperator mergeOperator,
       StopOperator stopOperator,

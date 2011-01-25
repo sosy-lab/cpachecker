@@ -66,7 +66,7 @@ int ssl3_connect(int initial_state )
   long __cil_tmp62 ;
   long __cil_tmp63 ;
   long __cil_tmp64 ;
-  __BLAST_NONDET = random();
+//  __BLAST_NONDET = random();
   {
 #line 60
   s__state = initial_state;

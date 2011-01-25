@@ -41,4 +41,8 @@ public class GlobalDeclarationEdge extends DeclarationEdge {
         super(declaration, lineNumber, predecessor, successor);
     }
 
+    @Override
+    public boolean isGlobal() {
+      return true;
+    }
 }

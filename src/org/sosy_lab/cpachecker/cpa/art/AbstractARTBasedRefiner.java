@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -46,13 +45,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 public abstract class AbstractARTBasedRefiner implements Refiner {
 
   private final ARTCPA mArtCpa;
   private final LogManager logger;
-
-  private final Set<Path> seenCounterexamples = Sets.newHashSet();
 
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     if (!(pCpa instanceof ARTCPA)) {
@@ -97,15 +95,25 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
 
-    assert seenCounterexamples.add(path);
-
-    boolean result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+    boolean result;
+    try {
+      result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+    } catch (RefinementFailedException e) {
+      if (e.getErrorPath() == null) {
+        e.setErrorPath(path);
+      }
+      
+      // set the path from the exception as the target path
+      // so it can be used for debugging
+      mArtCpa.setTargetPath(e.getErrorPath());
+      throw e;
+    }
 
     assert checkART(pReached);
 
     if (!result) {
       Path targetPath = getTargetPath(path);
-      
+
       // new targetPath must contain root and error node
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
       assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
@@ -149,7 +157,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  private static Path buildPath(ARTElement pLastElement) {
+  static Path buildPath(ARTElement pLastElement) {
     Path path = new Path();
     Set<ARTElement> seenElements = new HashSet<ARTElement>();
 
@@ -162,7 +170,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
     CFAEdge lastEdge = currentARTElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0);
-    path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, lastEdge));
+    path.addFirst(Pair.of(currentARTElement, lastEdge));
     seenElements.add(currentARTElement);
 
     while (!currentARTElement.getParents().isEmpty()) {
@@ -175,7 +183,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
 
       CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
-      path.addFirst(new Pair<ARTElement, CFAEdge>(parentElement, edge));
+      path.addFirst(Pair.of(parentElement, edge));
 
       currentARTElement = parentElement;
     }

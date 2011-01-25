@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -113,11 +113,21 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     case StatementEdge:
       handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
       break;
+      
+    case ReturnStatementEdge:
+      //this is the return-statement of a function
+      //set a local variable tracking the return statement's initialization status
+      if (isExpressionUninitialized(successor, ((ReturnStatementEdge)cfaEdge).getExpression(), cfaEdge)) {
+        setUninitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
+      } else {
+        setInitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
+      }
+      break;
 
-    case ReturnEdge:
+    case FunctionReturnEdge:
       //handle statement like a = func(x) in the CallToReturnEdge
-      ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
-      CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)cfaEdge;
+      CallToReturnEdge ctrEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
       break;
 
@@ -130,27 +140,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     case FunctionCallEdge:
       //on calling a function, check initialization status of the parameters
-      FunctionCallEdge callEdge = (FunctionCallEdge)cfaEdge;
-      //if the function is external, display warnings for uninitialized arguments
-      if (callEdge.isExternalCall()) {
-        if (printWarnings) {
-          IASTExpression[] args = callEdge.getArguments();
-          if (args != null) {
-            for (IASTExpression exp : args) {
-              isExpressionUninitialized(successor, exp, cfaEdge);
-            }
-          }
-        }
-        //if there possibly is an assignment, we need to set the initialization status of the variable
-        if (callEdge.getSuccessor().getEnteringSummaryEdge().getExpression()
-            instanceof IASTBinaryExpression) {
-          CallToReturnEdge ctr = callEdge.getSuccessor().getEnteringSummaryEdge();
-          handleStatement(successor, ctr.getExpression(), ctr);
-        }
-        //if the function is internal, handle separately
-      } else {
-        handleFunctionCall(successor, callEdge);
-      }
+      handleFunctionCall(successor, (FunctionCallEdge)cfaEdge);
       break;
 
     case BlankEdge:
@@ -208,8 +198,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (declaration.getDeclSpecifier().getStorageClass() != IASTDeclSpecifier.sc_typedef) {
 
       for (IASTDeclarator declarator : declaration.getDeclarators()) {
-        if (declarator != null) {
-
           String varName;
           //in case of a nested declarator, get the variable name from the inner declarator
           if (declarator.getNestedDeclarator() != null) {
@@ -218,7 +206,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //otherwise there is only one declarator
             varName = declarator.getName().toString();
           }
-          if (declaration instanceof GlobalDeclarationEdge) {
+          if (declaration.isGlobal()) {
             globalVars.add(varName);
           }
 
@@ -235,7 +223,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           } else {
             setInitialized(element, varName);
           }
-        }
       }
     }
   }
@@ -243,19 +230,19 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private void handleFunctionCall(UninitializedVariablesElement element, FunctionCallEdge callEdge)
                                                                   throws UnrecognizedCCodeException {
     //find functions's parameters and arguments
-    FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
+    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments = callEdge.getArguments();
+    List<IASTExpression> arguments = callEdge.getArguments();
 
-    if (arguments != null) {
+    if (!arguments.isEmpty()) {
 
       int numOfParams = paramNames.size();
 
       //if the following  is the case, this is a varargs function and thus can take any number of arguments
-      if (numOfParams < arguments.length) {
+      if (numOfParams < arguments.size()) {
         //then, for unnamed parameters, only check for use of uninitialized variables
-        for (int j = numOfParams; j < arguments.length; j++) {
-          isExpressionUninitialized(element, arguments[j], callEdge);
+        for (int j = numOfParams; j < arguments.size(); j++) {
+          isExpressionUninitialized(element, arguments.get(j), callEdge);
         }
       }
 
@@ -264,7 +251,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {
-        if(isExpressionUninitialized(element, arguments[i], callEdge)) {
+        if(isExpressionUninitialized(element, arguments.get(i), callEdge)) {
           uninitParameters.add(paramNames.get(i));
         } else {
           initParameters.add(paramNames.get(i));
@@ -292,16 +279,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                IASTExpression expression, CFAEdge cfaEdge)
                                throws UnrecognizedCCodeException {
 
-    if ((cfaEdge instanceof StatementEdge) && ((StatementEdge)cfaEdge).isJumpEdge()) {
-      //this is the return-statement of a function
-      //set a local variable tracking the return statement's initialization status
-      if (isExpressionUninitialized(element, expression, cfaEdge)) {
-        setUninitialized(element, "CPAChecker_UninitVars_FunctionReturn");
-      } else {
-        setInitialized(element, "CPAChecker_UninitVars_FunctionReturn");
-      }
-
-    } else if (expression instanceof IASTFunctionCallExpression) {
+    if (expression instanceof IASTFunctionCallExpression) {
       //in case of a return edge, remove the local context of the function from which we returned
       if (cfaEdge instanceof CallToReturnEdge) {
         element.returnFromFunction();
@@ -548,6 +526,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     boolean typesCPAPresent = false;
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
+      DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
 
       for (AbstractElement other : otherElements) {
 
@@ -564,11 +543,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //and set it uninitialized (since it is only declared at this point); do this recursively for all
             //fields that are structs themselves
             if (t.getTypeClass() == TypeClass.STRUCT &&
-                !(((DeclarationEdge)cfaEdge).getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
+                !(declEdge.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
 
               handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
                                       (Type.CompositeType)t, lastAdded, lastAdded, 
-                                      cfaEdge instanceof GlobalDeclarationEdge);
+                                      declEdge.isGlobal());
             }
           }
         }

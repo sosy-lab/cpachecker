@@ -1,12 +1,30 @@
 
-void abort();
+void abort() {
+
+}
 
 void foobar(int x, int y){
-  if (x*x*x > 0)
+  int tmp1;
+  int tmp2;
+  int tmp3;
+  int tmp4;
+  int tmp5;
+  int tmp6;
+  int tmp7;
+
+  tmp1 = x * x;
+  tmp2 = tmp1 * x;
+  tmp3 = (tmp2 > 0);
+
+  if (tmp3)
   {
-    if (x > 0)
+	tmp4 = (x > 0);
+
+    if (tmp4)
     {
-      if (y == 10)
+      tmp5 = (y == 10);
+
+      if (tmp5)
       {
         abort();
       }
@@ -14,9 +32,13 @@ void foobar(int x, int y){
   } 
   else 
   {
-    if (x > 0)
+	tmp6 = (x > 0);
+
+    if (tmp6)
     {
-      if (y == 20)
+      tmp7 = (y == 20);
+
+      if (tmp7)
       {
         abort();
       }

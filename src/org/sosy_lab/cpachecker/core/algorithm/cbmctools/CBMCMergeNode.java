@@ -23,55 +23,76 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sosy_lab.common.Pair;
+
 public class CBMCMergeNode {
 
   private int elementId;
-  private int numberOfProcessed;
-  private Map<Integer, Boolean> branchesMap;
-  private Set<Integer> processedConditions;
+  private Map<Integer, Pair<Boolean, Boolean>> branchesMap;
+  private List<Stack<CBMCStackElement>> incomingElements;
 
   public CBMCMergeNode(int pElementId) {
     elementId = pElementId;
-    numberOfProcessed = 0;
-    branchesMap = new HashMap<Integer, Boolean>();
-    processedConditions = new HashSet<Integer>();
-  }
-
-  public Set<Integer> getProcessedConditions(){
-    return processedConditions;
+    branchesMap = new HashMap<Integer,  Pair<Boolean, Boolean>>();
+    incomingElements = new ArrayList<Stack<CBMCStackElement>>();
   }
 
   public int addBranch(CBMCEdge pNextCBMCEdge) {
 
-    numberOfProcessed++;
-
     Stack<CBMCStackElement> addedStackElement = pNextCBMCEdge.getStack().peek();
-
+    incomingElements.add(addedStackElement);
+    Set<Integer> processedConditions = new HashSet<Integer>();
+    
     for(CBMCStackElement elementInStack: addedStackElement){
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
+      boolean isClosedBefore = elementInStack.isClosedBefore();
 
       // if we already have a value for the same initial node of the condition
       if(branchesMap.containsKey(idOfElementInStack)){
-        boolean firstConditionValue = branchesMap.get(idOfElementInStack);
+        // if it was closed earlier somewhere else
+        Pair<Boolean, Boolean> conditionPair = branchesMap.get(idOfElementInStack);
+        boolean firstConditionValue = conditionPair.getFirst();
+        boolean secondConditionValue = conditionPair.getSecond();
         // if this is the end of the branch
-        if(firstConditionValue ^ nextConditionValue){
+        if(isClosedBefore || secondConditionValue || 
+            (firstConditionValue ^ nextConditionValue)){
+//          elementInStack.setClosedBefore(true);
           processedConditions.add(idOfElementInStack);
         }
         // else do nothing
       }
       // create the first entry in the map
       else{
-        branchesMap.put(idOfElementInStack, nextConditionValue);
+        branchesMap.put(idOfElementInStack, Pair.of(nextConditionValue, isClosedBefore));
       }
     }
-    return numberOfProcessed;
+    
+    setProcessedElements(processedConditions);
+    
+    return incomingElements.size();
+  }
+  
+  private void setProcessedElements(Set<Integer> pProcessedConditions) {
+    for(Stack<CBMCStackElement> stack: incomingElements){
+      for(CBMCStackElement elem: stack){
+        if(pProcessedConditions.contains(elem.getElementId())){
+          elem.setClosedBefore(true);
+        }
+      }
+    }
+  }
+
+  public List<Stack<CBMCStackElement>> getIncomingElements() {
+    return incomingElements;
   }
 
   @Override

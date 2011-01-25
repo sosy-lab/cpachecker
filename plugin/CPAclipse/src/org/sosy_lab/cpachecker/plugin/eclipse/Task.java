@@ -4,11 +4,8 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -18,6 +15,7 @@ import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 public class Task {
@@ -81,21 +79,16 @@ public class Task {
 		}
 	}
 	
-	public Configuration createConfig() throws IOException, CoreException {
-		String projectRoot = configFile.getProject().getLocation().toPortableString();
-		Configuration config =  new Configuration(configFile.getContents(),
-				Collections.<String, String>emptyMap(), projectRoot);
-		// append Task Name to Output Path
-		String newPath = config.getProperty("output.path", DEFAULT_OUTPUT_DIR);
-		if (newPath.endsWith("/")) {
-			newPath = newPath + this.name + "/";
-		} else {
-			newPath = newPath + "/" + this.name + "/";
-		}
-		Map<String, String> overridesMap = new HashMap<String, String>(2);
-		overridesMap.put("output.path", newPath);
-		overridesMap.put("specification", this.specificationFile.getLocation().toPortableString());
-		return new Configuration(configFile.getContents(), overridesMap, projectRoot);
+	public Configuration createConfig() throws IOException, CoreException, InvalidConfigurationException {
+		Configuration.Builder config = Configuration.builder();
+		config.loadFromStream(configFile.getContents());
+		
+		config.setOption("output.path", getOutputDirectory(false).getProjectRelativePath().toOSString());
+		config.setOption("output.disable", "false");
+		config.setOption("specification", specificationFile.getProjectRelativePath().toOSString());
+		config.setOption("rootDirectory", configFile.getProject().getLocation().toOSString());
+		
+		return config.build();
 	}
 
 	public String getName() {
@@ -107,10 +100,6 @@ public class Task {
 	}
 	public IFile getSpecFile() {
 		return this.specificationFile;
-	}
-
-	public String getConfigFilePathProjRelative() {
-		return configFile.getProjectRelativePath().toPortableString();
 	}
 
 	/**
@@ -130,6 +119,8 @@ public class Task {
 		} catch (IOException e) {
 			return true;
 		} catch (CoreException e) {
+			return true;
+		} catch (InvalidConfigurationException e) {
 			return true;
 		}
 		return false;
@@ -182,26 +173,21 @@ public class Task {
 	 * @return
 	 */
 	public IFolder getOutputDirectory(boolean create) {
-		/*IPreferencesService service = Platform.getPreferencesService();
-		String value = service.getString(CPAcheckerPlugin.PLUGIN_ID,
-				PreferenceConstants.P_RESULT_DIR,
-				PreferenceConstants.P_RESULT_DIR_DEFAULT_VALUE, null);
-				*/
 		Properties properties = new Properties();
-	    try {
-			properties.load(this.configFile.getContents());
-		} catch (IOException e1) {
-			CPAclipse.logError("Could not load the configFile", e1);
-		} catch (CoreException e1) {
-			CPAclipse.logError("Could not load the configFile", e1);
+		if (hasConfigurationFile()) {
+		    try {
+				properties.load(this.configFile.getContents());
+			} catch (IOException e1) {
+				CPAclipse.logError("Could not load the configFile", e1);
+			} catch (CoreException e1) {
+				CPAclipse.logError("Could not load the configFile", e1);
+			}
 		}
 		String projectRelativePath = properties.getProperty("output.path", DEFAULT_OUTPUT_DIR);
 		
 		IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(
-				this.configFile.getProject().getFullPath().append(projectRelativePath));
-		assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
-		// we assume that the taskname uses only characters that can occur in directory names
-		outDir = outDir.getFolder(this.getName());
+				this.configFile.getProject().getFullPath().append(projectRelativePath).append(this.getName()));
+
 		if (create && !outDir.exists()) {
 			try {
 				outDir.create(true, true, null);

@@ -28,7 +28,6 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,42 +36,18 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositeStopOperator implements StopOperator{
 
-  private final CompositeDomain compositeDomain;
-  private final ImmutableList<StopOperator> stopOperators;
+  protected final ImmutableList<StopOperator> stopOperators;
 
-  public CompositeStopOperator(CompositeDomain compositeDomain, ImmutableList<StopOperator> stopOperators)
+  public CompositeStopOperator(ImmutableList<StopOperator> stopOperators)
   {
-    this.compositeDomain = compositeDomain;
     this.stopOperators = stopOperators;
   }
 
   @Override
   public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision precision) throws CPAException
   {
-    if(containsBottomElement(element)){
-      return true;
-    }
-
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean containsBottomElement(AbstractElement element) {
-    if (element == compositeDomain.getBottomElement()) {
-      return true;
-    }
-
-    CompositeElement compositeElement = (CompositeElement) element;
-    List<AbstractElement> components = compositeElement.getElements ();
-
-    for (int idx = 0; idx < components.size(); idx++) {
-      AbstractElement abstElem = components.get(idx);
-      AbstractDomain abstDomain = compositeDomain.getDomains().get(idx);
-      if(abstElem == abstDomain.getBottomElement()){
         return true;
       }
     }

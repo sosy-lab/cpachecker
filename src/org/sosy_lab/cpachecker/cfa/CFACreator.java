@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -49,15 +50,6 @@ public class CFACreator {
 
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
   private String mainFunctionName = "main";
-
-  @Option(name="cfa.combineBlockStatements")
-  private boolean combineBlockStatements = false;
-
-  @Option(name="cfa.removeDeclarations")
-  private boolean removeDeclarations = false;
-
-  @Option(name="analysis.noExternalCalls")
-  private boolean noExternalCalls = true;
 
   @Option(name="analysis.interprocedural")
   private boolean interprocedural = true;
@@ -78,13 +70,20 @@ public class CFACreator {
   private File exportCfaFile = new File("cfa.dot");
 
   private final LogManager logger;
+  private final Configuration config;
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
   
+  public final Timer conversionTime = new Timer();
+  public final Timer processingTime = new Timer();
+  public final Timer pruningTime = new Timer();
+  public final Timer exportTime = new Timer();
+  
   public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     
+    this.config = config;
     this.logger = logger;
   }
 
@@ -99,8 +98,10 @@ public class CFACreator {
   public void createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
   
     // Build CFA
+    conversionTime.start();
     final CFABuilder builder = new CFABuilder(logger);
     ast.accept(builder);
+    conversionTime.stop();
   
     final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
@@ -108,6 +109,8 @@ public class CFACreator {
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
     }
+    
+    processingTime.start();
     
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
@@ -119,7 +122,7 @@ public class CFACreator {
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
   
-      CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExternalCalls);
+      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
       Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
   
       // remove all functions which are never reached from cfas
@@ -130,12 +133,8 @@ public class CFACreator {
       // add global variables at the beginning of main
       CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
     }
-  
-    // simplify CFA
-    if (combineBlockStatements || removeDeclarations) {
-      CFASimplifier simplifier = new CFASimplifier(combineBlockStatements, removeDeclarations);
-      simplifier.simplify(mainFunction);
-    }
+    
+    processingTime.stop();
 
     // check the CFA of each function
     for (CFAFunctionDefinitionNode cfa : cfas.values()) {
@@ -144,8 +143,10 @@ public class CFACreator {
     
     // remove irrelevant locations
     if (removeIrrelevantForErrorLocations) {
-      CFAReduction coi =  new CFAReduction();
+      pruningTime.start();
+      CFAReduction coi =  new CFAReduction(config, logger);
       coi.removeIrrelevantForErrorLocations(mainFunction);
+      pruningTime.stop();
   
       if (mainFunction.getNumLeavingEdges() == 0) {
         logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
@@ -160,9 +161,11 @@ public class CFACreator {
   
     // check the super CFA starting at the main function
     assert CFACheck.check(mainFunction);
-  
+ 
+    exportTime.start();
+    
     // write CFA to file
-    if (exportCfa) {
+    if (exportCfa && exportCfaFile != null) {
       try {
         Files.writeFile(exportCfaFile,
             DOTBuilder.generateDOT(cfas.values(), mainFunction));
@@ -175,7 +178,7 @@ public class CFACreator {
     }
     
     // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction) {
+    if (exportCfaPerFunction && exportCfaFile != null) {
       try {
         File outdir = exportCfaFile.getParentFile();        
         DOTBuilder2.writeReport(mainFunction, outdir);
@@ -186,6 +189,8 @@ public class CFACreator {
         // continue with analysis
       }
     }  
+    
+    exportTime.stop();
     
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
   

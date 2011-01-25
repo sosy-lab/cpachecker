@@ -28,10 +28,8 @@ import java.util.Iterator;
 
 import javax.naming.OperationNotSupportedException;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -90,7 +88,10 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
 
   public boolean hasWaitingElement();
 
-  public Collection<AbstractElement> getWaitlist();
+  /**
+   * An unmodifiable view of the waitlist as an Iterable.
+   */
+  public Iterable<AbstractElement> getWaitlist();
 
   public int getWaitlistSize();
 

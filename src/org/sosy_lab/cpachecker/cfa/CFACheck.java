@@ -30,7 +30,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -61,7 +60,6 @@ public class CFACheck {
 
       // The actual checks
       assert isConsistent(node) : "Incosistent node " + node;
-      assert errorNodeHasSuccessor(node) : "Error node without successor: " + node;
       assert jumpConsistency(node) : "Incosistent jump at node " + node;
     }
     return true;
@@ -124,20 +122,6 @@ public class CFACheck {
 
     return true;
   }
-
-  /**
-   * Interpolating analyses require that a CFAErrorNode has a successor node
-   * @param pNode Node to be checked
-   * @return False, if @a pNode is an error node, but doesn't have a successor
-   */
-  private static boolean errorNodeHasSuccessor(CFANode pNode) {
-    if (pNode instanceof CFAErrorNode) {
-      return (pNode.getNumLeavingEdges() > 0);
-    }
-
-    return true;
-  }
-
 
   /**
    * Check for jump edges and make sure there is only one of them

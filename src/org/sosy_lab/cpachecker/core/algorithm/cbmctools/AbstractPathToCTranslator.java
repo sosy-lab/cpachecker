@@ -26,8 +26,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import static com.google.common.collect.Iterables.concat;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,17 +35,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Stack;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -53,11 +50,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 
 /**
  * @author erkan
@@ -65,101 +64,42 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
  */
 public class AbstractPathToCTranslator {
 
-  private static List<String> mGlobalDefinitionsList = new ArrayList<String>();
-  private static List<String> mFunctionDecls = null;
+  private static final List<String> mGlobalDefinitionsList = new ArrayList<String>();
+  private static final List<String> mFunctionDecls = new ArrayList<String>();
   private static int mFunctionIndex = 0;
 
   public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
-    String ret = "";
+    // TODO convert to non-static fields
+    Preconditions.checkState(mFunctionIndex == 0);
+
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
-    mFunctionDecls = new ArrayList<String>();
     for (CFAFunctionDefinitionNode node : pCfas.values()) {
-      FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)node;
-      String lOriginalFunctionDecl = lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature() + " " + node.getFunctionName() + "(";
-
-      boolean lFirstFunctionParameter = true;
-
-      for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
-        if (lFirstFunctionParameter) {
-          lFirstFunctionParameter = false;
-        }
-        else {
-          lOriginalFunctionDecl += ", ";
-        }
-
-        lOriginalFunctionDecl += lFunctionParameter.getRawSignature();
-      }
-
-      lOriginalFunctionDecl += ");";
-
-      mFunctionDecls.add(lOriginalFunctionDecl);
+      // this adds the function declaration to mFunctionDecls
+      startFunction(node, false);
     }
 
     List<StringBuffer> lTranslation = translatePath(artRoot, elementsOnErrorPath);
 
-    if (mFunctionDecls != null) {
-      for (String decl : mFunctionDecls) {
-        mGlobalDefinitionsList.add(decl);
-      }
-    }
+    String ret = Joiner.on('\n').join(concat(mGlobalDefinitionsList, mFunctionDecls, lTranslation));
 
-    for (String lGlobalString : mGlobalDefinitionsList) {
-      ret = ret + lGlobalString + "\n";
-    }
-
-    for (StringBuffer lProgramString : lTranslation) {
-      ret = ret + lProgramString + "\n";
-    }
-
+    // replace nondet keyword with cbmc nondet keyword
+    ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
+    ret = ret.replaceAll("__BLAST_NONDET", "nondet_int()");
+    
+    // cleanup
+    mGlobalDefinitionsList.clear();
+    mFunctionDecls.clear();
+    mFunctionIndex = 0;
     return ret;
   }
 
-  public static PrintWriter startFunction(int pFunctionIndex, CFANode pNode, Stack<StringWriter> pProgramTextStack) {
-    assert(pNode != null);
-    assert(pNode instanceof FunctionDefinitionNode);
-    assert(pProgramTextStack != null);
+  private static List<StringBuffer> translatePath(final ARTElement firstElement,
+      Collection<ARTElement> pElementsOnPath) {
 
-    FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
-
-    IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
-
-    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
-
-    boolean lFirstFunctionParameter = true;
-
-    for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
-      if (lFirstFunctionParameter) {
-        lFirstFunctionParameter = false;
-      }
-      else {
-        lFunctionHeader += ", ";
-      }
-
-      lFunctionHeader += lFunctionParameter.getRawSignature();
-    }
-
-    lFunctionHeader += ")";
-
-    StringWriter lFunctionStringWriter = new StringWriter();
-
-    pProgramTextStack.add(lFunctionStringWriter);
-
-    PrintWriter lProgramText = new PrintWriter(lFunctionStringWriter);
-
-    lProgramText.println(lFunctionHeader);
-
-    lProgramText.println("{");
-
-    return lProgramText;
-  }
-
-  public static List<StringBuffer> translatePath(final ARTElement firstElement,
-                                        Collection<ARTElement> pElementsOnPath) {
-
-//  ARTElement parentElement;
+    //  ARTElement parentElement;
     ARTElement childElement;
     CFAEdge edge;
     Stack<Stack<CBMCStackElement>> stack;
@@ -178,7 +118,7 @@ public class AbstractPathToCTranslator {
     ARTElement firstElementsChild = (ARTElement)firstElement.getChildren().toArray()[0];
     // create the first stack element using the first element of the initiating function
     CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
-        startFunction(mFunctionIndex++, firstElement.retrieveLocationElement().getLocationNode()));
+        startFunction(firstElement.retrieveLocationElement().getLocationNode(), true));
     functions.add(firstStackElement);
 
     Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
@@ -199,7 +139,7 @@ public class AbstractPathToCTranslator {
       // get the first element in the list (this is the smallest element when topologically sorted)
       CBMCEdge nextCBMCEdge = waitlist.remove(0);
 
-//    parentElement = nextCBMCEdge.getParentElement();
+      //    parentElement = nextCBMCEdge.getParentElement();
       childElement = nextCBMCEdge.getChildElement();
       edge = nextCBMCEdge.getEdge();
       stack = nextCBMCEdge.getStack();
@@ -215,8 +155,8 @@ public class AbstractPathToCTranslator {
       if(sizeOfChildsParents == 1){
         CBMCStackElement lastStackElement = stack.peek().peek();
 
-        if(edge instanceof BlankEdge){
-          lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
+        if (childElement.isTarget()) {
+          lastStackElement.write("assert(0); // target state ");
         }
 
         // if this is a function call edge we need to create a new element and push
@@ -229,23 +169,13 @@ public class AbstractPathToCTranslator {
           // create a new function
           ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
           CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
-              startFunction(mFunctionIndex++, firstFunctionElement.retrieveLocationElement().getLocationNode()));
+              startFunction(firstFunctionElement.retrieveLocationElement().getLocationNode(), true));
           functions.add(firstFunctionStackElement);
           newFunctionStack.push(firstFunctionStackElement);
           stack.push(newFunctionStack);
         }
-        else if(edge instanceof ReturnEdge){
-          lastStackElement.write("}");
+        else if(edge instanceof FunctionReturnEdge){
           stack.pop();
-        }
-        else if(edge.getSuccessor() instanceof CFAErrorNode){
-          lastStackElement.write("assert(0); // error location ");
-//        lastStackElement.write("}");
-
-          while(stack.size() > 0){
-            CBMCStackElement stackElem = stack.pop().firstElement();
-            stackElem.write("}");
-          }
         }
         else{
           lastStackElement.write(processSimpleEdge(edge));
@@ -254,19 +184,16 @@ public class AbstractPathToCTranslator {
 
       // this is the end of the condition, determine whether we should continue or backtrack
       else if(sizeOfChildsParents > 1){
-        if(edge instanceof BlankEdge){
-          CBMCStackElement lastStackElement = stack.peek().peek();
-//          if(((BlankEdge)edge).getRawStatement().contains("Label:")){
-//            System.out.println(((BlankEdge)edge).getRawStatement());
-//            System.out.println(stack.peek().size());
-//            lastStackElement = stack.peek().get(stack.peek().size()-2);
-//            lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
-//          }
-//          else{
-            lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
-//          }
-        }
+        CBMCStackElement lastStackElement = stack.peek().peek();
         int elemId = childElement.getElementId();
+
+        if(!(edge instanceof BlankEdge)){
+          lastStackElement.write(processSimpleEdge(edge));
+        }
+
+        lastStackElement.write("goto label_" + elemId + ";");
+
+
         // get the merge node for that node
         CBMCMergeNode mergeNode = mergeNodes.get(elemId);
         // if null create new and put in the map
@@ -280,25 +207,13 @@ public class AbstractPathToCTranslator {
 
         // if all edges are processed
         if(sizeOfChildsParents == noOfProcessedBranches){
-          // all branches are processed, now decide which nodes to remove from the stack and
-          // write to the file accordingly - this set is the set of conditions that should
-          // terminate at this point
-          Set<Integer> setOfEndedBranches = mergeNode.getProcessedConditions();
+          // all branches are processed, now decide which nodes to remove from the stack
+          List<Stack<CBMCStackElement>> incomingStacks = mergeNode.getIncomingElements();
 
-          // traverse on the last stack and remove all elements that are in
-          // setOfEndedBranches set. The remaining elements to be transferred to
-          // the next elements stack
-          while(true){
-            CBMCStackElement elem = stack.peek().peek();
-            int idOfElem = elem.getElementId();
-            if(setOfEndedBranches.contains(idOfElem)){
-              // remove the condition from the stack
-              stack.peek().pop();
-            }
-            else{
-              break;
-            }
-          }
+          Stack<CBMCStackElement> lastStack = processIncomingStacks(incomingStacks);
+          stack.pop();
+          stack.push(lastStack);
+          lastStack.peek().write("label_" + elemId + ": ;");
         }
         else{
           continue;
@@ -378,15 +293,50 @@ public class AbstractPathToCTranslator {
       }
     }
 
+
     List<StringBuffer> retList = new ArrayList<StringBuffer>();
 
     for(CBMCStackElement stackElem: functions){
-      retList.add(stackElem.getCode());
+      retList.add(stackElem.getCode().append("\n}"));
     }
 
     return retList;
   }
 
+
+  //  private static void processClosedBranches(CBMCStackElement pElem,
+  //      Stack<CBMCStackElement> pPeek) {
+  //    while(true){
+  //      if(pPeek.pop().equals(pElem)){
+  //        return;
+  //      }
+  //    }
+  //  }
+
+  private static Stack<CBMCStackElement> processIncomingStacks(
+      List<Stack<CBMCStackElement>> pIncomingStacks) {
+
+    Stack<CBMCStackElement> maxStack = null;
+    int maxSizeOfStack = 0;
+    
+    for(Stack<CBMCStackElement> stack: pIncomingStacks){
+      while(true){
+        if(stack.peek().isClosedBefore()){
+          stack.pop();
+        }
+        else{
+          break;
+        }
+      }
+      if(stack.size() > maxSizeOfStack){
+        maxStack = stack;
+        maxSizeOfStack = maxStack.size();
+      }
+    }
+
+    return maxStack;
+
+  }
 
   private static String processSimpleEdge(CFAEdge pCFAEdge){
 
@@ -410,6 +360,7 @@ public class AbstractPathToCTranslator {
       }
 
       return ("__CPROVER_assume(" + lAssumptionString + ");");
+      //      return ("if(! (" + lAssumptionString + ")) { return (0); }");  
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
@@ -419,18 +370,26 @@ public class AbstractPathToCTranslator {
       String ret = "";
 
       if (lExpression != null) {
-        if(lStatementEdge.isJumpEdge()){
-          ret = ret + "return ";
-        }
-        ret = ret + lStatementEdge.getExpression().getRawSignature() + ";";
+        ret = lStatementEdge.getExpression().getRawSignature() + ";";
       }
 
       return (ret);
     }
+    case ReturnStatementEdge: {
+      ReturnStatementEdge lStatementEdge = (ReturnStatementEdge)pCFAEdge;
+
+      IASTExpression lExpression = lStatementEdge.getExpression();
+
+      if (lExpression != null) {
+        return "return " + lExpression.getRawSignature() + ";";
+      } else {
+        return "return;";
+      }
+    }
     case DeclarationEdge: {
       DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;
 
-      if (lDeclarationEdge instanceof org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge) {
+      if (lDeclarationEdge.isGlobal()) {
         mGlobalDefinitionsList.add(lDeclarationEdge.getRawStatement());
       }
       else {
@@ -446,28 +405,6 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
        */
       break;
     }
-
-    case MultiStatementEdge: {
-      MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)pCFAEdge;
-
-      String ret = "";
-
-      for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
-        ret = ret + (lExpression.getRawSignature() + ";");
-      }
-
-      return ret;
-    }
-    case MultiDeclarationEdge: {
-      MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)pCFAEdge;
-
-      return (lMultiDeclarationEdge.getRawStatement());
-
-      /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
-      lMultiDeclarationEdge.getRawStatement()
-      for (IASTDeclarator[] lDeclarators : lDecls) {
-      }*/
-    }
     case CallToReturnEdge: {
       //          this should not have been taken
       assert(false);
@@ -482,7 +419,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return "";
   }
 
-  public static String processFunctionCall(CFAEdge pCFAEdge){
+  private static String processFunctionCall(CFAEdge pCFAEdge){
 
     FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)pCFAEdge;
 
@@ -493,19 +430,15 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     boolean lFirstArgument = true;
 
-    IASTExpression[] lArguments = lFunctionCallEdge.getArguments();
-
-    if (lArguments != null) {
-      for (IASTExpression lArgument : lArguments) {
-        if (lFirstArgument) {
-          lFirstArgument = false;
-        }
-        else {
-          lArgumentString += ", ";
-        }
-
-        lArgumentString += lArgument.getRawSignature();
+    for (IASTExpression lArgument : lFunctionCallEdge.getArguments()) {
+      if (lFirstArgument) {
+        lFirstArgument = false;
       }
+      else {
+        lArgumentString += ", ";
+      }
+
+      lArgumentString += lArgument.getRawSignature();
     }
 
     lArgumentString += ")";
@@ -524,34 +457,27 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
   }
 
-  public static String startFunction(int pFunctionIndex, CFANode pNode) {
+  private static String startFunction(CFANode pNode, boolean pAddIndex) {
     assert(pNode != null);
     assert(pNode instanceof FunctionDefinitionNode);
 
     FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
 
-    IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
-
-    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
-
-    boolean lFirstFunctionParameter = true;
-
+    List<String> parameters = new ArrayList<String>();
     for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
-      if (lFirstFunctionParameter) {
-        lFirstFunctionParameter = false;
-      }
-      else {
-        lFunctionHeader += ", ";
-      }
-
-      lFunctionHeader += lFunctionParameter.getRawSignature();
+      parameters.add(lFunctionParameter.getRawSignature());
     }
 
-    lFunctionHeader += ") \n";
+    String lFunctionHeader =
+        lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature()
+      + " "
+      + lFunctionDefinitionNode.getFunctionName()
+      + (pAddIndex ? "_" + mFunctionIndex++ : "") 
+      + "(" + Joiner.on(", ").join(parameters) + ")";
 
-    lFunctionHeader += "{";
+    mFunctionDecls.add(lFunctionHeader + ";");
 
-    return lFunctionHeader;
+    return lFunctionHeader + " {\n";
   }
 
   private static Stack<Stack<CBMCStackElement>> cloneStack(

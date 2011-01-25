@@ -33,6 +33,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -44,6 +45,8 @@ import org.sosy_lab.common.configuration.Option.Type;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Closeables;
 import com.google.common.primitives.Primitives;
 
 
@@ -53,118 +56,259 @@ import com.google.common.primitives.Primitives;
  */
 @Options
 public class Configuration {
+  
+  public static class Builder {
+    
+    private Map<String, String> properties = null;
+    private Configuration oldConfig = null;
+    private String prefix = null;
+    
+    private Builder() { }
+    
+    private void setupProperties() {
+      if (properties == null) {
+        properties = new HashMap<String, String>();
+      }
+      if (oldConfig != null) {
+        properties.putAll(oldConfig.properties);
+      }
+    }
+    
+    /**
+     * Set a single option.
+     */
+    public Builder setOption(String name, String value) {
+      Preconditions.checkNotNull(name);
+      Preconditions.checkNotNull(value);
+      setupProperties();
+      
+      properties.put(name, value);
+      
+      return this;
+    }
+
+    /**
+     * Reset a single option to its default value.
+     */
+    public Builder clearOption(String name) {
+      Preconditions.checkNotNull(name);
+      setupProperties();
+      
+      properties.remove(name);
+      
+      return this;
+    }
+    
+    /**
+     * Add all options from a map.
+     */
+    public Builder setOptions(Map<String, String> options) {
+      Preconditions.checkNotNull(options);
+      setupProperties();
+      
+      properties.putAll(options);
+      
+      return this;
+    }
+    
+    /**
+     * Set the optional prefix for new configuration.
+     */
+    public Builder setPrefix(String prefix) {
+      Preconditions.checkNotNull(prefix);
+      
+      this.prefix = prefix;
+      
+      return this;
+    }
+    
+    /**
+     * Copy everything from an existing Configuration instance. This also means
+     * that the new configuration object created by this builder will share the
+     * set of unused properties with the configuration instance passed to this
+     * class.
+     * 
+     * If this method is called, it has to be the first method call on this
+     * builder instance.
+     */
+    public Builder copyFrom(Configuration oldConfig) {
+      Preconditions.checkNotNull(oldConfig);
+      Preconditions.checkState(this.properties == null);
+      Preconditions.checkState(this.oldConfig == null);
+      
+      this.oldConfig = oldConfig;
+      
+      return this;
+    }
+    
+    /**
+     * Load options from an InputStream with a "key = value" format.
+     * @see Properties#load(InputStream)
+     * 
+     * If this method is called, it has to be the first method call on this
+     * builder instance.
+     * @throws IOException If the stream cannot be read.
+     */
+    public Builder loadFromStream(InputStream stream) throws IOException {
+      Preconditions.checkNotNull(stream);
+      Preconditions.checkState(properties == null);
+      Preconditions.checkState(oldConfig == null);
+      
+      Properties p = new Properties();
+      p.load(stream);
+      
+      properties = new HashMap<String, String>(p.size());
+      for (Map.Entry<Object, Object> e : p.entrySet()) {
+        properties.put((String)e.getKey(), (String)e.getValue());
+      }
+      
+      return this;
+    }
+    
+    /**
+     * Load options from a file with a "key = value" format.
+     * @see Properties#load(InputStream)
+     * 
+     * If this method is called, it has to be the first method call on this
+     * builder instance.
+     * @throws IOException If the file cannot be read.
+     */
+    public Builder loadFromFile(String filename) throws IOException {
+      Preconditions.checkNotNull(filename);
+      
+      InputStream stream = null;
+      try {
+        stream = new FileInputStream(filename);
+        loadFromStream(stream);
+      } finally {
+        Closeables.closeQuietly(stream);
+      }
+      return this;
+    }
+
+    /**
+     * Create a Configuration instance with the settings specified by method
+     * calls on this builder instance.
+     * 
+     * This method resets the builder instance, so that after this method has
+     * returned it is exactly in the same state as directly after instantiation.
+     * 
+     * @throws InvalidConfigurationException if the settings contained invalid values for the configuration options of the Configuration class
+     */
+    public Configuration build() throws InvalidConfigurationException {
+      ImmutableMap<String, String> newProperties;
+      if (properties == null) {
+        // we can re-use the old properties instance because it is immutable
+        if (oldConfig != null) {
+          newProperties = oldConfig.properties;
+        } else {
+          newProperties = ImmutableMap.of();
+        }
+      } else {
+        newProperties = ImmutableMap.copyOf(properties); 
+      }
+
+      String newPrefix;
+      if (prefix == null) {
+        if (oldConfig != null) {
+          newPrefix = oldConfig.prefix;
+        } else {
+          newPrefix = "";
+        }
+      } else {
+        newPrefix = prefix;   
+      }
+      
+      Set<String> newUnusedProperties;
+      if (oldConfig != null) {
+        // share the same set of unused properties
+        newUnusedProperties = oldConfig.unusedProperties;
+      } else {
+        newUnusedProperties = new HashSet<String>();
+        for (Object key : newProperties.keySet()) {
+          newUnusedProperties.add((String)key);
+        }
+      }
+      
+      Configuration newConfig = new Configuration(newProperties, newPrefix, newUnusedProperties);
+      newConfig.inject(newConfig);
+
+      // reset builder instance so that it may be re-used
+      properties = null;
+      prefix = null;
+      oldConfig = null;
+      
+      return newConfig;
+    }
+  }
+  
+  /**
+   * Create a new Builder instance.
+   */
+  public static Builder builder() {
+    return new Builder();
+  }
+  
+  /**
+   * Creates a configuration with all values set to default.
+   */
+  public static Configuration defaultConfiguration() {
+    return new Configuration(ImmutableMap.<String, String>of(), "", new HashSet<String>(0));
+  }
+  
+  /**
+   * Creates a copy of a configuration with just the prefix set to a new value.
+   */
+  public static Configuration copyWithNewPrefix(Configuration oldConfig, String newPrefix) {
+    Configuration newConfig = new Configuration(oldConfig.properties, newPrefix, oldConfig.unusedProperties);
+    
+    // instead of calling inject() set options manually
+    // this avoids the "throws InvalidConfigurationException" in the signature
+    newConfig.disableOutput = oldConfig.disableOutput;
+    newConfig.outputDirectory = oldConfig.outputDirectory;
+    newConfig.rootDirectory = oldConfig.rootDirectory;
+    
+    return newConfig;
+  }
+    
+  @Option(name="output.path")
+  private String outputDirectory = "test/output/";
+  
+  @Option(name="output.disable")
+  private boolean disableOutput = false;
+  
+  @Option
+  private String rootDirectory = ".";
 
   private static final long serialVersionUID = -5910186668866464153L;
 
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
-
-  private static final String OUTPUT_DIRECTORY_OPTION = "output.path";
-  private static final String OUTPUT_DIRECTORY_DEFAULT = "test/output/";
-
-  private final String rootDirectory;
   
-  private final Properties properties;
+  private final ImmutableMap<String, String> properties;
 
   private final String prefix;
 
   private final Set<String> unusedProperties;
-
-  /**
-   * Constructor for creating a Configuration with values set from a file.
-   * Also allows for passing an optional map of settings overriding those from
-   * the file.
-   *
-   * Either the fileName or the map of overrides may be null, not both. If the
-   * fileName is null, this constructor behaves identically to the constructor
-   * {@link #Configuration(Map)}.
-   *
-   * @param fileName The optional complete path to the configuration file.
-   * @param pOverrides An optional set of option values.
-   * @throws IOException If the file cannot be read.
+  
+  /*
+   * This constructor does not set the fields annotated with @Option!
    */
-  public Configuration(String fileName, Map<String, String> pOverrides) throws IOException {
-    this(fileName == null ? null : new FileInputStream(fileName),
-        pOverrides, null);
-  }
-
-  /**
-   * Constructor for creating a Configuration with values set from an inputStream.
-   * Also allows for passing an optional map of settings overriding those from
-   * the stream.
-   *
-   * Either the stream or the map of overrides may be null, not both. If the
-   * stream is null, this constructor behaves identically to the constructor
-   * {@link #Configuration(Map)}.
-   *
-   * @param inStream The optional inputStream containing the key-value pairs in propertyFile-format.
-   * @param pOverrides An optional set of option values.
-   * @param rootDirectory An optional directory where all relative paths will be based.
-   * @throws IOException If the file cannot be read.
-   */
-  public Configuration(InputStream inStream, Map<String, String> pOverrides, String rootDirectory) throws IOException {
-    Preconditions.checkArgument(inStream != null || pOverrides != null);
-    properties = new Properties();
-    prefix = "";
-    this.rootDirectory = rootDirectory;
-
-    if (inStream != null) {
-      properties.load(inStream);
-    }
-
-    if (pOverrides != null) {
-      properties.putAll(pOverrides);
-    }
-
-    unusedProperties = new HashSet<String>(properties.size());
-    for (Object key : properties.keySet()) {
-      unusedProperties.add((String)key);
-    }
-  }
-  /**
-   * Constructor for creating a Configuration with values set from a given map.
-   * @param pValues The values this configuration should represent.
-   */
-  public Configuration(Map<String, String> pValues) {
-    Preconditions.checkNotNull(pValues);
-    properties = new Properties();
-    prefix = "";
-    rootDirectory = null;
-
-    properties.putAll(pValues);
-
-    unusedProperties = new HashSet<String>(properties.size());
-    for (Object key : properties.keySet()) {
-      unusedProperties.add((String)key);
-    }
-  }
-
-  /**
-   * Constructor for creating Configuration from a given configuration.
-   * Allows to pass a prefix. Options with the prefix will override those with
-   * the same key but without the prefix in the new configuration.
-   * @param pConfig An old configuration.
-   * @param pPrefix A prefix for overriding configuration options.
-   */
-  public Configuration(Configuration pConfig, String pPrefix) {
-    Preconditions.checkNotNull(pConfig);
-    Preconditions.checkNotNull(pPrefix);
-
-    properties = pConfig.properties;
-    rootDirectory = pConfig.rootDirectory;
-    prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
-    unusedProperties = pConfig.unusedProperties; // use same instance here!
+  private Configuration(ImmutableMap<String, String> pProperties, String pPrefix, Set<String> pUnusedProperties) {
+    properties = pProperties;
+    prefix = (pPrefix.isEmpty() ? "" : (pPrefix + "."));
+    unusedProperties = pUnusedProperties;
   }
 
   /**
    * @see Properties#getProperty(String)
    */
   public String getProperty(String key) {
-    String result = properties.getProperty(prefix + key);
+    String result = properties.get(prefix + key);
     unusedProperties.remove(prefix + key);
 
     if (result == null && !prefix.isEmpty()) {
-      result = properties.getProperty(key);
+      result = properties.get(key);
       unusedProperties.remove(key);
     }
     return result;
@@ -258,8 +402,10 @@ public class Configuration {
       }
       
       Object value = convertValue(name, valueStr, defaultValue, type, option.type());
-      if (value == null) {
-        // options which were not specified need not to be set 
+      
+      // options which were not specified need not to be set
+      // but do set OUTPUT_FILE options for disableOutput to work
+      if (value == null && (option.type() != Type.OUTPUT_FILE)) {
         continue;
       }
 
@@ -295,9 +441,11 @@ public class Configuration {
 
       String valueStr = getOptionValue(name, option, type.isEnum());
 
-      Object value = convertValue(name, valueStr, type, null, option.type());
-      if (value == null) {
-        // options which were not specified need not to be set 
+      Object value = convertValue(name, valueStr, null, type, option.type());
+      
+      // options which were not specified need not to be set
+      // but do set OUTPUT_FILE options for disableOutput to work
+      if (value == null && (option.type() != Type.OUTPUT_FILE)) {
         continue;
       }
 
@@ -465,12 +613,16 @@ public class Configuration {
     }
 
     if (typeInfo == Type.OUTPUT_FILE) {
+      if (disableOutput) {
+        return null;
+      }
+      
       if (!file.isAbsolute()) {
-        file = new File(getProperty(OUTPUT_DIRECTORY_OPTION, OUTPUT_DIRECTORY_DEFAULT), file.getPath());
+        file = new File(outputDirectory, file.getPath());
       }
     }
     
-    if (rootDirectory != null && !file.isAbsolute()) {
+    if (!file.isAbsolute()) {
       file = new File(rootDirectory, file.getPath());    
     }
     
@@ -486,9 +638,6 @@ public class Configuration {
     return file;
   }
   
-  /**
-   * Might return null!
-   */
   public String getRootDirectory() {
     return this.rootDirectory;
   }

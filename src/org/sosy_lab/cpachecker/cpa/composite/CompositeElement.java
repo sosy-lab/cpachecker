@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.collect.ImmutableList;
 
@@ -123,31 +124,8 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   }
 
   @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    }
-    for (AbstractElement element : elements) {
-      if (pType.isAssignableFrom(element.getClass())) {
-        return pType.cast(element);
-      } else if (element instanceof AbstractWrapperElement) {
-        T result = ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
-        if (result != null) {
-          return result;
-        }
-      }
-    }
-    return null;
-  }
-
-  @Override
   public AbstractElementWithLocation retrieveLocationElement() {
-    if (elements.get(0) instanceof AbstractElementWithLocation) {
-      return (AbstractElementWithLocation)elements.get(0);
-    } else {
-      assert false;
-      return retrieveWrappedElement(AbstractElementWithLocation.class);
-    }
+    return AbstractElements.extractElementByType(this, AbstractElementWithLocation.class);
   }
 
   @Override

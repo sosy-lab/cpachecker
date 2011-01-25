@@ -26,13 +26,16 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,28 +43,36 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
-@Options
+@Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
 
-  @Option(name="ART.export")
+  @Option(name="export")
   private boolean exportART = true;
 
-  @Option(name="ART.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE)
   private File artFile = new File("ART.dot");
 
-  @Option(name="cpas.art.errorPath.export")
+  @Option(name="errorPath.export")
   private boolean exportErrorPath = true;
 
-  @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
 
-  @Option(name="cpas.art.errorPath.json", type=Option.Type.OUTPUT_FILE)
-  private File errorPathJson = new File("ErrorPath.json");  
+  @Option(name="errorPath.core", type=Option.Type.OUTPUT_FILE)
+  private File errorPathCoreFile = new File("ErrorPathCore.txt");
   
+  @Option(name="errorPath.source", type=Option.Type.OUTPUT_FILE)
+  private File errorPathSourceFile = new File("ErrorPath.c");
+
+  @Option(name="errorPath.json", type=Option.Type.OUTPUT_FILE)
+  private File errorPathJson = new File("ErrorPath.json");
+
   private final ARTCPA cpa;
 
   public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
@@ -77,22 +88,40 @@ public class ARTStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-    if (exportART) {
-      dumpARTToDotFile(pReached);
+
+    if (   (!exportErrorPath || (errorPathFile == null))
+        && (!exportART       || (artFile == null))) {
+      
+      // shortcut, avoid unnecessary creation of path etc.
+      return;
     }
+    
+    Path targetPath = null;
+    ARTElement lastElement = (ARTElement)pReached.getLastElement();
+    if (lastElement != null && lastElement.isTarget()) {
 
-    if (exportErrorPath) {
-      ARTElement lastElement = (ARTElement)pReached.getLastElement();
-      if (lastElement != null && lastElement.isTarget()) {
-
-        Path targetPath = cpa.getTargetPath();
-        assert targetPath != null;
+      // use target path stored at CPA if present
+      targetPath = cpa.getTargetPath();
+      if (targetPath != null) {
         // target path has to be the path to the current target element
         assert targetPath.getLast().getFirst() == lastElement;
-
+      } else {
+        // otherwise create one
+        targetPath = AbstractARTBasedRefiner.buildPath(lastElement);
+      }
+      
+      if (exportErrorPath && errorPathFile != null) {
+        
+        // the shrinked errorPath only includes the nodes,
+        // that are important for the error, it is not a complete path, 
+        // only some nodes of the targetPath are part of it 
+        ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+        Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+        
         try {
-
           Files.writeFile(errorPathFile, targetPath);
+          Files.writeFile(errorPathCoreFile, shrinkedErrorPath);
+          Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
           Files.writeFile(errorPathJson, targetPath.toJSON());
 
         } catch (IOException e) {
@@ -101,9 +130,30 @@ public class ARTStatistics implements Statistics {
         }
       }
     }
+
+    if (exportART && artFile != null) {
+      dumpARTToDotFile(pReached, getEdgesOfPath(targetPath));
+    }
   }
 
-  private void dumpARTToDotFile(ReachedSet pReached) {
+  private static Set<Pair<ARTElement, ARTElement>> getEdgesOfPath(Path pPath) {
+    if (pPath == null) {
+      return Collections.emptySet();
+    }
+
+    Set<Pair<ARTElement, ARTElement>> result = new HashSet<Pair<ARTElement, ARTElement>>(pPath.size());
+    Iterator<Pair<ARTElement, CFAEdge>> it = pPath.iterator();
+    assert it.hasNext();
+    ARTElement lastElement = it.next().getFirst();
+    while (it.hasNext()) {
+      ARTElement currentElement = it.next().getFirst();
+      result.add(Pair.of(lastElement, currentElement));
+      lastElement = currentElement;
+    }
+    return result;
+  }
+
+  private void dumpARTToDotFile(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
@@ -113,7 +163,7 @@ public class ARTStatistics implements Statistics {
     StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
-    sb.append("style=filled; color=\"#ccc\"; fontsize=10.0; fontname=\"Courier New\"; \n");
+    sb.append("style=filled; fontsize=10.0; fontname=\"Courier New\"; \n");
 
     worklist.add(firstElement);
 
@@ -130,8 +180,8 @@ public class ARTStatistics implements Statistics {
         } else if (currentElement.isTarget()) {
           color = "red";
         } else {
-          SymbPredAbsAbstractElement symbpredabselem = currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-          if (symbpredabselem != null && symbpredabselem.isAbstractionNode()) {
+          AbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.AbstractionElement.class);
+          if (abselem != null) {
             color = "blue";
           } else {
             color = "white";
@@ -140,7 +190,7 @@ public class ARTStatistics implements Statistics {
 
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
         String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
-        
+
         sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +" id=\"" + currentElement.getElementId() + "\"] " + currentElement.getElementId() + ";\n");
 
         nodesList.add(currentElement.getElementId());
@@ -153,17 +203,25 @@ public class ARTStatistics implements Statistics {
         edges.append(" [style = dashed, label = \"covered by\"];\n");
       }
 
-      for(ARTElement child : currentElement.getChildren()){
-        CFAEdge edge = currentElement.getEdgeToChild(child);        
+      for (ARTElement child : currentElement.getChildren()) {
+        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
+        CFAEdge edge = currentElement.getEdgeToChild(child);
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
-        edges.append(" [label = \"");
-        edges.append(edge != null ? edge.toString().replace('"', '\'') : "");        
-        edges.append("\"");
+        edges.append(" [");
+        if (colored) {
+          edges.append("color = red");
+        }
         if (edge != null) {
-          String id = "" + currentElement.getElementId() + "->" + child.getElementId();
-          edges.append(" id=\"" + id + "\"");
+          edges.append(" label = \"");
+          edges.append(edge.toString().replace('"', '\''));
+          edges.append("\"");
+          edges.append(" id=\"");
+          edges.append(currentElement.getElementId());
+          edges.append("->");
+          edges.append(child.getElementId());
+          edges.append("\"");
         }
         edges.append("];\n");
         if(!worklist.contains(child)){

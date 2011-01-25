@@ -27,13 +27,23 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Interface for the precision adjustment operator.
  */
 public interface PrecisionAdjustment {
+  
+  /**
+   * The precision adjustment operator can tell the CPAAlgorithm whether
+   * to continue with the analysis or whether to break immediately.
+   */
+  public static enum Action {
+    CONTINUE,
+    BREAK,
+    ;
+  }
   
   /**
    * This method may adjust the current element and precision using information
@@ -43,16 +53,11 @@ public interface PrecisionAdjustment {
    * the identical objects for element and precision. This makes it easier for
    * wrapper CPAs.
    * 
-   * If this method detects that the current element is a non-reachable element,
-   * it may return null to signal this. The element will then not be considered
-   * any further.
-   * 
    * @param element The current abstract element.
    * @param precision The current precision.
    * @param elements The current reached set.
-   * @return The new element and precision, or null if the element is not reachable.
+   * @return The new element, new precision and the action flag.
    */
-  public Pair<AbstractElement,Precision> prec(AbstractElement element,
-                                              Precision precision,
-                                              UnmodifiableReachedSet elements);
+  public Triple<AbstractElement,Precision, Action> prec(
+      AbstractElement element, Precision precision, UnmodifiableReachedSet elements);
 }

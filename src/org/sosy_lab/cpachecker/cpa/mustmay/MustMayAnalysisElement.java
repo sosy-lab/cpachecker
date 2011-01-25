@@ -28,13 +28,19 @@ import java.util.ArrayList;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperElement {
 
-  AbstractElement mMustElement;
-  AbstractElement mMayElement;
+  /**
+   * This object is used when the MustCPA produced no successors.
+   */
+  static final AbstractElement DONT_KNOW_ELEMENT = new AbstractElement() { }; 
+  
+  private final AbstractElement mMustElement;
+  private final AbstractElement mMayElement;
 
-  ArrayList<AbstractElement> mWrappedElements;
+  private final ArrayList<AbstractElement> mWrappedElements;
 
   public MustMayAnalysisElement(AbstractElement pMustElement, AbstractElement pMayElement) {
     assert(pMustElement != null);
@@ -94,33 +100,8 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
   }
 
   @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-
-    // TODO: should retrieveWrappedElement return itself if this is a subtype of pType?
-
-    for (AbstractElement lElement : mWrappedElements) {
-      if (pType.isAssignableFrom(lElement.getClass())) {
-        return pType.cast(lElement);
-      }
-      else if (lElement instanceof AbstractWrapperElement) {
-        T lResult = ((AbstractWrapperElement)lElement).retrieveWrappedElement(pType);
-
-        if (lResult != null) {
-          return lResult;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  @Override
   public AbstractElementWithLocation retrieveLocationElement() {
-    // TODO: think about what to do here
-    assert(false);
-
-    // TODO Auto-generated method stub
-    return null;
+    return AbstractElements.extractElementByType(this, AbstractElementWithLocation.class);
   }
 
 }

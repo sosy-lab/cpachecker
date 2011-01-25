@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
+import java.util.List;
+
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
@@ -31,14 +33,23 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.collect.ImmutableList;
+
 public class DeclarationEdge extends AbstractCFAEdge {
 
   private final IASTSimpleDeclaration declaration;
-
+  private final List<IASTDeclarator> declarators;
+  
   public DeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber,
       CFANode predecessor, CFANode successor) {
     super(declaration.getRawSignature(), lineNumber, predecessor, successor);
     this.declaration = declaration;
+    
+    if (declaration.getDeclarators() == null) {
+      declarators = ImmutableList.of();
+    } else {
+      declarators = ImmutableList.copyOf(declaration.getDeclarators());
+    }
   }
 
   @Override
@@ -46,8 +57,8 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public IASTDeclarator[] getDeclarators() {
-    return declaration.getDeclarators();
+  public List<IASTDeclarator> getDeclarators() {
+    return declarators;
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {
@@ -57,5 +68,9 @@ public class DeclarationEdge extends AbstractCFAEdge {
   @Override
   public IASTSimpleDeclaration getRawAST() {
     return declaration;
+  }
+  
+  public boolean isGlobal() {
+    return false;
   }
 }

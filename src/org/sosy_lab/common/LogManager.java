@@ -60,25 +60,25 @@ import org.sosy_lab.common.configuration.Options;
  * The main advantage of this class is that the arguments to the log methods
  * are only converted to strings, if the message is really logged.
  */
-@Options
+@Options(prefix="log")
 public class LogManager {
 
-  @Option(name="log.level", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
+  @Option(name="level", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String logLevelStr = "OFF";
 
-  @Option(name="log.consoleLevel", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
+  @Option(name="consoleLevel", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String consoleLevelStr = "INFO";
 
-  @Option(name="log.fileExclude", toUppercase=true)
+  @Option(name="fileExclude", toUppercase=true)
   private String[] excludeLevelsFileStr = {};
 
-  @Option(name="log.consoleExclude", toUppercase=true)
+  @Option(name="consoleExclude", toUppercase=true)
   private String[] excludeLevelsConsoleStr = {};
 
-  @Option(name="log.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE)
   private File outputFile = new File("CPALog.txt");
 
-  @Option(name="log.truncateSize")
+  @Option
   private int truncateSize = 10000;
   
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
@@ -219,7 +219,7 @@ public class LogManager {
     setupHandler(consoleOutputHandler, new ConsoleLogFormatter(), logConsoleLevel, excludeLevelsConsoleStr);
 
     // create file logger
-    if (logFileLevel != Level.OFF) {
+    if (logFileLevel != Level.OFF && outputFile != null) {
       try {
         Files.createParentDirs(outputFile);
 

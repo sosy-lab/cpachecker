@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -93,24 +92,23 @@ public class TypesTransferRelation implements TransferRelation {
 
     case FunctionCallEdge:
       FunctionCallEdge funcCallEdge = (FunctionCallEdge)cfaEdge;
-      if (!funcCallEdge.isExternalCall()) {
-        FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)funcCallEdge.getSuccessor();
-        if (successor.getFunction(funcDefNode.getFunctionName()) == null) {
-          // we call a function that was not defined
-          // probably "analysis.useFunctionDeclarations" is false
-          // this is not bad, but we don't get type information for external
-          // function
+      FunctionDefinitionNode funcDefNode = funcCallEdge.getSuccessor();
+      if (successor.getFunction(funcDefNode.getFunctionName()) == null) {
+        // we call a function that was not defined
+        // probably "analysis.useFunctionDeclarations" is false
+        // this is not bad, but we don't get type information for external
+        // function
 
-          IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
-          handleFunctionDeclaration(successor, funcCallEdge,
-              funcDef.getDeclarator(), funcDef.getDeclSpecifier());
-        }
+        IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
+        handleFunctionDeclaration(successor, funcCallEdge,
+            funcDef.getDeclarator(), funcDef.getDeclSpecifier());
       }
       break;
 
     case AssumeEdge:
     case StatementEdge:
-    case ReturnEdge:
+    case ReturnStatementEdge:
+    case FunctionReturnEdge:
       break;
     case BlankEdge:
       //the first function start dummy edge is the actual start of the entry function
@@ -135,11 +133,11 @@ public class TypesTransferRelation implements TransferRelation {
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
-    IASTDeclarator[] declarators = declarationEdge.getDeclarators();
+    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
 
-    if ((declarators.length == 1)
-        && (declarators[0] instanceof IASTFunctionDeclarator)) {
-      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarators[0], specifier);
+    if ((declarators.size() == 1)
+        && (declarators.get(0) instanceof IASTFunctionDeclarator)) {
+      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarators.get(0), specifier);
 
     } else {
 
@@ -153,7 +151,7 @@ public class TypesTransferRelation implements TransferRelation {
           element.addTypedef(thisName, thisType);
         } else {
           String functionName = null;
-          if (!(declarationEdge instanceof GlobalDeclarationEdge)) {
+          if (!(declarationEdge.isGlobal())) {
             functionName = declarationEdge.getSuccessor().getFunctionName();
           }
 

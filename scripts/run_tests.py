@@ -38,8 +38,8 @@ def run_single(benchmark, config, time_limit, mem_limit):
     """
     cn = configname(config)
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(scripts/cpa.sh -config $config $benchmark > '
-                       '$benchmark.$cn.log 2>&1)').substitute(locals())
+                       '(scripts/cpa.sh -setprop output.disable=true -config "$config" "$benchmark" > '
+                       '"$benchmark.$cn.log" 2>&1)').substitute(locals())
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
     tot_time, outcome, reached, refinements, abstractions, blocksize = None, None, None, None, None, None
@@ -58,16 +58,16 @@ def run_single(benchmark, config, time_limit, mem_limit):
     with open('%s.%s.log' % (benchmark, configname(config))) as f:
         for line in f:
             if tot_time is None and line.startswith(
-                'Total Time Elapsed including CFA construction:'):
-                tot_time = line[46:].strip()[:-1]
+                'Total time for CPAchecker:'):
+                tot_time = line[line.find(':')+1:].strip()
             elif reached is None and line.startswith('Size of reached set:'):
-                reached = line[20:].strip()
-            elif abstractions is None and line.startswith('Number of abstraction steps:'):
-                abstractions = line[28:].strip()
-            elif refinements is None and line.startswith('Number of refinement steps:'):
-                refinements = line[27:].strip()
-            elif blocksize is None and line.startswith('Max LBE block size: '):
-                blocksize = line[19:].strip()   
+                reached = (line[line.find(':')+1:line.find('(')-1].strip())
+            elif abstractions is None and line.startswith('Number of abstractions:'):
+                abstractions = (line[line.find(':')+1:line.find('(')-1].strip())
+            elif refinements is None and line.startswith('Number of refinements:'):
+                refinements = (line[line.find(':')+1:line.find('(')-1].strip())
+            elif blocksize is None and line.startswith('Max ABE block size: '):
+                blocksize = line[19:].strip()
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
             elif line.find('SIGSEGV') != -1:
@@ -164,12 +164,11 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
         subst = re.compile('.*/(benchmarks-[^/]*/)')
         bs = subst.sub(r'\1', b)
         results[configname(c)][bs] = run(os.path.abspath(b), c, t, m)
-	sys.stderr.write(results[configname(c)][bs][1])
-	sys.stderr.write('\n')
-#        if results[configname(c)][bs][1] == 'ERROR':
-#            sys.stderr.write('ERROR\n')
-#        elif verbose:
-#            sys.stdout.write('DONE\n')
+        result = results[configname(c)][bs][1]
+        sys.stdout.write(result)
+        sys.stdout.write('\n')
+        if result.find('SAFE') == -1:
+            sys.stdout.write('Please see ' + b + '.' + configname(c) + '.log for further information!\n')
 
     try:
         if order == 'config':

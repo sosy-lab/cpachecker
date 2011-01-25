@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -33,6 +34,10 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CProver;
@@ -40,23 +45,31 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options(prefix="cbmc")
 public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
   private final LogManager logger;
+  public static boolean didCBMCReportUP = false;
 
-  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, LogManager logger) throws CPAException {
+  @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
+  private File CBMCFile;
+  
+  @Option
+  private boolean continueAfterInfeasibleError = false;
+  
+  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
     this.logger = logger;
-
+    config.inject(this);
+    
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
       throw new CPAException("Need ART CPA for CBMC check");
     }
@@ -65,26 +78,60 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void run(ReachedSet reached) throws CPAException {
 
-    algorithm.run(reached);
-
-    AbstractElement lastElement = reached.getLastElement();
-    if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
-      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath((ARTElement)lastElement);
+    while (reached.hasWaitingElement()) {
+      algorithm.run(reached);
+  
+      AbstractElement lastElement = reached.getLastElement();
+      if (!(lastElement instanceof ARTElement)) {
+        // no analysis possible
+        break;
+      }
+      
+      ARTElement element = (ARTElement)lastElement;
+      if (!element.isTarget()) {
+        // no analysis necessary
+        break;
+      }
+      
+      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath(element);
+      
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
       
       boolean cbmcResult;
       try {
-        cbmcResult = CProver.checkFeasibility(pathProgram, logger);
+        cbmcResult = CProver.checkFeasibility(pathProgram, logger, CBMCFile);
       } catch (IOException e) {
         throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
       }
       
       if (cbmcResult) {
+        didCBMCReportUP = false;
         logger.log(Level.INFO, "CBMC confirms the bug");
+        break;
 
       } else {
-        logger.log(Level.INFO, "CBMC thinks this path contains no bug");
-        // TODO: continue analysis
+        Set<ARTElement> parents = element.getParents();
+        
+        // remove re-added parents to prevent computing
+        // the same error element over and over
+        for(ARTElement parent: parents){
+          reached.remove(parent);
+          parent.removeFromART();
+        }
+        
+        // remove the error element
+        reached.remove(element);
+        element.removeFromART();
+
+        // WARNING: continuing analysis is unsound, because the elements of this
+        // infeasible path may cover another path that is actually feasible
+        // We would need to find the first element of this path that is
+        // not reachable and cut the path there.
+        didCBMCReportUP = true;
+        if (!continueAfterInfeasibleError) {
+          logger.log(Level.INFO, "CBMC thinks this path contains no bug");
+          break;
+        }
       }
     }
   }

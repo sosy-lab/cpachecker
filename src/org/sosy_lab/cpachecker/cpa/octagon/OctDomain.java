@@ -28,125 +28,75 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.util.octagon.Octagon;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
+
+import com.google.common.collect.BiMap;
 
 public class OctDomain implements AbstractDomain{
 
   public static long totaltime = 0;
 
-  private static class OctBottomElement extends OctElement
-  {
-    public OctBottomElement ()
-    {
-      super ();
+  @Override
+  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+
+    Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
+
+    long start = System.currentTimeMillis();
+    OctElement octElement1 = (OctElement) element1;
+    OctElement octElement2 = (OctElement) element2;
+
+    if(covers.containsKey(octElement2) && ((HashSet<OctElement>)(covers.get(octElement2))).contains(octElement1)){
+      return true;
     }
-  }
 
-  private static class OctTopElement extends OctElement
-  {
-    public OctTopElement ()
-    {
-      //super (LibraryAccess.universe(Variables.numOfVars));
+//    System.out.println("Octagon 1: ");
+//    OctagonManager.print(octElement1.getOctagon());
+//    System.out.println("Octagon 2: ");
+//    OctagonManager.print(octElement2.getOctagon());
+//    octElement1.printOctagon();
+//    octElement2.printOctagon();
+    
+    int result = OctagonManager.isIncludedInLazy(octElement1.getOctagon(), octElement2.getOctagon());
+    if(result == 1) {
+      totaltime = totaltime + (System.currentTimeMillis() - start);
+      return true;
     }
-  }
-
-  private static class OctPartialOrder implements PartialOrder
-  {
-    @Override
-    public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
-    {
-
-      Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
-
-      long start = System.currentTimeMillis();
-      OctElement octElement1 = (OctElement) element1;
-      OctElement octElement2 = (OctElement) element2;
-
-      if(OctConstants.useLazyIncAlgorithm){
-        int result = LibraryAccess.isInLazy(octElement1, octElement2);
-        if(result == 1) {
-          totaltime = totaltime + (System.currentTimeMillis() - start);
-          return true;
+    else if(result == 2) {
+      totaltime = totaltime + (System.currentTimeMillis() - start);
+      return false;
+    }
+    else{
+      assert(result == 3);
+      boolean included = OctagonManager.isIncludedIn(octElement1.getOctagon(), octElement2.getOctagon());
+      if(included){
+        Set<OctElement> s;
+        if (covers.containsKey(octElement2)) {
+          s = covers.get(octElement2);
+        } else {
+          s = new HashSet<OctElement>();
         }
-        else if(result == 2) {
-          totaltime = totaltime + (System.currentTimeMillis() - start);
-          return false;
-        }
-        else{
-          System.out.println(" Result is--> " + result);
-          assert(false);
-          return false;
-        }
+        s.add(octElement1);
+        covers.put(octElement2, s);
       }
-      else{
-        if(covers.containsKey(octElement2) && ((HashSet<OctElement>)(covers.get(octElement2))).contains(octElement1)){
-          return true;
-        }
-
-        boolean included = LibraryAccess.isIn(octElement1, octElement2);
-        if(included){
-          Set<OctElement> s;
-          if (covers.containsKey(octElement2)) {
-            s = covers.get(octElement2);
-          } else {
-            s = new HashSet<OctElement>();
-          }
-          s.add(octElement1);
-          covers.put(octElement2, s);
-        }
-        totaltime = totaltime + (System.currentTimeMillis() - start);
-        return included;
-      }
+      totaltime = totaltime + (System.currentTimeMillis() - start);
+      return included;
     }
   }
 
-  private static class OctJoinOperator implements JoinOperator
-  {
-    @Override
-    public AbstractElement join (AbstractElement element1, AbstractElement element2)
-    {
-      // TODO fix
-      OctElement octEl1 = (OctElement) element1;
-      OctElement octEl2 = (OctElement) element2;
-      return LibraryAccess.widening(octEl1, octEl2);
-    }
-  }
-
-  private final static OctBottomElement bottomElement = new OctBottomElement ();
-  private final static OctTopElement topElement = new OctTopElement ();
-  private final static PartialOrder partialOrder = new OctPartialOrder ();
-  private final static JoinOperator joinOperator = new OctJoinOperator ();
-
-  public OctDomain ()
-  {
-
-  }
-
   @Override
-  public AbstractElement getBottomElement ()
-  {
-    return bottomElement;
-  }
+  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+    OctElement octEl1 = (OctElement) element1;
+    OctElement octEl2 = (OctElement) element2;
+    Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
+    BiMap<String, Integer> newMap = 
+      octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
-  @Override
-  public AbstractElement getTopElement ()
-  {
-    return topElement;
-  }
-
-  @Override
-  public JoinOperator getJoinOperator ()
-  {
-    return joinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder ()
-  {
-    return partialOrder;
+      // TODO should it be null
+      return new OctElement(newOctagon, newMap, null);
+      // TODO add widening
+      //    return LibraryAccess.widening(octEl1, octEl2);
   }
 }
