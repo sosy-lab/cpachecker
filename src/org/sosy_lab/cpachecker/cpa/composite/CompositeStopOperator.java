@@ -29,7 +29,6 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -62,11 +61,6 @@ public class CompositeStopOperator implements StopOperator{
 
     List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
     List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
-
-    AbstractElementWithLocation locElem1 = (AbstractElementWithLocation)compositeElements1.get(0);
-    AbstractElementWithLocation locElem2 = (AbstractElementWithLocation)compositeElements2.get(0);
-
-    assert(locElem1.getLocationNode().equals(locElem2.getLocationNode()));
 
     for (int idx = 0; idx < compositeElements1.size (); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
