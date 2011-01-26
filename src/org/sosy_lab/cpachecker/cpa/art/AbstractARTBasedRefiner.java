@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 
 import com.google.common.base.Function;
@@ -169,7 +170,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
-    CFAEdge lastEdge = currentARTElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0);
+    CFANode loc = currentARTElement.retrieveLocationElement().getLocationNode();
+    CFAEdge lastEdge = null;
+    if (loc.getNumLeavingEdges() > 0) {
+      lastEdge = loc.getLeavingEdge(0);
+    }
     path.addFirst(Pair.of(currentARTElement, lastEdge));
     seenElements.add(currentARTElement);
 
