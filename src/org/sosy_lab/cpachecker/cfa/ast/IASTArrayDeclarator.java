@@ -6,12 +6,12 @@ public final class IASTArrayDeclarator extends IASTDeclarator implements
     org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator {
 
   private final List<IASTArrayModifier> modifiers;
-  
-  public IASTArrayDeclarator(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTInitializer pInitializer,
-      IASTName pName, IASTDeclarator pNestedDeclarator,
-      List<IASTPointerOperator> pPointerOperators,
-      List<IASTArrayModifier> pModifiers) {
+
+  public IASTArrayDeclarator(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
+      final IASTName pName, final IASTDeclarator pNestedDeclarator,
+      final List<IASTPointerOperator> pPointerOperators,
+      final List<IASTArrayModifier> pModifiers) {
     super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator,
         pPointerOperators);
     modifiers = pModifiers;
@@ -19,7 +19,8 @@ public final class IASTArrayDeclarator extends IASTDeclarator implements
 
   @Override
   @Deprecated
-  public void addArrayModifier(org.eclipse.cdt.core.dom.ast.IASTArrayModifier pArg0) {
+  public void addArrayModifier(
+      final org.eclipse.cdt.core.dom.ast.IASTArrayModifier pArg0) {
     throw new UnsupportedOperationException();
   }
 
