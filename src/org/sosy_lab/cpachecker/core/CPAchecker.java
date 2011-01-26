@@ -131,6 +131,9 @@ public class CPAchecker {
 
     @Option(name="analysis.useBMC")
     boolean useBMC = false;
+
+    @Option(name="analysis.stopAfterError")
+    boolean stopAfterError = true;
   }
 
   private final LogManager logger;
@@ -293,7 +296,12 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis...");
     stats.analysisTime.start();
 
-    algorithm.run(reached);
+    do {
+      algorithm.run(reached);
+      
+      // either run only once (if stopAfterError == true)
+      // or until the waitlist is empty
+    } while (!options.stopAfterError && reached.hasWaitingElement());
 
     stats.analysisTime.stop();
     stats.programTime.stop();

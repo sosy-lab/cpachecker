@@ -185,6 +185,9 @@ analysis.traversal.useCallstack = false
 # The secondary strategy may not be TOPSORT.
 analysis.traversal.useTopsort = false
 
+# stop after the first error has been found
+analysis.stopAfterError = true
+
 # print reached set to text file
 reachedSet.export = true
 reachedSet.file = reached.txt
