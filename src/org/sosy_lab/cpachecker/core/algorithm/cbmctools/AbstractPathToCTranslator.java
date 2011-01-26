@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
