@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
-import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
