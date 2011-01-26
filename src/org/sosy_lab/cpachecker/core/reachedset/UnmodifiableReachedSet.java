@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import java.util.Collection;
 import java.util.Iterator;
 
-import javax.naming.OperationNotSupportedException;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -63,7 +61,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
    * @return A subset of the reached set.
    */
   public Collection<AbstractElement> getReached(AbstractElement element)
-    throws OperationNotSupportedException;
+    throws UnsupportedOperationException;
 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
@@ -101,7 +99,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
    * @return The precision for the element or null.
    */
   public Precision getPrecision(AbstractElement element)
-    throws OperationNotSupportedException;
+    throws UnsupportedOperationException;
 
   public int size();
 
