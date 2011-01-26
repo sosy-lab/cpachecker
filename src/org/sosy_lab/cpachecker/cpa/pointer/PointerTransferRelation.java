@@ -287,7 +287,7 @@ public class PointerTransferRelation implements TransferRelation {
           //by first creating its context...
           successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
 
-          List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          List<? extends IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
 
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {

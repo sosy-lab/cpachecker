@@ -256,7 +256,7 @@ implements GenericAssumptionBuilder
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
       if (!fcallEdge.getArguments().isEmpty()) {
         FunctionDefinitionNode fdefnode = fcallEdge.getSuccessor();
-        List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
+        List<? extends IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
           DummyASTIdExpression exp = new DummyASTIdExpression(paramdecl.getDeclarator().getName());

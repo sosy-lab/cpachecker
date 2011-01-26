@@ -521,7 +521,7 @@ public class CtoFormulaConverter {
       List<IASTExpression> actualParams = edge.getArguments();
       
       FunctionDefinitionNode fn = edge.getSuccessor();
-      List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
+      List<? extends IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
       
       assert formalParams.size() == actualParams.size();
 
