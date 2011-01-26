@@ -40,21 +40,13 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
     return AbstractElements.extractLocation(pElement).getTopologicalSortId();
   }
 
-  public static WaitlistFactory factory(WaitlistFactory pSecondaryStrategy) {
-    return new TopologicallySortedWaitlistFactory(pSecondaryStrategy);
-  }
-  
-  private static class TopologicallySortedWaitlistFactory implements WaitlistFactory {
-    
-    private final WaitlistFactory wrappedWaitlist;
-
-    public TopologicallySortedWaitlistFactory(WaitlistFactory pSecondaryStrategy) {
-      wrappedWaitlist = pSecondaryStrategy;
-    }
-
-    @Override
-    public Waitlist createWaitlistInstance() {
-      return new TopologicallySortedWaitlist(wrappedWaitlist);
-    }
+  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
+    return new WaitlistFactory() {
+      
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new TopologicallySortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

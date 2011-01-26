@@ -47,21 +47,13 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
     return (callstackElement != null) ? callstackElement.getDepth() : 0;
   }
   
-  public static WaitlistFactory factory(WaitlistFactory pSecondaryStrategy) {
-    return new CallstackSortedWaitlistFactory(pSecondaryStrategy);
-  }
-  
-  private static class CallstackSortedWaitlistFactory implements WaitlistFactory {
-    
-    private final WaitlistFactory wrappedWaitlist;
-
-    public CallstackSortedWaitlistFactory(WaitlistFactory pSecondaryStrategy) {
-      wrappedWaitlist = pSecondaryStrategy;
-    }
-
-    @Override
-    public Waitlist createWaitlistInstance() {
-      return new CallstackSortedWaitlist(wrappedWaitlist);
-    }
+  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
+    return new WaitlistFactory() {
+      
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new CallstackSortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }
