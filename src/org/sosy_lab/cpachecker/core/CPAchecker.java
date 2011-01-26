@@ -293,7 +293,7 @@ public class CPAchecker {
           final ReachedSet reached,
           final MainCPAStatistics stats) throws CPAException {
 
-    logger.log(Level.INFO, "Starting analysis...");
+    logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();
 
     do {
@@ -303,9 +303,9 @@ public class CPAchecker {
       // or until the waitlist is empty
     } while (!options.stopAfterError && reached.hasWaitingElement());
 
+    logger.log(Level.INFO, "Stopping analysis ...");
     stats.analysisTime.stop();
     stats.programTime.stop();
-    logger.log(Level.INFO, "Analysis finished.");
 
     for (AbstractElement reachedElement : reached) {
       if ((reachedElement instanceof Targetable)
@@ -315,12 +315,12 @@ public class CPAchecker {
     }
     
     if (reached.hasWaitingElement()) {
-      logger.log(Level.WARNING, "Analysis did not finish, there are still elements to be processed.");
+      logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
       return Result.UNKNOWN;
     }
     
     if (CBMCAlgorithm.didCBMCReportUP){
-      logger.log(Level.WARNING, "Analysis finished but is unsound due to cbmc interaction");
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not all paths were checked.");
       return Result.UNKNOWN;
     }
 
