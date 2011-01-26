@@ -27,6 +27,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -44,8 +45,9 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
   private final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
+  private final StopOperator stopOperator;
 
-  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
+  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, StopOperator stopOperator) {
     this.precisionAdjustments = precisionAdjustments;
 
     ImmutableList.Builder<ElementProjectionFunction> elementProjectionFunctions = ImmutableList.builder();
@@ -57,6 +59,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     }
     this.elementProjectionFunctions = elementProjectionFunctions.build();
     this.precisionProjectionFunctions = precisionProjectionFunctions.build();
+    this.stopOperator = stopOperator;
   }
 
   private static class ElementProjectionFunction
@@ -128,12 +131,20 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       outPrecisions.add(newPrecision);
     }
 
-    if (modified) {
-      return new Triple<AbstractElement, Precision, Action>(new CompositeElement(outElements.build()),
-          new CompositePrecision(outPrecisions.build()), action);
-    } else {
-      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, action);
+    AbstractElement outElement = modified ? new CompositeElement(outElements.build())     : pElement;
+    Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
+
+    if (action == Action.BREAK) {
+      // it would be nice if we could just check the elements with the same
+      // location and not need to check the whole reached set,
+      // but this is not possible due to the projected reached set 
+      if (stopOperator.stop(outElement, pElements.getReached(), outPrecision)) {
+        // don't signal BREAK for covered elements
+        action = Action.CONTINUE;
+      }
     }
+    
+    return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, action);
   }
 
 }
