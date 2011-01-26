@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -94,7 +95,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
                                                Precision pPrecision,
-                                               UnmodifiableReachedSet pElements) {
+                                               UnmodifiableReachedSet pElements) throws CPAException {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getElements().size() == prec.getPrecisions().size());

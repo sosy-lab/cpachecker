@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -44,7 +45,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
-      Precision oldPrecision, UnmodifiableReachedSet pElements) {
+      Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof ARTElement);
     ARTElement element = (ARTElement)pElement;
