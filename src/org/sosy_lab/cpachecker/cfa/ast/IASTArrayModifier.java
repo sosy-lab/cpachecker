@@ -4,9 +4,9 @@ public final class IASTArrayModifier extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTArrayModifier {
 
   private final IASTExpression expression;
-  
-  public IASTArrayModifier(String pRawSignature, IASTFileLocation pFileLocation,
-      IASTExpression pExpression) {
+
+  public IASTArrayModifier(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTExpression pExpression) {
     super(pRawSignature, pFileLocation);
     expression = pExpression;
   }
@@ -18,7 +18,8 @@ public final class IASTArrayModifier extends IASTNode implements
 
   @Override
   @Deprecated
-  public void setConstantExpression(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void setConstantExpression(
+      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
 
