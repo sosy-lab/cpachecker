@@ -19,10 +19,10 @@ following arguments (see below to learn what the options mean):
 -logfile <FILE>		sets "log.file = <FILE>"
 -nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
--dfs			sets "analysis.traversal = DFS"
--bfs			sets "analysis.traversal = BFS"
--topsort		sets "analysis.traversal = TOPSORT"
--rand           sets "analysis.traversal = RAND"
+-dfs			sets "analysis.traversal.order = DFS"
+-bfs			sets "analysis.traversal.order = BFS"
+-topsort		sets "analysis.traversal.order = TOPSORT"
+-rand           sets "analysis.traversal.order = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
 Either "-help", "-config" or "-cpas" has to be specified.
@@ -172,7 +172,7 @@ cbmc.dumpCBMCfile = cbmc.c
 cpa = cpa.composite.CompositeCPA
 
 # which strategy to adopt for visiting states? (DFS, BFS, RAND or TOPSORT)
-analysis.traversal = dfs
+analysis.traversal.order = dfs
 
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
@@ -181,7 +181,7 @@ analysis.traversal.useCallstack = false
 # Use an implementation of topsort strategy that allows to select
 # a secondary strategy that is used if there are two elements with
 # the same topsort id.
-# The secondary strategy is selected with "analysis.traversal" (see above).
+# The secondary strategy is selected with "analysis.traversal.order" (see above).
 # The secondary strategy may not be TOPSORT.
 analysis.traversal.useTopsort = false
 

@@ -246,11 +246,11 @@ public class CPAMain {
           throw new InvalidCmdlineArgumentException("-cpas argument missing!");
         }
       } else if (arg.equals("-dfs")) {
-        properties.put("analysis.traversal", "dfs");
+        properties.put("analysis.traversal.order", "dfs");
       } else if (arg.equals("-bfs")) {
-        properties.put("analysis.traversal", "bfs");
+        properties.put("analysis.traversal.order", "bfs");
       } else if (arg.equals("-topsort")) {
-        properties.put("analysis.traversal", "topsort");
+        properties.put("analysis.traversal.order", "topsort");
       } else if (arg.equals("-nolog")) {
         properties.put("log.level", "off");
         properties.put("log.consoleLevel", "off");

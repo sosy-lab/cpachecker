@@ -108,7 +108,7 @@ public class CPAchecker {
 
     // algorithm options
 
-    @Option(name="analysis.traversal")
+    @Option(name="analysis.traversal.order")
     Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
     @Option(name="analysis.traversal.useCallstack")
