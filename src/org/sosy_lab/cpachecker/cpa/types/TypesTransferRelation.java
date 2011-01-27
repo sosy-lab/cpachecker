@@ -30,22 +30,22 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -132,7 +132,7 @@ public class TypesTransferRelation implements TransferRelation {
   private void handleDeclaration(TypesElement element,
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
-    IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+    IASTDeclSpecifier specifier = (IASTDeclSpecifier) declarationEdge.getDeclSpecifier();
     List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
 
     if ((declarators.size() == 1)

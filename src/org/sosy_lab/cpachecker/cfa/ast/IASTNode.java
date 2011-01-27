@@ -8,23 +8,24 @@ import org.eclipse.cdt.core.parser.IToken;
 
 public abstract class IASTNode implements org.eclipse.cdt.core.dom.ast.IASTNode {
 
-  private final String rawSignature;
+  private final String           rawSignature;
   private final IASTFileLocation fileLocation;
-  
-  public IASTNode(String pRawSignature, IASTFileLocation pFileLocation) {
+
+  public IASTNode(final String pRawSignature,
+      final IASTFileLocation pFileLocation) {
     rawSignature = pRawSignature;
     fileLocation = pFileLocation;
   }
 
   @Override
   @Deprecated
-  public boolean accept(ASTVisitor pArg0) {
+  public boolean accept(final ASTVisitor pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public boolean contains(org.eclipse.cdt.core.dom.ast.IASTNode pArg0) {
+  public boolean contains(final org.eclipse.cdt.core.dom.ast.IASTNode pArg0) {
     throw new UnsupportedOperationException();
   }
 

@@ -4,16 +4,17 @@ public final class IASTIdExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTIdExpression {
 
   private final IASTName name;
-  
-  public IASTIdExpression(String pRawSignature, IASTFileLocation pFileLocation,
-      IType pType, IASTName pName) {
+
+  public IASTIdExpression(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType,
+      final IASTName pName) {
     super(pRawSignature, pFileLocation, pType);
     name = pName;
   }
 
   @Override
   @Deprecated
-  public int getRoleForName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 
@@ -24,7 +25,7 @@ public final class IASTIdExpression extends IASTExpression implements
 
   @Override
   @Deprecated
-  public void setName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 

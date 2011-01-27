@@ -112,7 +112,7 @@ public class ASTConverter {
   }
   
   public static IASTFunctionDefinition convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
-    return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), convert(f.getDeclSpecifier()), convert(f.getDeclarator()));
+    return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), convert(f.getDeclSpecifier()), convert(f.getDeclarator()), convert(f.getBody()));
   }
   
   public static IASTSimpleDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {

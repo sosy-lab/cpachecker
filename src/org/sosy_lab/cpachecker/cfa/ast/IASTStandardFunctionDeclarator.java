@@ -7,14 +7,14 @@ public final class IASTStandardFunctionDeclarator extends
     org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator {
 
   private final List<IASTParameterDeclaration> parameters;
-  private final boolean takesVarArgs;
-  
-  public IASTStandardFunctionDeclarator(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTInitializer pInitializer,
-      IASTName pName, IASTDeclarator pNestedDeclarator,
-      List<IASTPointerOperator> pPointerOperators,
-      List<IASTParameterDeclaration> pParameters,
-      boolean pTakesVarArgs) {
+  private final boolean                        takesVarArgs;
+
+  public IASTStandardFunctionDeclarator(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
+      final IASTName pName, final IASTDeclarator pNestedDeclarator,
+      final List<IASTPointerOperator> pPointerOperators,
+      final List<IASTParameterDeclaration> pParameters,
+      final boolean pTakesVarArgs) {
     super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator,
         pPointerOperators);
     parameters = pParameters;
@@ -23,7 +23,8 @@ public final class IASTStandardFunctionDeclarator extends
 
   @Override
   @Deprecated
-  public void addParameterDeclaration(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration pArg0) {
+  public void addParameterDeclaration(
+      final org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration pArg0) {
     throw new UnsupportedOperationException();
   }
 

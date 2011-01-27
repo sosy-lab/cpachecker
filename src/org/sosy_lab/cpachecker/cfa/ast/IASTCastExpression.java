@@ -4,11 +4,11 @@ public final class IASTCastExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTCastExpression {
 
   private final IASTExpression operand;
-  private final IASTTypeId type;
-  
-  public IASTCastExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType,
-      IASTExpression pOperand, IASTTypeId pTypeId) {
+  private final IASTTypeId     type;
+
+  public IASTCastExpression(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType,
+      final IASTExpression pOperand, final IASTTypeId pTypeId) {
     super(pRawSignature, pFileLocation, pType);
     operand = pOperand;
     type = pTypeId;
@@ -32,19 +32,19 @@ public final class IASTCastExpression extends IASTExpression implements
 
   @Override
   @Deprecated
-  public void setOperand(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void setOperand(final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setOperator(int pArg0) {
+  public void setOperator(final int pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setTypeId(org.eclipse.cdt.core.dom.ast.IASTTypeId pArg0) {
+  public void setTypeId(final org.eclipse.cdt.core.dom.ast.IASTTypeId pArg0) {
     throw new UnsupportedOperationException();
   }
 

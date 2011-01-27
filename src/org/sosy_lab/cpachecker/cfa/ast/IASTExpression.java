@@ -5,11 +5,12 @@ public abstract class IASTExpression extends IASTNode implements
 
   private final IType type;
 
-  public IASTExpression(String pRawSignature, IASTFileLocation pFileLocation, IType pType) {
+  public IASTExpression(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType) {
     super(pRawSignature, pFileLocation);
     type = pType;
   }
- 
+
   @Override
   public IType getExpressionType() {
     return type;

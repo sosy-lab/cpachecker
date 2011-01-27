@@ -32,7 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;

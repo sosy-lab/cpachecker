@@ -3,21 +3,22 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public final class IASTFunctionDefinition extends IASTDeclaration implements
     org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition {
 
-  private final IASTDeclSpecifier specifier;
+  private final IASTDeclSpecifier      specifier;
   private final IASTFunctionDeclarator declarator;
-  
-  public IASTFunctionDefinition(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      IASTDeclSpecifier pSpecifier, IASTFunctionDeclarator pDeclarator) {
+  private final IASTStatement          bodyStatement;
+
+  public IASTFunctionDefinition(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
+      final IASTFunctionDeclarator pDeclarator, IASTStatement pIastStatement) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
     declarator = pDeclarator;
+    bodyStatement = pIastStatement;
   }
 
   @Override
-  @Deprecated
   public org.eclipse.cdt.core.dom.ast.IASTStatement getBody() {
-    throw new UnsupportedOperationException();
+    return bodyStatement;
   }
 
   @Override
@@ -38,19 +39,21 @@ public final class IASTFunctionDefinition extends IASTDeclaration implements
 
   @Override
   @Deprecated
-  public void setBody(org.eclipse.cdt.core.dom.ast.IASTStatement pArg0) {
+  public void setBody(final org.eclipse.cdt.core.dom.ast.IASTStatement pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setDeclSpecifier(org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
+  public void setDeclSpecifier(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setDeclarator(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator pArg0) {
+  public void setDeclarator(
+      final org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator pArg0) {
     throw new UnsupportedOperationException();
   }
 

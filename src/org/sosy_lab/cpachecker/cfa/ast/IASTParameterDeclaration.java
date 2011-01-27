@@ -4,11 +4,11 @@ public final class IASTParameterDeclaration extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration {
 
   private final IASTDeclSpecifier specifier;
-  private final IASTDeclarator declarator;
-  
-  public IASTParameterDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      IASTDeclSpecifier pSpecifier, IASTDeclarator pDeclarator) {
+  private final IASTDeclarator    declarator;
+
+  public IASTParameterDeclaration(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
+      final IASTDeclarator pDeclarator) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
     declarator = pDeclarator;
@@ -26,13 +26,15 @@ public final class IASTParameterDeclaration extends IASTNode implements
 
   @Override
   @Deprecated
-  public void setDeclSpecifier(org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
+  public void setDeclSpecifier(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setDeclarator(org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
+  public void setDeclarator(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
     throw new UnsupportedOperationException();
   }
 

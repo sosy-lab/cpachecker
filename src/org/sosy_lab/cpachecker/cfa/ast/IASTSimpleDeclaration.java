@@ -7,12 +7,12 @@ import com.google.common.collect.ImmutableList;
 public final class IASTSimpleDeclaration extends IASTDeclaration implements
     org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration {
 
-  private final IASTDeclSpecifier specifier;
-  private final List<IASTDeclarator> declarators; 
-  
-  public IASTSimpleDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      IASTDeclSpecifier pSpecifier, List<IASTDeclarator> pDeclarators) {
+  private final IASTDeclSpecifier    specifier;
+  private final List<IASTDeclarator> declarators;
+
+  public IASTSimpleDeclaration(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
+      final List<IASTDeclarator> pDeclarators) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
     declarators = ImmutableList.copyOf(pDeclarators);
@@ -20,7 +20,8 @@ public final class IASTSimpleDeclaration extends IASTDeclaration implements
 
   @Override
   @Deprecated
-  public void addDeclarator(org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
+  public void addDeclarator(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
     throw new UnsupportedOperationException();
   }
 
@@ -36,7 +37,8 @@ public final class IASTSimpleDeclaration extends IASTDeclaration implements
 
   @Override
   @Deprecated
-  public void setDeclSpecifier(org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
+  public void setDeclSpecifier(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
     throw new UnsupportedOperationException();
   }
 
