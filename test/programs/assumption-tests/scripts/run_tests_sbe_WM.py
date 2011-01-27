@@ -101,7 +101,7 @@ def run_single(benchmark, config, time_limit, mem_limit, outfile):
                 outcome = 'SEGMENTATION FAULT'
             elif (outcome is None or outcome == "ERROR (1)") and (line.find('Exception') != -1):
                 outcome = 'EXCEPTION'
-            elif outcome is None and line.startswith('Error location(s) reached?'):
+            elif outcome is None and line.startswith('Given specification violated?'):
                 line = line[26:].strip()
                 if line.startswith('NO'):
                     outcome = 'SAFE'

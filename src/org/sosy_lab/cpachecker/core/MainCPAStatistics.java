@@ -205,7 +205,7 @@ class MainCPAStatistics implements Statistics {
         }
           
         out.println("");
-        out.print("Error location(s) reached? ");
+        out.print("Given specification violated? ");
         switch (result) {
         case UNKNOWN:
           out.println("UNKNOWN, analysis has not completed\n\n" +
