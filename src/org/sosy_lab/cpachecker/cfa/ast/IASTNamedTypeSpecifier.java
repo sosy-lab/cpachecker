@@ -4,10 +4,11 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
     org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier {
 
   private final IASTName name;
-  
-  public IASTNamedTypeSpecifier(String pRawSignature,
-      IASTFileLocation pFileLocation, int pStorageClass, boolean pConst,
-      boolean pInline, boolean pVolatile, IASTName pName) {
+
+  public IASTNamedTypeSpecifier(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final int pStorageClass,
+      final boolean pConst, final boolean pInline, final boolean pVolatile,
+      final IASTName pName) {
     super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
         pVolatile);
     name = pName;
@@ -15,7 +16,7 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
 
   @Override
   @Deprecated
-  public int getRoleForName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 
@@ -26,7 +27,7 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
 
   @Override
   @Deprecated
-  public void setName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 

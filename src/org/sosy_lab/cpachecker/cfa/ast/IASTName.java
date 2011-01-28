@@ -8,7 +8,8 @@ import org.eclipse.cdt.core.dom.ast.IBinding;
 public final class IASTName extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTName {
 
-  public IASTName(String pRawSignature, IASTFileLocation pFileLocation) {
+  public IASTName(final String pRawSignature,
+      final IASTFileLocation pFileLocation) {
     super(pRawSignature, pFileLocation);
   }
 
@@ -80,7 +81,7 @@ public final class IASTName extends IASTNode implements
 
   @Override
   @Deprecated
-  public int getRoleOfName(boolean pArg0) {
+  public int getRoleOfName(final boolean pArg0) {
     throw new UnsupportedOperationException();
   }
 
@@ -98,7 +99,7 @@ public final class IASTName extends IASTNode implements
 
   @Override
   @Deprecated
-  public void setBinding(IBinding pArg0) {
+  public void setBinding(final IBinding pArg0) {
     throw new UnsupportedOperationException();
   }
 
