@@ -87,8 +87,11 @@ Using CPAchecker as an Eclipse plugin for your C projects
 
 Using CPAchecker as an Eclipse plugin for your C projects (for CPAchecker developers)
 -------------------------------------------------------------------------------------
-1. You need Eclipse 3.5 with CDT 6 and the Eclipse Plugin Development Environment.
-   (Eclipse 3.6 is currently not supported). Also install an SVN plugin.
+1. You need Eclipse 3.5 with CDT 6 and the Eclipse Plugin Development Environment
+   (other Eclipse versions are currently not supported).
+   From CDT 6 you need the package "Eclipse C/C++ Development Tools SDK"
+   (Eclipse update site: http://download.eclipse.org/tools/cdt/releases/galileo).
+   Also install an SVN plugin, e.g. SubClipse (see above).
 2. Create an Eclipse project for CPAchecker as described above.
 3. Create an Eclipse project for CPAclipse from the SVN repository
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk/plugin/CPAclipse
