@@ -48,15 +48,12 @@ import com.google.common.collect.Multimap;
  */
 public class AssumptionStorageTransferRelation implements TransferRelation {
 
-  private final Collection<AbstractElement> topElementSet;
-
   private final FormulaManager formulaManager;
   
   public final Multimap<CFANode, Formula> generatedAssumptionsMap = LinkedListMultimap.create();
 
   public AssumptionStorageTransferRelation(FormulaManager pManager, AbstractElement topElement) {
     formulaManager = pManager;
-    topElementSet = Collections.singleton(topElement);
   }
 
   @Override

@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.fshell.experiments.ssh;
 
-import junit.framework.Assert;
-
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.FShell3Result;
-import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class SSHSimplified006 extends ExperimentalSeries {
