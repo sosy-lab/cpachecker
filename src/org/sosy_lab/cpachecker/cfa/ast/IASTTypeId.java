@@ -1,12 +1,14 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTTypeId extends IASTNode implements org.eclipse.cdt.core.dom.ast.IASTTypeId {
+public final class IASTTypeId extends IASTNode implements
+    org.eclipse.cdt.core.dom.ast.IASTTypeId {
 
-  private final IASTDeclarator declarator;
+  private final IASTDeclarator    declarator;
   private final IASTDeclSpecifier specifier;
-  
-  public IASTTypeId(String pRawSignature, IASTFileLocation pFileLocation,
-      IASTDeclarator pDeclarator, IASTDeclSpecifier pSpecifier) {
+
+  public IASTTypeId(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTDeclarator pDeclarator,
+      final IASTDeclSpecifier pSpecifier) {
     super(pRawSignature, pFileLocation);
     declarator = pDeclarator;
     specifier = pSpecifier;
@@ -24,13 +26,15 @@ public final class IASTTypeId extends IASTNode implements org.eclipse.cdt.core.d
 
   @Override
   @Deprecated
-  public void setAbstractDeclarator(org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
+  public void setAbstractDeclarator(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setDeclSpecifier(org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
+  public void setDeclSpecifier(
+      final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
     throw new UnsupportedOperationException();
   }
 
