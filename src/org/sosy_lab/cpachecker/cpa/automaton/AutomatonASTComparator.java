@@ -33,7 +33,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTName;
+import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
@@ -220,6 +220,11 @@ public class AutomatonASTComparator {
   }
 
   private static boolean IASTNamesAreEqual(IASTName pA, IASTName pB) {
+    
+    // assertion for testing our own class IASTName 
+    assert(pA.getRawSignature().equals(pB.getRawSignature())):
+      "implementation of the class IASTName is incorrect";
+    
     return Arrays.equals(pA.getSimpleID(), pB.getSimpleID());
   }
 

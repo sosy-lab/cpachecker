@@ -5,10 +5,10 @@ public final class IASTFunctionCallExpression extends IASTExpression implements
 
   private final IASTExpression functionName;
   private final IASTExpression parameters;
-  
-  public IASTFunctionCallExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType,
-      IASTExpression pFunctionName, IASTExpression pParameters) {
+
+  public IASTFunctionCallExpression(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType,
+      final IASTExpression pFunctionName, final IASTExpression pParameters) {
     super(pRawSignature, pFileLocation, pType);
     functionName = pFunctionName;
     parameters = pParameters;
@@ -26,13 +26,15 @@ public final class IASTFunctionCallExpression extends IASTExpression implements
 
   @Override
   @Deprecated
-  public void setFunctionNameExpression(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void setFunctionNameExpression(
+      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setParameterExpression(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void setParameterExpression(
+      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
 

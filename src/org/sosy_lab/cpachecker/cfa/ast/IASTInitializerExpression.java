@@ -4,9 +4,9 @@ public final class IASTInitializerExpression extends IASTInitializer implements
     org.eclipse.cdt.core.dom.ast.IASTInitializerExpression {
 
   private final IASTExpression expression;
-  
-  public IASTInitializerExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTExpression pExpression) {
+
+  public IASTInitializerExpression(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTExpression pExpression) {
     super(pRawSignature, pFileLocation);
     expression = pExpression;
   }
@@ -18,10 +18,11 @@ public final class IASTInitializerExpression extends IASTInitializer implements
 
   @Override
   @Deprecated
-  public void setExpression(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void setExpression(
+      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   @Deprecated
   public IASTInitializerExpression copy() {

@@ -5,11 +5,12 @@ import java.util.List;
 public abstract class IASTFunctionDeclarator extends IASTDeclarator implements
     org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator {
 
-  public IASTFunctionDeclarator(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTInitializer pInitializer,
-      IASTName pName, IASTDeclarator pNestedDeclarator,
-      List<IASTPointerOperator> pPointerOperators) {
-    super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator, pPointerOperators);
+  public IASTFunctionDeclarator(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
+      final IASTName pName, final IASTDeclarator pNestedDeclarator,
+      final List<IASTPointerOperator> pPointerOperators) {
+    super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator,
+        pPointerOperators);
   }
 
   @Override

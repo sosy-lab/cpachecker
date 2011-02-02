@@ -1,5 +1,8 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
+// these eclipse-imports are only for compiling, they will not be used 
+// in this class, but throw an UnsupportedOperationException
+
 import org.eclipse.cdt.core.dom.ILinkage;
 import org.eclipse.cdt.core.dom.ast.IASTCompletionContext;
 import org.eclipse.cdt.core.dom.ast.IASTImageLocation;
@@ -14,10 +17,10 @@ public final class IASTName extends IASTNode implements
   }
 
   @Override
-  @Deprecated
   public char[] getSimpleID() {
-    throw new UnsupportedOperationException();
-  }
+    // TODO: is this really important?
+    return getRawSignature().toCharArray();
+}
 
   @Override
   @Deprecated

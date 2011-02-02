@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
