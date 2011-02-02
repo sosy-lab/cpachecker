@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-// these eclipse-imports are only for compiling, they will not be used 
-// in this class, but throw an UnsupportedOperationException
+// these eclipse-imports are only for compiling, they will not be used in this class.
+// all methods, that use this imports, throw UnsupportedOperationExceptions
 
 import org.eclipse.cdt.core.dom.ILinkage;
 import org.eclipse.cdt.core.dom.ast.IASTCompletionContext;

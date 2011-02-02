@@ -5,9 +5,10 @@ public final class IASTPointer extends IASTPointerOperator implements
 
   private final boolean isConst;
   private final boolean isVolatile;
-  
-  public IASTPointer(String pRawSignature, IASTFileLocation pFileLocation,
-      boolean pIsConst, boolean pIsVolatile) {
+
+  public IASTPointer(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final boolean pIsConst,
+      final boolean pIsVolatile) {
     super(pRawSignature, pFileLocation);
     isConst = pIsConst;
     isVolatile = pIsVolatile;
@@ -25,13 +26,13 @@ public final class IASTPointer extends IASTPointerOperator implements
 
   @Override
   @Deprecated
-  public void setConst(boolean pArg0) {
+  public void setConst(final boolean pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setVolatile(boolean pArg0) {
+  public void setVolatile(final boolean pArg0) {
     throw new UnsupportedOperationException();
   }
 
