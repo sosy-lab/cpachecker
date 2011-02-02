@@ -14,7 +14,7 @@ Bundle-ClassPath: bin/,
  lib/yicesapijava.jar,
  .,
  lib/json_simple-1.1.jar,
- lib/guava-r07.jar
+ lib/guava-r08.jar
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: org.sosy_lab.common,
  org.sosy_lab.common.configuration,
