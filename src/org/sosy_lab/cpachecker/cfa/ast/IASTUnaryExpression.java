@@ -4,11 +4,11 @@ public final class IASTUnaryExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTUnaryExpression {
 
   private final IASTExpression operand;
-  private final int operator;
-    
-  public IASTUnaryExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType,
-      IASTExpression pOperand, int pOperator) {
+  private final int            operator;
+
+  public IASTUnaryExpression(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType,
+      final IASTExpression pOperand, final int pOperator) {
     super(pRawSignature, pFileLocation, pType);
     operand = pOperand;
     operator = pOperator;
@@ -26,13 +26,13 @@ public final class IASTUnaryExpression extends IASTExpression implements
 
   @Override
   @Deprecated
-  public void setOperand(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void setOperand(final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setOperator(int pArg0) {
+  public void setOperator(final int pArg0) {
     throw new UnsupportedOperationException();
   }
 

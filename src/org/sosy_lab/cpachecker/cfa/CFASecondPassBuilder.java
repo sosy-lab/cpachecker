@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;

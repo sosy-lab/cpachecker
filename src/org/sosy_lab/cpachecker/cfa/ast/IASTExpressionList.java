@@ -8,17 +8,18 @@ public final class IASTExpressionList extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTExpressionList {
 
   private final List<IASTExpression> expressions;
-  
-  public IASTExpressionList(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType,
-      List<IASTExpression> pExpressions) {
+
+  public IASTExpressionList(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType,
+      final List<IASTExpression> pExpressions) {
     super(pRawSignature, pFileLocation, pType);
     expressions = ImmutableList.copyOf(pExpressions);
   }
 
   @Override
   @Deprecated
-  public void addExpression(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+  public void addExpression(
+      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
   }
 

@@ -1,15 +1,15 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier implements
-    org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier {
+public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier
+    implements org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier {
 
-  private final int kind;
+  private final int      kind;
   private final IASTName name;
-  
-  public IASTElaboratedTypeSpecifier(String pRawSignature,
-      IASTFileLocation pFileLocation, int pStorageClass, boolean pConst,
-      boolean pInline, boolean pVolatile,
-      int pKind, IASTName pName) {
+
+  public IASTElaboratedTypeSpecifier(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final int pStorageClass,
+      boolean pConst, final boolean pInline, final boolean pVolatile,
+      final int pKind, final IASTName pName) {
     super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
         pVolatile);
     kind = pKind;
@@ -18,7 +18,7 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier impleme
 
   @Override
   @Deprecated
-  public int getRoleForName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 
@@ -34,13 +34,13 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier impleme
 
   @Override
   @Deprecated
-  public void setKind(int pArg0) {
+  public void setKind(final int pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 

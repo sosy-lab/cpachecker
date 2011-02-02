@@ -8,12 +8,12 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier implements
     org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier {
 
   private final List<IASTEnumerator> enumerators;
-  private final IASTName name;
-  
-  public IASTEnumerationSpecifier(String pRawSignature,
-      IASTFileLocation pFileLocation, int pStorageClass, boolean pConst,
-      boolean pInline, boolean pVolatile,
-      List<IASTEnumerator> pEnumerators, IASTName pName) {
+  private final IASTName             name;
+
+  public IASTEnumerationSpecifier(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final int pStorageClass,
+      final boolean pConst, final boolean pInline, final boolean pVolatile,
+      final List<IASTEnumerator> pEnumerators, final IASTName pName) {
     super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
         pVolatile);
     enumerators = ImmutableList.copyOf(pEnumerators);
@@ -22,13 +22,14 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier implements
 
   @Override
   @Deprecated
-  public int getRoleForName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void addEnumerator(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator pArg0) {
+  public void addEnumerator(
+      final org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator pArg0) {
     throw new UnsupportedOperationException();
   }
 
@@ -44,10 +45,10 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier implements
 
   @Override
   @Deprecated
-  public void setName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+  public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   @Deprecated
   public IASTEnumerationSpecifier copy() {
@@ -55,46 +56,47 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier implements
   }
 
   public static final class IASTEnumerator extends IASTNode implements
-        org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator {
+      org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator {
 
-    private final IASTName name;
+    private final IASTName       name;
     private final IASTExpression value;
-    
-    public IASTEnumerator(String pRawSignature, IASTFileLocation pFileLocation,
-        IASTName pName, IASTExpression pValue) {
+
+    public IASTEnumerator(final String pRawSignature,
+        final IASTFileLocation pFileLocation, final IASTName pName,
+        final IASTExpression pValue) {
       super(pRawSignature, pFileLocation);
       name = pName;
       value = pValue;
     }
-    
+
     @Override
     @Deprecated
-    public int getRoleForName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+    public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public IASTName getName() {
       return name;
     }
-    
+
     @Override
     public IASTExpression getValue() {
       return value;
     }
-    
+
     @Override
     @Deprecated
-    public void setName(org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+    public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     @Deprecated
-    public void setValue(org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
+    public void setValue(final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     @Deprecated
     public IASTEnumerator copy() {

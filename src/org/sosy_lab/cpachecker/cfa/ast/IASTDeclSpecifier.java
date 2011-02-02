@@ -4,12 +4,13 @@ public abstract class IASTDeclSpecifier extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier {
 
   private final int storageClass;
-  private boolean isConst;
-  private boolean isInline;
-  private boolean isVolatile;
-  
-  public IASTDeclSpecifier(String pRawSignature, IASTFileLocation pFileLocation,
-      int pStorageClass, boolean pConst, boolean pInline, boolean pVolatile) {
+  private boolean   isConst;
+  private boolean   isInline;
+  private boolean   isVolatile;
+
+  public IASTDeclSpecifier(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final int pStorageClass,
+      final boolean pConst, final boolean pInline, final boolean pVolatile) {
     super(pRawSignature, pFileLocation);
     storageClass = pStorageClass;
     isConst = pConst;
@@ -39,25 +40,25 @@ public abstract class IASTDeclSpecifier extends IASTNode implements
 
   @Override
   @Deprecated
-  public void setConst(boolean pArg0) {
+  public void setConst(final boolean pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setInline(boolean pArg0) {
+  public void setInline(final boolean pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setStorageClass(int pArg0) {
+  public void setStorageClass(final int pArg0) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public void setVolatile(boolean pArg0) {
+  public void setVolatile(final boolean pArg0) {
     throw new UnsupportedOperationException();
   }
 
