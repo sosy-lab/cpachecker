@@ -32,9 +32,9 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -442,7 +442,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       else if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
         return handleAssumption(element, unaryExp.getOperand(), cfaEdge, truthValue);
       }
-      else if(unaryExp instanceof IASTCastExpression){
+      else if(expression instanceof IASTCastExpression){
         return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
       }
       else {
@@ -943,8 +943,8 @@ public class ExplicitTransferRelation implements TransferRelation {
           return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
         }
         // right hand side is a cast exp
-        else if(unaryExp instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)unaryExp;
+        else if(op2 instanceof IASTCastExpression){
+          IASTCastExpression castExp = (IASTCastExpression)op2;
           IASTExpression exprInCastOp = castExp.getOperand();
           return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
         }

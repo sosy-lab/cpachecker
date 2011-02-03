@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -85,7 +85,7 @@ public class ToFlleShAssumeEdgeTranslator {
       throw new RuntimeException("Error: AST does not match the expectations");
     }
     
-    return ((IASTExpressionStatement)body[0]).getExpression();
+    return (IASTExpression) ((IASTExpressionStatement)body[0]).getExpression();
   }
   
 }

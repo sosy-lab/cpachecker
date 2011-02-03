@@ -29,12 +29,12 @@ import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.IBasicType;
+import org.sosy_lab.cpachecker.cfa.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.c.CASTVisitor;
 import org.sosy_lab.common.Pair;
@@ -200,9 +200,9 @@ implements GenericAssumptionBuilder
 
     @SuppressWarnings("static-access")
     @Override
-    public int visit(IASTExpression pExpression) {
+    public int visit(org.eclipse.cdt.core.dom.ast.IASTExpression pExpression) {
       if(pExpression instanceof IASTIdExpression){
-        conjunctPredicateForArithmeticExpression(pExpression);
+        conjunctPredicateForArithmeticExpression((IASTExpression) pExpression);
       }
       if (pExpression instanceof IASTBinaryExpression)
       {

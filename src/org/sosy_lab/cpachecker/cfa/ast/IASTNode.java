@@ -18,9 +18,11 @@ public abstract class IASTNode implements org.eclipse.cdt.core.dom.ast.IASTNode 
   }
 
   @Override
-  @Deprecated
-  public boolean accept(final ASTVisitor pArg0) {
-    throw new UnsupportedOperationException();
+  public boolean accept(final ASTVisitor visitor) {
+
+    // this method is a test, perhaps it will not work
+    visitor.visit((org.eclipse.cdt.core.dom.ast.IASTTranslationUnit) this);
+    return true;
   }
 
   @Override

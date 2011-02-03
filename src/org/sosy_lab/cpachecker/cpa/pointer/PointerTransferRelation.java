@@ -35,13 +35,13 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerOperator;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -533,7 +533,7 @@ public class PointerTransferRelation implements TransferRelation {
           element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
         }
 
-      } else if (unaryExpression instanceof IASTCastExpression) {
+      } else if (expression instanceof IASTCastExpression) {
 
         handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
             assumeEdge);

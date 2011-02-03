@@ -3,14 +3,14 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public abstract class IBasicType extends IType implements
     org.eclipse.cdt.core.dom.ast.IBasicType {
 
-  private final int type;
+  private final int     type;
   private final boolean isLong;
   private final boolean isShort;
   private final boolean isSigned;
   private final boolean isUnsigned;
-  
-  public IBasicType(int pType, boolean pIsLong, boolean pIsShort,
-      boolean pIsSigned, boolean pIsUnsigned) {
+
+  public IBasicType(final int pType, final boolean pIsLong,
+      final boolean pIsShort, final boolean pIsSigned, final boolean pIsUnsigned) {
     type = pType;
     isLong = pIsLong;
     isShort = pIsShort;
