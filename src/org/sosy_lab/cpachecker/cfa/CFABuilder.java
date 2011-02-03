@@ -271,6 +271,9 @@ public class CFABuilder extends ASTVisitor
       for (CFALabelNode n : labelMap.values()) {
         if (n.getNumEnteringEdges() == 0) {
           logger.log(Level.INFO, "Unused label " + n.getLabel() + " at line " + n.getLineNumber());
+          
+          // remove this dead code from CFA
+          removeChainOfNodesFromCFA(n);
         }
       }
       
@@ -282,6 +285,26 @@ public class CFABuilder extends ASTVisitor
     return PROCESS_CONTINUE;
   }
 
+  /**
+   * Remove nodes from the CFA beginning at a certain node n until there is a node
+   * that is reachable via some other path (not going through n).
+   * Useful for eliminating dead node, if node n is not reachable.
+   */
+	private static void removeChainOfNodesFromCFA(CFANode n) {
+	  if (n.getNumEnteringEdges() > 0) {
+	    return;
+	  }
+	  
+	  for (int i = n.getNumLeavingEdges()-1; i >= 0; i--) {
+	    CFAEdge e = n.getLeavingEdge(i);
+	    CFANode succ = e.getSuccessor();
+	    
+	    n.removeLeavingEdge(e);
+	    succ.removeEnteringEdge(e);
+	    removeChainOfNodesFromCFA(succ);
+	  }
+	}
+	
   // Methods for to handle visiting and leaving Statements
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTStatement)
