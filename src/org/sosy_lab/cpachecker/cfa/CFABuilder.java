@@ -268,6 +268,12 @@ public class CFABuilder extends ASTVisitor
         throw new CFAGenerationRuntimeException("Following labels were not found in function " + currentCFA.getFunctionName() + ": " + gotoLabelNeeded.keySet());
       }
       
+      for (CFALabelNode n : labelMap.values()) {
+        if (n.getNumEnteringEdges() == 0) {
+          logger.log(Level.INFO, "Unused label " + n.getLabel() + " at line " + n.getLineNumber());
+        }
+      }
+      
       labelMap.clear();
       
       currentCFA = null;
