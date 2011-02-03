@@ -158,27 +158,34 @@ public class CFAReduction {
       if (!relevantNodes.contains(n)) {
         boolean irrelevant = true;
         
+        // check if node is successor of error node and remove incoming edges
         for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
-          if(!(errorNodes.contains(prevNode))) {
+          
+          if (errorNodes.contains(prevNode)) {
             // do not remove the direct successors of error nodes
             irrelevant = false;
+
+          } else {
             if (!markOnly) {
               prevNode.removeLeavingEdge(removedEdge);
               n.removeEnteringEdge(removedEdge);
             }
           }
         }
+        
         if (markOnly) {
+          // if node is not successor of error node, mark it as irrelevant
           if (irrelevant) {
             n.setIrrelevant();
           }
         } else {
+          // remove all outgoing edges
           while (n.getNumLeavingEdges() > 0) {
             CFAEdge removedEdge = n.getLeavingEdge(0);
-            n.removeLeavingEdge(removedEdge);
             CFANode succNode = removedEdge.getSuccessor();
+            n.removeLeavingEdge(removedEdge);
             succNode.removeEnteringEdge(removedEdge);
           }
           n.addEnteringSummaryEdge(null);
