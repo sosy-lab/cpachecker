@@ -270,7 +270,7 @@ public class CFABuilder extends ASTVisitor
       
       for (CFALabelNode n : labelMap.values()) {
         if (n.getNumEnteringEdges() == 0) {
-          logger.log(Level.INFO, "Unused label " + n.getLabel() + " at line " + n.getLineNumber());
+          logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
           
           // remove this dead code from CFA
           removeChainOfNodesFromCFA(n);
@@ -496,20 +496,24 @@ public class CFABuilder extends ASTVisitor
 
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
   {
-    CFANode prevNode = locStack.peek ();
+    CFANode prevNode = locStack.pop();
     CFANode nextNode = loopNextStack.peek ();
 
     BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, nextNode, true);
     addToCFA(blankEdge);
+    
+    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
   }
 
   private void handleContinueStatement (IASTContinueStatement continueStatement, IASTFileLocation fileloc)
   {
-    CFANode prevNode = locStack.peek ();
+    CFANode prevNode = locStack.pop();
     CFANode loopStart = loopStartStack.peek ();
 
     BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, loopStart, true);
     addToCFA(blankEdge);
+    
+    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
   }
 
   private void handleLabelStatement (IASTLabelStatement labelStatement, IASTFileLocation fileloc)
@@ -519,11 +523,9 @@ public class CFABuilder extends ASTVisitor
     CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
 
     CFANode prevNode = locStack.pop ();
-    if (prevNode.getNumEnteringEdges() > 0) {
-      // otherwise this label is only reachable via goto, not via normal control flow
-      BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
-      addToCFA(blankEdge);
-    }
+
+    BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
+    addToCFA(blankEdge);
 
     locStack.push (labelNode);
 
@@ -542,7 +544,7 @@ public class CFABuilder extends ASTVisitor
   {
     String labelName = gotoStatement.getName ().toString ();
 
-    CFANode prevNode = locStack.peek ();
+    CFANode prevNode = locStack.pop();
     CFANode labelNode = labelMap.get (labelName);
     if (labelNode != null)
     {
@@ -564,6 +566,7 @@ public class CFABuilder extends ASTVisitor
     } else {
       gotoLabelNeeded.put(labelName, prevNode);
     }
+    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
   }
 
   /** isPathFromTo() makes a DSF-search from a given Node to search 
@@ -605,11 +608,13 @@ public class CFABuilder extends ASTVisitor
   
   private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
   {
-    CFANode prevNode = locStack.peek ();
+    CFANode prevNode = locStack.pop ();
     CFAFunctionExitNode nextNode = currentCFA.getExitNode();
 
     ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue());
     addToCFA(edge);
+
+    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
   }
   
   /* (non-Javadoc)
@@ -687,49 +692,27 @@ public class CFABuilder extends ASTVisitor
    */
   private void addToCFA(CFAEdge edge) {
     CFANode predecessor = edge.getPredecessor();
-    CFANode successor = edge.getSuccessor();
 
-    if (predecessor.hasJumpEdgeLeaving()) {
-      assert predecessor.getNumLeavingEdges() == 1;
-
-      // the code following a jump statement is only reachable if there is a label
-      if (!(successor instanceof CFALabelNode) || edge.isJumpEdge()) {
-        logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + edge.getRawStatement());
-      }
-
-      // don't add this edge to the CFA
-
-    } else if ((predecessor.getNumEnteringEdges() == 0)
+    // Nodes with an outgoing jump edge (return/break/goto) don't have other outgoing edges!
+    assert !predecessor.hasJumpEdgeLeaving();
+    if (edge.isJumpEdge()) {
+      assert predecessor.getNumLeavingEdges() == 0;
+    }
+    
+    if ((predecessor.getNumEnteringEdges() == 0)
           && !(predecessor instanceof CFAFunctionDefinitionNode)
           && !(predecessor instanceof CFALabelNode)) {
         
-      if (!(edge instanceof BlankEdge)) {
+      if (!(edge instanceof BlankEdge) || edge.isJumpEdge()) {
         // don't log if the dead code begins with a blank edge, this is most often a false positive
-        logger.log(Level.INFO, "Dead code detected at line " + edge.getLineNumber() + ": " + edge.getRawStatement());
+        // but do log jump edges
+        logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
         
       // don't add this edge to the CFA
 
     } else { 
-      if (edge.isJumpEdge()) {
-        // this is a goto or return statement edge
 
-        for (int i = predecessor.getNumLeavingEdges()-1; i >= 0; i--) {
-          CFAEdge otherEdge = predecessor.getLeavingEdge(i);
-          CFANode otherEdgeSuccessor = otherEdge.getSuccessor();
-
-          if (!(otherEdgeSuccessor instanceof CFALabelNode
-                || otherEdge.getRawStatement().isEmpty())) {
-            // don't log if the dead code begins with a blank edge, this is most often a false positive
-            logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + otherEdge.getRawStatement());
-          }
-
-          predecessor.removeLeavingEdge(otherEdge);
-          otherEdgeSuccessor.removeEnteringEdge(otherEdge);
-        }
-      }
-
-      // now really add it
       registerEdgeAtNodes(edge);
     }
   }
