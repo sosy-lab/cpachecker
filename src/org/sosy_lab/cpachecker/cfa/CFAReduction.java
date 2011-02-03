@@ -112,6 +112,10 @@ public class CFAReduction {
       CFA.dfs(n, relevantNodes, true, true);
     }
     
+    assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";
+    
+    logger.log(Level.INFO, "Detected", allNodes.size()-relevantNodes.size(), "irrelevant CFA nodes.");
+    
     if (relevantNodes.size() == allNodes.size()) {
       // shortcut, no node is irrelevant
       return;
