@@ -157,8 +157,8 @@ public class CFAReduction {
     for (CFANode n : allNodes) {
       if (!relevantNodes.contains(n)) {
         boolean irrelevant = true;
-        int edgeIndex = 0;
-        while (n.getNumEnteringEdges() > edgeIndex) {
+        
+        for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
           if(!(errorNodes.contains(prevNode))) {
@@ -167,11 +167,7 @@ public class CFAReduction {
             if (!markOnly) {
               prevNode.removeLeavingEdge(removedEdge);
               n.removeEnteringEdge(removedEdge);
-            } else {
-              ++edgeIndex;
             }
-          } else {
-            ++edgeIndex;
           }
         }
         if (markOnly) {
