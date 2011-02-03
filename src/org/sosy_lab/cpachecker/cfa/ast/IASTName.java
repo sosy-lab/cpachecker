@@ -18,9 +18,15 @@ public final class IASTName extends IASTNode implements
 
   @Override
   public char[] getSimpleID() {
-    // TODO: is this really important?
+    // TODO: is this really important? 
+    // it is equal to toString() and getRawSignatue()
     return getRawSignature().toCharArray();
-}
+  }
+
+  @Override
+  public String toString() {
+    return getRawSignature();
+  }
 
   @Override
   @Deprecated
