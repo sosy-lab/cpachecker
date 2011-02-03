@@ -175,11 +175,9 @@ public class CFABuilder extends ASTVisitor
 		{
 			if (locStack.size () != 0)
 				throw new CFAGenerationRuntimeException ("Nested function declarations?");
-			if (gotoLabelNeeded.size () != 0)
-				throw new CFAGenerationRuntimeException ("Goto labels not found in previous function definition?");
 
-			labelMap.clear ();
-
+			assert labelMap.isEmpty();
+			assert gotoLabelNeeded.isEmpty();
 			assert currentCFA == null;
 			
 			IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
@@ -266,6 +264,12 @@ public class CFABuilder extends ASTVisitor
 				addToCFA(blankEdge);
 			}
 
+			if (!gotoLabelNeeded.isEmpty()) {
+				throw new CFAGenerationRuntimeException("Following labels were not found in function " + currentCFA.getFunctionName() + ": " + gotoLabelNeeded.keySet());
+			}
+      
+			labelMap.clear();
+			
 			currentCFA = null;
 		}
 
