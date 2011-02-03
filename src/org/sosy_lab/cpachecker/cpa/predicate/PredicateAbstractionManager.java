@@ -171,7 +171,7 @@ class PredicateAbstractionManager extends PathFormulaManagerImpl {
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asFormula(), result.getBlockFormula());
+        result = new AbstractionFormula(result.asRegion(), result.asFormula(), pathFormula.getFormula());
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
