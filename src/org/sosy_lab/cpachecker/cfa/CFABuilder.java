@@ -699,7 +699,18 @@ public class CFABuilder extends ASTVisitor
 
       // don't add this edge to the CFA
 
-    } else {
+    } else if ((predecessor.getNumEnteringEdges() == 0)
+          && !(predecessor instanceof CFAFunctionDefinitionNode)
+          && !(predecessor instanceof CFALabelNode)) {
+        
+      if (!(edge instanceof BlankEdge)) {
+        // don't log if the dead code begins with a blank edge, this is most often a false positive
+        logger.log(Level.INFO, "Dead code detected at line " + edge.getLineNumber() + ": " + edge.getRawStatement());
+      }
+        
+      // don't add this edge to the CFA
+
+    } else { 
       if (edge.isJumpEdge()) {
         // this is a goto or return statement edge
 
