@@ -290,7 +290,7 @@ public class CFABuilder extends ASTVisitor
    * that is reachable via some other path (not going through n).
    * Useful for eliminating dead node, if node n is not reachable.
    */
-	private static void removeChainOfNodesFromCFA(CFANode n) {
+	static void removeChainOfNodesFromCFA(CFANode n) {
 	  if (n.getNumEnteringEdges() > 0) {
 	    return;
 	  }
