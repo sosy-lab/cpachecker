@@ -29,8 +29,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -38,9 +36,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -57,27 +55,13 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
-  private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
   private AbstractElement lastElement = null;
   private AbstractElement firstElement = null;
   private final Waitlist waitlist;
 
-  private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair =
-    new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
-
-      @Override
-      public Pair<AbstractElement, Precision> apply(
-                  AbstractElement element) {
-
-        return Pair.of(element, getPrecision(element));
-      }
-
-  };
-
   public ReachedSet(WaitlistFactory waitlistFactory) {
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
-    reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
@@ -153,9 +137,16 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   @Override
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
-    return reachedWithPrecision; // this is unmodifiable
+    return Collections.unmodifiableCollection(
+        Collections2.transform(reached.entrySet(),
+                               Pair.<AbstractElement, Precision>getPairFomMapEntry()));
   }
 
+  @Override
+  public Collection<Precision> getPrecisions() {
+    return Collections.unmodifiableCollection(reached.values());
+  }
+  
   /**
    * Returns a subset of the reached set, which contains at least all abstract
    * elements belonging to the same location as a given element. It may even

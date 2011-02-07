@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
@@ -81,10 +80,8 @@ class PredicateCPAStatistics implements Statistics {
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
-      for (AbstractElement e : reached) {
-        Precision precision = reached.getPrecision(e);
-        if (precision != null && precision instanceof WrapperPrecision) {
-
+      for (Precision precision : reached.getPrecisions()) {
+        if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
           predicates.putAll(preds.getPredicateMap());
         }
