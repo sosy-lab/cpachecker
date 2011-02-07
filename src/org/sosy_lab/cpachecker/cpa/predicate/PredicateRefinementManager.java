@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
@@ -126,12 +127,13 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
   public PredicateRefinementManager(
       RegionManager pRmgr,
       FormulaManager pFmgr,
+      PathFormulaManager pPmgr,
       TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver,
       InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pRmgr, pFmgr, pThmProver, config, pLogger);
+    super(pRmgr, pFmgr, pPmgr, pThmProver, config, pLogger);
     config.inject(this);
 
     refStats = new Stats();

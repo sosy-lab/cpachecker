@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbs
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   
@@ -52,10 +53,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
+  private final PathFormulaManager pathFormulaManager;
   
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
+    pathFormulaManager = pCpa.getPathFormulaManager();
   }
   
   @Override
@@ -111,7 +114,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
+    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
     return new PredicateAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
   }

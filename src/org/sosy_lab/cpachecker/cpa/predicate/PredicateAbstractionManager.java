@@ -48,11 +48,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -63,7 +63,7 @@ import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpa.predicate")
-class PredicateAbstractionManager extends PathFormulaManagerImpl {
+class PredicateAbstractionManager {
 
   static class Stats {
     public int numCallsAbstraction = 0;
@@ -81,6 +81,9 @@ class PredicateAbstractionManager extends PathFormulaManagerImpl {
   
   final Stats stats;
 
+  protected final LogManager logger;
+  protected final FormulaManager fmgr;
+  protected final PathFormulaManager pmgr;
   protected final AbstractionManager amgr;
   protected final TheoremProver thmProver;
 
@@ -110,10 +113,10 @@ class PredicateAbstractionManager extends PathFormulaManagerImpl {
   public PredicateAbstractionManager(
       RegionManager pRmgr,
       FormulaManager pFmgr,
+      PathFormulaManager pPmgr,
       TheoremProver pThmProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pFmgr, config, pLogger);
     config.inject(this, PredicateAbstractionManager.class);
     
     if (formulaDumpFile != null) {
@@ -124,6 +127,9 @@ class PredicateAbstractionManager extends PathFormulaManagerImpl {
     }
 
     stats = new Stats();
+    logger = pLogger;
+    fmgr = pFmgr;
+    pmgr = pPmgr;
     amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
     thmProver = pThmProver;
 
@@ -476,9 +482,9 @@ class PredicateAbstractionManager extends PathFormulaManagerImpl {
   }
 
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    PathFormula pathFormula = makeEmptyPathFormula();
+    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
     for (CFAEdge edge : pPath) {
-      pathFormula = makeAnd(pathFormula, edge);
+      pathFormula = pmgr.makeAnd(pathFormula, edge);
     }
     Formula f = pathFormula.getFormula();
     // ignore reachingPathsFormula here because it is just a simple path
