@@ -81,7 +81,7 @@ public class CPAchecker {
     private final ReachedSet reached;
     
     public CPAcheckerBean(ReachedSet pReached) {
-      super("org.sosy_lab.cpachecher:type=CPAchecker", logger);
+      super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       register();
     }

@@ -68,7 +68,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
   
   private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
     public AbstractionPredicatesMBean() {
-      super("org.sosy_lab.cpachecker.predicates:type=AbstractionPredicates", logger);
+      super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
       register();
     }
     @Override

@@ -100,7 +100,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
     public CEGARMBean() {
-      super("org.sosy_lab.cpachecker.cegar:type=CEGAR", logger);
+      super("org.sosy_lab.cpachecker:type=CEGAR", logger);
       register();
     }
     
