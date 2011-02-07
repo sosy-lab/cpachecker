@@ -528,6 +528,9 @@ public class CFABuilder extends ASTVisitor
 
     locStack.push (labelNode);
 
+    if (labelMap.containsKey(labelName)) {
+      throw new CFAGenerationRuntimeException("Duplicate label " + labelName + " in function " + currentCFA.getFunctionName(), labelStatement);
+    }
     labelMap.put (labelName, labelNode);
 
     // Check if any goto's previously analyzed need connections to this label
