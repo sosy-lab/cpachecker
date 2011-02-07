@@ -24,17 +24,13 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -81,11 +77,13 @@ public class CPAchecker {
     public void stop();
   }
   
-  private class CPAcheckerBean implements CPAcheckerMXBean {
+  private class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
     private final ReachedSet reached;
     
-    public CPAcheckerBean(ReachedSet pReached) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
+      super("org.sosy_lab.cpachecher:type=CPAchecker", logger);
       reached = pReached;
+      register();
     }
 
     @Override
@@ -210,28 +208,14 @@ public class CPAchecker {
         reached = createInitialReachedSet(cpa, mainFunction);
 
         // register management interface for CPAchecker
-        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        ObjectName name = null;
-        try {
-          name = new ObjectName("org.sosy_lab.cpachecker:type=CPAchecker");
-          CPAcheckerMXBean mxbean = new CPAcheckerBean(reached);
-          mbs.registerMBean(mxbean, name);
-        } catch (JMException e) {
-          logger.logException(Level.WARNING, e, "Error during registration of management interface");
-        }
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
         stats.cpaCreationTime.stop();
         
         result = runAlgorithm(algorithm, reached, stats);
         
         // unregister management interface for CPAchecker
-        if (name != null) {
-          try {
-            mbs.unregisterMBean(name);
-          } catch (JMException e) {
-            logger.logException(Level.WARNING, e, "Error during unregistration of management interface");
-          }
-        }
+        mxbean.unregister();
       }
 
     } catch (IOException e) {
