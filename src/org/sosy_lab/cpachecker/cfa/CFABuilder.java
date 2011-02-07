@@ -27,7 +27,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -726,9 +725,8 @@ public class CFABuilder extends ASTVisitor
     }
     // create a series of GlobalDeclarationEdges, one for each declaration,
     // and add them as successors of the input node
-    List<CFANode> decls = new LinkedList<CFANode>();
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    decls.add(cur);
+    final CFANode first = new CFANode(0, cfa.getFunctionName());
+    CFANode cur = first;
 
     for (IASTDeclaration d : globalVars) {
       assert(d instanceof IASTSimpleDeclaration);
@@ -737,7 +735,6 @@ public class CFABuilder extends ASTVisitor
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
           sd.getFileLocation().getStartingLineNumber(), cur, n);
       registerEdgeAtNodes(e);
-      decls.add(n);
       cur = n;
     }
 
@@ -752,7 +749,7 @@ public class CFABuilder extends ASTVisitor
     secondNode.removeEnteringEdge(firstEdge);
 
     // and add a blank edge connecting the first node of CFA with declarations
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, decls.get(0));
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, first);
     registerEdgeAtNodes(be);
 
     // and a blank edge connecting the declarations with the second node of CFA
