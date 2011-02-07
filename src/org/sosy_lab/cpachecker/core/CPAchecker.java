@@ -80,7 +80,7 @@ public class CPAchecker {
   private class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
     private final ReachedSet reached;
     
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
+    public CPAcheckerBean(ReachedSet pReached) {
       super("org.sosy_lab.cpachecher:type=CPAchecker", logger);
       reached = pReached;
       register();
@@ -208,7 +208,7 @@ public class CPAchecker {
         reached = createInitialReachedSet(cpa, mainFunction);
 
         // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached);
 
         stats.cpaCreationTime.stop();
         

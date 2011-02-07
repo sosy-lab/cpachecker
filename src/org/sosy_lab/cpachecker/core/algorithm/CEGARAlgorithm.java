@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -57,11 +58,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CEGARStatistics implements Statistics {
 
-    private Timer totalTimer = new Timer();
-    private Timer refinementTimer = new Timer();
-    private Timer gcTimer = new Timer();
+    private final Timer totalTimer = new Timer();
+    private final Timer refinementTimer = new Timer();
+    private final Timer gcTimer = new Timer();
     
-    private int countRefinements = 0;
+    private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
@@ -91,8 +92,38 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private final CEGARStatistics stats = new CEGARStatistics();
 
+  public static interface CEGARMXBean {
+    int getNumberOfRefinements();
+    int getSizeOfReachedSetBeforeLastRefinement();
+    boolean isRefinementActive();
+  }
+  
+  private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
+    public CEGARMBean() {
+      super("org.sosy_lab.cpachecker.cegar:type=CEGAR", logger);
+      register();
+    }
+    
+    @Override
+    public int getNumberOfRefinements() {
+      return stats.countRefinements;
+    }
+    
+    @Override
+    public int getSizeOfReachedSetBeforeLastRefinement() {
+      return sizeOfReachedSetBeforeRefinement;
+    }
+    
+    @Override
+    public boolean isRefinementActive() {
+      return stats.refinementTimer.isRunning();
+    }
+  }
+  
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
+  
+  private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
   private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker";
 
@@ -134,6 +165,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     Object[] refinerArguments = {algorithm.getCPA()};
 
     mRefiner = createInstance(refiner, refinerArguments, Refiner.class);
+    new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
   }
   
   /**
@@ -175,6 +207,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
+        sizeOfReachedSetBeforeRefinement = reached.size();
 
         stats.refinementTimer.start();
         boolean refinementResult;
