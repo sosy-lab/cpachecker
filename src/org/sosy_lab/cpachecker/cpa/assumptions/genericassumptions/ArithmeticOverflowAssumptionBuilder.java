@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.util.assumptions.DummyASTBinaryExpression;
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTIdExpression;
 import org.sosy_lab.cpachecker.util.assumptions.DummyASTNumericalLiteralExpression;
 
 /**
@@ -198,7 +198,12 @@ implements GenericAssumptionBuilder
         List<? extends IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
-          result = visit(new DummyASTIdExpression(paramdecl.getDeclarator().getName()), result);
+          IASTName name = paramdecl.getDeclarator().getName();
+          // TODO: get the IType from an IASTName via IBinding
+          // see DummyASTIdExpression#getExpressionType()
+          IType type = null;
+          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name);
+          result = visit(exp, result);
         }
       }
       break;
