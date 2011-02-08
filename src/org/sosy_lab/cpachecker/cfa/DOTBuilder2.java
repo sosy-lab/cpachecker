@@ -307,7 +307,10 @@ public final class DOTBuilder2 {
         sb.append("<tr><td align=\"right\">");      
         sb.append("" + edge.getPredecessor().getNodeNumber());
         sb.append("</td><td align=\"left\">");
-        sb.append("" + getEdgeText(edge).replaceAll("<", "&lt;").replaceAll(">", "&gt;"));
+        sb.append("" + getEdgeText(edge)
+                          .replaceAll("&", "&amp;")
+                          .replaceAll("<", "&lt;")
+                          .replaceAll(">", "&gt;"));
         sb.append("</td></tr>");
         
         node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
