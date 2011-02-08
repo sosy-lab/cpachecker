@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.common;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 /**
@@ -52,13 +55,19 @@ public class AbstractMBean {
     }
   }
   
-  private final String name;
   private ObjectName oname = null;
   private final LogManager logger;
 
   public AbstractMBean(String name, LogManager logger) {
-    this.logger = logger;
-    this.name = name;
+    this.logger = checkNotNull(logger);
+    
+    if (mbs != null) {
+      try {
+        oname = new ObjectName(checkNotNull(name));
+      } catch (MalformedObjectNameException e) {
+        logger.logException(Level.WARNING, e, "Invalid object name specified for management interface");
+      }
+    }
   }
     
   /**
@@ -66,13 +75,26 @@ public class AbstractMBean {
    * Swallows all checked exceptions that might occur and logs them.
    */
   public void register() {
-    if (mbs != null) {
+    if (mbs != null && oname != null) {
       try {
-        oname = new ObjectName(name);
+
+        // if there is already an existing MBean with the same name, try to unregister it
+        if (mbs.isRegistered(oname)) {
+          mbs.unregisterMBean(oname);
+
+          assert !mbs.isRegistered(oname);
+        }
+        
+        // now register our instance
         mbs.registerMBean(this, oname);
+
       } catch (JMException e) {
-        oname = null;
         logger.logException(Level.WARNING, e, "Error during registration of management interface");
+        oname = null;
+
+      } catch (SecurityException e) {
+        logger.logException(Level.WARNING, e, "Error during registration of management interface");
+        oname = null;
       }
     } else {
       logger.log(Level.WARNING, "Cannot register management interface");
@@ -84,10 +106,12 @@ public class AbstractMBean {
    * May be called even if registration was not successful (does nothing in this case).
    */
   public void unregister() {
-    if (oname != null) {
+    if (mbs != null && oname != null) {
       try {
         mbs.unregisterMBean(oname);
       } catch (JMException e) {
+        logger.logException(Level.WARNING, e, "Error during unregistration of management interface");
+      } catch (SecurityException e) {
         logger.logException(Level.WARNING, e, "Error during unregistration of management interface");
       }
     }
