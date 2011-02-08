@@ -106,55 +106,14 @@ implements GenericAssumptionBuilder
     return Pair.of(null, null);
   }
 
-  /**
-   * Visitor to produce the invariant.
-   * Note it is only intended to be used on code
-   * occurring on one single edge.
-   *
-   * @author g.theoduloz
-   */
-  private class CustomASTVisitor
-  {
-    // Fields to accumulate the built invariants
-    private IASTNode result;
-
-    /**
-     * Default constructor. The result is initially reseted.
-     */
-    public CustomASTVisitor()
-    {
-      reset();
-    }
-
-    /**
-     * Returns the invariant accumulated so far
-     * @return A non-null predicate
-     */
-    public IASTNode getResult()
-    {
-      return result;
-    }
-
-    //    public IASTDeclaration getDecl(){
-    //      return declaration;
-    //    }
-
-    /**
-     * Reset the visitor by dropping the invariant computed so far
-     */
-    public void reset()
-    {
-      result = DummyASTNumericalLiteralExpression.TRUE;
-    }
-
     /**
      * Compute and conjunct the assumption for the given arithmetic
      * expression, ignoring bounds if applicable. The method does
      * not check that the expression is indeed an arithmetic expression.
      */
-    private void conjunctPredicateForArithmeticExpression(IASTExpression exp)
+    private static IASTNode conjunctPredicateForArithmeticExpression(IASTExpression exp, IASTNode result)
     {
-      conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp);
+      return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
 
     /**
@@ -163,8 +122,8 @@ implements GenericAssumptionBuilder
      * The two last, boolean arguments allow to avoid generating
      * lower and/or upper bounds predicates.
      */
-    private void conjunctPredicateForArithmeticExpression(
-        IType typ, IASTExpression exp)
+    private static IASTNode conjunctPredicateForArithmeticExpression(
+        IType typ, IASTExpression exp, IASTNode result)
     {
       Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds = boundsForType(typ);
       if (bounds.getFirst() != null){
@@ -185,15 +144,16 @@ implements GenericAssumptionBuilder
                 exp,
                 bounds.getSecond()));
       }
+      return result;
     }
 
-    public void visit(IASTDeclaration pDeclaration) {
-      result = pDeclaration;
+    private static IASTNode visit(IASTDeclaration pDeclaration) {
+      return pDeclaration;
     }
 
-    public void visit(IASTExpression pExpression) {
+    private static IASTNode visit(IASTExpression pExpression, IASTNode result) {
       if(pExpression instanceof IASTIdExpression){
-        conjunctPredicateForArithmeticExpression(pExpression);
+        result = conjunctPredicateForArithmeticExpression(pExpression, result);
       }
       if (pExpression instanceof IASTBinaryExpression)
       {
@@ -201,7 +161,7 @@ implements GenericAssumptionBuilder
         IASTExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
         if(op1 instanceof IASTIdExpression){
-          conjunctPredicateForArithmeticExpression(op1);
+          result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
       else if (pExpression instanceof IASTUnaryExpression)
@@ -210,33 +170,31 @@ implements GenericAssumptionBuilder
         IASTExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
         if(op1 instanceof IASTIdExpression){
-          conjunctPredicateForArithmeticExpression(op1);
+          result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
       else if (pExpression instanceof IASTCastExpression)
       {
         IASTCastExpression castexp = (IASTCastExpression)pExpression;
         IType toType = castexp.getExpressionType();
-        conjunctPredicateForArithmeticExpression(toType, castexp.getOperand());
+        result = conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
       }
+      return result;
     }
-  }
-
-  // visitor
-  private CustomASTVisitor visitor = new CustomASTVisitor();
 
   @Override
   public IASTNode assumptionsForEdge(CFAEdge pEdge) {
-    visitor.reset();
+    IASTNode result = DummyASTNumericalLiteralExpression.TRUE;
+    
     switch (pEdge.getEdgeType()) {
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
-      visitor.visit(declarationEdge.getRawAST());
+      result = visit(declarationEdge.getRawAST());
       isDeclGlobal = declarationEdge.isGlobal();
       break;
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
-      visitor.visit(assumeEdge.getExpression());
+      result = visit(assumeEdge.getExpression(), result);
       break;
     case FunctionCallEdge:
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
@@ -245,7 +203,7 @@ implements GenericAssumptionBuilder
         List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
-          visitor.visit(new DummyASTIdExpression(paramdecl.getDeclarator().getName()));
+          result = visit(new DummyASTIdExpression(paramdecl.getDeclarator().getName()), result);
         }
       }
       break;
@@ -259,17 +217,17 @@ implements GenericAssumptionBuilder
       }
 
       if(stmtEdge.getExpression() != null){
-        visitor.visit(stmtEdge.getExpression());
+        result = visit(stmtEdge.getExpression(), result);
       }
       break;
     case ReturnStatementEdge:
       ReturnStatementEdge returnEdge = (ReturnStatementEdge) pEdge;
 
       if(returnEdge.getExpression() != null){
-        visitor.visit(returnEdge.getExpression());
+        result = visit(returnEdge.getExpression(), result);
       }
       break;
     }
-    return visitor.getResult();
+    return result;
   }
 }
