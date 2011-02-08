@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 /**
