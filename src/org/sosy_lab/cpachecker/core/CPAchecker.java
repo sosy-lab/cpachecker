@@ -24,17 +24,13 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -81,11 +77,13 @@ public class CPAchecker {
     public void stop();
   }
   
-  private class CPAcheckerBean implements CPAcheckerMXBean {
+  private class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
     private final ReachedSet reached;
     
     public CPAcheckerBean(ReachedSet pReached) {
+      super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
+      register();
     }
 
     @Override
@@ -108,7 +106,7 @@ public class CPAchecker {
 
     // algorithm options
 
-    @Option(name="analysis.traversal")
+    @Option(name="analysis.traversal.order")
     Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
     @Option(name="analysis.traversal.useCallstack")
@@ -131,6 +129,9 @@ public class CPAchecker {
 
     @Option(name="analysis.useBMC")
     boolean useBMC = false;
+
+    @Option(name="analysis.stopAfterError")
+    boolean stopAfterError = true;
   }
 
   private final LogManager logger;
@@ -207,28 +208,14 @@ public class CPAchecker {
         reached = createInitialReachedSet(cpa, mainFunction);
 
         // register management interface for CPAchecker
-        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        ObjectName name = null;
-        try {
-          name = new ObjectName("org.sosy_lab.cpachecker:type=CPAchecker");
-          CPAcheckerMXBean mxbean = new CPAcheckerBean(reached);
-          mbs.registerMBean(mxbean, name);
-        } catch (JMException e) {
-          logger.logException(Level.WARNING, e, "Error during registration of management interface");
-        }
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached);
 
         stats.cpaCreationTime.stop();
         
         result = runAlgorithm(algorithm, reached, stats);
         
         // unregister management interface for CPAchecker
-        if (name != null) {
-          try {
-            mbs.unregisterMBean(name);
-          } catch (JMException e) {
-            logger.logException(Level.WARNING, e, "Error during unregistration of management interface");
-          }
-        }
+        mxbean.unregister();
       }
 
     } catch (IOException e) {
@@ -290,14 +277,19 @@ public class CPAchecker {
           final ReachedSet reached,
           final MainCPAStatistics stats) throws CPAException {
 
-    logger.log(Level.INFO, "Starting analysis...");
+    logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();
 
-    algorithm.run(reached);
+    do {
+      algorithm.run(reached);
+      
+      // either run only once (if stopAfterError == true)
+      // or until the waitlist is empty
+    } while (!options.stopAfterError && reached.hasWaitingElement());
 
+    logger.log(Level.INFO, "Stopping analysis ...");
     stats.analysisTime.stop();
     stats.programTime.stop();
-    logger.log(Level.INFO, "Analysis finished.");
 
     for (AbstractElement reachedElement : reached) {
       if ((reachedElement instanceof Targetable)
@@ -307,12 +299,12 @@ public class CPAchecker {
     }
     
     if (reached.hasWaitingElement()) {
-      logger.log(Level.WARNING, "Analysis did not finish, there are still elements to be processed.");
+      logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
       return Result.UNKNOWN;
     }
     
     if (CBMCAlgorithm.didCBMCReportUP){
-      logger.log(Level.WARNING, "Analysis finished but is unsound due to cbmc interaction");
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not all paths were checked.");
       return Result.UNKNOWN;
     }
 

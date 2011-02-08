@@ -30,8 +30,10 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,6 +46,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import com.google.common.base.Functions;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Class implementing the FormulaManager interface,
  * providing some commonly used stuff which is independent from specific libraries.
@@ -55,6 +61,29 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 @Options(prefix="cpa.predicate")
 public class AbstractionManagerImpl implements AbstractionManager {
 
+  public static interface AbstractionPredicatesMXBean {
+    int getNumberOfPredicates();
+    Set<String> getPredicates();
+  }
+  
+  private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
+    public AbstractionPredicatesMBean() {
+      super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
+      register();
+    }
+    @Override
+    public int getNumberOfPredicates() {
+      return numberOfPredicates;
+    }
+    @Override
+    public Set<String> getPredicates() {
+      // TODO this may run into a ConcurrentModificationException
+      return ImmutableSet.copyOf(Collections2.transform(absVarToPredicate.keySet(), Functions.toStringFunction()));
+    }
+  }
+  
+  private volatile int numberOfPredicates = 0;
+  
   protected final LogManager logger;
   protected final RegionManager rmgr;
   protected final FormulaManager fmgr;
@@ -84,6 +113,8 @@ public class AbstractionManagerImpl implements AbstractionManager {
     } else {
       toConcreteCache = null;
     }
+    
+    new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
   }
 
   /**
@@ -107,6 +138,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
       logger.log(Level.FINEST, "Created predicate", absVar,
           "from variable", var, "and atom", atom);
+      numberOfPredicates++;
 
       result = new AbstractionPredicate(absVar, var, atom);
       symbVarToPredicate.put(var, result);

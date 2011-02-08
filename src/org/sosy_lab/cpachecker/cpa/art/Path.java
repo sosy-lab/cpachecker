@@ -81,7 +81,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   }
 
   public List<CFAEdge> asEdgesList() {
-    Function<Pair<ARTElement, CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
+    Function<Pair<?, ? extends CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
     return Lists.transform(this, projectionToSecond);
   }
   

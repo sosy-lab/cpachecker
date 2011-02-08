@@ -29,6 +29,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Interface for the precision adjustment operator.
@@ -59,5 +60,6 @@ public interface PrecisionAdjustment {
    * @return The new element, new precision and the action flag.
    */
   public Triple<AbstractElement,Precision, Action> prec(
-      AbstractElement element, Precision precision, UnmodifiableReachedSet elements);
+      AbstractElement element, Precision precision, UnmodifiableReachedSet elements)
+      throws CPAException;
 }

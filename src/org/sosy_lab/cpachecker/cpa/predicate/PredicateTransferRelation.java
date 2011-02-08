@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTra
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -104,6 +105,7 @@ public class PredicateTransferRelation implements TransferRelation {
   
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
+  private final PathFormulaManager pathFormulaManager;
 
   // pathFormula computation cache
   private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache;
@@ -113,6 +115,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
+    pathFormulaManager = pCpa.getPathFormulaManager();
     
     pathFormulaCache = useCache ? new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>() : null;
   }
@@ -199,7 +202,7 @@ public class PredicateTransferRelation implements TransferRelation {
     if (!useCache) {
       pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
-      pf = formulaManager.makeAnd(pathFormula, edge);
+      pf = pathFormulaManager.makeAnd(pathFormula, edge);
       pathFormulaComputationTimer.stop();
 
     } else {
@@ -208,7 +211,7 @@ public class PredicateTransferRelation implements TransferRelation {
       if (pf == null) {
         pathFormulaComputationTimer.start();
         // compute new pathFormula with the operation on the edge
-        pf = formulaManager.makeAnd(pathFormula, edge);
+        pf = pathFormulaManager.makeAnd(pathFormula, edge);
         pathFormulaComputationTimer.stop();
         pathFormulaCache.put(formulaCacheKey, pf);
         
@@ -276,6 +279,12 @@ public class PredicateTransferRelation implements TransferRelation {
     try {
     
       PredicateAbstractElement element = (PredicateAbstractElement)pElement;
+      if (element instanceof AbstractionElement) {
+        // can't do anything with this object because the path formula of
+        // abstraction elements has to stay "true"
+        return Collections.singleton(element);
+      }
+      
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
         if (lElement instanceof AssumptionStorageElement) {
@@ -301,7 +310,7 @@ public class PredicateTransferRelation implements TransferRelation {
   
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && targetStateSatCheck && !(element instanceof AbstractionElement)) {
+      if (errorFound && targetStateSatCheck) {
         element = strengthenSatCheck(element);
         if (element == null) {
           // successor not reachable
@@ -359,7 +368,7 @@ public class PredicateTransferRelation implements TransferRelation {
       return pElement;
     }
     
-    PathFormula pf = formulaManager.makeAnd(pElement.getPathFormula(), asmpt);
+    PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), asmpt);
       
     return replacePathFormula(pElement, pf);
   }
@@ -397,7 +406,7 @@ public class PredicateTransferRelation implements TransferRelation {
       // set abstraction to true (we don't know better)
       AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula.getFormula());
 
-      PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(pathFormula);
+      PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
       return new PredicateAbstractElement.AbstractionElement(newPathFormula, abs);
     }

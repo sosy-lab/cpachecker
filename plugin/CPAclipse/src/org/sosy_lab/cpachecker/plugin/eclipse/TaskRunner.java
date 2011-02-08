@@ -214,17 +214,17 @@ public class TaskRunner {
 						case SAFE:
 							//color: green, doesnt work, threading issues
 							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 255,0));
-							consoleStream.println("\nCPA run was safe. No Error locations found.");
+							consoleStream.println("\nGiven specification is not violated. The system is considered safe.");
 							break;
 						case UNKNOWN:
 							//color: blue, doesnt work, threading issues
 							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 0,255));
-							consoleStream.println("\nThe CPA run could not be terminated correctly. The result is unknown.");
+							consoleStream.println("\nThe analysis did not terminate correctly. The result is unknown.");
 							break;
 						case UNSAFE:
 							// color: red, doesnt work, threading issues
 							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
-							consoleStream.println("\nCPA found a reachable error location. The program is UNSAFE!");
+							consoleStream.println("\nGiven specification is violated. The program is UNSAFE!");
 							break;
 						}
 					}

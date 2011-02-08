@@ -34,12 +34,20 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
 
+/**
+ * Checks the info from "top" command and uses the virtual memory used for Java
+ * to determine whether we are about to exceed the memory limit.
+ * So, this heuristic only works in unix and "top -b -n 1" command
+ * should produce the results in the same order top version 3.2.8
+ * (tested in Ubuntu 10.10)
+ * Check that information before using this heuristic.
+ */
 public class MemoryOutHeuristics
 implements StopHeuristics<TrivialStopHeuristicsData>
 {
   private final int threshold;
   private final LogManager logger;
-  private int freq = 80000; //TODO read from file
+  private int freq = 70000; //TODO read from file
   private int noOfIterations = 0;
 
   public MemoryOutHeuristics(Configuration config, LogManager pLogger) {
@@ -87,13 +95,13 @@ implements StopHeuristics<TrivialStopHeuristicsData>
       for (String line: processExecutor.getOutput())
       {
         if(line.contains("java")){ 
-          memUsed = Long.valueOf(line.split("\\s+")[5].replace("m", ""));
+          memUsed = Long.valueOf(line.split("\\s+")[4].replace("m", ""));
           break;
         }
       }
       
       if(memUsed > threshold) {
-        logger.log(Level.WARNING, "MEMORY IS OUT");
+        logger.log(Level.WARNING, "System out of memory, terminating.");
         return TrivialStopHeuristicsData.BOTTOM;
       }
 

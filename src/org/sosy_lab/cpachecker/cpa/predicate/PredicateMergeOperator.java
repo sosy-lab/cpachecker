@@ -52,7 +52,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
   public PredicateMergeOperator(PredicateCPA pCpa) {
     this.logger = pCpa.getLogger();
-    formulaManager = pCpa.getPredicateManager();
+    formulaManager = pCpa.getPathFormulaManager();
   }
 
   @Override

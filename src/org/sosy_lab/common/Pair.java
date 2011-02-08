@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.common;
 
+import java.util.Map.Entry;
+
 import com.google.common.base.Function;
 
 
@@ -73,29 +75,52 @@ public class Pair<A, B> {
         else return first.hashCode() * 17 + second.hashCode();
     }
     
-    private static final Function<?,?> PROJECTION_TO_FIRST = new Function<Pair<?, ?>, Object>() {
-      @Override
-      public Object apply(Pair<?, ?> pArg0) {
-        return pArg0.getFirst();
-      }
-    };
-    
-    public static <T> Function<Pair<T,?>,T> getProjectionToFirst() {
-      @SuppressWarnings("unchecked")
-      Function<Pair<T,?>,T> result = (Function<Pair<T,?>,T>)PROJECTION_TO_FIRST;
-      return result;
+    public static <T> Function<Pair<? extends T, ?>, T> getProjectionToFirst() {
+      return Holder.<T, Void>getInstance().PROJECTION_TO_FIRST;
     }
     
-    private static final Function<?,?> PROJECTION_TO_SECOND = new Function<Pair<?, ?>, Object>() {
-      @Override
-      public Object apply(Pair<?, ?> pArg0) {
-        return pArg0.getSecond();
-      }
-    };
+    public static <T> Function<Pair<?, ? extends T>, T> getProjectionToSecond() {
+      return Holder.<T, Void>getInstance().PROJECTION_TO_SECOND;
+    }
     
-    public static <T,V> Function<Pair<V,T>,T> getProjectionToSecond() {
+    public static <K,V> Function<Entry<? extends K, ? extends V>, Pair<K, V>> getPairFomMapEntry() {
+      return Holder.<K, V>getInstance().PAIR_FROM_MAP_ENTRY;
+    }
+    
+    /*
+     * Static holder class for several function objects because if these fields
+     * were static fields of the Pair class, they couldn't be generic.
+     */
+    private static final class Holder<T, T2> {
+      
+      private static final Holder<?, ?> INSTANCE = new Holder<Void, Void>();
+      
+      // Cast is safe because class has no state
       @SuppressWarnings("unchecked")
-      Function<Pair<V,T>,T> result = (Function<Pair<V,T>,T>)PROJECTION_TO_SECOND;
-      return result;
+      public static <T, T2> Holder<T, T2> getInstance() {
+        return (Holder<T, T2>) INSTANCE;
+      }
+      
+      private final Function<Pair<? extends T, ?>, T> PROJECTION_TO_FIRST = new Function<Pair<? extends T, ?>, T>() {
+        @Override
+        public T apply(Pair<? extends T, ?> pArg0) {
+          return pArg0.getFirst();
+        }
+      };
+      
+      private final Function<Pair<?, ? extends T>, T> PROJECTION_TO_SECOND = new Function<Pair<?, ? extends T>, T>() {
+        @Override
+        public T apply(Pair<?, ? extends T> pArg0) {
+          return pArg0.getSecond();
+        }
+      };
+      
+      private final Function<Entry<? extends T, ? extends T2>, Pair<T, T2>> PAIR_FROM_MAP_ENTRY = new Function<Entry<? extends T, ? extends T2>, Pair<T, T2>>() {
+        @Override
+        public Pair<T, T2> apply(
+            Entry<? extends T, ? extends T2> pArg0) {
+          return Pair.<T, T2>of(pArg0.getKey(), pArg0.getValue());
+        }
+      };
     }
 }

@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import java.util.Collection;
-import java.util.List;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**

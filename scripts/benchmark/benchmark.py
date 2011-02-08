@@ -74,8 +74,8 @@ def run_cpachecker(options, sourcefile, rlimits):
             status = 'SEGMENTATION FAULT'
         elif (status is None or status == "ERROR (1)") and line.find('Exception') != -1:
             status = 'EXCEPTION'
-        elif status is None and line.startswith('Error location(s) reached?'):
-            line = line[26:].strip()
+        elif status is None and line.startswith('Given specification violated?'):
+            line = line[30:].strip()
             if line.startswith('NO'):
                 status = 'SAFE'
             elif line.startswith('YES'):

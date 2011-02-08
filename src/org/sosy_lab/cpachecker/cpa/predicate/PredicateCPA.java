@@ -46,8 +46,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -99,6 +101,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecision initialPrecision;
   private final RegionManager regionManager;
   private final FormulaManager formulaManager;
+  private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
   private final PredicateRefinementManager<?, ?> predicateManager;
   private final PredicateCPAStatistics stats;
@@ -113,6 +116,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     formulaManager = mathsatFormulaManager;
+    pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger);
 
     if (whichProver.equals("MATHSAT")) {
       theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
@@ -137,10 +141,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, mathsatFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     transfer = new PredicateTransferRelation(this);
     
-    topElement = new PredicateAbstractElement.AbstractionElement(predicateManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));    
+    topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));    
     domain = new PredicateAbstractDomain(this);
     
     merge = new PredicateMergeOperator(this);
@@ -205,6 +209,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public FormulaManager getFormulaManager() {
     return formulaManager;
+  }
+  
+  public PathFormulaManager getPathFormulaManager() {
+    return pathFormulaManager;
   }
   
   public TheoremProver getTheoremProver() {

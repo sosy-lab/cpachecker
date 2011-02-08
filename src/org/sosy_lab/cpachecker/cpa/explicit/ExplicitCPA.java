@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -56,6 +58,9 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
   private String mergeType = "SEP";
 
+  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"})
+  private String stopType = "SEP";
+  
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -73,7 +78,17 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
       explicitMergeOp = new MergeJoinOperator(explicitDomain);
     }
 
-    StopOperator explicitStopOp = new StopSepOperator(explicitDomain);
+    StopOperator explicitStopOp = null;
+    
+    if(stopType.equals("SEP")){
+      explicitStopOp = new StopSepOperator(explicitDomain);
+    }
+    else if(stopType.equals("JOIN")){
+      explicitStopOp = new StopJoinOperator(explicitDomain);
+    }
+    else if(stopType.equals("NEVER")){
+      explicitStopOp = new StopNeverOperator();
+    }
 
     TransferRelation explicitRelation = new ExplicitTransferRelation(config);
 

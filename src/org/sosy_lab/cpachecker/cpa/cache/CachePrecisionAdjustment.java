@@ -8,6 +8,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do 
@@ -29,7 +30,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractElement, Precision, Action> prec(
       AbstractElement pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) {
+      UnmodifiableReachedSet pElements) throws CPAException {
     /*Map<Precision, Triple<AbstractElement, Precision, Action>> lCache = mCache.get(pElement);
     
     if (lCache == null) {

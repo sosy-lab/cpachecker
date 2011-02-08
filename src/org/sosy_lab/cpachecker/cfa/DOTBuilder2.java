@@ -269,15 +269,18 @@ public final class DOTBuilder2 {
        //create the function node
         String ret = "node [shape = component label=\"" + edge.getSuccessor().getFunctionName() + "\"]; " + (++virtFuncCallNodeIdCounter) + ";\n";
         int from = edge.getPredecessor().getNodeNumber();
-        int to = edge.getPredecessor().getLeavingSummaryEdge().getSuccessor().getNodeNumber(); 
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"];\n",
             from,
             virtFuncCallNodeIdCounter,
             getEdgeText(edge));
-        ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"];\n",
-            virtFuncCallNodeIdCounter,
-            to);
-        virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
+        CFAEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
+        if (summaryEdge != null) {
+          int to = summaryEdge.getSuccessor().getNodeNumber(); 
+          ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"];\n",
+              virtFuncCallNodeIdCounter,
+              to);
+          virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
+        }
         return ret;
       }
       String extra = "";
@@ -304,7 +307,10 @@ public final class DOTBuilder2 {
         sb.append("<tr><td align=\"right\">");      
         sb.append("" + edge.getPredecessor().getNodeNumber());
         sb.append("</td><td align=\"left\">");
-        sb.append("" + getEdgeText(edge).replaceAll("<", "&lt;").replaceAll(">", "&gt;"));
+        sb.append("" + getEdgeText(edge)
+                          .replaceAll("&", "&amp;")
+                          .replaceAll("<", "&lt;")
+                          .replaceAll(">", "&gt;"));
         sb.append("</td></tr>");
         
         node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);

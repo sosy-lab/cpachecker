@@ -28,12 +28,17 @@ package org.sosy_lab.common;
  * stopped several times. It can return the sum, the average, the maximum and
  * the number of those intervals.
  *
+ * This class is not thread-safe.
+ * 
  * @author Karlheinz Friedberger
  */
 public class Timer {
 
-  /** The time of starting the timer. */
-  private long startTime         = 0;
+  /**
+   * The time of starting the timer.
+   * Volatile to make {@link #isRunning()} thread-safe. 
+   */
+  private volatile long startTime         = 0;
 
   /** The sum of times of all intervals. */
   private long sumTime           = 0;
@@ -144,10 +149,14 @@ public class Timer {
     return String.format("%5d.%03ds", time / 1000, time % 1000);
   }
 
-  /** Return if the timer is running.
-   *
-   * @return is the timer running? */
-  private boolean isRunning() {
+  /** 
+   * Return if the timer is running.
+   * This method is thread-safe, it is guaranteed to return true if another
+   * thread has called {@link #start()} and not yet called {@link #stop()}.
+   *  
+   * @return is the timer running?
+   */
+  public boolean isRunning() {
     return (startTime != 0);
   }
 }

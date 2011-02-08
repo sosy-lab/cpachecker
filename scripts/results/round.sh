@@ -18,7 +18,8 @@ BC_SCRIPT='
 	}'
 
 # make first line a comment
-echo -n '%'
+read LINE
+echo "%$LINE"
 
 IFS="$(echo -e '\n\t\n')"
 while read -a LINE ; do

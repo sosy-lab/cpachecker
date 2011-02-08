@@ -29,8 +29,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -38,9 +36,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -49,36 +47,28 @@ import com.google.common.collect.Collections2;
  *
  * In all its operations it preserves the order in which the elements were added.
  * All the collections returned from methods of this class ensure this ordering, too.
+ * 
+ * This class does not allow null values for elements and precisions.
+ * All methods do not return null except when stated explicitly.
  */
 public class ReachedSet implements UnmodifiableReachedSet {
 
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
-  private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
   private AbstractElement lastElement = null;
   private AbstractElement firstElement = null;
   private final Waitlist waitlist;
 
-  private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair =
-    new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
-
-      @Override
-      public Pair<AbstractElement, Precision> apply(
-                  AbstractElement element) {
-
-        return Pair.of(element, getPrecision(element));
-      }
-
-  };
-
   public ReachedSet(WaitlistFactory waitlistFactory) {
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
-    reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   public void add(AbstractElement element, Precision precision) {
+    Preconditions.checkNotNull(element);
+    Preconditions.checkNotNull(precision);
+
     if (reached.size() == 0) {
       firstElement = element;
     }
@@ -99,6 +89,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
    * Re-add an element to the waitlist which is already contained in the reached set.
    */
   public void reAddToWaitlist(AbstractElement e) {
+    Preconditions.checkNotNull(e);
     Preconditions.checkArgument(reached.containsKey(e), "Element has to be in the reached set");
 
     if (!waitlist.contains(e)) {
@@ -107,6 +98,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
   public void remove(AbstractElement element) {
+    Preconditions.checkNotNull(element);
     int hc = element.hashCode();
     if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
       firstElement = null;
@@ -145,9 +137,16 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   @Override
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
-    return reachedWithPrecision; // this is unmodifiable
+    return Collections.unmodifiableCollection(
+        Collections2.transform(reached.entrySet(),
+                               Pair.<AbstractElement, Precision>getPairFomMapEntry()));
   }
 
+  @Override
+  public Collection<Precision> getPrecisions() {
+    return Collections.unmodifiableCollection(reached.values());
+  }
+  
   /**
    * Returns a subset of the reached set, which contains at least all abstract
    * elements belonging to the same location as a given element. It may even
@@ -173,11 +172,20 @@ public class ReachedSet implements UnmodifiableReachedSet {
     return getReached();
   }
 
+  /**
+   * Returns the first element that was added to the reached set.
+   * @throws IllegalStateException If the reached set is empty.
+   */
   @Override
   public AbstractElement getFirstElement() {
+    Preconditions.checkState(firstElement != null);
     return firstElement;
   }
 
+  /**
+   * Returns the last element that was added to the reached set.
+   * May be null if it is unknown, which element was added last. 
+   */
   @Override
   public AbstractElement getLastElement() {
     return lastElement;
@@ -204,15 +212,20 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   /**
    * Returns the precision for an element.
-   * @param element The element to look for.
-   * @return The precision for the element or null.
+   * @param element The element to look for. Has to be in the reached set.
+   * @return The precision for the element.
+   * @throws IllegalArgumentException If the element is not in the reached set.
    */
   @Override
   public Precision getPrecision(AbstractElement element) {
-    return reached.get(element);
+    Preconditions.checkNotNull(element);
+    Precision prec = reached.get(element);
+    Preconditions.checkArgument(prec != null, "Element not in reached set.");
+    return prec;
   }
 
   public boolean contains(AbstractElement element) {
+    Preconditions.checkNotNull(element);
     return reached.containsKey(element);
   }
 

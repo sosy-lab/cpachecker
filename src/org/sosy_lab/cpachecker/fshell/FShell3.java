@@ -1147,7 +1147,7 @@ public class FShell3 {
 
       //lWriter.println("log.consoleLevel = ALL");
 
-      lWriter.println("analysis.traversal = topsort");
+      lWriter.println("analysis.traversal.order = topsort");
       lWriter.println("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm

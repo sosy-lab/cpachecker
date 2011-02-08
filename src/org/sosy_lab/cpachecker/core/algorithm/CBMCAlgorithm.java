@@ -106,7 +106,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
       
       if (cbmcResult) {
         didCBMCReportUP = false;
-        logger.log(Level.INFO, "CBMC confirms the bug");
+        logger.log(Level.INFO, "CBMC confirms a bug in this path.");
         break;
 
       } else {
@@ -129,7 +129,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         // not reachable and cut the path there.
         didCBMCReportUP = true;
         if (!continueAfterInfeasibleError) {
-          logger.log(Level.INFO, "CBMC thinks this path contains no bug");
+          logger.log(Level.INFO, "CBMC reports no bug in this path.");
           break;
         }
       }
