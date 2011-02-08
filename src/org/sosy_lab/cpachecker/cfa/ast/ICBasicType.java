@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.eclipse.cdt.core.dom.ast.DOMException;
 
+@Deprecated
 public final class ICBasicType extends IBasicType implements
     org.eclipse.cdt.core.dom.ast.c.ICBasicType {
 
