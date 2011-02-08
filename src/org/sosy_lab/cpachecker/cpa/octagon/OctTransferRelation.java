@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.OctagonTransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -71,10 +70,10 @@ public class OctTransferRelation implements TransferRelation{
   // set to set global variables
   private List<String> globalVars;
 
-  private String missingInformationLeftVariable = null;
-  private String missingInformationRightPointer = null;
-  private String missingInformationLeftPointer  = null;
-  private IASTExpression missingInformationRightExpression = null;
+//  private String missingInformationLeftVariable = null;
+//  private String missingInformationRightPointer = null;
+//  private String missingInformationLeftPointer  = null;
+//  private IASTExpression missingInformationRightExpression = null;
 
   /**
    * Class constructor.
@@ -1169,8 +1168,8 @@ public class OctTransferRelation implements TransferRelation{
       }
 
       if (op1 instanceof IASTIdExpression) {
-        missingInformationLeftPointer = op1.getRawSignature();
-        missingInformationRightExpression = op2;
+//        missingInformationLeftPointer = op1.getRawSignature();
+//        missingInformationRightExpression = op2;
 
       } else {
         throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
@@ -1257,7 +1256,7 @@ public class OctTransferRelation implements TransferRelation{
     if (unaryOperator == IASTUnaryExpression.op_star) {
       // a = * b
       // TODO what is this?
-      OctElement newElement = forget(pElement, assignedVar);
+//      OctElement newElement = forget(pElement, assignedVar);
 
       // Cil produces code like
       // __cil_tmp8 = *((int *)__cil_tmp7);
@@ -1271,8 +1270,8 @@ public class OctTransferRelation implements TransferRelation{
       }
 
       if (unaryOperand instanceof IASTIdExpression) {
-        missingInformationLeftVariable = assignedVar;
-        missingInformationRightPointer = unaryOperand.getRawSignature();
+//        missingInformationLeftVariable = assignedVar;
+//        missingInformationRightPointer = unaryOperand.getRawSignature();
       } else{
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
@@ -1542,13 +1541,13 @@ public class OctTransferRelation implements TransferRelation{
     return assignVariable(pElement, leftVarName, rightVarName, coef);
   }
   
-  private OctElement handleAssignmentOfReturnVariable(OctElement pElement,
-      String lParam, String tempVarName, String functionName, int coef)
-  {
-    String leftVarName = getvarName(lParam, functionName);
-
-    return assignVariable(pElement, leftVarName, tempVarName, coef);
-  }
+//  private OctElement handleAssignmentOfReturnVariable(OctElement pElement,
+//      String lParam, String tempVarName, String functionName, int coef)
+//  {
+//    String leftVarName = getvarName(lParam, functionName);
+//
+//    return assignVariable(pElement, leftVarName, tempVarName, coef);
+//  }
 
   private OctElement assignVariable(OctElement pElement, String pLeftVarName,
       String pRightVarName, int coef) {
