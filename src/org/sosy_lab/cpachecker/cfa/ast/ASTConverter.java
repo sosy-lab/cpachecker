@@ -273,12 +273,10 @@ public class ASTConverter {
   
   
   private static IType convert(org.eclipse.cdt.core.dom.ast.IType t) {
-    /*
-     * if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
+    if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
       return convert((org.eclipse.cdt.core.dom.ast.IBasicType)t);
  
-    } else */
-    if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
       return convert((org.eclipse.cdt.core.dom.ast.IPointerType)t);
       
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
@@ -289,19 +287,37 @@ public class ASTConverter {
       //throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
     }
   }
-  
-/*  
-    private static IBasicType convert(org.eclipse.cdt.core.dom.ast.IBasicType t) {
-    assert t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType;
-    org.eclipse.cdt.core.dom.ast.c.ICBasicType c = (org.eclipse.cdt.core.dom.ast.c.ICBasicType)t;
-    
+
+  private static IBasicType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
+
     try {
-      return new ICBasicType(t.getType(), t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
+      
+      // The IBasicType has to be an ICBasicType or
+      // an IBasicType of type "void" (then it is an ICPPBasicType)
+      if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
+        final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
+          (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
+
+        return new CBasicType(t.getType(), t.isLong(), t.isShort(), t.isSigned(),
+          t.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
+
+      } else {
+        if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
+          
+          // the three values isComplex, isImaginary, isLongLong are initialized
+          // with FALSE, because we do not know about them
+          return new CBasicType(t.getType(), t.isLong(), t.isShort(),
+            t.isSigned(), t.isUnsigned(), false, false, false);
+
+        } else {
+          throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
+        }
+      }
+      
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
       throw new CFAGenerationRuntimeException(e.getMessage());
     }
   }
-*/
   
   private static IPointerType convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
     try {
