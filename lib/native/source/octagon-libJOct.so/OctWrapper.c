@@ -386,6 +386,65 @@ double mydrand()
 	return (double)(mylrand()%1000000UL) / 1000000.;
 }
 
+//JNIEXPORT jstring JNICALL Java_J_toString(JNIEnv* env, jobject obj, jlong  oct1)
+//{
+//	oct_t* m = oct1;
+//	var_t i, j;
+//	num_t w;
+//	num_init(&w);
+//	char *buf = (char*) malloc(2000);
+//	if (m->state==OCT_EMPTY) {
+//		strcat(buf, "[ empty ]\n");
+//		return;
+//	}
+//	printf("[");
+//	if (m->state==OCT_CLOSED) printf(" (closed)");
+//	for (i=0;i<m->n;i++) {
+//		if (num_cmp_zero(m->c+matpos(2*i,2*i))) {
+//			strcat(buf, "\n   v%02i-v%02i <= ",i,i);
+//			strcat(buf, "%d", m->c+matpos(2*i,2*i));
+//		}
+//		if (num_cmp_zero(m->c+matpos(2*i+1,2*i+1))) {
+//			printf("\n  -v%02i+v%02i <= ",i,i);
+//			num_print(m->c+matpos(2*i+1,2*i+1));
+//		}
+//		if (!num_infty(m->c+matpos(2*i+1,2*i))) {
+//			printf("\n   v%02i     <= ",i);
+//			num_div_by_2(&w,m->c+matpos(2*i+1,2*i));
+//			num_print(&w);
+//		}
+//		if (!num_infty(m->c+matpos(2*i,2*i+1))) {
+//			printf("\n  -v%02i     <= ",i);
+//			num_div_by_2(&w,m->c+matpos(2*i,2*i+1));
+//			num_print(&w);
+//		}
+//	}
+//
+//	for (i=0;i<m->n;i++)
+//		for (j=i+1;j<m->n;j++) {
+//			if (!num_infty(m->c+matpos(2*j,2*i))) {
+//				printf("\n   v%02i-v%02i <= ",i,j);
+//				num_print(m->c+matpos(2*j,2*i));
+//			}
+//			if (!num_infty(m->c+matpos(2*j,2*i+1))) {
+//				printf("\n  -v%02i-v%02i <= ",i,j);
+//				num_print(m->c+matpos(2*j,2*i+1));
+//			}
+//			if (!num_infty(m->c+matpos(2*j+1,2*i))) {
+//				printf("\n   v%02i+v%02i <= ",i,j);
+//				num_print(m->c+matpos(2*j+1,2*i));
+//			}
+//			if (!num_infty(m->c+matpos(2*j+1,2*i+1)))	{
+//				printf("\n   v%02i-v%02i <= ",j,i);
+//				num_print(m->c+matpos(2*j+1,2*i+1));
+//			}
+//
+//		}
+//	printf("  ]\n");
+//	num_clear(&w);
+//	OCT_EXIT("oct_print",37);
+//}
+
 oct_t*
 random_oct(int n, int m)
 {
