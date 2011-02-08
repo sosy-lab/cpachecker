@@ -273,10 +273,12 @@ public class ASTConverter {
   
   
   private static IType convert(org.eclipse.cdt.core.dom.ast.IType t) {
-    if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
+    /*
+     * if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
       return convert((org.eclipse.cdt.core.dom.ast.IBasicType)t);
  
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
+    } else */
+    if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
       return convert((org.eclipse.cdt.core.dom.ast.IPointerType)t);
       
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
@@ -288,7 +290,8 @@ public class ASTConverter {
     }
   }
   
-  private static IBasicType convert(org.eclipse.cdt.core.dom.ast.IBasicType t) {
+/*  
+    private static IBasicType convert(org.eclipse.cdt.core.dom.ast.IBasicType t) {
     assert t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType;
     org.eclipse.cdt.core.dom.ast.c.ICBasicType c = (org.eclipse.cdt.core.dom.ast.c.ICBasicType)t;
     
@@ -298,7 +301,8 @@ public class ASTConverter {
       throw new CFAGenerationRuntimeException(e.getMessage());
     }
   }
-
+*/
+  
   private static IPointerType convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
     try {
       return new IPointerType(convert(t.getType()), t.isConst(), t.isVolatile());
