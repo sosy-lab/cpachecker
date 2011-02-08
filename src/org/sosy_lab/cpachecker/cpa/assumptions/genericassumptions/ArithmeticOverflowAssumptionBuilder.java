@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.DOMException;
+import org.sosy_lab.cpachecker.cfa.ast.DOMException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -35,7 +35,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IType;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.eclipse.cdt.core.dom.ast.c.CASTVisitor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;

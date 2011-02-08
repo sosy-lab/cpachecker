@@ -9,7 +9,7 @@ public final class ITypedef extends IType implements IBinding,
   private final String name;
   private final IType type;
   
-  public ITypedef(String pName, IType pType) {
+  public ITypedef(final String pName, final IType pType) {
     name = pName;
     type = pType;
   }
@@ -44,7 +44,7 @@ public final class ITypedef extends IType implements IBinding,
   @SuppressWarnings("rawtypes")
   @Override
   @Deprecated
-  public Object getAdapter(Class pArg0) {
+  public Object getAdapter(final Class pArg0) {
     throw new UnsupportedOperationException();
   }
 
