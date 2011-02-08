@@ -28,7 +28,6 @@ import java.util.List;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -147,15 +146,11 @@ implements GenericAssumptionBuilder
       return result;
     }
 
-    private static IASTNode visit(IASTDeclaration pDeclaration) {
-      return pDeclaration;
-    }
-
     private static IASTNode visit(IASTExpression pExpression, IASTNode result) {
       if(pExpression instanceof IASTIdExpression){
         result = conjunctPredicateForArithmeticExpression(pExpression, result);
       }
-      if (pExpression instanceof IASTBinaryExpression)
+      else if (pExpression instanceof IASTBinaryExpression)
       {
         IASTBinaryExpression binexp = (IASTBinaryExpression)pExpression;
         IASTExpression op1 = binexp.getOperand1();
@@ -189,7 +184,7 @@ implements GenericAssumptionBuilder
     switch (pEdge.getEdgeType()) {
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
-      result = visit(declarationEdge.getRawAST());
+      result = declarationEdge.getRawAST();
       isDeclGlobal = declarationEdge.isGlobal();
       break;
     case AssumeEdge:
