@@ -279,6 +279,12 @@ public class PredicateTransferRelation implements TransferRelation {
     try {
     
       PredicateAbstractElement element = (PredicateAbstractElement)pElement;
+      if (element instanceof AbstractionElement) {
+        // can't do anything with this object because the path formula of
+        // abstraction elements has to stay "true"
+        return Collections.singleton(element);
+      }
+      
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
         if (lElement instanceof AssumptionStorageElement) {
@@ -304,7 +310,7 @@ public class PredicateTransferRelation implements TransferRelation {
   
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && targetStateSatCheck && !(element instanceof AbstractionElement)) {
+      if (errorFound && targetStateSatCheck) {
         element = strengthenSatCheck(element);
         if (element == null) {
           // successor not reachable
