@@ -49,4 +49,6 @@ public abstract class IBasicType extends IType implements
     return isUnsigned;
   }
 
+  public static final int t_int = 3;
+  
 }

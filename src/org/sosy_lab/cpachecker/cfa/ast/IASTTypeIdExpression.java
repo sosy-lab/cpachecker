@@ -41,4 +41,10 @@ public final class IASTTypeIdExpression extends IASTExpression implements
   public IASTTypeIdExpression copy() {
     throw new UnsupportedOperationException();
   }
+  
+  public static final int op_sizeof = 0;
+  public static final int op_typeid = 1;
+  public static final int op_alignof = 2;
+  public static final int op_typeof = 3;
+
 }
