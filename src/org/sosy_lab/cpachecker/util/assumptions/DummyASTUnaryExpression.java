@@ -23,159 +23,27 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
 import org.eclipse.cdt.core.dom.ast.ASTSignatureUtil;
-import org.eclipse.cdt.core.dom.ast.ASTVisitor;
-import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTNodeLocation;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.IType;
-import org.eclipse.cdt.core.parser.IToken;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 
 /**
  * Hack!!!
  * @author g.theoduloz
  */
-public class DummyASTUnaryExpression implements IASTUnaryExpression {
+public class DummyASTUnaryExpression extends IASTUnaryExpression {
 
-  private int operator;
-  private IASTExpression operand;
-
-  public DummyASTUnaryExpression(int op, IASTExpression op1)
-  {
-    operator = op;
-    operand = op1;
-  }
-
-  @Override
-  public IASTUnaryExpression copy() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTExpression getOperand() {
-    return operand;
-  }
-
-  @Override
-  public int getOperator() {
-    return operator;
-  }
-
-  @Override
-  public void setOperand(IASTExpression pExpression) {
-    operand = pExpression;
-  }
-
-  @Override
-  public void setOperator(int pValue) {
-    operator = pValue;
-  }
-
-  @Override
-  public IType getExpressionType() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean accept(ASTVisitor pVisitor) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean contains(IASTNode pNode) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTNode[] getChildren() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public String getContainingFilename() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTFileLocation getFileLocation() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IToken getLeadingSyntax() throws ExpansionOverlapsBoundaryException,
-      UnsupportedOperationException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTNodeLocation[] getNodeLocations() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTNode getParent() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public ASTNodeProperty getPropertyInParent() {
-    throw new UnsupportedOperationException();
+  public DummyASTUnaryExpression(int op, IASTExpression op1) {
+    super(null, null, null, op1, op);
   }
 
   @Override
   public String getRawSignature() {
-    return ASTSignatureUtil.getUnaryOperatorString(this) + operand.getRawSignature();
-  }
-
-  @Override
-  public IToken getSyntax() throws ExpansionOverlapsBoundaryException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IToken getTrailingSyntax() throws ExpansionOverlapsBoundaryException,
-      UnsupportedOperationException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTTranslationUnit getTranslationUnit() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isActive() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isFrozen() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isPartOfTranslationUnitFile() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setParent(IASTNode pNode) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setPropertyInParent(ASTNodeProperty pProperty) {
-    throw new UnsupportedOperationException();
+    return ASTSignatureUtil.getUnaryOperatorString(this) + getOperand().getRawSignature();
   }
 
   @Override
   public String toString() {
     return getRawSignature();
   }
-
 }

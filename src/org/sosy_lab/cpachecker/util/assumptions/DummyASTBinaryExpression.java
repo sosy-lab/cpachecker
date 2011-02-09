@@ -23,174 +23,30 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
 import org.eclipse.cdt.core.dom.ast.ASTSignatureUtil;
-import org.eclipse.cdt.core.dom.ast.ASTVisitor;
-import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTNodeLocation;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.IType;
-import org.eclipse.cdt.core.parser.IToken;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 
 /**
  * Hack!!!
  * @author g.theoduloz
  */
-public class DummyASTBinaryExpression implements IASTBinaryExpression {
+public class DummyASTBinaryExpression extends IASTBinaryExpression {
 
-  private int operator;
-  private IASTExpression operand1;
-  private IASTExpression operand2;
-
-  public DummyASTBinaryExpression(int op, IASTExpression op1, IASTExpression op2)
-  {
-    operator = op;
-    operand1 = op1;
-    operand2 = op2;
+  public DummyASTBinaryExpression(final int op, final IASTExpression op1, final IASTExpression op2) {
+    super(null, null, null, op1, op2, op);
   }
-
-  @Override
-  public IASTBinaryExpression copy() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTExpression getOperand1() {
-    return operand1;
-  }
-
-  @Override
-  public IASTExpression getOperand2() {
-    return operand2;
-  }
-
-  @Override
-  public int getOperator() {
-    return operator;
-  }
-
-  @Override
-  public void setOperand1(IASTExpression pExpression) {
-    operand1 = pExpression;
-  }
-
-  @Override
-  public void setOperand2(IASTExpression pExpression) {
-    operand2 = pExpression;
-  }
-
-  @Override
-  public void setOperator(int pOp) {
-    operator = pOp;
-  }
-
-  @Override
-  public IType getExpressionType() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean accept(ASTVisitor pVisitor) {
-    return false;
-  }
-
-  @Override
-  public boolean contains(IASTNode pNode) {
-    return false;
-  }
-
-  @Override
-  public IASTNode[] getChildren() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public String getContainingFilename() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTFileLocation getFileLocation() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IToken getLeadingSyntax() throws ExpansionOverlapsBoundaryException,
-      UnsupportedOperationException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTNodeLocation[] getNodeLocations() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTNode getParent() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public ASTNodeProperty getPropertyInParent() {
-    throw new UnsupportedOperationException();
-  }
-
+  
   @Override
   public String getRawSignature() {
     return
-      "(" + operand1.getRawSignature()
+      "(" + getOperand1().getRawSignature()
       + ASTSignatureUtil.getBinaryOperatorString(this)
-      + operand2.getRawSignature() + ")";
-  }
-
-  @Override
-  public IToken getSyntax() throws ExpansionOverlapsBoundaryException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IToken getTrailingSyntax() throws ExpansionOverlapsBoundaryException,
-      UnsupportedOperationException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public IASTTranslationUnit getTranslationUnit() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isActive() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isFrozen() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isPartOfTranslationUnitFile() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setParent(IASTNode pNode) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setPropertyInParent(ASTNodeProperty pProperty) {
-    throw new UnsupportedOperationException();
+      + getOperand2().getRawSignature() + ")";
   }
 
   @Override
   public String toString() {
     return getRawSignature();
   }
-
 }

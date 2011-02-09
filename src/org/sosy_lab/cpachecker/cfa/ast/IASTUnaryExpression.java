@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTUnaryExpression extends IASTExpression implements
+public class IASTUnaryExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTUnaryExpression {
 
   private final IASTExpression operand;

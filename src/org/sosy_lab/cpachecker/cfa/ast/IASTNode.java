@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
-import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.parser.IToken;
 
@@ -19,10 +18,7 @@ public abstract class IASTNode implements org.eclipse.cdt.core.dom.ast.IASTNode 
 
   @Override
   public boolean accept(final ASTVisitor visitor) {
-
-    // this method is a test, perhaps it will not work
-    visitor.visit((org.eclipse.cdt.core.dom.ast.IASTTranslationUnit) this);
-    return true;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -55,8 +51,7 @@ public abstract class IASTNode implements org.eclipse.cdt.core.dom.ast.IASTNode 
   }
 
   @Override
-  public IToken getLeadingSyntax() throws ExpansionOverlapsBoundaryException,
-      UnsupportedOperationException {
+  public IToken getLeadingSyntax() {
     throw new UnsupportedOperationException();
   }
 

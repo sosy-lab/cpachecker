@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTFunctionCallExpression extends IASTExpression implements
+public class IASTFunctionCallExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression {
 
   private final IASTExpression functionName;

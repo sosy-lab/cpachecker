@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTLiteralExpression extends IASTExpression implements
+public class IASTLiteralExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTLiteralExpression {
 
   private final int    kind;
