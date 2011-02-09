@@ -67,4 +67,8 @@ public abstract class IASTDeclSpecifier extends IASTNode implements
   public IASTDeclSpecifier copy() {
     throw new UnsupportedOperationException();
   }
+
+  public static final int sc_typedef = 1;
+  public static final int sc_extern  = 2;
+
 }

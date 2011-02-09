@@ -48,4 +48,10 @@ public class IASTLiteralExpression extends IASTExpression implements
   public IASTLiteralExpression copy() {
     throw new UnsupportedOperationException();
   }
+  
+  public static final int lk_integer_constant = 0;
+  public static final int lk_float_constant = 1;
+  public static final int lk_char_constant = 2;
+  public static final int lk_string_literal = 3;
+
 }
