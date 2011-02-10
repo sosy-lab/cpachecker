@@ -916,6 +916,11 @@ public class CtoFormulaConverter {
           throw new AssertionError("Missing switch case");
         }
       }
+      
+      case IASTBinaryExpression.op_logicalAnd:
+      case IASTBinaryExpression.op_logicalOr: {
+        throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
+      }
 
       default:
         // this might be a predicate implicitly cast to an int, like this:

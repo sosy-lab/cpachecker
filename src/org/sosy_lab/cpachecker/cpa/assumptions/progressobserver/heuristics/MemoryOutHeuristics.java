@@ -47,7 +47,7 @@ implements StopHeuristics<TrivialStopHeuristicsData>
 {
   private final int threshold;
   private final LogManager logger;
-  private int freq = 70000; //TODO read from file
+  private int freq = 60000; //TODO read from file
   private int noOfIterations = 0;
 
   public MemoryOutHeuristics(Configuration config, LogManager pLogger) {

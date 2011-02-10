@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -50,16 +51,17 @@ public class ReportingUtils {
     Formula result = manager.makeTrue();
 
     // If it is a wrapper, add its sub-element's assertions
-//    if (element instanceof AbstractWrapperElement)
-//    {
-//      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-//        result = manager.makeAnd(result, extractReportedFormulas(manager, subel));
-//    }
+    if (element instanceof AbstractWrapperElement)
+    {
+      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements()){
+        result = manager.makeAnd(result, extractReportedFormulas(manager, subel));
+      }
+    }
 
     // If the element can be approximated by a formula, conjunct its approximation
     if (element instanceof FormulaReportingElement) {
       FormulaReportingElement repel = (FormulaReportingElement) element;
-      Collection<? extends Formula> formulaList = repel.getFormulaApproximation();
+      Collection<? extends Formula> formulaList = repel.getFormulaApproximation(manager);
       
       if(formulaList != null){
         for(Formula f: formulaList){

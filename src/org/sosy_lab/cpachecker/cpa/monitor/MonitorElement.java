@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -101,7 +102,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation() {
+  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
 
     List<Formula> formulasList = new ArrayList<Formula>();
     
@@ -110,7 +111,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     for(AbstractElement elem: wrappedElements){
       if(elem instanceof FormulaReportingElement){
         FormulaReportingElement fRepElement = (FormulaReportingElement) elem;
-        formulasList.addAll(fRepElement.getFormulaApproximation());
+        formulasList.addAll(fRepElement.getFormulaApproximation(manager));
       }
     }
     return formulasList;

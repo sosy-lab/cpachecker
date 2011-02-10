@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-import java.util.ArrayList;
-
-import org.sosy_lab.cpachecker.cpa.octagon.OctElement;
-
 public class Tester {
 
 	static OctWrapper ow = new OctWrapper();
@@ -103,7 +99,7 @@ public class Tester {
 //		ow.J_print(ow.J_removeDimensionAtPosition(random_oct2, 1, 2, true));
 
 	  System.out.println("Init: " + ow.J_init());
-	  long oct1 = ow.J_universe(0);
+//	  long oct1 = ow.J_universe(0);
 //	  long oct2 = ow.J_copy(oct1);
     long array = ow.J_init_n(3);
     ow.J_num_set_int(array, 0, 0);

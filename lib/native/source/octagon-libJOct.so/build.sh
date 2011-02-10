@@ -1,7 +1,7 @@
 #!/bin/bash
 
-wget http://www.di.ens.fr/~mine/oct/oct-0.9.10.tar.gz
-tar xzf oct-0.9.10.tar.gz
+#wget http://www.di.ens.fr/~mine/oct/oct-0.9.10.tar.gz
+#tar xzf oct-0.9.10.tar.gz
 cd oct-0.9.10
 ./configure --with-num=float
 make
@@ -22,3 +22,5 @@ fi
 gcc -g -O2 $COMPILE_OPT -Ioct-0.9.10/ -Ioct-0.9.10/clib/ -DOCT_HAS_GMP -DOCT_ENABLE_ASSERT -DOCT_NUM_FLOAT -DOCT_PREFIX=CAT\(octfag_ -c OctWrapper.c
 gcc $LINK_OPT OctWrapper.o oct-0.9.10/clib/.libs/*.o -lm
 
+cp libJOct.so ../../x86-linux
+cp OctWrapper.o ../../x86-linux

@@ -23,16 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class ExplicitElement implements AbstractQueryableElement {
+public class ExplicitElement implements AbstractQueryableElement, FormulaReportingElement {
 
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> constantsMap;
@@ -42,7 +49,7 @@ public class ExplicitElement implements AbstractQueryableElement {
   // element from the previous context
   // used for return edges
   private final ExplicitElement previousElement;
-  
+
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
@@ -60,8 +67,8 @@ public class ExplicitElement implements AbstractQueryableElement {
 
 
   public ExplicitElement(Map<String, Long> constantsMap,
-                         Map<String, Integer> referencesMap,
-                         ExplicitElement previousElement) {
+      Map<String, Integer> referencesMap,
+      ExplicitElement previousElement) {
     this.constantsMap = constantsMap;
     this.noOfReferences = referencesMap;
     this.previousElement = previousElement;
@@ -83,7 +90,7 @@ public class ExplicitElement implements AbstractQueryableElement {
     if(pThreshold == 0){
       return;
     }
-    
+
     if(nameOfVar.contains(noAutoInitPrefix)){
       return;
     }
@@ -115,7 +122,7 @@ public class ExplicitElement implements AbstractQueryableElement {
   public ExplicitElement getPreviousElement() {
     return previousElement;
   }
-  
+
   @Override
   public ExplicitElement clone() {
     ExplicitElement newElement = new ExplicitElement(previousElement);
@@ -136,11 +143,11 @@ public class ExplicitElement implements AbstractQueryableElement {
       return true;
 
     //assert (other instanceof ExplicitElement);
-    
+
     if (other == null) {
       return false;
     }
-    
+
     if (!getClass().equals(other.getClass())) {
       return false;
     }
@@ -234,7 +241,7 @@ public class ExplicitElement implements AbstractQueryableElement {
   }
   @Override
   public void modifyProperty(String pModification)
-      throws InvalidQueryException {
+  throws InvalidQueryException {
     Preconditions.checkNotNull(pModification);
     // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
     String[] statements = pModification.split(";");
@@ -243,10 +250,10 @@ public class ExplicitElement implements AbstractQueryableElement {
       if (statement.startsWith("deletevalues(")) {
         if (!statement.endsWith(")")) throw new InvalidQueryException(statement +" should end with \")\"");
         String varName = statement.substring("deletevalues(".length(), statement.length()-1);
-        
+
         Object x = this.constantsMap.remove(varName);
         Object y = this.noOfReferences.remove(varName);
-        
+
         if (x==null || y==null) {
           // varname was not present in one of the maps
           // i would like to log an error here, but no logger is available
@@ -269,11 +276,45 @@ public class ExplicitElement implements AbstractQueryableElement {
       }
     }
   }
-  
+
   @Override
   public String getCPAName() {
     return "ExplicitAnalysis";
   }
 
- 
+  @Override
+  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
+
+    if(constantsMap.size() == 0){
+      return Collections.singleton(manager.makeTrue());
+    }
+
+    String variablesString = "VAR ";
+    String assignmentsString = "FORMULA (";
+
+    Iterator<Entry<String, Long>> it = constantsMap.entrySet().iterator();
+
+    while(true){
+      Entry<String, Long> ent = it.next();
+      variablesString = variablesString + ent.getKey();
+      assignmentsString = assignmentsString + "(" + 
+                ent.getKey() + " = " + ent.getValue() + ")";
+      if(it.hasNext()){
+        variablesString = variablesString + ", ";
+        assignmentsString = assignmentsString + " & ";
+      }
+      else{
+        break;
+      }
+    }
+
+    variablesString = variablesString + " : INTEGER";
+    assignmentsString = assignmentsString + ")";
+    
+    String formulaString = variablesString + "\n\n" + assignmentsString;
+
+    return Collections.singleton(manager.parse(formulaString));
+  }
+
+
 }

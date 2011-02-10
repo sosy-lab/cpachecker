@@ -87,12 +87,12 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
       }
 
       // process stop flag
+      boolean stop = false;
       if (element instanceof AvoidanceReportingElement) {
-        boolean stop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
+        stop = stop | ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
         if (stop) {
           assumption = ReportingUtils.extractReportedFormulas(formulaManager, element);
           assumption = formulaManager.makeNot(assumption);
-          break;
         }
       }
     }

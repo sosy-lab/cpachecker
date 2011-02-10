@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
  * Interface to implement in order for an object (typically abstract element)
@@ -39,6 +40,6 @@ public interface FormulaReportingElement {
   /**
    * Returns a formula over-approximating the element
    */
-  public Collection<? extends Formula> getFormulaApproximation();
+  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager);
   
 }
