@@ -35,11 +35,6 @@ public class DummyASTNumericalLiteralExpression extends IASTLiteralExpression {
     super(r, null, null, lk_integer_constant);
   }
 
-  @Override
-  public String toString() {
-    return getRawSignature();
-  }
-
   /* Constants, assuming 32-bit machine */
   public static final DummyASTNumericalLiteralExpression ZERO = new DummyASTNumericalLiteralExpression("0");
   public static final DummyASTNumericalLiteralExpression FALSE = ZERO;
