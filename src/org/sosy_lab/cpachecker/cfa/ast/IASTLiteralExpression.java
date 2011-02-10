@@ -4,15 +4,11 @@ public class IASTLiteralExpression extends IASTExpression implements
     org.eclipse.cdt.core.dom.ast.IASTLiteralExpression {
 
   private final int    kind;
-  private final String value;
 
   public IASTLiteralExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType, final int pKind,
-      final String pValue) {
+      final IASTFileLocation pFileLocation, final IType pType, final int pKind) {
     super(pRawSignature, pFileLocation, pType);
     kind = pKind;
-    value = pValue;
-    assert pRawSignature.equals(pValue);
   }
 
   @Override
@@ -22,7 +18,7 @@ public class IASTLiteralExpression extends IASTExpression implements
 
   @Override
   public char[] getValue() {
-    return value.toCharArray();
+    return getRawSignature().toCharArray();
   }
 
   @Override

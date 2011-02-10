@@ -82,7 +82,8 @@ public class ASTConverter {
   }
 
   private static IASTLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
-    return new IASTLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getKind(), String.valueOf(e.getValue()));
+    assert e.getRawSignature().equals(String.valueOf(e.getValue()));
+    return new IASTLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getKind());
   }
 
   private static IASTUnaryExpression convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {

@@ -32,12 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 public class DummyASTNumericalLiteralExpression extends IASTLiteralExpression {
 
   public DummyASTNumericalLiteralExpression(final String r) {
-    super(null, null, null, lk_integer_constant, r);
-  }
-
-  @Override
-  public String getRawSignature() {
-    return getValue().toString();
+    super(r, null, null, lk_integer_constant);
   }
 
   @Override
