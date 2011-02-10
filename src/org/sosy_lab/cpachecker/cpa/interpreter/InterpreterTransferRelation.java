@@ -248,6 +248,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(varName, element.getValueFor(returnVarName));
               }
               else{
+                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -256,6 +257,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(globalVar, element.getValueFor(globalVar));
               }
               else{
+                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -267,6 +269,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
           }
           else{
+            System.out.println("FORGETTING: " + exprOnSummary);
             newElement.forget(assignedVarName);
           }
         }
@@ -871,14 +874,16 @@ public class InterpreterTransferRelation implements TransferRelation {
               // a == 9
               if(opType == IASTBinaryExpression.op_equals) {
                 if(truthValue){
-                  if(newElement.contains(getvarName(varName, functionName))){
-                    if(newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
-                      throw new RuntimeException();
-                      //return null;  
+                  String lVariableName = getvarName(varName, functionName);
+
+                  if(newElement.contains(lVariableName)){
+                    if(newElement.getValueFor(lVariableName) != valueOfLiteral){
+                      return InterpreterBottomElement.INSTANCE;
                     }
                   }
                   else{
                     newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral);
+                    throw new RuntimeException();
                   }
                 }
                 // ! a == 9
@@ -896,10 +901,11 @@ public class InterpreterTransferRelation implements TransferRelation {
               else if(opType == IASTBinaryExpression.op_notequals)
               {
                 if(truthValue){
-                  if(newElement.contains(getvarName(varName, functionName))){
-                    if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
-                      throw new RuntimeException();
-                      //return null;  
+                  String lVariableName = getvarName(varName, functionName);
+
+                  if(newElement.contains(lVariableName)){
+                    if(newElement.getValueFor(lVariableName) == valueOfLiteral){
+                      return InterpreterBottomElement.INSTANCE;
                     }
                   }
                   else{
@@ -1078,6 +1084,10 @@ public class InterpreterTransferRelation implements TransferRelation {
       return lSuccessor;
     }
     else{
+
+     System.out.println(op2.getRawSignature());
+     System.out.println(op1.getRawSignature());
+
     String varName = op1.getRawSignature();
     // TODO forgetting
     newElement.forget(varName);
@@ -1504,6 +1514,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       if (value != null) {
         newElement.assignConstant(assignedVar, value);
       } else {
+        System.out.println("FORGETTING: " + unaryExp.getRawSignature());
         newElement.forget(assignedVar);
       }
     }
