@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTBinaryExpression;
 import org.sosy_lab.cpachecker.util.assumptions.DummyASTNumericalLiteralExpression;
 
 /**
@@ -115,36 +114,49 @@ implements GenericAssumptionBuilder
       return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
 
-    /**
-     * Compute and conjunct the assumption for the given arithmetic
-     * expression, given as its type and its expression.
-     * The two last, boolean arguments allow to avoid generating
-     * lower and/or upper bounds predicates.
-     */
-    private static IASTNode conjunctPredicateForArithmeticExpression(
-        IType typ, IASTExpression exp, IASTNode result)
-    {
-      Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds = boundsForType(typ);
-      if (bounds.getFirst() != null){
-        result = new DummyASTBinaryExpression(
-            IASTBinaryExpression.op_binaryAnd,
-            (IASTExpression)result,
-            new DummyASTBinaryExpression(
-                IASTBinaryExpression.op_greaterEqual,
-                exp,
-                bounds.getFirst()));
-      }
-      if (bounds.getSecond() != null){
-        result = new DummyASTBinaryExpression(
-            IASTBinaryExpression.op_binaryAnd,
-            (IASTExpression)result,
-            new DummyASTBinaryExpression(
-                IASTBinaryExpression.op_lessEqual,
-                exp,
-                bounds.getSecond()));
-      }
-      return result;
+  /**
+   * Compute and conjunct the assumption for the given arithmetic
+   * expression, given as its type and its expression.
+   * The two last, boolean arguments allow to avoid generating
+   * lower and/or upper bounds predicates.
+   */
+  private static IASTNode conjunctPredicateForArithmeticExpression(IType typ,
+      IASTExpression exp, IASTNode result) {
+
+    Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds =
+        boundsForType(typ);
+
+    if (bounds.getFirst() != null) {
+
+      final String rawStatementOfsecondExpr =
+          "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getRawSignature() + ")";
+      final IASTBinaryExpression secondExp =
+          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+              bounds.getFirst(), IASTBinaryExpression.op_greaterEqual);
+      final String rawStatementOfNewResult =
+          "(" + result.getRawSignature() + "&" + secondExp.getRawSignature()
+              + ")";
+      result =
+          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
+              (IASTExpression) result, secondExp, IASTBinaryExpression.op_binaryAnd);
     }
+
+    if (bounds.getSecond() != null) {
+
+      final String rawStatementOfsecondExpr =
+          "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getRawSignature() + ")";
+      final IASTBinaryExpression secondExp =
+          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+              bounds.getSecond(), IASTBinaryExpression.op_lessEqual);
+      final String rawStatementOfNewResult =
+          "(" + result.getRawSignature() + "&" + secondExp.getRawSignature()
+              + ")";
+      result =
+          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
+              (IASTExpression) result, secondExp, IASTBinaryExpression.op_binaryAnd);
+    }
+    return result;
+  }
 
     private static IASTNode visit(IASTExpression pExpression, IASTNode result) {
       if(pExpression instanceof IASTIdExpression){
