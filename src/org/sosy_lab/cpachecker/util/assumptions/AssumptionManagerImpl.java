@@ -125,7 +125,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
 
   private Pair<Formula, SSAMapBuilder> buildFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
   {
-    // first, check whether we have &&, ||, or !
+    // first, check whether we have &, |, or !
     if (p instanceof IASTBinaryExpression) {
       IASTBinaryExpression binop = (IASTBinaryExpression) p;
       if(binop.getOperand1() instanceof IASTIdExpression){
@@ -135,7 +135,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
         pSSAMap.setIndex(super.scoped(binop.getOperand2().getRawSignature(), function), 1);
       }
       switch (binop.getOperator()) {
-      case IASTBinaryExpression.op_logicalAnd:
+      case IASTBinaryExpression.op_binaryAnd:
         if (sign){
           Formula symbFor = fmgr.makeAnd(
               buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
@@ -148,7 +148,8 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
               buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
           return Pair.of(symbFor, pSSAMap);
         }
-      case IASTBinaryExpression.op_logicalOr:
+      case IASTBinaryExpression.op_binaryOr:
+        // not used anywhere, keep it?
         if (sign){
           Formula symbFor = fmgr.makeOr(
               buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
