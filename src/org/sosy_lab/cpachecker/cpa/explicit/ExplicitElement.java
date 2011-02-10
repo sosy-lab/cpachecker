@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -281,10 +283,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation() {
+  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
 
     if(constantsMap.size() == 0){
-      return null;
+      return Collections.singleton(manager.makeTrue());
     }
 
     String variablesString = "VAR ";
@@ -311,9 +313,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     
     String formulaString = variablesString + "\n\n" + assignmentsString;
 
-    System.out.println(formulaString);
-    
-    return null;
+    return Collections.singleton(manager.parse(formulaString));
   }
 
 

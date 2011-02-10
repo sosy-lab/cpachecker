@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.collect.ImmutableList;
@@ -135,7 +136,7 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
   }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation() {
+  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
     return null;
   }
 

@@ -61,7 +61,7 @@ public class ReportingUtils {
     // If the element can be approximated by a formula, conjunct its approximation
     if (element instanceof FormulaReportingElement) {
       FormulaReportingElement repel = (FormulaReportingElement) element;
-      Collection<? extends Formula> formulaList = repel.getFormulaApproximation();
+      Collection<? extends Formula> formulaList = repel.getFormulaApproximation(manager);
       
       if(formulaList != null){
         for(Formula f: formulaList){

@@ -87,6 +87,9 @@ public class MonitorTransferRelation implements TransferRelation {
     MonitorElement element = (MonitorElement)pElement;
     totalTimeOfTransfer.start();
 
+    if(element.mustDumpAssumptionForAvoidance())
+      return Collections.emptySet();
+    
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
         element.getWrappedElement(), pPrecision);
 
@@ -179,6 +182,10 @@ public class MonitorTransferRelation implements TransferRelation {
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) throws CPATransferException {
     MonitorElement element = (MonitorElement)pElement;
+    
+    if(element.mustDumpAssumptionForAvoidance())
+      return Collections.emptySet();
+    
     totalTimeOfTransfer.start();
 
     StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),

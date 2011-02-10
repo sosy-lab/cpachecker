@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Objects;
 
@@ -122,7 +123,7 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation() {
+  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
     return null;
   }  
 }
