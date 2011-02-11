@@ -60,8 +60,10 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
     if (d == TimeOutHeuristicsData.BOTTOM)
       return d;
     else
-      if (System.currentTimeMillis() > d.getTime() + threshold)
+      if (System.currentTimeMillis() > d.getTime() + threshold) {
+        d.setThreshold(threshold);
         return TimeOutHeuristicsData.BOTTOM;
+      }
       else
         return d;
   }

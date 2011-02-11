@@ -23,14 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopstack;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -124,6 +130,13 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
 
   @Override
   public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
+    if(stop){
+      List<Formula> formulasList = new ArrayList<Formula>();
+      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(
+          Pair.of(PreventingHeuristicType.LOOPITERATIONS, (long)iteration));
+      formulasList.add(manager.parse(preventingHeuristicStringFormula));
+      return formulasList;
+    }
     return null;
   }  
 }

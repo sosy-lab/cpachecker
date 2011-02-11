@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+
 /**
  * Trivial heuristics data to represent only top and bottom.
  * @author g.theoduloz
@@ -30,6 +33,8 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 public class TrivialStopHeuristicsData implements StopHeuristicsData {
 
   private final boolean bottom;
+  
+  private Pair<PreventingHeuristicType, Long> preventingCondition = null;
 
   /** Instances are only accessible via TOP/BOTTOM */
   private TrivialStopHeuristicsData(boolean isBottom) {
@@ -67,6 +72,11 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
   @Override
   public boolean shouldTerminateAnalysis() {
     return true;
+  }
+
+  @Override
+  public Pair<PreventingHeuristicType, Long> getPreventingCondition() {
+    return preventingCondition;
   }
 
 }

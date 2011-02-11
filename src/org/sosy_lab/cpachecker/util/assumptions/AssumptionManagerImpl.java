@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.ArithmeticOverflowAssumptionBuilder;
@@ -57,9 +56,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
    * Dummy SSA map that always return 1 as index. Only used here
    * to circumvent the assumptions of FormulaManager
    */
-  public static class DummySSAMap
-  extends SSAMapBuilder
-  {
+  private static class DummySSAMap extends SSAMapBuilder {
     public DummySSAMap() {
       super(SSAMap.emptySSAMap());
     }
@@ -73,28 +70,6 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     public int getIndex(String pVariable) {
       return 1;
     }
-
-    @Override
-    public void setIndex(String pName, FormulaList pArgs, int pIdx) {
-      assert(false);
-    }
-
-    @Override
-    public void setIndex(String pVariable, int pIdx) {
-      super.setIndex(pVariable, pIdx);
-    }
-
-    @Override
-    public SSAMap build() {
-      return super.build();
-    }
-    
-    @Override
-    public String toString() {
-      // TODO Auto-generated method stub
-      return super.toString();
-    }
-    
   }
 
   private static volatile FormulaManager fmgr = null;
@@ -121,67 +96,18 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
   public AssumptionManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }
-//  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
-
-  private Pair<Formula, SSAMapBuilder> buildFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
-  {
-    // first, check whether we have &, |, or !
-    if (p instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binop = (IASTBinaryExpression) p;
-      if(binop.getOperand1() instanceof IASTIdExpression){
-        pSSAMap.setIndex(super.scoped(binop.getOperand1().getRawSignature(), function), 1);
-      }
-      if(binop.getOperand2() instanceof IASTIdExpression){
-        pSSAMap.setIndex(super.scoped(binop.getOperand2().getRawSignature(), function), 1);
-      }
-      switch (binop.getOperator()) {
-      case IASTBinaryExpression.op_binaryAnd:
-        if (sign){
-          Formula symbFor = fmgr.makeAnd(
-              buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-        return Pair.of(symbFor, pSSAMap);
-        }
-        else{
-          Formula symbFor = fmgr.makeOr(
-              buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return Pair.of(symbFor, pSSAMap);
-        }
-      case IASTBinaryExpression.op_binaryOr:
-        // not used anywhere, keep it?
-        if (sign){
-          Formula symbFor = fmgr.makeOr(
-              buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-          return Pair.of(symbFor, pSSAMap);
-        }
-        else{
-          Formula symbFor = fmgr.makeAnd(
-              buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return Pair.of(symbFor, pSSAMap);
-          }
-      }
-    } else if (p instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unop = (IASTUnaryExpression) p;
-      if (unop.getOperator() == IASTUnaryExpression.op_not)
-        return buildFormula(unop.getOperand(), !sign, function, pSSAMap);
-    }
-
-    //    super.setNamespace(pEdge.getSuccessor().getFunctionName());
-    // atomic formula
-    Formula ssaFormula = makePredicate(p, sign, function, pSSAMap);
-    return Pair.of(ssaFormula, pSSAMap);
-  }
 
   @Override
   public Formula makeAnd(Formula f, IASTNode p, String function) throws UnrecognizedCCodeException {
-    SSAMapBuilder mapBuilder = new DummySSAMap();
     
     if(p instanceof IASTExpression){
-      
-      return fmgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
+      DummySSAMap mapBuilder = new DummySSAMap();
+
+      // previously, instead of directly calling makePredicate, a function was
+      // called that used De Morgan's law to transform any occurrence of
+      // (!(a && b)) into (!a && !b)
+      // I don't see a point in doing this, so I removed it.
+      return fmgr.makeAnd(f, makePredicate((IASTExpression)p, true, function, mapBuilder));
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;

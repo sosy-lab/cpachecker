@@ -134,11 +134,11 @@ implements GenericAssumptionBuilder
           new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
               bounds.getFirst(), IASTBinaryExpression.op_greaterEqual);
       final String rawStatementOfNewResult =
-          "(" + result.getRawSignature() + "&" + secondExp.getRawSignature()
+          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
               + ")";
       result =
           new IASTBinaryExpression(rawStatementOfNewResult, null, null,
-              (IASTExpression) result, secondExp, IASTBinaryExpression.op_binaryAnd);
+              (IASTExpression) result, secondExp, IASTBinaryExpression.op_logicalAnd);
     }
 
     if (bounds.getSecond() != null) {
@@ -149,11 +149,11 @@ implements GenericAssumptionBuilder
           new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
               bounds.getSecond(), IASTBinaryExpression.op_lessEqual);
       final String rawStatementOfNewResult =
-          "(" + result.getRawSignature() + "&" + secondExp.getRawSignature()
+          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
               + ")";
       result =
           new IASTBinaryExpression(rawStatementOfNewResult, null, null,
-              (IASTExpression) result, secondExp, IASTBinaryExpression.op_binaryAnd);
+              (IASTExpression) result, secondExp, IASTBinaryExpression.op_logicalAnd);
     }
     return result;
   }

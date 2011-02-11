@@ -27,10 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -44,6 +47,9 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   private final int pathLength;
 
   private boolean shouldStop = false;
+  
+  // stores what caused the element to go further
+  private Pair<PreventingHeuristicType, Long> preventingCondition = null; 
   
   protected MonitorElement(AbstractElement pWrappedElement,
       int pathLength, int branchesOnPath, long totalTimeOnPath) {
@@ -100,6 +106,11 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   public int getNoOfBranchesOnPath() {
     return branchesOnPath;
   }
+  
+  public void setPreventingCondition(
+      Pair<PreventingHeuristicType, Long> pPreventingCondition) {
+    preventingCondition = pPreventingCondition;
+  }
 
   @Override
   public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
@@ -114,6 +125,12 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
         formulasList.addAll(fRepElement.getFormulaApproximation(manager));
       }
     }
+
+    if(shouldStop){
+      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
+      formulasList.add(manager.parse(preventingHeuristicStringFormula));
+    }
+    
     return formulasList;
   }
   
