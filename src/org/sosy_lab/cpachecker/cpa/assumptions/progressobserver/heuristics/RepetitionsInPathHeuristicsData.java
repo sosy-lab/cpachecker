@@ -29,9 +29,11 @@ import java.util.Map.Entry;
 
 import com.google.common.base.Function;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 /**
  * @author g.theoduloz
@@ -40,6 +42,8 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
 
   private static long threshold = -1;
 
+  private Pair<PreventingHeuristicType, Long> preventingCondition = null;
+  
   public static void setThreshold(long newThreshold)
   {
     threshold = newThreshold;
@@ -90,8 +94,10 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     Integer oldValueInTable = frequencyMap.get(edge);
     int newValue = (oldValueInTable == null) ? 1 : (oldValueInTable.intValue() + 1);
     Integer threshold = thresholds.apply(edge);
-    if ((threshold != null) && (newValue > threshold.intValue()))
+    if ((threshold != null) && (newValue > threshold.intValue())){
+      preventingCondition = Pair.of(PreventingHeuristicType.REPETITIONSINPATH, (long)threshold);
       return BOTTOM;
+    }
     else {
       RepetitionsInPathHeuristicsData result = copy();
       result.frequencyMap.put(edge, newValue);
@@ -137,5 +143,9 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     return false;
   }
 
+  @Override
+  public Pair<PreventingHeuristicType, Long> getPreventingCondition() {
+    return preventingCondition;
+  }
 
 }

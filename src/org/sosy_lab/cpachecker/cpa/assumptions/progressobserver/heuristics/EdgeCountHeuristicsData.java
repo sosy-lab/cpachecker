@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import com.google.common.base.Function;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 /**
  * @author g.theoduloz
@@ -42,6 +44,8 @@ public class EdgeCountHeuristicsData
   private boolean untouched;
 
   private static int threshold = -1;
+  
+  private Pair<PreventingHeuristicType, Long> preventingCondition = null;
 
   public static void setBaseThreshold(int newThreshold)
   {
@@ -107,6 +111,7 @@ public class EdgeCountHeuristicsData
         // Threshold exceeded?
         Integer threshold = thresholds.apply(edge);
         if ((threshold != null) && (counters[i] >= threshold.intValue())) {
+          preventingCondition = Pair.of(PreventingHeuristicType.EDGECOUNT, (long)threshold);
           return BOTTOM;
         }
       }
@@ -210,6 +215,11 @@ public class EdgeCountHeuristicsData
   @Override
   public boolean shouldTerminateAnalysis() {
     return false;
+  }
+
+  @Override
+  public Pair<PreventingHeuristicType, Long> getPreventingCondition() {
+    return preventingCondition;
   }
 
 }

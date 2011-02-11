@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,7 +49,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 @Options(prefix="cpa.monitor")
@@ -89,11 +92,12 @@ public class MonitorTransferRelation implements TransferRelation {
 
     if(element.mustDumpAssumptionForAvoidance())
       return Collections.emptySet();
-    
+
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
         element.getWrappedElement(), pPrecision);
 
     boolean isStopElement = false;
+    Pair<PreventingHeuristicType, Long> preventingCondition = null;
 
     Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
@@ -107,6 +111,7 @@ public class MonitorTransferRelation implements TransferRelation {
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
         isStopElement = true;
+        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
         // since we can't compute the successor element which will be set
         // to bottom, we copy the last element's wrapped state and update
         // the fields accordingly
@@ -157,11 +162,17 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // check for violation of limits
-    if (   (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath)
-        || (nodeLimitForPath > 0 && pathLength > nodeLimitForPath)
-        || (limitForBranches > 0 && branchesOnPath > limitForBranches)
-    ) {
+    if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath){
       isStopElement = true;
+      preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+    }
+    if (nodeLimitForPath > 0 && pathLength > nodeLimitForPath){
+      isStopElement = true;
+      preventingCondition = Pair.of(PreventingHeuristicType.PATHLENGTH, nodeLimitForPath);
+    }
+    if (limitForBranches > 0 && branchesOnPath > limitForBranches){
+      isStopElement = true;
+      preventingCondition = Pair.of(PreventingHeuristicType.ASSUMEEDGESINPATH, limitForBranches);
     }
 
     // wrap elements
@@ -169,8 +180,11 @@ public class MonitorTransferRelation implements TransferRelation {
     for (AbstractElement absElement : successors) {
       MonitorElement successorElem = new MonitorElement(
           absElement, pathLength, branchesOnPath, totalTimeOnPath);
-      if(isStopElement)
+      if(isStopElement){
         successorElem.setAsStopElement();
+        Preconditions.checkNotNull(preventingCondition);
+        successorElem.setPreventingCondition(preventingCondition);
+      }
 
       wrappedSuccessors.add(successorElem);
     }
@@ -182,10 +196,10 @@ public class MonitorTransferRelation implements TransferRelation {
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) throws CPATransferException {
     MonitorElement element = (MonitorElement)pElement;
-    
+
     if(element.mustDumpAssumptionForAvoidance())
       return Collections.emptySet();
-    
+
     totalTimeOfTransfer.start();
 
     StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),
@@ -194,7 +208,8 @@ public class MonitorTransferRelation implements TransferRelation {
     ExecutorService executor = Executors.newSingleThreadExecutor();    
 
     boolean isStopElement = false;
-
+    Pair<PreventingHeuristicType, Long> preventingCondition = null;
+    
     Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
       successors = sc.call();
@@ -205,6 +220,8 @@ public class MonitorTransferRelation implements TransferRelation {
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
+        isStopElement = true;
+        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
         executor.shutdownNow();
         MonitorElement copiedElement = new MonitorElement(element.getWrappedElement(), 
             element.getNoOfNodesOnPath() + 1, element.getNoOfBranchesOnPath() + 1, element.getTotalTimeOnPath() + timeLimit);
@@ -249,6 +266,7 @@ public class MonitorTransferRelation implements TransferRelation {
 
     // check for violation of limits
     if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+      preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
       isStopElement = true;
     }
 
@@ -257,8 +275,11 @@ public class MonitorTransferRelation implements TransferRelation {
     for (AbstractElement absElement : successors) {
       MonitorElement successorElem = new MonitorElement(
           absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath);
-      if(isStopElement)
+      if(isStopElement){
         successorElem.setAsStopElement();
+        Preconditions.checkNotNull(preventingCondition);
+        successorElem.setPreventingCondition(preventingCondition);
+      }
 
       wrappedSuccessors.add(successorElem);
     }

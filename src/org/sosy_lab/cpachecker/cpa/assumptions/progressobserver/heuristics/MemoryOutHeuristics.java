@@ -63,7 +63,6 @@ implements StopHeuristics<TrivialStopHeuristicsData>
   @Override
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge)
   {
-    
     //TODO consider moving these into a thread later
     // does com.sun.management.OperatingSystemMXBean give us 
     // info same with "top"?
