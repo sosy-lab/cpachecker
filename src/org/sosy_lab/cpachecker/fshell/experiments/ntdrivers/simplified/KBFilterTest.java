@@ -33,7 +33,28 @@ import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 public class KBFilterTest extends ExperimentalSeries {
 
   @Test
-  public void testMain021() throws Exception {
+  public void test002() throws Exception {
+    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
+                                        "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2_BUG.cil.c", 
+                                        "main", 
+                                        true);
+    
+    FShell3Result lResult = execute(lArguments);
+    
+    Assert.assertEquals(690, lResult.getNumberOfTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
+    Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
+    Assert.assertEquals(1, lResult.getNumberOfTestCases());
+    Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
+    
+    /**
+     * Discussion: get_exit_nondet() in its original implementation is faulty
+     */
+    Assert.assertTrue(false);
+  }
+
+  @Test
+  public void test001() throws Exception {
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
                                         "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl1.cil.c", 
                                         "main", 
