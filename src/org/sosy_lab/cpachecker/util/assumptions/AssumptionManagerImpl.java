@@ -28,7 +28,6 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
@@ -97,17 +96,12 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }
 
-  private Formula buildFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
+  private Formula buildFormula(IASTExpression p, boolean sign, String function, DummySSAMap pSSAMap) throws UnrecognizedCCodeException
   {
     // first, check whether we have &, |, or !
     if (p instanceof IASTBinaryExpression) {
       IASTBinaryExpression binop = (IASTBinaryExpression) p;
-      if(binop.getOperand1() instanceof IASTIdExpression){
-        pSSAMap.setIndex(super.scoped(binop.getOperand1().getRawSignature(), function), 1);
-      }
-      if(binop.getOperand2() instanceof IASTIdExpression){
-        pSSAMap.setIndex(super.scoped(binop.getOperand2().getRawSignature(), function), 1);
-      }
+
       switch (binop.getOperator()) {
       case IASTBinaryExpression.op_binaryAnd:
         if (sign){
@@ -147,10 +141,10 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
 
   @Override
   public Formula makeAnd(Formula f, IASTNode p, String function) throws UnrecognizedCCodeException {
-    SSAMapBuilder mapBuilder = new DummySSAMap();
     
     if(p instanceof IASTExpression){
-      
+      DummySSAMap mapBuilder = new DummySSAMap();
+
       return fmgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder));
     }
     else if(p instanceof IASTSimpleDeclaration){
