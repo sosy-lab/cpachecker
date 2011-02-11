@@ -98,12 +98,12 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
 
   private Formula buildFormula(IASTExpression p, boolean sign, String function, DummySSAMap pSSAMap) throws UnrecognizedCCodeException
   {
-    // first, check whether we have &, |, or !
+    // first, check whether we have &&, ||, or !
     if (p instanceof IASTBinaryExpression) {
       IASTBinaryExpression binop = (IASTBinaryExpression) p;
 
       switch (binop.getOperator()) {
-      case IASTBinaryExpression.op_binaryAnd:
+      case IASTBinaryExpression.op_logicalAnd:
         if (sign){
           return fmgr.makeAnd(
               buildFormula(binop.getOperand1(), true, function, pSSAMap),
@@ -114,7 +114,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
               buildFormula(binop.getOperand1(), false, function, pSSAMap),
               buildFormula(binop.getOperand2(), false, function, pSSAMap));
         }
-      case IASTBinaryExpression.op_binaryOr:
+      case IASTBinaryExpression.op_logicalOr:
         // not used anywhere, keep it?
         if (sign){
           return fmgr.makeOr(

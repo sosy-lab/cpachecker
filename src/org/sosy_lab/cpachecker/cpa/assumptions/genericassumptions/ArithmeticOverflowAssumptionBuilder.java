@@ -127,7 +127,7 @@ implements GenericAssumptionBuilder
       Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds = boundsForType(typ);
       if (bounds.getFirst() != null){
         result = new DummyASTBinaryExpression(
-            IASTBinaryExpression.op_binaryAnd,
+            IASTBinaryExpression.op_logicalAnd,
             (IASTExpression)result,
             new DummyASTBinaryExpression(
                 IASTBinaryExpression.op_greaterEqual,
@@ -136,7 +136,7 @@ implements GenericAssumptionBuilder
       }
       if (bounds.getSecond() != null){
         result = new DummyASTBinaryExpression(
-            IASTBinaryExpression.op_binaryAnd,
+            IASTBinaryExpression.op_logicalAnd,
             (IASTExpression)result,
             new DummyASTBinaryExpression(
                 IASTBinaryExpression.op_lessEqual,
