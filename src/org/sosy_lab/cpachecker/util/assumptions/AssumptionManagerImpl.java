@@ -33,7 +33,6 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.ArithmeticOverflowAssumptionBuilder;
@@ -121,9 +120,8 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
   public AssumptionManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }
-//  private final SSAMapBuilder dummySSAMap = new DummySSAMap();
 
-  private Pair<Formula, SSAMapBuilder> buildFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
+  private Formula buildFormula(IASTExpression p, boolean sign, String function, SSAMapBuilder pSSAMap) throws UnrecognizedCCodeException
   {
     // first, check whether we have &, |, or !
     if (p instanceof IASTBinaryExpression) {
@@ -137,30 +135,26 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
       switch (binop.getOperator()) {
       case IASTBinaryExpression.op_binaryAnd:
         if (sign){
-          Formula symbFor = fmgr.makeAnd(
-              buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-        return Pair.of(symbFor, pSSAMap);
+          return fmgr.makeAnd(
+              buildFormula(binop.getOperand1(), true, function, pSSAMap),
+              buildFormula(binop.getOperand2(), true, function, pSSAMap));
         }
         else{
-          Formula symbFor = fmgr.makeOr(
-              buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return Pair.of(symbFor, pSSAMap);
+          return fmgr.makeOr(
+              buildFormula(binop.getOperand1(), false, function, pSSAMap),
+              buildFormula(binop.getOperand2(), false, function, pSSAMap));
         }
       case IASTBinaryExpression.op_binaryOr:
         // not used anywhere, keep it?
         if (sign){
-          Formula symbFor = fmgr.makeOr(
-              buildFormula(binop.getOperand1(), true, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), true, function, pSSAMap).getFirst());
-          return Pair.of(symbFor, pSSAMap);
+          return fmgr.makeOr(
+              buildFormula(binop.getOperand1(), true, function, pSSAMap),
+              buildFormula(binop.getOperand2(), true, function, pSSAMap));
         }
         else{
-          Formula symbFor = fmgr.makeAnd(
-              buildFormula(binop.getOperand1(), false, function, pSSAMap).getFirst(),
-              buildFormula(binop.getOperand2(), false, function, pSSAMap).getFirst());
-          return Pair.of(symbFor, pSSAMap);
+          return fmgr.makeAnd(
+              buildFormula(binop.getOperand1(), false, function, pSSAMap),
+              buildFormula(binop.getOperand2(), false, function, pSSAMap));
           }
       }
     } else if (p instanceof IASTUnaryExpression) {
@@ -172,7 +166,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     //    super.setNamespace(pEdge.getSuccessor().getFunctionName());
     // atomic formula
     Formula ssaFormula = makePredicate(p, sign, function, pSSAMap);
-    return Pair.of(ssaFormula, pSSAMap);
+    return ssaFormula;
   }
 
   @Override
@@ -181,7 +175,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     
     if(p instanceof IASTExpression){
       
-      return fmgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder).getFirst());
+      return fmgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder));
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
