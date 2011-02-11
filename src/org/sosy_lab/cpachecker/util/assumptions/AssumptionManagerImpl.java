@@ -56,9 +56,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
    * Dummy SSA map that always return 1 as index. Only used here
    * to circumvent the assumptions of FormulaManager
    */
-  public static class DummySSAMap
-  extends SSAMapBuilder
-  {
+  private static class DummySSAMap extends SSAMapBuilder {
     public DummySSAMap() {
       super(SSAMap.emptySSAMap());
     }
@@ -72,28 +70,6 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     public int getIndex(String pVariable) {
       return 1;
     }
-
-    @Override
-    public void setIndex(String pName, FormulaList pArgs, int pIdx) {
-      assert(false);
-    }
-
-    @Override
-    public void setIndex(String pVariable, int pIdx) {
-      super.setIndex(pVariable, pIdx);
-    }
-
-    @Override
-    public SSAMap build() {
-      return super.build();
-    }
-    
-    @Override
-    public String toString() {
-      // TODO Auto-generated method stub
-      return super.toString();
-    }
-    
   }
 
   private static volatile FormulaManager fmgr = null;
