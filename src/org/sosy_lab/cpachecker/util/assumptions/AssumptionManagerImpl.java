@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -96,56 +94,17 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }
 
-  private Formula buildFormula(IASTExpression p, boolean sign, String function, DummySSAMap pSSAMap) throws UnrecognizedCCodeException
-  {
-    // first, check whether we have &&, ||, or !
-    if (p instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binop = (IASTBinaryExpression) p;
-
-      switch (binop.getOperator()) {
-      case IASTBinaryExpression.op_logicalAnd:
-        if (sign){
-          return fmgr.makeAnd(
-              buildFormula(binop.getOperand1(), true, function, pSSAMap),
-              buildFormula(binop.getOperand2(), true, function, pSSAMap));
-        }
-        else{
-          return fmgr.makeOr(
-              buildFormula(binop.getOperand1(), false, function, pSSAMap),
-              buildFormula(binop.getOperand2(), false, function, pSSAMap));
-        }
-      case IASTBinaryExpression.op_logicalOr:
-        // not used anywhere, keep it?
-        if (sign){
-          return fmgr.makeOr(
-              buildFormula(binop.getOperand1(), true, function, pSSAMap),
-              buildFormula(binop.getOperand2(), true, function, pSSAMap));
-        }
-        else{
-          return fmgr.makeAnd(
-              buildFormula(binop.getOperand1(), false, function, pSSAMap),
-              buildFormula(binop.getOperand2(), false, function, pSSAMap));
-          }
-      }
-    } else if (p instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unop = (IASTUnaryExpression) p;
-      if (unop.getOperator() == IASTUnaryExpression.op_not)
-        return buildFormula(unop.getOperand(), !sign, function, pSSAMap);
-    }
-
-    //    super.setNamespace(pEdge.getSuccessor().getFunctionName());
-    // atomic formula
-    Formula ssaFormula = makePredicate(p, sign, function, pSSAMap);
-    return ssaFormula;
-  }
-
   @Override
   public Formula makeAnd(Formula f, IASTNode p, String function) throws UnrecognizedCCodeException {
     
     if(p instanceof IASTExpression){
       DummySSAMap mapBuilder = new DummySSAMap();
 
-      return fmgr.makeAnd(f, buildFormula((IASTExpression)p, true, function, mapBuilder));
+      // previously, instead of directly calling makePredicate, a function was
+      // called that used De Morgan's law to transform any occurrence of
+      // (!(a && b)) into (!a && !b)
+      // I don't see a point in doing this, so I removed it.
+      return fmgr.makeAnd(f, makePredicate((IASTExpression)p, true, function, mapBuilder));
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
