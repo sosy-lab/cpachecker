@@ -1125,33 +1125,55 @@ public class CtoFormulaConverter {
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
 
-      Formula t1 = buildTerm(op1, function, ssa);
-      Formula t2 = buildTerm(op2, function, ssa);
-
-      switch (opType) {
-      case IASTBinaryExpression.op_greaterThan:
-        result = fmgr.makeGt(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_greaterEqual:
-        result = fmgr.makeGeq(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_lessThan:
-        result = fmgr.makeLt(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_lessEqual:
-        result = fmgr.makeLeq(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_equals:
-        result = fmgr.makeEqual(t1, t2);
-        break;
-
-      case IASTBinaryExpression.op_notequals:
-        result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
-        break;
+      if ((opType == IASTBinaryExpression.op_logicalAnd)
+          || (opType == IASTBinaryExpression.op_logicalOr)) {
+        
+        // these operators expect boolean arguments
+        Formula t1 = makePredicate(op1, true, function, ssa);
+        Formula t2 = makePredicate(op2, true, function, ssa);
+        
+        switch (opType) {
+        case IASTBinaryExpression.op_logicalAnd:
+          result = fmgr.makeAnd(t1, t2);
+          break;
+          
+        case IASTBinaryExpression.op_logicalOr:
+          result = fmgr.makeOr(t1, t2);
+          break;
+          
+        default: assert false;
+        }
+      
+      } else {
+        // the rest of the operators expect numeric arguments
+        Formula t1 = buildTerm(op1, function, ssa);
+        Formula t2 = buildTerm(op2, function, ssa);
+  
+        switch (opType) {
+        case IASTBinaryExpression.op_greaterThan:
+          result = fmgr.makeGt(t1, t2);
+          break;
+  
+        case IASTBinaryExpression.op_greaterEqual:
+          result = fmgr.makeGeq(t1, t2);
+          break;
+  
+        case IASTBinaryExpression.op_lessThan:
+          result = fmgr.makeLt(t1, t2);
+          break;
+  
+        case IASTBinaryExpression.op_lessEqual:
+          result = fmgr.makeLeq(t1, t2);
+          break;
+  
+        case IASTBinaryExpression.op_equals:
+          result = fmgr.makeEqual(t1, t2);
+          break;
+  
+        case IASTBinaryExpression.op_notequals:
+          result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
+          break;
+        }
       }
 
       // now create the formula
