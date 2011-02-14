@@ -89,7 +89,7 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
   private final InterpolatingTheoremProver<T2> secondItpProver;
 
   private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+@\\d+$)");
+      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+$)");
 
   @Option
   private boolean getUsefulBlocks = false;
@@ -674,11 +674,10 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
         if (!name.equals(a.getName())) {
           // pattern matched, so it's a variable with __pc__ in it
 
-          String[] parts = name.split("@");
-          assert parts.length == 2;
+          Variable v = (Variable)a;
           // no NumberFormatException because of RegExp match earlier
-          Integer edgeId = Integer.parseInt(parts[0]);
-          Integer idx = Integer.parseInt(parts[1]);          
+          Integer edgeId = Integer.parseInt(name);
+          Integer idx = v.getSSAIndex();          
           
           Map<Integer, Boolean> p = preds.get(idx);
           if (p == null) {
