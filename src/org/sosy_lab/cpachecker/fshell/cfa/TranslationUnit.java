@@ -97,38 +97,7 @@ class TranslationUnit {
     
     return lTranslationUnit;
   }
-  
-  public static TranslationUnit parseFile(String pSourceFileName, LogManager pLogManager) {
-    IASTTranslationUnit ast;
-    try {
-      ast = CParser.parseFile(pSourceFileName, Dialect.C99);
-    } catch (CoreException e) {
-      throw new RuntimeException("Error during parsing C code in file \""
-          + pSourceFileName + "\": " + e.getMessage());
-    } catch (IOException e) {
-      throw new RuntimeException("Error during parsing C code in file \""
-          + pSourceFileName + "\": " + e.getMessage());
-    }
 
-    CFABuilder lCFABuilder = new CFABuilder(pLogManager);
-
-    ast.accept(lCFABuilder);
-    
-    List<IASTSimpleDeclaration> lGlobalDeclarations = lCFABuilder.getGlobalDeclarations();
-
-    Map<String, CFAFunctionDefinitionNode> lCfas = lCFABuilder.getCFAs();
-    
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : lCfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-    
-    TranslationUnit lTranslationUnit = new TranslationUnit(lCfas, lGlobalDeclarations);
-
-    return lTranslationUnit;
-  }
-  
   public void insertCallEdgesRecursively(String pEntryFunction) {
     CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs);
     lBuilder.insertCallEdgesRecursively(pEntryFunction);
