@@ -32,7 +32,7 @@ import java.util.Map;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;

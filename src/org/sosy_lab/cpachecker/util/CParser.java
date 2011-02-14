@@ -30,8 +30,6 @@ import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
@@ -45,6 +43,7 @@ import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
@@ -196,7 +195,7 @@ public final class CParser {
    * @throws CoreException If parsing fails.
    * @throws UnrecognizedCCodeException If the code is not as expected.
    */
-  public static IASTStatement parseSingleStatement(String code, Dialect dialect) throws CoreException, UnrecognizedCCodeException {
+  public static org.sosy_lab.cpachecker.cfa.ast.IASTStatement parseSingleStatement(String code, Dialect dialect) throws CoreException, UnrecognizedCCodeException {
     // parse
     IASTTranslationUnit ast = parseString(code, dialect);
     
@@ -219,19 +218,6 @@ public final class CParser {
       throw new UnrecognizedCCodeException("not exactly one statement in body", null, body);
     }
 
-    return checkForASTProblems(statements[0]);
-  }
-  
-
-  private static <T extends IASTNode> T checkForASTProblems(T pAST) throws UnrecognizedCCodeException {
-    if (pAST instanceof IASTProblem) {
-      throw new UnrecognizedCCodeException("AST problem"
-           + ": " + ((IASTProblem)pAST).getMessage(), null, pAST);
-    } else {
-      for (IASTNode n : pAST.getChildren()) {
-        checkForASTProblems(n);
-      }
-    }
-    return pAST;
+    return ASTConverter.convert(statements[0]);
   }
 }
