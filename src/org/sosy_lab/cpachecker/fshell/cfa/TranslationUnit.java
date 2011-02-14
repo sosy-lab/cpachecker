@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
@@ -83,8 +81,6 @@ class TranslationUnit {
           + pSource + "\": " + e.getMessage());
     }
 
-    checkForASTProblems(ast);
-
     CFABuilder lCFABuilder = new CFABuilder(pLogManager);
 
     ast.accept(lCFABuilder);
@@ -114,8 +110,6 @@ class TranslationUnit {
           + pSourceFileName + "\": " + e.getMessage());
     }
 
-    checkForASTProblems(ast);
-
     CFABuilder lCFABuilder = new CFABuilder(pLogManager);
 
     ast.accept(lCFABuilder);
@@ -133,17 +127,6 @@ class TranslationUnit {
     TranslationUnit lTranslationUnit = new TranslationUnit(lCfas, lGlobalDeclarations);
 
     return lTranslationUnit;
-  }
-  
-  private static void checkForASTProblems(IASTNode pAST) {
-    if (pAST instanceof IASTProblem) {
-      throw new RuntimeException("Error during parsing C code \""
-          + pAST.getRawSignature() + "\": " + ((IASTProblem)pAST).getMessage());
-    } else {
-      for (IASTNode n : pAST.getChildren()) {
-        checkForASTProblems(n);
-      }
-    }
   }
   
   public void insertCallEdgesRecursively(String pEntryFunction) {
