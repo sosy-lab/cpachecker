@@ -207,13 +207,14 @@ public class CPAMain {
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CONFIGURATION_FILE_OPTION);
 
-    Configuration config = Configuration.builder()
-                                        .loadFromFile(configFile)
-                                        .setOptions(cmdLineOptions)
-                                        .build();
+    Configuration.Builder config = Configuration.builder();
+    if (configFile != null) {
+      config.loadFromFile(configFile);
+    }
+    config.setOptions(cmdLineOptions);
 
     //normalizeValues();
-    return config;
+    return config.build();
   }
 
   /**
