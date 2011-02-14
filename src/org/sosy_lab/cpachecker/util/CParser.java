@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
@@ -43,7 +44,12 @@ import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
@@ -219,5 +225,15 @@ public final class CParser {
     }
 
     return ASTConverter.convert(statements[0]);
+  }
+  
+  public static Pair<Map<String, CFAFunctionDefinitionNode>, List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>>
+                parseStringAndBuildCFA(String code, Dialect dialect, LogManager logger) throws CoreException, CFAGenerationRuntimeException {
+    IASTTranslationUnit ast = parseString(code, dialect);
+    
+    CFABuilder builder = new CFABuilder(logger);
+    ast.accept(builder);
+    
+    return Pair.of(builder.getCFAs(), builder.getGlobalDeclarations());
   }
 }
