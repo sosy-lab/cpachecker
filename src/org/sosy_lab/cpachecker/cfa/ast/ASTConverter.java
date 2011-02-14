@@ -7,7 +7,31 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 public class ASTConverter {
-
+  
+/* Code we might later use to determine the type of an IASTIdExpression
+  @Override
+  public IType getExpressionType() {
+    IBinding binding = getName().resolveBinding();
+    try {
+      if (binding instanceof IVariable) {
+        return ((IVariable)binding).getType();
+      } 
+      if (binding instanceof IFunction) {
+        return ((IFunction)binding).getType();
+      }
+      if (binding instanceof IEnumerator) {
+        return ((IEnumerator)binding).getType();
+      }
+      if (binding instanceof IProblemBinding) {
+        return (IProblemBinding)binding;
+      }
+    } catch (DOMException e) {
+      return e.getProblem();
+    }
+    return null;
+  }
+*/
+  
   public static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);
 
