@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -39,6 +40,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.util.CParser;
+import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -75,6 +78,7 @@ public class CFACreator {
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
   
+  public final Timer parsingTime = new Timer();
   public final Timer conversionTime = new Timer();
   public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
@@ -93,6 +97,18 @@ public class CFACreator {
   
   public CFAFunctionDefinitionNode getMainFunction() {
     return mainFunction;
+  }
+  
+  public void parseFileAndCreateCFA(String filename, Dialect dialect) throws CFAGenerationRuntimeException, InvalidConfigurationException, IOException, CoreException {
+    logger.log(Level.FINE, "Starting parsing of file");
+    parsingTime.start();
+
+    IASTTranslationUnit ast = CParser.parseFile(filename, dialect);
+    
+    parsingTime.stop();
+    logger.log(Level.FINE, "Parser Finished");
+    
+    createCFA(ast);
   }
   
   public void createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
