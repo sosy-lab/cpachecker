@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
-import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.base.Joiner;
@@ -176,14 +174,13 @@ public class CPAchecker {
     try {
       stats = new MainCPAStatistics(config, logger);
 
-      // parse code file
-      IASTTranslationUnit ast = parse(filename, stats);
-
       // create CFA
       stats.cfaCreationTime.start();
       CFACreator cfaCreator = new CFACreator(config, logger);
       stats.setCFACreator(cfaCreator);
-      cfaCreator.createCFA(ast);
+      
+      cfaCreator.parseFileAndCreateCFA(filename, options.parserDialect);
+      
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
       stats.cfaCreationTime.stop();
@@ -252,25 +249,6 @@ public class CPAchecker {
     }
 
     return new CPAcheckerResult(result, reached, stats);
-  }
-
-  /**
-   * Parse the content of a file into an AST with the Eclipse CDT parser.
-   *
-   * @param fileName  The file to parse.
-   * @return The AST.
-   * @throws IOException If file cannot be read.
-   * @throws CoreException If Eclipse C parser throws an exception.
-   */
-  private IASTTranslationUnit parse(String filename, final MainCPAStatistics stats) throws IOException, CoreException {
-    logger.log(Level.FINE, "Starting parsing of file");
-    stats.parseTime.start();
-
-    IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
-    
-    stats.parseTime.stop();
-    logger.log(Level.FINE, "Parser Finished");
-    return ast;
   }
 
   private Result runAlgorithm(final Algorithm algorithm,

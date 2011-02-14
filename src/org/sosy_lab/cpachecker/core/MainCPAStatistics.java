@@ -106,7 +106,6 @@ class MainCPAStatistics implements Statistics {
     private final MemoryStatistics memStats = new MemoryStatistics();
     
     final Timer programTime = new Timer();
-    final Timer parseTime = new Timer();
     final Timer cfaCreationTime = new Timer();
     final Timer cpaCreationTime = new Timer();
     final Timer analysisTime = new Timer();
@@ -172,9 +171,9 @@ class MainCPAStatistics implements Statistics {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
           out.println("  Number of partitions:    " + p.getNumberOfPartitions());
         }
-        out.println("Time for parsing C file:   " + parseTime);
         out.println("Time for CFA construction: " + cfaCreationTime);
         if (cfaCreator != null) {
+          out.println("  Time for parsing C file: " + cfaCreator.parsingTime);
           out.println("  Time for AST to CFA:     " + cfaCreator.conversionTime);
           out.println("  Time for post-processing:" + cfaCreator.processingTime);
           out.println("  Time for CFA pruning:    " + cfaCreator.pruningTime);
