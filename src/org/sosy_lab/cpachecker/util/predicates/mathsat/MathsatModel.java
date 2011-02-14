@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
@@ -37,7 +38,8 @@ public class MathsatModel {
     String lName = mathsat.api.msat_decl_get_name(lDeclarationId);
     TermType lType = toMathsatType(mathsat.api.msat_decl_get_return_type(lDeclarationId));
     
-    return new Variable(lName, lType);
+    Pair<String, Integer> lSplitName = MathsatFormulaManager.parseName(lName);
+    return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
   }
   
   

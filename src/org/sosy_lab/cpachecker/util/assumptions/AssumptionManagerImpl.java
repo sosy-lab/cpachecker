@@ -80,16 +80,6 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     return fmgr;
   }
 
-  /**
-   * Return the singleton instance for this class.
-   * {@link #createInstance()} has to be called before at least once.
-   */
-  public static FormulaManager getFormulaManager() {
-    assert fmgr != null;
-
-    return fmgr;
-  }
-
   public AssumptionManagerImpl(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, createFormulaManager(pConfig, pLogger), pLogger);
   }

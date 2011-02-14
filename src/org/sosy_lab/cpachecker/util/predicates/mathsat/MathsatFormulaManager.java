@@ -84,7 +84,7 @@ public class MathsatFormulaManager implements FormulaManager  {
   protected final int msatVarType;
   
   // the character for separating name and index of a value
-  public static final String INDEX_SEPARATOR = "@";
+  private static final String INDEX_SEPARATOR = "@";
 
   // various caches for speeding up expensive tasks
   //
@@ -170,11 +170,11 @@ public class MathsatFormulaManager implements FormulaManager  {
     return new MathsatFormulaList(t);
   }
   
-  private String makeName(String name, int idx) {
+  private static String makeName(String name, int idx) {
     return name + INDEX_SEPARATOR + idx;
   }
   
-  private Pair<String, Integer> parseName(String var) {
+  static Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
     if (s.length != 2) {
       throw new IllegalArgumentException("Not an instantiated variable: " + var);

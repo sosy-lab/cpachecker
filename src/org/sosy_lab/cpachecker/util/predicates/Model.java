@@ -52,10 +52,12 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
   public static class Variable implements AssignableTerm {
     
     private final String mName;
+    private final int mSSAIndex;
     private final TermType mType;
     
-    public Variable(String pName, TermType pType) {
+    public Variable(String pName, int pSSAIndex, TermType pType) {
       mName = pName;
+      mSSAIndex = pSSAIndex;
       mType = pType;
     }
     
@@ -69,14 +71,18 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
       return mType;
     }
     
+    public int getSSAIndex() {
+      return mSSAIndex;
+    }
+    
     @Override
     public String toString() {
-      return mName + " : " + mType;
+      return mName + "@" + mSSAIndex + " : " + mType;
     }
     
     @Override 
     public int hashCode() {
-      return 324 + mName.hashCode() + mType.hashCode();
+      return 324 + mName.hashCode() + mSSAIndex + mType.hashCode();
     }
     
     @Override
@@ -95,7 +101,9 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
       
       Variable lVariable = (Variable)pOther;
       
-      return mName.equals(lVariable.mName) && mType.equals(lVariable.mType);
+      return mName.equals(lVariable.mName)
+          && (mSSAIndex == lVariable.mSSAIndex)
+          && mType.equals(lVariable.mType);
     }
   }
   

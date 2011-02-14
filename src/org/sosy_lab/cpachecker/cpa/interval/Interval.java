@@ -198,7 +198,7 @@ public class Interval
   }
 
   /**
-   * This method determines if this interval is always less than the other interval.
+   * This method determines if this interval is definitely less than the other interval.
    *
    * @param other interval to compare with
    * @return true if the upper bound of this interval is always strictly lower than the lower bound of the other interval, else false
@@ -209,7 +209,7 @@ public class Interval
   }
 
   /**
-   * This method determines if this interval is always greater than the other interval.
+   * This method determines if this interval is definitely greater than the other interval.
    *
    * @param other interval to compare with
    * @return true if the lower bound of this interval is always strictly greater than the upper bound of the other interval, else false
@@ -220,7 +220,7 @@ public class Interval
   }
 
   /**
-   * This method determines if this interval is maybe less than the other interval.
+   * This method determines if this interval maybe less than the other interval.
    *
    * @param other interval to compare with
    * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
@@ -231,7 +231,18 @@ public class Interval
   }
 
   /**
-   * This method determines if this interval is maybe greater than the other interval.
+   * This method determines if this interval maybe less or equal than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
+   */
+  public boolean mayBeLessOrEqualThan(Interval other)
+  {
+    return isEmpty() || (!isEmpty() && !other.isEmpty() && low <= other.high);
+  }
+
+  /**
+   * This method determines if this interval maybe greater than the other interval.
    *
    * @param other interval to compare with
    * @return true if the upper bound of this interval is strictly greater than the lower bound of the other interval, else false
@@ -239,6 +250,17 @@ public class Interval
   public boolean mayBeGreaterThan(Interval other)
   {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high > other.low);
+  }
+
+  /**
+   * This method determines if this interval maybe greater or equal than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the upper bound of this interval is strictly greater than the lower bound of the other interval, else false
+   */
+  public boolean mayBeGreaterOrEqualThan(Interval other)
+  {
+    return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high >= other.low);
   }
 
   /**

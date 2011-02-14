@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 
 public abstract class TestCase {
 
@@ -145,38 +145,35 @@ public abstract class TestCase {
     
     boolean lIsPrecise = true;
     
-    String lNondetPrefix = CtoFormulaConverter.NONDET_VARIABLE + MathsatFormulaManager.INDEX_SEPARATOR;
-    String lNondetFlagPrefix = CtoFormulaConverter.NONDET_FLAG_VARIABLE + MathsatFormulaManager.INDEX_SEPARATOR; 
-    
     SortedMap<Integer, Double> lNondetMap = new TreeMap<Integer, Double>();
     SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<Integer, Boolean>();
     
     for (Map.Entry<AssignableTerm, Object> lAssignment : pCounterexample.entrySet()) {
       AssignableTerm lTerm = lAssignment.getKey();
       
-      String lName = lTerm.getName();
-      
-      if (lName.startsWith(lNondetPrefix)) {
-        String lNumberString = lName.substring(lNondetPrefix.length());
+      if (lTerm instanceof Variable) {
+        Variable lVar = (Variable)lTerm;
         
-        Integer lIndex = Integer.valueOf(lNumberString);
+        String lName = lVar.getName();
         
-        double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
-        
-        lNondetMap.put(lIndex, lDoubleValue);
-      }
-      else if (lName.startsWith(lNondetFlagPrefix)) {
-        String lNumberString = lName.substring(lNondetFlagPrefix.length());
-        
-        Integer lIndex = Integer.valueOf(lNumberString);
-        
-        double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
-        
-        if (lDoubleValue != 0.0) {
-          lNondetFlagMap.put(lIndex, true);
+        if (lName.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+          Integer lIndex = lVar.getSSAIndex();
+          
+          double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
+          
+          lNondetMap.put(lIndex, lDoubleValue);
         }
-        else {
-          lNondetFlagMap.put(lIndex, false);
+        else if (lName.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          Integer lIndex = lVar.getSSAIndex();
+          
+          double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
+          
+          if (lDoubleValue != 0.0) {
+            lNondetFlagMap.put(lIndex, true);
+          }
+          else {
+            lNondetFlagMap.put(lIndex, false);
+          }
         }
       }
     }

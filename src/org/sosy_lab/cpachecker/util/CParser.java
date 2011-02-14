@@ -27,6 +27,12 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTProblem;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
 import org.eclipse.cdt.core.dom.parser.c.ANSICParserExtensionConfiguration;
@@ -39,6 +45,7 @@ import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
  * Class that encapsulates the usage of the Eclipse CDT parser.
@@ -169,5 +176,62 @@ public final class CParser {
 
     return lang.getASTTranslationUnit(codeReader, StubScannerInfo.instance,
                                       StubCodeReaderFactory.instance, null, parserLog);
+  }
+  
+  /**
+   * Method for parsing a string that contains exactly one function with exactly
+   * one statement. Only the AST for the statement is returned, the function
+   * declaration is stripped.
+   * 
+   * Example input:
+   * void foo() { bar(); }
+   * Example output:
+   * AST for "bar();"
+   * 
+   * This method guarantees that the AST does not contain IASTProblem nodes.
+   * 
+   * @param code The code snippet as described above.
+   * @param dialect The parser dialect to use.
+   * @return The AST for the statement.
+   * @throws CoreException If parsing fails.
+   * @throws UnrecognizedCCodeException If the code is not as expected.
+   */
+  public static IASTStatement parseSingleStatement(String code, Dialect dialect) throws CoreException, UnrecognizedCCodeException {
+    // parse
+    IASTTranslationUnit ast = parseString(code, dialect);
+    
+    // strip wrapping function header
+    IASTDeclaration[] declarations = ast.getDeclarations();
+    if (   declarations == null
+        || declarations.length != 1
+        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+      throw new UnrecognizedCCodeException("not a single function", null, ast);
+    }
+
+    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
+    IASTStatement body = func.getBody();
+    if (!(body instanceof IASTCompoundStatement)) {
+      throw new UnrecognizedCCodeException("function has not the expected body", null, func);
+    }
+
+    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
+      throw new UnrecognizedCCodeException("not exactly one statement in body", null, body);
+    }
+
+    return checkForASTProblems(statements[0]);
+  }
+  
+
+  private static <T extends IASTNode> T checkForASTProblems(T pAST) throws UnrecognizedCCodeException {
+    if (pAST instanceof IASTProblem) {
+      throw new UnrecognizedCCodeException("AST problem"
+           + ": " + ((IASTProblem)pAST).getMessage(), null, pAST);
+    } else {
+      for (IASTNode n : pAST.getChildren()) {
+        checkForASTProblems(n);
+      }
+    }
+    return pAST;
   }
 }
