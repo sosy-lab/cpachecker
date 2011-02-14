@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
 
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
@@ -138,7 +138,7 @@ public class CPASelfCheck {
     }
   }
 
-  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, CoreException {
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, ParserException {
     String code =
 "int main() {\n" +
 "  int a;\n" +

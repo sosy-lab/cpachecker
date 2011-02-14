@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -40,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
@@ -99,7 +99,7 @@ public class CFACreator {
     return mainFunction;
   }
   
-  public void parseFileAndCreateCFA(String filename, Dialect dialect) throws CFAGenerationRuntimeException, InvalidConfigurationException, IOException, CoreException {
+  public void parseFileAndCreateCFA(String filename, Dialect dialect) throws CFAGenerationRuntimeException, InvalidConfigurationException, IOException, ParserException {
     logger.log(Level.FINE, "Starting parsing of file");
     parsingTime.start();
 

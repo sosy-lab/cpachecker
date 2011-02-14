@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
@@ -212,7 +212,7 @@ public class AutomatonASTComparator {
     IASTStatement statement;
     try {
       statement = CParser.parseSingleStatement(code, Dialect.C99);
-    } catch (CoreException e) {
+    } catch (ParserException e) {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());
     } catch (UnrecognizedCCodeException e) {

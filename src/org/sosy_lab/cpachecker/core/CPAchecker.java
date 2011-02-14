@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,9 +58,11 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 
 public class CPAchecker {
 
@@ -219,8 +220,10 @@ public class CPAchecker {
       logger.log(Level.SEVERE, "Could not read file", filename,
           (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
 
-    } catch (CoreException e) {
-      logger.logException(Level.SEVERE, e, "Exception thrown by Eclipse C parser");
+    } catch (ParserException e) {
+      logger.logException(Level.SEVERE,
+          Objects.firstNonNull(e.getCause(), e)
+          , "Exception thrown by C parser");
 
     } catch (CFAGenerationRuntimeException e) {
       // only log message, not whole exception because this is a C problem,

@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -16,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
@@ -75,7 +75,7 @@ class TranslationUnit {
     Pair<Map<String, CFAFunctionDefinitionNode>, List<IASTSimpleDeclaration>> p;
     try {
        p = CParser.parseStringAndBuildCFA(pSource, Dialect.C99, pLogManager);
-    } catch (CoreException e) {
+    } catch (ParserException e) {
       throw new RuntimeException("Error during parsing C code \""
           + pSource + "\": " + e.getMessage());
     }

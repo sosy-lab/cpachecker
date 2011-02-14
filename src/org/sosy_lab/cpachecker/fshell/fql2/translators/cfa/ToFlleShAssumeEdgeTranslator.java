@@ -6,9 +6,9 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.CParser;
@@ -31,7 +31,7 @@ public class ToFlleShAssumeEdgeTranslator {
       IASTStatement statement;
       try {
          statement = CParser.parseSingleStatement(lPredicateFunction, Dialect.C99);
-      } catch (CoreException e) {
+      } catch (ParserException e) {
         throw new RuntimeException("Error during parsing C code \""
             + lPredicateFunction + "\": " + e.getMessage());
       } catch (UnrecognizedCCodeException e) {

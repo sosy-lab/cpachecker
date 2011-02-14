@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
@@ -159,7 +160,7 @@ public final class CParser {
    * @throws IOException If file cannot be read.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  public static IASTTranslationUnit parseFile(String filename, Dialect dialect) throws IOException, CoreException {
+  public static IASTTranslationUnit parseFile(String filename, Dialect dialect) throws IOException, ParserException {
     return parse(new CodeReader(filename), dialect);
   }
 
@@ -170,17 +171,21 @@ public final class CParser {
    * @return The AST.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  public static IASTTranslationUnit parseString(String code, Dialect dialect) throws CoreException {
+  public static IASTTranslationUnit parseString(String code, Dialect dialect) throws ParserException {
     return parse(new CodeReader(code.toCharArray()), dialect);
   }
 
-  private static IASTTranslationUnit parse(CodeReader codeReader, Dialect dialect) throws CoreException {
+  private static IASTTranslationUnit parse(CodeReader codeReader, Dialect dialect) throws ParserException {
     IParserLogService parserLog = ParserFactory.createDefaultLogService();
 
     ILanguage lang = dialect.getLanguage();
 
-    return lang.getASTTranslationUnit(codeReader, StubScannerInfo.instance,
-                                      StubCodeReaderFactory.instance, null, parserLog);
+    try {
+      return lang.getASTTranslationUnit(codeReader, StubScannerInfo.instance,
+                                        StubCodeReaderFactory.instance, null, parserLog);
+    } catch (CoreException e) {
+      throw new ParserException(e);
+    }
   }
   
   /**
@@ -201,7 +206,7 @@ public final class CParser {
    * @throws CoreException If parsing fails.
    * @throws UnrecognizedCCodeException If the code is not as expected.
    */
-  public static org.sosy_lab.cpachecker.cfa.ast.IASTStatement parseSingleStatement(String code, Dialect dialect) throws CoreException, UnrecognizedCCodeException {
+  public static org.sosy_lab.cpachecker.cfa.ast.IASTStatement parseSingleStatement(String code, Dialect dialect) throws ParserException, UnrecognizedCCodeException {
     // parse
     IASTTranslationUnit ast = parseString(code, dialect);
     
@@ -228,7 +233,7 @@ public final class CParser {
   }
   
   public static Pair<Map<String, CFAFunctionDefinitionNode>, List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>>
-                parseStringAndBuildCFA(String code, Dialect dialect, LogManager logger) throws CoreException, CFAGenerationRuntimeException {
+                parseStringAndBuildCFA(String code, Dialect dialect, LogManager logger) throws ParserException, CFAGenerationRuntimeException {
     IASTTranslationUnit ast = parseString(code, dialect);
     
     CFABuilder builder = new CFABuilder(logger);
