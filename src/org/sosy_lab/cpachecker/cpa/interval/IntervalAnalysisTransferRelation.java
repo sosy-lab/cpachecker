@@ -37,6 +37,8 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
+import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.configuration.Configuration;
@@ -206,9 +208,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
     }
 
-    // anything TODO on code like this? g(b);
+    // import the global variables back into the scope of the calling function
     else if(expression instanceof IASTUnaryExpression || expression instanceof IASTFunctionCallExpression)
-      ;
+    {
+      for(String globalVar : globalVars)
+      {
+          Interval interval = element.contains(globalVar) ? element.getInterval(globalVar) : Interval.createUnboundInterval();
+
+          newElement.addInterval(globalVar, interval, this.threshold);
+      }
+    }
 
     else
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);
@@ -415,7 +424,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     Interval orgInterval2 = evaluateInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval2 = orgInterval2.clone();
-
+/*
     // reduce "<=" to "<"
     if(operator == IASTBinaryExpression.op_lessEqual)
     {
@@ -429,7 +438,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       tmpInterval1  = tmpInterval1.plus(1);
       operator      = IASTBinaryExpression.op_greaterThan;
     }
-
+*/
     String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
     String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
 
@@ -452,14 +461,44 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         element = null;
     }
 
+    // a <= b, a <= 1
+    else if(operator == IASTBinaryExpression.op_lessEqual)
+    {
+      // a may be less or equal than b, so there can be a successor
+      if(tmpInterval1.mayBeLessOrEqualThan(tmpInterval2))
+      {
+        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2), threshold);
+        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1), threshold);
+      }
+
+      // a is always greater than b, so a can't be less than b, so there can't be a successor
+      else
+        element = null;
+    }
+
     // a > b, a > 1
     else if(operator == IASTBinaryExpression.op_greaterThan)
     {
-      // a may be greaten than b, so there can be a successor
+      // a may be greater than b, so there can be a successor
       if(tmpInterval1.mayBeGreaterThan(tmpInterval2))
       {
         if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1)), threshold);
         if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1)), threshold);
+      }
+
+      // a is always less than b, so a can't be greater than b, so there can't be a successor
+      else
+        element = null;
+    }
+
+    // a >= b, a >= 1
+    else if(operator == IASTBinaryExpression.op_greaterEqual)
+    {
+      // a may be greater or equal than b, so there can be a successor
+      if(tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2))
+      {
+        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2), threshold);
+        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1), threshold);
       }
 
       // a is always less than b, so a can't be greater than b, so there can't be a successor
@@ -569,6 +608,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    */
   private IntervalAnalysisElement handleDeclaration(IntervalAnalysisElement element, DeclarationEdge declarationEdge)
+  throws UnrecognizedCCodeException
   {
     IntervalAnalysisElement newElement = element.clone();
 
@@ -580,14 +620,37 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         // if this is a global variable, add it to the list of global variables
         if(declarationEdge.isGlobal())
+        {
           globalVars.add(declarator.getName().toString());
 
-        // declared variables are initialized with an unbound interval
+          Interval interval;
+
+          IASTInitializer init = declarator.getInitializer();
+
+          // global variables may be initialized explicitly on the spot ...
+          if(init instanceof IASTInitializerExpression)
+          {
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+
+            interval = evaluateInterval(element, exp, "", declarationEdge);
+          }
+
+          // ... or implicitly initialized to 0
+          else
+            interval = new Interval(0L);
+
+          String varName = constructVariableName(declarator.getName().toString(), "");
+
+          newElement.addInterval(varName, interval, this.threshold);
+        }
+
+        // non-global variables are initialized with an unbound interval
         else
         {
           String varName = constructVariableName(declarator.getName().toString(), declarationEdge.getPredecessor().getFunctionName());
 
           newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
+          //newElement.addInterval(varName, new Interval(0L), this.threshold);
         }
     }
 
