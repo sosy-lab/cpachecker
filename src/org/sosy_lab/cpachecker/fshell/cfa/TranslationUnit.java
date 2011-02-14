@@ -7,11 +7,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
@@ -23,12 +23,12 @@ import org.sosy_lab.cpachecker.util.CParser.Dialect;
 class TranslationUnit {
 
   private final Map<String, CFAFunctionDefinitionNode> mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-  private final List<IASTDeclaration> mGlobalDeclarations = new LinkedList<IASTDeclaration>();
+  private final List<IASTSimpleDeclaration> mGlobalDeclarations = new LinkedList<IASTSimpleDeclaration>();
 
   public TranslationUnit() {
   }
   
-  private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<IASTDeclaration> pGlobalDeclarations) {
+  private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<IASTSimpleDeclaration> pGlobalDeclarations) {
     assert pCFAs != null;
     
     mCFAs.putAll(pCFAs);
@@ -68,7 +68,7 @@ class TranslationUnit {
     return mCFAs.keySet();
   }
   
-  public List<IASTDeclaration> getGlobalDeclarations() {
+  public List<IASTSimpleDeclaration> getGlobalDeclarations() {
     return mGlobalDeclarations;
   }
 
@@ -114,7 +114,7 @@ class TranslationUnit {
 
     ast.accept(lCFABuilder);
     
-    List<IASTDeclaration> lGlobalDeclarations = lCFABuilder.getGlobalDeclarations();
+    List<IASTSimpleDeclaration> lGlobalDeclarations = lCFABuilder.getGlobalDeclarations();
 
     Map<String, CFAFunctionDefinitionNode> lCfas = lCFABuilder.getCFAs();
     

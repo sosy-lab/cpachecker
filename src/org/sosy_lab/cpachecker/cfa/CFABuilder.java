@@ -104,7 +104,7 @@ public class CFABuilder extends ASTVisitor
   private CFAFunctionDefinitionNode currentCFA = null;
 
   // Data structure for storing global declarations
-  private final List<IASTDeclaration> globalDeclarations = new ArrayList<IASTDeclaration>();
+  private final List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> globalDeclarations = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>();
 
   private final LogManager logger;
 
@@ -138,7 +138,7 @@ public class CFABuilder extends ASTVisitor
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<IASTDeclaration> getGlobalDeclarations ()
+  public List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> getGlobalDeclarations ()
   {
     return globalDeclarations;
   }
@@ -153,12 +153,13 @@ public class CFABuilder extends ASTVisitor
 
     if (declaration instanceof IASTSimpleDeclaration)
     {
+      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)declaration;
       if (locStack.size () > 0) // i.e. we're in a function
       {
         CFANode prevNode = locStack.pop ();
         CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
 
-        DeclarationEdge edge = new DeclarationEdge(ASTConverter.convert((IASTSimpleDeclaration)declaration),
+        DeclarationEdge edge = new DeclarationEdge(ASTConverter.convert(sd),
                 fileloc.getStartingLineNumber(), prevNode, nextNode);
         addToCFA(edge);
 
@@ -168,7 +169,7 @@ public class CFABuilder extends ASTVisitor
               instanceof IASTTranslationUnit)
       {
               // else we're in the global scope
-        globalDeclarations.add (declaration);
+        globalDeclarations.add (ASTConverter.convert(sd));
       }
     }
     else if (declaration instanceof IASTFunctionDefinition)
@@ -722,7 +723,7 @@ public class CFABuilder extends ASTVisitor
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, LogManager logger) {
+  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> globalVars, LogManager logger) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -731,11 +732,9 @@ public class CFABuilder extends ASTVisitor
     final CFANode first = new CFANode(0, cfa.getFunctionName());
     CFANode cur = first;
 
-    for (IASTDeclaration d : globalVars) {
-      assert(d instanceof IASTSimpleDeclaration);
-      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration sd : globalVars) {
       CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(ASTConverter.convert(sd),
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
           sd.getFileLocation().getStartingLineNumber(), cur, n);
       registerEdgeAtNodes(e);
       cur = n;
