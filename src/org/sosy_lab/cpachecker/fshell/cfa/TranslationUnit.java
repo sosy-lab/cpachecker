@@ -7,12 +7,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
@@ -73,19 +72,15 @@ class TranslationUnit {
   }
 
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
-    IASTTranslationUnit ast;
+    Pair<Map<String, CFAFunctionDefinitionNode>, List<IASTSimpleDeclaration>> p;
     try {
-       ast = CParser.parseString(pSource, Dialect.C99);
+       p = CParser.parseStringAndBuildCFA(pSource, Dialect.C99, pLogManager);
     } catch (CoreException e) {
       throw new RuntimeException("Error during parsing C code \""
           + pSource + "\": " + e.getMessage());
     }
 
-    CFABuilder lCFABuilder = new CFABuilder(pLogManager);
-
-    ast.accept(lCFABuilder);
-
-    Map<String, CFAFunctionDefinitionNode> cfas = lCFABuilder.getCFAs();
+    Map<String, CFAFunctionDefinitionNode> cfas = p.getFirst();
     
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
@@ -93,7 +88,7 @@ class TranslationUnit {
       topSort.topologicalSort(cfa);
     }
     
-    TranslationUnit lTranslationUnit = new TranslationUnit(cfas, lCFABuilder.getGlobalDeclarations());
+    TranslationUnit lTranslationUnit = new TranslationUnit(cfas, p.getSecond());
     
     return lTranslationUnit;
   }

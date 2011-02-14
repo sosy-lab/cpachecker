@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.TimeAccumulator;
@@ -105,19 +104,17 @@ public class FShell3 {
   private final Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>> mInfeasibleGoals;
   
   public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+    CFACreator lCFACreator = new CFACreator(pConfiguration, pLogManager);
+    
     // parse code file
-    IASTTranslationUnit lAst = null;
     try {
-      lAst = CParser.parseFile(pSourceFileName, CParser.Dialect.GNUC);
+      lCFACreator.parseFileAndCreateCFA(pSourceFileName, CParser.Dialect.GNUC);
     } catch (Exception e) {
       e.printStackTrace();
       
       throw new RuntimeException(e);
     }
-
-    CFACreator lCFACreator = new CFACreator(pConfiguration, pLogManager);
-    lCFACreator.createCFA(lAst);
-
+    
     return lCFACreator.getFunctions();
   }
   
