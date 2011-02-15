@@ -29,12 +29,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.collect.ImmutableList;
 
@@ -144,7 +144,8 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
     for (StopHeuristicsData d : data) {
       if(d.isBottom()){
         List<Formula> formulasList = new ArrayList<Formula>();
-        Pair<PreventingHeuristicType, Long> preventingCondition = d.getPreventingCondition();
+        Pair<PreventingHeuristicType, Long> preventingCondition = 
+          Pair.of(d.getHeuristicType(), d.getThreshold());
         if(preventingCondition == null) return null;
         String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(
             preventingCondition );

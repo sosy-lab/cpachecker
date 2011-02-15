@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
@@ -34,7 +33,7 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   private final boolean stop;
   private final long time;
-  private long threshold;
+  private static long threshold;
 
   public TimeOutHeuristicsData(long pTime, boolean pStop) {
     stop = pStop;
@@ -70,12 +69,15 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
   protected void setThreshold(long pThreshold) {
     threshold = pThreshold;
   }
-  
+
   @Override
-  public Pair<PreventingHeuristicType, Long> getPreventingCondition() {
-    if(stop)
-      return Pair.of(PreventingHeuristicType.TIMEOUT, threshold);
-    return null;
+  public PreventingHeuristicType getHeuristicType() {
+    return PreventingHeuristicType.TIMEOUT;
   }
 
+  @Override
+  public long getThreshold() {
+    return threshold;
+  }
+  
 }

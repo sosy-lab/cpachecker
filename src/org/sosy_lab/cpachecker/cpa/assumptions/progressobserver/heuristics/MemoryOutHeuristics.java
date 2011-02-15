@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 /**
  * Checks the info from "top" command and uses the virtual memory used for Java
@@ -101,6 +102,8 @@ implements StopHeuristics<TrivialStopHeuristicsData>
       
       if(memUsed > threshold) {
         logger.log(Level.WARNING, "System out of memory, terminating.");
+        TrivialStopHeuristicsData.setThreshold(threshold);
+        TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
         return TrivialStopHeuristicsData.BOTTOM;
       }
 
