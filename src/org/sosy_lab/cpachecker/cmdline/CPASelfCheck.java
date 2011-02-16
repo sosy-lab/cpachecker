@@ -36,9 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-
-import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
 
@@ -146,14 +143,8 @@ public class CPASelfCheck {
 "  return (a);\n" +
 "}\n"
     		;
-
-    // Get Eclipse to parse the C in the current file
-    IASTTranslationUnit ast = CParser.parseString(code, Dialect.C99);
-
-    // TODO use the methods from CPAMain for this?
-    CFABuilder builder = new CFABuilder(logManager);
-    ast.accept(builder);
-    Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
+    Map<String, CFAFunctionDefinitionNode> cfas
+      = CParser.parseStringAndBuildCFA(code, Dialect.C99, logManager).getFirst();
     return cfas.get("main");
   }
 
