@@ -639,7 +639,14 @@ int FloppyStartDevice(int DeviceObject , int Irp )
   DeviceObject__DeviceExtension = __BLAST_NONDET;
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
   doneEvent = __BLAST_NONDET;
-
+  fdcInfo = __BLAST_NONDET;
+  fdcInfo__MaxTransferSize = __BLAST_NONDET;
+  fdcInfo__AcpiBios = __BLAST_NONDET;
+  fdcInfo__AcpiFdiSupported = __BLAST_NONDET;
+  fdcInfo__PeripheralNumber = __BLAST_NONDET;
+  fdcInfo__UnitNumber = __BLAST_NONDET;
+  disketteExtension__DriveType = __BLAST_NONDET;
+  KUSER_SHARED_DATA__AlternativeArchitecture_NEC98x86 = __BLAST_NONDET;
 
   {
 #line 503
@@ -728,7 +735,7 @@ int FloppyStartDevice(int DeviceObject , int Irp )
 #line 553
         if (disketteExtension__DriveType == 4) {
 #line 554
-          __cil_tmp47 = uninf1();
+          __cil_tmp47 = __BLAST_NONDET; // was uninf1();
 #line 554
           //disketteExtension__PerpendicularMode |= __cil_tmp47;
         }
@@ -740,7 +747,7 @@ int FloppyStartDevice(int DeviceObject , int Irp )
 #line 563
       if (disketteExtension__DriveType == 4) {
 #line 564
-        __cil_tmp48 = uninf1();
+        __cil_tmp48 = __BLAST_NONDET; // was uninf1();
 #line 564
         //disketteExtension__PerpendicularMode |= __cil_tmp48;
       }
@@ -844,6 +851,11 @@ int FlFdcDeviceIo(int DeviceObject , int Ioctl , int Data )
   int irp__Tail__Overlay__CurrentStackLocation ;
   int irpStack__Parameters__DeviceIoControl__Type3InputBuffer ;
   long __cil_tmp11 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
   {

@@ -629,6 +629,14 @@ int FloppyStartDevice(int DeviceObject , int Irp )
   DeviceObject__DeviceExtension = __BLAST_NONDET;
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
   doneEvent = __BLAST_NONDET;
+  fdcInfo = __BLAST_NONDET;
+  fdcInfo__MaxTransferSize = __BLAST_NONDET;
+  fdcInfo__AcpiBios = __BLAST_NONDET;
+  fdcInfo__UnitNumber = __BLAST_NONDET;
+  fdcInfo__AcpiFdiSupported = __BLAST_NONDET;
+  fdcInfo__PeripheralNumber = __BLAST_NONDET;
+  disketteExtension__DriveType = __BLAST_NONDET;
+  KUSER_SHARED_DATA__AlternativeArchitecture_NEC98x86 = __BLAST_NONDET;
 
   {
 #line 505
@@ -833,6 +841,11 @@ int FlFdcDeviceIo(int DeviceObject , int Ioctl , int Data )
   int irp__Tail__Overlay__CurrentStackLocation ;
   int irpStack__Parameters__DeviceIoControl__Type3InputBuffer ;
   long __cil_tmp11 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
   {
@@ -1722,8 +1735,48 @@ int FloppyDeviceControl(int DeviceObject , int Irp )
   __cil_tmp63 = __BLAST_NONDET;
   __cil_tmp64 = __BLAST_NONDET;
   __cil_tmp65 = __BLAST_NONDET;
+  __cil_tmp66 = __BLAST_NONDET;
+  __cil_tmp67 = __BLAST_NONDET;
+  __cil_tmp68 = __BLAST_NONDET;
+  __cil_tmp69 = __BLAST_NONDET;
+  __cil_tmp70 = __BLAST_NONDET;
+  __cil_tmp71 = __BLAST_NONDET;
+  __cil_tmp72 = __BLAST_NONDET;
+  __cil_tmp73 = __BLAST_NONDET;
+  __cil_tmp74 = __BLAST_NONDET;
+  __cil_tmp75 = __BLAST_NONDET;
+  __cil_tmp76 = __BLAST_NONDET;
+  __cil_tmp77 = __BLAST_NONDET;
+  __cil_tmp78 = __BLAST_NONDET;
+  __cil_tmp79 = __BLAST_NONDET;
+  __cil_tmp80 = __BLAST_NONDET;
+  __cil_tmp81 = __BLAST_NONDET;
+  __cil_tmp82 = __BLAST_NONDET;
+  __cil_tmp83 = __BLAST_NONDET;
+  __cil_tmp84 = __BLAST_NONDET;
+  __cil_tmp85 = __BLAST_NONDET;
+  __cil_tmp86 = __BLAST_NONDET;
+  __cil_tmp87 = __BLAST_NONDET;
+  __cil_tmp88 = __BLAST_NONDET;
+  __cil_tmp89 = __BLAST_NONDET;
+  __cil_tmp90 = __BLAST_NONDET;
+  __cil_tmp91 = __BLAST_NONDET;
   irpSp__Parameters__DeviceIoControl__IoControlCode___1 = __BLAST_NONDET;
+  irpSp__Parameters__DeviceIoControl__InputBufferLength = __BLAST_NONDET;
+  sizeof__FORMAT_PARAMETERS = __BLAST_NONDET;
+  sizeof__MOUNTDEV_NAME = __BLAST_NONDET;
   Irp__AssociatedIrp__SystemBuffer = __BLAST_NONDET;
+  disketteExtension__DeviceName__Length = __BLAST_NONDET;
+  sizeof__USHORT = __BLAST_NONDET;
+  sizeof__DISK_GEOMETRY = __BLAST_NONDET;
+  sizeof__FORMAT_EX_PARAMETERS = __BLAST_NONDET;
+  disketteExtension__InterfaceString__Length = __BLAST_NONDET;
+  formatExParametersSize = __BLAST_NONDET;
+  formatExParameters__FormatGapLength = __BLAST_NONDET;
+  formatExParameters__SectorsPerTrack = __BLAST_NONDET;
+  highestDriveMediaType = __BLAST_NONDET;
+  lowestDriveMediaType = __BLAST_NONDET;
+  
 
   {
 #line 1234
@@ -2159,6 +2212,13 @@ int FlCheckFormatParameters(int DisketteExtension , int FormatParameters )
 { int DriveMediaConstants__driveMediaType__MediaType ;
   int FormatParameters__MediaType ;
   int FAKE_CONDITION ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  FormatParameters__MediaType = __BLAST_NONDET;
+  DriveMediaConstants__driveMediaType__MediaType = __BLAST_NONDET;
+  FAKE_CONDITION = __BLAST_NONDET;
 
   {
 #line 1475
