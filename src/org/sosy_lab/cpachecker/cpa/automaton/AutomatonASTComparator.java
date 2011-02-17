@@ -188,11 +188,6 @@ public class AutomatonASTComparator {
   }
 
   private static boolean IASTNamesAreEqual(IASTName pA, IASTName pB) {
-    
-    // assertion for testing our own class IASTName 
-    assert(pA.getRawSignature().equals(pB.getRawSignature())):
-      "implementation of the class IASTName is incorrect";
-    
     return Arrays.equals(pA.getSimpleID(), pB.getSimpleID());
   }
 
