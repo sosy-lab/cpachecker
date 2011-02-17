@@ -84,7 +84,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private File predicatesFile = null;
   
   @Option
-  private boolean checkBlockFeasibility = true;
+  private boolean checkBlockFeasibility = false;
   
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
