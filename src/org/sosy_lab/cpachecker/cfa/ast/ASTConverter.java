@@ -119,12 +119,71 @@ public class ASTConverter {
   }
   
   
-  public static IASTStatement convert(org.eclipse.cdt.core.dom.ast.IASTStatement s) {
-    return new IASTStatement(s.getRawSignature(), convert(s.getFileLocation()));
+  public static IASTStatement convert(
+      final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
+
+    if (s instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) s);
+
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTCompoundStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTCompoundStatement) s);
+
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTReturnStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTReturnStatement) s);
+
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement) s);
+
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTIfStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTIfStatement) s);
+
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTLabelStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTLabelStatement) s);
+
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTGotoStatement) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTGotoStatement) s);
+
+    } else {
+      throw new CFAGenerationRuntimeException("unknown statement: "
+          + s.getClass(), s);
+    }
+  }
+
+  private static IASTExpressionStatement convert(final org.eclipse.cdt.core.dom.ast.IASTExpressionStatement s) {
+      return new IASTExpressionStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getExpression()));
+  }
+
+  private static IASTCompoundStatement convert(final org.eclipse.cdt.core.dom.ast.IASTCompoundStatement s) {
+    List<IASTStatement> list = new ArrayList<IASTStatement>(s.getStatements().length);
+    for (org.eclipse.cdt.core.dom.ast.IASTStatement c : s.getStatements()) {
+      list.add(convert(c));
+    }
+    return new IASTCompoundStatement(s.getRawSignature(), convert(s.getFileLocation()), list);
+  }
+
+  private static IASTDeclarationStatement convert(final org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement s) {
+    return new IASTDeclarationStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getDeclaration()));
   }
   
+  private static IASTReturnStatement convert(final org.eclipse.cdt.core.dom.ast.IASTReturnStatement s) {
+    return new IASTReturnStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getReturnValue()));
+  }
   
-  private static IASTDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
+  private static IASTIfStatement convert(final org.eclipse.cdt.core.dom.ast.IASTIfStatement s) {
+    return new IASTIfStatement(s.getRawSignature(), convert(s.getFileLocation()),
+        convert(s.getConditionExpression()), convert(s.getThenClause()), convert(s.getElseClause()));
+  }
+  
+  private static IASTLabelStatement convert(final org.eclipse.cdt.core.dom.ast.IASTLabelStatement s) {
+    return new IASTLabelStatement(s.getRawSignature(), convert(s.getFileLocation()),
+        convert(s.getName()), convert(s.getNestedStatement()));
+  }
+  
+  private static IASTGotoStatement convert(final org.eclipse.cdt.core.dom.ast.IASTGotoStatement s) {
+    return new IASTGotoStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getName()));
+  }
+
+  private static IASTDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
     if (d instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition)d);
 
@@ -136,11 +195,11 @@ public class ASTConverter {
     }
   }
   
-  public static IASTFunctionDefinition convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
+  public static IASTFunctionDefinition convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
     return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), convert(f.getDeclSpecifier()), convert(f.getDeclarator()), convert(f.getBody()));
   }
   
-  public static IASTSimpleDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
+  public static IASTSimpleDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
     List<IASTDeclarator> list = new ArrayList<IASTDeclarator>(d.getDeclarators().length);
     for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : d.getDeclarators()) {
       list.add(convert(c));
