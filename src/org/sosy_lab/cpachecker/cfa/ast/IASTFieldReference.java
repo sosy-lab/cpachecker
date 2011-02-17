@@ -37,6 +37,11 @@ public final class IASTFieldReference extends IASTExpression implements
   public boolean isPointerDereference() {
     return isPointerDereference;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {name, owner};
+  }
 
   @Override
   @Deprecated

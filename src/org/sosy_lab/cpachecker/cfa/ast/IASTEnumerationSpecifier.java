@@ -39,6 +39,16 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier implements
   }
 
   @Override
+  public IASTNode[] getChildren() {
+    final IASTNode[] children1 = super.getChildren();
+    final IASTNode[] children2 = getEnumerators();
+    IASTNode[] allChildren=new IASTNode[children1.length + children2.length];
+    System.arraycopy(children1, 0, allChildren, 0, children1.length);
+    System.arraycopy(children2, 0, allChildren, children1.length, children2.length);
+    return allChildren;
+  }
+
+  @Override
   public IASTName getName() {
     return name;
   }
@@ -83,6 +93,11 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier implements
     @Override
     public IASTExpression getValue() {
       return value;
+    }
+
+    @Override
+    public IASTNode[] getChildren(){
+      return new IASTNode[] {value};
     }
 
     @Override

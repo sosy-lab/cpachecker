@@ -17,6 +17,11 @@ public final class IASTInitializerExpression extends IASTInitializer implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {expression};
+  }
+
+  @Override
   @Deprecated
   public void setExpression(
       final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {

@@ -30,6 +30,11 @@ public final class IASTFunctionDefinition extends IASTDeclaration implements
   public IASTFunctionDeclarator getDeclarator() {
     return declarator;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {specifier, declarator, bodyStatement};
+  }
 
   @Override
   @Deprecated

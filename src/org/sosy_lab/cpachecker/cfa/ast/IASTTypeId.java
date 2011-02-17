@@ -25,6 +25,11 @@ public final class IASTTypeId extends IASTNode implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {declarator, specifier};
+  }
+
+  @Override
   @Deprecated
   public void setAbstractDeclarator(
       final org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {

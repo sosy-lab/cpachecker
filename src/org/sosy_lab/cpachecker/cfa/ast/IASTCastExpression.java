@@ -18,6 +18,11 @@ public final class IASTCastExpression extends IASTExpression implements
   public IASTExpression getOperand() {
     return operand;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {operand, type};
+  }
 
   @Override
   @Deprecated

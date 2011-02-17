@@ -40,6 +40,16 @@ public final class IASTStandardFunctionDeclarator extends
   }
 
   @Override
+  public IASTNode[] getChildren() {
+    final IASTNode[] children1 = super.getChildren();
+    final IASTNode[] children2 = getParameters();
+    IASTNode[] allChildren=new IASTNode[children1.length + children2.length];
+    System.arraycopy(children1, 0, allChildren, 0, children1.length);
+    System.arraycopy(children2, 0, allChildren, children1.length, children2.length);
+    return allChildren;
+  }
+
+  @Override
   @Deprecated
   public void setVarArgs(boolean pArg0) {
     throw new UnsupportedOperationException();

@@ -29,16 +29,11 @@ public abstract class IASTNode implements org.eclipse.cdt.core.dom.ast.IASTNode 
 
   @Override
   @Deprecated
-  public IASTNode copy() {
-    throw new UnsupportedOperationException();
-  }
+  public abstract IASTNode copy();
 
   @Override
-  @Deprecated
-  public IASTNode[] getChildren() {
-    throw new UnsupportedOperationException();
-  }
-
+  public abstract IASTNode[] getChildren();
+  
   @Override
   @Deprecated
   public String getContainingFilename() {

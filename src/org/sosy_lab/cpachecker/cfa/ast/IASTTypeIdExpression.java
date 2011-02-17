@@ -25,6 +25,11 @@ public final class IASTTypeIdExpression extends IASTExpression implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {type};
+  }
+
+  @Override
   @Deprecated
   public void setOperator(final int pArg0) {
     throw new UnsupportedOperationException();

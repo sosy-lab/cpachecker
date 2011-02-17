@@ -24,6 +24,11 @@ public final class IASTArraySubscriptExpression extends IASTExpression
   public IASTExpression getSubscriptExpression() {
     return subscriptExpression;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {arrayExpression, subscriptExpression};
+  }
 
   @Override
   @Deprecated

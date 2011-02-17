@@ -23,6 +23,11 @@ public final class IASTParameterDeclaration extends IASTNode implements
   public IASTDeclarator getDeclarator() {
     return declarator;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {specifier, declarator};
+  }
 
   @Override
   @Deprecated

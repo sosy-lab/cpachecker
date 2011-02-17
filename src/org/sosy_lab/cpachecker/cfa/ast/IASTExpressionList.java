@@ -27,6 +27,11 @@ public final class IASTExpressionList extends IASTExpression implements
   public IASTExpression[] getExpressions() {
     return expressions.toArray(new IASTExpression[expressions.size()]);
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return getExpressions();
+  }
 
   @Override
   @Deprecated

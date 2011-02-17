@@ -36,6 +36,14 @@ public final class IASTSimpleDeclaration extends IASTDeclaration implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    // children of this node are all declarators and the specifier
+    final IASTNode[] children = declarators.toArray(new IASTDeclarator[declarators.size()+1]);
+    children[declarators.size()] = specifier;
+    return children;
+  }
+
+  @Override
   @Deprecated
   public void setDeclSpecifier(
       final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {

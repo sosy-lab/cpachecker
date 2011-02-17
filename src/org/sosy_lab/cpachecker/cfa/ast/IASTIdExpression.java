@@ -22,6 +22,11 @@ public class IASTIdExpression extends IASTExpression implements
   public IASTName getName() {
     return name;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {name};
+  }
 
   @Override
   @Deprecated

@@ -34,4 +34,14 @@ public final class IASTArrayDeclarator extends IASTDeclarator implements
   public IASTArrayDeclarator copy() {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public IASTNode[] getChildren() {
+    final IASTNode[] children1 = super.getChildren();
+    final IASTNode[] children2 = getArrayModifiers();
+    IASTNode[] allChildren=new IASTNode[children1.length + children2.length];
+    System.arraycopy(children1, 0, allChildren, 0, children1.length);
+    System.arraycopy(children2, 0, allChildren, children1.length, children2.length);
+    return allChildren;
+  }
 }

@@ -58,6 +58,16 @@ public abstract class IASTDeclarator extends IASTNode implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    final IASTNode[] children = pointerOperators.toArray(
+        new IASTPointerOperator[pointerOperators.size() + 3]);
+    children[pointerOperators.size()] = initializer;
+    children[pointerOperators.size() + 1] = name;
+    children[pointerOperators.size() + 2] = nestedDeclarator;
+    return children;
+  }
+  
+  @Override
   @Deprecated
   public void setInitializer(
       final org.eclipse.cdt.core.dom.ast.IASTInitializer pArg0) {

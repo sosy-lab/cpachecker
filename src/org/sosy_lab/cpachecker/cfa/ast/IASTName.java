@@ -29,6 +29,12 @@ public final class IASTName extends IASTNode implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    // there are no children of this class
+    return new IASTNode[0];
+  }
+
+  @Override
   @Deprecated
   public boolean isDeclaration() {
     throw new UnsupportedOperationException();

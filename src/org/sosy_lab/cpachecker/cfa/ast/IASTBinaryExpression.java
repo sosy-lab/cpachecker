@@ -33,6 +33,11 @@ public class IASTBinaryExpression extends IASTExpression implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {operand1, operand2};
+  }
+
+  @Override
   @Deprecated
   public void setOperand1(
       final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {

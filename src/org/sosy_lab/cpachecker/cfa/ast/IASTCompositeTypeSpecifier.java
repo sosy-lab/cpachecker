@@ -23,6 +23,28 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier
   }
 
   @Override
+  public int getKey() {
+    return key;
+  }
+
+  @Override
+  public IASTDeclaration[] getMembers() {
+    return members.toArray(new IASTDeclaration[members.size()]);
+  }
+
+  @Override
+  public IASTName getName() {
+    return name;
+  }
+
+  @Override
+  public IASTNode[] getChildren(){
+    final IASTNode[] children = members.toArray(new IASTDeclaration[members.size() + 1]);
+    children[members.size()] = name;
+    return children;
+  }
+
+  @Override
   @Deprecated
   public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();
@@ -46,21 +68,6 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier
   public void addMemberDeclaration(
       final org.eclipse.cdt.core.dom.ast.IASTDeclaration pArg0) {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public int getKey() {
-    return key;
-  }
-
-  @Override
-  public IASTDeclaration[] getMembers() {
-    return members.toArray(new IASTDeclaration[members.size()]);
-  }
-
-  @Override
-  public IASTName getName() {
-    return name;
   }
 
   @Override

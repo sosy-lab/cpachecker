@@ -25,6 +25,12 @@ public final class IASTPointer extends IASTPointerOperator implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    // there are no children of this class
+    return new IASTNode[0];
+  }
+
+  @Override
   @Deprecated
   public void setConst(final boolean pArg0) {
     throw new UnsupportedOperationException();

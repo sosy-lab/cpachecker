@@ -22,6 +22,12 @@ public class IASTLiteralExpression extends IASTExpression implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    // there are no children of this class
+    return new IASTNode[0];
+  }
+
+  @Override
   @Deprecated
   public void setKind(final int pArg0) {
     throw new UnsupportedOperationException();

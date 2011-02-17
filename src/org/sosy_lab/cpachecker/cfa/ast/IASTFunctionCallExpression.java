@@ -25,6 +25,11 @@ public class IASTFunctionCallExpression extends IASTExpression implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {functionName, parameters};
+  }
+
+  @Override
   @Deprecated
   public void setFunctionNameExpression(
       final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {

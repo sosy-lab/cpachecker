@@ -26,6 +26,11 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {name};
+  }
+
+  @Override
   @Deprecated
   public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
     throw new UnsupportedOperationException();

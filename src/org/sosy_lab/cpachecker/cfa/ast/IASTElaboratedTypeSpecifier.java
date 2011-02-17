@@ -17,12 +17,6 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier
   }
 
   @Override
-  @Deprecated
-  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public int getKind() {
     return kind;
   }
@@ -30,6 +24,17 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier
   @Override
   public IASTName getName() {
     return name;
+  }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {name};
+  }
+
+  @Override
+  @Deprecated
+  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
+    throw new UnsupportedOperationException();
   }
 
   @Override

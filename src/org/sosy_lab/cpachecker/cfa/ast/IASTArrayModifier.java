@@ -15,6 +15,11 @@ public final class IASTArrayModifier extends IASTNode implements
   public IASTExpression getConstantExpression() {
     return expression;
   }
+  
+  @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {expression};
+  }
 
   @Override
   @Deprecated

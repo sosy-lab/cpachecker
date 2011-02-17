@@ -25,6 +25,11 @@ public class IASTUnaryExpression extends IASTExpression implements
   }
 
   @Override
+  public IASTNode[] getChildren(){
+    return new IASTNode[] {operand};
+  }
+
+  @Override
   @Deprecated
   public void setOperand(final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
     throw new UnsupportedOperationException();
