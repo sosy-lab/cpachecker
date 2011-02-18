@@ -47,6 +47,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache
             = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
 
+  private final Map<Pair<PathFormula, PathFormula>, PathFormula> mergeCache
+            = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
+  
   public CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
   }
@@ -71,7 +74,21 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
-    return delegate.makeOr(pF1, pF2);
+    final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
+
+    PathFormula result = mergeCache.get(formulaCacheKey);
+    if (result == null) {
+      // try again with other order
+      result = mergeCache.get(Pair.of(pF2, pF1));
+    }
+      
+    if (result == null) {
+      result = delegate.makeOr(pF1, pF2);
+      mergeCache.put(formulaCacheKey, result);
+    } else {
+      pathFormulaCacheHits++;
+    }
+    return result;
   }
 
   @Override
