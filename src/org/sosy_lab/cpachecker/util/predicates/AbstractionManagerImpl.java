@@ -30,7 +30,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
@@ -46,9 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.base.Functions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Joiner;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -63,7 +60,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   public static interface AbstractionPredicatesMXBean {
     int getNumberOfPredicates();
-    Set<String> getPredicates();
+    String getPredicates();
   }
   
   private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
@@ -76,9 +73,9 @@ public class AbstractionManagerImpl implements AbstractionManager {
       return numberOfPredicates;
     }
     @Override
-    public Set<String> getPredicates() {
+    public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
-      return ImmutableSet.copyOf(Collections2.transform(absVarToPredicate.keySet(), Functions.toStringFunction()));
+      return Joiner.on('\n').join(absVarToPredicate.values());
     }
   }
   
