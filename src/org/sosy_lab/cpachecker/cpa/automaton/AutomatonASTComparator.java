@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
@@ -35,8 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.base.Preconditions;
 
@@ -206,7 +205,8 @@ public class AutomatonASTComparator {
   private static IASTNode parse(String code) throws InvalidAutomatonException {
     IASTStatement statement;
     try {
-      statement = CParser.parseSingleStatement(code, Dialect.C99);
+      CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
+      statement = parser.parseSingleStatement(code);
     } catch (ParserException e) {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());

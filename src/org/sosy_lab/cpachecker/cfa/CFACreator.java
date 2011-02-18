@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -37,16 +36,19 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
+ * 
+ * It is not thread-safe, but it may be re-used.
+ * The get* methods return the result of the last call to {@link #parseFileAndCreateCFA(String)}
+ * until this method is called again.
  */
 @Options
 public class CFACreator {
@@ -74,52 +76,65 @@ public class CFACreator {
 
   private final LogManager logger;
   private final Configuration config;
+  private final CParser parser;
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
   
-  public final Timer parsingTime = new Timer();
-  public final Timer conversionTime = new Timer();
+  public final Timer parsingTime;
+  public final Timer conversionTime;
   public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
   
-  public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public CFACreator(Dialect dialect, Configuration config, LogManager logger)
+          throws InvalidConfigurationException {
     config.inject(this);
     
     this.config = config;
     this.logger = logger;
+    
+    parser = CParser.Factory.getParser(logger, dialect);
+    parsingTime = parser.getParseTime();
+    conversionTime = parser.getCFAConstructionTime();
   }
 
+  /**
+   * Return an immutable map with all function CFAs that are the result of 
+   * the last call to  {@link #parseFileAndCreateCFA(String)}.
+   * @throws IllegalStateException If called before parsing at least once.
+   */
   public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+    Preconditions.checkState(functions != null);
     return functions;
   }
   
+  /**
+   * Return the entry node of the CFA that is the result of 
+   * the last call to  {@link #parseFileAndCreateCFA(String)}.
+   * @throws IllegalStateException If called before parsing at least once.
+   */
   public CFAFunctionDefinitionNode getMainFunction() {
+    Preconditions.checkState(mainFunction != null);
     return mainFunction;
   }
   
-  public void parseFileAndCreateCFA(String filename, Dialect dialect) throws CFAGenerationRuntimeException, InvalidConfigurationException, IOException, ParserException {
-    logger.log(Level.FINE, "Starting parsing of file");
-    parsingTime.start();
+  /**
+   * Parse a file and create a CFA, including all post-processing etc.
+   * 
+   * @param filename  The file to parse.
+   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found. 
+   * @throws IOException If an I/O error occurs.
+   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   */
+  public void parseFileAndCreateCFA(String filename)
+          throws InvalidConfigurationException, IOException, ParserException {
 
-    IASTTranslationUnit ast = CParser.parseFile(filename, dialect);
-    
-    parsingTime.stop();
+    logger.log(Level.FINE, "Starting parsing of file");
+    CFA c = parser.parseFile(filename);
     logger.log(Level.FINE, "Parser Finished");
     
-    createCFA(ast);
-  }
-  
-  public void createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
-  
-    // Build CFA
-    conversionTime.start();
-    final CFABuilder builder = new CFABuilder(logger);
-    ast.accept(builder);
-    conversionTime.stop();
-  
-    final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
+    final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
     if (mainFunction == null) {
@@ -147,7 +162,7 @@ public class CFACreator {
   
     if (useGlobalVars){
       // add global variables at the beginning of main
-      CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
+      CFABuilder.insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
     }
     
     processingTime.stop();

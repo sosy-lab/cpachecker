@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
 
@@ -52,8 +53,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -143,8 +142,10 @@ public class CPASelfCheck {
 "  return (a);\n" +
 "}\n"
     		;
+    
+    CParser parser = CParser.Factory.getParser(logManager, CParser.Dialect.C99);
     Map<String, CFAFunctionDefinitionNode> cfas
-      = CParser.parseStringAndBuildCFA(code, Dialect.C99, logManager).getFirst();
+      = parser.parseString(code).getFunctions();
     return cfas.get("main");
   }
 

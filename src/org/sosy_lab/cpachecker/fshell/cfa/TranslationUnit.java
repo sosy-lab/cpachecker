@@ -9,15 +9,14 @@ import java.util.Map;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 class TranslationUnit {
 
@@ -72,15 +71,16 @@ class TranslationUnit {
   }
 
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
-    Pair<Map<String, CFAFunctionDefinitionNode>, List<IASTSimpleDeclaration>> p;
+    CFA c;
     try {
-       p = CParser.parseStringAndBuildCFA(pSource, Dialect.C99, pLogManager);
+      CParser parser = CParser.Factory.getParser(pLogManager, CParser.Dialect.C99);
+      c = parser.parseString(pSource);
     } catch (ParserException e) {
       throw new RuntimeException("Error during parsing C code \""
           + pSource + "\": " + e.getMessage());
     }
 
-    Map<String, CFAFunctionDefinitionNode> cfas = p.getFirst();
+    Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
     
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
@@ -88,7 +88,7 @@ class TranslationUnit {
       topSort.topologicalSort(cfa);
     }
     
-    TranslationUnit lTranslationUnit = new TranslationUnit(cfas, p.getSecond());
+    TranslationUnit lTranslationUnit = new TranslationUnit(cfas, c.getGlobalDeclarations());
     
     return lTranslationUnit;
   }
