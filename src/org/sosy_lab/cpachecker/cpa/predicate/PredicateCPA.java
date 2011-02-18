@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -89,6 +90,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
   
+  @Option(name="blk.useCache")
+  private boolean useCache = true;
   
   private final Configuration config;
   private final LogManager logger;
@@ -116,7 +119,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     formulaManager = mathsatFormulaManager;
-    pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger);
+    
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
+    if (useCache) {
+      pfMgr = new CachingPathFormulaManager(pfMgr); 
+    }
+    pathFormulaManager = pfMgr;
 
     if (whichProver.equals("MATHSAT")) {
       theoremProver = new MathsatTheoremProver(mathsatFormulaManager);

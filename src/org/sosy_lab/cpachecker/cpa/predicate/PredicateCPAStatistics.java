@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -125,6 +126,11 @@ class PredicateCPAStatistics implements Statistics {
       PredicateTransferRelation trans = cpa.getTransferRelation();
       PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
 
+      CachingPathFormulaManager pfMgr = null;
+      if (cpa.getPathFormulaManager() instanceof CachingPathFormulaManager) {
+        pfMgr = (CachingPathFormulaManager)cpa.getPathFormulaManager();
+      }
+
       out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
       if (prec.numAbstractions > 0) {
         out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
@@ -158,14 +164,18 @@ class PredicateCPAStatistics implements Statistics {
         out.println("Avg number of models for allsat:          " + as.allSatCount / as.numCallsAbstraction);
       }
       out.println();
-      out.println("Number of path formula cache hits:   " + trans.pathFormulaCacheHits + " (" + toPercent(trans.pathFormulaCacheHits, trans.postTimer.getNumberOfIntervals()) + ")");
+      if (pfMgr != null) {
+        out.println("Number of path formula cache hits:   " + pfMgr.pathFormulaCacheHits + " (" + toPercent(pfMgr.pathFormulaCacheHits, pfMgr.pathFormulaComputationTimer.getNumberOfIntervals()) + ")");
+      }
       if (as.numCallsAbstraction > 0) {
         out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, as.numCallsAbstraction) + ")");
       }
       out.println();
       out.println("Time for post operator:              " + trans.postTimer);
       out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
-      out.println("    Actual computation:              " + trans.pathFormulaComputationTimer);
+      if (pfMgr != null) {
+        out.println("    Actual computation:              " + pfMgr.pathFormulaComputationTimer);
+      }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
       }
