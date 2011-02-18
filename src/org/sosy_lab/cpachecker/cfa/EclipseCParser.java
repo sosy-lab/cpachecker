@@ -45,10 +45,8 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class EclipseCParser implements CParser {
   
@@ -89,8 +87,7 @@ public class EclipseCParser implements CParser {
   }
 
   @Override
-  public IASTStatement parseSingleStatement(String pCode)
-      throws ParserException, UnrecognizedCCodeException {
+  public org.sosy_lab.cpachecker.cfa.ast.IASTStatement parseSingleStatement(String pCode) throws ParserException {
     
     // parse
     IASTTranslationUnit ast = parse(new CodeReader(pCode.toCharArray()));
@@ -100,18 +97,18 @@ public class EclipseCParser implements CParser {
     if (   declarations == null
         || declarations.length != 1
         || !(declarations[0] instanceof IASTFunctionDefinition)) {
-      throw new UnrecognizedCCodeException("not a single function", null, ast);
+      throw new ParserException("Not a single function: " + ast.getRawSignature());
     }
 
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
     org.eclipse.cdt.core.dom.ast.IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement)) {
-      throw new UnrecognizedCCodeException("function has not the expected body", null, func);
+      throw new ParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
     }
 
     org.eclipse.cdt.core.dom.ast.IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
-      throw new UnrecognizedCCodeException("not exactly one statement in body", null, body);
+      throw new ParserException("Not exactly one statement in function body: " + body);
     }
 
     return ASTConverter.convert(statements[0]);

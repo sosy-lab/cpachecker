@@ -10,7 +10,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.translators.c.PredicateTranslator;
 
@@ -32,9 +31,6 @@ public class ToFlleShAssumeEdgeTranslator {
         CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
         statement = parser.parseSingleStatement(lPredicateFunction);
       } catch (ParserException e) {
-        throw new RuntimeException("Error during parsing C code \""
-            + lPredicateFunction + "\": " + e.getMessage());
-      } catch (UnrecognizedCCodeException e) {
         throw new RuntimeException("Error during parsing C code \""
             + lPredicateFunction + "\": " + e.getMessage());
       }

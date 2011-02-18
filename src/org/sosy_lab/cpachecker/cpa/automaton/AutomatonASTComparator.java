@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Preconditions;
 
@@ -208,9 +207,6 @@ public class AutomatonASTComparator {
       CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
       statement = parser.parseSingleStatement(code);
     } catch (ParserException e) {
-      throw new InvalidAutomatonException("Error during parsing C code \""
-          + code + "\": " + e.getMessage());
-    } catch (UnrecognizedCCodeException e) {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());
     }

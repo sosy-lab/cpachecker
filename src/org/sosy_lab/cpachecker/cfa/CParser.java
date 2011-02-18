@@ -29,7 +29,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
  * Abstraction of a C parser that creates CFAs from C code.
@@ -76,9 +75,8 @@ public interface CParser {
    * @param dialect The parser dialect to use.
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
-   * @throws UnrecognizedCCodeException If the code is not as expected.
    */
-  IASTStatement parseSingleStatement(String code) throws ParserException, UnrecognizedCCodeException;
+  IASTStatement parseSingleStatement(String code) throws ParserException;
   
   /** 
    * Return a timer that measured the time needed for parsing.
