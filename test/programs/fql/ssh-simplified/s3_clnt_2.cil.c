@@ -91,6 +91,10 @@ int ssl3_connect(int initial_state )
   s__wbio = __BLAST_NONDET;
   s__bbio = __BLAST_NONDET;
   s__hit = __BLAST_NONDET;
+  s__s3__tmp__new_compression = __BLAST_NONDET;
+  s__s3__tmp__new_compression__id = __BLAST_NONDET;
+  s__s3__flags = __BLAST_NONDET;
+  num1 = __BLAST_NONDET;
 
   {
 #line 60
