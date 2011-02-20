@@ -257,8 +257,7 @@ public class CFABuilder extends ASTVisitor
 
       CFANode lastNode = locStack.pop ();
 
-      if (!lastNode.hasJumpEdgeLeaving ())
-      {
+      if (isReachableNode(lastNode)) {
         BlankEdge blankEdge = new BlankEdge ("default return", lastNode.getLineNumber(), lastNode, currentCFA.getExitNode());
         addToCFA(blankEdge);
       }
@@ -318,16 +317,15 @@ public class CFABuilder extends ASTVisitor
     {
       // Edge from current location to post if-statement location
       CFANode prevNode = locStack.pop ();
-      CFANode elseNode = elseStack.pop ();
-      if (!prevNode.hasJumpEdgeLeaving ())
-      {
-          CFANode nextNode = locStack.peek ();
+      CFANode nextNode = locStack.peek ();
 
-          BlankEdge blankEdge = new BlankEdge ("", nextNode.getLineNumber(), prevNode, nextNode);
-          addToCFA(blankEdge);
+      if (isReachableNode(prevNode)) {
+        BlankEdge blankEdge = new BlankEdge ("", nextNode.getLineNumber(), prevNode, nextNode);
+        addToCFA(blankEdge);
       }
 
       //  Push the start of the else clause onto our location stack
+      CFANode elseNode = elseStack.pop ();
       locStack.push (elseNode);
     }
 
@@ -523,8 +521,10 @@ public class CFABuilder extends ASTVisitor
 
     CFANode prevNode = locStack.pop ();
 
-    BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
-    addToCFA(blankEdge);
+    if (isReachableNode(prevNode)) {
+      BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
+      addToCFA(blankEdge);
+    }
 
     locStack.push (labelNode);
 
@@ -628,11 +628,9 @@ public class CFABuilder extends ASTVisitor
     if (statement instanceof IASTIfStatement)
     {
       CFANode prevNode = locStack.pop ();
+      CFANode nextNode = locStack.peek ();
 
-      if (!prevNode.hasJumpEdgeLeaving ())
-      {
-        CFANode nextNode = locStack.peek ();
-
+      if (isReachableNode(prevNode)) {
         BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, nextNode);
         addToCFA(blankEdge);
       }
@@ -640,19 +638,15 @@ public class CFABuilder extends ASTVisitor
     else if ((statement instanceof IASTCompoundStatement) && (statement.getPropertyInParent () == IASTWhileStatement.BODY))
     {
       CFANode prevNode = locStack.pop ();
+      CFANode startNode = loopStartStack.pop();
 
-      if (!prevNode.hasJumpEdgeLeaving ())
-      {
-        CFANode startNode = loopStartStack.peek ();
-
-        if (!prevNode.hasEdgeTo (startNode))
-        {
-          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, startNode);
-          addToCFA(blankEdge);
-        }
+      if (isReachableNode(prevNode)) {
+        BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, startNode);
+        addToCFA(blankEdge);
       }
-      loopStartStack.pop ();
-      loopNextStack.pop ();
+
+      CFANode nextNode = loopNextStack.pop();
+      assert nextNode == locStack.peek();
     }
     else if (statement instanceof IASTWhileStatement) // Code never hit due to bug in Eclipse CDT
     {
@@ -687,36 +681,60 @@ public class CFABuilder extends ASTVisitor
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
   }
   
+  private static boolean isReachableNode(CFANode node) {
+    return (node.getNumEnteringEdges() > 0)
+        || (node instanceof CFAFunctionDefinitionNode)
+        || (node instanceof CFALabelNode);
+  }
+  
   /**
    * This method adds this edge to the leaving and entering edges
    * of its predecessor and successor respectively, but it does so only
    * if the edge does not contain dead code 
    */
-  private void addToCFA(CFAEdge edge) {
+  private static void addToCFA(CFAEdge edge, LogManager logger) {
     CFANode predecessor = edge.getPredecessor();
+    CFANode successor = edge.getSuccessor();
 
-    // Nodes with an outgoing jump edge (return/break/goto) don't have other outgoing edges!
-    assert !predecessor.hasJumpEdgeLeaving();
-    if (edge.isJumpEdge()) {
+    // check control flow branching at predecessor
+    if (edge instanceof AssumeEdge) {
+      assert predecessor.getNumLeavingEdges() <= 1;
+      if (predecessor.getNumLeavingEdges() > 0) {
+        assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
+      }
+      
+    } else {
       assert predecessor.getNumLeavingEdges() == 0;
     }
     
-    if ((predecessor.getNumEnteringEdges() == 0)
-          && !(predecessor instanceof CFAFunctionDefinitionNode)
-          && !(predecessor instanceof CFALabelNode)) {
-        
-      if (!(edge instanceof BlankEdge) || edge.isJumpEdge()) {
-        // don't log if the dead code begins with a blank edge, this is most often a false positive
-        // but do log jump edges
+    // check control flow merging at successor
+    if (   !(successor instanceof CFAFunctionExitNode)
+        && !(successor instanceof CFALabelNode)) {
+      // these two node types may have unlimited incoming edges
+      // all other may have at most two of them
+      
+      assert successor.getNumEnteringEdges() <= 1;
+    }
+    
+    // check if predecessor is reachable
+    if (isReachableNode(predecessor)) {
+    
+      // all checks passed, add it to the CFA
+      edge.getPredecessor().addLeavingEdge(edge);
+      edge.getSuccessor().addEnteringEdge(edge);
+      
+    } else {
+      // unreachable edge, don't add it to the CFA
+    
+      if (!edge.getRawStatement().isEmpty()) {
+        // warn user
         logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
-        
-      // don't add this edge to the CFA
-
-    } else { 
-
-      registerEdgeAtNodes(edge);
     }
+  }
+  
+  private void addToCFA(CFAEdge edge) {
+    addToCFA(edge, logger);
   }
 
   /**
@@ -726,44 +744,36 @@ public class CFABuilder extends ASTVisitor
     if (globalVars.isEmpty()) {
       return;
     }
-    // create a series of GlobalDeclarationEdges, one for each declaration,
-    // and add them as successors of the input node
-    final CFANode first = new CFANode(0, cfa.getFunctionName());
-    CFANode cur = first;
-
-    for (IASTDeclaration d : globalVars) {
-      assert(d instanceof IASTSimpleDeclaration);
-      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
-          sd.getFileLocation().getStartingLineNumber(), cur, n);
-      registerEdgeAtNodes(e);
-      cur = n;
-    }
 
     // split off first node of CFA
     assert cfa.getNumLeavingEdges() == 1;
-    assert cfa.getLeavingSummaryEdge() == null;
     CFAEdge firstEdge = cfa.getLeavingEdge(0);
     assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
     CFANode secondNode = firstEdge.getSuccessor();
 
     cfa.removeLeavingEdge(firstEdge);
     secondNode.removeEnteringEdge(firstEdge);
+    
+    // insert one node to start the series of declarations
+    CFANode cur = new CFANode(0, cfa.getFunctionName());
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
+    addToCFA(be, logger);
 
-    // and add a blank edge connecting the first node of CFA with declarations
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, first);
-    registerEdgeAtNodes(be);
+    // create a series of GlobalDeclarationEdges, one for each declaration
+    for (IASTDeclaration d : globalVars) {
+      assert(d instanceof IASTSimpleDeclaration);
+      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
+      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
+          sd.getFileLocation().getStartingLineNumber(), cur, n);
+      addToCFA(e, logger);
+      cur = n;
+    }
 
     // and a blank edge connecting the declarations with the second node of CFA
     be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    registerEdgeAtNodes(be);
+    addToCFA(be, logger);
 
     return;
-  }
-  
-  private static void registerEdgeAtNodes(CFAEdge edge) {
-    edge.getPredecessor().addLeavingEdge(edge);
-    edge.getSuccessor().addEnteringEdge(edge);
   }
 }
