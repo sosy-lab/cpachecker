@@ -31,7 +31,7 @@ If an option appears on the command line as well as in the configuration file,
 the value from the command line overrides the one from the file.
 
 All other arguments to CPAchecker are interpreted as code files that should be
-analyzed (option analysis.programs). However, currently only one such file may
+analyzed (option analysis.programNames). However, currently only one such file may
 be specified.
 
 
@@ -116,7 +116,7 @@ log.fileExclude =
 log.consoleExclude =
 
 # C code file to analyze, normally given on command line
-analysis.programs =
+analysis.programNames =
 
 # C dialect for parser (GNUC or C99)
 parser.dialect = GNUC

@@ -24,13 +24,9 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
@@ -46,9 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.base.Functions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Joiner;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -63,7 +57,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   public static interface AbstractionPredicatesMXBean {
     int getNumberOfPredicates();
-    Set<String> getPredicates();
+    String getPredicates();
   }
   
   private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
@@ -76,17 +70,17 @@ public class AbstractionManagerImpl implements AbstractionManager {
       return numberOfPredicates;
     }
     @Override
-    public Set<String> getPredicates() {
+    public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
-      return ImmutableSet.copyOf(Collections2.transform(absVarToPredicate.keySet(), Functions.toStringFunction()));
+      return Joiner.on('\n').join(absVarToPredicate.values());
     }
   }
   
   private volatile int numberOfPredicates = 0;
   
-  protected final LogManager logger;
-  protected final RegionManager rmgr;
-  protected final FormulaManager fmgr;
+  private final LogManager logger;
+  private final RegionManager rmgr;
+  private final FormulaManager fmgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate;
@@ -94,7 +88,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
   private final Map<Formula, AbstractionPredicate> symbVarToPredicate;
 
   @Option
-  protected boolean useCache = true;
+  private boolean useCache = true;
 
   private final Map<Region, Formula> toConcreteCache;
 
@@ -115,18 +109,6 @@ public class AbstractionManagerImpl implements AbstractionManager {
     }
     
     new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
-  }
-
-  /**
-   * Generates the predicates corresponding to the given atoms.
-   */
-  protected List<AbstractionPredicate> buildPredicates(Collection<Formula> atoms) {
-    List<AbstractionPredicate> ret = new ArrayList<AbstractionPredicate>(atoms.size());
-
-    for (Formula atom : atoms) {
-      ret.add(makePredicate(atom));
-    }
-    return ret;
   }
   
   @Override

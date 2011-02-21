@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 /**
@@ -34,8 +33,20 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
 
   private final boolean bottom;
   
-  private Pair<PreventingHeuristicType, Long> preventingCondition = null;
+  private static long threshold = -1;
+  private static PreventingHeuristicType preventingHeuristicType = null;
 
+  public static void setThreshold(long newThreshold)
+  {
+    threshold = newThreshold;
+  }
+
+  @Override
+  public long getThreshold()
+  {
+    return threshold;
+  }
+  
   /** Instances are only accessible via TOP/BOTTOM */
   private TrivialStopHeuristicsData(boolean isBottom) {
     bottom = isBottom;
@@ -74,9 +85,14 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
     return true;
   }
 
+  public static void setPreventingHeuristicType(
+      PreventingHeuristicType pPreventingHeuristicType) {
+    preventingHeuristicType = pPreventingHeuristicType;
+  }
+  
   @Override
-  public Pair<PreventingHeuristicType, Long> getPreventingCondition() {
-    return preventingCondition;
+  public PreventingHeuristicType getHeuristicType() {
+    return preventingHeuristicType;
   }
 
 }

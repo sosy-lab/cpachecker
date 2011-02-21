@@ -162,6 +162,13 @@ int CdAudioStartDevice(int DeviceObject , int Irp )
   int tmp ;
   int deviceParameterHandle ;
   int keyValue ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  deviceExtension__Active = __BLAST_NONDET;
+  srb__Cdb = __BLAST_NONDET;
+
   {
   {
 #line 140
@@ -274,6 +281,15 @@ int CdAudioPnp(int DeviceObject , int Irp )
   int setPagable ;
   int tmp ;
   int tmp___0 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
+  irpSp__MinorFunction = __BLAST_NONDET;
+  irpSp__Parameters__UsageNotification__Type = __BLAST_NONDET;
+  irpSp__Parameters__UsageNotification__InPath = __BLAST_NONDET;
+  deviceExtension__PagingPathCount = __BLAST_NONDET;
 
   {
 #line 221
@@ -503,6 +519,16 @@ int CdAudioIsPlayActive(int DeviceObject )
   long __cil_tmp10 ;
   int __cil_tmp11 ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  deviceExtension__PlayActive = __BLAST_NONDET;
+  currentBuffer = __BLAST_NONDET;
+  irp_CdAudioIsPlayActive = __BLAST_NONDET;
+  status = __BLAST_NONDET;
+  ioStatus__Status = __BLAST_NONDET;
+  currentBuffer__Header__AudioStatus = __BLAST_NONDET;
+
   {
 #line 404
   if (! deviceExtension__PlayActive) {
@@ -664,6 +690,30 @@ int CdAudio535DeviceControl(int DeviceObject , int Irp )
   unsigned long __cil_tmp108 ;
   int __cil_tmp109 ;
   int __cil_tmp110 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+  Irp__AssociatedIrp__SystemBuffer = __BLAST_NONDET;
+  srb__Cdb = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__OutputBufferLength = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__InputBufferLength = __BLAST_NONDET;
+  sizeof__SUB_Q_CURRENT_POSITION = __BLAST_NONDET;
+  sizeof__CDROM_SEEK_AUDIO_MSF = __BLAST_NONDET;
+  sizeof__CDROM_PLAY_AUDIO_MSF = __BLAST_NONDET;
+  SubQPtr = __BLAST_NONDET;
+  userPtr__Format = __BLAST_NONDET;
+  lastSession = __BLAST_NONDET;
+  Toc = __BLAST_NONDET;
+  inputBuffer__EndingM = __BLAST_NONDET;
+  inputBuffer__StartingM = __BLAST_NONDET;
+  inputBuffer__EndingS = __BLAST_NONDET;
+  inputBuffer__StartingS = __BLAST_NONDET;
+  inputBuffer__EndingF = __BLAST_NONDET;
+  inputBuffer__StartingF = __BLAST_NONDET;
 
   {
 #line 499
@@ -1311,6 +1361,22 @@ int CdAudio435DeviceControl(int DeviceObject , int Irp )
   unsigned long __cil_tmp114 ;
   unsigned long __cil_tmp115 ;
   unsigned long __cil_tmp116 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__OutputBufferLength = __BLAST_NONDET;
+  sizeof__SUB_Q_CURRENT_POSITION = __BLAST_NONDET;
+  SubQPtr___0 = __BLAST_NONDET;
+  userPtr__Format = __BLAST_NONDET;
+  TrackData__0 = __BLAST_NONDET;
+  Toc = __BLAST_NONDET;
+  SubQPtr = __BLAST_NONDET;
+  deviceExtension__Paused = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__InputBufferLength = __BLAST_NONDET;
+  sizeof__CDROM_PLAY_AUDIO_MSF = __BLAST_NONDET;
+  sizeof__CDROM_SEEK_AUDIO_MSF = __BLAST_NONDET;
 
   {
   {
@@ -2080,6 +2146,11 @@ int CdAudioAtapiDeviceControl(int DeviceObject , int Irp )
   int __cil_tmp17 ;
   int __cil_tmp18 ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
+
   {
   {
 #line 1277
@@ -2146,6 +2217,10 @@ int CdAudioAtapiDeviceControl(int DeviceObject , int Irp )
 #line 1309 "cdaudio_simpl1.cil.c"
 void HpCdrProcessLastSession(int Toc ) 
 { int index ;
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  index = __BLAST_NONDET;
 
   {
 #line 1313
@@ -2753,6 +2828,10 @@ void IofCompleteRequest(int Irp , int PriorityBoost )
 #line 1734 "cdaudio_simpl1.cil.c"
 int KeSetEvent(int Event , int Increment , int Wait ) 
 { int l ;
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  l = __BLAST_NONDET;
 
   {
 #line 1738

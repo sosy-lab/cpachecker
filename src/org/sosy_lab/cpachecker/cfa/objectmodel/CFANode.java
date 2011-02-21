@@ -28,182 +28,149 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 
+public class CFANode implements Comparable<CFANode> {
 
-public class CFANode implements Comparable<CFANode>
-{
-	private int lineNumber;
-    private List<CFAEdge> leavingEdges;
-    private List<CFAEdge> enteringEdges;
-    private int nodeNumber;
-    // is start node of a loop?
-    private boolean isLoopStart = false;
-    // in which function is that node?
-    private final String functionName;
-    // list of summary edges
-    private CallToReturnEdge leavingSummaryEdge;
-    private CallToReturnEdge enteringSummaryEdge;
-    // topological sort id, smaller if it appears later in sorting
-    private int topologicalSortId;
-    
-    // flag whether the error condition is reachable from this node
-    private boolean isRelevant = true;
+  private static int          nextNodeNumber      = 0;
 
-    private static int nextNodeNumber = 0;
+  private final int           nodeNumber;
+  private final int           lineNumber;
 
-    public CFANode(int lineNumber, String functionName) {
-        this.lineNumber = lineNumber;
-        this.functionName = functionName;
-        this.nodeNumber = nextNodeNumber++;
-        leavingEdges = new ArrayList<CFAEdge>();
-        enteringEdges = new ArrayList<CFAEdge> ();
-        leavingSummaryEdge = null;
-        enteringSummaryEdge = null;
-    }
+  private final List<CFAEdge> leavingEdges        = new ArrayList<CFAEdge>();
+  private final List<CFAEdge> enteringEdges       = new ArrayList<CFAEdge>();
 
-    public int getLineNumber ()
-    {
-        return lineNumber;
-    }
+  // is start node of a loop?
+  private boolean             isLoopStart         = false;
 
-    public int getNodeNumber ()
-    {
-        return nodeNumber;
-    }
+  // in which function is that node?
+  private final String        functionName;
 
-    public int getTopologicalSortId ()
-    {
-        return topologicalSortId;
-    }
+  // list of summary edges
+  private CallToReturnEdge    leavingSummaryEdge  = null;
+  private CallToReturnEdge    enteringSummaryEdge = null;
 
-    public void setTopologicalSortId (int i)
-    {
-        topologicalSortId = i;
-    }
+  // topological sort id, smaller if it appears later in sorting
+  private int                 topologicalSortId   = 0;
 
-    public void addLeavingEdge (CFAEdge newLeavingEdge)
-    {
-        leavingEdges.add (newLeavingEdge);
-    }
+  public CFANode(int lineNumber, String functionName) {
+    this.lineNumber = lineNumber;
+    this.functionName = functionName;
+    this.nodeNumber = nextNodeNumber++;
+  }
 
-    public boolean removeLeavingEdge (CFAEdge edge)
-    {
-        return leavingEdges.remove (edge);
-    }
+  public int getLineNumber() {
+    return lineNumber;
+  }
 
-    public int getNumLeavingEdges ()
-    {
-        return leavingEdges.size ();
-    }
+  public int getNodeNumber() {
+    return nodeNumber;
+  }
 
-    public CFAEdge getLeavingEdge (int index)
-    {
-        return leavingEdges.get (index);
-    }
+  public int getTopologicalSortId() {
+    return topologicalSortId;
+  }
 
-    public void addEnteringEdge (CFAEdge enteringEdge)
-    {
-        enteringEdges.add (enteringEdge);
-    }
+  public void setTopologicalSortId(int i) {
+    topologicalSortId = i;
+  }
 
-    public boolean removeEnteringEdge (CFAEdge edge)
-    {
-        return enteringEdges.remove (edge);
-    }
+  public void addLeavingEdge(CFAEdge newLeavingEdge) {
+    leavingEdges.add(newLeavingEdge);
+  }
 
-    public int getNumEnteringEdges ()
-    {
-        return enteringEdges.size ();
-    }
+  public boolean removeLeavingEdge(CFAEdge edge) {
+    return leavingEdges.remove(edge);
+  }
 
-    public CFAEdge getEnteringEdge (int index)
-    {
-        return enteringEdges.get (index);
-    }
+  public int getNumLeavingEdges() {
+    return leavingEdges.size();
+  }
 
-    public boolean hasEdgeTo (CFANode other)
-    {
-        boolean hasEdge = false;
-        for (CFAEdge edge : leavingEdges)
-        {
-            if (edge.getSuccessor () == other)
-            {
-                hasEdge = true;
-                break;
-            }
-        }
+  public CFAEdge getLeavingEdge(int index) {
+    return leavingEdges.get(index);
+  }
 
-        return hasEdge;
-    }
+  public void addEnteringEdge(CFAEdge enteringEdge) {
+    enteringEdges.add(enteringEdge);
+  }
 
-    public boolean hasJumpEdgeLeaving ()
-    {
-        for (CFAEdge edge : leavingEdges)
-        {
-            if (edge.isJumpEdge ())
-                return true;
-        }
-        return false;
-    }
+  public boolean removeEnteringEdge(CFAEdge edge) {
+    return enteringEdges.remove(edge);
+  }
 
-    public void setLoopStart(){
-    	isLoopStart = true;
-    }
+  public int getNumEnteringEdges() {
+    return enteringEdges.size();
+  }
 
-    public boolean isLoopStart(){
-    	return isLoopStart;
-    }
+  public CFAEdge getEnteringEdge(int index) {
+    return enteringEdges.get(index);
+  }
 
-    public String getFunctionName(){
-    	return functionName;
-    }
-
-    public void addEnteringSummaryEdge(CallToReturnEdge edge){
-    	enteringSummaryEdge = edge;
-    }
-
-    public void addLeavingSummaryEdge(CallToReturnEdge edge){
-    	leavingSummaryEdge = edge;
-    }
-
-    public CallToReturnEdge getEnteringSummaryEdge(){
-    	return enteringSummaryEdge;
-    }
-
-    public CallToReturnEdge getLeavingSummaryEdge(){
-    	return leavingSummaryEdge;
-    }
-    
-    public boolean isRelevant() {
-      return isRelevant;
-    }
-
-    public void setIrrelevant() {
-      isRelevant = false;
-    }
-    
-    @Override
-    public boolean equals(Object other) {
-      if (other == this) {
-        return true;
+  public boolean hasEdgeTo(CFANode other) {
+    boolean hasEdge = false;
+    for (CFAEdge edge : leavingEdges) {
+      if (edge.getSuccessor() == other) {
+        hasEdge = true;
+        break;
       }
-      if (other == null || !(other instanceof CFANode)) {
-        return false;
-      }
-      return getNodeNumber() == ((CFANode)other).getNodeNumber();
     }
 
-    @Override
-    public int hashCode() {
-        return getNodeNumber();
-    }
+    return hasEdge;
+  }
 
-    @Override
-    public String toString() {
-        return "N" + getNodeNumber();
+  public boolean hasJumpEdgeLeaving() {
+    for (CFAEdge edge : leavingEdges) {
+      if (edge.isJumpEdge()) return true;
     }
+    return false;
+  }
 
-    @Override
-    public int compareTo(CFANode o) {
-        return getNodeNumber() - o.getNodeNumber();
-    }
+  public void setLoopStart() {
+    isLoopStart = true;
+  }
+
+  public boolean isLoopStart() {
+    return isLoopStart;
+  }
+
+  public String getFunctionName() {
+    return functionName;
+  }
+
+  public void addEnteringSummaryEdge(CallToReturnEdge edge) {
+    enteringSummaryEdge = edge;
+  }
+
+  public void addLeavingSummaryEdge(CallToReturnEdge edge) {
+    leavingSummaryEdge = edge;
+  }
+
+  public CallToReturnEdge getEnteringSummaryEdge() {
+    return enteringSummaryEdge;
+  }
+
+  public CallToReturnEdge getLeavingSummaryEdge() {
+    return leavingSummaryEdge;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == this) { return true; }
+    if (other == null || !(other instanceof CFANode)) { return false; }
+    return getNodeNumber() == ((CFANode) other).getNodeNumber();
+  }
+
+  @Override
+  public int hashCode() {
+    return getNodeNumber();
+  }
+
+  @Override
+  public String toString() {
+    return "N" + getNodeNumber();
+  }
+
+  @Override
+  public int compareTo(CFANode o) {
+    return getNodeNumber() - o.getNodeNumber();
+  }
 }

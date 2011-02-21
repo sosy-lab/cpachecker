@@ -96,6 +96,12 @@ int DiskPerfDispatchPnp(int DeviceObject , int Irp )
   int status ;
   int tmp ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
+  irpSp__MinorFunction = __BLAST_NONDET;
+
   {
 #line 105
   irpSp = Irp__Tail__Overlay__CurrentStackLocation;
@@ -161,6 +167,11 @@ int DiskPerfStartDevice(int DeviceObject , int Irp )
   int deviceExtension ;
   int status ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+
   {
   {
 #line 159
@@ -191,6 +202,12 @@ int DiskPerfRemoveDevice(int DeviceObject , int Irp )
   int deviceExtension ;
   int wmilibContext ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+  deviceExtension__WmilibContext = __BLAST_NONDET;
+
   {
   {
 #line 180
@@ -218,6 +235,11 @@ int DiskPerfSendToNextDriver(int DeviceObject , int Irp )
   int deviceExtension__TargetDeviceObject ;
   int deviceExtension ;
   int tmp ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
 
   {
 #line 199
@@ -252,6 +274,11 @@ int DiskPerfDispatchPower(int DeviceObject , int Irp )
   int deviceExtension__TargetDeviceObject ;
   int deviceExtension ;
   int tmp ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
 
   {
 #line 224
@@ -293,6 +320,13 @@ int DiskPerfForwardIrpSynchronous(int DeviceObject , int Irp )
   int irpSp__Control ;
   int irpSp___0 ;
   long __cil_tmp15 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
+  event = __BLAST_NONDET;
 
   {
 #line 255
@@ -466,6 +500,19 @@ int DiskPerfDeviceControl(int DeviceObject , int Irp )
   int __cil_tmp25 ;
   int __cil_tmp26 ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
+  currentIrpStack__Parameters__DeviceIoControl__OutputBufferLength = __BLAST_NONDET;
+  sizeof__DISK_PERFORMANCE = __BLAST_NONDET;
+  deviceExtension__DiskCounters = __BLAST_NONDET;
+  Irp__AssociatedIrp__SystemBuffer = __BLAST_NONDET;
+  deviceExtension__Processors = __BLAST_NONDET;
+  deviceExtension__QueueDepth = __BLAST_NONDET;
+
   {
 #line 390
   deviceExtension = DeviceObject__DeviceExtension;
@@ -562,6 +609,11 @@ int DiskPerfShutdownFlush(int DeviceObject , int Irp )
   int deviceExtension ;
   int tmp ;
 
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+
   {
   {
 #line 452
@@ -626,6 +678,16 @@ int DiskPerfRegisterDevice(int DeviceObject )
   long __cil_tmp37 ;
   int __cil_tmp38 ;
   int __cil_tmp39 ;
+
+  int __BLAST_NONDET;
+
+  // initialization added by ah
+  DeviceObject__DeviceExtension = __BLAST_NONDET;
+  sizeof__MOUNTDEV_NAME = __BLAST_NONDET;
+  output = __BLAST_NONDET;
+  ioStatus__Status = __BLAST_NONDET;
+  output__NameLength = __BLAST_NONDET;
+  volumeNumber__VolumeManagerName__0 = __BLAST_NONDET;
 
   {
   {
@@ -1097,6 +1159,7 @@ int IoBuildDeviceIoControlRequest(int IoControlCode , int DeviceObject , int Inp
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
+  malloc_ret = __BLAST_NONDET;
 
   {
 #line 813
@@ -1151,6 +1214,7 @@ int IofCallDriver(int DeviceObject , int Irp )
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
+  lcontext = __BLAST_NONDET;
 
   {
 #line 852
@@ -1351,6 +1415,7 @@ int PoCallDriver(int DeviceObject , int Irp )
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
+  lcontext = __BLAST_NONDET;
 
   {
 #line 995

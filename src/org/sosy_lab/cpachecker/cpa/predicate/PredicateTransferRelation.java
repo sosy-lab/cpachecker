@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -78,10 +75,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   @Option(name="blk.requireThresholdAndLBE")
   private boolean absOnlyIfBoth = false;
-  
-  @Option(name="blk.useCache")
-  private boolean useCache = true;
-  
+
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
   
@@ -92,7 +86,6 @@ public class PredicateTransferRelation implements TransferRelation {
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
   final Timer pathFormulaTimer = new Timer();
-  final Timer pathFormulaComputationTimer = new Timer();
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
 
@@ -101,14 +94,10 @@ public class PredicateTransferRelation implements TransferRelation {
   int numBlkThreshold = 0;
   int numSatChecksFalse = 0;
   int numStrengthenChecksFalse = 0;
-  int pathFormulaCacheHits = 0;
   
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
-
-  // pathFormula computation cache
-  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache;
 
   public PredicateTransferRelation(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this);
@@ -116,8 +105,6 @@ public class PredicateTransferRelation implements TransferRelation {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
-    
-    pathFormulaCache = useCache ? new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>() : null;
   }
 
   @Override
@@ -197,31 +184,12 @@ public class PredicateTransferRelation implements TransferRelation {
    */
   private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     pathFormulaTimer.start();
-    PathFormula pf;
-
-    if (!useCache) {
-      pathFormulaComputationTimer.start();
+    try {
       // compute new pathFormula with the operation on the edge
-      pf = pathFormulaManager.makeAnd(pathFormula, edge);
-      pathFormulaComputationTimer.stop();
-
-    } else {
-      final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pathFormula, edge);
-      pf = pathFormulaCache.get(formulaCacheKey);
-      if (pf == null) {
-        pathFormulaComputationTimer.start();
-        // compute new pathFormula with the operation on the edge
-        pf = pathFormulaManager.makeAnd(pathFormula, edge);
-        pathFormulaComputationTimer.stop();
-        pathFormulaCache.put(formulaCacheKey, pf);
-        
-      } else {
-        pathFormulaCacheHits++;
-      }
+      return  pathFormulaManager.makeAnd(pathFormula, edge);
+    } finally {
+      pathFormulaTimer.stop();
     }
-    assert pf != null;
-    pathFormulaTimer.stop();
-    return pf;
   }
 
   /**

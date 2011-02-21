@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 /**
  * @author g.theoduloz
@@ -47,7 +48,7 @@ public class UsedMemoryOutHeuristics
 
   public UsedMemoryOutHeuristics(Configuration config, LogManager logger) {
     mxBean = ManagementFactory.getMemoryMXBean();
-    threshold = Long.parseLong(config.getProperty("threshold", "-1").trim());
+    threshold = Long.parseLong(config.getProperty("threshold", "0").trim());
   }
 
   @Override
@@ -66,8 +67,11 @@ public class UsedMemoryOutHeuristics
       return TrivialStopHeuristicsData.BOTTOM;
 
     long usedMemory = mxBean.getHeapMemoryUsage().getUsed();
-    if (usedMemory > threshold)
+    if (threshold != 0 && usedMemory > threshold){
+      TrivialStopHeuristicsData.setThreshold(threshold);
+      TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
       return TrivialStopHeuristicsData.BOTTOM;
+    }
     else
       return TrivialStopHeuristicsData.TOP;
   }

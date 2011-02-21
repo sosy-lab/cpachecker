@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 
@@ -39,5 +38,6 @@ public interface StopHeuristicsData {
   // this returns true when time or memory limit for analysis
   // is hit
   public boolean shouldTerminateAnalysis();
-  public Pair<PreventingHeuristicType, Long> getPreventingCondition();
+  public long getThreshold();
+  public PreventingHeuristicType getHeuristicType();
 }

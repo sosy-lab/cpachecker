@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 /**
  * @author g.theoduloz
@@ -53,8 +54,11 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
   @Override
   public TrivialStopHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
     if ((pData == TrivialStopHeuristicsData.BOTTOM)
-     || ((threshold > 0) && (pReached.getHeuristicsData().size() > threshold)))
+        || ((threshold > 0) && (pReached.getHeuristicsData().size() > threshold))){
+      TrivialStopHeuristicsData.setThreshold(threshold);
+      TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
       return TrivialStopHeuristicsData.BOTTOM;
+    }
     else
       return TrivialStopHeuristicsData.TOP;
   }

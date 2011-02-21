@@ -32,7 +32,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -62,9 +61,6 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cfa.pruning")
 public class CFAReduction {
   
-  @Option
-  private boolean markOnly = false;
-  
   private final Configuration config;
   private final LogManager logger;
   
@@ -87,17 +83,12 @@ public class CFAReduction {
     
     if (errorNodes.isEmpty()) {
       // shortcut, all nodes are irrelevant
-      if (markOnly) {
-        for (CFANode n : allNodes) {
-          n.setIrrelevant();
-        }
-      } else {
-        // remove all outgoing edges of first node
-        for (int i = cfa.getNumLeavingEdges() - 1; i >= 0; i--) {
-          cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
-        }
-        cfa.addLeavingSummaryEdge(null);
+
+      // remove all outgoing edges of first node
+      for (int i = cfa.getNumLeavingEdges() - 1; i >= 0; i--) {
+        cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
       }
+      cfa.addLeavingSummaryEdge(null);
       return;
     }
     
@@ -160,41 +151,29 @@ public class CFAReduction {
       Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
     for (CFANode n : allNodes) {
       if (!relevantNodes.contains(n)) {
-        boolean irrelevant = true;
         
         // check if node is successor of error node and remove incoming edges
         for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
           
-          if (errorNodes.contains(prevNode)) {
+          if (!errorNodes.contains(prevNode)) {
             // do not remove the direct successors of error nodes
-            irrelevant = false;
 
-          } else {
-            if (!markOnly) {
-              prevNode.removeLeavingEdge(removedEdge);
-              n.removeEnteringEdge(removedEdge);
-            }
+            prevNode.removeLeavingEdge(removedEdge);
+            n.removeEnteringEdge(removedEdge);
           }
         }
         
-        if (markOnly) {
-          // if node is not successor of error node, mark it as irrelevant
-          if (irrelevant) {
-            n.setIrrelevant();
-          }
-        } else {
-          // remove all outgoing edges
-          while (n.getNumLeavingEdges() > 0) {
-            CFAEdge removedEdge = n.getLeavingEdge(0);
-            CFANode succNode = removedEdge.getSuccessor();
-            n.removeLeavingEdge(removedEdge);
-            succNode.removeEnteringEdge(removedEdge);
-          }
-          n.addEnteringSummaryEdge(null);
-          n.addLeavingSummaryEdge(null);
+        // remove all outgoing edges
+        while (n.getNumLeavingEdges() > 0) {
+          CFAEdge removedEdge = n.getLeavingEdge(0);
+          CFANode succNode = removedEdge.getSuccessor();
+          n.removeLeavingEdge(removedEdge);
+          succNode.removeEnteringEdge(removedEdge);
         }
+        n.addEnteringSummaryEdge(null);
+        n.addLeavingSummaryEdge(null);
       }
     }
   }

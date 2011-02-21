@@ -65,7 +65,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
             elif abstractions is None and line.startswith('Number of abstractions:'):
                 abstractions = (line[line.find(':')+1:line.find('(')-1].strip())
             elif refinements is None and line.startswith('Number of refinements:'):
-                refinements = (line[line.find(':')+1:line.find('(')-1].strip())
+                refinements = (line[line.find(':')+1:].strip())
             elif blocksize is None and line.startswith('Max ABE block size: '):
                 blocksize = line[19:].strip()
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):

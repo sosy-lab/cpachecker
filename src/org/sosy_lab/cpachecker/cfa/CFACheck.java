@@ -23,116 +23,144 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
 public class CFACheck {
+
   /**
-   * BFS-traverse the CFA and run a series of checks at each node
+   * Traverse the CFA and run a series of checks at each node
    * @param cfa Node to start traversal from
    */
-  public static boolean check (CFAFunctionDefinitionNode cfa)
-  {
-    // Code copied from CFASimplifier.java
-    Set<CFANode> visitedNodes = new HashSet<CFANode> ();
-    LinkedList<CFANode> waitingNodeList = new LinkedList<CFANode> ();
+  public static boolean check(CFAFunctionDefinitionNode cfa) {
 
-    waitingNodeList.add (cfa);
-    while (!waitingNodeList.isEmpty ())
-    {
-      CFANode node = waitingNodeList.poll ();
-      if (!visitedNodes.add (node)) continue;
+    Set<CFANode> visitedNodes = new HashSet<CFANode>();
+    Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode>();
 
-      int leavingEdgeCount = node.getNumLeavingEdges ();
-      for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; edgeIdx++)
-      {
-        waitingNodeList.add (node.getLeavingEdge (edgeIdx).getSuccessor ());
+    waitingNodeList.add(cfa);
+    while (!waitingNodeList.isEmpty()) {
+      CFANode node = waitingNodeList.poll();
+      
+      if (visitedNodes.add(node)) {
+        for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
+          CFAEdge edge = node.getLeavingEdge(edgeIdx);
+          waitingNodeList.add(edge.getSuccessor());
+        }
+  
+        // The actual checks
+        isConsistent(node);
+        checkEdgeCount(node);
       }
-
-      // The actual checks
-      assert isConsistent(node) : "Incosistent node " + node;
-      assert jumpConsistency(node) : "Incosistent jump at node " + node;
     }
     return true;
   }
 
   /**
+   * Verify that the number of edges and their types match.
+   * @param pNode Node to be checked
+   */
+  private static void checkEdgeCount(CFANode pNode) {
+    
+    // check entering edges
+    int entering = pNode.getNumEnteringEdges(); 
+    if (entering == 0) {
+      assert (pNode instanceof CFAFunctionDefinitionNode) : "Dead code: node " + pNode + " has no incoming edges";
+    
+    } else if (entering > 2) {
+      assert (pNode instanceof CFAFunctionDefinitionNode)
+          || (pNode instanceof CFAFunctionExitNode)
+          || (pNode instanceof CFALabelNode)
+          : "Too many incoming edges at node " + pNode.getLineNumber();
+    }
+    
+    // check leaving edges
+    if (!(pNode instanceof CFAFunctionExitNode)) {
+      switch (pNode.getNumLeavingEdges()) {
+      case 0:
+        assert false : "Dead end at node " + pNode;
+        break;
+  
+      case 1: break;
+        
+      case 2:
+        CFAEdge edge1 = pNode.getLeavingEdge(0);
+        CFAEdge edge2 = pNode.getLeavingEdge(1);
+        assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + pNode;
+        
+        AssumeEdge ae1 = (AssumeEdge)edge1;
+        AssumeEdge ae2 = (AssumeEdge)edge2;
+        assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + pNode;
+        break;
+        
+      default:
+        assert false : "Too much branching at node " + pNode;
+      }
+    }
+  }
+  
+  /**
    * Check all entering and leaving edges for corresponding leaving/entering edges
    * at predecessor/successor nodes, and that there are no duplicates
    * @param pNode Node to be checked
-   * @return False, if an inconsistency is detected
    */
-  private static boolean isConsistent(CFANode pNode) {
-    Set<CFAEdge> seen = new HashSet<CFAEdge>();
-    // as long as the direction of traversal of the CFA is forward, we could actually
-    // omit the forward consistency check, but better check twice than not at all
-    int leavingEdgeCount = pNode.getNumLeavingEdges ();
-    for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; ++edgeIdx)
-    {
+  private static void isConsistent(CFANode pNode) {
+    Set<CFAEdge> seenEdges = new HashSet<CFAEdge>();
+    Set<CFANode> seenNodes = new HashSet<CFANode>();
+
+    for (int edgeIdx = 0; edgeIdx < pNode.getNumLeavingEdges(); ++edgeIdx) {
       CFAEdge edge = pNode.getLeavingEdge(edgeIdx);
-      if (!seen.add(edge)) {
+      if (!seenEdges.add(edge)) {
         assert false : "Duplicate leaving edge " + edge + " on node " + pNode;
       }
+      
       CFANode successor = edge.getSuccessor();
-      int succEnteringEdgeCount = successor.getNumEnteringEdges();
+      if (!seenNodes.add(successor)) {
+        assert false : "Duplicate successor " + successor + " for node " + pNode;
+      }
+      
       boolean hasEdge = false;
-      for (int succEdgeIdx = 0; succEdgeIdx < succEnteringEdgeCount; ++succEdgeIdx) {
+      for (int succEdgeIdx = 0; succEdgeIdx < successor.getNumEnteringEdges(); ++succEdgeIdx) {
         if (successor.getEnteringEdge(succEdgeIdx) == edge) {
           hasEdge = true;
           break;
         }
       }
-      if (!hasEdge) {
-        assert false : "Node " + pNode + " has leaving edge " + edge
-            + ", but pNode " + successor + " does not have this edge as entering edge!";
-      }
+      assert hasEdge : "Node " + pNode + " has leaving edge " + edge
+          + ", but pNode " + successor + " does not have this edge as entering edge!";
     }
 
-    seen.clear();
-    int enteringEdgeCount = pNode.getNumEnteringEdges ();
-    for (int edgeIdx = 0; edgeIdx < enteringEdgeCount; ++edgeIdx)
-    {
+    seenEdges.clear();
+    seenNodes.clear();
+    
+    for (int edgeIdx = 0; edgeIdx < pNode.getNumEnteringEdges(); ++edgeIdx) {
       CFAEdge edge = pNode.getEnteringEdge(edgeIdx);
-      if (!seen.add(edge)) {
+      if (!seenEdges.add(edge)) {
         assert false : "Duplicate entering edge " + edge + " on node " + pNode;
       }
+      
       CFANode predecessor = edge.getPredecessor();
-      int predLeavingEdgeCount = predecessor.getNumLeavingEdges();
+      if (!seenNodes.add(predecessor)) {
+        assert false : "Duplicate predecessor " + predecessor + " for node " + pNode;
+      }
+      
       boolean hasEdge = false;
-      for (int predEdgeIdx = 0; predEdgeIdx < predLeavingEdgeCount; ++predEdgeIdx) {
+      for (int predEdgeIdx = 0; predEdgeIdx < predecessor.getNumLeavingEdges(); ++predEdgeIdx) {
         if (predecessor.getLeavingEdge(predEdgeIdx) == edge) {
           hasEdge = true;
           break;
         }
       }
-      if (!hasEdge) {
-        assert false : "Node " + pNode + " has entering edge " + edge
-            + ", but pNode " + predecessor + " does not have this edge as leaving edge!";
-      }
+      assert hasEdge : "Node " + pNode + " has entering edge " + edge
+          + ", but pNode " + predecessor + " does not have this edge as leaving edge!";
     }
-
-    return true;
-  }
-
-  /**
-   * Check for jump edges and make sure there is only one of them
-   * @param pNode Node to be checked
-   * @return False, if an inconsistency is detected
-   */
-  private static boolean jumpConsistency(CFANode pNode) {
-    if (pNode.hasJumpEdgeLeaving()) {
-      return (pNode.getNumLeavingEdges() == 1);
-    }
-
-    return true;
   }
 }

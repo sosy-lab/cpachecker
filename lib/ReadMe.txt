@@ -40,7 +40,7 @@ and build.properties with the Eclipse PDE wizard!
 
 - javabdd-*.jar: JavaBDD
   http://javabdd.sourceforge.net/
-  GNU LGPL: GPL.txt
+  GNU LGPL: LGPL.txt
   Java BDD library for predicate abstraction (uses CUDD).
 
 - java-cup-*.jar: CUP LALR Parser Generator for Java
@@ -52,7 +52,8 @@ and build.properties with the Eclipse PDE wizard!
   http://www.jflex.de/
   GNU GPL: GPL.txt
   Used for generating automaton and FQL scanners.
-  The generated code is not under GPL.
+  The generated code is not under GPL,
+  and we do not use JFlex during runtime.
 
 - jgrapht-*.jar: JGraphT
   http://www.jgrapht.org/
