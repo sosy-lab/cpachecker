@@ -50,8 +50,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> mergeCache
             = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
   
+  private final Map<PathFormula, PathFormula> emptyFormulaCache
+            = new HashMap<PathFormula, PathFormula>();
+  
+  private final PathFormula emptyFormula;
+  
   public CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
+    emptyFormula = delegate.makeEmptyPathFormula();
   }
 
   @Override
@@ -93,12 +99,19 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return delegate.makeEmptyPathFormula();
+    return emptyFormula;
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
-    return delegate.makeEmptyPathFormula(pOldFormula);
+    PathFormula result = emptyFormulaCache.get(pOldFormula);
+    if (result == null) {
+      result = delegate.makeEmptyPathFormula(pOldFormula);
+      emptyFormulaCache.put(pOldFormula, result);
+    } else {
+      pathFormulaCacheHits++;
+    }
+    return result;
   }
 
   @Override
