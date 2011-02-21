@@ -73,12 +73,19 @@ public class PathFormula {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return (other instanceof PathFormula)
-      && formula.equals(((PathFormula)other).formula)
-      && ssa.equals(((PathFormula)other).ssa)
-      && reachingPathsFormula.equals(((PathFormula)other).reachingPathsFormula)
-      && branchingCounter == ((PathFormula)other).branchingCounter;
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof PathFormula)) {
+      return false;
+    }
+    
+    PathFormula other = (PathFormula)obj;
+    return formula.equals(other.formula)
+        && ssa.equals(other.ssa)
+        && reachingPathsFormula.equals(other.reachingPathsFormula)
+        && branchingCounter == (other).branchingCounter;
   }
   
   @Override
