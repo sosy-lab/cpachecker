@@ -25,8 +25,12 @@ public class IASTFunctionCallExpression extends IASTExpression implements
   }
 
   @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {functionName, parameters};
+  public IASTNode[] getChildren() {
+    if (parameters == null) {
+      return new IASTNode[] { functionName };
+    } else {
+      return new IASTNode[] { functionName, parameters };
+    }
   }
 
   @Override
