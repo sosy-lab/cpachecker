@@ -406,76 +406,61 @@ public class CFABuilder extends ASTVisitor
       return IF_CONDITION.NORMAL;
   }
 
-  private void handleIfStatement (IASTIfStatement ifStatement, IASTFileLocation fileloc)
-  {
-    CFANode prevNode = locStack.pop ();
+  private void handleIfStatement(IASTIfStatement ifStatement, IASTFileLocation fileloc) {
+    CFANode prevNode = locStack.pop();
+    
     CFANode postIfNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
-
-    locStack.push (postIfNode);
+    locStack.push(postIfNode);
+    
+    CFANode thenNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    locStack.push(thenNode);
+    
+    CFANode elseNode;
+    // elseNode is the start of the else branch, or the node after the loop if there is no else branch
+    if (ifStatement.getElseClause() == null) {
+      elseNode = postIfNode;
+    } else {
+      elseNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+      elseStack.push(elseNode);
+    }
 
     IF_CONDITION kind = getIfConditionKind(ifStatement);
 
     switch (kind) {
     case ALWAYS_FALSE: {
-        if (ifStatement.getElseClause() == null) {
-            CFANode ifNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-            BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, postIfNode);
-            addToCFA(edge);
-            locStack.push(ifNode);
-        } else {
-            CFANode elseNode =
-                new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-            BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, elseNode);
-            addToCFA(edge);
-            elseStack.push(elseNode);
-            CFANode n = new CFANode(-1, currentCFA.getFunctionName());
-            locStack.push(n);
-        }
+      // no edge connecting prevNode with thenNode, so that the "then" branch won't be connected to the rest of the CFA
+
+      // edge connecting prevNode with elseNode
+      BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, elseNode);
+      addToCFA(edge);
+      break;
     }
-        break;
     case ALWAYS_TRUE: {
-        CFANode thenNode =
-            new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-        BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, thenNode);
-        addToCFA(edge);
-        locStack.push(thenNode);
-        if (ifStatement.getElseClause() != null) {
-            CFANode n = new CFANode(-1, currentCFA.getFunctionName());
-            elseStack.push(n);
-        }
+      // edge connecting prevNode with thenNode
+      BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, thenNode);
+      addToCFA(edge);
+
+      // no edge connecting prevNode with elseNode, so that the "else" branch won't be connected to the rest of the CFA
+      break;
     }
-        break;
     case NORMAL: {
-        CFANode ifStartTrue = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-        AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
-                fileloc.getStartingLineNumber(), prevNode, ifStartTrue,
-                ifStatement.getConditionExpression (),
-                true);
+      // edge connecting prevNode with thenNode
+      AssumeEdge assumeEdgeTrue = new AssumeEdge(ifStatement.getConditionExpression().getRawSignature(),
+              fileloc.getStartingLineNumber(), prevNode, thenNode,
+              ifStatement.getConditionExpression(),
+              true);
+      addToCFA(assumeEdgeTrue);
 
-        addToCFA(assumeEdgeTrue);
-        locStack.push (ifStartTrue);
-
-        if (ifStatement.getElseClause () != null) {
-            CFANode ifStartFalse = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-            AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
-                    fileloc.getStartingLineNumber(), prevNode, ifStartFalse,
-                    ifStatement.getConditionExpression (),
-                    false);
-
-            addToCFA(assumeEdgeFalse);
-            elseStack.push (ifStartFalse);
-        } else {
-            AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
-                    fileloc.getStartingLineNumber(), prevNode, postIfNode,
-                    ifStatement.getConditionExpression (),
-                    false);
-
-            addToCFA(assumeEdgeFalse);
-        }
-    } // end of IF_CONDITION_NORMAL case
-        break;
+      // edge connecting prevNode with elseNode
+      AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + ifStatement.getConditionExpression().getRawSignature() + ")",
+              fileloc.getStartingLineNumber(), prevNode, elseNode,
+              ifStatement.getConditionExpression(),
+              false);
+      addToCFA(assumeEdgeFalse);
+      break;
+    }
     default:
-        throw new InternalError("Missing switch clause");
+      throw new InternalError("Missing switch clause");
     } // end of switch statement
   }
 
