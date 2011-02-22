@@ -24,17 +24,15 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.filter;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -291,19 +289,36 @@ public class CFA {
   }
   
   // wrapper class for Set<CFANode> because Java arrays don't like generics
-  private static class NodeSet {
+  private static class Edge {
     private final Set<CFANode> nodes = new HashSet<CFANode>(1);
+    
+    private void add(Edge n) {
+      nodes.addAll(n.nodes);
+    }
+    
+    private void add(CFANode n) {
+      nodes.add(n);
+    }
+    
+    private Set<CFANode> asNodeSet() {
+      return nodes;
+    }
   }
   
   private static class Loop {
     
-    private SortedSet<CFANode> nodes;
-    private Set<CFAEdge> innerLoopEdges;
-    private Set<CFAEdge> incomingEdges;
-    private Set<CFAEdge> outgoingEdges;
+    private ImmutableSortedSet<CFANode> nodes;
+    private ImmutableSet<CFAEdge> innerLoopEdges;
+    private ImmutableSet<CFAEdge> incomingEdges;
+    private ImmutableSet<CFAEdge> outgoingEdges;
     
     public Loop(Set<CFANode> pNodes) {
       nodes = ImmutableSortedSet.copyOf(pNodes);
+
+      computeSets();
+    }
+    
+    private void computeSets() {
       
       Set<CFAEdge> incomingEdges = new HashSet<CFAEdge>();
       Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
@@ -327,65 +342,56 @@ public class CFA {
       this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
     }
     
-    public void addNodes(Iterable<CFANode> pNodes) {
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(nodes).addAll(pNodes).build();
+    public void addNodes(Loop l) {
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder()
+                                .addAll(nodes)
+                                .addAll(l.nodes)
+                                .build();
       
-      Set<CFAEdge> incomingEdges = new HashSet<CFAEdge>();
-      Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
-      
-      for (CFANode n : nodes) {
-        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
-          incomingEdges.add(n.getEnteringEdge(i));
-        }
-        for (int i = 0; i < n.getNumLeavingEdges(); i++) {
-          outgoingEdges.add(n.getLeavingEdge(i));
-        }
-      }
-      
-      innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
-      incomingEdges.removeAll(innerLoopEdges);
-      outgoingEdges.removeAll(innerLoopEdges);
-      
-      assert !incomingEdges.isEmpty() : "Unreachable loop?";
-      
-      this.incomingEdges = ImmutableSet.copyOf(incomingEdges);
-      this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
+      computeSets();
     }
    
+    public boolean intersectsWith(Loop l) {
+      return !Sets.intersection(nodes, l.nodes).isEmpty();
+    }
+    
     @Override
     public String toString() {
       return nodes.toString() + "\n" + incomingEdges + "\n" + outgoingEdges + "\n";
     }
   }
   
-  public static Collection<Loop> findLoops(SortedSet<CFANode> pNodes) {
-    final int min = pNodes.first().getNodeNumber();
-    final int max = pNodes.last().getNodeNumber();
+  public static Collection<Loop> findLoops(CFAFunctionDefinitionNode startNode) {
+    SortedSet<CFANode> nodes = new TreeSet<CFANode>();
+    dfs(startNode, nodes, false, false);
+    
+    final int min = nodes.first().getNodeNumber();
+    final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
     
     // all nodes of the graph
     // Fields may be null, iff there is no node with this number.
     // forall i : nodes[i].getNodeNumber() == i + min
-    final CFANode[] nodes = new CFANode[size];
+    final CFANode[] nodesArray = new CFANode[size];
     
     // all edges of the graph
     // Iff there is an edge from nodes[i] to nodes[j], edges[i][j] is not null.
     // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge. 
-    final NodeSet[][] edges =  new NodeSet[size][size];
+    final Edge[][] edges =  new Edge[size][size];
     
     // initialize arrays
-    for (CFANode n : pNodes) {
+    for (CFANode n : nodes) {
       int i = n.getNodeNumber() - min;
-      assert nodes[i] == null;
+      assert nodesArray[i] == null;
       if (n.getNumEnteringEdges() > 0 && n.getNumEnteringEdges() > 0) {
         // only add nodes that aren't sources nor sinks
-        nodes[i] = n;
+        nodesArray[i] = n;
   
         for (int e = 0; e < n.getNumLeavingEdges(); e++) {
           CFAEdge edge = n.getLeavingEdge(e);
           CFANode succ = edge.getSuccessor();
           int j = succ.getNodeNumber() - min;
-          edges[i][j] = new NodeSet();
+          edges[i][j] = new Edge();
         }
       }
     }
@@ -397,85 +403,82 @@ public class CFA {
       changed = false;
       
       // merge nodes with their neighbors, if possible
-      for (int i = 0; i < size; i++) {
-        if (nodes[i] == null) {
-          continue;
-        }
+      Iterator<CFANode> it = nodes.iterator();
+      while (it.hasNext()) {
+        final CFANode currentNode = it.next();
+        final int current = currentNode.getNodeNumber() - min;
 
-        // find edges of i
-        final int predecessor = findSingleIncomingEdgeOfNode(i, edges);
-        final int successor   = findSingleOutgoingEdgeOfNode(i, edges);
+        // find edges of current
+        final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
+        final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
         
         if (predecessor == -1 && successor == -1) {
           // no edges, eliminate node
-          nodes[i] = null;
-          continue;
+          it.remove(); // delete currentNode
         
           
         } else if (predecessor > -1) {
-          // i has a single incoming edge from predecessor, eliminate i
+          // current has a single incoming edge from predecessor, eliminate current
           changed = true;
           
-          // copy all outgoing edges (i,j) to (predecessor,j)
+          // copy all outgoing edges (current,j) to (predecessor,j)
           for (int j = 0; j < size; j++) {
-            if (edges[i][j] != null) {
-              // combine three edges (i,j) (predecessor,i) and (predecessor,j)
+            if (edges[current][j] != null) {
+              // combine three edges (predecessor,current) (current,j) and (predecessor,j)
               // into a single edge (predecessor,j)
-              if (edges[predecessor][j] == null) {
-                edges[predecessor][j] = new NodeSet();
-              }
-              edges[predecessor][j].nodes.addAll(edges[i][j].nodes);
-              edges[predecessor][j].nodes.addAll(edges[predecessor][i].nodes);
-              edges[predecessor][j].nodes.add(nodes[i]);
-              edges[i][j] = null;
+              Edge targetEdge = getEdge(predecessor, j, edges);
+              targetEdge.add(edges[predecessor][current]);
+              targetEdge.add(edges[current][j]);
+              targetEdge.add(currentNode);
+              edges[current][j] = null;
             }
           }
           
           // delete from graph
-          edges[predecessor][i] = null;
-          nodes[i] = null;
+          edges[predecessor][current] = null;
+          it.remove(); // delete currentNode
 
           // now predecessor node might have gained a self-edge
           if (edges[predecessor][predecessor] != null) {
-            handleLoop(nodes, edges, loops, predecessor);
+            CFANode pred = nodesArray[predecessor];
+            handleLoop(pred, predecessor, edges, loops);
           }
         
           
         } else if (successor > -1) {
-          // i has a single outgoing edge to successor, eliminate i
+          // current has a single outgoing edge to successor, eliminate current
           changed = true;
           
-          // copy all incoming edges (j,i) to (j,successor)
+          // copy all incoming edges (j,current) to (j,successor)
           for (int j = 0; j < size; j++) {
-            if (edges[j][i] != null) {
-              // combine three edges (j,i) (i,successor) and (j,successor)
+            if (edges[j][current] != null) {
+              // combine three edges (j,current) (current,successor) and (j,successor)
               // into a single edge (j,successor)
-              if (edges[j][successor] == null) {
-                edges[j][successor] = new NodeSet();
-              }
-              edges[j][successor].nodes.addAll(edges[j][i].nodes);
-              edges[j][successor].nodes.addAll(edges[i][successor].nodes);
-              edges[j][successor].nodes.add(nodes[i]);
-              edges[j][i] = null;
+              Edge targetEdge = getEdge(j, successor, edges);
+              targetEdge.add(edges[j][current]);
+              targetEdge.add(edges[current][successor]);
+              targetEdge.add(currentNode);
+              edges[j][current] = null;
             }
           }
                     
           // delete from graph
-          edges[i][successor] = null;
-          nodes[i] = null;
+          edges[current][successor] = null;
+          it.remove(); // delete currentNode
 
           // now successor node might have gained a self-edge
           if (edges[successor][successor] != null) {
-            handleLoop(nodes, edges, loops, successor);
+            CFANode succ = nodesArray[successor];
+            handleLoop(succ, successor, edges, loops);
           }
         }
       }
       
-    } while (changed);
+    } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
 
     
     // check that the complete graph has collapsed
-    if (any(Arrays.asList(nodes), notNull())) {
+    if (!nodes.isEmpty()) {
       throw new RuntimeException("Code structure is too complex, could not detect all loops!");
     }
    
@@ -489,32 +492,27 @@ public class CFA {
       for (int i2 = i1+1; i2 < loops.size(); i2++) {
         Loop l2 = loops.get(i2);
         
-        if (Sets.intersection(l1.nodes, l2.nodes).isEmpty()) {
+        if (!l1.intersectsWith(l2)) {
           // loops have nothing in common
           continue;
         }
         
-        if (l1.innerLoopEdges.containsAll(l2.incomingEdges)
-         && l1.innerLoopEdges.containsAll(l2.outgoingEdges)) {
+        if (isOuterLoop(l1, l2)) {
           
           // l2 is an inner loop
           // add it's nodes to l1
-//          System.out.println(l2 + " is inner loop of " + l1);
-          l1.addNodes(l2.nodes);
+          l1.addNodes(l2);
           
-        } else if (l2.innerLoopEdges.containsAll(l1.incomingEdges)
-                && l2.innerLoopEdges.containsAll(l1.outgoingEdges)) {
+        } else if (isOuterLoop(l2, l1)) {
 
           // l1 is an inner loop
           // add it's nodes to l2
-//          System.out.println(l1 + " is inner loop of " + l2);
-          l2.addNodes(l1.nodes);
+          l2.addNodes(l1);
           
         } else {
           // strange goto loop, merge the two together
-//          System.out.println(l2 + " is merged into " + l1);
 
-          l1.addNodes(l2.nodes);
+          l1.addNodes(l2);
           toRemove.add(i2);
         }
       }
@@ -527,17 +525,27 @@ public class CFA {
     return loops;
   }
 
-  private static void handleLoop(final CFANode[] nodes,
-      final NodeSet[][] edges, Collection<Loop> loops, int loopHeadIndex) {
-    CFANode loopHead = nodes[loopHeadIndex];
-
+  // get edge from edges array, ensuring that it is added if it does not exist yet
+  private static Edge getEdge(int i, int j, Edge[][] edges) {
+    Edge result = edges[i][j];
+    if (edges[i][j] == null) {
+      result = new Edge();
+      edges[i][j] = result;
+    }
+    return result;
+  }
+  
+  // create a loop from a node with a self-edge
+  private static void handleLoop(final CFANode loopHead, int loopHeadIndex,
+      final Edge[][] edges, Collection<Loop> loops) {
+    assert loopHead != null;
+    
     // collect all nodes that belong to this loop
-    Set<CFANode> loopNodes = edges[loopHeadIndex][loopHeadIndex].nodes;
+    Set<CFANode> loopNodes = edges[loopHeadIndex][loopHeadIndex].asNodeSet();
     loopNodes.add(loopHead);
 
     Loop loop = new Loop(loopNodes);
     loops.add(loop);
-//    System.out.println("Found a loop: " + loop);
     
     // remove this loop
     edges[loopHeadIndex][loopHeadIndex] = null;
@@ -546,7 +554,7 @@ public class CFA {
   // find index of single predecessor of node i
   // if there is no successor, -1 is returned
   // if there are several successor, -2 is returned
-  private static int findSingleIncomingEdgeOfNode(int i, NodeSet[][] edges) {
+  private static int findSingleIncomingEdgeOfNode(int i, Edge[][] edges) {
     final int size = edges.length;
     
     int predecessor = -1;
@@ -568,7 +576,7 @@ public class CFA {
   // find index of single successor of node i
   // if there is no successor, -1 is returned
   // if there are several successors, -2 is returned
-  private static int findSingleOutgoingEdgeOfNode(int i, NodeSet[][] edges) {
+  private static int findSingleOutgoingEdgeOfNode(int i, Edge[][] edges) {
     final int size = edges.length;
     
     int successor = -1;
@@ -585,5 +593,11 @@ public class CFA {
       }
     }
     return successor;
+  }
+  
+  // checks if l1 is an outer loop of i2
+  private static boolean isOuterLoop(Loop l1, Loop l2)  {
+    return l1.innerLoopEdges.containsAll(l2.incomingEdges)
+        && l1.innerLoopEdges.containsAll(l2.outgoingEdges);
   }
 }
