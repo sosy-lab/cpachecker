@@ -308,17 +308,21 @@ public class CFA {
   private static class Loop {
     
     private ImmutableSortedSet<CFANode> nodes;
+    
+    // the following sets are computed lazily by calling {@link #computeSets()}
     private ImmutableSet<CFAEdge> innerLoopEdges;
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
     
     public Loop(Set<CFANode> pNodes) {
       nodes = ImmutableSortedSet.copyOf(pNodes);
-
-      computeSets();
     }
     
     private void computeSets() {
+      if (innerLoopEdges != null) {
+        assert incomingEdges != null;
+        assert outgoingEdges != null;
+      }
       
       Set<CFAEdge> incomingEdges = new HashSet<CFAEdge>();
       Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
@@ -342,17 +346,30 @@ public class CFA {
       this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
     }
     
-    public void addNodes(Loop l) {
+    void addNodes(Loop l) {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
                                 .addAll(nodes)
                                 .addAll(l.nodes)
                                 .build();
       
-      computeSets();
+      innerLoopEdges = null;
+      incomingEdges = null;
+      outgoingEdges = null;
     }
    
     public boolean intersectsWith(Loop l) {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
+    }
+    
+    /**
+     * Check if this loop is an outer loop of another, given one.
+     */
+    public boolean isOuterLoopOf(Loop other) {
+      this.computeSets();
+      other.computeSets();
+      
+      return this.innerLoopEdges.containsAll(other.incomingEdges)
+          && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
     
     @Override
@@ -379,25 +396,22 @@ public class CFA {
     // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge. 
     final Edge[][] edges =  new Edge[size][size];
     
-    // initialize arrays
+    // FIRST step: initialize arrays
     for (CFANode n : nodes) {
       int i = n.getNodeNumber() - min;
       assert nodesArray[i] == null;
-      if (n.getNumEnteringEdges() > 0 && n.getNumEnteringEdges() > 0) {
-        // only add nodes that aren't sources nor sinks
-        nodesArray[i] = n;
-  
-        for (int e = 0; e < n.getNumLeavingEdges(); e++) {
-          CFAEdge edge = n.getLeavingEdge(e);
-          CFANode succ = edge.getSuccessor();
-          int j = succ.getNodeNumber() - min;
-          edges[i][j] = new Edge();
-        }
+      nodesArray[i] = n;
+
+      for (int e = 0; e < n.getNumLeavingEdges(); e++) {
+        CFAEdge edge = n.getLeavingEdge(e);
+        CFANode succ = edge.getSuccessor();
+        int j = succ.getNodeNumber() - min;
+        edges[i][j] = new Edge();
       }
     }
 
+    // SECOND step: simplify graph and identify loops
     List<Loop> loops = new ArrayList<Loop>();
-
     boolean changed;
     do {
       changed = false;
@@ -482,6 +496,7 @@ public class CFA {
       throw new RuntimeException("Code structure is too complex, could not detect all loops!");
     }
    
+    // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
     
@@ -497,13 +512,13 @@ public class CFA {
           continue;
         }
         
-        if (isOuterLoop(l1, l2)) {
+        if (l1.isOuterLoopOf(l2)) {
           
           // l2 is an inner loop
           // add it's nodes to l1
           l1.addNodes(l2);
           
-        } else if (isOuterLoop(l2, l1)) {
+        } else if (l2.isOuterLoopOf(l1)) {
 
           // l1 is an inner loop
           // add it's nodes to l2
@@ -593,11 +608,5 @@ public class CFA {
       }
     }
     return successor;
-  }
-  
-  // checks if l1 is an outer loop of i2
-  private static boolean isOuterLoop(Loop l1, Loop l2)  {
-    return l1.innerLoopEdges.containsAll(l2.incomingEdges)
-        && l1.innerLoopEdges.containsAll(l2.outgoingEdges);
   }
 }
