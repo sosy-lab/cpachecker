@@ -307,6 +307,11 @@ public class CFA {
   
   private static class Loop {
     
+    // loopHeads is a sub-set of nodes such that all infinite paths through
+    // the set nodes will pass through at least one node in loopHeads infinitively often
+    // i.e. you will have to pass through at least one loop head in every iteration
+    private ImmutableSet<CFANode> loopHeads;
+    
     private ImmutableSortedSet<CFANode> nodes;
     
     // the following sets are computed lazily by calling {@link #computeSets()}
@@ -314,8 +319,12 @@ public class CFA {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
     
-    public Loop(Set<CFANode> pNodes) {
-      nodes = ImmutableSortedSet.copyOf(pNodes);
+    public Loop(CFANode loopHead, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.of(loopHead);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder()
+                                .addAll(pNodes)
+                                .add(loopHead)
+                                .build();
     }
     
     private void computeSets() {
@@ -356,6 +365,11 @@ public class CFA {
       incomingEdges = null;
       outgoingEdges = null;
     }
+    
+    void mergeWith(Loop l) {
+      loopHeads = Sets.union(loopHeads, l.loopHeads).immutableCopy();
+      addNodes(l);
+    }
    
     public boolean intersectsWith(Loop l) {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
@@ -374,7 +388,11 @@ public class CFA {
     
     @Override
     public String toString() {
-      return nodes.toString() + "\n" + incomingEdges + "\n" + outgoingEdges + "\n";
+      computeSets();
+      return "Loop with heads " + loopHeads + "\n"
+           + "  incoming: " + incomingEdges + "\n"
+           + "  outgoing: " + outgoingEdges + "\n"
+           + "  nodes:    " + nodes;
     }
   }
   
@@ -426,13 +444,32 @@ public class CFA {
         final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
         final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
         
-        if (predecessor == -1 && successor == -1) {
+        if ((predecessor == -1) && (successor == -1)) {
           // no edges, eliminate node
           it.remove(); // delete currentNode
         
+        } else if ((predecessor == -1) && (successor > -1)) {
+          // no incoming edges, one outgoing edge
+          final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
+          if (successor2 == -1) {
+            // the current node is a source that is only connected with a sink
+            // we can remove it
+            edges[current][successor] = null;
+            it.remove(); // delete currentNode
+          }
+
+        } else if ((successor == -1) && (predecessor > -1)) {
+          // one incoming edge, no outgoing edges
+          final int predecessor2 = findSingleIncomingEdgeOfNode(predecessor, edges);
+          if (predecessor2 == -1) {
+            // the current node is a sink that is only connected with a source
+            // we can remove it
+            edges[predecessor][current] =  null;
+            it.remove(); // delete currentNode
+          }
           
-        } else if (predecessor > -1) {
-          // current has a single incoming edge from predecessor, eliminate current
+        } else if ((predecessor > -1) && (successor != -1)) {
+          // current has a single incoming edge from predecessor and is no sink, eliminate current
           changed = true;
           
           // copy all outgoing edges (current,j) to (predecessor,j)
@@ -459,8 +496,8 @@ public class CFA {
           }
         
           
-        } else if (successor > -1) {
-          // current has a single outgoing edge to successor, eliminate current
+        } else if ((successor > -1) && (predecessor != -1)) {
+          // current has a single outgoing edge to successor and is no source, eliminate current
           changed = true;
           
           // copy all incoming edges (j,current) to (j,successor)
@@ -527,7 +564,7 @@ public class CFA {
         } else {
           // strange goto loop, merge the two together
 
-          l1.addNodes(l2);
+          l1.mergeWith(l2);
           toRemove.add(i2);
         }
       }
@@ -555,14 +592,11 @@ public class CFA {
       final Edge[][] edges, Collection<Loop> loops) {
     assert loopHead != null;
     
-    // collect all nodes that belong to this loop
-    Set<CFANode> loopNodes = edges[loopHeadIndex][loopHeadIndex].asNodeSet();
-    loopNodes.add(loopHead);
-
-    Loop loop = new Loop(loopNodes);
+    // store loop
+    Loop loop = new Loop(loopHead, edges[loopHeadIndex][loopHeadIndex].asNodeSet());
     loops.add(loop);
     
-    // remove this loop
+    // remove this loop from the graph
     edges[loopHeadIndex][loopHeadIndex] = null;
   }
 
