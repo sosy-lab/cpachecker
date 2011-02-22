@@ -499,23 +499,25 @@ public class CFABuilder extends ASTVisitor
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop();
-    CFANode nextNode = loopNextStack.peek ();
+    CFANode postLoopNode = loopNextStack.peek();
 
-    BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, nextNode, true);
+    BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, postLoopNode, true);
     addToCFA(blankEdge);
     
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    locStack.push(nextNode);
   }
 
   private void handleContinueStatement (IASTContinueStatement continueStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop();
-    CFANode loopStart = loopStartStack.peek ();
+    CFANode loopStartNode = loopStartStack.peek();
 
-    BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, loopStart, true);
+    BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, loopStartNode, true);
     addToCFA(blankEdge);
     
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    locStack.push(nextNode);
   }
 
   private void handleLabelStatement (IASTLabelStatement labelStatement, IASTFileLocation fileloc)
@@ -573,7 +575,9 @@ public class CFABuilder extends ASTVisitor
     } else {
       gotoLabelNeeded.put(labelName, prevNode);
     }
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    locStack.push(nextNode);
   }
 
   /** isPathFromTo() makes a DSF-search from a given Node to search 
@@ -616,12 +620,13 @@ public class CFABuilder extends ASTVisitor
   private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop ();
-    CFAFunctionExitNode nextNode = currentCFA.getExitNode();
+    CFAFunctionExitNode functionExitNode = currentCFA.getExitNode();
 
-    ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue());
+    ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, functionExitNode, returnStatement.getReturnValue());
     addToCFA(edge);
 
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    locStack.push(nextNode);
   }
   
   /* (non-Javadoc)
