@@ -172,8 +172,9 @@ public class CFABuilder extends ASTVisitor
     }
     else if (declaration instanceof IASTFunctionDefinition)
     {
-      if (locStack.size () != 0)
-        throw new CFAGenerationRuntimeException ("Nested function declarations?");
+      if (locStack.size () != 0) {
+        throw new CFAGenerationRuntimeException("Nested function declarations?");
+      }
 
       assert labelMap.isEmpty();
       assert gotoLabelNeeded.isEmpty();
@@ -181,6 +182,10 @@ public class CFABuilder extends ASTVisitor
       
       IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
       String nameOfFunction = fdef.getDeclarator().getName().toString();
+      
+      if (cfas.containsKey(nameOfFunction)) {
+        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction);
+      }
 
       IASTFunctionDeclarator decl = fdef.getDeclarator();
       if (!(decl instanceof IASTStandardFunctionDeclarator)) {
