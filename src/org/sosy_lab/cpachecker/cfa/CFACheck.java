@@ -40,8 +40,9 @@ public class CFACheck {
   /**
    * Traverse the CFA and run a series of checks at each node
    * @param cfa Node to start traversal from
+   * @param nodes Optional set of all nodes in the CFA (may be null)
    */
-  public static boolean check(CFAFunctionDefinitionNode cfa) {
+  public static boolean check(CFAFunctionDefinitionNode cfa, Set<CFANode> nodes) {
 
     Set<CFANode> visitedNodes = new HashSet<CFANode>();
     Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode>();
@@ -60,6 +61,10 @@ public class CFACheck {
         isConsistent(node);
         checkEdgeCount(node);
       }
+    }
+    
+    if (nodes != null) {
+      assert visitedNodes.equals(nodes);
     }
     return true;
   }

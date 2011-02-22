@@ -27,8 +27,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -77,6 +79,8 @@ import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Builder to traverse AST.
@@ -101,7 +105,9 @@ public class CFABuilder extends ASTVisitor
 
   // Data structures for handling function declarations
   private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
+  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private CFAFunctionDefinitionNode currentCFA = null;
+  private SortedSet<CFANode> currentCFANodes = null;
 
   // Data structure for storing global declarations
   private final List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> globalDeclarations = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>();
@@ -135,6 +141,14 @@ public class CFABuilder extends ASTVisitor
   }
 
   /**
+   * Retrieves list of all nodes
+   * @return all CFAs in the program
+   */
+  public SortedSetMultimap<String, CFANode> getCFANodes()  {
+    return cfaNodes;
+  }
+  
+  /**
    * Retrieves list of all global declarations
    * @return global declarations
    */
@@ -154,35 +168,41 @@ public class CFABuilder extends ASTVisitor
     if (declaration instanceof IASTSimpleDeclaration)
     {
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)declaration;
-      if (locStack.size () > 0) // i.e. we're in a function
-      {
-        CFANode prevNode = locStack.pop ();
+      if (locStack.size () > 0) {// i.e. we're in a function
+      
+        CFANode prevNode = locStack.pop();
+        
         CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+        currentCFANodes.add(nextNode);
+        locStack.push(nextNode);
 
         DeclarationEdge edge = new DeclarationEdge(ASTConverter.convert(sd),
                 fileloc.getStartingLineNumber(), prevNode, nextNode);
         addToCFA(edge);
-
-        locStack.push (nextNode);
-      }
-      else if (declaration.getParent()
-              instanceof IASTTranslationUnit)
-      {
-              // else we're in the global scope
+      
+      } else if (declaration.getParent() instanceof IASTTranslationUnit) {
+      
+        // else we're in the global scope
         globalDeclarations.add (ASTConverter.convert(sd));
       }
     }
     else if (declaration instanceof IASTFunctionDefinition)
     {
-      if (locStack.size () != 0)
-        throw new CFAGenerationRuntimeException ("Nested function declarations?");
+      if (locStack.size () != 0) {
+        throw new CFAGenerationRuntimeException("Nested function declarations?");
+      }
 
       assert labelMap.isEmpty();
       assert gotoLabelNeeded.isEmpty();
       assert currentCFA == null;
+      assert currentCFANodes == null;
       
       IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
       String nameOfFunction = fdef.getDeclarator().getName().toString();
+      
+      if (cfas.containsKey(nameOfFunction)) {
+        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction);
+      }
 
       IASTFunctionDeclarator decl = fdef.getDeclarator();
       if (!(decl instanceof IASTStandardFunctionDeclarator)) {
@@ -208,17 +228,24 @@ public class CFABuilder extends ASTVisitor
         }
       }
       
+      currentCFANodes = cfaNodes.get(nameOfFunction); 
+
       CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
+      currentCFANodes.add(returnNode);
 
-      currentCFA = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
+      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
+      currentCFANodes.add(startNode);
+      cfas.put(nameOfFunction, startNode);
+      currentCFA = startNode;
 
-      CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-      BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), currentCFA, functionStartDummyNode);
+      CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), nameOfFunction);
+      currentCFANodes.add(nextNode);
+      locStack.add(nextNode);
+
+      BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), startNode, nextNode);
       addToCFA(dummyEdge);
 
-      locStack.add (functionStartDummyNode);
-      cfas.put(nameOfFunction, currentCFA);
-
+      
     } else if (declaration instanceof IASTProblemDeclaration) {
       // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
       // Either insert the following macro before compiling with CIL:
@@ -234,12 +261,13 @@ public class CFABuilder extends ASTVisitor
       // outside of a function
       if (!locStack.isEmpty()) {
         CFANode prevNode = locStack.pop();
+
         CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+        currentCFANodes.add(nextNode);
+        locStack.push(nextNode);
   
         BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
         addToCFA(edge);
-
-        locStack.push(nextNode);
       }
 
     } else {
@@ -278,6 +306,16 @@ public class CFABuilder extends ASTVisitor
       }
       
       labelMap.clear();
+      
+      Iterator<CFANode> it = currentCFANodes.iterator();
+      while (it.hasNext()) {
+        CFANode n = it.next();
+        if (n.getNumEnteringEdges() == 0 && n.getNumLeavingEdges() == 0) {
+          // node was created but isn't part of CFA (e.g. because of dead code)
+          it.remove(); // remove n from currentCFANodes
+        }
+      }
+      currentCFANodes = null;
       
       currentCFA = null;
     }
@@ -380,12 +418,13 @@ public class CFABuilder extends ASTVisitor
   private void handleExpressionStatement (IASTExpressionStatement exprStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop ();
+    
     CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(nextNode);
+    locStack.push(nextNode);
 
     StatementEdge edge = new StatementEdge(ASTConverter.convert(exprStatement), fileloc.getStartingLineNumber(), prevNode, nextNode, ASTConverter.convert(exprStatement.getExpression()));
     addToCFA(edge);
-
-    locStack.push (nextNode);
   }
 
   private static enum IF_CONDITION {  NORMAL, ALWAYS_FALSE, ALWAYS_TRUE };
@@ -403,91 +442,83 @@ public class CFABuilder extends ASTVisitor
       return IF_CONDITION.NORMAL;
   }
 
-  private void handleIfStatement (IASTIfStatement ifStatement, IASTFileLocation fileloc)
-  {
-    CFANode prevNode = locStack.pop ();
+  private void handleIfStatement(IASTIfStatement ifStatement, IASTFileLocation fileloc) {
+    CFANode prevNode = locStack.pop();
+    
     CFANode postIfNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
-
-    locStack.push (postIfNode);
+    currentCFANodes.add(postIfNode);
+    locStack.push(postIfNode);
+    
+    CFANode thenNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(thenNode);
+    locStack.push(thenNode);
+    
+    CFANode elseNode;
+    // elseNode is the start of the else branch, or the node after the loop if there is no else branch
+    if (ifStatement.getElseClause() == null) {
+      elseNode = postIfNode;
+    } else {
+      elseNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+      currentCFANodes.add(elseNode);
+      elseStack.push(elseNode);
+    }
 
     IF_CONDITION kind = getIfConditionKind(ifStatement);
 
     switch (kind) {
     case ALWAYS_FALSE: {
-        if (ifStatement.getElseClause() == null) {
-            CFANode ifNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-            BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, postIfNode);
-            addToCFA(edge);
-            locStack.push(ifNode);
-        } else {
-            CFANode elseNode =
-                new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-            BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, elseNode);
-            addToCFA(edge);
-            elseStack.push(elseNode);
-            CFANode n = new CFANode(-1, currentCFA.getFunctionName());
-            locStack.push(n);
-        }
+      // no edge connecting prevNode with thenNode, so that the "then" branch won't be connected to the rest of the CFA
+
+      // edge connecting prevNode with elseNode
+      BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, elseNode);
+      addToCFA(edge);
+      break;
     }
-        break;
     case ALWAYS_TRUE: {
-        CFANode thenNode =
-            new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-        BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, thenNode);
-        addToCFA(edge);
-        locStack.push(thenNode);
-        if (ifStatement.getElseClause() != null) {
-            CFANode n = new CFANode(-1, currentCFA.getFunctionName());
-            elseStack.push(n);
-        }
+      // edge connecting prevNode with thenNode
+      BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, thenNode);
+      addToCFA(edge);
+
+      // no edge connecting prevNode with elseNode, so that the "else" branch won't be connected to the rest of the CFA
+      break;
     }
-        break;
     case NORMAL: {
-        CFANode ifStartTrue = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-        AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
-                fileloc.getStartingLineNumber(), prevNode, ifStartTrue,
-                ASTConverter.convert(ifStatement.getConditionExpression ()),
-                true);
+      // edge connecting prevNode with thenNode
+      AssumeEdge assumeEdgeTrue = new AssumeEdge(ifStatement.getConditionExpression().getRawSignature(),
+              fileloc.getStartingLineNumber(), prevNode, thenNode,
+              ASTConverter.convert(ifStatement.getConditionExpression()),
+              true);
+      addToCFA(assumeEdgeTrue);
 
-        addToCFA(assumeEdgeTrue);
-        locStack.push (ifStartTrue);
-
-        if (ifStatement.getElseClause () != null) {
-            CFANode ifStartFalse = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-            AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
-                    fileloc.getStartingLineNumber(), prevNode, ifStartFalse,
-                    ASTConverter.convert(ifStatement.getConditionExpression ()),
-                    false);
-
-            addToCFA(assumeEdgeFalse);
-            elseStack.push (ifStartFalse);
-        } else {
-            AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
-                    fileloc.getStartingLineNumber(), prevNode, postIfNode,
-                    ASTConverter.convert(ifStatement.getConditionExpression ()),
-                    false);
-
-            addToCFA(assumeEdgeFalse);
-        }
-    } // end of IF_CONDITION_NORMAL case
-        break;
+      // edge connecting prevNode with elseNode
+      AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + ifStatement.getConditionExpression().getRawSignature() + ")",
+              fileloc.getStartingLineNumber(), prevNode, elseNode,
+              ASTConverter.convert(ifStatement.getConditionExpression()),
+              false);
+      addToCFA(assumeEdgeFalse);
+      break;
+    }
     default:
-        throw new InternalError("Missing switch clause");
+      throw new InternalError("Missing switch clause");
     } // end of switch statement
   }
 
   private void handleWhileStatement (IASTWhileStatement whileStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop ();
+    
     CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(loopStart);
     loopStart.setLoopStart();
+    loopStartStack.push(loopStart);
 
     CFANode postLoopNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
-    locStack.push (postLoopNode);
-    locStack.push (loopStart);
+    currentCFANodes.add(postLoopNode);
+    loopNextStack.push(postLoopNode);
 
-    loopStartStack.push (loopStart);
-    loopNextStack.push (postLoopNode);
+    // inverse order here!
+    locStack.push(postLoopNode);
+    locStack.push(loopStart);
 
     BlankEdge blankEdge = new BlankEdge("while", fileloc.getStartingLineNumber(), prevNode, loopStart);
     addToCFA(blankEdge);
@@ -496,44 +527,46 @@ public class CFABuilder extends ASTVisitor
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop();
-    CFANode nextNode = loopNextStack.peek ();
+    CFANode postLoopNode = loopNextStack.peek();
 
-    BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, nextNode, true);
+    BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, postLoopNode, true);
     addToCFA(blankEdge);
     
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(nextNode);
+    locStack.push(nextNode);
   }
 
   private void handleContinueStatement (IASTContinueStatement continueStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop();
-    CFANode loopStart = loopStartStack.peek ();
+    CFANode loopStartNode = loopStartStack.peek();
 
-    BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, loopStart, true);
+    BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, loopStartNode, true);
     addToCFA(blankEdge);
     
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    locStack.push(nextNode);
   }
 
   private void handleLabelStatement (IASTLabelStatement labelStatement, IASTFileLocation fileloc)
   {
     String labelName = labelStatement.getName ().toString ();
+    if (labelMap.containsKey(labelName)) {
+      throw new CFAGenerationRuntimeException("Duplicate label " + labelName + " in function " + currentCFA.getFunctionName(), labelStatement);
+    }
+
+    CFANode prevNode = locStack.pop();
 
     CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName(), labelName);
-
-    CFANode prevNode = locStack.pop ();
+    currentCFANodes.add(labelNode);
+    locStack.push(labelNode);
+    labelMap.put(labelName, labelNode);
 
     if (isReachableNode(prevNode)) {
       BlankEdge blankEdge = new BlankEdge("Label: " + labelName, fileloc.getStartingLineNumber(), prevNode, labelNode);
       addToCFA(blankEdge);
     }
-
-    locStack.push (labelNode);
-
-    if (labelMap.containsKey(labelName)) {
-      throw new CFAGenerationRuntimeException("Duplicate label " + labelName + " in function " + currentCFA.getFunctionName(), labelStatement);
-    }
-    labelMap.put (labelName, labelNode);
 
     // Check if any goto's previously analyzed need connections to this label
     for (CFANode gotoNode : gotoLabelNeeded.get(labelName)) {
@@ -570,7 +603,10 @@ public class CFABuilder extends ASTVisitor
     } else {
       gotoLabelNeeded.put(labelName, prevNode);
     }
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(nextNode);
+    locStack.push(nextNode);
   }
 
   /** isPathFromTo() makes a DSF-search from a given Node to search 
@@ -613,11 +649,14 @@ public class CFABuilder extends ASTVisitor
   private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
   {
     CFANode prevNode = locStack.pop ();
-    CFAFunctionExitNode nextNode = currentCFA.getExitNode();
-    ReturnStatementEdge edge = new ReturnStatementEdge(ASTConverter.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, nextNode, ASTConverter.convert(returnStatement.getReturnValue()));
+    CFAFunctionExitNode functionExitNode = currentCFA.getExitNode();
+
+    ReturnStatementEdge edge = new ReturnStatementEdge(ASTConverter.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode, ASTConverter.convert(returnStatement.getReturnValue()));
     addToCFA(edge);
 
-    locStack.push(new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName()));
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(nextNode);
+    locStack.push(nextNode);
   }
   
   /* (non-Javadoc)

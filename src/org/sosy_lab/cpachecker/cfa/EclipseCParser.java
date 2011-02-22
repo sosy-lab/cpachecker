@@ -139,7 +139,7 @@ public class EclipseCParser implements CParser {
         throw new ParserException(e);
       }
     
-      return new CFA(builder.getCFAs(), builder.getGlobalDeclarations());
+      return new CFA(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
     } finally {
       cfaTimer.stop();
     }

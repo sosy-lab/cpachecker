@@ -28,6 +28,9 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+
+import com.google.common.collect.SortedSetMultimap;
 
 /**
  * Class representing the result of parsing a C file before function calls
@@ -43,17 +46,25 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 public class CFA {
 
   private final Map<String, CFAFunctionDefinitionNode> functions;
-  
+
+  private final SortedSetMultimap<String, CFANode> cfaNodes;
+
   private final List<IASTSimpleDeclaration> globalDeclarations;
 
   public CFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
+      SortedSetMultimap<String, CFANode> pCfaNodes,
       List<IASTSimpleDeclaration> pGlobalDeclarations) {
     functions = pFunctions;
+    cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
   }
 
   public Map<String, CFAFunctionDefinitionNode> getFunctions() {
     return functions;
+  }
+
+  public SortedSetMultimap<String, CFANode> getCFANodes() {
+    return cfaNodes;
   }
 
   public List<IASTSimpleDeclaration> getGlobalDeclarations() {

@@ -38,10 +38,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.SortedSetMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -135,10 +137,16 @@ public class CFACreator {
     logger.log(Level.FINE, "Parser Finished");
     
     final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
+    final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
+    }
+
+    // check the CFA of each function
+    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
+      assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
     }
     
     processingTime.start();
@@ -167,11 +175,6 @@ public class CFACreator {
     
     processingTime.stop();
 
-    // check the CFA of each function
-    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-      assert CFACheck.check(cfa);
-    }
-    
     // remove irrelevant locations
     if (removeIrrelevantForErrorLocations) {
       pruningTime.start();
@@ -191,38 +194,40 @@ public class CFACreator {
     }
   
     // check the super CFA starting at the main function
-    assert CFACheck.check(mainFunction);
+    assert CFACheck.check(mainFunction, null);
  
-    exportTime.start();
-    
-    // write CFA to file
-    if (exportCfa && exportCfaFile != null) {
-      try {
-        Files.writeFile(exportCfaFile,
-            DOTBuilder.generateDOT(cfas.values(), mainFunction));
-      } catch (IOException e) {
-        logger.log(Level.WARNING,
-          "Could not write CFA to dot file, check configuration option cfa.file! (",
-          e.getMessage() + ")");
-        // continue with analysis
+    if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
+      exportTime.start();
+   
+      // write CFA to file
+      if (exportCfa) {
+        try {
+          Files.writeFile(exportCfaFile,
+              DOTBuilder.generateDOT(cfas.values(), mainFunction));
+        } catch (IOException e) {
+          logger.log(Level.WARNING,
+            "Could not write CFA to dot file, check configuration option cfa.file! (",
+            e.getMessage() + ")");
+          // continue with analysis
+        }
       }
+      
+      // write the CFA to files (one file per function + some metainfo)
+      if (exportCfaPerFunction) {
+        try {
+          File outdir = exportCfaFile.getParentFile();        
+          DOTBuilder2.writeReport(mainFunction, outdir);
+        } catch (IOException e) {        
+          logger.log(Level.WARNING,
+            "Could not write CFA to dot and json files, check configuration option cfa.file! (",
+            e.getMessage() + ")");
+          // continue with analysis
+        }
+      } 
+      
+      exportTime.stop();
     }
-    
-    // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction && exportCfaFile != null) {
-      try {
-        File outdir = exportCfaFile.getParentFile();        
-        DOTBuilder2.writeReport(mainFunction, outdir);
-      } catch (IOException e) {        
-        logger.log(Level.WARNING,
-          "Could not write CFA to dot and json files, check configuration option cfa.file! (",
-          e.getMessage() + ")");
-        // continue with analysis
-      }
-    }  
-    
-    exportTime.stop();
-    
+
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
   
     this.functions = ImmutableMap.copyOf(cfas);
