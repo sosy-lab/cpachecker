@@ -430,7 +430,20 @@ public class CFA {
 
     // SECOND step: simplify graph and identify loops
     List<Loop> loops = new ArrayList<Loop>();
-    identifyLoops(nodes, min, nodesArray, edges, loops);
+    boolean changed;
+    do {
+      // first try without the "reverse merge" strategy
+      // this strategy may eliminate real loop heads too early so that the
+      // algorithm would propose another node of the loop has loop head
+      // (which is counter-intuitive to the user)
+      changed = identifyLoops(false, nodes, min, nodesArray, edges, loops);
+      
+      if (!changed && !nodes.isEmpty()) {
+        // but if we have to, try and use this strategy
+        changed = identifyLoops(true, nodes, min, nodesArray, edges, loops);
+      }
+      
+    } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
 
     
     // check that the complete graph has collapsed
@@ -482,14 +495,12 @@ public class CFA {
     return loops;
   }
 
-  private static void identifyLoops(SortedSet<CFANode> nodes, final int offset,
+  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes, final int offset,
       final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
     
     final int size = edges.length;
 
-    boolean changed;
-    do {
-      changed = false;
+    boolean changed = false;
       
       // merge nodes with their neighbors, if possible
       Iterator<CFANode> it = nodes.iterator();
@@ -553,7 +564,7 @@ public class CFA {
           }
         
           
-        } else if ((successor > -1) && (predecessor != -1)) {
+        } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
           // current has a single outgoing edge to successor and is no source, eliminate current
           changed = true;
           
@@ -582,7 +593,7 @@ public class CFA {
         }
       }
       
-    } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
+      return changed;
   }
 
   // get edge from edges array, ensuring that it is added if it does not exist yet
