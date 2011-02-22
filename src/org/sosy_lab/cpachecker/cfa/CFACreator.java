@@ -39,11 +39,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.SortedSetMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -120,6 +122,7 @@ public class CFACreator {
     conversionTime.stop();
   
     final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
+    final SortedSetMultimap<String, CFANode> cfaNodes = builder.getCFANodes();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
     if (mainFunction == null) {
@@ -128,7 +131,7 @@ public class CFACreator {
 
     // check the CFA of each function
     for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-      assert CFACheck.check(cfa);
+      assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
     }
     
     processingTime.start();
@@ -176,7 +179,7 @@ public class CFACreator {
     }
   
     // check the super CFA starting at the main function
-    assert CFACheck.check(mainFunction);
+    assert CFACheck.check(mainFunction, null);
  
     if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
       exportTime.start();
