@@ -125,6 +125,11 @@ public class CFACreator {
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
     }
+
+    // check the CFA of each function
+    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
+      assert CFACheck.check(cfa);
+    }
     
     processingTime.start();
     
@@ -152,11 +157,6 @@ public class CFACreator {
     
     processingTime.stop();
 
-    // check the CFA of each function
-    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-      assert CFACheck.check(cfa);
-    }
-    
     // remove irrelevant locations
     if (removeIrrelevantForErrorLocations) {
       pruningTime.start();
