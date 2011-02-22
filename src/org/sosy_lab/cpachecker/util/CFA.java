@@ -430,6 +430,63 @@ public class CFA {
 
     // SECOND step: simplify graph and identify loops
     List<Loop> loops = new ArrayList<Loop>();
+    identifyLoops(nodes, min, nodesArray, edges, loops);
+
+    
+    // check that the complete graph has collapsed
+    if (!nodes.isEmpty()) {
+      throw new RuntimeException("Code structure is too complex, could not detect all loops!");
+    }
+   
+    // THIRD step:
+    // check all pairs of loops if one is an inner loop of the other
+    // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
+    
+    NavigableSet<Integer> toRemove = new TreeSet<Integer>();
+    for (int i1 = 0; i1 < loops.size(); i1++) {
+      Loop l1 = loops.get(i1);
+      
+      for (int i2 = i1+1; i2 < loops.size(); i2++) {
+        Loop l2 = loops.get(i2);
+        
+        if (!l1.intersectsWith(l2)) {
+          // loops have nothing in common
+          continue;
+        }
+        
+        if (l1.isOuterLoopOf(l2)) {
+          
+          // l2 is an inner loop
+          // add it's nodes to l1
+          l1.addNodes(l2);
+          
+        } else if (l2.isOuterLoopOf(l1)) {
+
+          // l1 is an inner loop
+          // add it's nodes to l2
+          l2.addNodes(l1);
+          
+        } else {
+          // strange goto loop, merge the two together
+
+          l1.mergeWith(l2);
+          toRemove.add(i2);
+        }
+      }
+    }
+
+    for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
+      loops.remove(i);
+    }
+ 
+    return loops;
+  }
+
+  private static void identifyLoops(SortedSet<CFANode> nodes, final int offset,
+      final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
+    
+    final int size = edges.length;
+
     boolean changed;
     do {
       changed = false;
@@ -438,7 +495,7 @@ public class CFA {
       Iterator<CFANode> it = nodes.iterator();
       while (it.hasNext()) {
         final CFANode currentNode = it.next();
-        final int current = currentNode.getNodeNumber() - min;
+        final int current = currentNode.getNodeNumber() - offset;
 
         // find edges of current
         final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
@@ -526,55 +583,6 @@ public class CFA {
       }
       
     } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
-
-    
-    // check that the complete graph has collapsed
-    if (!nodes.isEmpty()) {
-      throw new RuntimeException("Code structure is too complex, could not detect all loops!");
-    }
-   
-    // THIRD step:
-    // check all pairs of loops if one is an inner loop of the other
-    // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
-    
-    NavigableSet<Integer> toRemove = new TreeSet<Integer>();
-    for (int i1 = 0; i1 < loops.size(); i1++) {
-      Loop l1 = loops.get(i1);
-      
-      for (int i2 = i1+1; i2 < loops.size(); i2++) {
-        Loop l2 = loops.get(i2);
-        
-        if (!l1.intersectsWith(l2)) {
-          // loops have nothing in common
-          continue;
-        }
-        
-        if (l1.isOuterLoopOf(l2)) {
-          
-          // l2 is an inner loop
-          // add it's nodes to l1
-          l1.addNodes(l2);
-          
-        } else if (l2.isOuterLoopOf(l1)) {
-
-          // l1 is an inner loop
-          // add it's nodes to l2
-          l2.addNodes(l1);
-          
-        } else {
-          // strange goto loop, merge the two together
-
-          l1.mergeWith(l2);
-          toRemove.add(i2);
-        }
-      }
-    }
-
-    for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
-      loops.remove(i);
-    }
- 
-    return loops;
   }
 
   // get edge from edges array, ensuring that it is added if it does not exist yet
