@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -37,7 +38,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.loopstack")
 public class LoopstackTransferRelation implements TransferRelation {
@@ -45,8 +52,37 @@ public class LoopstackTransferRelation implements TransferRelation {
   @Option
   private int maxLoopIterations = 0; 
   
-  Map<CFAEdge, CFANode> loopEntryEdges = null;
-  Map<CFAEdge, CFANode> loopExitEdges = null;
+  private final Multimap<String, Loop> loops = CFACreator.loops;
+  
+  private final Map<CFAEdge, Loop> loopEntryEdges;
+  private final Map<CFAEdge, Loop> loopExitEdges;
+  
+  private final Multimap<CFANode, Loop> loopHeads;
+  
+  public LoopstackTransferRelation() throws CPAException {
+    if (loops == null) {
+      throw new CPAException("LoopstackCPA does not work without loop information!");
+    }
+    ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
+    ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
+    
+    for (Loop l : loops.values()) {
+      for (CFAEdge e : l.getIncomingEdges()) {
+        entryEdges.put(e, l);
+      }
+      for (CFAEdge e : l.getOutgoingEdges()) {
+        exitEdges.put(e, l);
+      }
+      for (CFANode h : l.getLoopHeads()) {
+        heads.put(h, l);
+      }
+    }
+    loopEntryEdges = entryEdges.build();
+    loopExitEdges = exitEdges.build();
+    loopHeads = heads.build();
+  }
+  
   
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
@@ -63,9 +99,9 @@ public class LoopstackTransferRelation implements TransferRelation {
     CFANode loc = pCfaEdge.getSuccessor();
     LoopstackElement e = (LoopstackElement)pElement;
 
-    CFANode oldLoop = loopExitEdges.get(pCfaEdge);
+    Loop oldLoop = loopExitEdges.get(pCfaEdge);
     if (oldLoop != null) {
-      assert oldLoop.equals(e.getLoopHeadNode()) : e + " " + oldLoop + " " + pCfaEdge;
+      assert oldLoop.equals(e.getLoop()) : e + " " + oldLoop + " " + pCfaEdge;
       e = e.getPreviousElement();
     }
     
@@ -76,18 +112,16 @@ public class LoopstackTransferRelation implements TransferRelation {
       return Collections.singleton(pElement); 
     }
     
-    CFANode newLoop = loopEntryEdges.get(pCfaEdge);
+    Loop newLoop = loopEntryEdges.get(pCfaEdge);
     if (newLoop != null) {
-      assert loc.isLoopStart();
-      assert newLoop.equals(loc);
-      e = new LoopstackElement(e, loc, 1, false);
+      e = new LoopstackElement(e, newLoop, 0, false);
+    }
     
-    } else if (loc.isLoopStart()) {
-      // not entering but passing head node -> new iteration
-      assert loc.equals(e.getLoopHeadNode());
-      
+    Collection<Loop> loops = loopHeads.get(loc);
+    assert loops.size() <= 1;
+    if (loops.contains(e.getLoop())) {
       boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-      e = new LoopstackElement(e.getPreviousElement(), loc, e.getIteration()+1, stop);
+      e = new LoopstackElement(e.getPreviousElement(), e.getLoop(), e.getIteration()+1, stop);
     }
     
     return Collections.singleton(e); 
