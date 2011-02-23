@@ -301,22 +301,39 @@ public final class DOTBuilder2 {
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
       sb.append(" [style=\"filled,bold\" penwidth=1 fillcolor=\"white\" fontname=\"Courier New\" shape=\"Mrecord\" label=");
-      sb.append("<<table border=\"0\" cellborder=\"0\" cellpadding=\"3\" bgcolor=\"white\">");      
 
-      for (CFAEdge edge: combo) {
-        sb.append("<tr><td align=\"right\">");      
-        sb.append("" + edge.getPredecessor().getNodeNumber());
-        sb.append("</td><td align=\"left\">");
-        sb.append("" + getEdgeText(edge)
-                          .replaceAll("\\|", "&#124;")
-                          .replaceAll("&", "&amp;")
-                          .replaceAll("<", "&lt;")
-                          .replaceAll(">", "&gt;"));
-        sb.append("</td></tr>");
+      if (combo.size() > 20) {
+        // edge too long, dotty won't be able to handle it
+        // 20 is just a guess
+        CFAEdge last = combo.get(combo.size()-1);
+        int lastNo = last.getPredecessor().getNodeNumber();
         
-        node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
-      }    
-      sb.append("</table>>];\n");
+        sb.append("\"Long linear chain of edges between nodes ");
+        sb.append(firstNo);
+        sb.append(" and ");
+        sb.append(lastNo);
+        sb.append('"');
+
+      } else {
+        sb.append("<<table border=\"0\" cellborder=\"0\" cellpadding=\"3\" bgcolor=\"white\">");      
+  
+        for (CFAEdge edge: combo) {
+          sb.append("<tr><td align=\"right\">");      
+          sb.append("" + edge.getPredecessor().getNodeNumber());
+          sb.append("</td><td align=\"left\">");
+          sb.append("" + getEdgeText(edge)
+                            .replaceAll("\\|", "&#124;")
+                            .replaceAll("&", "&amp;")
+                            .replaceAll("<", "&lt;")
+                            .replaceAll(">", "&gt;"));
+          sb.append("</td></tr>");
+          
+          node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
+        }    
+        sb.append("</table>>");
+      }
+      
+      sb.append("];\n");
       return sb.toString();      
     }
 
