@@ -125,6 +125,8 @@ public class CFACreator {
     final SortedSetMultimap<String, CFANode> cfaNodes = builder.getCFANodes();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
+    assert cfas.keySet().equals(cfaNodes.keySet());
+    
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
     }
