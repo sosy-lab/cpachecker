@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -41,10 +42,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.util.CFA;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.SortedSetMultimap;
 
 /**
@@ -79,6 +82,8 @@ public class CFACreator {
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
+  
+  public static ImmutableMultimap<String, CFA.Loop> loops = null;
   
   public final Timer parsingTime = new Timer();
   public final Timer conversionTime = new Timer();
@@ -142,6 +147,19 @@ public class CFACreator {
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
       CFATopologicalSort topSort = new CFATopologicalSort();
       topSort.topologicalSort(cfa);
+    }
+    
+    // get loop information
+    try {
+      ImmutableMultimap.Builder<String, CFA.Loop> loops = ImmutableMultimap.builder();
+      for (String functionName : cfaNodes.keySet()) {
+        SortedSet<CFANode> nodes = cfaNodes.get(functionName);
+        loops.putAll(functionName, CFA.findLoops(nodes));
+      }
+      CFACreator.loops = loops.build();
+    } catch (CFAGenerationRuntimeException e) {
+      // don't abort here, because if the analysis doesn't need the loop information, we can continue
+      logger.log(Level.WARNING, e.getMessage());
     }
   
     // Insert call and return edges and build the supergraph
