@@ -305,7 +305,7 @@ public class CFA {
     }
   }
   
-  private static class Loop {
+  public static class Loop {
     
     // loopHeads is a sub-set of nodes such that all infinite paths through
     // the set nodes will pass through at least one node in loopHeads infinitively often
@@ -386,6 +386,20 @@ public class CFA {
           && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
     
+    public ImmutableSet<CFANode> getLoopHeads() {
+      return loopHeads;
+    }
+    
+    public ImmutableSet<CFAEdge> getIncomingEdges() {
+      computeSets();
+      return incomingEdges;
+    }
+
+    public ImmutableSet<CFAEdge> getOutgoingEdges() {
+      computeSets();
+      return outgoingEdges;
+    }
+    
     @Override
     public String toString() {
       computeSets();
@@ -400,6 +414,8 @@ public class CFA {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
+    
+    nodes = new TreeSet<CFANode>(nodes); // copy nodes because we change it
     
     // all nodes of the graph
     // Fields may be null, iff there is no node with this number.
