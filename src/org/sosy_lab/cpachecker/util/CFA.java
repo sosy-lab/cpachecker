@@ -396,10 +396,7 @@ public class CFA {
     }
   }
   
-  public static Collection<Loop> findLoops(CFAFunctionDefinitionNode startNode) {
-    SortedSet<CFANode> nodes = new TreeSet<CFANode>();
-    dfs(startNode, nodes, false, false);
-    
+  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
