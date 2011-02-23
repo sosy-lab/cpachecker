@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
@@ -410,7 +411,7 @@ public class CFA {
     }
   }
   
-  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) {
+  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) throws CFAGenerationRuntimeException {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
@@ -461,7 +462,7 @@ public class CFA {
     
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
-      throw new RuntimeException("Code structure is too complex, could not detect all loops!");
+      throw new CFAGenerationRuntimeException("Code structure is too complex, could not detect all loops!");
     }
    
     // THIRD step:
