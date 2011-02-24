@@ -5,20 +5,19 @@ public final class IASTFunctionDefinition extends IASTDeclaration implements
 
   private final IASTDeclSpecifier      specifier;
   private final IASTFunctionDeclarator declarator;
-  private final IASTStatement          bodyStatement;
 
   public IASTFunctionDefinition(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
-      final IASTFunctionDeclarator pDeclarator, IASTStatement pIastStatement) {
+      final IASTFunctionDeclarator pDeclarator) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
     declarator = pDeclarator;
-    bodyStatement = pIastStatement;
   }
 
   @Override
+  @Deprecated
   public org.eclipse.cdt.core.dom.ast.IASTStatement getBody() {
-    return bodyStatement;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -33,7 +32,7 @@ public final class IASTFunctionDefinition extends IASTDeclaration implements
   
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {specifier, declarator, bodyStatement};
+    return new IASTNode[] {specifier, declarator};
   }
 
   @Override
