@@ -97,13 +97,13 @@ public class InterpreterElement implements AbstractElement {
     mConstantsMap.put(nameOfVar, value);
   }
 
-  public long getValueFor(String pVariableName){
+  public long getValueFor(String pVariableName) throws MissingInputException, ReadingFromNondetVariableException {
     if (pVariableName.endsWith("::__BLAST_NONDET")) {
-      throw new RuntimeException();
+      throw new ReadingFromNondetVariableException();
     }
     
     if (!mConstantsMap.containsKey(pVariableName)) {
-      throw new RuntimeException("Unassigned variable: " + pVariableName);
+      throw new MissingInputException(pVariableName);
     }
     
     return mConstantsMap.get(pVariableName).longValue();

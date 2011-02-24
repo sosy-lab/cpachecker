@@ -207,10 +207,12 @@ public class InterpreterTransferRelation implements TransferRelation {
    * @param element previous abstract element.
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
+   * @throws MissingInputException 
+   * @throws ReadingFromNondetVariableException 
    */
   private InterpreterElement handleFunctionReturn(InterpreterElement element,
       FunctionReturnEdge functionReturnEdge)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
@@ -313,7 +315,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleFunctionCall(InterpreterElement element,
       FunctionCallEdge callEdge)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -392,7 +394,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleExitFromFunction(InterpreterElement element,
       IASTExpression expression,
       ReturnStatementEdge returnEdge)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     InterpreterElement lSuccessor = handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge); 
     
@@ -405,7 +407,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(InterpreterElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws UnrecognizedCFAEdgeException {
+                  throws UnrecognizedCFAEdgeException, MissingInputException, ReadingFromNondetVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -513,7 +515,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private AbstractElement propagateBooleanExpression(AbstractElement element, 
       int opType,IASTExpression op1, 
       IASTExpression op2, String functionName, boolean truthValue) 
-  throws UnrecognizedCFAEdgeException {
+  throws UnrecognizedCFAEdgeException, MissingInputException, ReadingFromNondetVariableException {
 
     InterpreterElement newElement = ((InterpreterElement)element).clone();
 
@@ -1224,7 +1226,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleStatement(InterpreterElement element,
       IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof IASTBinaryExpression) {
       return handleBinaryStatement(element, expression, cfaEdge);
@@ -1250,7 +1252,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleUnaryStatement(InterpreterElement element,
       IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
     int operator = unaryExpression.getOperator();
@@ -1287,7 +1289,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleBinaryStatement(InterpreterElement element,
       IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException
+  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException
   {
     IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
     switch (binaryExpression.getOperator ())
@@ -1316,7 +1318,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleOperationAndAssign(InterpreterElement element,
                                       IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
-                                      throws UnrecognizedCCodeException {
+                                      throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     IASTExpression leftOp = binaryExpression.getOperand1();
     IASTExpression rightOp = binaryExpression.getOperand2();
@@ -1363,7 +1365,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignment(InterpreterElement element,
                             IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
-                            throws UnrecognizedCCodeException {
+                            throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     IASTExpression op1 = binaryExpression.getOperand1();
     IASTExpression op2 = binaryExpression.getOperand2();
@@ -1417,7 +1419,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentToVariable(InterpreterElement element,
-                          String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+                          String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
@@ -1456,7 +1458,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfCast(InterpreterElement element,
                               String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
-                              throws UnrecognizedCCodeException
+                              throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException
   {
     IASTExpression castOperand = castExp.getOperand();
     
@@ -1471,7 +1473,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfUnaryExp(InterpreterElement element,
                                       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
-                                      throws UnrecognizedCCodeException {
+                                      throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
@@ -1525,7 +1527,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleAssignmentOfBinaryExp(InterpreterElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
                        int binaryOperator, CFAEdge cfaEdge)
-                       throws UnrecognizedCCodeException {
+                       throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
@@ -1657,7 +1659,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private Long getExpressionValue(InterpreterElement element, IASTExpression expression,
-                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     if (expression instanceof IASTLiteralExpression) {
       return parseLiteral(expression);
@@ -1705,7 +1707,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentOfVariable(InterpreterElement element,
-      String lParam, IASTExpression op2, String functionName)
+      String lParam, IASTExpression op2, String functionName) throws MissingInputException, ReadingFromNondetVariableException
   {
     String rParam = op2.getRawSignature();
 
@@ -1788,7 +1790,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
-                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     assert element instanceof InterpreterElement;
     InterpreterElement explicitElement = (InterpreterElement)element;
@@ -1808,7 +1810,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractElement> strengthen(InterpreterElement explicitElement,
-      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException {
 
     List<InterpreterElement> retList = new ArrayList<InterpreterElement>();
 
