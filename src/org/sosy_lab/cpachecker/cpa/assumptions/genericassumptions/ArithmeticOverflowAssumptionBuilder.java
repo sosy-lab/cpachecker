@@ -211,9 +211,7 @@ implements GenericAssumptionBuilder
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
           IASTName name = paramdecl.getDeclarator().getName();
-          // TODO: get the IType from an IASTName via IBinding
-          // see DummyASTIdExpression#getExpressionType()
-          IType type = null;
+          IType type = name.getType();
           IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name);
           result = visit(exp, result);
         }
