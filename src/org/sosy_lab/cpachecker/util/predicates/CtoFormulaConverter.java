@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.IBinding;
+import org.sosy_lab.cpachecker.cfa.ast.IBinding;
 import org.sosy_lab.cpachecker.cfa.ast.IPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
