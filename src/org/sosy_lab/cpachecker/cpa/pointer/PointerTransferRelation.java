@@ -344,8 +344,7 @@ public class PointerTransferRelation implements TransferRelation {
     }
     
     if (declarators.size() != 1) {
-      throw new UnrecognizedCCodeException("not expected in CIL", edge,
-                                    specifier.getParent());
+      throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
 
     IASTDeclarator declarator = declarators.get(0);

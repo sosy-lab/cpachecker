@@ -1343,7 +1343,7 @@ public class OctTransferRelation implements TransferRelation{
           break;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
         return assignConstant(pElement, assignedVar, value);
       }
@@ -1380,11 +1380,11 @@ public class OctTransferRelation implements TransferRelation{
             break;
 
           default:
-            throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+            throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
         }
         else{
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
       }
 
@@ -1413,11 +1413,11 @@ public class OctTransferRelation implements TransferRelation{
             break;
 
           default:
-            throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+            throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
         }
         else{
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
       }
 
@@ -1442,11 +1442,11 @@ public class OctTransferRelation implements TransferRelation{
             return forget(pElement, assignedVar); 
 
           default:
-            throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+            throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
         }
         else{
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
       }
 

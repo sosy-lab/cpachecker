@@ -1640,7 +1640,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           break;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
 
         newElement.assignConstant(assignedVar, value);
@@ -1650,7 +1650,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       break;
     default:
       {
-        throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+        throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
       }
     }
     return newElement;
