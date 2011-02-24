@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -170,7 +171,21 @@ class AutomatonTransition {
   
   @Override
   public String toString() {
-    return this.trigger.toString();
+    StringBuilder sb = new StringBuilder();
+    sb.append('"');
+    sb.append(trigger);
+    sb.append(" -> ");
+    if (!assertion.equals(AutomatonBoolExpr.TRUE)) {
+      sb.append("ASSERT ");
+      sb.append(assertion);
+    }
+    if (!actions.isEmpty()) {
+      Joiner.on(' ').appendTo(sb, actions);
+      sb.append(" ");
+    }
+    sb.append(followState);
+    sb.append(";\"");
+    return sb.toString();
   }
 
   /**
