@@ -180,7 +180,7 @@ public class CtoFormulaConverter {
       if (tp instanceof IPointerType) {
         return getTypeName(((IPointerType)tp).getType());
       }
-      assert(tp instanceof IBinding);
+      assert(tp instanceof IBinding) : tp;
       if (tp instanceof ITypedef) {
         return getTypeName(((ITypedef)tp).getType());
       }

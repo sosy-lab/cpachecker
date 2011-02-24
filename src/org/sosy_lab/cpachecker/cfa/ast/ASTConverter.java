@@ -344,8 +344,7 @@ public class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
       
     } else {
-      return null;
-      //throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
+      return new DummyType(t.toString());
     }
   }
 
