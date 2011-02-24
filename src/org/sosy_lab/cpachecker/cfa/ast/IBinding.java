@@ -15,7 +15,6 @@ public interface IBinding extends org.eclipse.cdt.core.dom.ast.IBinding {
   public ILinkage getLinkage();
 
   @Override
-  @Deprecated
   public String getName();
 
   @Override

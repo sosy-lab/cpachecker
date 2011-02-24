@@ -343,6 +343,9 @@ public class ASTConverter {
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
       return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
       
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
+      return new ISimpleBindingType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
+      
     } else {
       return new DummyType(t.toString());
     }
