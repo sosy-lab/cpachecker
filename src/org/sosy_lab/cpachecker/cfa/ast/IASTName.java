@@ -11,11 +11,23 @@ import org.eclipse.cdt.core.dom.ast.IBinding;
 public final class IASTName extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTName {
 
+  private final IType type;
+  
   public IASTName(final String pRawSignature,
-      final IASTFileLocation pFileLocation) {
+      final IASTFileLocation pFileLocation, IType pType) {
     super(pRawSignature, pFileLocation);
+    type = pType;
   }
 
+  /**
+   * Return the type of the thing this name references.
+   * Not fully implemented.
+   * May return null if the parser did not find a binding.
+   */
+  public IType getType() {
+    return type;
+  }
+  
   @Override
   public char[] getSimpleID() {
     // TODO: is this really important? 

@@ -7,31 +7,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 public class ASTConverter {
-  
-/* Code we might later use to determine the type of an IASTIdExpression
-  @Override
-  public IType getExpressionType() {
-    IBinding binding = getName().resolveBinding();
-    try {
-      if (binding instanceof IVariable) {
-        return ((IVariable)binding).getType();
-      } 
-      if (binding instanceof IFunction) {
-        return ((IFunction)binding).getType();
-      }
-      if (binding instanceof IEnumerator) {
-        return ((IEnumerator)binding).getType();
-      }
-      if (binding instanceof IProblemBinding) {
-        return (IProblemBinding)binding;
-      }
-    } catch (DOMException e) {
-      return e.getProblem();
-    }
-    return null;
-  }
-*/
-  
+    
   public static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);
 
@@ -325,13 +301,39 @@ public class ASTConverter {
   }
   
   private static IASTName convert(org.eclipse.cdt.core.dom.ast.IASTName n) {
-    return new IASTName(n.getRawSignature(), convert(n.getFileLocation()));
+    org.eclipse.cdt.core.dom.ast.IBinding binding = n.getBinding();
+    if (binding == null) {
+      binding = n.resolveBinding();
+    }
+    
+    IType type;
+    try {
+      if (binding == null) {
+        // not sure which C code triggers this 
+        type = null;
+        
+      } else if (binding instanceof org.eclipse.cdt.core.dom.ast.IVariable) {
+        type = convert(((org.eclipse.cdt.core.dom.ast.IVariable)binding).getType());
+      
+      } else if (binding instanceof org.eclipse.cdt.core.dom.ast.IFunction) {
+        type = convert(((org.eclipse.cdt.core.dom.ast.IFunction)binding).getType());
+      
+      } else if (binding instanceof org.eclipse.cdt.core.dom.ast.IEnumerator) {
+        type = convert(((org.eclipse.cdt.core.dom.ast.IEnumerator)binding).getType());
+  
+      } else {
+        type = new DummyType(binding.toString());
+      }
+    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
+      throw new CFAGenerationRuntimeException(e.getMessage());
+    }
+
+    return new IASTName(n.getRawSignature(), convert(n.getFileLocation()), type);
   }
   
   private static IASTTypeId convert(org.eclipse.cdt.core.dom.ast.IASTTypeId t) {
     return new IASTTypeId(t.getRawSignature(), convert(t.getFileLocation()), convert(t.getAbstractDeclarator()), convert(t.getDeclSpecifier()));
   }
-  
   
   private static IType convert(org.eclipse.cdt.core.dom.ast.IType t) {
     if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
