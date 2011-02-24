@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.eclipse.cdt.core.dom.ILinkage;
-import org.eclipse.core.runtime.CoreException;
+import org.eclipse.cdt.core.dom.ast.IScope;
 
 public final class ITypedef extends IType implements IBinding,
     org.eclipse.cdt.core.dom.ast.ITypedef {
@@ -15,7 +15,7 @@ public final class ITypedef extends IType implements IBinding,
   }
 
   @Override
-  public ILinkage getLinkage() throws CoreException {
+  public ILinkage getLinkage() {
     throw new UnsupportedOperationException();
   }
 
@@ -31,13 +31,13 @@ public final class ITypedef extends IType implements IBinding,
 
   @Override
   @Deprecated
-  public org.eclipse.cdt.core.dom.ast.IBinding getOwner() throws DOMException {
+  public IBinding getOwner() {
     throw new UnsupportedOperationException();
   }
 
   @Override
   @Deprecated
-  public org.eclipse.cdt.core.dom.ast.IScope getScope() throws DOMException {
+  public IScope getScope() {
     throw new UnsupportedOperationException();
   }
 
