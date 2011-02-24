@@ -110,7 +110,7 @@ public class Automaton {
         for (AutomatonTransition t : s.getTransitions()) {
           if (!t.meetsObserverRequirements()) {
             throw new InvalidConfigurationException("The transition " + t
-                + " in state" + s + " is not valid for an ObserverAutomaton.");
+                + " in state \"" + s + "\" is not valid for an ObserverAutomaton.");
           }
         }
       }
