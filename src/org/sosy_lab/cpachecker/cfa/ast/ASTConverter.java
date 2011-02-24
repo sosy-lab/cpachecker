@@ -339,15 +339,13 @@ public class ASTConverter {
  
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
       return convert((org.eclipse.cdt.core.dom.ast.IPointerType)t);
-
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IFunctionType) {
-      return convert((org.eclipse.cdt.core.dom.ast.IFunctionType)t);
       
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
       return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
       
     } else {
-      throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
+      return null;
+      //throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
     }
   }
 
@@ -381,11 +379,6 @@ public class ASTConverter {
       throw new CFAGenerationRuntimeException(e.getMessage());
     }
   }
-  
-  private static IFunctionType convert(org.eclipse.cdt.core.dom.ast.IFunctionType t) {
-    return new IFunctionType();
-  }
-  
   
   private static IPointerType convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
     try {
