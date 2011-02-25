@@ -41,7 +41,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
-import org.sosy_lab.common.configuration.Option.Type;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -405,7 +404,7 @@ public class Configuration {
       
       // options which were not specified need not to be set
       // but do set OUTPUT_FILE options for disableOutput to work
-      if (value == null && (option.type() != Type.OUTPUT_FILE)) {
+      if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) {
         continue;
       }
 
@@ -445,7 +444,7 @@ public class Configuration {
       
       // options which were not specified need not to be set
       // but do set OUTPUT_FILE options for disableOutput to work
-      if (value == null && (option.type() != Type.OUTPUT_FILE)) {
+      if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) {
         continue;
       }
 
@@ -537,20 +536,20 @@ public class Configuration {
     return valueStr;
   }
 
-  private Object convertValue(String name, String valueStr, Object defaultValue, Class<?> type, Type typeInfo)
+  private Object convertValue(String name, String valueStr, Object defaultValue, Class<?> type, Option.Type typeInfo)
                      throws UnsupportedOperationException, InvalidConfigurationException {
     // convert value to correct type
     Object result;
 
     if (type.equals(File.class)) {
-      if (typeInfo == Type.NOT_APPLICABLE) {
+      if (typeInfo == Option.Type.NOT_APPLICABLE) {
         throw new UnsupportedOperationException("Type File and type=NOT_APPLICABLE do not match for option " + name);
       }
       
       result = handleFileOption(name, valueStr, defaultValue, typeInfo);
       
     } else {
-      if (typeInfo != Type.NOT_APPLICABLE) {
+      if (typeInfo != Option.Type.NOT_APPLICABLE) {
         throw new UnsupportedOperationException("Type " + type.getSimpleName()
             + " and type=" + typeInfo + " do not match for option " + name);
       }
@@ -578,7 +577,7 @@ public class Configuration {
         
       } else if (type.equals(Files.class)) {
         result = handleFileOption(name, valueStr, defaultValue, typeInfo);
-  
+        
       } else {
         throw new UnsupportedOperationException("Unimplemented type for option: " + type.getSimpleName());
       }
@@ -601,7 +600,7 @@ public class Configuration {
     }
   }
 
-  private File handleFileOption(String name, String valueStr, Object defaultValue, Type typeInfo)
+  private File handleFileOption(String name, String valueStr, Object defaultValue, Option.Type typeInfo)
                   throws UnsupportedOperationException, InvalidConfigurationException {
     File file;
     if (valueStr != null) {
@@ -612,7 +611,7 @@ public class Configuration {
       return null;
     }
 
-    if (typeInfo == Type.OUTPUT_FILE) {
+    if (typeInfo == Option.Type.OUTPUT_FILE) {
       if (disableOutput) {
         return null;
       }
@@ -626,7 +625,7 @@ public class Configuration {
       file = new File(rootDirectory, file.getPath());    
     }
     
-    if (typeInfo == Type.REQUIRED_INPUT_FILE) {
+    if (typeInfo == Option.Type.REQUIRED_INPUT_FILE) {
       try {
         Files.checkReadableFile(file);
       } catch (FileNotFoundException e) {
