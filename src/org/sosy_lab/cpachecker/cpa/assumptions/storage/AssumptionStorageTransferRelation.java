@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -39,9 +38,6 @@ import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
-
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
  * @author g.theoduloz
@@ -50,9 +46,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final FormulaManager formulaManager;
   
-  public final Multimap<CFANode, Formula> generatedAssumptionsMap = LinkedListMultimap.create();
-
-  public AssumptionStorageTransferRelation(FormulaManager pManager, AbstractElement topElement) {
+  public AssumptionStorageTransferRelation(FormulaManager pManager) {
     formulaManager = pManager;
   }
 
@@ -69,10 +63,6 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     return Collections.singleton(element);
   }
   
-  public Multimap<CFANode, Formula> getGeneratedAssumptionsMap() {
-    return generatedAssumptionsMap;
-  }
-
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
@@ -100,7 +90,6 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     if (assumption.isTrue()) {
       return null;
     } else {
-      generatedAssumptionsMap.put(edge.getSuccessor(), assumption);
       return Collections.singleton(new AssumptionStorageElement(assumption));
     }
   }

@@ -72,7 +72,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     topElement = new AssumptionStorageElement(formulaManager.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(formulaManager, topElement);
+    transferRelation = new AssumptionStorageTransferRelation(formulaManager);
   }
 
   public FormulaManager getFormulaManager()
