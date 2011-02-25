@@ -32,19 +32,31 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Multiset;
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Primitives;
 
@@ -284,6 +296,36 @@ public class Configuration {
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
   
+  /** Map that stores which implementation we use for the collection classes */
+  private static final Map<Class<? extends Iterable<?>>, Class<? extends Iterable<?>>> COLLECTIONS;
+  static {
+    ImmutableMap.Builder<Class<? extends Iterable<?>>, Class<? extends Iterable<?>>> builder = ImmutableMap.builder();
+    
+    putSafely(builder, Iterable.class,   ImmutableList.class);
+    putSafely(builder, Collection.class, ImmutableList.class);
+    putSafely(builder, List.class,       ImmutableList.class);
+    putSafely(builder, Set.class,        ImmutableSet.class);
+    putSafely(builder, SortedSet.class,  ImmutableSortedSet.class);
+    putSafely(builder, Multiset.class,   ImmutableMultiset.class);
+    
+    putSafely(builder, ImmutableCollection.class, ImmutableList.class);
+    putSafely(builder, ImmutableList.class,       ImmutableList.class);
+    putSafely(builder, ImmutableSet.class,        ImmutableSet.class);
+    putSafely(builder, ImmutableSortedSet.class,  ImmutableSortedSet.class);
+    putSafely(builder, ImmutableMultiset.class,   ImmutableMultiset.class);
+
+    COLLECTIONS = builder.build();
+  }
+
+  // using this method to put key-value pairs into the builder ensures that
+  // each implementation really implements the interface
+  private static <T extends Iterable<?>> void putSafely(
+      ImmutableMap.Builder<Class<? extends Iterable<?>>, Class<? extends Iterable<?>>> builder,
+      Class<T> iface, Class<? extends T> impl) {
+    assert !impl.isInterface();
+    builder.put(iface, impl);
+  }
+  
   private final ImmutableMap<String, String> properties;
 
   private final String prefix;
@@ -343,6 +385,18 @@ public class Configuration {
    * Inject the values of configuration options into an object.
    * The class of the object has to have a {@link Options} annotation, and each
    * field to set / method to call has to have a {@link Option} annotation.
+   * 
+   * Supported types for configuration options:
+   * - all primitive types
+   * - all enum types
+   * - {@link String} and arrays of it
+   * - {@link File} (the field {@link Option#type()} is required in this case!)
+   * - collection types {@link Iterable}, {@link Collection}, {@link List}, {@link Set}, {@link SortedSet} and {@link Multiset}
+   *   
+   * For the collection types an immutable instance will be created and injected.
+   * Their type parameter has to be String or something that allows assignments of Strings.
+   * For collection types and arrays the values of the configuration option are
+   * assumed to be comma separated. 
    *
    * @param obj The object in which the configuration options should be injected.
    * @throws InvalidConfigurationException If the user specified configuration is wrong.
@@ -386,6 +440,7 @@ public class Configuration {
 
       String name = getOptionName(prefix, field, option);
       Class<?> type = field.getType();
+      Type genericType = field.getGenericType();
 
       String valueStr = getOptionValue(name, option, type.isEnum());
       
@@ -400,7 +455,7 @@ public class Configuration {
         assert false : "Accessibility setting failed silently above.";
       }
       
-      Object value = convertValue(name, valueStr, defaultValue, type, option.type());
+      Object value = convertValue(name, valueStr, defaultValue, type, genericType, option.type());
       
       // options which were not specified need not to be set
       // but do set OUTPUT_FILE options for disableOutput to work
@@ -437,10 +492,11 @@ public class Configuration {
 
       String name = getOptionName(prefix, method, option);
       Class<?> type = parameters[0];
+      Type genericType = method.getGenericParameterTypes()[0];
 
       String valueStr = getOptionValue(name, option, type.isEnum());
 
-      Object value = convertValue(name, valueStr, null, type, option.type());
+      Object value = convertValue(name, valueStr, null, type, genericType, option.type());
       
       // options which were not specified need not to be set
       // but do set OUTPUT_FILE options for disableOutput to work
@@ -536,7 +592,7 @@ public class Configuration {
     return valueStr;
   }
 
-  private Object convertValue(String name, String valueStr, Object defaultValue, Class<?> type, Option.Type typeInfo)
+  private Object convertValue(String name, String valueStr, Object defaultValue, Class<?> type, Type genericType, Option.Type typeInfo)
                      throws UnsupportedOperationException, InvalidConfigurationException {
     // convert value to correct type
     Object result;
@@ -578,6 +634,9 @@ public class Configuration {
       } else if (type.equals(Files.class)) {
         result = handleFileOption(name, valueStr, defaultValue, typeInfo);
         
+      } else if (COLLECTIONS.containsKey(type)) {
+        result = handleCollectionOption(name, valueStr, type, genericType);
+        
       } else {
         throw new UnsupportedOperationException("Unimplemented type for option: " + type.getSimpleName());
       }
@@ -586,14 +645,18 @@ public class Configuration {
   }
 
   private Object valueOf(Class<?> type, String name, String value) throws InvalidConfigurationException {
+    return invokeMethod(type, "valueOf", String.class, value, name);
+  }
+
+  private <T> Object invokeMethod(Class<?> type, String method, Class<T> paramType, T value, String name) throws InvalidConfigurationException {
     try {
-      Method valueOf = type.getMethod("valueOf", String.class);
-      return valueOf.invoke(null, value);
+      Method m = type.getMethod(method, paramType);
+      return m.invoke(null, value);
 
     } catch (NoSuchMethodException e) {
-      throw new AssertionError("Primitive type class without valueOf(String) method!");
+      throw new AssertionError("Class " + type.getSimpleName() + " without " + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (IllegalAccessException e) {
-      throw new AssertionError("Primitive type class without accessible valueOf(String) method!");
+      throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (InvocationTargetException e) {
       throw new InvalidConfigurationException("Could not parse \"" + name + " = " + value
           + "\" (" + e.getTargetException().getMessage() + ")");
@@ -635,6 +698,52 @@ public class Configuration {
     }
     
     return file;
+  }
+  
+  private Object handleCollectionOption(String name, String valueStr,
+      Class<?> type, Type genericType) throws UnsupportedOperationException,
+      InvalidConfigurationException {
+    
+    // it's a collections class, get value of type parameter
+    assert genericType instanceof ParameterizedType : "Collections type that is not a ParameterizedType";
+    ParameterizedType pType = (ParameterizedType)genericType;
+    Type[] parameterTypes = pType.getActualTypeArguments();
+    assert parameterTypes.length == 1 : "Collections type with more than one type parameter";
+    Type paramType = parameterTypes[0];
+    
+    Class<?> paramClass = extractUpperBoundFromType(paramType);
+    if (!paramClass.isAssignableFrom(String.class)) {
+      throw new UnsupportedOperationException("Currently only collections of type String are supported for configuration options, not of type \"" + paramType + "\"");
+    }
+    // now we now that it's a Collection<String> / Set<? extends String> etc., so we can safely assign to it
+    
+    Class<?> implementationClass = COLLECTIONS.get(type);
+    assert implementationClass != null : "Only call this method with a class that has a mapping in COLLECTIONS";
+    
+    String[] values = ARRAY_SPLIT_PATTERN.split(valueStr);
+
+    // invoke ImmutableSet.copyOf(Object[]) etc.
+    return invokeMethod(implementationClass, "copyOf", Object[].class, values, name);
+  }
+  
+  private static Class<?> extractUpperBoundFromType(Type type) {
+    if (type instanceof WildcardType) {
+      WildcardType wcType = (WildcardType)type;
+      if (wcType.getLowerBounds().length > 0) {
+        throw new UnsupportedOperationException("Currently wildcard types with a lower bound like \"" + type + "\" are not supported ");
+      }
+      Type[] upperBounds = ((WildcardType)type).getUpperBounds();
+      if (upperBounds.length != 1) {
+        throw new UnsupportedOperationException("Currently only type bounds with one upper bound are supported, not \"" + type + "\"");
+      }
+      type = upperBounds[0];
+    }
+    
+    if (type instanceof Class<?>) {
+      return (Class<?>)type;
+    } else {
+      throw new UnsupportedOperationException("Currently types like \"" + type + "\" are not supported");
+    }
   }
   
   public String getRootDirectory() {
