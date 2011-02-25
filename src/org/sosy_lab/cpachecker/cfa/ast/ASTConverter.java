@@ -254,14 +254,24 @@ public class ASTConverter {
     
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerExpression) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerExpression)i);
+    } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)i);
     } else {
-      throw new CFAGenerationRuntimeException("", i);
+      throw new CFAGenerationRuntimeException("\n" + i.getClass() + "\n", i);
     }
   }
   
   private static IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
     return new IASTInitializerExpression(i.getRawSignature(), convert(i.getFileLocation()), convert(i.getExpression()));
   }
+  
+  private static IASTInitializerList convert(org.eclipse.cdt.core.dom.ast.IASTInitializerList iList) {
+    List<IASTInitializer> initializerList = new ArrayList<IASTInitializer>(iList.getInitializers().length);
+    for (org.eclipse.cdt.core.dom.ast.IASTInitializer i : iList.getInitializers()) {
+      initializerList.add(convert(i));
+    }
+    return new IASTInitializerList(iList.getRawSignature(), convert(iList.getFileLocation()), initializerList);
+    }
   
   public static IASTParameterDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
     return new IASTParameterDeclaration(p.getRawSignature(), convert(p.getFileLocation()), convert(p.getDeclSpecifier()), convert(p.getDeclarator()));
