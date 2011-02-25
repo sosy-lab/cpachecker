@@ -7,9 +7,14 @@ class DummyType extends IType {
   public DummyType(String pTypeName) {
     typeName = pTypeName;
   }
-  
+
   @Override
   public String toString() {
     return typeName;
+  }
+
+  @Override
+  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType pArg0) {
+    throw new UnsupportedOperationException();
   }
 }

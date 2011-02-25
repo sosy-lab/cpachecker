@@ -9,4 +9,8 @@ class ISimpleBindingType extends IBindingType {
     super(pName);
   }
 
+  @Override
+  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType other) {
+    throw new UnsupportedOperationException();
+  }
 }

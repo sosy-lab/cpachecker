@@ -15,4 +15,9 @@ public final class ITypedef extends IBindingType
     return type;
   }
 
+  @Override
+  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType other) {
+    return (other instanceof ITypedef) && ((ITypedef)other).getType() == getType();
+  }
+
 }

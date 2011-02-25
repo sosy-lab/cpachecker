@@ -29,4 +29,8 @@ public final class IPointerType extends IType implements
     return isVolatile;
   }
 
+  @Override
+  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType other) {
+    return (other instanceof IPointerType) && ((IPointerType)other).getType() == getType();
+  }
 }

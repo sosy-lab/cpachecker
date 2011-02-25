@@ -257,7 +257,7 @@ public class ASTConverter {
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)i);
     } else {
-      throw new CFAGenerationRuntimeException("\n" + i.getClass() + "\n", i);
+      throw new CFAGenerationRuntimeException("", i);
     }
   }
   

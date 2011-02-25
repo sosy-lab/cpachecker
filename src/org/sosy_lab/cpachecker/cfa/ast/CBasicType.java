@@ -31,4 +31,9 @@ public final class CBasicType extends IBasicType implements
     return isLongLong;
   }
 
+  @Override
+  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType other) {
+    return (other instanceof IBasicType) && ((IBasicType)other).getType() == getType();
+  }
+
 }
