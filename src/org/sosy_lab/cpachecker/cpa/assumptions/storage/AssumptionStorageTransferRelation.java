@@ -46,8 +46,11 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final FormulaManager formulaManager;
   
-  public AssumptionStorageTransferRelation(FormulaManager pManager) {
+  private final Collection<AbstractElement> topElementSet;
+  
+  public AssumptionStorageTransferRelation(FormulaManager pManager, AbstractElement pTopElement) {
     formulaManager = pManager;
+    topElementSet = Collections.singleton(pTopElement);
   }
 
   @Override
@@ -60,7 +63,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    return Collections.singleton(element);
+    return topElementSet;
   }
   
   @Override
