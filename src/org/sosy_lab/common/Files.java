@@ -36,7 +36,7 @@ public final class Files {
     
     if (!Strings.isNullOrEmpty(content)) {
       try {
-        com.google.common.io.Files.write(content.toString(), file, Charset.defaultCharset());
+        com.google.common.io.Files.write(content, file, Charset.defaultCharset());
       } catch (IOException e) {
         file.delete();
  

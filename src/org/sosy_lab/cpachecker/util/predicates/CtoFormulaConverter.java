@@ -1138,7 +1138,7 @@ public class CtoFormulaConverter {
           result = fmgr.makeOr(t1, t2);
           break;
           
-        default: assert false;
+        default: throw new AssertionError();
         }
       
       } else {
@@ -1169,6 +1169,11 @@ public class CtoFormulaConverter {
   
         case IASTBinaryExpression.op_notequals:
           result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
+          break;
+          
+        default:
+          // do nothing, because it is not a boolean operator
+          // will be handled by call to buildTerm()
           break;
         }
       }

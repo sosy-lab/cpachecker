@@ -9,7 +9,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
   
-  public static ECPNodeSet EMPTY_NODE_SET = new ECPNodeSet();
+  public static final ECPNodeSet EMPTY_NODE_SET = new ECPNodeSet();
   
   private Set<CFANode> mCFANodes;
   

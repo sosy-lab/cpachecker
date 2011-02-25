@@ -157,7 +157,7 @@ public class CFA {
   /**
    * A predicate that can be used to filter out nodes that are marked as loop start nodes.
    */
-  public static Predicate<CFANode> FILTER_LOOP_HEADS = new Predicate<CFANode>() {
+  public static final Predicate<CFANode> FILTER_LOOP_HEADS = new Predicate<CFANode>() {
     @Override
     public boolean apply(CFANode pNode) {
       return pNode.isLoopStart();

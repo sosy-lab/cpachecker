@@ -82,6 +82,8 @@ public class Predicate {
     case NOT_EQUAL:
       lComparison = Comparison.EQUAL;
       break;
+    default:
+      throw new AssertionError();  
     }
     
     return new Predicate(mLeftTerm, lComparison, mRightTerm);

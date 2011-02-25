@@ -75,10 +75,10 @@ public class CPAchecker {
     public void stop();
   }
   
-  private class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
+  private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
     private final ReachedSet reached;
     
-    public CPAcheckerBean(ReachedSet pReached) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       register();
@@ -205,7 +205,7 @@ public class CPAchecker {
         reached = createInitialReachedSet(cpa, mainFunction);
 
         // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached);
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
         stats.cpaCreationTime.stop();
         
