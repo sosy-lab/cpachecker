@@ -19,36 +19,36 @@ public abstract class IBasicType extends IType implements
   }
 
   @Override
-  public int getType() throws DOMException {
+  public int getType() {
     return type;
   }
 
   @Override
   @Deprecated
-  public IASTExpression getValue() throws DOMException {
+  public IASTExpression getValue() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean isLong() throws DOMException {
+  public boolean isLong() {
     return isLong;
   }
 
   @Override
-  public boolean isShort() throws DOMException {
+  public boolean isShort() {
     return isShort;
   }
 
   @Override
-  public boolean isSigned() throws DOMException {
+  public boolean isSigned() {
     return isSigned;
   }
 
   @Override
-  public boolean isUnsigned() throws DOMException {
+  public boolean isUnsigned() {
     return isUnsigned;
   }
 
   public static final int t_int = 3;
-  
+
 }

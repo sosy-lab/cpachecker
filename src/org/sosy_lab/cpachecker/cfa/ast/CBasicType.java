@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.eclipse.cdt.core.dom.ast.DOMException;
-
 public final class CBasicType extends IBasicType implements
     org.eclipse.cdt.core.dom.ast.c.ICBasicType {
 
@@ -29,7 +27,7 @@ public final class CBasicType extends IBasicType implements
   }
 
   @Override
-  public boolean isLongLong() throws DOMException {
+  public boolean isLongLong() {
     return isLongLong;
   }
 

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.DOMException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -60,9 +59,8 @@ implements GenericAssumptionBuilder
 
   private static Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> boundsForType(IType typ)
   {
-    try {
-      if (typ instanceof IBasicType) {
-        IBasicType btyp = (IBasicType) typ;
+    if (typ instanceof IBasicType) {
+      IBasicType btyp = (IBasicType) typ;
 
         switch (btyp.getType()) {
         case IBasicType.t_int:
@@ -98,9 +96,8 @@ implements GenericAssumptionBuilder
           //          else
           //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
           //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
-        }
       }
-    } catch (DOMException e) { /* oops... just ignore, and return (null, null) */ }
+    } 
     return Pair.of(null, null);
   }
 

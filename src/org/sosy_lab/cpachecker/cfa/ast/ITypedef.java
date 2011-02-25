@@ -11,7 +11,7 @@ public final class ITypedef extends IBindingType
   }
 
   @Override
-  public IType getType() throws DOMException {
+  public IType getType() {
     return type;
   }
 

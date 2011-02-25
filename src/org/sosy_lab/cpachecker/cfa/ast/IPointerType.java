@@ -15,7 +15,7 @@ public final class IPointerType extends IType implements
   }
 
   @Override
-  public IType getType() throws DOMException {
+  public IType getType() {
     return type;
   }
 

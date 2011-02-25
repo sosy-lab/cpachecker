@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.ast.DOMException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
@@ -176,20 +175,14 @@ public class CtoFormulaConverter {
   }
 
   private String getTypeName(IType tp) {
-    try {
-      if (tp instanceof IPointerType) {
-        return getTypeName(((IPointerType)tp).getType());
-      }
-      assert(tp instanceof IBinding) : tp;
-      if (tp instanceof ITypedef) {
-        return getTypeName(((ITypedef)tp).getType());
-      }
-      return ((IBinding)tp).getName();
-    } catch (DOMException e) {
-      logger.logException(Level.WARNING, e, "");
-      assert(false);
+    if (tp instanceof IPointerType) {
+      return getTypeName(((IPointerType)tp).getType());
+    }    
+    assert(tp instanceof IBinding) : tp;
+    if (tp instanceof ITypedef) {
+      return getTypeName(((ITypedef)tp).getType());
     }
-    return null;
+    return ((IBinding)tp).getName();
   }
 
   /**
