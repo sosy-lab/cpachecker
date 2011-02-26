@@ -67,9 +67,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
   
-  @Option
-  private boolean continueAfterInfeasibleError = false;
-  
   public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
@@ -142,10 +139,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
         sound = false;
 
         logger.log(Level.WARNING, "Bug found which was denied by CBMC. Analysis will continue, but the result may be unsound.");
-
-        if (!continueAfterInfeasibleError) {
-          break;
-        }
       }
     }
     return sound;
