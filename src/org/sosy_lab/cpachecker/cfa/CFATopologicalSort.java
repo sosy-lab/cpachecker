@@ -23,30 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-
 public class CFATopologicalSort {
 
-	ArrayList<Integer> visited;
-	private int topSortId = 0;
+  private final Set<CFANode> visited   = new HashSet<CFANode>();
+  private int                topSortId = 0;
 
-	public CFATopologicalSort() {
-		visited = new ArrayList<Integer>();
-	}
+  public void topologicalSort(CFANode node) {
+    if (!visited.add(node)) {
+      // already handled, do nothing
+      return;
+    }
 
-	public void topologicalSort(CFANode node){
-
-		visited.add(node.getNodeNumber());
-		for(int i=0; i<node.getNumLeavingEdges(); i++){
-			CFANode successor = node.getLeavingEdge(i).getSuccessor();
-			if(!visited.contains(successor.getNodeNumber())){
-				topologicalSort(successor);
-			}
-		}
-		node.setTopologicalSortId(topSortId);
-		topSortId++;
-	}
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      CFANode successor = node.getLeavingEdge(i).getSuccessor();
+     
+      topologicalSort(successor);
+    }
+    
+    node.setTopologicalSortId(topSortId++);
+  }
 }
