@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.interpreter;
+package org.sosy_lab.cpachecker.cpa.interpreter.exceptions;
 
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 

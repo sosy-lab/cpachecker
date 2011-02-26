@@ -28,6 +28,9 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
 
 public class InterpreterElement implements AbstractElement {
 
