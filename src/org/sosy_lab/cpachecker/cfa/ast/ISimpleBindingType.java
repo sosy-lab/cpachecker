@@ -5,7 +5,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
  */
 class ISimpleBindingType extends IBindingType {
 
-  public ISimpleBindingType(String pName) {
+  public ISimpleBindingType(final String pName) {
     super(pName);
   }
 

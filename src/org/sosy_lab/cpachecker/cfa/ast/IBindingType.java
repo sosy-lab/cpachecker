@@ -7,7 +7,7 @@ public abstract class IBindingType extends IType implements IBinding {
 
   private final String name;
   
-  public IBindingType(String pName) {
+  public IBindingType(final String pName) {
     name = pName;
   }
   

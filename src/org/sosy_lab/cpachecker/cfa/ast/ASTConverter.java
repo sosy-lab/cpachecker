@@ -344,7 +344,7 @@ public class ASTConverter {
     }
   }
 
-  private static IBasicType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
+  private static CBasicType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
 
     try {
       
@@ -357,17 +357,15 @@ public class ASTConverter {
         return new CBasicType(t.getType(), t.isLong(), t.isShort(), t.isSigned(),
           t.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
 
-      } else {
-        if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
+      } else if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
           
           // the three values isComplex, isImaginary, isLongLong are initialized
           // with FALSE, because we do not know about them
           return new CBasicType(t.getType(), t.isLong(), t.isShort(),
             t.isSigned(), t.isUnsigned(), false, false, false);
 
-        } else {
-          throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
-        }
+      } else {
+        throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
       }
       
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {

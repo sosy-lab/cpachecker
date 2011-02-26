@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IBasicType;
+import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -59,11 +59,11 @@ implements GenericAssumptionBuilder
 
   private static Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> boundsForType(IType typ)
   {
-    if (typ instanceof IBasicType) {
-      IBasicType btyp = (IBasicType) typ;
+    if (typ instanceof CBasicType) {
+      CBasicType btyp = (CBasicType) typ;
 
         switch (btyp.getType()) {
-        case IBasicType.t_int:
+        case CBasicType.t_int:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
