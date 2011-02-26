@@ -50,7 +50,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 @Options(prefix="cegar")
@@ -183,12 +185,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
-
-    if (pRefiner == null) {
-      throw new IllegalArgumentException("Given Refiner object is null!");
-    }
-    
-    mRefiner = pRefiner;
+    mRefiner = Preconditions.checkNotNull(pRefiner);
   }
 
   @Override
@@ -197,15 +194,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     
     stats.totalTimer.start();
 
-    boolean stopAnalysis = false;
-    while (!stopAnalysis) {
+    boolean continueAnalysis;
+    do {
+      continueAnalysis = false;
+
       // run algorithm
       sound &= algorithm.run(reached);
 
       AbstractElement lastElement = reached.getLastElement();
 
-      // if the element is an error element
-      if ((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
+      // if the element is a target element do refinement
+      if (AbstractElements.isTargetElement(lastElement)) {
 
         logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
@@ -235,20 +234,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
           runGC();
 
-          stopAnalysis = false;
+          continueAnalysis = true;
 
         } else {
           // no refinement found, because the counterexample is not spurious
           logger.log(Level.FINER, "Refinement unsuccessful");
-
-          stopAnalysis = true;
         }
-
-      } else {
-        // no error
-        stopAnalysis = true;
-      }
-    }
+      } // if lastElement is target element 
+      
+    } while (continueAnalysis);
     executor.shutdownNow();
 
     stats.totalTimer.stop();
