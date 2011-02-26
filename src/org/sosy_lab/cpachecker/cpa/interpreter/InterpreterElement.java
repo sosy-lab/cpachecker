@@ -28,6 +28,9 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
 
 public class InterpreterElement implements AbstractElement {
 
@@ -40,42 +43,62 @@ public class InterpreterElement implements AbstractElement {
   
   // TODO make final
   private int mInputIndex;
+  private int[] mInputs;
   
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public InterpreterElement() {
-    mConstantsMap = new HashMap<String, Long>();
-    mPreviousElement = null;
-    mInputIndex = 0;
+    this(new int[0]);
+  }
+  
+  public InterpreterElement(int[] pInputs) {
+    this(new HashMap<String, Long>(), null, 0, pInputs);
+  }
+  
+  public InterpreterElement(InterpreterElement pPreviousContextElement, int pInputIndex, int[] pInputs) {
+    this(new HashMap<String, Long>(), pPreviousContextElement, pInputIndex, pInputs);
   }
 
-  public InterpreterElement(InterpreterElement previousElement, int lInputIndex) {
-    this(new HashMap<String, Long>(), previousElement, lInputIndex);
-  }
-
-
-  public InterpreterElement(Map<String, Long> constantsMap, InterpreterElement previousElement, int lInputIndex) {
-    mConstantsMap = constantsMap;
-    mPreviousElement = previousElement;
-    mInputIndex = lInputIndex;
+  public InterpreterElement(Map<String, Long> pConstantsMap, InterpreterElement pPreviousContextElement, int pInputIndex, int[] pInputs) {
+    if (pInputs == null) {
+      throw new IllegalArgumentException();
+    }
+    
+    mConstantsMap = pConstantsMap;
+    mPreviousElement = pPreviousContextElement;
+    mInputIndex = pInputIndex;
+    
+    mInputs = pInputs;
   }
   
   public int getInputIndex() {
-    if (mInputIndex == -1) {
-      throw new RuntimeException();
-    }
-    
     return mInputIndex;
   }
-
-  public void setInputIndex(int pIndex) {
+  
+  public int[] getInputs() {
+    return mInputs;
+  }
+  
+  private void setInputIndex(int pIndex) {
     mInputIndex = pIndex;
   }
   
   // TODO change
-  public void incIndex() {
+  private void incIndex() {
     mInputIndex = mInputIndex + 1;
+  }
+  
+  public int getCurrentInput() throws MissingInputException {
+    if (mInputIndex < 0) {
+      throw new RuntimeException("Input index is 0");
+    }
+    
+    if (mInputIndex >= mInputs.length) {
+      throw new MissingInputException("__BLAST_NONDET");
+    }
+    
+    return mInputs[mInputIndex];
   }
   
   /**
@@ -97,13 +120,13 @@ public class InterpreterElement implements AbstractElement {
     mConstantsMap.put(nameOfVar, value);
   }
 
-  public long getValueFor(String pVariableName){
+  public long getValueFor(String pVariableName) throws ReadingFromNondetVariableException, AccessToUninitializedVariableException {
     if (pVariableName.endsWith("::__BLAST_NONDET")) {
-      throw new RuntimeException();
+      throw new ReadingFromNondetVariableException();
     }
     
     if (!mConstantsMap.containsKey(pVariableName)) {
-      throw new RuntimeException("Unassigned variable: " + pVariableName);
+      throw new AccessToUninitializedVariableException(pVariableName);
     }
     
     return mConstantsMap.get(pVariableName).longValue();
@@ -117,11 +140,28 @@ public class InterpreterElement implements AbstractElement {
     return mPreviousElement;
   }
   
+  public InterpreterElement nextInputElement() {
+    InterpreterElement lTmpElement = clone();
+    
+    lTmpElement.incIndex();
+    
+    return lTmpElement;
+  }
+  
+  public InterpreterElement getUpdatedPreviousElement() {
+    InterpreterElement previousElem = getPreviousElement();
+    InterpreterElement newElement = previousElem.clone();
+    
+    newElement.setInputIndex(getInputIndex());
+    
+    return newElement;
+  }
+  
   @Override
   public InterpreterElement clone() {
     // TODO change this
     
-    InterpreterElement newElement = new InterpreterElement(mPreviousElement, mInputIndex);
+    InterpreterElement newElement = new InterpreterElement(mPreviousElement, mInputIndex, mInputs);
     
     for (String s: mConstantsMap.keySet()){
       long val = mConstantsMap.get(s).longValue();
@@ -135,8 +175,6 @@ public class InterpreterElement implements AbstractElement {
   public boolean equals (Object other) {
     if (this == other)
       return true;
-
-    //assert (other instanceof ExplicitAnalysisElement);
     
     if (other == null) {
       return false;
@@ -153,6 +191,16 @@ public class InterpreterElement implements AbstractElement {
     
     if (mInputIndex != otherElement.mInputIndex) {
       return false;
+    }
+    
+    if (mInputs.length != otherElement.mInputs.length) {
+      return false;
+    }
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      if (mInputs[lIndex] != otherElement.mInputs[lIndex]) {
+        return false;
+      }
     }
 
     for (String s: mConstantsMap.keySet()){

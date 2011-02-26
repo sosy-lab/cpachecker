@@ -31,41 +31,39 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.base.Objects;
-
 public class LoopstackElement implements AbstractElement, Partitionable, AvoidanceReportingElement {
   
   private final LoopstackElement previousElement;
-  private final CFANode loopHeadNode;
+  private final Loop loop;
   private final int depth;
   private final int iteration;
   private final boolean stop;
   
-  public LoopstackElement(LoopstackElement previousElement, CFANode callerNode, int iteration, boolean stop) {
+  public LoopstackElement(LoopstackElement previousElement, Loop loop, int iteration, boolean stop) {
     this.previousElement = previousElement;
-    this.loopHeadNode = checkNotNull(callerNode);
+    this.loop = checkNotNull(loop);
     if (previousElement == null) {
       depth = 1;
     } else {
       depth = previousElement.getDepth() + 1;
     }
-    checkArgument(iteration > 0);
+    checkArgument(iteration >= 0);
     this.iteration = iteration;
     this.stop = stop;
   }
   
   public LoopstackElement() {
     previousElement = null;
-    loopHeadNode = null;
+    loop = null;
     depth = 0;
     iteration = 0;
     stop = false;
@@ -75,8 +73,8 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
     return previousElement;
   }
   
-  public CFANode getLoopHeadNode() {
-    return loopHeadNode;
+  public Loop getLoop() {
+    return loop;
   }
   
   public int getDepth() {
@@ -99,10 +97,10 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   
   @Override
   public String toString() {
-    if (loopHeadNode == null) {
+    if (loop == null) {
       return "Loop stack empty";
     } else {
-      return " Loop starting at node " + loopHeadNode + " in iteration " + iteration
+      return " Loop starting at node " + loop.getLoopHeads() + " in iteration " + iteration
            + ", stack depth " + depth
            + " [" + Integer.toHexString(super.hashCode()) + "]";
     }
@@ -120,12 +118,12 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
     LoopstackElement other = (LoopstackElement)obj;
     return (this.previousElement == other.previousElement)
         && (this.iteration == other.iteration)
-        && (Objects.equal(this.loopHeadNode, other.loopHeadNode));
+        && (this.loop == other.loop);
   }
 
   @Override
   public int hashCode() {
-    return iteration * 17 + (loopHeadNode == null ? 0 : loopHeadNode.hashCode());
+    return iteration * 17 + (loop == null ? 0 : loop.hashCode());
   }
 
   @Override

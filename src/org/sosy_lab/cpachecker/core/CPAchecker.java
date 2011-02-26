@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -59,8 +58,10 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 public class CPAchecker {
 
@@ -74,10 +75,10 @@ public class CPAchecker {
     public void stop();
   }
   
-  private class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
+  private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
     private final ReachedSet reached;
     
-    public CPAcheckerBean(ReachedSet pReached) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       register();
@@ -204,7 +205,7 @@ public class CPAchecker {
         reached = createInitialReachedSet(cpa, mainFunction);
 
         // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached);
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
         stats.cpaCreationTime.stop();
         
@@ -254,8 +255,9 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();
 
+    boolean sound = true;
     do {
-      algorithm.run(reached);
+      sound &= algorithm.run(reached);
       
       // either run only once (if stopAfterError == true)
       // or until the waitlist is empty
@@ -265,11 +267,8 @@ public class CPAchecker {
     stats.analysisTime.stop();
     stats.programTime.stop();
 
-    for (AbstractElement reachedElement : reached) {
-      if ((reachedElement instanceof Targetable)
-          && ((Targetable)reachedElement).isTarget()) {
-        return Result.UNSAFE;
-      }
+    if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
+      return Result.UNSAFE;
     }
     
     if (reached.hasWaitingElement()) {
@@ -277,8 +276,8 @@ public class CPAchecker {
       return Result.UNKNOWN;
     }
     
-    if (CBMCAlgorithm.didCBMCReportUP){
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not all paths were checked.");
+    if (!sound) {
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
 

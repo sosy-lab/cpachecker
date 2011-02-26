@@ -107,15 +107,16 @@ public final class AbstractElements {
   public static boolean isTargetElement(AbstractElement e) {
     return (e instanceof Targetable) && ((Targetable)e).isTarget();
   }
-  
+
+  public static final Predicate<AbstractElement> IS_TARGET_ELEMENT = new Predicate<AbstractElement>() {
+    @Override
+    public boolean apply(AbstractElement pArg0) {
+      return isTargetElement(pArg0);
+    }
+  };
+
   public static <T extends AbstractElement> Iterable<T> filterTargetElements(Iterable<T> pElements) {
-    return filter(pElements,
-      new Predicate<AbstractElement>() {
-        @Override
-        public boolean apply(AbstractElement pArg0) {
-          return isTargetElement(pArg0);
-        }
-      });
+    return filter(pElements, IS_TARGET_ELEMENT);
   }
   
   /**

@@ -16,7 +16,7 @@ public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge>
   private final CFAEdge mCFAEdge;
   private final int mLength;
   
-  private class CFAEdgeIterator implements Iterator<CFAEdge> {
+  private static class CFAEdgeIterator implements Iterator<CFAEdge> {
 
     private CFAPathStandardElement mCurrentElement;
     

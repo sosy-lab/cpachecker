@@ -213,8 +213,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
       }
     } else {
-      boolean checkResult = checkProperty(pProperty);
-      return new Boolean(checkResult);
+      return checkProperty(pProperty);
     }
   }
   @Override

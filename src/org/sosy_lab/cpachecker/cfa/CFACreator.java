@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFA.findLoops;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -39,10 +42,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.SortedSetMultimap;
 
 /**
@@ -83,6 +89,8 @@ public class CFACreator {
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
   
+  public static ImmutableMultimap<String, Loop> loops = null;
+
   public final Timer parsingTime;
   public final Timer conversionTime;
   public final Timer processingTime = new Timer();
@@ -140,6 +148,8 @@ public class CFACreator {
     final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
+    assert cfas.keySet().equals(cfaNodes.keySet());
+    
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
     }
@@ -155,6 +165,19 @@ public class CFACreator {
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
       CFATopologicalSort topSort = new CFATopologicalSort();
       topSort.topologicalSort(cfa);
+    }
+    
+    // get loop information
+    try {
+      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
+      for (String functionName : cfaNodes.keySet()) {
+        SortedSet<CFANode> nodes = cfaNodes.get(functionName);
+        loops.putAll(functionName, findLoops(nodes));
+      }
+      CFACreator.loops = loops.build();
+    } catch (CFAGenerationRuntimeException e) {
+      // don't abort here, because if the analysis doesn't need the loop information, we can continue
+      logger.log(Level.WARNING, e.getMessage());
     }
   
     // Insert call and return edges and build the supergraph

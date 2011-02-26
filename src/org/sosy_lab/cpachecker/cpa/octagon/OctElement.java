@@ -73,6 +73,11 @@ public class OctElement implements AbstractElement{
     return this.octagon.equals(otherOct.octagon);
   }
 
+  @Override
+  public int hashCode() {
+    return octagon.hashCode();
+  }
+  
   public void printOctagon() {
     OctagonManager.print(octagon);
   }

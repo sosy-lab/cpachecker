@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class Model extends ForwardingMap<AssignableTerm, Object> {
@@ -111,14 +113,14 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
     
     private final String mName;
     private final TermType mReturnType;
-    private final Object[] mArguments;
+    private final List<Object> mArguments;
     
     private int mHashCode;
     
     public Function(String pName, TermType pReturnType, Object[] pArguments) {
       mName = pName;
       mReturnType = pReturnType;
-      mArguments = pArguments;
+      mArguments = ImmutableList.copyOf(pArguments);
       
       mHashCode = 32453 + mName.hashCode() + mReturnType.hashCode();
       
@@ -138,31 +140,16 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
     }
     
     public int getArity() {
-      return mArguments.length;
+      return mArguments.size();
     }
     
     public Object getArgument(int lArgumentIndex) {
-      return mArguments[lArgumentIndex];
+      return mArguments.get(lArgumentIndex);
     }
     
     @Override
     public String toString() {
-      String lArguments = "";
-      
-      boolean lIsFirst = true;
-      
-      for (Object lValue : mArguments) {
-        if (lIsFirst) {
-          lIsFirst = false;
-        }
-        else {
-          lArguments += ",";
-        }
-        
-        lArguments += lValue;
-      }
-      
-      return mName + "(" + lArguments + ") : " + mReturnType;
+      return mName + "(" + Joiner.on(',').join(mArguments) + ") : " + mReturnType;
     }
     
     @Override
@@ -186,18 +173,9 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
       
       Function lFunction = (Function)pOther;
       
-      if (lFunction.mName.equals(mName) && lFunction.mReturnType.equals(mReturnType) && lFunction.mArguments.length == mArguments.length) {
-        for (int lArgumentIndex = 0; lArgumentIndex < mArguments.length; lArgumentIndex++) {
-          if (mArguments[lArgumentIndex] != lFunction.mArguments[lArgumentIndex]) {
-            return false;
-          }
-        }
-        
-        return true;
-      }
-      else {
-        return false;
-      }
+      return (lFunction.mName.equals(mName)
+          && lFunction.mReturnType.equals(mReturnType)
+          && lFunction.mArguments.equals(mArguments));
     }
   }
   

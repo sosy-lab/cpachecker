@@ -38,20 +38,47 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 public class AssumptionStorageStop implements StopOperator {
 
   @Override
-  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision precision) {
-    AssumptionStorageElement assumptionElement = (AssumptionStorageElement) element;
+  public boolean stop(AbstractElement pElement, Collection<AbstractElement> reached, Precision precision) {
+    AssumptionStorageElement element = (AssumptionStorageElement) pElement;
 
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    return !assumptionElement.isStop();
+    if (element.isStop()) {
+      // normally we want to keep this element so that the assumption is not lost
+      // but we may return true if the new assumption is implied by the old ones
+      
+      for (AbstractElement ae : reached) {
+        AssumptionStorageElement reachedElement = (AssumptionStorageElement)ae;
+      
+        // implication check is costly, so we do a fast syntactical approximation
+        if (   reachedElement.getAssumption().isFalse()
+            || reachedElement.getAssumption().equals(element.getAssumption())) {
+          return true;
+        }
+      }
+      return false;
+        
+    } else {
+      // always true, because we never want to prevent the element from being covered
+      return true;
+    }
   }
 
   @Override
-  public boolean stop(AbstractElement element, AbstractElement reachedElement) {
-    AssumptionStorageElement assumptionElement = (AssumptionStorageElement) element;
+  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement) {
+    AssumptionStorageElement element = (AssumptionStorageElement)pElement;
 
-    // if stop, then do not stop to make sure the state is
-    // added to the reached set
-    return !assumptionElement.isStop();
+    if (element.isStop()) {
+      // normally we want to keep this element so that the assumption is not lost
+      // but we may return true, if the new assumption is implied by the old one
+      
+      AssumptionStorageElement reachedElement = (AssumptionStorageElement)pReachedElement;
+      
+      // implication check is costly, so we do a fast syntactical approximation
+      return reachedElement.getAssumption().isFalse()
+          || reachedElement.getAssumption().equals(element.getAssumption());
+    
+    } else {
+      // always true, because we never want to prevent the element from being covered
+      return true;
+    }
   }
 }

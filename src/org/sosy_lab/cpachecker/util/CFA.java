@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
@@ -156,7 +157,7 @@ public class CFA {
   /**
    * A predicate that can be used to filter out nodes that are marked as loop start nodes.
    */
-  public static Predicate<CFANode> FILTER_LOOP_HEADS = new Predicate<CFANode>() {
+  public static final Predicate<CFANode> FILTER_LOOP_HEADS = new Predicate<CFANode>() {
     @Override
     public boolean apply(CFANode pNode) {
       return pNode.isLoopStart();
@@ -305,7 +306,12 @@ public class CFA {
     }
   }
   
-  private static class Loop {
+  public static class Loop {
+    
+    // loopHeads is a sub-set of nodes such that all infinite paths through
+    // the set nodes will pass through at least one node in loopHeads infinitively often
+    // i.e. you will have to pass through at least one loop head in every iteration
+    private ImmutableSet<CFANode> loopHeads;
     
     private ImmutableSortedSet<CFANode> nodes;
     
@@ -314,8 +320,12 @@ public class CFA {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
     
-    public Loop(Set<CFANode> pNodes) {
-      nodes = ImmutableSortedSet.copyOf(pNodes);
+    public Loop(CFANode loopHead, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.of(loopHead);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder()
+                                .addAll(pNodes)
+                                .add(loopHead)
+                                .build();
     }
     
     private void computeSets() {
@@ -356,6 +366,11 @@ public class CFA {
       incomingEdges = null;
       outgoingEdges = null;
     }
+    
+    void mergeWith(Loop l) {
+      loopHeads = Sets.union(loopHeads, l.loopHeads).immutableCopy();
+      addNodes(l);
+    }
    
     public boolean intersectsWith(Loop l) {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
@@ -372,19 +387,36 @@ public class CFA {
           && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
     
+    public ImmutableSet<CFANode> getLoopHeads() {
+      return loopHeads;
+    }
+    
+    public ImmutableSet<CFAEdge> getIncomingEdges() {
+      computeSets();
+      return incomingEdges;
+    }
+
+    public ImmutableSet<CFAEdge> getOutgoingEdges() {
+      computeSets();
+      return outgoingEdges;
+    }
+    
     @Override
     public String toString() {
-      return nodes.toString() + "\n" + incomingEdges + "\n" + outgoingEdges + "\n";
+      computeSets();
+      return "Loop with heads " + loopHeads + "\n"
+           + "  incoming: " + incomingEdges + "\n"
+           + "  outgoing: " + outgoingEdges + "\n"
+           + "  nodes:    " + nodes;
     }
   }
   
-  public static Collection<Loop> findLoops(CFAFunctionDefinitionNode startNode) {
-    SortedSet<CFANode> nodes = new TreeSet<CFANode>();
-    dfs(startNode, nodes, false, false);
-    
+  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) throws CFAGenerationRuntimeException {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
+    
+    nodes = new TreeSet<CFANode>(nodes); // copy nodes because we change it
     
     // all nodes of the graph
     // Fields may be null, iff there is no node with this number.
@@ -414,78 +446,15 @@ public class CFA {
     List<Loop> loops = new ArrayList<Loop>();
     boolean changed;
     do {
-      changed = false;
+      // first try without the "reverse merge" strategy
+      // this strategy may eliminate real loop heads too early so that the
+      // algorithm would propose another node of the loop has loop head
+      // (which is counter-intuitive to the user)
+      changed = identifyLoops(false, nodes, min, nodesArray, edges, loops);
       
-      // merge nodes with their neighbors, if possible
-      Iterator<CFANode> it = nodes.iterator();
-      while (it.hasNext()) {
-        final CFANode currentNode = it.next();
-        final int current = currentNode.getNodeNumber() - min;
-
-        // find edges of current
-        final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
-        final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
-        
-        if (predecessor == -1 && successor == -1) {
-          // no edges, eliminate node
-          it.remove(); // delete currentNode
-        
-          
-        } else if (predecessor > -1) {
-          // current has a single incoming edge from predecessor, eliminate current
-          changed = true;
-          
-          // copy all outgoing edges (current,j) to (predecessor,j)
-          for (int j = 0; j < size; j++) {
-            if (edges[current][j] != null) {
-              // combine three edges (predecessor,current) (current,j) and (predecessor,j)
-              // into a single edge (predecessor,j)
-              Edge targetEdge = getEdge(predecessor, j, edges);
-              targetEdge.add(edges[predecessor][current]);
-              targetEdge.add(edges[current][j]);
-              targetEdge.add(currentNode);
-              edges[current][j] = null;
-            }
-          }
-          
-          // delete from graph
-          edges[predecessor][current] = null;
-          it.remove(); // delete currentNode
-
-          // now predecessor node might have gained a self-edge
-          if (edges[predecessor][predecessor] != null) {
-            CFANode pred = nodesArray[predecessor];
-            handleLoop(pred, predecessor, edges, loops);
-          }
-        
-          
-        } else if (successor > -1) {
-          // current has a single outgoing edge to successor, eliminate current
-          changed = true;
-          
-          // copy all incoming edges (j,current) to (j,successor)
-          for (int j = 0; j < size; j++) {
-            if (edges[j][current] != null) {
-              // combine three edges (j,current) (current,successor) and (j,successor)
-              // into a single edge (j,successor)
-              Edge targetEdge = getEdge(j, successor, edges);
-              targetEdge.add(edges[j][current]);
-              targetEdge.add(edges[current][successor]);
-              targetEdge.add(currentNode);
-              edges[j][current] = null;
-            }
-          }
-                    
-          // delete from graph
-          edges[current][successor] = null;
-          it.remove(); // delete currentNode
-
-          // now successor node might have gained a self-edge
-          if (edges[successor][successor] != null) {
-            CFANode succ = nodesArray[successor];
-            handleLoop(succ, successor, edges, loops);
-          }
-        }
+      if (!changed && !nodes.isEmpty()) {
+        // but if we have to, try and use this strategy
+        changed = identifyLoops(true, nodes, min, nodesArray, edges, loops);
       }
       
     } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
@@ -493,7 +462,7 @@ public class CFA {
     
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
-      throw new RuntimeException("Code structure is too complex, could not detect all loops!");
+      throw new CFAGenerationRuntimeException("Code structure is too complex, could not detect all loops!");
     }
    
     // THIRD step:
@@ -527,7 +496,7 @@ public class CFA {
         } else {
           // strange goto loop, merge the two together
 
-          l1.addNodes(l2);
+          l1.mergeWith(l2);
           toRemove.add(i2);
         }
       }
@@ -538,6 +507,107 @@ public class CFA {
     }
  
     return loops;
+  }
+
+  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes, final int offset,
+      final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
+    
+    final int size = edges.length;
+
+    boolean changed = false;
+      
+      // merge nodes with their neighbors, if possible
+      Iterator<CFANode> it = nodes.iterator();
+      while (it.hasNext()) {
+        final CFANode currentNode = it.next();
+        final int current = currentNode.getNodeNumber() - offset;
+
+        // find edges of current
+        final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
+        final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
+        
+        if ((predecessor == -1) && (successor == -1)) {
+          // no edges, eliminate node
+          it.remove(); // delete currentNode
+        
+        } else if ((predecessor == -1) && (successor > -1)) {
+          // no incoming edges, one outgoing edge
+          final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
+          if (successor2 == -1) {
+            // the current node is a source that is only connected with a sink
+            // we can remove it
+            edges[current][successor] = null;
+            it.remove(); // delete currentNode
+          }
+
+        } else if ((successor == -1) && (predecessor > -1)) {
+          // one incoming edge, no outgoing edges
+          final int predecessor2 = findSingleIncomingEdgeOfNode(predecessor, edges);
+          if (predecessor2 == -1) {
+            // the current node is a sink that is only connected with a source
+            // we can remove it
+            edges[predecessor][current] =  null;
+            it.remove(); // delete currentNode
+          }
+          
+        } else if ((predecessor > -1) && (successor != -1)) {
+          // current has a single incoming edge from predecessor and is no sink, eliminate current
+          changed = true;
+          
+          // copy all outgoing edges (current,j) to (predecessor,j)
+          for (int j = 0; j < size; j++) {
+            if (edges[current][j] != null) {
+              // combine three edges (predecessor,current) (current,j) and (predecessor,j)
+              // into a single edge (predecessor,j)
+              Edge targetEdge = getEdge(predecessor, j, edges);
+              targetEdge.add(edges[predecessor][current]);
+              targetEdge.add(edges[current][j]);
+              targetEdge.add(currentNode);
+              edges[current][j] = null;
+            }
+          }
+          
+          // delete from graph
+          edges[predecessor][current] = null;
+          it.remove(); // delete currentNode
+
+          // now predecessor node might have gained a self-edge
+          if (edges[predecessor][predecessor] != null) {
+            CFANode pred = nodesArray[predecessor];
+            handleLoop(pred, predecessor, edges, loops);
+          }
+        
+          
+        } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
+          // current has a single outgoing edge to successor and is no source, eliminate current
+          changed = true;
+          
+          // copy all incoming edges (j,current) to (j,successor)
+          for (int j = 0; j < size; j++) {
+            if (edges[j][current] != null) {
+              // combine three edges (j,current) (current,successor) and (j,successor)
+              // into a single edge (j,successor)
+              Edge targetEdge = getEdge(j, successor, edges);
+              targetEdge.add(edges[j][current]);
+              targetEdge.add(edges[current][successor]);
+              targetEdge.add(currentNode);
+              edges[j][current] = null;
+            }
+          }
+                    
+          // delete from graph
+          edges[current][successor] = null;
+          it.remove(); // delete currentNode
+
+          // now successor node might have gained a self-edge
+          if (edges[successor][successor] != null) {
+            CFANode succ = nodesArray[successor];
+            handleLoop(succ, successor, edges, loops);
+          }
+        }
+      }
+      
+      return changed;
   }
 
   // get edge from edges array, ensuring that it is added if it does not exist yet
@@ -555,14 +625,11 @@ public class CFA {
       final Edge[][] edges, Collection<Loop> loops) {
     assert loopHead != null;
     
-    // collect all nodes that belong to this loop
-    Set<CFANode> loopNodes = edges[loopHeadIndex][loopHeadIndex].asNodeSet();
-    loopNodes.add(loopHead);
-
-    Loop loop = new Loop(loopNodes);
+    // store loop
+    Loop loop = new Loop(loopHead, edges[loopHeadIndex][loopHeadIndex].asNodeSet());
     loops.add(loop);
     
-    // remove this loop
+    // remove this loop from the graph
     edges[loopHeadIndex][loopHeadIndex] = null;
   }
 

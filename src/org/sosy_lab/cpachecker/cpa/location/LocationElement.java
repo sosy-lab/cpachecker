@@ -101,9 +101,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     @Override
-    public String toString ()
-    {
-        return Integer.toString (locationNode.getNodeNumber ());
+    public String toString() {
+      return locationNode + " (line " + locationNode.getLineNumber() + ")";
     }
 
     @Override

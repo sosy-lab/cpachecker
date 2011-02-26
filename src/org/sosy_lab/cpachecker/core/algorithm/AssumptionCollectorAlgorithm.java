@@ -29,15 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Map.Entry;
 import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -45,12 +37,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -58,8 +45,17 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -128,8 +124,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public void run(ReachedSet reached) throws CPAException {
-
+  public boolean run(ReachedSet reached) throws CPAException {
+    boolean sound = true;
+    
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -137,7 +134,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        innerAlgorithm.run(reached);
+        sound &= innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
@@ -169,18 +166,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       resultAssumption.add(location, e.getAssumption());
     }
     
-    // collect assumptions from assumption storage transfer relation
-    AssumptionStorageTransferRelation trRel = (AssumptionStorageTransferRelation) cpa.getTransferRelation();
-    for(Entry<CFANode,Formula> entry: trRel.getGeneratedAssumptionsMap().entries()){
-      resultAssumption.add(entry.getKey(), entry.getValue());
-    }
-
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
       logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
+    
+    return sound;
   }
 
   /**

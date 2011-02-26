@@ -89,13 +89,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(ReachedSet pReachedSet) throws CPAException {
-    algorithm.run(pReachedSet);
+  public boolean run(ReachedSet pReachedSet) throws CPAException {
+    boolean sound = algorithm.run(pReachedSet);
     
     if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
       // first element of reached is always an abstraction element, so skip it
       logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
-      return;
+      return sound;
     }
     
     FormulaManager fmgr = cpa.getFormulaManager();
@@ -121,6 +121,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       pReachedSet.removeAll(targetElements);
     }    
     prover.reset();
+    return sound;
   }
 
   @Override

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -106,10 +105,9 @@ public class CtoFormulaConverter {
   // use variables
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
-  
-  @Option(name="nondetFunctions")
-  private String[] nondetFunctionsArray = {"int_nondet", "malloc", "nondet_int", "random"};
-  private final Set<String> nondetFunctions;
+
+  @Option
+  private Set<String> nondetFunctions = ImmutableSet.of("int_nondet", "malloc", "nondet_int", "random");
   
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
@@ -138,7 +136,6 @@ public class CtoFormulaConverter {
   public CtoFormulaConverter(Configuration config, FormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
     
-    nondetFunctions = new HashSet<String>(Arrays.asList(nondetFunctionsArray));
     this.fmgr = fmgr;
     this.logger = logger;
   }
@@ -1134,7 +1131,7 @@ public class CtoFormulaConverter {
           result = fmgr.makeOr(t1, t2);
           break;
           
-        default: assert false;
+        default: throw new AssertionError();
         }
       
       } else {
@@ -1165,6 +1162,11 @@ public class CtoFormulaConverter {
   
         case IASTBinaryExpression.op_notequals:
           result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
+          break;
+          
+        default:
+          // do nothing, because it is not a boolean operator
+          // will be handled by call to buildTerm()
           break;
         }
       }

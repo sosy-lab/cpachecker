@@ -146,7 +146,6 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
         List<Formula> formulasList = new ArrayList<Formula>();
         Pair<PreventingHeuristicType, Long> preventingCondition = 
           Pair.of(d.getHeuristicType(), d.getThreshold());
-        if(preventingCondition == null) return null;
         String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(
             preventingCondition );
         formulasList.add(manager.parse(preventingHeuristicStringFormula));

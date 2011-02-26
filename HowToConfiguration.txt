@@ -21,6 +21,7 @@ following arguments (see below to learn what the options mean):
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
 -dfs			sets "analysis.traversal.order = DFS"
 -bfs			sets "analysis.traversal.order = BFS"
+-cbmc			sets "analysis.useCBMC = true"
 -topsort		sets "analysis.traversal.order = TOPSORT"
 -rand           sets "analysis.traversal.order = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
@@ -165,9 +166,6 @@ analysis.useBMC = false
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
 
-# dump CBMC file to the specified file in the output folder for debugging purposes
-cbmc.dumpCBMCfile = cbmc.c
-
 # Which CPA to use?
 cpa = cpa.composite.CompositeCPA
 
@@ -199,12 +197,6 @@ reachedSet.file = reached.txt
 # write collected assumptions to file
 assumptions.export = false
 assumptions.file = assumptions.txt
-
-# When CBMC considers an error path infeasible,
-# remove the error element from the reached set and continue.
-# WARNING: this is unsound, because the elements of this infeasible path
-# may cover another path that is actually feasible, so use it only for finding bugs.
-cbmc.continueAfterInfeasibleError = false
 
 # file name where to put the path program that is generated as input for CBMC
 # A temporary file is used if this is unspecified.

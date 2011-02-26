@@ -1,4 +1,4 @@
-OBSERVER AUTOMATON ErrorLocationAutomaton
+CONTROL AUTOMATON ErrorLocationAutomaton
 // This automaton detects error locations that are specified either
 // by the label "ERROR" or by an assertion (function call to __assert_fail).
 
@@ -15,6 +15,6 @@ STATE USEFIRST Init :
   -> GOTO Error;
 
 TARGET STATE Error:
-  TRUE -> GOTO Init;
+  TRUE -> STOP;
 
 END AUTOMATON

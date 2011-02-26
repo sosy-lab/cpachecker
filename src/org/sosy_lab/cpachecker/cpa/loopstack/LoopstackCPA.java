@@ -23,19 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopstack;
 
-import java.util.Map;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class LoopstackCPA extends AbstractCPA {
   
@@ -43,18 +38,13 @@ public class LoopstackCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(LoopstackCPA.class);
   }
   
-  public LoopstackCPA(Configuration config) throws InvalidConfigurationException {
+  public LoopstackCPA(Configuration config) throws InvalidConfigurationException, CPAException {
     super("sep", "sep", new LoopstackTransferRelation());
     config.inject(getTransferRelation());
   }
   
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    Pair<Map<CFAEdge, CFANode>, Map<CFAEdge, CFANode>> loopEdges = CFA.allLoopEntryExitEdges(CFA.allNodes(pNode, true));
-    
-    ((LoopstackTransferRelation)getTransferRelation()).loopEntryEdges = loopEdges.getFirst();
-    ((LoopstackTransferRelation)getTransferRelation()).loopExitEdges = loopEdges.getSecond();
-    
     return new LoopstackElement();
   }
 }

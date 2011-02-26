@@ -109,7 +109,8 @@ public class Automaton {
     for (AutomatonInternalState s : this.states) {
         for (AutomatonTransition t : s.getTransitions()) {
           if (!t.meetsObserverRequirements()) {
-            throw new InvalidConfigurationException("The Transition " + t.toString() + "(" + s.toString() + ") is not valid for an ObserverAutomaton.");
+            throw new InvalidConfigurationException("The transition " + t
+                + " in state \"" + s + "\" is not valid for an ObserverAutomaton.");
           }
         }
       }

@@ -465,7 +465,7 @@ public class AutomatonTest {
     return new TestResults(stringLogHandler.getLog(), results);
   }
 
-  private class TestResults {
+  private static class TestResults {
     private String log;
     private CPAcheckerResult checkerResult;
     public TestResults(String pLog, CPAcheckerResult pCheckerResult) {
@@ -491,7 +491,7 @@ public class AutomatonTest {
     }
     @Override
     public String toString() {
-      return log.toString();
+      return log;
     }
   }
 }
