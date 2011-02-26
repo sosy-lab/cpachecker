@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -34,11 +35,13 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CProver;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -51,12 +54,16 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cbmc")
-public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
+public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
   private final LogManager logger;
 
+  private int numberOfInfeasiblePaths = 0;
+  private final Timer programCreationTime = new Timer();
+  private final Timer cbmcTime = new Timer();
+  
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
   
@@ -93,15 +100,20 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         break;
       }
       
+      programCreationTime.start();
       Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath(element);
       
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
+      programCreationTime.stop();
       
       boolean cbmcResult;
+      cbmcTime.start();
       try {
         cbmcResult = CProver.checkFeasibility(pathProgram, logger, CBMCFile);
       } catch (IOException e) {
         throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
+      } finally {
+        cbmcTime.stop();
       }
       
       if (cbmcResult) {
@@ -109,6 +121,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         break;
 
       } else {
+        numberOfInfeasiblePaths++;
         Set<ARTElement> parents = element.getParents();
         
         // remove re-added parents to prevent computing
@@ -167,5 +180,27 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
+    pStatsCollection.add(this);
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result pResult,
+      ReachedSet pReached) {
+    
+    out.println("Number of times CBMC was called:    " + cbmcTime.getNumberOfIntervals());
+    if (cbmcTime.getNumberOfIntervals() > 0) {
+      out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, cbmcTime.getNumberOfIntervals()) +")" );
+      out.println("Time for creation of path programs: " + programCreationTime);
+      out.println("Time for running CBMC:              " + cbmcTime);
+    }
+  }
+  
+  private static String toPercent(double val, double full) {
+    return String.format("%1.0f", val/full*100) + "%";
+  }
+
+  @Override
+  public String getName() {
+    return "CBMC Algorithm";
   }
 }
