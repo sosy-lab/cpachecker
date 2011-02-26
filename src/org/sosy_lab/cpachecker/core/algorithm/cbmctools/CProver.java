@@ -79,34 +79,36 @@ public class CProver {
     }
   }
 
+  /**
+   * Verify given code with CBMC.
+   * 
+   * @param program The code to check.
+   * @param logger Logger
+   * @param CBMCFile A file to use when writing the program to the disk.
+   *                 (Optional, if null a temporary file is used). 
+   * @return whether the error location is reachable
+   * @throws IOException if communication with CBMC fails
+   */
   public static boolean checkFeasibility(String program, LogManager logger, File CBMCFile) throws IOException {
 
     File cFile = CBMCFile;
-    boolean dumpCBMC = (cFile != null);
 
-    if(dumpCBMC){
+    if (cFile != null) {
       Files.writeFile(cFile, program);
-    }
-    else{
+    } else {
       cFile = Files.createTempFile("path", ".c", program);
     }
     assert(cFile != null);
-    try {
-      logger.log(Level.FINE, "Starting CBMC verification.");
-      CBMCExecutor cbmc = new CBMCExecutor(logger, cFile);
-      cbmc.join();
-      logger.log(Level.FINER, "CBMC finished.");
 
-      if (cbmc.result == null) {
-        // exit code and stderr are already logged with level WARNING
-        throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
-      }
-      return cbmc.result;
+    logger.log(Level.FINE, "Starting CBMC verification.");
+    CBMCExecutor cbmc = new CBMCExecutor(logger, cFile);
+    cbmc.join();
+    logger.log(Level.FINER, "CBMC finished.");
 
-    } finally {
-      if(!dumpCBMC) {
-        cFile.delete();
-      }
+    if (cbmc.result == null) {
+      // exit code and stderr are already logged with level WARNING
+      throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
     }
+    return cbmc.result;
   }
 }
