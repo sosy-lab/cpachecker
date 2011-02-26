@@ -40,6 +40,7 @@ import java.util.Stack;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -55,8 +56,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 /**
  * @author erkan
@@ -425,7 +428,13 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
 
-    String lArgumentString = "(" + Joiner.on(", ").join(lFunctionCallEdge.getArguments()) + ")";
+    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), new Function<IASTNode, String>() {
+      @Override
+      public String apply(IASTNode pArg0) {
+        return pArg0.getRawSignature();
+      }
+    });
+    String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
     CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
     IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
