@@ -117,7 +117,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
       }
       
       if (cbmcResult) {
-        logger.log(Level.INFO, "CBMC confirms a bug in this path.");
+        logger.log(Level.INFO, "Bug found which was confirmed by CBMC.");
         break;
 
       } else {
@@ -141,8 +141,9 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
         // not reachable and cut the path there.
         sound = false;
 
+        logger.log(Level.WARNING, "Bug found which was denied by CBMC. Analysis will continue, but the result may be unsound.");
+
         if (!continueAfterInfeasibleError) {
-          logger.log(Level.INFO, "CBMC reports no bug in this path.");
           break;
         }
       }

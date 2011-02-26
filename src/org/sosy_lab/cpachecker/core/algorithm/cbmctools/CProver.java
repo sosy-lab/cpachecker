@@ -77,6 +77,14 @@ public class CProver {
         super.handleExitCode(pCode);
       }
     }
+    
+    @Override
+    protected void handleErrorOutput(String pLine) throws RuntimeException {
+      if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses."))) {
+        // exclude the normal status output of CBMC
+        super.handleErrorOutput(pLine);
+      }
+    }
   }
 
   /**
