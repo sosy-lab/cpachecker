@@ -21,6 +21,7 @@ following arguments (see below to learn what the options mean):
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
 -dfs			sets "analysis.traversal.order = DFS"
 -bfs			sets "analysis.traversal.order = BFS"
+-cbmc			sets "analysis.useCBMC = true"
 -topsort		sets "analysis.traversal.order = TOPSORT"
 -rand           sets "analysis.traversal.order = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"

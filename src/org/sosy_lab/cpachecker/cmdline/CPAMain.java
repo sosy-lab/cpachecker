@@ -252,6 +252,8 @@ public class CPAMain {
         properties.put("analysis.traversal.order", "bfs");
       } else if (arg.equals("-topsort")) {
         properties.put("analysis.traversal.order", "topsort");
+      } else if (arg.equals("-cbmc")) {
+        properties.put("analysis.useCBMC", "true");
       } else if (arg.equals("-nolog")) {
         properties.put("log.level", "off");
         properties.put("log.consoleLevel", "off");
@@ -276,6 +278,7 @@ public class CPAMain {
         System.out.println(" -entryfunction");
         System.out.println(" -dfs");
         System.out.println(" -bfs");
+        System.out.println(" -cbmc");
         System.out.println(" -nolog");
         System.out.println(" -setprop");
         System.out.println(" -help");
