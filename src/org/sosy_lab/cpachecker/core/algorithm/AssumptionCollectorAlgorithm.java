@@ -124,8 +124,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public void run(ReachedSet reached) throws CPAException {
-
+  public boolean run(ReachedSet reached) throws CPAException {
+    boolean sound = true;
+    
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -133,7 +134,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        innerAlgorithm.run(reached);
+        sound &= innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
@@ -171,6 +172,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
+    
+    return sound;
   }
 
   /**

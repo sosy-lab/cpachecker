@@ -259,8 +259,9 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();
 
+    boolean sound = true;
     do {
-      algorithm.run(reached);
+      sound &= algorithm.run(reached);
       
       // either run only once (if stopAfterError == true)
       // or until the waitlist is empty
@@ -279,8 +280,8 @@ public class CPAchecker {
       return Result.UNKNOWN;
     }
     
-    if (CBMCAlgorithm.didCBMCReportUP){
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not all paths were checked.");
+    if (!sound) {
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
 

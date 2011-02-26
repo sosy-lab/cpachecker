@@ -108,7 +108,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(final ReachedSet reachedSet) throws CPAException {
+  public boolean run(final ReachedSet reachedSet) throws CPAException {
     stats.totalTimer.start();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
@@ -172,7 +172,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           reachedSet.add(successor, successorPrecision);
 
           stats.totalTimer.stop();
-          return;
+          return true;
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
@@ -230,6 +230,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     stats.totalTimer.stop();
+    return true;
   }
 
   @Override

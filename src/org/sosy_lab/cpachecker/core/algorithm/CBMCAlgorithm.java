@@ -56,7 +56,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
   private final LogManager logger;
-  public static boolean didCBMCReportUP = false;
 
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
@@ -76,10 +75,11 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(ReachedSet reached) throws CPAException {
-
+  public boolean run(ReachedSet reached) throws CPAException {
+    boolean sound = true;
+    
     while (reached.hasWaitingElement()) {
-      algorithm.run(reached);
+      sound &= algorithm.run(reached);
   
       AbstractElement lastElement = reached.getLastElement();
       if (!(lastElement instanceof ARTElement)) {
@@ -105,7 +105,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       
       if (cbmcResult) {
-        didCBMCReportUP = false;
         logger.log(Level.INFO, "CBMC confirms a bug in this path.");
         break;
 
@@ -127,13 +126,15 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
         // infeasible path may cover another path that is actually feasible
         // We would need to find the first element of this path that is
         // not reachable and cut the path there.
-        didCBMCReportUP = true;
+        sound = false;
+
         if (!continueAfterInfeasibleError) {
           logger.log(Level.INFO, "CBMC reports no bug in this path.");
           break;
         }
       }
     }
+    return sound;
   }
 
   private Set<ARTElement> getElementsOnErrorPath(ARTElement pElement) {
