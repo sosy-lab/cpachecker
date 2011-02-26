@@ -242,8 +242,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER, "Refinement unsuccessful");
 
           stopAnalysis = true;
-
-          // TODO: if (stopAfterError == false), continue to look for next error
         }
 
       } else {
