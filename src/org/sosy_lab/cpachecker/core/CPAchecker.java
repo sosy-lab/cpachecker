@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -59,9 +58,11 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 public class CPAchecker {
 
@@ -269,11 +270,8 @@ public class CPAchecker {
     stats.analysisTime.stop();
     stats.programTime.stop();
 
-    for (AbstractElement reachedElement : reached) {
-      if ((reachedElement instanceof Targetable)
-          && ((Targetable)reachedElement).isTarget()) {
-        return Result.UNSAFE;
-      }
+    if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
+      return Result.UNSAFE;
     }
     
     if (reached.hasWaitingElement()) {
