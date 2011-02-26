@@ -231,5 +231,96 @@ public class InterpreterCPATest {
       throw new RuntimeException(e);
     }
   }
+  
+  @Test
+  public void test003() throws Exception {
+    ConfigurableProgramAnalysis lLocationCPA;
+    ConfigurableProgramAnalysis lCallStackCPA;
+    
+    /*
+     * Initialize shared CPAs.
+     */
+    // location CPA
+    try {
+      lLocationCPA = LocationCPA.factory().createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    // callstack CPA
+    CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
+    try {
+      lCallStackCPA = lCallStackCPAFactory.createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(lLocationCPA);
+    
+    // call stack CPA
+    lComponentAnalyses.add(lCallStackCPA);
+    
+    int[] lInputs = new int[0];
+    
+    // explicit CPA
+    InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs, true);
+    lComponentAnalyses.add(lInterpreterCPA);
+    
+
+    Configuration lConfiguration;
+    LogManager lLogManager;
+    
+    String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
+    String lEntryFunction = "main";
+    
+    Map<String, CFAFunctionDefinitionNode> lCFAMap;
+    CFAFunctionDefinitionNode lMainFunction;
+    
+    try {
+      lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
+      lLogManager = new LogManager(lConfiguration);
+      
+      lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lMainFunction = lCFAMap.get(lEntryFunction);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    
+    
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
+    
+    try {
+      lWrapper.toDot("test/output/wrapper.dot");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    
+    
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    lCPAFactory.setChildren(lComponentAnalyses);
+    lCPAFactory.setConfiguration(lConfiguration);
+    lCPAFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+    
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
+
+    AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
+    Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
+
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+  }
  
 }

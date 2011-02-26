@@ -48,21 +48,31 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   private int[] mInitialValuesForNondeterministicAssignments;
 
   public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments) {
+    this(pInitialValuesForNondeterministicAssignments, false);
+  }
+  
+  public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments, boolean pExtendInputs) {
     if (pInitialValuesForNondeterministicAssignments == null) {
       throw new IllegalArgumentException();
     }
     
-    InterpreterDomain explicitAnalysisDomain = new InterpreterDomain ();
-    MergeOperator explicitAnalysisMergeOp = MergeSepOperator.getInstance();
+    InterpreterDomain lDomain = new InterpreterDomain ();
+    MergeOperator lMergeOp = MergeSepOperator.getInstance();
+    StopOperator lStopOp = StopNeverOperator.getInstance();
     
-    StopOperator explicitAnalysisStopOp = StopNeverOperator.getInstance();
+    TransferRelation lTransferRelation;
+    
+    if (pExtendInputs) {
+      lTransferRelation = new InterpreterInputExtendingTransferRelation();
+    }
+    else {
+      lTransferRelation = new InterpreterTransferRelation();
+    }
 
-    TransferRelation explicitAnalysisTransferRelation = new InterpreterTransferRelation();
-
-    this.abstractDomain = explicitAnalysisDomain;
-    this.mergeOperator = explicitAnalysisMergeOp;
-    this.stopOperator = explicitAnalysisStopOp;
-    this.transferRelation = explicitAnalysisTransferRelation;
+    this.abstractDomain = lDomain;
+    this.mergeOperator = lMergeOp;
+    this.stopOperator = lStopOp;
+    this.transferRelation = lTransferRelation;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     
     this.mInitialValuesForNondeterministicAssignments = pInitialValuesForNondeterministicAssignments;
