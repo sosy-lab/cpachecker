@@ -73,12 +73,6 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 		this(dominatedElement, other.dominators);
 	}
 
-	@Override
-	public DominatorElement clone()
-    {
-        return new DominatorElement(this);
-    }
-
 	public void update(AbstractElement dominator) {
 		if (dominator == null) {
 			throw new IllegalArgumentException("dominator is null!");

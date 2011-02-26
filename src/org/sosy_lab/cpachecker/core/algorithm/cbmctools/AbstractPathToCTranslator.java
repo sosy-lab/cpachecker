@@ -425,23 +425,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
 
-
-    String lArgumentString = "(";
-
-    boolean lFirstArgument = true;
-
-    for (IASTExpression lArgument : lFunctionCallEdge.getArguments()) {
-      if (lFirstArgument) {
-        lFirstArgument = false;
-      }
-      else {
-        lArgumentString += ", ";
-      }
-
-      lArgumentString += lArgument.getRawSignature();
-    }
-
-    lArgumentString += ")";
+    String lArgumentString = "(" + Joiner.on(", ").join(lFunctionCallEdge.getArguments()) + ")";
 
     CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
     IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();

@@ -31,7 +31,7 @@ public class OctWideningControl {
 
 	HashMap<Integer, LoopNode> loopNodeList = new HashMap<Integer, LoopNode>();
 
-	public class LoopNode{
+	public static class LoopNode{
 		@SuppressWarnings("unused")
 		private int nodeId;
 		private int iterationCount = 0;
@@ -72,16 +72,15 @@ public class OctWideningControl {
 	}
 
 	public boolean isWideningUsed(LocationElement le){
-		int nodeId = le.getLocationNode().getNodeNumber();
-		Integer nodeIdIntObj = new Integer(nodeId);
-		LoopNode ln = new LoopNode();
-		if(loopNodeList.containsKey(nodeIdIntObj)){
-			ln = loopNodeList.get(nodeIdIntObj);
+	  Integer nodeId = le.getLocationNode().getNodeNumber();
+		LoopNode ln;
+		if(loopNodeList.containsKey(nodeId)){
+			ln = loopNodeList.get(nodeId);
 			return ln.isWideningUsed();
 		}
 		else{
-			ln = new LoopNode(nodeIdIntObj);
-			loopNodeList.put(nodeIdIntObj, ln);
+			ln = new LoopNode(nodeId);
+			loopNodeList.put(nodeId, ln);
 			return 	ln.isWideningUsed();
 		}
 	}
