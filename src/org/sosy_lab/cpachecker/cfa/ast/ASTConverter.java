@@ -313,7 +313,7 @@ public class ASTConverter {
         type = convert(((org.eclipse.cdt.core.dom.ast.IEnumerator)binding).getType());
   
       } else {
-        type = new DummyType(binding.toString());
+        type = new DummyType(binding.getClass().getSimpleName());
       }
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
       throw new CFAGenerationRuntimeException(e.getMessage());
