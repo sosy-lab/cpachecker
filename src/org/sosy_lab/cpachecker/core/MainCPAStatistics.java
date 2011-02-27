@@ -173,6 +173,7 @@ class MainCPAStatistics implements Statistics {
         }
         out.println("Time for CFA construction:    " + cfaCreationTime);
         if (cfaCreator != null) {
+          out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
           out.println("  Time for parsing C file:    " + cfaCreator.parsingTime);
           out.println("  Time for AST to CFA:        " + cfaCreator.conversionTime);
           out.println("  Time for CFA sanity checks: " + cfaCreator.checkTime);

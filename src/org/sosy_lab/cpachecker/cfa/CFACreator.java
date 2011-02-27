@@ -91,6 +91,7 @@ public class CFACreator {
   
   public static ImmutableMultimap<String, Loop> loops = null;
 
+  public final Timer parserInstantiationTime = new Timer();
   public final Timer parsingTime;
   public final Timer conversionTime;
   public final Timer checkTime = new Timer();
@@ -105,9 +106,11 @@ public class CFACreator {
     this.config = config;
     this.logger = logger;
     
+    parserInstantiationTime.start();
     parser = CParser.Factory.getParser(logger, dialect);
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
+    parserInstantiationTime.stop();
   }
 
   /**
