@@ -13,8 +13,9 @@ public final class CBasicType extends IType implements
   private final boolean isLongLong;
   
   public CBasicType(final int pType, final boolean pIsLong,
-      final boolean pIsShort, final boolean pIsSigned, final boolean pIsUnsigned,
-      boolean pIsComplex, boolean pIsImaginary, boolean pIsLongLong) {
+      final boolean pIsShort, final boolean pIsSigned,
+      final boolean pIsUnsigned, final boolean pIsComplex,
+      final boolean pIsImaginary, final boolean pIsLongLong) {
 
     type = pType;
     isLong = pIsLong;

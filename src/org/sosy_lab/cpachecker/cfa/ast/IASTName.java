@@ -14,7 +14,7 @@ public final class IASTName extends IASTNode implements
   private final IType type;
   
   public IASTName(final String pRawSignature,
-      final IASTFileLocation pFileLocation, IType pType) {
+      final IASTFileLocation pFileLocation, final IType pType) {
     super(pRawSignature, pFileLocation);
     type = pType;
   }
