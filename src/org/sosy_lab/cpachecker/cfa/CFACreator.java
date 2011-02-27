@@ -87,6 +87,7 @@ public class CFACreator {
   
   public final Timer parsingTime = new Timer();
   public final Timer conversionTime = new Timer();
+  public final Timer checkTime = new Timer();
   public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
@@ -130,16 +131,18 @@ public class CFACreator {
     final SortedSetMultimap<String, CFANode> cfaNodes = builder.getCFANodes();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
-    assert cfas.keySet().equals(cfaNodes.keySet());
-    
     if (mainFunction == null) {
       throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
     }
+
+    checkTime.start();
+    assert cfas.keySet().equals(cfaNodes.keySet());
 
     // check the CFA of each function
     for (CFAFunctionDefinitionNode cfa : cfas.values()) {
       assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
     }
+    checkTime.stop();
     
     processingTime.start();
     
@@ -199,7 +202,9 @@ public class CFACreator {
     }
   
     // check the super CFA starting at the main function
+    checkTime.start();
     assert CFACheck.check(mainFunction, null);
+    checkTime.stop();
  
     if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
       exportTime.start();

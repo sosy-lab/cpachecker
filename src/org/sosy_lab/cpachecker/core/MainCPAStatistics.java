@@ -165,27 +165,28 @@ class MainCPAStatistics implements Statistics {
         
         out.println("\nCPAchecker general statistics");
         out.println("-----------------------------");
-        out.println("Size of reached set:       " + reached.size());
-        out.println("  Number of locations:     " + allLocations.size());
+        out.println("Size of reached set:          " + reached.size());
+        out.println("  Number of locations:        " + allLocations.size());
         if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
-          out.println("  Number of partitions:    " + p.getNumberOfPartitions());
+          out.println("  Number of partitions:       " + p.getNumberOfPartitions());
         }
-        out.println("Time for CFA construction: " + cfaCreationTime);
+        out.println("Time for CFA construction:    " + cfaCreationTime);
         if (cfaCreator != null) {
-          out.println("  Time for parsing C file: " + cfaCreator.parsingTime);
-          out.println("  Time for AST to CFA:     " + cfaCreator.conversionTime);
-          out.println("  Time for post-processing:" + cfaCreator.processingTime);
+          out.println("  Time for parsing C file:    " + cfaCreator.parsingTime);
+          out.println("  Time for AST to CFA:        " + cfaCreator.conversionTime);
+          out.println("  Time for CFA sanity checks: " + cfaCreator.checkTime);
+          out.println("  Time for post-processing:   " + cfaCreator.processingTime);
           if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
-            out.println("  Time for CFA pruning:    " + cfaCreator.pruningTime);
+            out.println("  Time for CFA pruning:       " + cfaCreator.pruningTime);
           }
           if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-            out.println("  Time for export:         " + cfaCreator.exportTime);
+            out.println("  Time for export:            " + cfaCreator.exportTime);
           }
         }
-        out.println("Time for CPA instantiaton: " + cpaCreationTime);
-        out.println("Time for Analysis:         " + analysisTime);
-        out.println("Total time for CPAchecker: " + programTime);
+        out.println("Time for CPA instantiaton:    " + cpaCreationTime);
+        out.println("Time for Analysis:            " + analysisTime);
+        out.println("Total time for CPAchecker:    " + programTime);
         
         out.println("");
         List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
@@ -195,7 +196,7 @@ class MainCPAStatistics implements Statistics {
           gcTime += gcBean.getCollectionTime();
           gcCount += gcBean.getCollectionCount();
         }
-        out.println("Time for Garbage Collector:" + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+        out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
         try {
           memStats.join(); // thread should have terminated already,
                            // but wait for it to ensure memory visibility
@@ -203,8 +204,8 @@ class MainCPAStatistics implements Statistics {
           Thread.currentThread().interrupt();
         }
         if (memStats.count > 0) {
-          out.println("Heap memory usage:         " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
-          out.println("Non-Heap memory usage:     " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+          out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
+          out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
         }
           
         out.println("");
