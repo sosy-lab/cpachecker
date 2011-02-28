@@ -14,7 +14,7 @@ class DummyType extends IType {
   }
 
   @Override
-  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType pArg0) {
+  public boolean isSameType(final IType pArg0) {
     throw new UnsupportedOperationException();
   }
 }

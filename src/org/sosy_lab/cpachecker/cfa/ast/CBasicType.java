@@ -59,7 +59,7 @@ public final class CBasicType extends IType {
   }
   
   @Override
-  public boolean isSameType(final org.eclipse.cdt.core.dom.ast.IType other) {
+  public boolean isSameType(final IType other) {
     return (other instanceof CBasicType) && ((CBasicType)other).getType() == getType();
   }
   
