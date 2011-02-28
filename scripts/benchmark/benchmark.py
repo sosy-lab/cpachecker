@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime
+from datetime import date
 from string import Template
 from xml.etree.ElementTree import ElementTree
 
@@ -172,9 +172,18 @@ def main(argv=None):
     for arg in args[1:]:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
+
     for arg in args[1:]:
         benchmark = load_benchmark(arg)
         run_func = eval("run_" + benchmark.tool)
+        
+        # create outputFile, 
+        # if the file exist, it will be OVERWRITTEN without a message!
+        outputFileName = "".join(["./test/output/", arg[20:-4], ".results.", str(date.today()), ".txt"])
+        out_file = open(outputFileName,"w")
+        out_file.write("output for " + arg + "\n" + "-"*50 + "\n")
+        out_file.close()
+    
         if len(benchmark.tests) == 1:
             logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(arg)))
         else:
@@ -197,15 +206,30 @@ def main(argv=None):
             for sourcefile in test.sourcefiles:
                 logging.debug("I'm running '{0} {1} {2}'.".format(
                         benchmark.tool, " ".join(test.options), sourcefile))
+
+                # run program with one file and the options
                 (status, timedelta) = run_func(test.options,
                                                sourcefile,
                                                rlimits)
+                
+                # output in terminal/console
                 print " ".join([sourcefile,
 				 " "*(maxLengthOfFileName - len(sourcefile)), 
 				 status, 
 				 " "*(maxLengthOfStatus - len(status)),
 				 str(timedelta)])
         
+                # output in file
+                # open file, "a" -> append output
+                outputFile = open(outputFileName,"a")
+                outputFile.write("".join([sourcefile,
+                     " "*(maxLengthOfFileName - len(sourcefile) + 2), 
+                     status, " "*(maxLengthOfStatus - len(status) + 2),
+                     str(timedelta), "\n"]))
+                    # close after every file to avoid data damage, 
+                    # if the benchmark is interrupted
+                outputFile.close()
+
         logging.debug("I think my job is done. Have a nice day!")
 
 if __name__ == "__main__":
