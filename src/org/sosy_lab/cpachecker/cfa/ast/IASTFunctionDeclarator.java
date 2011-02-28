@@ -11,7 +11,7 @@ public class IASTFunctionDeclarator extends IASTDeclarator {
   public IASTFunctionDeclarator(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
       final IASTName pName, final IASTDeclarator pNestedDeclarator,
-      final List<IASTPointerOperator> pPointerOperators,
+      final List<IASTPointer> pPointerOperators,
       final List<IASTParameterDeclaration> pParameters,
       final boolean pTakesVarArgs) {
     super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator,

@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTPointer extends IASTPointerOperator implements
+public final class IASTPointer extends IASTNode implements
     org.eclipse.cdt.core.dom.ast.IASTPointer {
 
   private final boolean isConst;
@@ -48,3 +48,4 @@ public final class IASTPointer extends IASTPointerOperator implements
     throw new UnsupportedOperationException();
   }
 }
+

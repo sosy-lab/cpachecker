@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -365,7 +365,7 @@ public class PointerTransferRelation implements TransferRelation {
         // declaration of pointer to struct
         
         String varName = declarator.getName().toString();
-        IASTPointerOperator[] operators = declarator.getPointerOperators();
+        IASTPointer[] operators = declarator.getPointerOperators();
         
         if (operators != null && operators.length > 0) {
           // pointer
@@ -445,7 +445,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     } else {
 
-      IASTPointerOperator[] operators = declarator.getPointerOperators();
+      IASTPointer[] operators = declarator.getPointerOperators();
       if (operators != null && operators.length > 0) {
         Pointer p = new Pointer(operators.length);
         if (edge instanceof GlobalDeclarationEdge) {

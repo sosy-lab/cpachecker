@@ -7,7 +7,7 @@ public final class IASTVariableDeclarator extends IASTDeclarator {
   public IASTVariableDeclarator(String pRawSignature,
       IASTFileLocation pFileLocation, IASTInitializer pInitializer,
       IASTName pName, IASTDeclarator pNestedDeclarator,
-      List<IASTPointerOperator> pPointerOperators) {
+      List<IASTPointer> pPointerOperators) {
     super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator, pPointerOperators);
   }
 

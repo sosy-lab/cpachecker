@@ -10,12 +10,12 @@ public abstract class IASTDeclarator extends IASTNode implements
   private final IASTInitializer           initializer;
   private final IASTName                  name;
   private final IASTDeclarator            nestedDeclarator;
-  private final List<IASTPointerOperator> pointerOperators;
+  private final List<IASTPointer> pointerOperators;
 
   public IASTDeclarator(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
       final IASTName pName, final IASTDeclarator pNestedDeclarator,
-      final List<IASTPointerOperator> pPointerOperators) {
+      final List<IASTPointer> pPointerOperators) {
     super(pRawSignature, pFileLocation);
     initializer = pInitializer;
     name = pName;
@@ -52,15 +52,15 @@ public abstract class IASTDeclarator extends IASTNode implements
   }
 
   @Override
-  public IASTPointerOperator[] getPointerOperators() {
-    return pointerOperators.toArray(new IASTPointerOperator[pointerOperators
+  public IASTPointer[] getPointerOperators() {
+    return pointerOperators.toArray(new IASTPointer[pointerOperators
         .size()]);
   }
 
   @Override
   public IASTNode[] getChildren(){
     final IASTNode[] children = pointerOperators.toArray(
-        new IASTPointerOperator[pointerOperators.size() + 3]);
+        new IASTPointer[pointerOperators.size() + 3]);
     children[pointerOperators.size()] = initializer;
     children[pointerOperators.size() + 1] = name;
     children[pointerOperators.size() + 2] = nestedDeclarator;

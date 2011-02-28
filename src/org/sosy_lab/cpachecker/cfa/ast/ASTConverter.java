@@ -153,7 +153,7 @@ public class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator)d);
     
     } else {
-      List<IASTPointerOperator> list = new ArrayList<IASTPointerOperator>(d.getPointerOperators().length);
+      List<IASTPointer> list = new ArrayList<IASTPointer>(d.getPointerOperators().length);
       for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
         list.add(convert(c));
       }
@@ -166,7 +166,7 @@ public class ASTConverter {
     for (org.eclipse.cdt.core.dom.ast.IASTArrayModifier c : d.getArrayModifiers()) {
       arrayList.add(convert(c));
     }
-    List<IASTPointerOperator> pointerList = new ArrayList<IASTPointerOperator>(d.getPointerOperators().length);
+    List<IASTPointer> pointerList = new ArrayList<IASTPointer>(d.getPointerOperators().length);
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
       pointerList.add(convert(c));
     }
@@ -176,7 +176,7 @@ public class ASTConverter {
   private static IASTFunctionDeclarator convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d) {
     assert d instanceof org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
     
-    List<IASTPointerOperator> pointerList = new ArrayList<IASTPointerOperator>(d.getPointerOperators().length);
+    List<IASTPointer> pointerList = new ArrayList<IASTPointer>(d.getPointerOperators().length);
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
       pointerList.add(convert(c));
     }
@@ -277,7 +277,7 @@ public class ASTConverter {
     return new IASTParameterDeclaration(p.getRawSignature(), convert(p.getFileLocation()), convert(p.getDeclSpecifier()), convert(p.getDeclarator()));
   }
   
-  private static IASTPointerOperator convert(org.eclipse.cdt.core.dom.ast.IASTPointerOperator o) {
+  private static IASTPointer convert(org.eclipse.cdt.core.dom.ast.IASTPointerOperator o) {
     assert o instanceof org.eclipse.cdt.core.dom.ast.IASTPointer;
     
     org.eclipse.cdt.core.dom.ast.IASTPointer p = (org.eclipse.cdt.core.dom.ast.IASTPointer)o;

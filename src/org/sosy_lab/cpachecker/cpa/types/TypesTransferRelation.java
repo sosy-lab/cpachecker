@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
@@ -418,13 +417,11 @@ public class TypesTransferRelation implements TransferRelation {
       }
     }
 
-    IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
-    if (pointerOps != null) {
-      for (IASTPointerOperator pointerOp : pointerOps) {
+    IASTPointer[] pointers = declarator.getPointerOperators();
+    if (pointers != null) {
+      for (IASTPointer pointerOp : pointers) {
         boolean constant = false;
-        if (pointerOp instanceof IASTPointer) {
-          constant = ((IASTPointer)pointerOp).isConst();
-        }
+          constant = pointerOp.isConst();
         result = new PointerType(result, constant);
       }
     }
