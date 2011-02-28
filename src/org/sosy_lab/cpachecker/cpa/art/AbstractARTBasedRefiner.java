@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 
 import com.google.common.base.Function;
@@ -87,7 +85,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
-    Path path = buildPath((ARTElement)lastElement);
+    Path path = ARTUtils.getOnePathTo((ARTElement)lastElement);
     assert pReached.getFirstElement() == path.getFirst().getFirst();
 
     if (logger.wouldBeLogged(Level.ALL)) {
@@ -151,48 +149,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    */
   protected Path getTargetPath(Path pPath) {
     return pPath;
-  }
-  
-  /**
-   * Create a path in the ART from root to the given element.
-   * @param pLastElement The last element in the path.
-   * @return A path from root to lastElement.
-   */
-  static Path buildPath(ARTElement pLastElement) {
-    Path path = new Path();
-    Set<ARTElement> seenElements = new HashSet<ARTElement>();
-
-    // each element of the path consists of the abstract element and the outgoing
-    // edge to its successor
-
-    ARTElement currentARTElement = pLastElement;
-    assert pLastElement.isTarget();
-    // add the error node and its -first- outgoing edge
-    // that edge is not important so we pick the first even
-    // if there are more outgoing edges
-    CFANode loc = currentARTElement.retrieveLocationElement().getLocationNode();
-    CFAEdge lastEdge = null;
-    if (loc.getNumLeavingEdges() > 0) {
-      lastEdge = loc.getLeavingEdge(0);
-    }
-    path.addFirst(Pair.of(currentARTElement, lastEdge));
-    seenElements.add(currentARTElement);
-
-    while (!currentARTElement.getParents().isEmpty()) {
-      Iterator<ARTElement> parents = currentARTElement.getParents().iterator();
-
-      ARTElement parentElement = parents.next();
-      while (!seenElements.add(parentElement) && parents.hasNext()) {
-        // while seenElements already contained parentElement, try next parent
-        parentElement = parents.next();
-      }
-
-      CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
-      path.addFirst(Pair.of(parentElement, edge));
-
-      currentARTElement = parentElement;
-    }
-    return path;
   }
 
   private static boolean checkART(ReachedSet pReached) {

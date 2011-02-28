@@ -107,7 +107,7 @@ public class ARTStatistics implements Statistics {
         assert targetPath.getLast().getFirst() == lastElement;
       } else {
         // otherwise create one
-        targetPath = AbstractARTBasedRefiner.buildPath(lastElement);
+        targetPath = ARTUtils.getOnePathTo(lastElement);
       }
       
       if (exportErrorPath && errorPathFile != null) {
