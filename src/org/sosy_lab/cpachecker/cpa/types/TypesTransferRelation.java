@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStandardFunctionDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -167,29 +166,23 @@ public class TypesTransferRelation implements TransferRelation {
                                         IASTDeclSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
-    if (!(funcDeclarator instanceof IASTStandardFunctionDeclarator)) {
-      throw new UnrecognizedCCodeException(null, cfaEdge, funcDeclarator);
-    }
-
-    IASTStandardFunctionDeclarator standardFuncDeclarator = (IASTStandardFunctionDeclarator)funcDeclarator;
-
     String name;
     //in case of a nested declarator, get the variable name from the inner declarator
-    if (standardFuncDeclarator.getNestedDeclarator() != null) {
-      name = standardFuncDeclarator.getNestedDeclarator().getName().getRawSignature();
+    if (funcDeclarator.getNestedDeclarator() != null) {
+      name = funcDeclarator.getNestedDeclarator().getName().getRawSignature();
     } else {
     //otherwise there is only one declarator
-      name = standardFuncDeclarator.getName().getRawSignature();
+      name = funcDeclarator.getName().getRawSignature();
     }
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier);
-    returnType = getPointerType(returnType, cfaEdge, standardFuncDeclarator);
+    returnType = getPointerType(returnType, cfaEdge, funcDeclarator);
 
-    FunctionType function = new FunctionType(name, returnType, standardFuncDeclarator.takesVarArgs());
+    FunctionType function = new FunctionType(name, returnType, funcDeclarator.takesVarArgs());
 
     boolean external = (funcDeclSpecifier.getStorageClass() == IASTDeclSpecifier.sc_extern);
 
-    for (IASTParameterDeclaration parameter : standardFuncDeclarator.getParameters()) {
+    for (IASTParameterDeclaration parameter : funcDeclarator.getParameters()) {
       IASTDeclarator paramDeclarator = parameter.getDeclarator();
 
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());

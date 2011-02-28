@@ -186,7 +186,7 @@ public class ASTConverter {
     for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : sd.getParameters()) {
       paramsList.add(convert(c));
     }
-    return new IASTStandardFunctionDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), convert(d.getNestedDeclarator()), pointerList, paramsList, sd.takesVarArgs());
+    return new IASTFunctionDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), convert(d.getNestedDeclarator()), pointerList, paramsList, sd.takesVarArgs());
   }
   
   
