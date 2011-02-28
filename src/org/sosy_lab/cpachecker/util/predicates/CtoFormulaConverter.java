@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IBinding;
+import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
@@ -171,15 +171,18 @@ public class CtoFormulaConverter {
     return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
 
-  private String getTypeName(IType tp) {
+  private String getTypeName(final IType tp) {
+    
     if (tp instanceof IPointerType) {
       return getTypeName(((IPointerType)tp).getType());
-    }    
-    assert(tp instanceof IBinding) : tp;
-    if (tp instanceof ITypedef) {
+      
+    } else if (tp instanceof ITypedef) {
       return getTypeName(((ITypedef)tp).getType());
-    }
-    return ((IBinding)tp).getName();
+      
+    } else if (tp instanceof IComplexType){
+      return ((IComplexType)tp).getName();
+      
+    } else throw new AssertionError("wrong type");
   }
 
   /**

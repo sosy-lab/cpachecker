@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class ITypedef extends IBindingType {
+public final class ITypedef extends IComplexType {
 
   private final IType type;
   
@@ -12,10 +12,4 @@ public final class ITypedef extends IBindingType {
   public IType getType() {
     return type;
   }
-
-  @Override
-  public boolean isSameType(final IType other) {
-    return (other instanceof ITypedef) && ((ITypedef)other).getType() == getType();
-  }
-
 }

@@ -24,9 +24,4 @@ public final class IPointerType extends IType {
   public boolean isVolatile() {
     return isVolatile;
   }
-
-  @Override
-  public boolean isSameType(final IType other) {
-    return (other instanceof IPointerType) && ((IPointerType)other).getType() == getType();
-  }
 }

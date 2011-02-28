@@ -12,9 +12,4 @@ class DummyType extends IType {
   public String toString() {
     return typeName;
   }
-
-  @Override
-  public boolean isSameType(final IType pArg0) {
-    throw new UnsupportedOperationException();
-  }
 }

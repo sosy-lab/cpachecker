@@ -57,11 +57,6 @@ public final class CBasicType extends IType {
   public boolean isLongLong() {
     return isLongLong;
   }
-  
-  @Override
-  public boolean isSameType(final IType other) {
-    return (other instanceof CBasicType) && ((CBasicType)other).getType() == getType();
-  }
-  
+ 
   public static final int t_int = 3;
 }
