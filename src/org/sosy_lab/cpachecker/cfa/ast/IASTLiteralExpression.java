@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTLiteralExpression extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTLiteralExpression {
+public class IASTLiteralExpression extends IASTExpression {
 
   private final int    kind;
 
@@ -11,12 +10,10 @@ public class IASTLiteralExpression extends IASTExpression implements
     kind = pKind;
   }
 
-  @Override
   public int getKind() {
     return kind;
   }
 
-  @Override
   public char[] getValue() {
     return getRawSignature().toCharArray();
   }
@@ -25,30 +22,6 @@ public class IASTLiteralExpression extends IASTExpression implements
   public IASTNode[] getChildren(){
     // there are no children of this class
     return new IASTNode[0];
-  }
-
-  @Override
-  @Deprecated
-  public void setKind(final int pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setValue(final char[] pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setValue(final String pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTLiteralExpression copy() {
-    throw new UnsupportedOperationException();
   }
   
   public static final int lk_integer_constant = 0;

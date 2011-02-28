@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTIdExpression extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTIdExpression {
+public class IASTIdExpression extends IASTExpression {
 
   private final IASTName name;
 
@@ -12,13 +11,6 @@ public class IASTIdExpression extends IASTExpression implements
     name = pName;
   }
 
-  @Override
-  @Deprecated
-  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public IASTName getName() {
     return name;
   }
@@ -26,17 +18,5 @@ public class IASTIdExpression extends IASTExpression implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {name};
-  }
-
-  @Override
-  @Deprecated
-  public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTIdExpression copy() {
-    throw new UnsupportedOperationException();
   }
 }

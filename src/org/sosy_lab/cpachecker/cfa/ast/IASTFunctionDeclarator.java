@@ -3,8 +3,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.List;
 
 /** This class implements the STANDARD-FunctionDeclarator of eclipse! */
-public class IASTFunctionDeclarator extends IASTDeclarator implements
-    org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator {
+public class IASTFunctionDeclarator extends IASTDeclarator {
 
   private final List<IASTParameterDeclaration> parameters;
   private final boolean                        takesVarArgs;
@@ -21,7 +20,6 @@ public class IASTFunctionDeclarator extends IASTDeclarator implements
     takesVarArgs = pTakesVarArgs;
   }
 
-  @Override
   public IASTParameterDeclaration[] getParameters() {
     return parameters.toArray(new IASTParameterDeclaration[parameters.size()]);
   }
@@ -37,33 +35,7 @@ public class IASTFunctionDeclarator extends IASTDeclarator implements
     return allChildren;
   }
 
-  @Override
   public boolean takesVarArgs() {
     return takesVarArgs;
-  }
-
-  @Override
-  @Deprecated
-  public void addParameterDeclaration(
-      final org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public org.eclipse.cdt.core.dom.ast.IScope getFunctionScope() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTFunctionDeclarator copy() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setVarArgs(boolean pArg0) {
-    throw new UnsupportedOperationException();
   }
 }

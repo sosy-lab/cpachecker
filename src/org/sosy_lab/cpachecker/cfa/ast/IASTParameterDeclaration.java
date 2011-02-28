@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTParameterDeclaration extends IASTNode implements
-    org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration {
+public final class IASTParameterDeclaration extends IASTNode {
 
   private final IASTDeclSpecifier specifier;
   private final IASTDeclarator    declarator;
@@ -14,12 +13,10 @@ public final class IASTParameterDeclaration extends IASTNode implements
     declarator = pDeclarator;
   }
 
-  @Override
   public IASTDeclSpecifier getDeclSpecifier() {
     return specifier;
   }
 
-  @Override
   public IASTDeclarator getDeclarator() {
     return declarator;
   }
@@ -27,25 +24,5 @@ public final class IASTParameterDeclaration extends IASTNode implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {specifier, declarator};
-  }
-
-  @Override
-  @Deprecated
-  public void setDeclSpecifier(
-      final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setDeclarator(
-      final org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTParameterDeclaration copy() {
-    throw new UnsupportedOperationException();
   }
 }

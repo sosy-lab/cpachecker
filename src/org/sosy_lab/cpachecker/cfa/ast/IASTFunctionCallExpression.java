@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTFunctionCallExpression extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression {
+public class IASTFunctionCallExpression extends IASTExpression {
 
   private final IASTExpression functionName;
   private final IASTExpression parameters;
@@ -14,12 +13,10 @@ public class IASTFunctionCallExpression extends IASTExpression implements
     parameters = pParameters;
   }
 
-  @Override
   public IASTExpression getFunctionNameExpression() {
     return functionName;
   }
 
-  @Override
   public IASTExpression getParameterExpression() {
     return parameters;
   }
@@ -31,25 +28,5 @@ public class IASTFunctionCallExpression extends IASTExpression implements
     } else {
       return new IASTNode[] { functionName, parameters };
     }
-  }
-
-  @Override
-  @Deprecated
-  public void setFunctionNameExpression(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setParameterExpression(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTFunctionCallExpression copy() {
-    throw new UnsupportedOperationException();
   }
 }
