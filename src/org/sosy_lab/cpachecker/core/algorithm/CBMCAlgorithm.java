@@ -26,10 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -51,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cbmc")
@@ -98,7 +96,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
       }
       
       programCreationTime.start();
-      Set<ARTElement> elementsOnErrorPath = getElementsOnErrorPath(element);
+      Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(element);
       
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
       programCreationTime.stop();
@@ -142,26 +140,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
       }
     }
     return sound;
-  }
-
-  private Set<ARTElement> getElementsOnErrorPath(ARTElement pElement) {
-
-    Set<ARTElement> result = new HashSet<ARTElement>();
-    Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
-
-    result.add(pElement);
-    waitList.add(pElement);
-
-    while (!waitList.isEmpty()) {
-      ARTElement currentElement = waitList.poll();
-      for (ARTElement parent : currentElement.getParents()) {
-        if (result.add(parent)) {
-          waitList.push(parent);
-        }
-      }
-    }
-
-    return result;
   }
 
   @Override

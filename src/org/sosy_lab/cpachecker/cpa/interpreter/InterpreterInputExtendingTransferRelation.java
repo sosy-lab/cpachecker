@@ -10,6 +10,18 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class InterpreterInputExtendingTransferRelation extends
     InterpreterTransferRelation {
+  
+  private final boolean mPureRandomInputExtension;
+  private final int mInputVectorSizeThreshold;
+  
+  public InterpreterInputExtendingTransferRelation() {
+    this(false, 20);
+  }
+  
+  public InterpreterInputExtendingTransferRelation(boolean pPureRandomInputExtension, int pInputVectorSizeThreshold) {
+    mPureRandomInputExtension = pPureRandomInputExtension;
+    mInputVectorSizeThreshold = pInputVectorSizeThreshold;
+  }
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
@@ -36,24 +48,34 @@ public class InterpreterInputExtendingTransferRelation extends
           lInputs[lIndex] = lElement.getInputs()[lIndex];
         }
         
-        long lMaxInt = Integer.MAX_VALUE;
-        long lMinInt = Integer.MIN_VALUE;
         
-        long lRange = lMaxInt - lMinInt;
+        // Extending input
         
-        long lRandomValue = (long)(Math.random() * lRange) + lMinInt;
+        if (mPureRandomInputExtension || (Math.random() > 0.25)) {
+          // purely random extension
+          long lMaxInt = Integer.MAX_VALUE;
+          long lMinInt = Integer.MIN_VALUE;
+          
+          long lRange = lMaxInt - lMinInt;
+          
+          long lRandomValue = (long)(Math.random() * lRange) + lMinInt;
+          
+          lInputs[lInputs.length - 1] = (int)lRandomValue;
+        }
+        else {
+          // TODO implement more sophisticated determination of special values
+          
+          // special value extension
+          lInputs[lInputs.length - 1] = 0;
+        }
         
-        lInputs[lInputs.length - 1] = (int)lRandomValue;
-        
-        System.out.println("Extending input with " + lInputs[lInputs.length - 1]);
         
         InterpreterElement lTmpElement = new InterpreterElement(lElement.getConstantsMap(), lElement.getPreviousElement(), lElement.getInputIndex(), lInputs);
         
         pElement = lTmpElement;
         
-        // TODO make configurable
-        int lThreshold = 20;
-        if (lInputs.length > lThreshold) {
+        // stop in case input vector gets too big (prevents nontermination)
+        if (lInputs.length > mInputVectorSizeThreshold) {
           throw e;
         }
         
