@@ -759,21 +759,18 @@ public final class ErrorPathShrinker {
             final IASTExpression lastBinExpOp1 =
                 ((IASTBinaryExpression) lastExp).getOperand1();
 
-            // type can be IASTIdExpression, IASTFieldReference, etc 
-            final boolean isEqualType = currentBinExpOp1.getExpressionType().
-            isSameType(lastBinExpOp1.getExpressionType());
-            
             // only the first variable of the assignment is checked
             final boolean isEqualVarName = currentBinExpOp1.getRawSignature().
             equals(lastBinExpOp1.getRawSignature());
             
             // switchStatement:     !(x==3);(x==4);   -> operator "=="
             // similar assumption:  (x>3);(x>4);      -> operator ">"
+            // the operator is stored as 'int'
             final boolean isEqualOperator =
                 ((IASTBinaryExpression) assumeExp).getOperator() 
                 == ((IASTBinaryExpression) lastExp).getOperator();
                         
-            return (isEqualType && isEqualVarName && isEqualOperator);
+            return (isEqualVarName && isEqualOperator);
           }       
         }
       }
