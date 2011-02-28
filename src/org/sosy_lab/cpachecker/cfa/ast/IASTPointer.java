@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTPointer extends IASTNode implements
-    org.eclipse.cdt.core.dom.ast.IASTPointer {
+public final class IASTPointer extends IASTNode {
 
   private final boolean isConst;
   private final boolean isVolatile;
@@ -14,12 +13,10 @@ public final class IASTPointer extends IASTNode implements
     isVolatile = pIsVolatile;
   }
 
-  @Override
   public boolean isConst() {
     return isConst;
   }
 
-  @Override
   public boolean isVolatile() {
     return isVolatile;
   }
@@ -28,24 +25,6 @@ public final class IASTPointer extends IASTNode implements
   public IASTNode[] getChildren(){
     // there are no children of this class
     return new IASTNode[0];
-  }
-
-  @Override
-  @Deprecated
-  public void setConst(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setVolatile(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTPointer copy() {
-    throw new UnsupportedOperationException();
   }
 }
 

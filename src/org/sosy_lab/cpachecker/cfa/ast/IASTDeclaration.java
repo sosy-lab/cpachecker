@@ -1,16 +1,9 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public abstract class IASTDeclaration extends IASTNode implements
-    org.eclipse.cdt.core.dom.ast.IASTDeclaration {
+public abstract class IASTDeclaration extends IASTNode {
 
   public IASTDeclaration(final String pRawSignature,
       final IASTFileLocation pFileLocation) {
     super(pRawSignature, pFileLocation);
-  }
-
-  @Override
-  @Deprecated
-  public IASTDeclaration copy() {
-    throw new UnsupportedOperationException();
   }
 }

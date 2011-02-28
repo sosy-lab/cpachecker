@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTUnaryExpression extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTUnaryExpression {
+public class IASTUnaryExpression extends IASTExpression {
 
   private final IASTExpression operand;
   private final int            operator;
@@ -14,12 +13,10 @@ public class IASTUnaryExpression extends IASTExpression implements
     operator = pOperator;
   }
 
-  @Override
   public IASTExpression getOperand() {
     return operand;
   }
 
-  @Override
   public int getOperator() {
     return operator;
   }
@@ -27,24 +24,6 @@ public class IASTUnaryExpression extends IASTExpression implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {operand};
-  }
-
-  @Override
-  @Deprecated
-  public void setOperand(final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setOperator(final int pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTUnaryExpression copy() {
-    throw new UnsupportedOperationException();
   }
   
   public static final int op_prefixIncr = 0;
@@ -59,5 +38,4 @@ public class IASTUnaryExpression extends IASTExpression implements
   public static final int op_postFixIncr = 9;
   public static final int op_postFixDecr = 10;
   public static final int op_bracketedPrimary = 11;
-
 }

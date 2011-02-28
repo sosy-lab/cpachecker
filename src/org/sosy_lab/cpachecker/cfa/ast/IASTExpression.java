@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public abstract class IASTExpression extends IASTNode implements
-    org.eclipse.cdt.core.dom.ast.IASTExpression {
+public abstract class IASTExpression extends IASTNode {
 
   private final IType type;
 
@@ -11,14 +10,7 @@ public abstract class IASTExpression extends IASTNode implements
     type = pType;
   }
 
-  @Override
   public IType getExpressionType() {
     return type;
-  }
-
-  @Override
-  @Deprecated
-  public IASTExpression copy() {
-    throw new UnsupportedOperationException();
   }
 }

@@ -1,11 +1,9 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 
-public final class IASTSimpleDeclaration extends IASTDeclaration implements
-    org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration {
+public final class IASTSimpleDeclaration extends IASTDeclaration {
 
   private final IASTDeclSpecifier    specifier;
   private final List<IASTDeclarator> declarators;
@@ -18,19 +16,10 @@ public final class IASTSimpleDeclaration extends IASTDeclaration implements
     declarators = ImmutableList.copyOf(pDeclarators);
   }
 
-  @Override
-  @Deprecated
-  public void addDeclarator(
-      final org.eclipse.cdt.core.dom.ast.IASTDeclarator pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public IASTDeclSpecifier getDeclSpecifier() {
     return specifier;
   }
 
-  @Override
   public IASTDeclarator[] getDeclarators() {
     return declarators.toArray(new IASTDeclarator[declarators.size()]);
   }
@@ -41,18 +30,5 @@ public final class IASTSimpleDeclaration extends IASTDeclaration implements
     final IASTNode[] children = declarators.toArray(new IASTDeclarator[declarators.size()+1]);
     children[declarators.size()] = specifier;
     return children;
-  }
-
-  @Override
-  @Deprecated
-  public void setDeclSpecifier(
-      final org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTSimpleDeclaration copy() {
-    throw new UnsupportedOperationException();
   }
 }

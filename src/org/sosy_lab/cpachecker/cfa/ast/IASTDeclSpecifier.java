@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public abstract class IASTDeclSpecifier extends IASTNode implements
-    org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier {
+public abstract class IASTDeclSpecifier extends IASTNode {
 
   private final int storageClass;
   private boolean   isConst;
@@ -18,22 +17,18 @@ public abstract class IASTDeclSpecifier extends IASTNode implements
     isVolatile = pVolatile;
   }
 
-  @Override
   public int getStorageClass() {
     return storageClass;
   }
 
-  @Override
   public boolean isConst() {
     return isConst;
   }
 
-  @Override
   public boolean isInline() {
     return isInline;
   }
 
-  @Override
   public boolean isVolatile() {
     return isVolatile;
   }
@@ -43,38 +38,7 @@ public abstract class IASTDeclSpecifier extends IASTNode implements
     // there are no children of this class
     return new IASTNode[0];
   }
-  
-  @Override
-  @Deprecated
-  public void setConst(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setInline(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setStorageClass(final int pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setVolatile(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTDeclSpecifier copy() {
-    throw new UnsupportedOperationException();
-  }
 
   public static final int sc_typedef = 1;
   public static final int sc_extern  = 2;
-
 }

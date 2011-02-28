@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTTypeIdExpression extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression {
+public final class IASTTypeIdExpression extends IASTExpression {
 
   private final int        operator;
   private final IASTTypeId type;
@@ -14,12 +13,10 @@ public final class IASTTypeIdExpression extends IASTExpression implements
     type = pTypeId;
   }
 
-  @Override
   public int getOperator() {
     return operator;
   }
 
-  @Override
   public IASTTypeId getTypeId() {
     return type;
   }
@@ -28,28 +25,9 @@ public final class IASTTypeIdExpression extends IASTExpression implements
   public IASTNode[] getChildren(){
     return new IASTNode[] {type};
   }
-
-  @Override
-  @Deprecated
-  public void setOperator(final int pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setTypeId(final org.eclipse.cdt.core.dom.ast.IASTTypeId pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTTypeIdExpression copy() {
-    throw new UnsupportedOperationException();
-  }
-  
+ 
   public static final int op_sizeof = 0;
   public static final int op_typeid = 1;
   public static final int op_alignof = 2;
   public static final int op_typeof = 3;
-
 }
