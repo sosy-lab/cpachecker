@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTArraySubscriptExpression extends IASTExpression
-    implements org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression {
+public final class IASTArraySubscriptExpression extends IASTExpression {
 
   private final IASTExpression arrayExpression;
   private final IASTExpression subscriptExpression;
@@ -15,12 +14,10 @@ public final class IASTArraySubscriptExpression extends IASTExpression
     subscriptExpression = pSubscriptExpression;
   }
 
-  @Override
   public IASTExpression getArrayExpression() {
     return arrayExpression;
   }
 
-  @Override
   public IASTExpression getSubscriptExpression() {
     return subscriptExpression;
   }
@@ -28,25 +25,5 @@ public final class IASTArraySubscriptExpression extends IASTExpression
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {arrayExpression, subscriptExpression};
-  }
-
-  @Override
-  @Deprecated
-  public void setArrayExpression(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setSubscriptExpression(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTArraySubscriptExpression copy() {
-    throw new UnsupportedOperationException();
   }
 }

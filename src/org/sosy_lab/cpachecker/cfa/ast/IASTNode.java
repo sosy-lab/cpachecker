@@ -29,7 +29,9 @@ public abstract class IASTNode implements org.eclipse.cdt.core.dom.ast.IASTNode 
 
   @Override
   @Deprecated
-  public abstract IASTNode copy();
+  public IASTNode copy() {
+    throw new UnsupportedOperationException();
+  }
 
   @Override
   public abstract IASTNode[] getChildren();

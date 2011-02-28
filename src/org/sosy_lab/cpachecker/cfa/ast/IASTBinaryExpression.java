@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTBinaryExpression extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTBinaryExpression {
+public class IASTBinaryExpression extends IASTExpression {
 
   private final IASTExpression operand1;
   private final IASTExpression operand2;
@@ -17,17 +16,14 @@ public class IASTBinaryExpression extends IASTExpression implements
     operator = pOperator;
   }
 
-  @Override
   public IASTExpression getOperand1() {
     return operand1;
   }
 
-  @Override
   public IASTExpression getOperand2() {
     return operand2;
   }
 
-  @Override
   public int getOperator() {
     return operator;
   }
@@ -35,32 +31,6 @@ public class IASTBinaryExpression extends IASTExpression implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {operand1, operand2};
-  }
-
-  @Override
-  @Deprecated
-  public void setOperand1(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setOperand2(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setOperator(final int pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTBinaryExpression copy() {
-    throw new UnsupportedOperationException();
   }
 
   public static final int op_multiply         = 1;

@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
-    org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier {
+public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier {
 
   private final IASTName name;
 
@@ -14,13 +13,6 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
     name = pName;
   }
 
-  @Override
-  @Deprecated
-  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public IASTName getName() {
     return name;
   }
@@ -28,17 +20,5 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {name};
-  }
-
-  @Override
-  @Deprecated
-  public void setName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTNamedTypeSpecifier copy() {
-    throw new UnsupportedOperationException();
   }
 }

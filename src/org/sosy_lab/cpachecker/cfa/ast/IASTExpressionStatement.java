@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTExpressionStatement extends IASTStatement implements
-    org.eclipse.cdt.core.dom.ast.IASTExpressionStatement {
+public class IASTExpressionStatement extends IASTStatement {
 
   private final IASTExpression expression;
 
@@ -11,7 +10,6 @@ public class IASTExpressionStatement extends IASTStatement implements
     expression = pExpression;
   }
 
-  @Override
   public IASTExpression getExpression() {
     return expression;
   }
@@ -19,18 +17,5 @@ public class IASTExpressionStatement extends IASTStatement implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {expression};
-  }
-
-  @Override
-  @Deprecated
-  public void setExpression(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTExpressionStatement copy() {
-    throw new UnsupportedOperationException();
   }
 }

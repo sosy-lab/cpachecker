@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTFieldReference extends IASTExpression implements
-    org.eclipse.cdt.core.dom.ast.IASTFieldReference {
+public final class IASTFieldReference extends IASTExpression {
 
   private final IASTName       name;
   private final IASTExpression owner;
@@ -17,23 +16,14 @@ public final class IASTFieldReference extends IASTExpression implements
     isPointerDereference = pIsPointerDereference;
   }
 
-  @Override
-  @Deprecated
-  public int getRoleForName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public IASTName getFieldName() {
     return name;
   }
 
-  @Override
   public IASTExpression getFieldOwner() {
     return owner;
   }
 
-  @Override
   public boolean isPointerDereference() {
     return isPointerDereference;
   }
@@ -41,30 +31,5 @@ public final class IASTFieldReference extends IASTExpression implements
   @Override
   public IASTNode[] getChildren(){
     return new IASTNode[] {name, owner};
-  }
-
-  @Override
-  @Deprecated
-  public void setFieldName(final org.eclipse.cdt.core.dom.ast.IASTName pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setFieldOwner(
-      final org.eclipse.cdt.core.dom.ast.IASTExpression pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setIsPointerDereference(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTFieldReference copy() {
-    throw new UnsupportedOperationException();
   }
 }

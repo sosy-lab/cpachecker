@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier implements
-    org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier {
+public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
 
   private final int     type;
   private final boolean isLong;
@@ -23,67 +22,26 @@ public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier implements
     isUnsigned = pIsUnsigned;
   }
 
-  @Override
   public int getType() {
     return type;
   }
 
-  @Override
   public boolean isLong() {
     return isLong;
   }
 
-  @Override
   public boolean isShort() {
     return isShort;
   }
 
-  @Override
   public boolean isSigned() {
     return isSigned;
   }
 
-  @Override
   public boolean isUnsigned() {
     return isUnsigned;
   }
 
-  @Override
-  @Deprecated
-  public void setLong(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setShort(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setSigned(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setType(final int pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public void setUnsigned(final boolean pArg0) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @Deprecated
-  public IASTSimpleDeclSpecifier copy() {
-    throw new UnsupportedOperationException();
-  }
-  
   public static final int t_unspecified = 0;
   public static final int t_void = 1;
   public static final int t_char = 2;
