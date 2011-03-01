@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -74,7 +73,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     }
   }
 
-  public Set<ARTElement> getChildren(){
+  public Set<ARTElement> getChildren() {
     assert !destroyed;
     return children;
   }
@@ -94,6 +93,11 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return mCoveredBy != null;
   }
 
+  public ARTElement getCoveringElement() {
+    Preconditions.checkState(isCovered());
+    return mCoveredBy;
+  }
+  
   public Set<ARTElement> getCoveredByThis() {
     assert !destroyed;
     if (mCoveredByThis == null) {
@@ -209,30 +213,12 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return elementId;
   }
 
-  /**
-   * This method returns a random element from the list of parents.
-   * @return A parent of this element.
-   */
-  public ARTElement getFirstParent() {
-    if (parents.isEmpty()) {
-      return null;
-    }
-    Iterator<ARTElement> it = parents.iterator();
-    return it.next();
-  }
-
   public CFAEdge getEdgeToChild(ARTElement pChild) {
     Preconditions.checkArgument(children.contains(pChild));
 
     CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
     CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
 
-    for (int i = 0; i < childNode.getNumEnteringEdges(); i++) {
-      CFAEdge edge = childNode.getEnteringEdge(i);
-      if (currentLoc.getNodeNumber() == edge.getPredecessor().getNodeNumber()) {
-        return edge;
-      }
-    }
-    throw new IllegalStateException("Invalid ART, parent<->child relation without corresponding CFAEdge");
+    return currentLoc.getEdgeTo(childNode);
   }
 }
