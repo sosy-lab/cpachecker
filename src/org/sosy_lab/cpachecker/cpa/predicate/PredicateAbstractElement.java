@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -154,8 +151,8 @@ public class PredicateAbstractElement implements AbstractElement, Partitionable,
   }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
-    return Collections.singleton(getAbstractionFormula().asFormula());
+  public Formula getFormulaApproximation(FormulaManager manager) {
+    return getAbstractionFormula().asFormula();
   }
 
 }
