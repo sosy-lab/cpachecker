@@ -1,10 +1,11 @@
 export PATH=../../scripts/results:$(shell echo $$PATH)
+COLUMNS=2
 
 table.tex : table.csv ;
 	cat "$<" | round.sh | csv_to_latex.sh > "$@"
 
 table.csv : $(addsuffix .csv,$(basename $(wildcard *.log))) ;
-	column_select.sh 1,$(addprefix 2 ,$+) > "$@"
+	column_select.sh 1,$(addprefix ${COLUMNS} ,$+) > "$@"
 
 csv : $(addsuffix .csv,$(basename $(wildcard *.log)))
 
