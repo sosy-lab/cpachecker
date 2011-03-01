@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -112,25 +108,15 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
+  public Formula getReasonFormula(FormulaManager manager) {
 
-    List<Formula> formulasList = new ArrayList<Formula>();
-    
-//    Iterable<? extends AbstractElement> wrappedElements = getWrappedElements();
-    
-//    for(AbstractElement elem: wrappedElements){
-//      if(elem instanceof FormulaReportingElement){
-//        FormulaReportingElement fRepElement = (FormulaReportingElement) elem;
-//        formulasList.addAll(fRepElement.getFormulaApproximation(manager));
-//      }
-//    }
-
-    if(shouldStop){
+    if (shouldStop) {
       String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
-      formulasList.add(manager.parse(preventingHeuristicStringFormula));
-    }
+      return manager.parse(preventingHeuristicStringFormula);
     
-    return formulasList;
+    } else {
+      return manager.makeTrue();
+    }
   }
   
 }

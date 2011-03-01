@@ -36,33 +36,46 @@ import com.google.common.base.Preconditions;
  */
 public class AssumptionStorageElement implements AbstractElement {
   
+  // this formula provides the assumption generated from other sources than heuristics,
+  // e.g. assumptions for arithmetic overflow
   private final Formula assumption;
+  
+  // if a heuristic told us to stop the analysis, this formula provides the reason
+  // if it is TRUE, there is no reason -> don't stop
+  private final Formula stopFormula;
 
-  public AssumptionStorageElement(Formula f) {
-    assumption = Preconditions.checkNotNull(f);
+  // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
+  
+  public AssumptionStorageElement(Formula pAssumption, Formula pStopFormula) {
+    assumption = Preconditions.checkNotNull(pAssumption);
+    stopFormula = Preconditions.checkNotNull(pStopFormula);
+    
+    assert !assumption.isFalse(); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
   }
 
-  /**
-   * Return the invariant in this state.
-   */
   public Formula getAssumption() {
     return assumption;
+  }
+  
+  public Formula getStopFormula() {
+    return stopFormula;
   }
 
   @Override
   public String toString() {
-    return (assumption.isFalse() ? "<STOP> " : "") + "assume: " + assumption;
+    return (stopFormula.isTrue() ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
   }
 
   public boolean isStop() {
-    return assumption.isFalse();
+    return !stopFormula.isTrue();
   }
 
   @Override
   public boolean equals(Object other) {
     if (other instanceof AssumptionStorageElement) {
       AssumptionStorageElement otherElement = (AssumptionStorageElement) other;
-      return assumption.equals(otherElement.assumption);
+      return assumption.equals(otherElement.assumption)
+          && stopFormula.equals(otherElement.stopFormula);
     } else {
       return false;
     }
@@ -70,6 +83,6 @@ public class AssumptionStorageElement implements AbstractElement {
 
   @Override
   public int hashCode() {
-    return assumption.hashCode();
+    return assumption.hashCode() + 17 * stopFormula.hashCode();
   }
 }

@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
@@ -70,10 +70,11 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
-    //    assert (asmptStorageElem.getAssumption().isTrue());
-    //    Formula assumption = formulaManager.makeTrue();
-    Formula assumption = asmptStorageElem.getAssumption();
-    Formula reportedFormula = formulaManager.makeTrue();
+    assert asmptStorageElem.getAssumption().isTrue();
+    assert asmptStorageElem.getStopFormula().isTrue();
+    
+    Formula assumption = formulaManager.makeTrue();
+    Formula stopFormula = formulaManager.makeFalse(); // initialize with false because we create a disjunction
 
     // process stop flag
     boolean stop = false;
@@ -84,29 +85,26 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
         assumption = formulaManager.makeAnd(assumption, inv);
       }
 
-      if(element instanceof FormulaReportingElement){
-        Formula newReportedFormula = ReportingUtils.extractReportedFormulas(formulaManager, element);
-        reportedFormula = formulaManager.makeAnd(reportedFormula, newReportedFormula);
-      }
-
       if (element instanceof AvoidanceReportingElement) {
-        stop = stop | ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
+        AvoidanceReportingElement e = (AvoidanceReportingElement)element;
+
+        if (e.mustDumpAssumptionForAvoidance()) {
+          stopFormula = formulaManager.makeOr(stopFormula, e.getReasonFormula(formulaManager));
+          stop = true;
+        }
       }
     }
+    Preconditions.checkState(!stopFormula.isTrue());
 
-    // stop condition
-    if(stop){
-      // so we only use formula reporting element in case one of 
-      // the AvoidanceReportingElements signal to stop.
-      // the condition is the negation of the reported formula
-      Formula invertedFormula = formulaManager.makeNot(reportedFormula);
-      assumption = formulaManager.makeAnd(assumption, invertedFormula);
+    if (!stop) {
+      stopFormula = formulaManager.makeTrue();
     }
-
-    if (assumption.isTrue()) {
-      return null;
+    
+    if (assumption.isTrue() && stopFormula.isTrue()) {
+      return null; // nothing has changed
+      
     } else {
-      return Collections.singleton(new AssumptionStorageElement(assumption));
+      return Collections.singleton(new AssumptionStorageElement(assumption, stopFormula));
     }
   }
 }
