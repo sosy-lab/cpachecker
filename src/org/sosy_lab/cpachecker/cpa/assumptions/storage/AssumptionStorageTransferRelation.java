@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -45,9 +46,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final FormulaManager formulaManager;
-  
+
   private final Collection<AbstractElement> topElementSet;
-  
+
   public AssumptionStorageTransferRelation(FormulaManager pManager, AbstractElement pTopElement) {
     formulaManager = pManager;
     topElementSet = Collections.singleton(pTopElement);
@@ -65,13 +66,17 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
     return topElementSet;
   }
-  
+
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
     //    assert (asmptStorageElem.getAssumption().isTrue());
     //    Formula assumption = formulaManager.makeTrue();
     Formula assumption = asmptStorageElem.getAssumption();
+    Formula reportedFormula = formulaManager.makeTrue();
+
+    // process stop flag
+    boolean stop = false;
 
     for (AbstractElement element : AbstractElements.asIterable(others)) {
       if (element instanceof AssumptionReportingElement) {
@@ -79,15 +84,23 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
         assumption = formulaManager.makeAnd(assumption, inv);
       }
 
-      // process stop flag
-      boolean stop = false;
+      if(element instanceof FormulaReportingElement){
+        Formula newReportedFormula = ReportingUtils.extractReportedFormulas(formulaManager, element);
+        reportedFormula = formulaManager.makeAnd(reportedFormula, newReportedFormula);
+      }
+
       if (element instanceof AvoidanceReportingElement) {
         stop = stop | ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
-        if (stop) {
-          assumption = ReportingUtils.extractReportedFormulas(formulaManager, element);
-          assumption = formulaManager.makeNot(assumption);
-        }
       }
+    }
+
+    // stop condition
+    if(stop){
+      // so we only use formula reporting element in case one of 
+      // the AvoidanceReportingElements signal to stop.
+      // the condition is the negation of the reported formula
+      Formula invertedFormula = formulaManager.makeNot(reportedFormula);
+      assumption = formulaManager.makeAnd(assumption, invertedFormula);
     }
 
     if (assumption.isTrue()) {

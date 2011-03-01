@@ -44,6 +44,9 @@ public class MonitorStop implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     MonitorElement monitorElement = (MonitorElement)pElement;
+    
+    if(monitorElement.mustDumpAssumptionForAvoidance())
+      return true;
 
     for (AbstractElement reachedElement : pReached) {
       MonitorElement monitorReachedElement = (MonitorElement)reachedElement;

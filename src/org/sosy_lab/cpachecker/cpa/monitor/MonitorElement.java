@@ -31,7 +31,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -117,14 +116,14 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
 
     List<Formula> formulasList = new ArrayList<Formula>();
     
-    Iterable<? extends AbstractElement> wrappedElements = getWrappedElements();
+//    Iterable<? extends AbstractElement> wrappedElements = getWrappedElements();
     
-    for(AbstractElement elem: wrappedElements){
-      if(elem instanceof FormulaReportingElement){
-        FormulaReportingElement fRepElement = (FormulaReportingElement) elem;
-        formulasList.addAll(fRepElement.getFormulaApproximation(manager));
-      }
-    }
+//    for(AbstractElement elem: wrappedElements){
+//      if(elem instanceof FormulaReportingElement){
+//        FormulaReportingElement fRepElement = (FormulaReportingElement) elem;
+//        formulasList.addAll(fRepElement.getFormulaApproximation(manager));
+//      }
+//    }
 
     if(shouldStop){
       String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
