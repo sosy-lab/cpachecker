@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -37,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -58,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -80,13 +84,25 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
       out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
       
-      if (exportAssumptions && assumptionsFile != null) {
-        try {
-          Files.writeFile(assumptionsFile, resultAssumption);
-        } catch (IOException e) {
-          logger.log(Level.WARNING,
-              "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
-              ", (", e.getMessage(), ")");
+      if (exportAssumptions) {
+        if (assumptionsFile != null) {
+          try {
+            Files.writeFile(assumptionsFile, resultAssumption);
+          } catch (IOException e) {
+            logger.log(Level.WARNING,
+                "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
+                ", (", e.getMessage(), ")");
+          }
+        }
+        
+        if (assumptionAutomatonFile != null) {
+          try {
+            Files.writeFile(assumptionAutomatonFile, produceAssumptionAutomaton(pReached));
+          } catch (IOException e) {
+            logger.log(Level.WARNING,
+                "Could not write assumptions to file ", assumptionAutomatonFile.getAbsolutePath(),
+                ", (", e.getMessage(), ")");
+          }
         }
       }
     }
@@ -97,6 +113,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(name="file", type=Option.Type.OUTPUT_FILE)
   private File assumptionsFile = new File("assumptions.txt");
+  
+  @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE)
+  private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -176,6 +195,105 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return sound;
   }
 
+  private String produceAssumptionAutomaton(ReachedSet reached) {
+    Set<ARTElement> artNodes = new HashSet<ARTElement>();
+    Set<ARTElement> trueAssumptions = new HashSet<ARTElement>();
+    Set<AbstractElement> falseAssumptions = Sets.newHashSet(reached.getWaitlist());
+    getTrueAssumptionElements((ARTElement)reached.getFirstElement(), artNodes, trueAssumptions, falseAssumptions);
+    
+    StringBuilder sb = new StringBuilder();
+    sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
+    sb.append("INITIAL STATE ART" + ((ARTElement)reached.getFirstElement()).getElementId() + ";\n\n");
+    sb.append("STATE __TRUE :\n");
+    sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
+    sb.append("STATE __FALSE :\n");
+    sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
+    
+    for (ARTElement e : artNodes) {
+      if (falseAssumptions.contains(e)
+        || (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))) {
+        continue;
+      }
+      
+      CFANode loc = AbstractElements.extractLocation(e);
+      sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
+      if (trueAssumptions.contains(e)) {
+        sb.append("   TRUE -> GOTO __TRUE;\n\n");
+      
+      } else {
+        for (ARTElement child : e.getChildren()) {
+          if (child.isCovered()) {
+            child = child.getCoveringElement();
+            assert !child.isCovered();
+          }
+          
+          if (artNodes.contains(child)) {
+            CFANode childLoc = AbstractElements.extractLocation(child);
+            CFAEdge edge = loc.getEdgeTo(childLoc);
+            sb.append("    MATCH \"");
+            escape(edge.getRawStatement(), sb);
+            sb.append("\" -> ");
+            
+            AssumptionStorageElement assumptionChild = AbstractElements.extractElementByType(child, AssumptionStorageElement.class);
+            Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
+            sb.append("ASSUME \"");
+            escape(assumption.toString(), sb);
+            sb.append("\" ");
+
+            if (!assumptionChild.getStopFormula().isTrue() || falseAssumptions.contains(child)) {
+              sb.append("GOTO __FALSE");
+            } else {
+              sb.append("GOTO ART" + child.getElementId());
+            }
+            sb.append(";\n");
+          }
+        }
+        sb.append("    TRUE -> ERROR;\n\n");
+      }
+    }
+    sb.append("END AUTOMATON\n");
+    return sb.toString();
+  }
+  
+  private static void escape(String s, StringBuilder appendTo) {
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      switch (c) {
+      case '\n':
+        appendTo.append("\\n");
+        break;
+      case '\"':
+        appendTo.append("\\\"");
+        break;
+      case '\\':
+        appendTo.append("\\\\");
+        break;
+      default:
+        appendTo.append(c);
+        break;
+      }
+    }
+  }
+  
+  private static void getTrueAssumptionElements(ARTElement e, Set<ARTElement> visited, Set<ARTElement> trueAssumptions, Set<AbstractElement> falseAssumptions) {
+    if (!visited.add(e)) {
+      return;
+    }
+    
+    for (ARTElement child : e.getChildren()) {
+      getTrueAssumptionElements(child, visited, trueAssumptions, falseAssumptions);
+    }
+    
+    AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
+    if (asmptElement.getAssumption().isTrue() 
+        && asmptElement.getAssumption().isTrue()
+        && !falseAssumptions.contains(e)
+        && trueAssumptions.containsAll(e.getChildren())) {
+      
+      trueAssumptions.add(e);
+    }
+  }
+  
   /**
    * Add to the given map the invariant required to
    * avoid the given refinement failure
