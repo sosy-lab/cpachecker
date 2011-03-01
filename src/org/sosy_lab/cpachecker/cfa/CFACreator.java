@@ -209,37 +209,46 @@ public class CFACreator {
     if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
       exportTime.start();
    
-      // write CFA to file
-      if (exportCfa) {
-        try {
-          Files.writeFile(exportCfaFile,
-              DOTBuilder.generateDOT(cfas.values(), mainFunction));
-        } catch (IOException e) {
-          logger.log(Level.WARNING,
-            "Could not write CFA to dot file, check configuration option cfa.file! (",
-            e.getMessage() + ")");
-          // continue with analysis
+      // execute asynchronously, this may take several seconds for large programs on slow disks
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          // running the following in parallel is thread-safe
+          // because we don't modify the CFA from this point on
+          
+          // write CFA to file
+          if (exportCfa) {
+            try {
+              Files.writeFile(exportCfaFile,
+                  DOTBuilder.generateDOT(cfas.values(), mainFunction));
+            } catch (IOException e) {
+              logger.log(Level.WARNING,
+                "Could not write CFA to dot file, check configuration option cfa.file! (",
+                e.getMessage() + ")");
+              // continue with analysis
+            }
+          }
+          
+          // write the CFA to files (one file per function + some metainfo)
+          if (exportCfaPerFunction) {
+            try {
+              File outdir = exportCfaFile.getParentFile();        
+              DOTBuilder2.writeReport(mainFunction, outdir);
+            } catch (IOException e) {        
+              logger.log(Level.WARNING,
+                "Could not write CFA to dot and json files, check configuration option cfa.file! (",
+                e.getMessage() + ")");
+              // continue with analysis
+            }
+          }
         }
-      }
-      
-      // write the CFA to files (one file per function + some metainfo)
-      if (exportCfaPerFunction) {
-        try {
-          File outdir = exportCfaFile.getParentFile();        
-          DOTBuilder2.writeReport(mainFunction, outdir);
-        } catch (IOException e) {        
-          logger.log(Level.WARNING,
-            "Could not write CFA to dot and json files, check configuration option cfa.file! (",
-            e.getMessage() + ")");
-          // continue with analysis
-        }
-      } 
+      }).start();
       
       exportTime.stop();
     }
 
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
-  
+    
     this.functions = ImmutableMap.copyOf(cfas);
     this.mainFunction = mainFunction;
   }
