@@ -105,6 +105,16 @@ public class CFANode implements Comparable<CFANode> {
     return enteringEdges.get(index);
   }
 
+  public CFAEdge getEdgeTo(CFANode other) {
+    for (CFAEdge edge : leavingEdges) {
+      if (edge.getSuccessor() == other) {
+        return edge;
+      }
+    }
+
+    throw new IllegalArgumentException();
+  }
+  
   public boolean hasEdgeTo(CFANode other) {
     boolean hasEdge = false;
     for (CFAEdge edge : leavingEdges) {
