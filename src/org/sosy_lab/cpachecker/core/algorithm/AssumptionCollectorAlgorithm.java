@@ -196,10 +196,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
+    AbstractElement firstElement = reached.getFirstElement();
+    if (!(firstElement instanceof ARTElement)) {
+      return "Cannot dump assumption as automaton if ARTCPA is not used.";
+    }
+    
     Set<ARTElement> artNodes = new HashSet<ARTElement>();
     Set<ARTElement> trueAssumptions = new HashSet<ARTElement>();
     Set<AbstractElement> falseAssumptions = Sets.newHashSet(reached.getWaitlist());
-    getTrueAssumptionElements((ARTElement)reached.getFirstElement(), artNodes, trueAssumptions, falseAssumptions);
+    getTrueAssumptionElements((ARTElement)firstElement, artNodes, trueAssumptions, falseAssumptions);
     
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
