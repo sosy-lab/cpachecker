@@ -61,12 +61,6 @@ public class ProgressObserverTransferRelation implements TransferRelation {
       throws CPATransferException {
     ProgressObserverElement pre = (ProgressObserverElement)el;
 
-    if (pre.mustDumpAssumptionForAvoidance()){
-      // i.e., it is bottom; only needed if assumption collection
-      // is not used
-      return Collections.emptySet();
-    }
-
     List<StopHeuristicsData> preData = pre.getComponents();
     List<StopHeuristicsData> postData = new ArrayList<StopHeuristicsData>(preData.size());
 
