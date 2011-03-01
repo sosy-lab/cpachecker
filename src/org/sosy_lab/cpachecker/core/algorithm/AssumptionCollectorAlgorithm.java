@@ -182,7 +182,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       assert location != null;
       
       AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
-      resultAssumption.add(location, formulaManager.makeAnd(e.getAssumption(), e.getStopFormula()));
+      Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
+      if (!assumption.isTrue()) {
+        Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
+      
+        resultAssumption.add(location, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
+      }
     }
     
     // dump invariants to prevent going further with nodes in
