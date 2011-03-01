@@ -103,7 +103,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -113,6 +113,7 @@ non terminal Map<String, AutomatonVariable> LocalDefs ;
 non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
+non terminal String Assume ;
 non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
@@ -191,18 +192,21 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
             ;
 
-Transition   ::= Bool:trigger  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON
+Transition   ::= Bool:trigger  ARROW Assertions:ass Assume Actions:acts GOTO IDENTIFIER:follow SEMICOLON
               {: RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString()); :}
-               | Bool:trigger  ARROW Assertions:ass Actions:acts ERROR SEMICOLON
+               | Bool:trigger  ARROW Assertions:ass Assume Actions:acts ERROR SEMICOLON
               {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR); :}
-               | Bool:trigger  ARROW Assertions:ass Actions:acts STOP SEMICOLON
+               | Bool:trigger  ARROW Assertions:ass Assume Actions:acts STOP SEMICOLON
               {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<AutomatonBoolExpr>(); :}
              ;
-Assertion  ::= ASS  Bool:b   {: RESULT = b; :};
+Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
+
+Assume    ::= ASSUME STRING_LITERAL:a {: RESULT = a.toString(); :}
+             | /* empty */ {: RESULT = ""; :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}
