@@ -44,9 +44,6 @@ public class MonitorStop implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     MonitorElement monitorElement = (MonitorElement)pElement;
-    
-    if(monitorElement.mustDumpAssumptionForAvoidance())
-      return true;
 
     for (AbstractElement reachedElement : pReached) {
       MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
@@ -60,6 +57,10 @@ public class MonitorStop implements StopOperator {
 
   public boolean stop(MonitorElement pElement, MonitorElement pReachedElement)
                                                       throws CPAException {
+
+    if (pElement.mustDumpAssumptionForAvoidance() || pReachedElement.mustDumpAssumptionForAvoidance()) {
+      return false;
+    }
 
     AbstractElement wrappedElement = pElement.getWrappedElement();
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
