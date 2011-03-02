@@ -85,9 +85,9 @@ public class MonitorTransferRelation implements TransferRelation {
 
   @Override
   public Collection<MonitorElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AbstractElement pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException {
-    MonitorElement element = (MonitorElement)pElement;
+    final MonitorElement element = (MonitorElement)pElement;
 
     if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
       // cannot compute a successor
@@ -96,8 +96,12 @@ public class MonitorTransferRelation implements TransferRelation {
     
     totalTimeOfTransfer.start();
 
-    TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
-        element.getWrappedElement(), pPrecision);
+    TransferCallable tc = new TransferCallable() {
+      @Override
+      public Collection<? extends AbstractElement> call() throws CPATransferException {
+        return transferRelation.getAbstractSuccessors(element.getWrappedElement(), pPrecision, pCfaEdge);
+      }
+    };
 
     Pair<PreventingHeuristicType, Long> preventingCondition = null;
 
@@ -184,9 +188,9 @@ public class MonitorTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-      List<AbstractElement> otherElements, CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException {
-    MonitorElement element = (MonitorElement)pElement;
+      final List<AbstractElement> otherElements, final CFAEdge cfaEdge,
+      final Precision precision) throws CPATransferException {
+    final MonitorElement element = (MonitorElement)pElement;
 
     if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
       // ignore strengthen
@@ -195,8 +199,12 @@ public class MonitorTransferRelation implements TransferRelation {
 
     totalTimeOfTransfer.start();
 
-    StrengthenCallable sc = new StrengthenCallable(transferRelation, element.getWrappedElement(),
-        otherElements, cfaEdge, precision);
+    TransferCallable sc = new TransferCallable() {
+      @Override
+      public Collection<? extends AbstractElement> call() throws CPATransferException {
+        return transferRelation.strengthen(element.getWrappedElement(), otherElements, cfaEdge, precision);
+      }
+    };
 
     ExecutorService executor = Executors.newSingleThreadExecutor();    
 
@@ -275,47 +283,8 @@ public class MonitorTransferRelation implements TransferRelation {
     return wrappedSuccessors;
   }
 
-  private static class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
-
-    private final TransferRelation transferRelation;
-    private final CFAEdge cfaEdge;
-    private final AbstractElement abstractElement;
-    private final Precision precision;
-
-    private TransferCallable(TransferRelation transferRelation, CFAEdge cfaEdge,
-        AbstractElement abstractElement, Precision precision) {
-      this.transferRelation = transferRelation;
-      this.cfaEdge = cfaEdge;
-      this.abstractElement = abstractElement;
-      this.precision = precision;
-    }
-
+  private static interface TransferCallable extends Callable<Collection<? extends AbstractElement>> {
     @Override
-    public Collection<? extends AbstractElement> call() throws CPATransferException {
-      return transferRelation.getAbstractSuccessors(abstractElement, precision, cfaEdge);
-    }
-  }
-
-  private static class StrengthenCallable implements Callable<Collection<? extends AbstractElement>>{
-
-    private final TransferRelation transferRelation;
-    private final CFAEdge cfaEdge;
-    private final AbstractElement abstractElement;
-    private final List<AbstractElement> otherElements;
-    private final Precision precision;
-
-    private StrengthenCallable(TransferRelation transferRelation, AbstractElement abstractElement, 
-        List<AbstractElement> otherElements, CFAEdge cfaEdge, Precision precision) {
-      this.transferRelation = transferRelation;
-      this.cfaEdge = cfaEdge;
-      this.abstractElement = abstractElement;
-      this.otherElements = otherElements;
-      this.precision = precision;
-    }
-
-    @Override
-    public Collection<? extends AbstractElement> call() throws CPATransferException {
-      return transferRelation.strengthen(abstractElement, otherElements, cfaEdge, precision);
-    }
+    public Collection<? extends AbstractElement> call() throws CPATransferException;
   }
 }
