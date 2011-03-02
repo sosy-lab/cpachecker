@@ -62,6 +62,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
       int pathLength, int branchesOnPath, long totalTimeOnPath,
       Pair<PreventingHeuristicType, Long> preventingCondition) {
     super(pWrappedElement);
+    Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
     Preconditions.checkArgument(!(pWrappedElement == TimeoutElement.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutElement");
     Preconditions.checkArgument(pathLength > branchesOnPath);
     this.pathLength = pathLength;

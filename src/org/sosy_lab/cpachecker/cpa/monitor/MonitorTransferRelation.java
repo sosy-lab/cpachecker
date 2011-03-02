@@ -255,7 +255,7 @@ public class MonitorTransferRelation implements TransferRelation {
     // if the returned list is null return null
     if (successors == null) {
       // wrapped strengthen didn't do anything, but we need to update totalTimeOnPath
-      successors = Collections.singleton(pElement);
+      successors = Collections.singleton(element.getWrappedElement());
     }
     
     // return if there are no successors
