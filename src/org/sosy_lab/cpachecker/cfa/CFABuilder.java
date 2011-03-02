@@ -197,9 +197,13 @@ public class CFABuilder extends ASTVisitor
       
       IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
       String nameOfFunction = fdef.getDeclarator().getName().toString();
+      if (nameOfFunction.isEmpty()) {
+        nameOfFunction = fdef.getDeclarator().getNestedDeclarator().getName().toString();
+      }
+      assert !nameOfFunction.isEmpty();
       
       if (cfas.containsKey(nameOfFunction)) {
-        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction);
+        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, fdef);
       }
 
       IASTFunctionDeclarator decl = fdef.getDeclarator();
