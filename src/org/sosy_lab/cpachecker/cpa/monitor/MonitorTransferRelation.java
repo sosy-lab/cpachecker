@@ -48,15 +48,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.monitor.MonitorElement.TimeoutElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation implements TransferRelation {
-
+  
   long maxSizeOfSinglePath = 0;
   long maxNumberOfBranches = 0;
   long maxTotalTimeForPath = 0;
@@ -88,15 +88,17 @@ public class MonitorTransferRelation implements TransferRelation {
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     MonitorElement element = (MonitorElement)pElement;
-    totalTimeOfTransfer.start();
 
-//    if(element.mustDumpAssumptionForAvoidance())
-//      return Collections.emptySet();
+    if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
+      // cannot compute a successor
+      return Collections.emptySet();
+    }
+    
+    totalTimeOfTransfer.start();
 
     TransferCallable tc = new TransferCallable(transferRelation, pCfaEdge,
         element.getWrappedElement(), pPrecision);
 
-    boolean isStopElement = false;
     Pair<PreventingHeuristicType, Long> preventingCondition = null;
 
     Collection<? extends AbstractElement> successors;
@@ -110,22 +112,18 @@ public class MonitorTransferRelation implements TransferRelation {
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
-        isStopElement = true;
         preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
-        // since we can't compute the successor element which will be set
-        // to bottom, we copy the last element's wrapped state and update
-        // the fields accordingly
-        MonitorElement copiedElement = new MonitorElement(element.getWrappedElement(), 
-            element.getNoOfNodesOnPath() + 1, element.getNoOfBranchesOnPath() + 1, element.getTotalTimeOnPath() + timeLimit);
-        copiedElement.setAsStopElement();
-        successors = Collections.singletonList(copiedElement);
+
+        // add dummy successor
+        successors = Collections.singleton(TimeoutElement.INSTANCE);
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        MonitorElement copiedElement = new MonitorElement(element.getWrappedElement(), 
-            element.getNoOfNodesOnPath() + 1, element.getNoOfBranchesOnPath() + 1, element.getTotalTimeOnPath() + timeLimit);
-        copiedElement.setAsStopElement();
-        successors = Collections.singletonList(copiedElement);
+        // TODO handle InterruptedException better
+        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
+
+        // add dummy successor
+        successors = Collections.singleton(TimeoutElement.INSTANCE);
 
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
@@ -150,41 +148,34 @@ public class MonitorTransferRelation implements TransferRelation {
     // update path length information
     int pathLength = element.getNoOfNodesOnPath() + 1;
     int branchesOnPath = element.getNoOfBranchesOnPath();
-    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       branchesOnPath++;  
     }
 
     if (pathLength > maxSizeOfSinglePath) {
       maxSizeOfSinglePath = pathLength;
     }
-    if(branchesOnPath > maxNumberOfBranches){
+    if (branchesOnPath > maxNumberOfBranches) {
       maxNumberOfBranches = branchesOnPath;
     }
 
     // check for violation of limits
-    if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath){
-      isStopElement = true;
-      preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
-    }
-    if (nodeLimitForPath > 0 && pathLength > nodeLimitForPath){
-      isStopElement = true;
-      preventingCondition = Pair.of(PreventingHeuristicType.PATHLENGTH, nodeLimitForPath);
-    }
-    if (limitForBranches > 0 && branchesOnPath > limitForBranches){
-      isStopElement = true;
-      preventingCondition = Pair.of(PreventingHeuristicType.ASSUMEEDGESINPATH, limitForBranches);
+    if (preventingCondition == null) {
+      if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+      
+      } else if (nodeLimitForPath > 0 && pathLength > nodeLimitForPath) {
+        preventingCondition = Pair.of(PreventingHeuristicType.PATHLENGTH, nodeLimitForPath);
+      
+      } else if (limitForBranches > 0 && branchesOnPath > limitForBranches) {
+        preventingCondition = Pair.of(PreventingHeuristicType.ASSUMEEDGESINPATH, limitForBranches);
+      }
     }
 
     // wrap elements
     List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      MonitorElement successorElem = new MonitorElement(
-          absElement, pathLength, branchesOnPath, totalTimeOnPath);
-      if(isStopElement){
-        successorElem.setAsStopElement();
-        Preconditions.checkNotNull(preventingCondition);
-        successorElem.setPreventingCondition(preventingCondition);
-      }
+      MonitorElement successorElem = new MonitorElement(absElement, pathLength, branchesOnPath, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
@@ -197,8 +188,10 @@ public class MonitorTransferRelation implements TransferRelation {
       Precision precision) throws CPATransferException {
     MonitorElement element = (MonitorElement)pElement;
 
-//    if(element.mustDumpAssumptionForAvoidance())
-//      return Collections.emptySet();
+    if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
+      // ignore strengthen
+      return null;
+    }
 
     totalTimeOfTransfer.start();
 
@@ -207,7 +200,6 @@ public class MonitorTransferRelation implements TransferRelation {
 
     ExecutorService executor = Executors.newSingleThreadExecutor();    
 
-    boolean isStopElement = false;
     Pair<PreventingHeuristicType, Long> preventingCondition = null;
     
     Collection<? extends AbstractElement> successors;
@@ -220,21 +212,20 @@ public class MonitorTransferRelation implements TransferRelation {
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
-        isStopElement = true;
         preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
-        executor.shutdownNow();
-        MonitorElement copiedElement = new MonitorElement(element.getWrappedElement(), 
-            element.getNoOfNodesOnPath() + 1, element.getNoOfBranchesOnPath() + 1, element.getTotalTimeOnPath() + timeLimit);
-        copiedElement.setAsStopElement();
-        successors = Collections.singletonList(copiedElement);
 
+        // add dummy successor
+        successors = Collections.singleton(TimeoutElement.INSTANCE);
+        
+        executor.shutdownNow();
+        
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        executor.shutdownNow();
-        MonitorElement copiedElement = new MonitorElement(element.getWrappedElement(), 
-            element.getNoOfNodesOnPath() + 1, element.getNoOfBranchesOnPath() + 1, element.getTotalTimeOnPath() + timeLimit);
-        copiedElement.setAsStopElement();
-        successors = Collections.singletonList(copiedElement);
+        // TODO handle InterruptedException better
+        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
+
+        // add dummy successor
+        successors = Collections.singleton(TimeoutElement.INSTANCE);
 
       } catch (ExecutionException e) {
         executor.shutdownNow();
@@ -255,8 +246,10 @@ public class MonitorTransferRelation implements TransferRelation {
 
     // if the returned list is null return null
     if (successors == null) {
-      return null;
+      // wrapped strengthen didn't do anything, but we need to update totalTimeOnPath
+      successors = Collections.singleton(pElement);
     }
+    
     // return if there are no successors
     if (successors.isEmpty()) {
       return Collections.emptySet();
@@ -265,21 +258,17 @@ public class MonitorTransferRelation implements TransferRelation {
     // no need to update path length information here
 
     // check for violation of limits
-    if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
-      preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
-      isStopElement = true;
+    if (preventingCondition == null) {
+      if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+      }
     }
 
     // wrap elements
     List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
       MonitorElement successorElem = new MonitorElement(
-          absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath);
-      if(isStopElement){
-        successorElem.setAsStopElement();
-        Preconditions.checkNotNull(preventingCondition);
-        successorElem.setPreventingCondition(preventingCondition);
-      }
+          absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
