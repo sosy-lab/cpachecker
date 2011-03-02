@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -53,6 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation implements TransferRelation {
@@ -75,12 +75,21 @@ public class MonitorTransferRelation implements TransferRelation {
   private long limitForBranches = 0;
 
   private final TransferRelation transferRelation;
+  
+  private final ExecutorService executor; 
 
   public MonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     transferRelation = pWrappedCPA.getTransferRelation();
+    
+    if (timeLimit == 0) {
+      executor = null;
+    } else {
+      // important to use daemon threads here, because we never have the chance to stop the executor
+      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+    }
   }
 
   @Override
@@ -99,6 +108,7 @@ public class MonitorTransferRelation implements TransferRelation {
     TransferCallable tc = new TransferCallable() {
       @Override
       public Collection<? extends AbstractElement> call() throws CPATransferException {
+        assert !(element.getWrappedElement() instanceof MonitorElement) : element;
         return transferRelation.getAbstractSuccessors(element.getWrappedElement(), pPrecision, pCfaEdge);
       }
     };
@@ -110,7 +120,7 @@ public class MonitorTransferRelation implements TransferRelation {
       successors = tc.call();
     } else {
 
-      Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
+      Future<Collection<? extends AbstractElement>> future = executor.submit(tc);
       try {
         // here we get the result of the post computation but there is a time limit
         // given to complete the task specified by timeLimit
@@ -206,8 +216,6 @@ public class MonitorTransferRelation implements TransferRelation {
       }
     };
 
-    ExecutorService executor = Executors.newSingleThreadExecutor();    
-
     Pair<PreventingHeuristicType, Long> preventingCondition = null;
     
     Collection<? extends AbstractElement> successors;
@@ -224,9 +232,7 @@ public class MonitorTransferRelation implements TransferRelation {
 
         // add dummy successor
         successors = Collections.singleton(TimeoutElement.INSTANCE);
-        
-        executor.shutdownNow();
-        
+                
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         // TODO handle InterruptedException better
@@ -236,13 +242,11 @@ public class MonitorTransferRelation implements TransferRelation {
         successors = Collections.singleton(TimeoutElement.INSTANCE);
 
       } catch (ExecutionException e) {
-        executor.shutdownNow();
         Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
         // TransferRelation.strengthen() threw unexpected checked exception!
         throw new AssertionError(e);
       }
     }
-    executor.shutdownNow();
 
     // update time information
     long timeOfExecution = totalTimeOfTransfer.stop();

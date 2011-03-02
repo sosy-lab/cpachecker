@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -48,7 +50,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -72,6 +73,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -123,6 +125,8 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
 
   @Option
   private int maxRefinementSize = 0;
+  
+  private final ExecutorService executor;
 
   public PredicateRefinementManager(
       RegionManager pRmgr,
@@ -140,6 +144,13 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
     firstItpProver = pItpProver;
     secondItpProver = pAltItpProver;
 
+    if (itpTimeLimit == 0) {
+      executor = null;
+    } else {
+      // important to use daemon threads here, because we never have the chance to stop the executor
+      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+    }
+    
     if (wellScopedPredicates) {
       throw new InvalidConfigurationException("wellScopePredicates are currently disabled");
     }
@@ -421,6 +432,8 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
       return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
     }
     
+    assert executor != null;
+    
     // how many times is the problem tried to be solved so far?
     int noOfTries = 0;
     
@@ -433,7 +446,7 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
         tc = new TransferCallable<T2>(pAbstractTrace, secondItpProver);
       }
 
-      Future<CounterexampleTraceInfo> future = CEGARAlgorithm.executor.submit(tc);
+      Future<CounterexampleTraceInfo> future = executor.submit(tc);
 
       try {
         // here we get the result of the post computation but there is a time limit
