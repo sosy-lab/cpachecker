@@ -462,7 +462,9 @@ public class Configuration {
       if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) {
         continue;
       }
-
+      
+      checkRange(option, name, value);
+      
       // set value to field
       try {
         field.set(obj, value);
@@ -504,6 +506,8 @@ public class Configuration {
         continue;
       }
 
+      checkRange(option, name, value);
+      
       // set value to field
       try {
         method.invoke(obj, value);
@@ -746,6 +750,17 @@ public class Configuration {
     }
   }
   
+  private static void checkRange(Option option, String name, Object value) throws InvalidConfigurationException {
+    if (value instanceof Integer || value instanceof Long) {
+      long n = ((Number)value).longValue();
+      if (option.min() > n || n > option.max()) {
+        throw new InvalidConfigurationException("Invalid value in configuration file: \""
+            + name + " = " + value + '\"'
+            + " (not in range [" + option.min() + ", " + option.max() + "])");
+      }
+    }
+  }
+
   public String getRootDirectory() {
     return this.rootDirectory;
   }
