@@ -205,7 +205,7 @@ public class EclipseCParser implements CParser {
     }
     @Override
     public CodeReader createCodeReaderForInclusion(String arg0) {
-      throw new UnsupportedOperationException();
+      throw new CFAGenerationRuntimeException("#include statements are not allowed in the source code.");
     }
   }
 
