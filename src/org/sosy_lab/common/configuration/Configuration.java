@@ -655,10 +655,15 @@ public class Configuration {
   private <T> Object invokeMethod(Class<?> type, String method, Class<T> paramType, T value, String name) throws InvalidConfigurationException {
     try {
       Method m = type.getMethod(method, paramType);
+      if (!m.isAccessible()) {
+        m.setAccessible(true);
+      }
       return m.invoke(null, value);
 
     } catch (NoSuchMethodException e) {
       throw new AssertionError("Class " + type.getSimpleName() + " without " + method + "(" + paramType.getSimpleName() + ") method!");
+    } catch (SecurityException e) {
+      throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (IllegalAccessException e) {
       throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (InvocationTargetException e) {
