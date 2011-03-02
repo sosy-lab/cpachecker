@@ -45,6 +45,7 @@ import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
@@ -120,7 +121,7 @@ public final class CParser {
     }
     @Override
     public CodeReader createCodeReaderForInclusion(String arg0) {
-      throw new UnsupportedOperationException();
+      throw new CFAGenerationRuntimeException("#include statements are not allowed in the source code.");
     }
   }
 
