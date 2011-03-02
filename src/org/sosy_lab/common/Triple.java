@@ -43,6 +43,10 @@ public class Triple<A, B, C> {
         this.third = third;
     }
 
+    public static <A, B, C> Triple<A, B, C> of(A first, B second, C third) {
+      return new Triple<A, B, C>(first, second, third);
+    }
+    
     public A getFirst() { return first; }
     public B getSecond() { return second; }
     public C getThird() { return third; }
