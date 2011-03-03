@@ -314,12 +314,12 @@ public class CPAchecker {
       algorithm = new BMCAlgorithm(algorithm, config, logger);
     }
 
-    if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
-    }
-
     if (options.useCBMC) {
       algorithm = new CBMCAlgorithm(cfas, algorithm, config, logger);
+    }
+    
+    if (options.useAssumptionCollector) {
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {
