@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -203,11 +205,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
    
-    // dump invariants to prevent going further with nodes in
-    // the waitlist
-    if (reached.hasWaitingElement()) {
-      logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
-      addAssumptionsForWaitlist(result, reached.getWaitlist());
+    // create assumptions for target elements
+    for (AbstractElement element : filterTargetElements(reached)) {
+      addAvoidingAssumptions(result, element);
+    }
+    
+    // dump invariants to prevent going further with nodes in the waitlist
+    for (AbstractElement element : reached.getWaitlist()) {
+      addAvoidingAssumptions(result, element);
     }
     
     return result;
@@ -220,8 +225,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
     
     Set<ARTElement> artNodes = new HashSet<ARTElement>();
-    Set<ARTElement> trueAssumptions = new HashSet<ARTElement>();
+    
     Set<AbstractElement> falseAssumptions = Sets.newHashSet(reached.getWaitlist());
+    Iterables.addAll(falseAssumptions, filterTargetElements(reached));
+
+    Set<ARTElement> trueAssumptions = new HashSet<ARTElement>();
     getTrueAssumptionElements((ARTElement)firstElement, artNodes, trueAssumptions, falseAssumptions);
     
     StringBuilder sb = new StringBuilder();
@@ -331,22 +339,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     if (pos == -1)
       pos = path.size() - 2; // the node before the error node
 
-    ARTElement e = path.get(pos).getFirst();
-    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, e);
-    invariant.add(extractLocation(e), formulaManager.makeNot(dataRegion));
+    ARTElement element = path.get(pos).getFirst();
+    addAvoidingAssumptions(invariant, element);
   }
 
   /**
-   * Add to the given map the invariant required to
-   * avoid nodes in the given set of states
+   * Create an assumption that is sufficient to exclude an abstract state
    */
-  private void addAssumptionsForWaitlist(
-      AssumptionWithLocation invariant,
-      Iterable<AbstractElement> waitlist) {
-    for (AbstractElement element : waitlist) {
-      Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
-      invariant.add(extractLocation(element), formulaManager.makeNot(dataRegion));
-    }
+  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractElement element) {
+    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
+    invariant.add(extractLocation(element), formulaManager.makeNot(dataRegion));
   }
 
   @Override
