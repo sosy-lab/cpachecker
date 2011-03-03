@@ -193,16 +193,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {
-      CFANode location = extractLocation(element);
-      assert location != null;
-      
       AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+
       Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
-      if (!assumption.isTrue()) {
-        Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
       
-        result.add(location, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
-      }
+      addAssumption(result, assumption, e);
     }
    
     // create assumptions for target elements
@@ -218,6 +213,22 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return result;
   }
   
+  /**
+   * Add a given assumption for the location and state of an element. 
+   */
+  private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractElement state) {
+    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, state);
+    
+    invariant.add(extractLocation(state), formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
+  }
+
+  /**
+   * Create an assumption that is sufficient to exclude an abstract state
+   */
+  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractElement element) {
+    addAssumption(invariant, formulaManager.makeFalse(), element);
+  }
+
   private String produceAssumptionAutomaton(ReachedSet reached) {
     AbstractElement firstElement = reached.getFirstElement();
     if (!(firstElement instanceof ARTElement)) {
@@ -341,14 +352,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     ARTElement element = path.get(pos).getFirst();
     addAvoidingAssumptions(invariant, element);
-  }
-
-  /**
-   * Create an assumption that is sufficient to exclude an abstract state
-   */
-  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractElement element) {
-    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
-    invariant.add(extractLocation(element), formulaManager.makeNot(dataRegion));
   }
 
   @Override
