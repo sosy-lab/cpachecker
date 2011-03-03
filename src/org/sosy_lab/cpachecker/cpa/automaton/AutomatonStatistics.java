@@ -39,7 +39,7 @@ class AutomatonStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "AutomatonAnalysis";
+    return "AutomatonAnalysis (" + mCpa.getAutomaton().getName() + ")";
   }
 
   @Override
