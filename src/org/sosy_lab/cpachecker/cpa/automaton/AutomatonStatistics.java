@@ -47,10 +47,15 @@ class AutomatonStatistics implements Statistics {
       ReachedSet pReached) {
 
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
+    out.println("Number of states:                    " + mCpa.getAutomaton().getNumberOfStates());
     out.println("Total time for sucessor computation: " + trans.totalPostTime);
-    out.println("  Time for transition matches:       " + trans.matchTime);
-    out.println("  Time for transition assertions:    " + trans.assertionsTime);
-    out.println("  Time for transition actions:       " + trans.actionTime);
+    if (trans.totalPostTime.getSumTime() >= 10) {
+      // normally automaton is very fast, and time measurements are very imprecise
+      // so don't care about very small times
+      out.println("  Time for transition matches:       " + trans.matchTime);
+      out.println("  Time for transition assertions:    " + trans.assertionsTime);
+      out.println("  Time for transition actions:       " + trans.actionTime);
+    }
     out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
   }
 }
