@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
@@ -172,7 +173,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         ae.removeFromART();
 
         restartCPA = true;
+      } catch (ForceStopCPAException e) {
+        throw e; // re-throw e, otherwise analysis wouldn't get stopped
+        
       } catch (CPAException e) {
+        // TODO is it really wise to swallow exceptions here?
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
