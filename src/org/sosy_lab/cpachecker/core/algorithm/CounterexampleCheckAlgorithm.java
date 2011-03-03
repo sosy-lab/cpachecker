@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Map;
@@ -39,10 +37,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CProver;
+import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -54,31 +52,27 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 
-@Options(prefix="cbmc")
-public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+@Options(prefix="counterexample")
+public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
-  private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
+  private final CounterexampleChecker checker;
   private final LogManager logger;
 
+  private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
-  private final Timer programCreationTime = new Timer();
-  private final Timer cbmcTime = new Timer();
   
   @Option
   private boolean continueAfterInfeasibleError = true;
   
-  @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
-  private File CBMCFile;
-  
-  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
-    this.cfa = cfa;
+  public CounterexampleCheckAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
+    checker = new CBMCChecker(cfa, config, logger);
     this.logger = logger;
     config.inject(this);
     
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
-      throw new CPAException("Need ART CPA for CBMC check");
+      throw new CPAException("Need ART CPA for counterexample check");
     }
   }
 
@@ -95,61 +89,56 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
         break;
       }
       
-      ARTElement element = (ARTElement)lastElement;
-      if (!element.isTarget()) {
+      ARTElement errorElement = (ARTElement)lastElement;
+      if (!errorElement.isTarget()) {
         // no analysis necessary
         break;
       }
       
-      programCreationTime.start();
-      Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(element);
+      ARTElement rootElement = (ARTElement)reached.getFirstElement();
       
-      String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, (ARTElement)reached.getFirstElement(), elementsOnErrorPath);
-      programCreationTime.stop();
-      
-      boolean cbmcResult;
-      cbmcTime.start();
-      try {
-        cbmcResult = CProver.checkFeasibility(pathProgram, logger, CBMCFile);
-      } catch (IOException e) {
-        throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
-      } finally {
-        cbmcTime.stop();
-      }
-      
-      if (cbmcResult) {
-        logger.log(Level.INFO, "Bug found which was confirmed by CBMC.");
-        break;
-
-      } else {
-        numberOfInfeasiblePaths++;
+      checkTime.start();
+      try {      
+        Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(errorElement);
         
-        if (continueAfterInfeasibleError) {
-          Set<ARTElement> parents = element.getParents();
-          
-          // remove re-added parents to prevent computing
-          // the same error element over and over
-          for(ARTElement parent: parents){
-            reached.remove(parent);
-            parent.removeFromART();
-          }
-          
-          // remove the error element
-          reached.remove(element);
-          element.removeFromART();
-  
-          // WARNING: continuing analysis is unsound, because the elements of this
-          // infeasible path may cover another path that is actually feasible
-          // We would need to find the first element of this path that is
-          // not reachable and cut the path there.
-          sound = false;
-  
-          logger.log(Level.WARNING, "Bug found which was denied by CBMC. Analysis will continue, but the result may be unsound.");
+        boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
         
+        if (feasibility) {
+          logger.log(Level.INFO, "Bug found which was confirmed by counterexample check.");
+          break;
+  
         } else {
-          Path path = ARTUtils.getOnePathTo(element);
-          throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
+          numberOfInfeasiblePaths++;
+          
+          if (continueAfterInfeasibleError) {
+            Set<ARTElement> parents = errorElement.getParents();
+            
+            // remove re-added parents to prevent computing
+            // the same error element over and over
+            for(ARTElement parent: parents){
+              reached.remove(parent);
+              parent.removeFromART();
+            }
+            
+            // remove the error element
+            reached.remove(errorElement);
+            errorElement.removeFromART();
+    
+            // WARNING: continuing analysis is unsound, because the elements of this
+            // infeasible path may cover another path that is actually feasible
+            // We would need to find the first element of this path that is
+            // not reachable and cut the path there.
+            sound = false;
+    
+            logger.log(Level.WARNING, "Bug found which was denied by counterexample check. Analysis will continue, but the result may be unsound.");
+          
+          } else {
+            Path path = ARTUtils.getOnePathTo(errorElement);
+            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
+          }
         }
+      } finally {
+        checkTime.stop();
       }
     }
     return sound;
@@ -172,11 +161,13 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
   public void printStatistics(PrintStream out, Result pResult,
       ReachedSet pReached) {
     
-    out.println("Number of times CBMC was called:    " + cbmcTime.getNumberOfIntervals());
-    if (cbmcTime.getNumberOfIntervals() > 0) {
-      out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, cbmcTime.getNumberOfIntervals()) +")" );
-      out.println("Time for creation of path programs: " + programCreationTime);
-      out.println("Time for running CBMC:              " + cbmcTime);
+    out.println("Number of counterexample checks:    " + checkTime.getNumberOfIntervals());
+    if (checkTime.getNumberOfIntervals() > 0) {
+      out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
+      out.println("Total time:                         " + checkTime);
+    }
+    if (checker instanceof Statistics) {
+      ((Statistics)checker).printStatistics(out, pResult, pReached);
     }
   }
   
@@ -186,6 +177,6 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
 
   @Override
   public String getName() {
-    return "CBMC Algorithm";
+    return "Counterexample-Check Algorithm";
   }
 }
