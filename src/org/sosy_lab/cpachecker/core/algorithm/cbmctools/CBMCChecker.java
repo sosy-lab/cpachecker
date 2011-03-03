@@ -28,7 +28,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -70,16 +73,40 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     
     String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
     
-    cbmcTime.start();
+    // write program to disk
+    File cFile = CBMCFile;
     try {
-      return CProver.checkFeasibility(pathProgram, logger, CBMCFile);
+      if (cFile != null) {
+        Files.writeFile(cFile, pathProgram);
+      } else {
+        cFile = Files.createTempFile("path", ".c", pathProgram);
+      }
+    } catch (IOException e) {
+      throw new CPAException("Could not write program for CBMC check (" + e.getMessage() + ")");
+    }
+    assert(cFile != null);
+
+    // run CBMC
+    logger.log(Level.FINE, "Starting CBMC verification.");
+    cbmcTime.start();
+    CBMCExecutor cbmc;
+    try {
+      cbmc = new CBMCExecutor(logger, cFile);
+      cbmc.join();
     
     } catch (IOException e) {
       throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
 
     } finally {
       cbmcTime.stop();
+      logger.log(Level.FINER, "CBMC finished.");
     }
+
+    if (cbmc.getResult() == null) {
+      // exit code and stderr are already logged with level WARNING
+      throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
+    }
+    return cbmc.getResult();
   }
 
   @Override
