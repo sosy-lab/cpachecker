@@ -1,12 +1,11 @@
-<!DOCTYPE benchmark [
-
-<!ELEMENT benchmark (test*)>
+<!ELEMENT benchmark (test*,columns?)>
 <!ELEMENT test (sourcefiles+,options)>
 <!ELEMENT sourcefiles (#PCDATA)>
 <!ELEMENT options (option*)>
 <!ELEMENT option (#PCDATA)>
+<!ELEMENT columns (column*)>
+<!ELEMENT column (#PCDATA)>
 
 <!ATTLIST benchmark tool CDATA #REQUIRED>
 <!ATTLIST option name CDATA #REQUIRED>
-
-]>
+<!ATTLIST column title CDATA #IMPLIED>

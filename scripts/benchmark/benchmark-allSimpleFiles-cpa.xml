@@ -1,11 +1,29 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker">
+
   <test>
-    <sourcefiles>test/programs/simple/*.cil.c</sourcefiles>
+    <sourcefiles>test/programs/simple/b*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA.properties</option>
     </options>
   </test>
+
+  <test>
+    <sourcefiles>test/programs/simple/c*.cil.c</sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/concreteAnalysis.properties</option>
+    </options>
+  </test>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="blocksize">block size</column>
+  </columns>
+
 </benchmark>
