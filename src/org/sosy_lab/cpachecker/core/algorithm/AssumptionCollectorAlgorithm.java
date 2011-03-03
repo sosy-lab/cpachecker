@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -128,6 +127,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
   
+  // store only the ids, not the elements in order to prevent memory leaks
+  private final Set<Integer> exceptionElements = new HashSet<Integer>();
+  
   public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
@@ -161,18 +163,36 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sound &= innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
-        addAssumptionsForFailedRefinement(exceptionAssumptions, failedRefinement);
+        
+        Path path = failedRefinement.getErrorPath();
+        ARTElement errorElement = path.getLast().getFirst();
+        assert errorElement == reached.getLastElement();
 
-        // remove element and it's parent from reached set
-        // parent needs to be removed, because CPAAlgorithm re-added it
-        // to the waitlist just before refinement
-        ARTElement ae = (ARTElement)reached.getLastElement();
-        for (ARTElement p : ImmutableSet.copyOf(ae.getParents())) {
-          reached.remove(p);
-          p.removeFromART();
-        }
-        reached.remove(ae);
-        ae.removeFromART();
+        // old code, perhaps we can use the information from getFailurePoint()
+//        int pos = failedRefinement.getFailurePoint();
+//        
+//        if (pos == -1)
+//          pos = path.size() - 2; // the node before the error node
+//        
+//        ARTElement element = path.get(pos).getFirst();
+//        addAvoidingAssumptions(exceptionAssumptions, element);
+//        exceptionElements.add(element.getElementId());
+
+        // remove element
+        // remove it's parents from waitlist (CPAAlgorithm re-added them)
+        // and create assumptions for the parents
+
+        // we have to do this for the parents and not for the errorElement itself,
+        // because the parents might have other potential successors that were
+        // ignored by CPAAlgorithm due to the signaled break
+        
+        ARTElement parent = Iterables.getOnlyElement(errorElement.getParents());
+        reached.removeOnlyFromWaitlist(parent);
+        exceptionElements.add(parent.getElementId());
+        addAvoidingAssumptions(exceptionAssumptions, parent);
+
+        reached.remove(errorElement);
+        errorElement.removeFromART();
 
         restartCPA = true;
       } catch (ForceStopCPAException e) {
@@ -239,6 +259,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     
     Set<AbstractElement> falseAssumptions = Sets.newHashSet(reached.getWaitlist());
     Iterables.addAll(falseAssumptions, filterTargetElements(reached));
+    
+    if (!exceptionElements.isEmpty()) {
+      for (AbstractElement element : reached) {
+        if (exceptionElements.contains(((ARTElement)element).getElementId())) {
+          falseAssumptions.add(element);
+        }
+      }
+    }
 
     Set<ARTElement> trueAssumptions = new HashSet<ARTElement>();
     getTrueAssumptionElements((ARTElement)firstElement, artNodes, trueAssumptions, falseAssumptions);
@@ -334,24 +362,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       
       trueAssumptions.add(e);
     }
-  }
-  
-  /**
-   * Add to the given map the invariant required to
-   * avoid the given refinement failure
-   */
-  private void addAssumptionsForFailedRefinement(
-      AssumptionWithLocation invariant,
-      RefinementFailedException failedRefinement) {
-    Path path = failedRefinement.getErrorPath();
-
-    int pos = failedRefinement.getFailurePoint();
-
-    if (pos == -1)
-      pos = path.size() - 2; // the node before the error node
-
-    ARTElement element = path.get(pos).getFirst();
-    addAvoidingAssumptions(invariant, element);
   }
 
   @Override
