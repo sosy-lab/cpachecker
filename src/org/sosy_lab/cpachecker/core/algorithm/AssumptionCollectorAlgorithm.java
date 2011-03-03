@@ -82,6 +82,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
 
+      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+      
       out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
       
       if (exportAssumptions) {
@@ -120,7 +122,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManager formulaManager;
-  private final AssumptionWithLocation resultAssumption;
+  private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
   
   public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
@@ -134,7 +136,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
     formulaManager = cpa.getFormulaManager();
-    resultAssumption = new AssumptionWithLocation(formulaManager);
+    exceptionAssumptions = new AssumptionWithLocation(formulaManager);
   }
 
   @Override
@@ -156,7 +158,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sound &= innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
-        addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
+        addAssumptionsForFailedRefinement(exceptionAssumptions, failedRefinement);
 
         // remove element and it's parent from reached set
         // parent needs to be removed, because CPAAlgorithm re-added it
@@ -174,6 +176,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
+  
+    return sound;
+  }
+
+  private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
+    AssumptionWithLocation result = AssumptionWithLocation.copyOf(exceptionAssumptions);
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
@@ -186,20 +194,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (!assumption.isTrue()) {
         Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, element);
       
-        resultAssumption.add(location, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
+        result.add(location, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
       }
     }
-    
+   
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
       logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
-      addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
+      addAssumptionsForWaitlist(result, reached.getWaitlist());
     }
     
-    return sound;
+    return result;
   }
-
+  
   private String produceAssumptionAutomaton(ReachedSet reached) {
     AbstractElement firstElement = reached.getFirstElement();
     if (!(firstElement instanceof ARTElement)) {
