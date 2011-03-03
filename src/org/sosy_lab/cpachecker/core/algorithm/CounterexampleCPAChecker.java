@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -81,7 +82,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Configuration lConfig = Configuration.builder()
                 .setOption("output.disable", "true")
                 .setOption("specification", automatonFile.getAbsolutePath())
-                .setOption("CompositeCPA.cpas", LocationCPA.class.getName() + "," + ExplicitCPA.class.getName() + " ExplicitCounterexampleCheck")
+                .setOption("CompositeCPA.cpas", LocationCPA.class.getName()
+                                        + "," + CallstackCPA.class.getName()
+                                        + "," + ExplicitCPA.class.getName())
                 .setOption("cpa.explicit.threshold", Integer.toString(Integer.MAX_VALUE))
                 .build();
       
