@@ -49,7 +49,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 
 @Options(prefix="cbmc")
 public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics {
@@ -61,6 +64,9 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
   private int numberOfInfeasiblePaths = 0;
   private final Timer programCreationTime = new Timer();
   private final Timer cbmcTime = new Timer();
+  
+  @Option
+  private boolean continueAfterInfeasibleError = true;
   
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
@@ -117,26 +123,33 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider, Statistics 
 
       } else {
         numberOfInfeasiblePaths++;
-        Set<ARTElement> parents = element.getParents();
         
-        // remove re-added parents to prevent computing
-        // the same error element over and over
-        for(ARTElement parent: parents){
-          reached.remove(parent);
-          parent.removeFromART();
+        if (continueAfterInfeasibleError) {
+          Set<ARTElement> parents = element.getParents();
+          
+          // remove re-added parents to prevent computing
+          // the same error element over and over
+          for(ARTElement parent: parents){
+            reached.remove(parent);
+            parent.removeFromART();
+          }
+          
+          // remove the error element
+          reached.remove(element);
+          element.removeFromART();
+  
+          // WARNING: continuing analysis is unsound, because the elements of this
+          // infeasible path may cover another path that is actually feasible
+          // We would need to find the first element of this path that is
+          // not reachable and cut the path there.
+          sound = false;
+  
+          logger.log(Level.WARNING, "Bug found which was denied by CBMC. Analysis will continue, but the result may be unsound.");
+        
+        } else {
+          Path path = ARTUtils.getOnePathTo(element);
+          throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
         }
-        
-        // remove the error element
-        reached.remove(element);
-        element.removeFromART();
-
-        // WARNING: continuing analysis is unsound, because the elements of this
-        // infeasible path may cover another path that is actually feasible
-        // We would need to find the first element of this path that is
-        // not reachable and cut the path there.
-        sound = false;
-
-        logger.log(Level.WARNING, "Bug found which was denied by CBMC. Analysis will continue, but the result may be unsound.");
       }
     }
     return sound;
