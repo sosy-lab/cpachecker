@@ -62,17 +62,27 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
   
+  @Option(name="checker", toUppercase=true, values={"CBMC", "EXPLICIT"})
+  private String checkerName = "CBMC";
+  
   @Option
   private boolean continueAfterInfeasibleError = true;
   
   public CounterexampleCheckAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
-    checker = new CBMCChecker(cfa, config, logger);
     this.logger = logger;
     config.inject(this);
     
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
       throw new CPAException("Need ART CPA for counterexample check");
+    }
+    
+    if (checkerName.equals("CBMC")) {
+      checker = new CBMCChecker(cfa, config, logger);
+    } else if (checkerName.equals("EXPLICIT")) {
+      checker = new CounterexampleCPAChecker(config, logger);
+    } else {
+      throw new AssertionError();
     }
   }
 
