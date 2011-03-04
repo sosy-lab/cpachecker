@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="10" memlimit="2000000">
+<benchmark tool="cpachecker" timelimit="10" memlimit="2048">
 
   <test>
     <sourcefiles>test/programs/simple/b*.cil.c</sourcefiles>

@@ -178,8 +178,8 @@ def loadBenchmark(path):
 
     benchmark.rlimits = {}
     if ("memlimit" in root.keys()):
-        limit = int(root.get("memlimit"))
-        benchmark.rlimits[resource.RLIMIT_DATA] = (limit, limit)
+        limit = int(root.get("memlimit")) * 1024 * 1024
+        benchmark.rlimits[resource.RLIMIT_AS] = (limit, limit)
     if ("timelimit" in root.keys()):
         limit = int(root.get("timelimit"))
         benchmark.rlimits[resource.RLIMIT_CPU] = (limit, limit)
