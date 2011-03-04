@@ -373,8 +373,7 @@ def createOutputLine(sourcefile, maxLengthOfFileName, status, time, columns, isF
         else:
             value = column.value
 
-        outputLine = "".join([outputLine, value,
-            " "*(columnLength - len(str(value)))])
+        outputLine = outputLine + " " + str(value).rjust(columnLength)
 
     return outputLine
 
