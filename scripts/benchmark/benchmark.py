@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 
 OUTPUT_PATH = "./test/output/"
 
+CSV_SEPARATOR = "\t"
+
 class Benchmark:
     pass
 
@@ -272,21 +274,38 @@ def runBenchmark(benchmarkFile):
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
     run_func = eval("run_" + benchmark.tool)
 
-    # create outputFile, 
+    # create outputLogFile
     # if the file exist, it will be OVERWRITTEN without a message!
     from datetime import date
     benchmarkFileName = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
-    outputFileName = "".join([OUTPUT_PATH, benchmarkFileName, ".results.", str(date.today()), ".txt"])
-    outputFile = open(outputFileName, "w")
+    outputLogFileName = OUTPUT_PATH + benchmarkFileName + ".results." + str(date.today()) + ".txt"
+    outputLogFile = open(outputLogFileName, "w")
 
-    # create head of file
+    # create head of outputLogFile
     headLine = "benchmark: " + benchmarkFileName + "\n"
     dateLine = "date:      " + str(date.today()) + "\n"
     toolLine = "tool:      " + benchmark.tool    + "\n"
-    simpleLine = "-" * (max(len(headLine), len(dateLine), len(toolLine)) + 5) + "\n"
-    outputFile.write(headLine + dateLine + toolLine + simpleLine)
-    outputFile.close()
-    logging.debug("Outputfile {0} created.".format(repr(outputFileName)))
+    if (9 in benchmark.rlimits): # 9 is key of memlimit, convert value to MB
+        toolLine += "memlimit:  " + str(benchmark.rlimits[9][0] / 1024 / 1024) + "\n"
+    if (0 in benchmark.rlimits): # 0 is key of timelimit
+        toolLine += "timelimit: " + str(benchmark.rlimits[0][0]) + "\n"
+    simpleLine = "-" * (len(headLine) + 5) + "\n"
+    
+    outputLogFile.write(headLine + dateLine + toolLine + simpleLine)
+    outputLogFile.close()
+    logging.debug("OutputLogFile {0} created.".format(repr(outputLogFileName)))
+
+    # create outputCSVFile with titleLine
+    # if the file exist, it will be OVERWRITTEN without a message!
+    outputCSVFileName = OUTPUT_PATH + benchmarkFileName + ".results." + str(date.today()) + ".csv"
+    CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "time"])
+    for column in benchmark.columns:
+        CSVtitleLine += CSV_SEPARATOR + column.title
+    outputCSVFile = open(outputCSVFileName, "w")
+    outputCSVFile.write(CSVtitleLine + "\n")
+    outputCSVFile.close()
+    logging.debug("OutputCSVFile {0} created.".format(repr(outputCSVFileName)))
+
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
@@ -318,11 +337,10 @@ def runBenchmark(benchmarkFile):
                     numberOfBenchmark, len(benchmark.tests), options)
         titleLine = createOutputLine("sourcefile", maxLengthOfFileName, 
                                      "status", "time", benchmark.columns, True)
-
         simpleLine = "-" * (len(titleLine)) + "\n"
-        outputFile = open(outputFileName, "a")
-        outputFile.write(optionLine + titleLine + "\n" + simpleLine)
-        outputFile.close()
+        outputLogFile = open(outputLogFileName, "a")
+        outputLogFile.write(optionLine + titleLine + "\n" + simpleLine)
+        outputLogFile.close()
 
         for sourcefile in test.sourcefiles:
             logging.debug("I'm running '{0} {1} {2}'.".format(
@@ -340,11 +358,19 @@ def runBenchmark(benchmarkFile):
             print " ".join([" "*(maxLengthOfFileName - len(sourcefile)),
                             status, " "*(8 - len(status)), str(timedelta)])
 
-            # output in file
-            outputFile = open(outputFileName, "a")
-            outputFile.write(createOutputLine(sourcefile, maxLengthOfFileName, 
+            # output in log-file
+            outputLogFile = open(outputLogFileName, "a")
+            outputLogFile.write(createOutputLine(sourcefile, maxLengthOfFileName, 
                                 status, timedelta, benchmark.columns, False) + "\n")
-            outputFile.close()
+            outputLogFile.close()
+            
+            # output in CSV-file
+            outputCSVFile = open(outputCSVFileName, "a")
+            outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, str(timedelta)])
+            for column in benchmark.columns:
+                outputCSVLine += CSV_SEPARATOR + column.value
+            outputCSVFile.write(outputCSVLine + "\n")
+            outputCSVFile.close()
 
         # get resource usage (time) after test
         ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -360,9 +386,9 @@ def runBenchmark(benchmarkFile):
                     ordinalNumeral(numberOfBenchmark), len(test.sourcefiles)))
         endline = createOutputLine(endline, maxLengthOfFileName, 
                                 "done", testTime, [], False) + "\n"
-        outputFile = open(outputFileName, "a")
-        outputFile.write(simpleLine + endline)
-        outputFile.close()
+        outputLogFile = open(outputLogFileName, "a")
+        outputLogFile.write(simpleLine + endline)
+        outputLogFile.close()
 
 
 def createOutputLine(sourcefile, maxLengthOfFileName, status, time, columns, isFirstLine):
@@ -393,7 +419,7 @@ def createOutputLine(sourcefile, maxLengthOfFileName, status, time, columns, isF
         else:
             value = column.value
 
-        outputLine = outputLine + " " + str(value).rjust(columnLength)
+        outputLine = outputLine + str(value).rjust(columnLength)
 
     return outputLine
 
