@@ -310,6 +310,7 @@ def runBenchmark(benchmarkFile, rlimits):
 
             # output in terminal/console
             sys.stdout.write(sourcefile)
+            sys.stdout.flush()
 
             # run test
             (status, timedelta, columnValues) = run_func(test.options,
