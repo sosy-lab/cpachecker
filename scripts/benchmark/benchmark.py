@@ -308,12 +308,15 @@ def runBenchmark(benchmarkFile, rlimits):
             logging.debug("I'm running '{0} {1} {2}'.".format(
                     benchmark.tool, options, sourcefile))
 
+            # output in terminal/console
+            sys.stdout.write(sourcefile)
+
             # run test
             (status, timedelta, columnValues) = run_func(test.options,
                             sourcefile, benchmark.columns, rlimits)
              
             # output in terminal/console
-            print " ".join([sourcefile, " "*(maxLengthOfFileName - len(sourcefile)),
+            print " ".join([" "*(maxLengthOfFileName - len(sourcefile)),
                             status, " "*(8 - len(status)), str(timedelta)])
 
             # output in file
