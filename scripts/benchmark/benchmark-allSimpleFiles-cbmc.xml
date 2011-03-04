@@ -7,7 +7,6 @@
       <option name="--32"/>
       <option name="--error-label">ERROR</option>
       <option name="--unwind">100</option>
-      <option name="--xml-ui"/>
     </options>
   </test>
 </benchmark>

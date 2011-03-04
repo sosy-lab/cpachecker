@@ -50,7 +50,8 @@ def run(args, rlimits):
 
 
 def run_cbmc(options, sourcefile, columns, rlimits):
-    assert "--xml-ui" in options
+    if ("--xml-ui" not in options):
+        options = options + ["--xml-ui"]
     args = ["cbmc"] + options + [sourcefile]
     (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
     
@@ -60,6 +61,17 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     
     tree = ET.fromstring(stdoutdata)
     status = tree.findtext('cprover-status')
+    if (status == "FAILURE"):
+        status = tree.find('goto_trace').find('failure').findtext('reason')
+        if ('unwinding assertion' in status):
+            status = "UNKNOWN"
+        else:
+            status = "UNSAFE"
+    elif (status == "SUCCESS"):
+        if ("--no-unwinding-assertions" in options):
+            status = "UNKNOWN"
+        else:
+            status = "SAFE"
     return (status, timedelta, [])
 
 
