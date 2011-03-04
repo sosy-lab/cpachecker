@@ -7,13 +7,15 @@
     <sourcefiles>test/programs/*-simplified/*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/symbpredabsCPA-sbe.properties</option>
+      <option name="-config">test/config/explicitAnalysis-limits.properties</option>
+      <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=ReachedSizeHeuristics</option>
+      <option name="-setprop">ReachedSizeHeuristics.threshold=7500</option>
     </options>
   </test>
   <columns>
-    <column title="total">time for CPAchecker</column>
+    <column title="time">time for CPAchecker</column>
     <column title="reached">reached set</column>
-    <column title="abstractions">Number of abstractions</column>
-    <column title="refinements">Number of refinements</column>
+    <column title="path length">size of a single path</column>
+    <column title="branches">number of branches</column>
   </columns>
 </benchmark>
