@@ -176,6 +176,14 @@ def loadBenchmark(path):
     benchmark.tool = (root.get("tool"))
     logging.debug("The tool to be benchmarked is {0}.".format(repr(benchmark.tool)))
 
+    benchmark.rlimits = {}
+    if ("memlimit" in root.keys()):
+        limit = int(root.get("memlimit"))
+        benchmark.rlimits[resource.RLIMIT_DATA] = (limit, limit)
+    if ("timelimit" in root.keys()):
+        limit = int(root.get("timelimit"))
+        benchmark.rlimits[resource.RLIMIT_CPU] = (limit, limit)
+
     # get benchmarks
     benchmark.tests = []
     for testTag in root.findall("test"):
@@ -246,7 +254,7 @@ def loadColumns(columnsTag):
     return columns
 
 
-def runBenchmark(benchmarkFile, rlimits):
+def runBenchmark(benchmarkFile):
     benchmark = loadBenchmark(benchmarkFile)
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
@@ -314,7 +322,7 @@ def runBenchmark(benchmarkFile, rlimits):
 
             # run test
             (status, timedelta, columnValues) = run_func(test.options,
-                            sourcefile, benchmark.columns, rlimits)
+                            sourcefile, benchmark.columns, benchmark.rlimits)
              
             # output in terminal/console
             print " ".join([" "*(maxLengthOfFileName - len(sourcefile)),
@@ -396,14 +404,13 @@ def main(argv=None):
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
         
-    rlimits = {}
     for arg in args[1:]:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
     for arg in args[1:]:
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        runBenchmark(arg, rlimits)
+        runBenchmark(arg)
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
     logging.debug("I think my job is done. Have a nice day!")
 

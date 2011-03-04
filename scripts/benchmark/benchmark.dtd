@@ -7,5 +7,7 @@
 <!ELEMENT column (#PCDATA)>
 
 <!ATTLIST benchmark tool CDATA #REQUIRED>
+<!ATTLIST benchmark memlimit CDATA #IMPLIED>
+<!ATTLIST benchmark timelimit CDATA #IMPLIED>
 <!ATTLIST option name CDATA #REQUIRED>
 <!ATTLIST column title CDATA #IMPLIED>
