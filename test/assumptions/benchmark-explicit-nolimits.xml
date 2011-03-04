@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="1800" memlimit="4096">
+  <test>
+    <sourcefiles>test/programs/locks/test_locks_?.c</sourcefiles>
+    <sourcefiles>test/programs/locks/test_locks_??.c</sourcefiles>
+    <sourcefiles>test/programs/*-simplified/*.cil.c</sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysisInf.properties</option>
+    </options>
+  </test>
+  <columns>
+    <column title="time">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+</benchmark>
