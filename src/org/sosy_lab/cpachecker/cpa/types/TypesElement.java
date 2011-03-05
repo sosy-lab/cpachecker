@@ -87,6 +87,7 @@ public class TypesElement implements AbstractElement {
   public Type getVariableType(String function, String name) {
     Type result = variables.get(getFullVariableName(function, name));
     if (result == null && function != null) {
+      assert functions.containsKey(function);
       // try parameter instead of local variable
       result = functions.get(function).getParameterType(name);
     }

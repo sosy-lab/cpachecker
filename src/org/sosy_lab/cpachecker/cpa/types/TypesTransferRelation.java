@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.types;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +51,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
@@ -181,14 +184,19 @@ public class TypesTransferRelation implements TransferRelation {
     //otherwise there is only one declarator
       name = standardFuncDeclarator.getName().getRawSignature();
     }
+    assert !isNullOrEmpty(name) : standardFuncDeclarator;
 
+    if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      assert name.equals(cfaEdge.getSuccessor().getFunctionName());
+    }
+    
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier);
     returnType = getPointerType(returnType, cfaEdge, standardFuncDeclarator);
 
     FunctionType function = new FunctionType(name, returnType, standardFuncDeclarator.takesVarArgs());
 
     boolean external = (funcDeclSpecifier.getStorageClass() == IASTDeclSpecifier.sc_extern);
-
+    
     for (IASTParameterDeclaration parameter : standardFuncDeclarator.getParameters()) {
       IASTDeclarator paramDeclarator = parameter.getDeclarator();
 
