@@ -74,7 +74,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
             status = "UNKNOWN"
         else:
             status = "SAFE"
-    return (status, timedelta, [])
+    return (status, timedelta, [], stdoutdata, stderrdata)
 
 
 def run_satabs(options, sourcefile, columns, rlimits):
@@ -84,7 +84,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
         status = "SUCCESS"
     else:
         status = "FAILURE"
-    return (status, timedelta, [])
+    return (status, timedelta, [], stdoutdata, stderrdata)
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits):
@@ -94,7 +94,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     status = getCPAcheckerStatus(returncode, stdoutdata)
     columnValueList = getCPAcheckerColumns(stdoutdata, columns)
     
-    return (status, timedelta, columnValueList)
+    return (status, timedelta, columnValueList, stdoutdata, stderrdata)
 
 
 def getCPAcheckerStatus(returncode, stdoutdata):
@@ -140,7 +140,6 @@ def getCPAcheckerColumns(stdoutdata, columns):
     """
     @param stoutdata: the output of CPAchecker
     @param columns: a list with columns
-    @return: a list of the values in the same order than the columns
     """
 
     for column in columns:
@@ -171,20 +170,22 @@ def ordinalNumeral(number):
         return "{0}th".format(number)
 
 
-def loadBenchmark(path):
+def loadBenchmark(benchmarkPath):
     ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
     # try:
     #     from xml.parsers.xmlproc  import xmlval
     #     validator = xmlval.XMLValidator()
-    #     validator.parse_resource(path)
+    #     validator.parse_resource(benchmarkPath)
     # except ImportError:
     #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
     #     logging.debug("If you want xml validation please install pyxml.")
-    benchmark_path = path
-    logging.debug("I'm loading the benchmark {0}.".format(benchmark_path))
+    logging.debug("I'm loading the benchmark {0}.".format(benchmarkPath))
     tree = ElementTree()
-    root = tree.parse(path)
+    root = tree.parse(benchmarkPath)
     benchmark = Benchmark()
+
+    # get benchmark-name
+    benchmark.name = os.path.basename(benchmarkPath)[:-4] # remove ending ".xml"
 
     # get tool
     benchmark.tool = (root.get("tool"))
@@ -217,6 +218,9 @@ def loadTest(testTag):
     """
 
     test = Test()
+
+    # get name of test, name is optional, the result can be "None"
+    test.name = testTag.get("name")
 
     # get all sourcefiles
     test.sourcefiles = []
@@ -274,15 +278,22 @@ def runBenchmark(benchmarkFile):
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
     run_func = eval("run_" + benchmark.tool)
 
+    # create folder for file-specific log-files.
+    # if the folder exists, it will be used.
+    # if there are files in the folder (with the same name than the testfiles), 
+    # they will be OVERWRITTEN without a message!
+    from datetime import date
+    logFolder = OUTPUT_PATH + benchmark.name + ".logfiles." + str(date.today()) + "/"
+    if not os.path.isdir(logFolder):
+        os.mkdir(logFolder)
+
     # create outputLogFile
     # if the file exist, it will be OVERWRITTEN without a message!
-    from datetime import date
-    benchmarkFileName = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
-    outputLogFileName = OUTPUT_PATH + benchmarkFileName + ".results." + str(date.today()) + ".txt"
+    outputLogFileName = OUTPUT_PATH + benchmark.name + ".results." + str(date.today()) + ".txt"
     outputLogFile = open(outputLogFileName, "w")
 
     # create head of outputLogFile
-    headLine = "benchmark: " + benchmarkFileName + "\n"
+    headLine = "benchmark: " + benchmark.name + "\n"
     dateLine = "date:      " + str(date.today()) + "\n"
     toolLine = "tool:      " + benchmark.tool    + "\n"
     if (9 in benchmark.rlimits): # 9 is key of memlimit, convert value to MB
@@ -297,7 +308,7 @@ def runBenchmark(benchmarkFile):
 
     # create outputCSVFile with titleLine
     # if the file exist, it will be OVERWRITTEN without a message!
-    outputCSVFileName = OUTPUT_PATH + benchmarkFileName + ".results." + str(date.today()) + ".csv"
+    outputCSVFileName = OUTPUT_PATH + benchmark.name + ".results." + str(date.today()) + ".csv"
     CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "time"])
     for column in benchmark.columns:
         CSVtitleLine += CSV_SEPARATOR + column.title
@@ -333,7 +344,10 @@ def runBenchmark(benchmarkFile):
 
         # write headline and columntitles for this test to file
         options = " ".join(test.options)
-        optionLine = "\n\ntest {0} of {1} with options: {2}\n\n".format(
+        optionLine = "\n\n"
+        if test.name is not None:
+            optionLine += test.name + "\n"
+        optionLine += "test {0} of {1} with options: {2}\n\n".format(
                     numberOfBenchmark, len(benchmark.tests), options)
         titleLine = createOutputLine("sourcefile", maxLengthOfFileName, 
                                      "status", "time", benchmark.columns, True)
@@ -351,9 +365,18 @@ def runBenchmark(benchmarkFile):
             sys.stdout.flush()
 
             # run test
-            (status, timedelta, columnValues) = run_func(test.options,
-                            sourcefile, benchmark.columns, benchmark.rlimits)
-             
+            (status, timedelta, columnValues, stdoutdata, stderrdata) =\
+                run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
+
+            # write stderrdata and stdoutdata to file-specific log-file
+            if test.name is None:
+                logFileName = logFolder + os.path.basename(sourcefile) + ".log"
+            else:
+                logFileName = logFolder + test.name + "." + os.path.basename(sourcefile) + ".log"
+            logFile = open(logFileName, "w")
+            logFile.write(stderrdata + stdoutdata)
+            logFile.close()
+
             # output in terminal/console
             print " ".join([" "*(maxLengthOfFileName - len(sourcefile)),
                             status, " "*(8 - len(status)), str(timedelta)])

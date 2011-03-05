@@ -2,16 +2,24 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="10" memlimit="2048">
 
-  <test>
+  <test name="b-files">
     <sourcefiles>test/programs/simple/b*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA.properties</option>
     </options>
   </test>
-
+  
   <test>
     <sourcefiles>test/programs/simple/c*.cil.c</sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/symbpredabsCPA.properties</option>
+    </options>
+  </test>
+
+  <test name="l-files">
+    <sourcefiles>test/programs/simple/l*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/concreteAnalysis.properties</option>
