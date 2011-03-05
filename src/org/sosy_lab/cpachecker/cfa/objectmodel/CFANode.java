@@ -54,6 +54,7 @@ public class CFANode implements Comparable<CFANode> {
   public CFANode(int lineNumber, String functionName) {
     this.lineNumber = lineNumber;
     this.functionName = functionName;
+    assert !functionName.isEmpty();
     this.nodeNumber = nextNodeNumber++;
   }
 

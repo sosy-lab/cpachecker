@@ -39,9 +39,10 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
   private final List<IASTParameterDeclaration> parameters;
   private final List<String> parameterNames;
   
-  public FunctionDefinitionNode(int lineNumber, IASTFunctionDefinition functionDefinition, CFAFunctionExitNode exitNode,
+  public FunctionDefinitionNode(int lineNumber, String functionName,
+      IASTFunctionDefinition functionDefinition, CFAFunctionExitNode exitNode,
       List<IASTParameterDeclaration> parameters, List<String> parameterNames) {
-    super(lineNumber, functionDefinition.getDeclarator().getName().toString(), exitNode);
+    super(lineNumber, functionName, exitNode);
     this.functionDefinition = functionDefinition;
     this.parameters = ImmutableList.copyOf(parameters);
     this.parameterNames = ImmutableList.copyOf(parameterNames);

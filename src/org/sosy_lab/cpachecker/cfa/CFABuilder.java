@@ -235,7 +235,7 @@ public class CFABuilder extends ASTVisitor
       CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
       currentCFANodes.add(returnNode);
 
-      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), fdef, returnNode, parameters, parameterNames);
+      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
       currentCFANodes.add(startNode);
       cfas.put(nameOfFunction, startNode);
       currentCFA = startNode;
