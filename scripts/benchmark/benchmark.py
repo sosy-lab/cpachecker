@@ -2,11 +2,11 @@
 
 from string import Template
 from xml.etree.ElementTree import ElementTree
+from datetime import date
 
 import glob
-import itertools
 import logging
-import os
+import os.path
 import resource
 import subprocess
 import sys
@@ -24,6 +24,208 @@ class Test:
 
 class Column:
     pass
+
+class OutputHandler:
+    """
+    The class OutputHandler manages all outputs to the terminal and to files.
+    """
+
+    def __init__(self, benchmark):
+        """
+        The constructor of Outputhandler initialises some variables
+        (logFolder, outputLogFileName, outputCSVFileName)
+        and prints the heads into log- and CSV-file
+        """
+
+        self.benchmark = benchmark
+
+        # create folder for file-specific log-files.
+        # if the folder exists, it will be used.
+        # if there are files in the folder (with the same name than the testfiles), 
+        # they will be OVERWRITTEN without a message!
+        self.logFolder = OUTPUT_PATH + self.benchmark.name + ".logfiles." + str(date.today()) + "/"
+        if not os.path.isdir(self.logFolder):
+            os.mkdir(self.logFolder)
+
+        # create head of outputLogFile
+        headLine = "benchmark: " + self.benchmark.name + "\n"
+        dateLine = "date:      " + str(date.today()) + "\n"
+        toolLine = "tool:      " + self.benchmark.tool + "\n"
+        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
+            toolLine += "memlimit:  " + str(self.benchmark.rlimits[9][0] / 1024 / 1024) + "\n"
+        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
+            toolLine += "timelimit: " + str(self.benchmark.rlimits[0][0]) + "\n"
+        simpleLine = "-" * (len(headLine) + 5) + "\n"
+
+        # create outputLogFile
+        # if the file exist, it will be OVERWRITTEN without a message!
+        outputLogFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".txt"
+        self.outputLog = FileWriter(outputLogFileName, headLine + dateLine + toolLine + simpleLine)
+        logging.debug("OutputLogFile {0} created.".format(repr(outputLogFileName)))
+
+        # create outputCSVFile with titleLine
+        # if the file exist, it will be OVERWRITTEN without a message!
+        outputCSVFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".csv"
+        CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "time"])
+        for column in self.benchmark.columns:
+            CSVtitleLine += CSV_SEPARATOR + column.title
+        self.outputCSV = FileWriter(outputCSVFileName, CSVtitleLine + "\n")
+        logging.debug("OutputCSVFile {0} created.".format(repr(outputCSVFileName)))
+
+
+    def outputBeforeTest(self, test):
+        """
+        The method outputBeforeTest() prints the head of a test into the log-file
+        @param test: current test with a list of testfiles
+        """
+
+        self.test = test
+        numberOfTest = self.benchmark.tests.index(self.test) + 1
+
+        if len(self.test.sourcefiles) == 1:
+            logging.debug("The {0} test consists of 1 sourcefile.".format(
+                    ordinalNumeral(numberOfTest)))
+        else:
+            logging.debug("The {0} test consists of {1} sourcefiles.".format(
+                    ordinalNumeral(numberOfTest),
+                    len(self.test.sourcefiles)))
+
+        # values for the table with the results of currentTest
+        self.maxLengthOfFileName = 40
+        for sourcefile in self.test.sourcefiles:
+            self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
+
+        # write headline and columntitles for currentTest to file
+        options = " ".join(self.test.options)
+        optionLine = "\n\n"
+        if self.test.name is not None:
+            optionLine += self.test.name + "\n"
+        optionLine += "test {0} of {1} with options: {2}\n\n".format(
+                    numberOfTest, len(self.benchmark.tests), options)
+        titleLine = self.createOutputLine("sourcefile", self.maxLengthOfFileName, 
+                                     "status", "time", self.benchmark.columns, True)
+        self.simpleLine = "-" * (len(titleLine)) + "\n"
+        self.outputLog.append(optionLine + titleLine + "\n" + self.simpleLine)
+
+
+    def outputBeforeRun(self, sourcefile):
+        """
+        The method outputBeforeRun() prints the name of a file to terminal
+        @param sourcefile: the name of a sourcefile
+        """
+
+        options = " ".join(self.test.options)
+        logging.debug("I'm running '{0} {1} {2}'.".format(
+            self.benchmark.tool, options, sourcefile))
+
+        # output in terminal
+        sys.stdout.write(sourcefile)
+        sys.stdout.flush()
+
+
+    def outputAfterRun(self, sourcefile, status, timedelta, columnValues, stdoutdata, stderrdata):
+        """
+        The method outputAfterRun() prints (filename,) result, time and status 
+        of a test to terminal and into the log and CSV-file. 
+        stderrdata and stdoutdata are written to a file-specific log-file.
+        """
+
+        # write stderrdata and stdoutdata to file-specific log-file
+        if self.test.name is None:
+            logFileName = self.logFolder + os.path.basename(sourcefile) + ".log"
+        else:
+            logFileName = self.logFolder + self.test.name + "." + os.path.basename(sourcefile) + ".log"
+        FileWriter(logFileName, stderrdata + stdoutdata)
+
+        # output in terminal/console
+        print " ".join([" "*(self.maxLengthOfFileName - len(sourcefile)),
+                        status, " "*(8 - len(status)), str(timedelta)])
+
+        # output in log-file
+        self.outputLog.append(self.createOutputLine(sourcefile, self.maxLengthOfFileName, 
+                            status, timedelta, self.benchmark.columns, False) + "\n")
+
+        # output in CSV-file
+        outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, str(timedelta)])
+        for column in self.benchmark.columns:
+            outputCSVLine += CSV_SEPARATOR + column.value
+        self.outputCSV.append(outputCSVLine + "\n")
+
+
+    def outputAfterTest(self, testTime):
+        """
+        The method outputAfterTest() prints number of files and the time of a 
+        test into the log-file. 
+        @param testTime: whole time, that the test needed
+        """
+
+        # write endline of this test to file
+        numberOfTest = self.benchmark.tests.index(self.test) + 1
+
+        if len(self.test.sourcefiles) == 1:
+            endline = ("The {0} test consisted of 1 sourcefile.".format(
+                    ordinalNumeral(numberOfTest)))
+        else:
+            endline = ("The {0} test consisted of {1} sourcefiles.".format(
+                    ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
+        endline = self.createOutputLine(endline, self.maxLengthOfFileName, 
+                                "done", testTime, [], False) + "\n"
+        self.outputLog.append(self.simpleLine + endline)
+
+
+    def createOutputLine(self, sourcefile, maxLengthOfFileName, status, time, columns, isFirstLine):
+        """
+        @param sourcefile: title of a sourcefile
+        @param maxLengthOfFileName: number for columnlength
+        @param status: status of programm 
+        @param time: total time from running the programm
+        @param columns: list of columns with a title or a value
+        @param isFirstLine: boolean for different output of headline and other lines
+        @return: a line for the outputFile
+        """
+
+        lengthOfStatus = 8
+        lengthOfTime = 10
+        minLengthOfColumns = 8
+
+        outputLine = "".join([sourcefile,
+                     " "*(maxLengthOfFileName - len(sourcefile) + 2),
+                     status, " "*(lengthOfStatus - len(status) + 2),
+                     str(time), " "*(lengthOfTime - len(str(time)) + 2)])
+
+        for column in columns:
+            columnLength = max(minLengthOfColumns, len(column.title)) + 2
+
+            if isFirstLine: 
+                value = column.title
+            else:
+                value = column.value
+
+            outputLine = outputLine + str(value).rjust(columnLength)
+
+        return outputLine
+
+
+class FileWriter:
+    """
+    The class FileWrtiter is a wrapper for writing content into a file.
+    """
+
+    def __init__(self, filename, content):
+        """
+        The constructor of FileWriter creates the file.
+        If the file exist, it will be OVERWRITTEN without a message!
+        """
+
+        self.__filename = filename
+        file = open(self.__filename, "w")
+        file.write(content)
+        file.close()
+
+    def append(self, content):
+        file = open(self.__filename, "a")
+        file.write(content)
+        file.close()
 
 
 def run(args, rlimits):
@@ -278,173 +480,38 @@ def runBenchmark(benchmarkFile):
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
     run_func = eval("run_" + benchmark.tool)
 
-    # create folder for file-specific log-files.
-    # if the folder exists, it will be used.
-    # if there are files in the folder (with the same name than the testfiles), 
-    # they will be OVERWRITTEN without a message!
-    from datetime import date
-    logFolder = OUTPUT_PATH + benchmark.name + ".logfiles." + str(date.today()) + "/"
-    if not os.path.isdir(logFolder):
-        os.mkdir(logFolder)
-
-    # create outputLogFile
-    # if the file exist, it will be OVERWRITTEN without a message!
-    outputLogFileName = OUTPUT_PATH + benchmark.name + ".results." + str(date.today()) + ".txt"
-    outputLogFile = open(outputLogFileName, "w")
-
-    # create head of outputLogFile
-    headLine = "benchmark: " + benchmark.name + "\n"
-    dateLine = "date:      " + str(date.today()) + "\n"
-    toolLine = "tool:      " + benchmark.tool    + "\n"
-    if (9 in benchmark.rlimits): # 9 is key of memlimit, convert value to MB
-        toolLine += "memlimit:  " + str(benchmark.rlimits[9][0] / 1024 / 1024) + "\n"
-    if (0 in benchmark.rlimits): # 0 is key of timelimit
-        toolLine += "timelimit: " + str(benchmark.rlimits[0][0]) + "\n"
-    simpleLine = "-" * (len(headLine) + 5) + "\n"
-    
-    outputLogFile.write(headLine + dateLine + toolLine + simpleLine)
-    outputLogFile.close()
-    logging.debug("OutputLogFile {0} created.".format(repr(outputLogFileName)))
-
-    # create outputCSVFile with titleLine
-    # if the file exist, it will be OVERWRITTEN without a message!
-    outputCSVFileName = OUTPUT_PATH + benchmark.name + ".results." + str(date.today()) + ".csv"
-    CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "time"])
-    for column in benchmark.columns:
-        CSVtitleLine += CSV_SEPARATOR + column.title
-    outputCSVFile = open(outputCSVFileName, "w")
-    outputCSVFile.write(CSVtitleLine + "\n")
-    outputCSVFile.close()
-    logging.debug("OutputCSVFile {0} created.".format(repr(outputCSVFileName)))
-
-
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
     else:
         logging.debug("I'm benchmarking {0} consisting of {1} tests.".format(
                 repr(benchmarkFile), len(benchmark.tests)))
 
+    outputHandler = OutputHandler(benchmark)
+
     for test in benchmark.tests:
-        if len(test.sourcefiles) == 1:
-            logging.debug("The {0} test consists of 1 sourcefile.".format(
-                    ordinalNumeral(benchmark.tests.index(test) + 1)))
-        else:
-            logging.debug("The {0} test consists of {1} sourcefiles.".format(
-                    ordinalNumeral(benchmark.tests.index(test) + 1),
-                    len(test.sourcefiles)))
 
         # get resource usage (time) before test
         ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
 
-        # values for the table with the results of a test
-        numberOfBenchmark = benchmark.tests.index(test) + 1
-        maxLengthOfFileName = 40
-        for sourcefile in test.sourcefiles:
-            maxLengthOfFileName = max(len(sourcefile), maxLengthOfFileName)
-
-        # write headline and columntitles for this test to file
-        options = " ".join(test.options)
-        optionLine = "\n\n"
-        if test.name is not None:
-            optionLine += test.name + "\n"
-        optionLine += "test {0} of {1} with options: {2}\n\n".format(
-                    numberOfBenchmark, len(benchmark.tests), options)
-        titleLine = createOutputLine("sourcefile", maxLengthOfFileName, 
-                                     "status", "time", benchmark.columns, True)
-        simpleLine = "-" * (len(titleLine)) + "\n"
-        outputLogFile = open(outputLogFileName, "a")
-        outputLogFile.write(optionLine + titleLine + "\n" + simpleLine)
-        outputLogFile.close()
+        outputHandler.outputBeforeTest(test)
 
         for sourcefile in test.sourcefiles:
-            logging.debug("I'm running '{0} {1} {2}'.".format(
-                    benchmark.tool, options, sourcefile))
 
-            # output in terminal/console
-            sys.stdout.write(sourcefile)
-            sys.stdout.flush()
+            outputHandler.outputBeforeRun(sourcefile)
 
             # run test
             (status, timedelta, columnValues, stdoutdata, stderrdata) =\
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
-            # write stderrdata and stdoutdata to file-specific log-file
-            if test.name is None:
-                logFileName = logFolder + os.path.basename(sourcefile) + ".log"
-            else:
-                logFileName = logFolder + test.name + "." + os.path.basename(sourcefile) + ".log"
-            logFile = open(logFileName, "w")
-            logFile.write(stderrdata + stdoutdata)
-            logFile.close()
-
-            # output in terminal/console
-            print " ".join([" "*(maxLengthOfFileName - len(sourcefile)),
-                            status, " "*(8 - len(status)), str(timedelta)])
-
-            # output in log-file
-            outputLogFile = open(outputLogFileName, "a")
-            outputLogFile.write(createOutputLine(sourcefile, maxLengthOfFileName, 
-                                status, timedelta, benchmark.columns, False) + "\n")
-            outputLogFile.close()
-            
-            # output in CSV-file
-            outputCSVFile = open(outputCSVFileName, "a")
-            outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, str(timedelta)])
-            for column in benchmark.columns:
-                outputCSVLine += CSV_SEPARATOR + column.value
-            outputCSVFile.write(outputCSVLine + "\n")
-            outputCSVFile.close()
+            outputHandler.outputAfterRun(sourcefile, status, timedelta,
+                                         columnValues, stdoutdata, stderrdata)
 
         # get resource usage (time) after test
         ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
         testTime = round((ruAfter.ru_utime + ruAfter.ru_stime)\
         - (ruBefore.ru_utime + ruBefore.ru_stime), 3)
 
-        # write endline of this test to file
-        if len(test.sourcefiles) == 1:
-            endline = ("The {0} test consisted of 1 sourcefile.".format(
-                    ordinalNumeral(numberOfBenchmark)))
-        else:
-            endline = ("The {0} test consisted of {1} sourcefiles.".format(
-                    ordinalNumeral(numberOfBenchmark), len(test.sourcefiles)))
-        endline = createOutputLine(endline, maxLengthOfFileName, 
-                                "done", testTime, [], False) + "\n"
-        outputLogFile = open(outputLogFileName, "a")
-        outputLogFile.write(simpleLine + endline)
-        outputLogFile.close()
-
-
-def createOutputLine(sourcefile, maxLengthOfFileName, status, time, columns, isFirstLine):
-    """
-    @param sourcefile: title of a sourcefile
-    @param maxLengthOfFileName: number for columnlength
-    @param status: status of programm 
-    @param time: total time from running the programm
-    @param columns: list of columns with a title or a value
-    @param isFirstLine: boolean for different output of headline and other lines
-    @return: a line for the outputFile
-    """
-
-    lengthOfStatus = 8
-    lengthOfTime = 10
-    minLengthOfColumns = 8
-
-    outputLine = "".join([sourcefile,
-                 " "*(maxLengthOfFileName - len(sourcefile) + 2),
-                 status, " "*(lengthOfStatus - len(status) + 2),
-                 str(time), " "*(lengthOfTime - len(str(time)) + 2)])
-
-    for column in columns:
-        columnLength = max(minLengthOfColumns, len(column.title)) + 2
-
-        if isFirstLine: 
-            value = column.title
-        else:
-            value = column.value
-
-        outputLine = outputLine + str(value).rjust(columnLength)
-
-    return outputLine
+        outputHandler.outputAfterTest(testTime)
 
 
 def main(argv=None):
