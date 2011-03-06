@@ -11,4 +11,5 @@
 <!ATTLIST benchmark timelimit CDATA #IMPLIED>
 <!ATTLIST test name CDATA #IMPLIED>
 <!ATTLIST option name CDATA #REQUIRED>
-<!ATTLIST column title CDATA #IMPLIED>
+<!ATTLIST column title CDATA #IMPLIED
+                 digitsBehindComma CDATA #IMPLIED>

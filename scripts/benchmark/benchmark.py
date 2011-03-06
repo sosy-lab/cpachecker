@@ -16,6 +16,10 @@ OUTPUT_PATH = "./test/output/"
 
 CSV_SEPARATOR = "\t"
 
+# the number of digits behind comma of the column with the time,
+# other numbers of digits can be configured in the xml-file
+DIGITS_BEHIND_COMMA_IN_TIME = 2
+
 class Benchmark:
     pass
 
@@ -102,8 +106,8 @@ class OutputHandler:
             optionLine += self.test.name + "\n"
         optionLine += "test {0} of {1} with options: {2}\n\n".format(
                     numberOfTest, len(self.benchmark.tests), options)
-        titleLine = self.createOutputLine("sourcefile", self.maxLengthOfFileName, 
-                                     "status", "time", self.benchmark.columns, True)
+        titleLine = self.createOutputLine("sourcefile", "status", 
+                                     "time", self.benchmark.columns, True)
         self.simpleLine = "-" * (len(titleLine)) + "\n"
         self.outputLog.append(optionLine + titleLine + "\n" + self.simpleLine)
 
@@ -119,7 +123,7 @@ class OutputHandler:
             self.benchmark.tool, options, sourcefile))
 
         # output in terminal
-        sys.stdout.write(sourcefile)
+        sys.stdout.write(sourcefile.ljust(self.maxLengthOfFileName + 4))
         sys.stdout.flush()
 
 
@@ -130,23 +134,39 @@ class OutputHandler:
         stderrdata and stdoutdata are written to a file-specific log-file.
         """
 
+        # format time, type is changed from float to string!
+        timedelta = formatNumber(timedelta, DIGITS_BEHIND_COMMA_IN_TIME)
+
+        # format numbers, numberOfDigits is optional, so it can be None
+        for column in self.benchmark.columns:
+            if column.numberOfDigits is not None:
+
+                # if the number ends with "s" or another letter, remove it
+                if (not column.value.isdigit()) and column.value[-2:-1].isdigit():
+                    column.value = column.value[:-1]
+
+                try:
+                    floatValue = float(column.value)
+                    column.value = formatNumber(floatValue, column.numberOfDigits)
+                except ValueError: # if value is no float, don't format it
+                    pass
+
         # write stderrdata and stdoutdata to file-specific log-file
-        if self.test.name is None:
-            logFileName = self.logFolder + os.path.basename(sourcefile) + ".log"
-        else:
-            logFileName = self.logFolder + self.test.name + "." + os.path.basename(sourcefile) + ".log"
+        logFileName = self.logFolder
+        if self.test.name is not None:
+            logFileName += self.test.name + "."
+        logFileName += os.path.basename(sourcefile) + ".log"
         FileWriter(logFileName, stderrdata + stdoutdata)
 
         # output in terminal/console
-        print " ".join([" "*(self.maxLengthOfFileName - len(sourcefile)),
-                        status, " "*(8 - len(status)), str(timedelta)])
+        print status.ljust(8) + timedelta.rjust(8)
 
         # output in log-file
-        self.outputLog.append(self.createOutputLine(sourcefile, self.maxLengthOfFileName, 
-                            status, timedelta, self.benchmark.columns, False) + "\n")
+        self.outputLog.append(self.createOutputLine(sourcefile, status, 
+                            timedelta, self.benchmark.columns, False) + "\n")
 
         # output in CSV-file
-        outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, str(timedelta)])
+        outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, timedelta])
         for column in self.benchmark.columns:
             outputCSVLine += CSV_SEPARATOR + column.value
         self.outputCSV.append(outputCSVLine + "\n")
@@ -159,7 +179,9 @@ class OutputHandler:
         @param testTime: whole time, that the test needed
         """
 
-        # write endline of this test to file
+        # format time, type is changed from float to string!
+        testTime = formatNumber(testTime, DIGITS_BEHIND_COMMA_IN_TIME)
+        
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
         if len(self.test.sourcefiles) == 1:
@@ -168,15 +190,13 @@ class OutputHandler:
         else:
             endline = ("The {0} test consisted of {1} sourcefiles.".format(
                     ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
-        endline = self.createOutputLine(endline, self.maxLengthOfFileName, 
-                                "done", testTime, [], False) + "\n"
+        endline = self.createOutputLine(endline, "done", testTime, [], False) + "\n"
         self.outputLog.append(self.simpleLine + endline)
 
 
-    def createOutputLine(self, sourcefile, maxLengthOfFileName, status, time, columns, isFirstLine):
+    def createOutputLine(self, sourcefile, status, time, columns, isFirstLine):
         """
         @param sourcefile: title of a sourcefile
-        @param maxLengthOfFileName: number for columnlength
         @param status: status of programm 
         @param time: total time from running the programm
         @param columns: list of columns with a title or a value
@@ -188,10 +208,9 @@ class OutputHandler:
         lengthOfTime = 10
         minLengthOfColumns = 8
 
-        outputLine = "".join([sourcefile,
-                     " "*(maxLengthOfFileName - len(sourcefile) + 2),
-                     status, " "*(lengthOfStatus - len(status) + 2),
-                     str(time), " "*(lengthOfTime - len(str(time)) + 2)])
+        outputLine = sourcefile.ljust(self.maxLengthOfFileName + 4) +\
+                     status.ljust(lengthOfStatus) +\
+                     time.rjust(lengthOfTime)
 
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2
@@ -246,8 +265,8 @@ def run(args, rlimits):
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
     (stdoutdata, stderrdata) = p.communicate()
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
-    timedelta = round((ru_after.ru_utime + ru_after.ru_stime)\
-        - (ru_before.ru_utime + ru_before.ru_stime), 3)
+    timedelta = (ru_after.ru_utime + ru_after.ru_stime)\
+        - (ru_before.ru_utime + ru_before.ru_stime)
     returncode = p.returncode
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
     return (returncode, stdoutdata, stderrdata, timedelta)
@@ -356,8 +375,8 @@ def getCPAcheckerColumns(stdoutdata, columns):
                 if (endPosition == -1):
                     column.value = line[startPosition:].strip()
                 else:
-                    column.value = line[startPosition: endPosition].strip() 
-                break 
+                    column.value = line[startPosition: endPosition].strip()
+                break
 
 
 def ordinalNumeral(number):
@@ -370,6 +389,20 @@ def ordinalNumeral(number):
         return "{0}rd".format(number)
     else:
         return "{0}th".format(number)
+
+
+def formatNumber(number, numberOfDigits):
+        """
+        The function formatNumber() return a string-representation of a number
+        with a number of digits behind the comma/dot. 
+        If the number has more digits, it is rounded.
+        If the number has less digits, zeros are added.
+
+        @param number: the number to format
+        @param digits: the number of digits
+        """
+
+        return "%.{0}f".format(numberOfDigits) % number
 
 
 def loadBenchmark(benchmarkPath):
@@ -467,6 +500,9 @@ def loadColumns(columnsTag):
 
             # get title (title is optional, default: get text)
             column.title = columnTag.get("title", column.text)
+            
+            # get number of digits behind comma
+            column.numberOfDigits = columnTag.get("digitsBehindComma")
 
             columns.append(column)
             logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
@@ -508,8 +544,8 @@ def runBenchmark(benchmarkFile):
 
         # get resource usage (time) after test
         ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
-        testTime = round((ruAfter.ru_utime + ruAfter.ru_stime)\
-        - (ruBefore.ru_utime + ruBefore.ru_stime), 3)
+        testTime = (ruAfter.ru_utime + ruAfter.ru_stime)\
+        - (ruBefore.ru_utime + ruBefore.ru_stime)
 
         outputHandler.outputAfterTest(testTime)
 
