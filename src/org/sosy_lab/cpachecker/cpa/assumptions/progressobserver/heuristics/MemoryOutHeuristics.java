@@ -125,7 +125,7 @@ implements StopHeuristics<TrivialStopHeuristicsData>
       for (String line: processExecutor.getOutput())
       {
         if(line.contains("java")){ 
-          memUsed = Long.valueOf(line.split("\\s+")[idxOfVirt].replace("m", ""));
+          memUsed = Long.valueOf(line.split("\\s+")[idxOfVirt-1].replace("m", ""));
           break;
         }
       }
