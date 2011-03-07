@@ -221,11 +221,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
    
     // create assumptions for target elements
+    logger.log(Level.FINER, "Dumping assumptions resulting from target elements");
     for (AbstractElement element : filterTargetElements(reached)) {
       addAvoidingAssumptions(result, element);
     }
     
     // dump invariants to prevent going further with nodes in the waitlist
+    logger.log(Level.FINER, "Dumping assumptions resulting from waitlist elements");
     for (AbstractElement element : reached.getWaitlist()) {
       addAvoidingAssumptions(result, element);
     }
