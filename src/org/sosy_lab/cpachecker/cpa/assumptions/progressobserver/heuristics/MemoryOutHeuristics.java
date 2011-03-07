@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,9 +52,38 @@ implements StopHeuristics<TrivialStopHeuristicsData>
   private int freq = 50000; //TODO read from file
   private int noOfIterations = 0;
 
+  // find the index of column VIRT in "top -b -n 1" command
+  private final int idxOfVirt;
+
   public MemoryOutHeuristics(Configuration config, LogManager pLogger) {
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
     logger = pLogger;
+    idxOfVirt = findIndexOfVIRTColumn();
+  }
+
+  private int findIndexOfVIRTColumn() {
+    ProcessExecutor<Exception> processExecutor;
+    try {
+      processExecutor = new ProcessExecutor<Exception>(logger, Exception.class, new String[]{"top", "-b", "-n", "1"});
+      processExecutor.join();
+
+      for (String line: processExecutor.getOutput())
+      {
+        if(line.contains("VIRT")){ 
+          String lines[] = line.split("\\s+");
+          for(int i=0; i<lines.length; i++){
+            if(lines[i].contains("VIRT")){
+              return i;
+            }
+          }
+          break;
+        }
+      }
+      
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return -1;
   }
 
   @Override
@@ -67,16 +97,16 @@ implements StopHeuristics<TrivialStopHeuristicsData>
     //TODO consider moving these into a thread later
     // does com.sun.management.OperatingSystemMXBean give us 
     // info same with "top"?
-    
+
     if(noOfIterations != freq){
       noOfIterations++;
       return TrivialStopHeuristicsData.TOP;
     }
-    
+
     else{
       noOfIterations = 0;
     }
-    
+
     // Negative threshold => do nothing
     if (threshold <= 0)
       return TrivialStopHeuristicsData.TOP;
@@ -89,17 +119,17 @@ implements StopHeuristics<TrivialStopHeuristicsData>
 
       ProcessExecutor<Exception> processExecutor = new ProcessExecutor<Exception>(logger, Exception.class, new String[]{"top", "-b", "-n", "1"});
       processExecutor.join();
-      
+
       long memUsed = -2;
 
       for (String line: processExecutor.getOutput())
       {
         if(line.contains("java")){ 
-          memUsed = Long.valueOf(line.split("\\s+")[4].replace("m", ""));
+          memUsed = Long.valueOf(line.split("\\s+")[idxOfVirt].replace("m", ""));
           break;
         }
       }
-      
+
       if(memUsed > threshold) {
         logger.log(Level.WARNING, "System out of memory, terminating.");
         TrivialStopHeuristicsData.setThreshold(threshold);
