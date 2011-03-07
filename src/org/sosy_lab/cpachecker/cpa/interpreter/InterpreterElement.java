@@ -152,6 +152,8 @@ public class InterpreterElement implements AbstractElement {
     InterpreterElement previousElem = getPreviousElement();
     InterpreterElement newElement = previousElem.clone();
     
+    newElement.mInputs = mInputs;
+    
     newElement.setInputIndex(getInputIndex());
     
     return newElement;
@@ -222,7 +224,15 @@ public class InterpreterElement implements AbstractElement {
 
   @Override
   public String toString() {
-    String s = "idx: " + mInputIndex + " [";
+    String s = "{";
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      s += mInputs[lIndex] + ", ";
+    }
+    
+    s += "}[" + mInputIndex + "]";
+    
+    s += " [";
     for (String key: mConstantsMap.keySet()){
       long val = mConstantsMap.get(key);
       s = s  + " <" +key + " = " + val + "> ";

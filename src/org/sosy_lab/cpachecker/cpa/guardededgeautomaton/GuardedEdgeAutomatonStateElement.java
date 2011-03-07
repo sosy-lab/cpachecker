@@ -2,13 +2,14 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton;
 
 import java.util.ArrayList;
 
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public abstract class GuardedEdgeAutomatonStateElement implements
-    GuardedEdgeAutomatonElement {
+    GuardedEdgeAutomatonElement, IGuardedEdgeAutomatonStateElement, Targetable {
 
   private final NondeterministicFiniteAutomaton.State mAutomatonState;
   private final boolean mIsFinalState;
@@ -18,10 +19,17 @@ public abstract class GuardedEdgeAutomatonStateElement implements
     mIsFinalState = pIsFinalState;
   }
   
+  @Override
+  public boolean isTarget() {
+    return isFinalState();
+  }
+  
+  @Override
   public final boolean isFinalState() {
     return mIsFinalState;
   }
   
+  @Override
   public final NondeterministicFiniteAutomaton.State getAutomatonState() {
     return mAutomatonState;
   }
@@ -51,7 +59,7 @@ public abstract class GuardedEdgeAutomatonStateElement implements
   
   @Override
   public String toString() {
-    return mAutomatonState.toString();
+    return "GuardedEdgeAutomatonStateElement[" + mAutomatonState.toString() + "]@" + hashCode();
   }
 
 }
