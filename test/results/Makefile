@@ -1,5 +1,5 @@
 export PATH=../../scripts/results:$(shell echo $$PATH)
-COLUMNS=3
+COLUMNS=2,3
 
 table.tex : table.csv ;
 	cat "$<" | round.sh | csv_to_latex.sh > "$@"

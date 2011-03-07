@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
+<benchmark tool="cpachecker" timelimit="1800" memlimit="12000">
   <test>
     <sourcefiles>test/programs/locks/test_locks_?.c</sourcefiles>
     <sourcefiles>test/programs/locks/test_locks_??.c</sourcefiles>
     <sourcefiles>test/programs/*-simplified/*.cil.c</sourcefiles>
+    <sourcefiles>test/programs/systemc/*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-limits.properties</option>
+      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=ReachedSizeHeuristics</option>
       <option name="-setprop">ReachedSizeHeuristics.threshold=7500</option>
     </options>
@@ -17,5 +18,7 @@
     <column title="reached">reached set</column>
     <column title="path length">size of a single path</column>
     <column title="branches">number of branches</column>
+    <column title="infeasible counterexamples">Number of infeasible paths</column>
+    <column title="cbmc time">Time for running CBMC</column>
   </columns>
 </benchmark>
