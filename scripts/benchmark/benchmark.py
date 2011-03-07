@@ -16,9 +16,9 @@ OUTPUT_PATH = "./test/output/"
 
 CSV_SEPARATOR = "\t"
 
-# the number of digits behind comma of the column with the time,
-# other numbers of digits can be configured in the xml-file
-DIGITS_BEHIND_COMMA_IN_TIME = 2
+# the number of digits after the decimal separator of the time column,
+# for the other columns it can be configured in the xml-file
+TIME_PRECISION = 2
 
 class Benchmark:
     pass
@@ -135,7 +135,7 @@ class OutputHandler:
         """
 
         # format time, type is changed from float to string!
-        timedelta = formatNumber(timedelta, DIGITS_BEHIND_COMMA_IN_TIME)
+        timedelta = formatNumber(timedelta, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in self.benchmark.columns:
@@ -180,7 +180,7 @@ class OutputHandler:
         """
 
         # format time, type is changed from float to string!
-        testTime = formatNumber(testTime, DIGITS_BEHIND_COMMA_IN_TIME)
+        testTime = formatNumber(testTime, TIME_PRECISION)
         
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
@@ -394,7 +394,7 @@ def ordinalNumeral(number):
 def formatNumber(number, numberOfDigits):
         """
         The function formatNumber() return a string-representation of a number
-        with a number of digits behind the comma/dot. 
+        with a number of digits after the decimal separator.
         If the number has more digits, it is rounded.
         If the number has less digits, zeros are added.
 
