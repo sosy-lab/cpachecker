@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
@@ -282,36 +280,13 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   @Override
   public Formula getFormulaApproximation(FormulaManager manager) {
 
-    if(constantsMap.size() == 0){
-      return manager.makeTrue();
+    Formula formula = manager.makeTrue();
+    for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
+      Formula var = manager.makeVariable(entry.getKey());
+      Formula val = manager.makeNumber(entry.getValue().toString());
+      formula = manager.makeAnd(formula, manager.makeEqual(var, val));
     }
-
-    String variablesString = "VAR ";
-    String assignmentsString = "FORMULA (";
-
-    Iterator<Entry<String, Long>> it = constantsMap.entrySet().iterator();
-
-    while(true){
-      Entry<String, Long> ent = it.next();
-      variablesString = variablesString + ent.getKey();
-      assignmentsString = assignmentsString + "(" + 
-                ent.getKey() + " = " + ent.getValue() + ")";
-      if(it.hasNext()){
-        variablesString = variablesString + ", ";
-        assignmentsString = assignmentsString + " & ";
-      }
-      else{
-        break;
-      }
-    }
-
-    variablesString = variablesString + " : INTEGER";
-    assignmentsString = assignmentsString + ")";
     
-    String formulaString = variablesString + "\n\n" + assignmentsString;
-
-    return manager.parse(formulaString);
+    return formula;
   }
-
-
 }

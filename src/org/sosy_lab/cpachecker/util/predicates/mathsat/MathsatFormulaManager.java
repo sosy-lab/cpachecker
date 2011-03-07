@@ -417,6 +417,11 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
   
   @Override
+  public Formula makeVariable(String var) {
+    return encapsulate(buildMsatVariable(var));
+  }
+  
+  @Override
   public Formula makePredicateVariable(String var, int idx) {
     String name = makeName("PRED" + var, idx);
     long decl = msat_declare_variable(msatEnv, name, MSAT_BOOL);
