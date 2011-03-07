@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -133,7 +134,7 @@ public class MathsatTheoremProver implements TheoremProver {
     private final AbstractionManager amgr;
     private final RegionManager rmgr;
     
-    private long totalTime = 0;
+    private final Timer totalTime = new Timer();
     private int count = 0;
 
     private Region formula;
@@ -153,7 +154,7 @@ public class MathsatTheoremProver implements TheoremProver {
     
     @Override
     public long getTotalTime() {
-      return totalTime;
+      return totalTime.getSumTime();
     }
 
     @Override
@@ -182,7 +183,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
     @Override
     public void callback(long[] model) {
-      long start = System.currentTimeMillis();
+      totalTime.start();
 
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them
@@ -214,8 +215,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
       count++;
 
-      long end = System.currentTimeMillis();
-      totalTime += (end - start);
+      totalTime.stop();
     }
   }
 }
