@@ -312,7 +312,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     args = ["cpachecker"] + options + [sourcefile]
     (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
     
-    status = getCPAcheckerStatus(returncode, stdoutdata)
+    status = getCPAcheckerStatus(returncode, stdoutdata + stderrdata)
     columnValueList = getCPAcheckerColumns(stdoutdata, columns)
     
     return (status, timedelta, columnValueList, stdoutdata, stderrdata)
@@ -350,6 +350,8 @@ def getCPAcheckerStatus(returncode, stdoutdata):
                 status = 'UNSAFE'
             else:
                 status = 'UNKNOWN'
+        elif (line.find('std::bad_alloc') != -1):
+            status = 'OUT OF MEMORY'
         if (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
     if status is None:
