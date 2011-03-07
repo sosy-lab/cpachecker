@@ -12,7 +12,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-OUTPUT_PATH = "./test/output/"
+OUTPUT_PATH = "./test/results/"
 
 CSV_SEPARATOR = "\t"
 
