@@ -217,16 +217,20 @@ public class FShell3 {
   }
   
   public FShell3Result run(String pFQLSpecification) {
-    return run(pFQLSpecification, true, false, false, false, true);
+    return run(pFQLSpecification, true, false, false, false, true, false);
   }
   
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     if (pGenerateTestGoalAutomataInAdvance) {
       return run2(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
     }
     else {
-      //return run_incremental(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
-      return run_incremental_and_alternating(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
+      if (pAlternating) {
+        return run_incremental_and_alternating(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
+      }
+      else {
+        return run_incremental(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
+      }
     }
   }
   
@@ -1537,6 +1541,8 @@ public class FShell3 {
       AlternatingRefiner lAlternatingRefiner = reach(lInterpreter_AutomatonCPA, lSymbolic_AutomatonCPA, mWrapper.getEntry(), lPassingCPA);
       
       lTimeReach.pause();
+      
+      System.out.println("INTERMEDIATE TEST SUITE: " + lAlternatingRefiner.getIntermediateTestSuite().size());
       
       if (!lAlternatingRefiner.hasCoveringTestCase()) {
         System.out.println("Goal #" + lIndex + " is infeasible!");

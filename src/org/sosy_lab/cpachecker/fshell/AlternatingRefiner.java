@@ -154,17 +154,15 @@ public class AlternatingRefiner implements Refiner {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
     
-    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(mProductAutomatonCPA);
-    
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
-    
-    // a) test goal is satisfied, i.e., product automaton accepts program execution
     
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lTestCase.getInputs(), true);
     int lInterpreterCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(lInterpreterCPA);
+
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mProductAutomatonCPA);
     
     // CFA path CPA
     int lCFAPathCPAIndex = lComponentAnalyses.size();
@@ -207,28 +205,83 @@ public class AlternatingRefiner implements Refiner {
     CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
     
     // TODO generalize index position of Location CPA (new variable)
-    if (!lMissesInput && lEndNode != null && ((LocationElement)lEndNode.get(0)).getLocationNode().equals(mEndNode) && ((ProductAutomatonElement)lEndNode.get(lProductAutomatonCPAIndex)).isFinalState()) {
-      // test case covers
-      
-      InterpreterElement lInterpreterElement = (InterpreterElement)lEndNode.get(lInterpreterCPAIndex);
-      
-      // get inputs 
-      
-      int[] lInputs = lInterpreterElement.getInputs();
-      
-      if (lTestCase.getInputs() == lInputs) {
-        mCoveringTestCase = lTestCase;
+    if (!lMissesInput && lEndNode != null) {
+      if (((LocationElement)lEndNode.get(0)).getLocationNode().equals(mEndNode)) {
+        if (((ProductAutomatonElement)lEndNode.get(lProductAutomatonCPAIndex)).isFinalState()) {
+          InterpreterElement lInterpreterElement = (InterpreterElement)lEndNode.get(lInterpreterCPAIndex);
+          
+          // get inputs 
+          
+          int[] lInputs = lInterpreterElement.getInputs();
+          
+          if (lTestCase.getInputs() == lInputs) {
+            mCoveringTestCase = lTestCase;
+          }
+          else {
+            mCoveringTestCase = new PreciseInputsTestCase(lInputs);
+          }
+          
+          CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
+          
+          mExecutionPath = lPathElement.toArray();
+          
+          // no refinement necessary, since test case covers
+          return false;
+        }
+        else {
+          throw new RuntimeException();
+        }
       }
       else {
-        mCoveringTestCase = new PreciseInputsTestCase(lInputs);
+      /*  // reconstruct CFA path without automata
+        
+        LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses_b = new LinkedList<ConfigurableProgramAnalysis>();
+        lComponentAnalyses_b.add(mLocationCPA);
+        
+        // call stack CPA
+        lComponentAnalyses_b.add(mCallStackCPA);
+        
+        // a) test goal is satisfied, i.e., product automaton accepts program execution
+        
+        InterpreterCPA lInterpreterCPA = new InterpreterCPA(lTestCase.getInputs(), true);
+        int lInterpreterCPAIndex = lComponentAnalyses.size();
+        lComponentAnalyses.add(lInterpreterCPA);
+        
+        // CFA path CPA
+        int lCFAPathCPAIndex = lComponentAnalyses.size();
+        lComponentAnalyses.add(mCFAPathCPA);
+        
+        // assume CPA
+        lComponentAnalyses.add(mAssumeCPA);
+        
+        
+        CPAFactory lCPAFactory = CompositeCPA.factory();
+        lCPAFactory.setChildren(lComponentAnalyses);
+        lCPAFactory.setConfiguration(mConfiguration);
+        lCPAFactory.setLogger(mLogManager);
+        ConfigurableProgramAnalysis lCPA;
+        try {
+          lCPA = lCPAFactory.createInstance();
+        } catch (InvalidConfigurationException e1) {
+          throw new RuntimeException(e1);
+        }
+        
+        CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+
+        AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
+        Precision lInitialPrecision = lCPA.getInitialPrecision(mEntryNode);
+
+        ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+        lReachedSet.add(lInitialElement, lInitialPrecision);
+
+        try {
+          lAlgorithm.run(lReachedSet);
+        } catch (CPAException e) {
+          throw new RuntimeException(e);
+        }
+        
+        CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();*/
       }
-      
-      CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
-      
-      mExecutionPath = lPathElement.toArray();
-      
-      // no refinement since test case covers
-      return false;
     }
     
     
