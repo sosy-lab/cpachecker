@@ -343,7 +343,7 @@ public class AlternatingRefiner implements Refiner {
     ARTReachedSet lARTReached = new ARTReachedSet(pReached, mARTCPA);
     
     for (Map.Entry<ARTElement, Precision> lEntry : lRemoveElements.entrySet()) {
-      // TODO parents wieder zur Waitlist hinzufügen?
+      // TODO parents wieder zur Waitlist hinzufuegen?
       lARTReached.removeSubtree(lEntry.getKey(), lEntry.getValue());
     }
     
