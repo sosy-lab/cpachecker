@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cbmc" timelimit="1800" memlimit="12000">
+<benchmark tool="cbmc" timelimit="900" memlimit="12000">
   <test>
     <sourcefiles>test/programs/locks/test_locks_?.c</sourcefiles>
     <sourcefiles>test/programs/locks/test_locks_??.c</sourcefiles>
