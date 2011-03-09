@@ -469,7 +469,7 @@ def loadTest(testTag):
                 .format(repr(sourcefiles.text), repr(sourcefiles_path))) 
         pathnames = glob.glob(sourcefiles_path)
         if len(pathnames) == 0:
-            logging.debug("I found no pathnames matching {0}."
+            logging.warning("I found no pathnames matching {0}."
                           .format(repr(sourcefiles_path)))
         else:
             pathnames.sort() # alphabetical order of files
