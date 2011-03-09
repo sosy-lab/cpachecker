@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.Classes;
@@ -89,7 +89,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
   private ImmutableList<StopHeuristics<?>> createEnabledHeuristics(Configuration config)
-  {
+              throws InvalidConfigurationException {
     ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
 
     Class<?>[] argsTypes = {Configuration.class, LogManager.class}; 
@@ -101,14 +101,18 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         Class<?> cls = Class.forName(heuristicsName);
         Configuration localConfig = Configuration.copyWithNewPrefix(config, cls.getSimpleName());
         Object[] localArgs = {localConfig, logger};
-        StopHeuristics<?> newHeuristics = Classes.createInstance(heuristicsName, null, argsTypes, localArgs, StopHeuristics.class);
+        StopHeuristics<?> newHeuristics = Classes.createInstance(cls, argsTypes, localArgs, StopHeuristics.class);
         builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {
-        logger.logException(Level.WARNING, e, "ClassNotFoundException");
+        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " does not exist");
+
       } catch (InvocationTargetException e) {
-        logger.logException(Level.WARNING, e, "InvocationTargetException");
+        Throwable t = e.getCause();
+        Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
+        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " could not be instantiated (" + t.getMessage() + ")");
+
       } catch (ClassInstantiationException e) {
-        logger.logException(Level.WARNING, e, "ClassInstantiationException");
+        throw new InvalidConfigurationException("Invalid heuristic " + heuristicsName + " (" + e.getMessage() + ")");
       }
     }
 
