@@ -2,17 +2,17 @@
 # This configuration file uses the Adjustable-Block Encoding CPA
 # for predicate abstraction with CEGAR as described in
 # "Predicate Abstraction with Adjustable-Block Encoding" (Beyer et.al.).
-# It is configured for the Single-Block Encoding (SBE) case
+# It is configured for the Large-Block Encoding (LBE) case
+# (this is the default case).
 # This CPA is wrapped in another CPA that provides the possibility to
 # define limits (e.g. time limits) for specific operations.
 # ----------------------------------------------------------------------
 
-# only paths to possible error locations are analyzed
-cfa.removeIrrelevantForErrorLocations = true
+# topsort is better than dfs if elements may be merged
+analysis.traversal.order = bfs
+analysis.traversal.useTopsort = true
 
 analysis.useRefinement = true
-
-analysis.useAssumptionCollector = true
 
 cegar.refiner = cpa.predicate.PredicateRefiner
 
@@ -21,20 +21,17 @@ cpa = cpa.art.ARTCPA
 
 ARTCPA.cpa = cpa.composite.CompositeCPA
 
-CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.assumptions.storage.AssumptionStorageCPA, cpa.assumptions.progressobserver.ProgressObserverCPA, cpa.monitor.MonitorCPA predabsMonitor
+CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.monitor.MonitorCPA predabsMonitor
 
 predabsMonitor.cpa = cpa.predicate.PredicateCPA
 
 # this automaton defines which locations are the error locations
 specification = test/config/automata/ErrorLocationAutomaton.txt
 
-ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics = TimeOutHeuristics
-TimeOutHeuristics.threshold = 600000
+cpa.predicate.blk.functions = true
+cpa.predicate.blk.loops     = true
 
 cpa.monitor.limit = 0
 cpa.monitor.pathcomputationlimit = 0
 cpa.monitor.pathlengthlimit = 0
-cpa.monitor.brancheslimit = 25
-
-cpa.predicate.abstraction.cartesian = true
-cpa.predicate.blk.threshold = 1
+cpa.monitor.brancheslimit = 0
