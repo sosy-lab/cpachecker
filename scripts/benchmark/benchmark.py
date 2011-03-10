@@ -282,19 +282,34 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     stdoutdata = stdoutdata.replace("<>", "<emptyTag>")
     stdoutdata = stdoutdata.replace("</>", "</emptyTag>")
     
-    tree = ET.fromstring(stdoutdata)
-    status = tree.findtext('cprover-status')
-    if (status == "FAILURE"):
-        status = tree.find('goto_trace').find('failure').findtext('reason')
-        if ('unwinding assertion' in status):
-            status = "UNKNOWN"
-        else:
-            status = "UNSAFE"
-    elif (status == "SUCCESS"):
-        if ("--no-unwinding-assertions" in options):
-            status = "UNKNOWN"
-        else:
-            status = "SAFE"
+    if ((returncode == 0) or (returncode == 10)):
+        tree = ET.fromstring(stdoutdata)
+        status = tree.findtext('cprover-status')
+        if status == "FAILURE":
+            assert returncode == 10
+            reason = tree.find('goto_trace').find('failure').findtext('reason')
+            if 'unwinding assertion' in reason:
+                status = "UNKNOWN"
+            else:
+                status = "UNSAFE"
+        elif status == "SUCCESS":
+            assert returncode == 0
+            if "--no-unwinding-assertions" in options:
+                status = "UNKNOWN"
+            else:
+                status = "SAFE"
+
+    elif returncode == 9:
+        status = "TIMEOUT"
+    elif returncode == 134:
+        status = "ABORTED"
+    elif returncode == 137:
+        status = "KILLED BY SIGNAL 9"
+    elif returncode == 143:
+        status = "KILLED"
+    else:
+        status = "ERROR ({0})".format(returncode)
+
     return (status, timedelta, [], stdoutdata, stderrdata)
 
 
