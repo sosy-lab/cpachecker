@@ -1,5 +1,8 @@
 package org.sosy_lab.common;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,6 +15,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
@@ -51,7 +56,7 @@ public class ProcessExecutor<E extends Exception> {
   
   private final List<String> output = new ArrayList<String>();
   private final List<String> errorOutput = new ArrayList<String>();
-  private int exitCode = 0;
+  private int exitCode = -1;
   
   private volatile boolean stopped = false;
   private boolean finished = false;
@@ -152,15 +157,15 @@ public class ProcessExecutor<E extends Exception> {
   private final Callable<?> exitCallable = new Callable<Void>() {
     @Override
     public Void call() throws E, IOException {
-      while (!stopped) {
-        try {
-          exitCode = process.waitFor();
-          stopped = true;
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
+      try {
+        exitCode = process.waitFor();
+        stopped = true;
+        handleExitCode(exitCode);
+        
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
       }
-      handleExitCode(exitCode);
+
       return null;
     } 
   };
@@ -170,16 +175,24 @@ public class ProcessExecutor<E extends Exception> {
    * line is read on stdout or stderr of the process, the {@link #handleOutput(String)}
    * or the {@link #handleErrorOutput(String)} are called respectively.
    * 
+   * @param timeout Maximum time to wait in seconds (0 for infinity).
    * @throws IOException
    * @throws E passed from the handle* methods.
+   * @throws TimeoutException If timeout is hit.
    */
-  public void join() throws IOException, E {
+  public void join(int timeout) throws IOException, E, TimeoutException {
+    checkArgument(timeout >= 0);
+    
     if (finished) {
       throw new IllegalStateException("Cannot read from process that has already terminated.");
     }
 
     try {
-      exitResult.get();
+      if (timeout == 0) {
+        exitResult.get();
+      } else {
+        exitResult.get(timeout, TimeUnit.SECONDS);
+      }
       errResult.get();
       outResult.get();
     
@@ -204,6 +217,23 @@ public class ProcessExecutor<E extends Exception> {
       }
       
       finished = true;    
+    }
+  }
+  
+  /**
+   * Wait for the process to terminate and read all of it's output. Whenever a
+   * line is read on stdout or stderr of the process, the {@link #handleOutput(String)}
+   * or the {@link #handleErrorOutput(String)} are called respectively.
+   * 
+   * @throws IOException
+   * @throws E passed from the handle* methods.
+   */
+  public void join() throws IOException, E {
+    try {
+      join(0);
+    } catch (TimeoutException e) {
+      // cannot occur with timeout==0
+      throw new AssertionError(e);
     }
   }
   
@@ -253,9 +283,8 @@ public class ProcessExecutor<E extends Exception> {
    * May only be called after {@link #join()} has been called.
    */
   public List<String> getOutput() {
-    if (!finished) {
-      throw new IllegalStateException("Cannot get output while process is not yet finished");
-    }
+    checkState(finished, "Cannot get output while process is not yet finished");
+
     return output;
   }
   
@@ -264,9 +293,8 @@ public class ProcessExecutor<E extends Exception> {
    * May only be called after {@link #join()} has been called.
    */
   public List<String> getErrorOutput() {
-    if (!finished) {
-      throw new IllegalStateException("Cannot get error output while process is not yet finished");
-    }
+    checkState(finished, "Cannot get error output while process is not yet finished");
+
     return errorOutput;
   }
   
@@ -275,9 +303,9 @@ public class ProcessExecutor<E extends Exception> {
    * May only be called after {@link #join()} has been called.
    */
   public int getExitCode() {
-    if (!finished) {
-      throw new IllegalStateException("Cannot get exit code while process is not yet finished");
-    }
+    checkState(finished, "Cannot get exit code while process is not yet finished");
+    checkState(exitCode >= 0, "Cannot get exit code after the process timed out");
+    
     return exitCode;
   }
 }
