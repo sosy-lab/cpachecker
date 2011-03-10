@@ -23,6 +23,25 @@ int lowerDriverReturn  ;
 int setEventCalled  ;
 int customIrp  ;
 
+void errorFn(void);
+int PsCreateSystemThread(int ThreadHandle, int DesiredAccess, int ObjectAttributes, int ProcessHandle, int ClientId, int StartRoutine, int StartContext);
+int ObReferenceObjectByHandle(int Handle, int DesiredAccess, int ObjectType, int AccessMode, int Object, int HandleInformation);
+int ZwClose(int Handle ); 
+void IofCompleteRequest(int Irp , int PriorityBoost ); 
+int FloppyStartDevice(int DeviceObject , int Irp );
+int IofCallDriver(int DeviceObject , int Irp ); 
+int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable , int Timeout);
+int IoSetDeviceInterfaceState(int SymbolicLinkName , int Enable ); 
+int IoDeleteSymbolicLink(int SymbolicLinkName ); 
+int FlFdcDeviceIo(int DeviceObject , int Ioctl , int Data ); 
+int IoQueryDeviceDescription(int BusType, int BusNumber, int ControllerType, int ControllerNumber, int PeripheralType, int PeripheralNumber, int CalloutRoutine, int Context);
+int IoRegisterDeviceInterface(int PhysicalDeviceObject, int InterfaceClassGuid, int ReferenceString, int SymbolicLinkName);
+int KeSetEvent(int Event , int Increment , int Wait ); 
+int IoBuildDeviceIoControlRequest(int IoControlCode, int DeviceObject, int InputBuffer, int InputBufferLength, int OutputBuffer, int OutputBufferLength, int IntervalDeviceIoControl, int Event, int IoStatusBlock);
+int FloppyCreateClose(int DeviceObject , int Irp ); 
+int FloppyDeviceControl(int DeviceObject , int Irp ); 
+int FlCheckFormatParameters(int DisketteExtension , int FormatParameters ); 
+
 void _BLAST_init(void) 
 { 
 
@@ -1617,7 +1636,7 @@ int FloppyDeviceControl(int DeviceObject , int Irp )
   int irpSp__Parameters__DeviceIoControl__OutputBufferLength ;
   int sizeof__MOUNTDEV_NAME ;
   int Irp__AssociatedIrp__SystemBuffer ;
-  disketteExtension__AcrName__Length = __BLAST_NONDET;
+  int disketteExtension__AcrName__Length;
   int mountName__NameLength ;
   int disketteExtension__DeviceName__Length ;
   int sizeof__USHORT ;
@@ -1701,6 +1720,7 @@ int FloppyDeviceControl(int DeviceObject , int Irp )
   int __BLAST_NONDET;
 
   // initialization added by ah
+  disketteExtension__AcrName__Length = __BLAST_NONDET;
   disketteExtension__HoldNewRequests = __BLAST_NONDET;
   disketteExtension__IsRemoved = __BLAST_NONDET;
   disketteExtension__IsStarted = __BLAST_NONDET;

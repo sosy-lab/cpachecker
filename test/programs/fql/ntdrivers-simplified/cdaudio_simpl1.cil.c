@@ -21,6 +21,20 @@ int Suspended ;
 int KernelMode ;
 int DeviceUsageTypePaging ;
 
+int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable , int Timeout);
+int KeSetEvent(int Event , int Increment , int Wait ); 
+int CdAudioForwardIrpSynchronous(int DeviceObject , int Irp ) ;
+int ZwClose(int Handle ) ;
+void IofCompleteRequest(int Irp , int PriorityBoost ) ;
+int CdAudioSendToNextDriver(int DeviceObject , int Irp ) ;
+int CdAudio535DeviceControl(int DeviceObject , int Irp ) ;
+int CdAudio435DeviceControl(int DeviceObject , int Irp ) ;
+int CdAudioAtapiDeviceControl(int DeviceObject , int Irp ) ;
+int CdAudioHPCdrDeviceControl(int DeviceObject , int Irp ) ;
+int IofCallDriver(int DeviceObject , int Irp ) ;
+int AG_SetStatusAndReturn(int status , int Irp , int deviceExtension__TargetDeviceObject ) ;
+int PoCallDriver(int DeviceObject , int Irp ) ;
+
 void errorFn(void) 
 { 
 

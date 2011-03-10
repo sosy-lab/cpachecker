@@ -19,6 +19,18 @@ int pirp  ;
 int Executive ;
 int KernelMode ;
 
+int DiskPerfStartDevice(int DeviceObject , int Irp ); 
+int DiskPerfRemoveDevice(int DeviceObject , int Irp ); 
+int DiskPerfSendToNextDriver(int DeviceObject , int Irp ); 
+int KeSetEvent(int Event , int Increment , int Wait ); 
+int DiskPerfForwardIrpSynchronous(int DeviceObject , int Irp ); 
+int DiskPerfRegisterDevice(int DeviceObject ); 
+void IofCompleteRequest(int Irp , int PriorityBoost ); 
+int IofCallDriver(int DeviceObject , int Irp ); 
+int PoCallDriver(int DeviceObject , int Irp ); 
+int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable , int Timeout);
+int IoBuildDeviceIoControlRequest(int IoControlCode, int DeviceObject, int InputBuffer, int InputBufferLength, int OutputBuffer, int OutputBufferLength, int InternalDeviceIoControl, int Event, int IoStatusBlock);
+
 void errorFn(void) 
 { 
 

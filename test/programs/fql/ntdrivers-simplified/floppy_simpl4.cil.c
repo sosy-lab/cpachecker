@@ -23,6 +23,25 @@ int lowerDriverReturn  ;
 int setEventCalled  ;
 int customIrp  ;
 
+void errorFn(void);
+int PsCreateSystemThread(int ThreadHandle, int DesiredAccess, int ObjectAttributes, int ProcessHandle, int ClientId, int StartRoutine, int StartContext);
+int ObReferenceObjectByHandle(int Handle, int DesiredAccess, int ObjectType, int AccessMode, int Object, int HandleInformation);
+void IofCompleteRequest(int Irp , int PriorityBoost ); 
+int ZwClose(int Handle ); 
+int FloppyStartDevice(int DeviceObject , int Irp ); 
+int IofCallDriver(int DeviceObject , int Irp ); 
+int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable , int Timeout);
+int IoSetDeviceInterfaceState(int SymbolicLinkName , int Enable ); 
+int IoDeleteSymbolicLink(int SymbolicLinkName ); 
+int FlFdcDeviceIo(int DeviceObject , int Ioctl , int Data ); 
+int IoQueryDeviceDescription(int BusType, int BusNumber, int ControllerType, int ControllerNumber, int PeripheralType, int PeripheralNumber, int CalloutRoutine, int Context);
+int IoRegisterDeviceInterface(int PhysicalDeviceObject, int InterfaceClassGuid, int ReferenceString, int SymbolicLinkName);
+int KeSetEvent(int Event , int Increment , int Wait );
+int IoBuildDeviceIoControlRequest(int IoControlCode, int DeviceObject, int InputBuffer, int InputBufferLength, int OutputBuffer, int OutputBufferLength, int IntervalDeviceIoControl, int Event, int IOStatusBlock); 
+int FloppyCreateClose(int DeviceObject , int Irp ); 
+int FloppyDeviceControl(int DeviceObject , int Irp ); 
+int FlCheckFormatParameters(int DisketteExtension , int FormatParameters ); 
+
 void _BLAST_init(void) 
 { 
 
@@ -1704,7 +1723,7 @@ int FloppyDeviceControl(int DeviceObject , int Irp )
   disketteExtension__IsRemoved = __BLAST_NONDET;
   disketteExtension__IsStarted = __BLAST_NONDET;
   disketteExtension__InterfaceString__Buffer = __BLAST_NONDET;
-  disketteExtension__DeviceName__Lenght = __BLAST_NONDET;
+  disketteExtension__DeviceName__Length = __BLAST_NONDET;
   irpSp__Parameters__DeviceIoControl__OutputBufferLength = __BLAST_NONDET;
   sizeof__MOUNTDEV_UNIQUE_ID = __BLAST_NONDET;
   sizeof__MOUNTDEV_NAME = __BLAST_NONDET;

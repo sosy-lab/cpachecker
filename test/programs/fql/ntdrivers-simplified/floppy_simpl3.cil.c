@@ -23,6 +23,21 @@ int lowerDriverReturn  ;
 int setEventCalled  ;
 int customIrp  ;
 
+int PsCreateSystemThread(int ThreadHandle, int DesiredAccess, int ObjectAttributes, int ProcessHandle, int ClientId, int StartRoutine, int StartContext);
+int ObReferenceObjectByHandle(int Handle, int DesiredAccess, int ObjectType, int AccessMode, int Object, int HandleInformation);
+int ZwClose(int Handle ); 
+void IofCompleteRequest(int Irp , int PriorityBoost ); 
+int FloppyStartDevice(int DeviceObject , int Irp ); 
+int IofCallDriver(int DeviceObject , int Irp ); 
+int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable , int Timeout);
+int IoSetDeviceInterfaceState(int SymbolicLinkName , int Enable ); 
+int IoDeleteSymbolicLink(int SymbolicLinkName ); 
+int FlFdcDeviceIo(int DeviceObject , int Ioctl , int Data ); 
+int IoQueryDeviceDescription(int BusType, int BusNumber, int ControllerType, int ControllerNumber, int PeripheralType, int PeripheralNumber, int CalloutRoutine, int Context);
+int IoRegisterDeviceInterface(int PhysicalDeviceObject, int InterfaceClassGuid, int ReferenceString, int SymbolicLinkName);
+int KeSetEvent(int Event , int Increment , int Wait ); 
+int IoBuildDeviceIoControlRequest(int IoControlCode, int DeviceObject, int InputBuffer, int InputBufferLength, int OutputBuffer, int OutputBufferLength, int IntervalDeviceIoControl, int Event, int IoStatusBlock);
+
 void errorFn(void) 
 { 
 
