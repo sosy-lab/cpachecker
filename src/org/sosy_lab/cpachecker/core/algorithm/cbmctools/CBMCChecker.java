@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -61,6 +62,9 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
   
+  @Option
+  private int timelimit = 10; // seconds
+  
   public CBMCChecker(Map<String, CFAFunctionDefinitionNode> cfa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
     this.logger = logger;
@@ -92,11 +96,14 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     try {
       cbmc = new CBMCExecutor(logger, cFile);
-      cbmc.join();
+      cbmc.join(timelimit);
     
     } catch (IOException e) {
       throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
 
+    } catch (TimeoutException e) {
+      throw new CPAException("CBMC took too long to verify the counterexample");
+      
     } finally {
       cbmcTime.stop();
       logger.log(Level.FINER, "CBMC finished.");
@@ -104,7 +111,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (cbmc.getResult() == null) {
       // exit code and stderr are already logged with level WARNING
-      throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
+      throw new CPAException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
     }
     return cbmc.getResult();
   }
