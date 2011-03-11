@@ -597,7 +597,7 @@ def main(argv=None):
     logging.debug("I think my job is done. Have a nice day!")
 
 def signal_handler_ignore(signum, frame):
-    logger.warn('Received signal %d, ignoring it' % signum)
+    logging.warn('Received signal %d, ignoring it' % signum)
 
 if __name__ == "__main__":
     # ignore SIGTERM
