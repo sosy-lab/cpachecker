@@ -596,7 +596,7 @@ def main(argv=None):
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
     logging.debug("I think my job is done. Have a nice day!")
 
-def signal_handler_ignore(signal, frame):
+def signal_handler_ignore(signum, frame):
     logger.warn('Received signal %d, ignoring it' % signum)
 
 if __name__ == "__main__":
