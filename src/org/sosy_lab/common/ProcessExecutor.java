@@ -160,14 +160,19 @@ public class ProcessExecutor<E extends Exception> {
 
     Future<?> timeout = null;
     if (timelimit > 0) {
+      final Thread waitingThread = Thread.currentThread();
+
       timeout = executor.submit(new Callable<Void>() {
         @Override
         public Void call() throws InterruptedException {
           Thread.sleep(timelimit);
 
           stoppedByTimeout = true;
-          process.destroy();
           logger.log(Level.WARNING, "Killing", name, "due to timeout");
+          
+          // Do not call process.destroy() here! This leads to weird behaviour (see below)
+          waitingThread.interrupt();
+          
           return null;
         }
       });
@@ -181,17 +186,23 @@ public class ProcessExecutor<E extends Exception> {
         logger.log(Level.FINEST, name, "has terminated");
         
       } catch (InterruptedException e) {
-        logger.log(Level.WARNING, "Killing", name, "due to stop request");
+        logger.log(Level.FINEST, "Killing", name, "due to stop request");
         
-        // remove stoppedByTimeout
+        interrupted = true;
+                
+        // remove timeout task
         if (timeout != null) {
           timeout.cancel(true);
         }
         
-        // kill process, and call waitFor() again so that we get the exitCode 
-        process.destroy();
+        // this is very ugly, but calling destroy() too soon seems to lead to weird behaviour
+        // specifically, it killed the Java VM and its parent instead of its child
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e1) { }
         
-        interrupted = true;
+        // kill process, and call waitFor() again so that we get the exitCode
+        process.destroy();
       }
     }
     // now it's guaranteed that process.waitFor() has returned, i.e., the process is dead
@@ -219,16 +230,16 @@ public class ProcessExecutor<E extends Exception> {
     
     // other cleanup
     finished = true;
+    
+    if (stoppedByTimeout) {
+      throw new TimeoutException();
+    }
 
+    // do this here because we want to swallow interrupts caused by a timeout 
     if (interrupted) {
       Thread.currentThread().interrupt();
     }
     
-    if (stoppedByTimeout) {
-      // process was killed by stoppedByTimeout
-      throw new TimeoutException();
-    }
-
     // do this last, because we don't want to call it in case of timeout
     handleExitCode(exitCode);
   }
