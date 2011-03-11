@@ -265,6 +265,11 @@ def run(args, rlimits):
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
     output = p.stdout.read()
+    
+    # communicate() is necessary for waiting until the subprocess terminates,
+    # otherwise the returncode is None and the timedelta is 0.00
+    p.communicate()
+
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
     timedelta = (ru_after.ru_utime + ru_after.ru_stime)\
         - (ru_before.ru_utime + ru_before.ru_stime)
