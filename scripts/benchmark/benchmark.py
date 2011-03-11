@@ -8,6 +8,7 @@ import glob
 import logging
 import os.path
 import resource
+import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -324,7 +325,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits):
-    args = ["cpachecker"] + options + [sourcefile]
+    args = ["scripts/cpa.sh"] + options + [sourcefile]
     (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
     
     status = getCPAcheckerStatus(returncode, stdoutdata + stderrdata)
@@ -595,7 +596,12 @@ def main(argv=None):
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
     logging.debug("I think my job is done. Have a nice day!")
 
+def signal_handler_ignore(signal, frame):
+    logger.warn('Received signal %d, ignoring it' % signum)
+
 if __name__ == "__main__":
+    # ignore SIGTERM
+    signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
     except KeyboardInterrupt:
