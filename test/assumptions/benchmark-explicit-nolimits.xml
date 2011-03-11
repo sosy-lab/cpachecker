@@ -11,17 +11,11 @@
     <sourcefiles>test/programs/systemc/transmitter*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
-      <option name="-setprop">analysis.useCBMC=true</option>
-      <option name="-setprop">counterexample.continueAfterInfeasibleError=true</option>
+      <option name="-config">test/config/explicitAnalysis.properties</option>
     </options>
   </test>
   <columns>
-    <column title="total">time for CPAchecker</column>
+    <column title="time">time for CPAchecker</column>
     <column title="reached">reached set</column>
-    <column title="abstractions">Number of abstractions</column>
-    <column title="refinements">Number of refinements</column>
-    <column title="infeasible counterexamples">Number of infeasible paths</column>
-    <column title="cbmc time">Time for running CBMC</column>
   </columns>
 </benchmark>

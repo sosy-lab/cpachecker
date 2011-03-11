@@ -12,7 +12,7 @@
     <options>
       <option name="--32"/>
       <option name="--error-label">ERROR</option>
-      <option name="--unwind">1</option>
+      <option name="--unwind">10</option>
       <option name="--xml-ui"/>
     </options>
   </test>
