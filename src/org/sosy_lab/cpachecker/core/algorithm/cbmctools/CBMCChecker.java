@@ -63,7 +63,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   private File CBMCFile;
   
   @Option
-  private int timelimit = 10000; // milliseconds
+  private int timelimit = 0; // milliseconds
   
   public CBMCChecker(Map<String, CFAFunctionDefinitionNode> cfa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
