@@ -128,11 +128,11 @@ class OutputHandler:
         sys.stdout.flush()
 
 
-    def outputAfterRun(self, sourcefile, status, timedelta, columnValues, stdoutdata, stderrdata):
+    def outputAfterRun(self, sourcefile, status, timedelta, columnValues, output):
         """
         The method outputAfterRun() prints (filename,) result, time and status 
         of a test to terminal and into the log and CSV-file. 
-        stderrdata and stdoutdata are written to a file-specific log-file.
+        output is written to a file-specific log-file.
         """
 
         # format time, type is changed from float to string!
@@ -152,12 +152,12 @@ class OutputHandler:
                 except ValueError: # if value is no float, don't format it
                     pass
 
-        # write stderrdata and stdoutdata to file-specific log-file
+        # write output to file-specific log-file
         logFileName = self.logFolder
         if self.test.name is not None:
             logFileName += self.test.name + "."
         logFileName += os.path.basename(sourcefile) + ".log"
-        FileWriter(logFileName, stderrdata + stdoutdata)
+        FileWriter(logFileName, output)
 
         # output in terminal/console
         print status.ljust(8) + timedelta.rjust(8)
@@ -257,34 +257,34 @@ def run(args, rlimits):
     ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     try:
         p = subprocess.Popen(args,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              preexec_fn=setrlimits)
     except OSError:
         logging.critical("I caught an OSError. Assure that the directory "
                          + "containing the tool to be benchmarked is included "
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
-    (stdoutdata, stderrdata) = p.communicate()
+    output = p.stdout.read()
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
     timedelta = (ru_after.ru_utime + ru_after.ru_stime)\
         - (ru_before.ru_utime + ru_before.ru_stime)
     returncode = p.returncode
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
-    return (returncode, stdoutdata, stderrdata, timedelta)
+    return (returncode, output, timedelta)
 
 
 def run_cbmc(options, sourcefile, columns, rlimits):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
     args = ["cbmc"] + options + [sourcefile]
-    (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
+    (returncode, output, timedelta) = run(args, rlimits)
     
     #an empty tag cannot be parsed into a tree
-    stdoutdata = stdoutdata.replace("<>", "<emptyTag>")
-    stdoutdata = stdoutdata.replace("</>", "</emptyTag>")
+    output = output.replace("<>", "<emptyTag>")
+    output = output.replace("</>", "</emptyTag>")
     
     if ((returncode == 0) or (returncode == 10)):
-        tree = ET.fromstring(stdoutdata)
+        tree = ET.fromstring(output)
         status = tree.findtext('cprover-status')
         if status == "FAILURE":
             assert returncode == 10
@@ -311,33 +311,33 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     else:
         status = "ERROR ({0})".format(returncode)
 
-    return (status, timedelta, [], stdoutdata, stderrdata)
+    return (status, timedelta, [], output)
 
 
 def run_satabs(options, sourcefile, columns, rlimits):
     args = ["satabs"] + options + [sourcefile]
-    (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
-    if "VERIFICATION SUCCESSFUL" in stdoutdata:
+    (returncode, output, timedelta) = run(args, rlimits)
+    if "VERIFICATION SUCCESSFUL" in output:
         status = "SUCCESS"
     else:
         status = "FAILURE"
-    return (status, timedelta, [], stdoutdata, stderrdata)
+    return (status, timedelta, [], output)
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits):
     args = ["scripts/cpa.sh"] + options + [sourcefile]
-    (returncode, stdoutdata, stderrdata, timedelta) = run(args, rlimits)
+    (returncode, output, timedelta) = run(args, rlimits)
     
-    status = getCPAcheckerStatus(returncode, stdoutdata + stderrdata)
-    columnValueList = getCPAcheckerColumns(stdoutdata, columns)
+    status = getCPAcheckerStatus(returncode, output)
+    columnValueList = getCPAcheckerColumns(output, columns)
     
-    return (status, timedelta, columnValueList, stdoutdata, stderrdata)
+    return (status, timedelta, columnValueList, output)
 
 
-def getCPAcheckerStatus(returncode, stdoutdata):
+def getCPAcheckerStatus(returncode, output):
     """
     @param returncode: code returned by CPAchecker 
-    @param stoutdata: the output of CPAchecker
+    @param output: the output of CPAchecker
     @return: status of CPAchecker after running a testfile
     """
 
@@ -351,7 +351,7 @@ def getCPAcheckerStatus(returncode, stdoutdata):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
-    for line in stdoutdata.splitlines():
+    for line in output.splitlines():
         if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
             status = 'OUT OF MEMORY'
         elif (line.find('SIGSEGV') != -1):
@@ -375,18 +375,18 @@ def getCPAcheckerStatus(returncode, stdoutdata):
     return status
 
 
-def getCPAcheckerColumns(stdoutdata, columns):
+def getCPAcheckerColumns(output, columns):
     """
-    @param stoutdata: the output of CPAchecker
+    @param output: the output of CPAchecker
     @param columns: a list with columns
     """
 
     for column in columns:
 
-        # search for the text in stdoutdata and get its value,
+        # search for the text in output and get its value,
         # stop after the first line, that contains the searched text
         column.value = "-" # default value
-        for line in stdoutdata.splitlines():
+        for line in output.splitlines():
             if (line.find(column.text) != -1):
                 startPosition = line.find(':') + 1
                 endPosition = line.find('(') # bracket maybe not found -> (-1)
@@ -554,11 +554,11 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputBeforeRun(sourcefile)
 
             # run test
-            (status, timedelta, columnValues, stdoutdata, stderrdata) =\
+            (status, timedelta, columnValues, output) =\
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
             outputHandler.outputAfterRun(sourcefile, status, timedelta,
-                                         columnValues, stdoutdata, stderrdata)
+                                         columnValues, output)
 
         # get resource usage (time) after test
         ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
