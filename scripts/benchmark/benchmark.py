@@ -4,6 +4,7 @@ from string import Template
 from xml.etree.ElementTree import ElementTree
 from datetime import date
 
+import time
 import glob
 import logging
 import os.path
@@ -71,7 +72,7 @@ class OutputHandler:
         # create outputCSVFile with titleLine
         # if the file exist, it will be OVERWRITTEN without a message!
         outputCSVFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".csv"
-        CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "time"])
+        CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "cpu time", "wall time"])
         for column in self.benchmark.columns:
             CSVtitleLine += CSV_SEPARATOR + column.title
         self.outputCSV = FileWriter(outputCSVFileName, CSVtitleLine + "\n")
@@ -108,7 +109,7 @@ class OutputHandler:
         optionLine += "test {0} of {1} with options: {2}\n\n".format(
                     numberOfTest, len(self.benchmark.tests), options)
         titleLine = self.createOutputLine("sourcefile", "status", 
-                                     "time", self.benchmark.columns, True)
+                                     "cpu time", "wall time", self.benchmark.columns, True)
         self.simpleLine = "-" * (len(titleLine)) + "\n"
         self.outputLog.append(optionLine + titleLine + "\n" + self.simpleLine)
 
@@ -128,15 +129,16 @@ class OutputHandler:
         sys.stdout.flush()
 
 
-    def outputAfterRun(self, sourcefile, status, timedelta, columnValues, output):
+    def outputAfterRun(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columnValues, output):
         """
         The method outputAfterRun() prints (filename,) result, time and status 
         of a test to terminal and into the log and CSV-file. 
         output is written to a file-specific log-file.
         """
 
-        # format time, type is changed from float to string!
-        timedelta = formatNumber(timedelta, TIME_PRECISION)
+        # format times, type is changed from float to string!
+        cpuTimeDelta = formatNumber(cpuTimeDelta, TIME_PRECISION)
+        wallTimeDelta = formatNumber(wallTimeDelta, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in self.benchmark.columns:
@@ -160,29 +162,30 @@ class OutputHandler:
         FileWriter(logFileName, output)
 
         # output in terminal/console
-        print status.ljust(8) + timedelta.rjust(8)
+        print status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8)
 
         # output in log-file
         self.outputLog.append(self.createOutputLine(sourcefile, status, 
-                            timedelta, self.benchmark.columns, False) + "\n")
+                            cpuTimeDelta, wallTimeDelta, self.benchmark.columns, False) + "\n")
 
         # output in CSV-file
-        outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, timedelta])
+        outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, cpuTimeDelta, wallTimeDelta])
         for column in self.benchmark.columns:
             outputCSVLine += CSV_SEPARATOR + column.value
         self.outputCSV.append(outputCSVLine + "\n")
 
 
-    def outputAfterTest(self, testTime):
+    def outputAfterTest(self, cpuTimeTest, wallTimeTest):
         """
         The method outputAfterTest() prints number of files and the time of a 
         test into the log-file. 
-        @param testTime: whole time, that the test needed
+        @params cpuTimeTest, wallTimeTest: times of the test
         """
 
         # format time, type is changed from float to string!
-        testTime = formatNumber(testTime, TIME_PRECISION)
-        
+        cpuTimeTest = formatNumber(cpuTimeTest, TIME_PRECISION)
+        wallTimeTest = formatNumber(wallTimeTest, TIME_PRECISION)
+
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
         if len(self.test.sourcefiles) == 1:
@@ -191,27 +194,29 @@ class OutputHandler:
         else:
             endline = ("The {0} test consisted of {1} sourcefiles.".format(
                     ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
-        endline = self.createOutputLine(endline, "done", testTime, [], False) + "\n"
+        endline = self.createOutputLine(endline, "done", cpuTimeTest, wallTimeTest, [], False) + "\n"
         self.outputLog.append(self.simpleLine + endline)
 
 
-    def createOutputLine(self, sourcefile, status, time, columns, isFirstLine):
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm 
-        @param time: total time from running the programm
+        @param cpuTimeDelta: time from running the programm
+        @param wallTimeDelta: time from running the programm
         @param columns: list of columns with a title or a value
         @param isFirstLine: boolean for different output of headline and other lines
         @return: a line for the outputFile
         """
 
         lengthOfStatus = 8
-        lengthOfTime = 10
+        lengthOfTime = 11
         minLengthOfColumns = 8
 
         outputLine = sourcefile.ljust(self.maxLengthOfFileName + 4) +\
                      status.ljust(lengthOfStatus) +\
-                     time.rjust(lengthOfTime)
+                     cpuTimeDelta.rjust(lengthOfTime) +\
+                     wallTimeDelta.rjust(lengthOfTime)
 
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2
@@ -254,7 +259,10 @@ def run(args, rlimits):
     def setrlimits():
         for rsrc, limits in rlimits.items():
             resource.setrlimit(rsrc, limits)
+
     ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
+    wallTimeBefore = time.time()
+
     try:
         p = subprocess.Popen(args,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -268,18 +276,21 @@ def run(args, rlimits):
     output = p.stdout.read()
     returncode = p.wait()
 
+    wallTimeAfter = time.time()
+    wallTimeDelta = wallTimeAfter - wallTimeBefore
     ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
-    timedelta = (ru_after.ru_utime + ru_after.ru_stime)\
+    cpuTimeDelta = (ru_after.ru_utime + ru_after.ru_stime)\
         - (ru_before.ru_utime + ru_before.ru_stime)
+
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
-    return (returncode, output, timedelta)
+    return (returncode, output, cpuTimeDelta, wallTimeDelta)
 
 
 def run_cbmc(options, sourcefile, columns, rlimits):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
     args = ["cbmc"] + options + [sourcefile]
-    (returncode, output, timedelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     
     #an empty tag cannot be parsed into a tree
     output = output.replace("<>", "<emptyTag>")
@@ -313,27 +324,27 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     else:
         status = "ERROR ({0})".format(returncode)
 
-    return (status, timedelta, [], output)
+    return (status, cpuTimeDelta, wallTimeDelta, [], output)
 
 
 def run_satabs(options, sourcefile, columns, rlimits):
     args = ["satabs"] + options + [sourcefile]
-    (returncode, output, timedelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in output:
         status = "SUCCESS"
     else:
         status = "FAILURE"
-    return (status, timedelta, [], output)
+    return (status, cpuTimeDelta, wallTimeDelta, [], output)
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits):
     args = ["scripts/cpa.sh"] + options + [sourcefile]
-    (returncode, output, timedelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     
     status = getCPAcheckerStatus(returncode, output)
     columnValueList = getCPAcheckerColumns(output, columns)
     
-    return (status, timedelta, columnValueList, output)
+    return (status, cpuTimeDelta, wallTimeDelta, columnValueList, output)
 
 
 def getCPAcheckerStatus(returncode, output):
@@ -546,8 +557,9 @@ def runBenchmark(benchmarkFile):
 
     for test in benchmark.tests:
 
-        # get resource usage (time) before test
+        # get times before test
         ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
+        wallTimeBefore = time.time()
 
         outputHandler.outputBeforeTest(test)
 
@@ -556,18 +568,20 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputBeforeRun(sourcefile)
 
             # run test
-            (status, timedelta, columnValues, output) =\
+            (status, cpuTimeDelta, wallTimeDelta, columnValues, output) =\
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
-            outputHandler.outputAfterRun(sourcefile, status, timedelta,
-                                         columnValues, output)
+            outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta, 
+                                         wallTimeDelta, columnValues, output)
 
-        # get resource usage (time) after test
+        # get times after test
+        wallTimeAfter = time.time()
+        wallTimeTest = wallTimeAfter - wallTimeBefore
         ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
-        testTime = (ruAfter.ru_utime + ruAfter.ru_stime)\
+        cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
-        outputHandler.outputAfterTest(testTime)
+        outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
 
 def main(argv=None):
