@@ -33,6 +33,9 @@ case "$arch-$platform" in
   x86_64-Linux)
     arch_platform="x86_64-linux"
     ;;
+  i386-Darwin)
+    arch_platform="x86-macosx"
+    ;;
   "Power Macintosh-Darwin")
     arch_platform="ppc-macosx"
     ;;
