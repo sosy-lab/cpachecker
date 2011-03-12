@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="10" memlimit="2048">
+<benchmark tool="cpachecker" timelimit="100" memlimit="2048">
 
   <test name="b-files">
     <sourcefiles>test/programs/simple/b*.cil.c</sourcefiles>
     <options>
+      <option name="-heap">100m</option>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA.properties</option>
     </options>
@@ -14,6 +15,7 @@
     <sourcefiles>test/programs/simple/c*.cil.c</sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
+      <option name="-heap">100m</option>
       <option name="-config">test/config/symbpredabsCPA.properties</option>
     </options>
   </test>
@@ -23,6 +25,7 @@
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/concreteAnalysis.properties</option>
+      <option name="-heap">100m</option>
     </options>
   </test>
 
