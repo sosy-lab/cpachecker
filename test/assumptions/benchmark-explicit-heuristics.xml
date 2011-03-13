@@ -8,7 +8,8 @@
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
       <option name="-setprop">cpa.monitor.pathlengthlimit=200</option>
-    </options>
+      <option name="-heap">10000m</option>
+    </</options>
   </test>
   <test name="explicit-heuristic">
     <sourcefiles>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_11_BUG.cil.c</sourcefiles>
@@ -17,6 +18,7 @@
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
       <option name="-setprop">cpa.monitor.pathlengthlimit=600</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <test name="explicit-heuristic">
@@ -26,6 +28,7 @@
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
       <option name="-setprop">cpa.monitor.pathlengthlimit=1200</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <test name="explicit-heuristic">
@@ -35,6 +38,7 @@
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
       <option name="-setprop">cpa.monitor.pathlengthlimit=1500</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <test name="explicit-heuristic">
@@ -44,6 +48,7 @@
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
       <option name="-setprop">cpa.monitor.pathlengthlimit=300</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <test name="explicit">
@@ -51,6 +56,7 @@
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis.properties</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <columns>

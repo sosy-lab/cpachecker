@@ -12,6 +12,7 @@
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis.properties</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <columns>

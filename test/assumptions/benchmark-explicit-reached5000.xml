@@ -14,6 +14,7 @@
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
       <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=ReachedSizeHeuristics</option>
       <option name="-setprop">ReachedSizeHeuristics.threshold=5000</option>
+      <option name="-heap">10000m</option>
     </options>
   </test>
   <columns>
