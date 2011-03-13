@@ -22,14 +22,124 @@ CSV_SEPARATOR = "\t"
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
 
+
 class Benchmark:
-    pass
+    """
+    The class Benchmark manages the import of files, options, columns and 
+    the tool from a benchmarkFile.
+    """
+
+    def __init__(self, benchmarkFile):
+        """
+        The constructor of Benchmark reads the files, options, columns and the tool
+        from the xml-file.
+        """
+
+        ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
+        # try:
+        #     from xml.parsers.xmlproc  import xmlval
+        #     validator = xmlval.XMLValidator()
+        #     validator.parse_resource(benchmarkFile)
+        # except ImportError:
+        #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
+        #     logging.debug("If you want xml validation please install pyxml.")
+        logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
+        tree = ElementTree()
+        root = tree.parse(benchmarkFile)
+
+        # get benchmark-name
+        self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
+
+        # get tool
+        self.tool = (root.get("tool"))
+        logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
+
+        self.rlimits = {}
+        if ("memlimit" in root.keys()):
+            limit = int(root.get("memlimit")) * 1024 * 1024
+            self.rlimits[resource.RLIMIT_AS] = (limit, limit)
+        if ("timelimit" in root.keys()):
+            limit = int(root.get("timelimit"))
+            self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
+
+        # get benchmarks
+        self.tests = []
+        for testTag in root.findall("test"):
+            self.tests.append(Test(testTag))
+
+        # get columns
+        self.columns = self.loadColumns(root.find("columns"))
+
+
+    def loadColumns(self, columnsTag):
+        """
+        @param columnsTag: the columnsTag from the xml-file
+        @return: a list of Columns()
+        """
+
+        logging.debug("I'm loading some columns for the outputfile.")
+        columns = []
+        if columnsTag != None: # columnsTag is optional in xml-file
+            for columnTag in columnsTag.findall("column"):
+                column = Column(columnTag)
+                columns.append(column)
+                logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
+                          .format(column.text, column.title))
+        return columns
+
 
 class Test:
-    pass
+    """
+    The class Test manages the import of files and options of a test.
+    """
+
+    def __init__(self, testTag):
+        """
+        @param testTag: a testTag from the xml-file
+        """
+
+        # get name of test, name is optional, the result can be "None"
+        self.name = testTag.get("name")
+    
+        # get all sourcefiles
+        self.sourcefiles = []
+        sourcefiles_tags = testTag.findall("sourcefiles")
+        for sourcefiles in sourcefiles_tags:
+            sourcefiles_path = os.path.expandvars(os.path.expanduser(sourcefiles.text))
+            if sourcefiles_path != sourcefiles.text:
+                logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
+                    .format(repr(sourcefiles.text), repr(sourcefiles_path))) 
+            pathnames = glob.glob(sourcefiles_path)
+            if len(pathnames) == 0:
+                logging.warning("I found no pathnames matching {0}."
+                              .format(repr(sourcefiles_path)))
+            else:
+                pathnames.sort() # alphabetical order of files
+                self.sourcefiles += pathnames
+
+        # get all options
+        self.options = []
+        for option in testTag.find("options").findall("option"):
+            self.options.append(option.get("name"))
+            if option.text is not None:
+                self.options.append(option.text)
+
 
 class Column:
-    pass
+    """
+    The class Column sets text, title and digitsBehindComma of a column.
+    """
+
+    def __init__(self, columnTag):
+        # get text
+        self.text = columnTag.text
+
+        # get title (title is optional, default: get text)
+        self.title = columnTag.get("title", self.text)
+
+        # get number of digits behind comma
+        self.numberOfDigits = columnTag.get("digitsBehindComma")
+
 
 class OutputHandler:
     """
@@ -38,9 +148,9 @@ class OutputHandler:
 
     def __init__(self, benchmark):
         """
-        The constructor of Outputhandler initialises some variables
+        The constructor of OutputHandler initializes some variables
         (logFolder, outputLogFileName, outputCSVFileName)
-        and prints the heads into log- and CSV-file
+        and prints the heads into log- and CSV-file.
         """
 
         self.benchmark = benchmark
@@ -81,7 +191,7 @@ class OutputHandler:
 
     def outputBeforeTest(self, test):
         """
-        The method outputBeforeTest() prints the head of a test into the log-file
+        The method outputBeforeTest() prints the head of a test into the log-file.
         @param test: current test with a list of testfiles
         """
 
@@ -90,10 +200,10 @@ class OutputHandler:
 
         if len(self.test.sourcefiles) == 1:
             logging.debug("The {0} test consists of 1 sourcefile.".format(
-                    ordinalNumeral(numberOfTest)))
+                    self.ordinalNumeral(numberOfTest)))
         else:
             logging.debug("The {0} test consists of {1} sourcefiles.".format(
-                    ordinalNumeral(numberOfTest),
+                    self.ordinalNumeral(numberOfTest),
                     len(self.test.sourcefiles)))
 
         # values for the table with the results of currentTest
@@ -116,7 +226,7 @@ class OutputHandler:
 
     def outputBeforeRun(self, sourcefile):
         """
-        The method outputBeforeRun() prints the name of a file to terminal
+        The method outputBeforeRun() prints the name of a file to terminal.
         @param sourcefile: the name of a sourcefile
         """
 
@@ -133,12 +243,12 @@ class OutputHandler:
         """
         The method outputAfterRun() prints (filename,) result, time and status 
         of a test to terminal and into the log and CSV-file. 
-        output is written to a file-specific log-file.
+        The output is written to a file-specific log-file.
         """
 
         # format times, type is changed from float to string!
-        cpuTimeDelta = formatNumber(cpuTimeDelta, TIME_PRECISION)
-        wallTimeDelta = formatNumber(wallTimeDelta, TIME_PRECISION)
+        cpuTimeDelta = self.formatNumber(cpuTimeDelta, TIME_PRECISION)
+        wallTimeDelta = self.formatNumber(wallTimeDelta, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in self.benchmark.columns:
@@ -150,7 +260,7 @@ class OutputHandler:
 
                 try:
                     floatValue = float(column.value)
-                    column.value = formatNumber(floatValue, column.numberOfDigits)
+                    column.value = self.formatNumber(floatValue, column.numberOfDigits)
                 except ValueError: # if value is no float, don't format it
                     pass
 
@@ -183,17 +293,17 @@ class OutputHandler:
         """
 
         # format time, type is changed from float to string!
-        cpuTimeTest = formatNumber(cpuTimeTest, TIME_PRECISION)
-        wallTimeTest = formatNumber(wallTimeTest, TIME_PRECISION)
+        cpuTimeTest = self.formatNumber(cpuTimeTest, TIME_PRECISION)
+        wallTimeTest = self.formatNumber(wallTimeTest, TIME_PRECISION)
 
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
         if len(self.test.sourcefiles) == 1:
             endline = ("The {0} test consisted of 1 sourcefile.".format(
-                    ordinalNumeral(numberOfTest)))
+                    self.ordinalNumeral(numberOfTest)))
         else:
             endline = ("The {0} test consisted of {1} sourcefiles.".format(
-                    ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
+                    self.ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
         endline = self.createOutputLine(endline, "done", cpuTimeTest, wallTimeTest, [], False) + "\n"
         self.outputLog.append(self.simpleLine + endline)
 
@@ -229,6 +339,33 @@ class OutputHandler:
             outputLine = outputLine + str(value).rjust(columnLength)
 
         return outputLine
+
+
+    def ordinalNumeral(self, number):
+        last_cipher = number % 10
+        if last_cipher == 1:
+            return "{0}st".format(number)
+        elif last_cipher == 2:
+            return "{0}nd".format(number)
+        elif last_cipher == 3:
+            return "{0}rd".format(number)
+        else:
+            return "{0}th".format(number)
+    
+    
+    def formatNumber(self, number, numberOfDigits):
+            """
+            The function formatNumber() return a string-representation of a number
+            with a number of digits after the decimal separator.
+            If the number has more digits, it is rounded.
+            If the number has less digits, zeros are added.
+    
+            @param number: the number to format
+            @param digits: the number of digits
+            """
+    
+            return "%.{0}f".format(numberOfDigits) % number
+
 
 
 class FileWriter:
@@ -410,139 +547,8 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def ordinalNumeral(number):
-    last_cipher = number % 10
-    if last_cipher == 1:
-        return "{0}st".format(number)
-    elif last_cipher == 2:
-        return "{0}nd".format(number)
-    elif last_cipher == 3:
-        return "{0}rd".format(number)
-    else:
-        return "{0}th".format(number)
-
-
-def formatNumber(number, numberOfDigits):
-        """
-        The function formatNumber() return a string-representation of a number
-        with a number of digits after the decimal separator.
-        If the number has more digits, it is rounded.
-        If the number has less digits, zeros are added.
-
-        @param number: the number to format
-        @param digits: the number of digits
-        """
-
-        return "%.{0}f".format(numberOfDigits) % number
-
-
-def loadBenchmark(benchmarkPath):
-    ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
-    # try:
-    #     from xml.parsers.xmlproc  import xmlval
-    #     validator = xmlval.XMLValidator()
-    #     validator.parse_resource(benchmarkPath)
-    # except ImportError:
-    #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
-    #     logging.debug("If you want xml validation please install pyxml.")
-    logging.debug("I'm loading the benchmark {0}.".format(benchmarkPath))
-    tree = ElementTree()
-    root = tree.parse(benchmarkPath)
-    benchmark = Benchmark()
-
-    # get benchmark-name
-    benchmark.name = os.path.basename(benchmarkPath)[:-4] # remove ending ".xml"
-
-    # get tool
-    benchmark.tool = (root.get("tool"))
-    logging.debug("The tool to be benchmarked is {0}.".format(repr(benchmark.tool)))
-
-    benchmark.rlimits = {}
-    if ("memlimit" in root.keys()):
-        limit = int(root.get("memlimit")) * 1024 * 1024
-        benchmark.rlimits[resource.RLIMIT_AS] = (limit, limit)
-    if ("timelimit" in root.keys()):
-        limit = int(root.get("timelimit"))
-        benchmark.rlimits[resource.RLIMIT_CPU] = (limit, limit)
-
-    # get benchmarks
-    benchmark.tests = []
-    for testTag in root.findall("test"):
-        benchmark.tests.append(loadTest(testTag))
-
-    # get columns
-    benchmark.columns = loadColumns(root.find("columns"))
-
-    testnum = len(benchmark.tests)
-    return benchmark
-
-
-def loadTest(testTag):
-    """
-    @param testTag: a testTag from the xml-file
-    @return: the Test() from a testTag in the xml-file
-    """
-
-    test = Test()
-
-    # get name of test, name is optional, the result can be "None"
-    test.name = testTag.get("name")
-
-    # get all sourcefiles
-    test.sourcefiles = []
-    sourcefiles_tags = testTag.findall("sourcefiles")
-    for sourcefiles in sourcefiles_tags:
-        sourcefiles_path = os.path.expandvars(os.path.expanduser(sourcefiles.text))
-        if sourcefiles_path != sourcefiles.text:
-            logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
-                .format(repr(sourcefiles.text), repr(sourcefiles_path))) 
-        pathnames = glob.glob(sourcefiles_path)
-        if len(pathnames) == 0:
-            logging.warning("I found no pathnames matching {0}."
-                          .format(repr(sourcefiles_path)))
-        else:
-            pathnames.sort() # alphabetical order of files
-            test.sourcefiles += pathnames
-
-    # get all options
-    test.options = []
-    for option in testTag.find("options").findall("option"):
-        test.options.append(option.get("name"))
-        if option.text is not None:
-            test.options.append(option.text)
-
-    return test
-
-
-def loadColumns(columnsTag):
-    """
-    @param columnsTag: the columnsTag from the xml-file
-    @return: a list of Columns()
-    """
-
-    logging.debug("I'm loading some columns for the outputfile.")
-    columns = []
-    if columnsTag != None: # columnsTag is optional in xml-file
-        for columnTag in columnsTag.findall("column"):
-            column = Column()
-
-            # get text
-            column.text = columnTag.text
-
-            # get title (title is optional, default: get text)
-            column.title = columnTag.get("title", column.text)
-            
-            # get number of digits behind comma
-            column.numberOfDigits = columnTag.get("digitsBehindComma")
-
-            columns.append(column)
-            logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
-                      .format(column.text, column.title))
-    return columns
-
-
 def runBenchmark(benchmarkFile):
-    benchmark = loadBenchmark(benchmarkFile)
+    benchmark = Benchmark(benchmarkFile)
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
     run_func = eval("run_" + benchmark.tool)
