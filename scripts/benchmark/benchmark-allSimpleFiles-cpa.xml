@@ -1,18 +1,16 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="100" memlimit="2048">
+<benchmark tool="cpachecker" timelimit="10" memlimit="2048">
 
-  <test name="b-files">
-    <sourcefiles>test/programs/simple/b*.cil.c</sourcefiles>
-    <options>
-      <option name="-heap">100m</option>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/symbpredabsCPA.properties</option>
-    </options>
-  </test>
-  
-  <test>
-    <sourcefiles>test/programs/simple/c*.cil.c</sourcefiles>
+  <test name="some testfiles">
+    <sourcefiles>
+      <include>test/programs/simple/b*.cil.c</include>
+      <exclude>test/programs/simple/*cor*.cil.c</exclude>
+    </sourcefiles>
+    <sourcefiles>
+      <includesfile>test/test-sets/benchmark-lbe.set</includesfile>
+      <exclude>test/programs/*simpli*/*</exclude>
+    </sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-heap">100m</option>
@@ -20,11 +18,13 @@
     </options>
   </test>
 
-  <test name="l-files">
-    <sourcefiles>test/programs/simple/l*.cil.c</sourcefiles>
+  <test name="more files">
+    <sourcefiles>
+      <include>test/programs/simple/goto*.cil.c</include>
+    </sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/concreteAnalysis.properties</option>
+      <option name="-config">test/config/symbpredabsCPA.properties</option>
       <option name="-heap">100m</option>
     </options>
   </test>
@@ -34,7 +34,6 @@
     <column title="reached">reached set</column>
     <column title="refinements">Number of refinements</column>
     <column title="abstractions">Number of abstractions</column>
-    <column title="blocksize">block size</column>
   </columns>
 
 </benchmark>

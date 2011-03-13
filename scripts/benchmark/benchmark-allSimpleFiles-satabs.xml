@@ -2,7 +2,9 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="satabs">
   <test>
-    <sourcefiles>test/programs/simple/*.cil.c</sourcefiles>
+    <sourcefiles>
+      <include>test/programs/simple/b*.cil.c</include>
+    </sourcefiles>
     <options>
       <option name="--32"/>
       <option name="--error-label">ERROR</option>

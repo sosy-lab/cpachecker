@@ -95,27 +95,46 @@ class Test:
 
     def __init__(self, testTag):
         """
+        The constructor of Test reads testname and the filenames from testTag.
+        Filenames can be included or excluded, and imported from a list of 
+        names in another file. Wildcards and variables are expanded.
         @param testTag: a testTag from the xml-file
         """
 
         # get name of test, name is optional, the result can be "None"
         self.name = testTag.get("name")
-    
+
         # get all sourcefiles
         self.sourcefiles = []
-        sourcefiles_tags = testTag.findall("sourcefiles")
-        for sourcefiles in sourcefiles_tags:
-            sourcefiles_path = os.path.expandvars(os.path.expanduser(sourcefiles.text))
-            if sourcefiles_path != sourcefiles.text:
-                logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
-                    .format(repr(sourcefiles.text), repr(sourcefiles_path))) 
-            pathnames = glob.glob(sourcefiles_path)
-            if len(pathnames) == 0:
-                logging.warning("I found no pathnames matching {0}."
-                              .format(repr(sourcefiles_path)))
-            else:
-                pathnames.sort() # alphabetical order of files
-                self.sourcefiles += pathnames
+        for sourcefilesTag in testTag.findall("sourcefiles"):
+            currentSourcefiles = []
+
+            # get included sourcefiles
+            for includedFiles in sourcefilesTag.findall("include"):
+                includedFilesList = self.getFileList(includedFiles.text)
+                currentSourcefiles += includedFilesList
+
+            # get sourcefiles from list in file
+            for includesFilesFile in sourcefilesTag.findall("includesfile"):
+
+                for file in self.getFileList(includesFilesFile.text):
+
+                    # read files from list
+                    fileWithList = open(file,"r")
+                    for line in fileWithList:
+                        # strip() removes 'newline' behind the line
+                        currentSourcefiles += self.getFileList(line.strip())
+                    fileWithList.close()
+
+            # remove excluded sourcefiles
+            for excludedFiles in sourcefilesTag.findall("exclude"):
+                excludedFilesList = self.getFileList(excludedFiles.text)
+                for file in excludedFilesList:
+                    while file in currentSourcefiles:
+                        currentSourcefiles.remove(file)
+
+            # collect all sourcefiles from all sourcefilesTags
+            self.sourcefiles += currentSourcefiles
 
         # get all options
         self.options = []
@@ -123,6 +142,33 @@ class Test:
             self.options.append(option.get("name"))
             if option.text is not None:
                 self.options.append(option.text)
+
+
+    def getFileList(self, shortFile):
+        """
+        The function getFileList expands a short filename to a sorted list 
+        of filenames. The short filename can contain variables and wildcards.
+        """
+
+        # expand tilde and variables
+        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+        # expand wildcards
+        fileList = glob.glob(expandedFile)
+
+        # sort alphabetical, 
+        # if list is emtpy, sorting returns None, so better do not sort
+        if len(fileList) != 0:
+            fileList.sort()
+
+        if expandedFile != shortFile:
+            logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
+                .format(repr(shortFile), repr(expandedFile))) 
+        if len(fileList) == 0:
+            logging.warning("I found no files matching {0}."
+                .format(repr(shortFile)))
+
+        return fileList
 
 
 class Column:

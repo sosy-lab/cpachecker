@@ -1,6 +1,11 @@
 <!ELEMENT benchmark (test*,columns?)>
 <!ELEMENT test (sourcefiles+,options)>
-<!ELEMENT sourcefiles (#PCDATA)>
+
+<!ELEMENT sourcefiles (include | includesfile | exclude)*>
+<!ELEMENT include (#PCDATA)>
+<!ELEMENT includesfile (#PCDATA)>
+<!ELEMENT exclude (#PCDATA)>
+
 <!ELEMENT options (option*)>
 <!ELEMENT option (#PCDATA)>
 <!ELEMENT columns (column*)>
