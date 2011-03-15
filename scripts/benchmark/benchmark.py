@@ -285,7 +285,7 @@ class OutputHandler:
         sys.stdout.flush()
 
 
-    def outputAfterRun(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columnValues, output):
+    def outputAfterRun(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, output):
         """
         The method outputAfterRun() prints (filename,) result, time and status 
         of a test to terminal and into the log and CSV-file. 
@@ -507,7 +507,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     else:
         status = "ERROR ({0})".format(returncode)
 
-    return (status, cpuTimeDelta, wallTimeDelta, [], output)
+    return (status, cpuTimeDelta, wallTimeDelta, output)
 
 
 def run_satabs(options, sourcefile, columns, rlimits):
@@ -517,7 +517,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
         status = "SUCCESS"
     else:
         status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, [], output)
+    return (status, cpuTimeDelta, wallTimeDelta, output)
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits):
@@ -525,9 +525,9 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     
     status = getCPAcheckerStatus(returncode, output)
-    columnValueList = getCPAcheckerColumns(output, columns)
-    
-    return (status, cpuTimeDelta, wallTimeDelta, columnValueList, output)
+    getCPAcheckerColumns(output, columns)
+
+    return (status, cpuTimeDelta, wallTimeDelta, output)
 
 
 def getCPAcheckerStatus(returncode, output):
@@ -573,6 +573,9 @@ def getCPAcheckerStatus(returncode, output):
 
 def getCPAcheckerColumns(output, columns):
     """
+    The method getCPAcheckerColumns() searches the columnvalues in the output
+    and adds the values to the column-objects.
+    If a value is not found, the value is set to "-".
     @param output: the output of CPAchecker
     @param columns: a list with columns
     """
@@ -620,11 +623,11 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputBeforeRun(sourcefile)
 
             # run test
-            (status, cpuTimeDelta, wallTimeDelta, columnValues, output) =\
+            (status, cpuTimeDelta, wallTimeDelta, output) =\
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
             outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta, 
-                                         wallTimeDelta, columnValues, output)
+                                         wallTimeDelta, output)
 
         # get times after test
         wallTimeAfter = time.time()
