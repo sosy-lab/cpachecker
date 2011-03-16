@@ -35,7 +35,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFABuilder;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -75,7 +75,7 @@ public class Wrapper {
     
     mEntry = mTranslationUnit.getFunction(pEntryFunction);
     
-    CFABuilder.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
+    CFACreator.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
     
     determineAlphaAndOmegaEdges(mEntry, pMainFunction);
   }

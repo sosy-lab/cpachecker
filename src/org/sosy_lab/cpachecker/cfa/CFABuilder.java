@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
@@ -736,7 +735,7 @@ public class CFABuilder extends ASTVisitor
    * of its predecessor and successor respectively, but it does so only
    * if the edge does not contain dead code 
    */
-  private static void addToCFA(CFAEdge edge, LogManager logger) {
+  private void addToCFA(CFAEdge edge) {
     CFANode predecessor = edge.getPredecessor();
     CFANode successor = edge.getSuccessor();
 
@@ -775,47 +774,5 @@ public class CFABuilder extends ASTVisitor
         logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
     }
-  }
-  
-  private void addToCFA(CFAEdge edge) {
-    addToCFA(edge, logger);
-  }
-
-  /**
-   * Insert nodes for global declarations after first node of CFA.
-   */
-  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> globalVars, LogManager logger) {
-    if (globalVars.isEmpty()) {
-      return;
-    }
-
-    // split off first node of CFA
-    assert cfa.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = cfa.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
-    CFANode secondNode = firstEdge.getSuccessor();
-
-    cfa.removeLeavingEdge(firstEdge);
-    secondNode.removeEnteringEdge(firstEdge);
-    
-    // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
-    addToCFA(be, logger);
-
-    // create a series of GlobalDeclarationEdges, one for each declaration
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration sd : globalVars) {
-      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
-          sd.getFileLocation().getStartingLineNumber(), cur, n);
-      addToCFA(e, logger);
-      cur = n;
-    }
-
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    addToCFA(be, logger);
-
-    return;
   }
 }

@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.CFA.findLoops;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -40,8 +41,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
 
@@ -198,7 +203,7 @@ public class CFACreator {
   
     if (useGlobalVars){
       // add global variables at the beginning of main
-      CFABuilder.insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
+      insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
     }
     
     processingTime.stop();
@@ -273,4 +278,45 @@ public class CFACreator {
     this.mainFunction = mainFunction;
   }
 
+
+  /**
+   * Insert nodes for global declarations after first node of CFA.
+   */
+  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTSimpleDeclaration> globalVars, LogManager logger) {
+    if (globalVars.isEmpty()) {
+      return;
+    }
+
+    // split off first node of CFA
+    assert cfa.getNumLeavingEdges() == 1;
+    CFAEdge firstEdge = cfa.getLeavingEdge(0);
+    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    CFANode secondNode = firstEdge.getSuccessor();
+
+    cfa.removeLeavingEdge(firstEdge);
+    secondNode.removeEnteringEdge(firstEdge);
+    
+    // insert one node to start the series of declarations
+    CFANode cur = new CFANode(0, cfa.getFunctionName());
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
+    addToCFA(be);
+
+    // create a series of GlobalDeclarationEdges, one for each declaration
+    for (IASTSimpleDeclaration sd : globalVars) {
+      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
+          sd.getFileLocation().getStartingLineNumber(), cur, n);
+      addToCFA(e);
+      cur = n;
+    }
+
+    // and a blank edge connecting the declarations with the second node of CFA
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    addToCFA(be);
+  }
+  
+  private static void addToCFA(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);
+  }
 }
