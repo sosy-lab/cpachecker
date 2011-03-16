@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="180" memlimit="12000">
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_10_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_10_BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
@@ -12,7 +12,7 @@
     </options>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_11_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_11_BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
@@ -22,7 +22,7 @@
     </options>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_12_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_12_BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
@@ -32,7 +32,7 @@
     </options>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_13_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_13_BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
@@ -42,7 +42,7 @@
     </options>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_14_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_14_BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
@@ -52,7 +52,7 @@
     </options>
   </test>
   <test name="explicit">
-    <sourcefiles><include>test/assumptions/assumption-tests/programs/explicit_BUG/s3_srvr_1[01234]_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_1[01234]_BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/explicitAnalysis.properties</option>

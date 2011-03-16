@@ -1,4 +1,6 @@
-test/programs/*-simplified/*.cil.c
+test/programs/ntdrivers-simplified/*.cil.c
+test/programs/ssh-simplified/s3_clnt_*.cil.c
+test/programs/ssh-simplified/s3_srvr_?[._]*cil.c
 test/programs/systemc/[bk]*.cil.c
 test/programs/systemc/mem_slave_tlm.1.cil.c
 test/programs/systemc/pc_sfifo_?.cil.c
