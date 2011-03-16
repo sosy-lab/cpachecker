@@ -8,6 +8,7 @@ import time
 import glob
 import logging
 import os.path
+import platform
 import resource
 import signal
 import subprocess
@@ -436,6 +437,24 @@ class FileWriter:
         file.close()
 
 
+def findExecutable(program, default):
+    def isExecutable(programPath):
+        return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
+    
+    dirs = os.environ['PATH'].split(os.pathsep)
+    dirs.append(".")
+    
+    for dir in dirs:
+        name = os.path.join(dir, program)
+        if isExecutable(name):
+            return name
+    
+    if default is not None and isExecutable(default):
+        return default
+    
+    raise LookupError("Could not find %s executable" % program) 
+
+
 def run(args, rlimits):
     args = map(lambda arg: os.path.expandvars(arg), args)
     args = map(lambda arg: os.path.expanduser(arg), args)
@@ -472,7 +491,15 @@ def run(args, rlimits):
 def run_cbmc(options, sourcefile, columns, rlimits):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
-    args = ["cbmc"] + options + [sourcefile]
+        
+    defaultExe = None
+    if platform.machine() == "x86_64":
+        defaultExe = "lib/native/x86_64-linux/cbmc"
+    elif platform.machine() == "i386":
+        defaultExe = "lib/native/x86-linux/cbmc"
+    
+    exe = findExecutable("cbmc", defaultExe)
+    args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     
     #an empty tag cannot be parsed into a tree
@@ -511,7 +538,8 @@ def run_cbmc(options, sourcefile, columns, rlimits):
 
 
 def run_satabs(options, sourcefile, columns, rlimits):
-    args = ["satabs"] + options + [sourcefile]
+    exe = findExecutable("satabs", None)
+    args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in output:
         status = "SUCCESS"
@@ -519,9 +547,9 @@ def run_satabs(options, sourcefile, columns, rlimits):
         status = "FAILURE"
     return (status, cpuTimeDelta, wallTimeDelta, output)
 
-
 def run_cpachecker(options, sourcefile, columns, rlimits):
-    args = ["scripts/cpa.sh"] + options + [sourcefile]
+    exe = findExecutable("cpachecker", "scripts/cpa.sh")
+    args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     
     status = getCPAcheckerStatus(returncode, output)
@@ -675,6 +703,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
+    except LookupError as e:
+        print e
     except KeyboardInterrupt:
         interruptMessage = "script was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
