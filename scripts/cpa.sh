@@ -61,6 +61,7 @@ export CLASSPATH
 export PATH="$PATH:$arch_platform_path"
 
 # loop over all input parameters and parse them
+declare -a OPTIONS
 while [ $# -gt 0 ]; do 
 
   case $1 in
@@ -72,7 +73,7 @@ while [ $# -gt 0 ]; do
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
    *) # other params are only for CPAchecker
-       OPTIONS+=" "$1
+       OPTIONS+=("$1")
        ;;
   esac
 
@@ -88,4 +89,4 @@ if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
 fi
 
 # run CPAchecker
-"$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -ea org.sosy_lab.cpachecker.cmdline.CPAMain $OPTIONS
+"$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -ea org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}"
