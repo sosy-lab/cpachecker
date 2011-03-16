@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.ProgressCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -89,8 +90,8 @@ public class FShell3 {
   private final LogManager mLogManager;
   private final Wrapper mWrapper;
   private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
-  private final ConfigurableProgramAnalysis mLocationCPA;
-  private final ConfigurableProgramAnalysis mCallStackCPA;
+  private final LocationCPA mLocationCPA;
+  private final CallstackCPA mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
   private final ConfigurableProgramAnalysis mPredicateCPA;
@@ -157,7 +158,7 @@ public class FShell3 {
      */
     // location CPA
     try {
-      mLocationCPA = LocationCPA.factory().createInstance();
+      mLocationCPA = (LocationCPA)LocationCPA.factory().createInstance();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -167,7 +168,7 @@ public class FShell3 {
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
-      mCallStackCPA = lCallStackCPAFactory.createInstance();
+      mCallStackCPA = (CallstackCPA)lCallStackCPAFactory.createInstance();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -181,7 +182,7 @@ public class FShell3 {
     mCFAPathCPA = CFAPathCPA.getInstance();
     
     // TODO make configurable
-    boolean lUseCache = true;
+    boolean lUseCache = false;
     
     // predicate abstraction CPA
     CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
@@ -213,15 +214,20 @@ public class FShell3 {
   }
   
   public FShell3Result run(String pFQLSpecification) {
-    return run(pFQLSpecification, true, false, false, false, true);
+    return run(pFQLSpecification, true, false, false, false, true, false);
   }
   
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     if (pGenerateTestGoalAutomataInAdvance) {
       return run2(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
     }
     else {
-      return run_incremental(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
+      if (pAlternating) {
+        return run_incremental_and_alternating(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
+      }
+      else {
+        return run_incremental(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
+      }
     }
   }
   
@@ -528,7 +534,7 @@ public class FShell3 {
       
       lTimeReach.proceed();
       
-      CounterexampleTraceInfo lCounterexampleTraceInfo = reach(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      CounterexampleTraceInfo lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
       
       lTimeReach.pause();
       
@@ -695,7 +701,7 @@ public class FShell3 {
       
       lTimeReach.proceed();
       
-      CounterexampleTraceInfo lCounterexampleTraceInfo = reach(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      CounterexampleTraceInfo lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
       
       lTimeReach.pause();
       
@@ -757,7 +763,7 @@ public class FShell3 {
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
 
-  private CounterexampleTraceInfo reach(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private AlternatingRefiner reach(GuardedEdgeAutomatonCPA pInterpreter_AutomatonCPA, ProgressCPA pSymbolic_AutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
     
@@ -774,7 +780,109 @@ public class FShell3 {
     
     lComponentAnalyses.add(mCallStackCPA);
     
-    List<GuardedEdgeAutomatonCPA> lAutomatonCPAs = new ArrayList<GuardedEdgeAutomatonCPA>(2);
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
+    
+    if (pPassingCPA != null) {
+      lAutomatonCPAs.add(pPassingCPA);
+    }
+    
+    lAutomatonCPAs.add(pSymbolic_AutomatonCPA);
+    
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, true));
+    lComponentAnalyses.add(mPredicateCPA);
+    
+    lComponentAnalyses.add(mAssumeCPA);
+
+    ARTCPA lARTCPA;
+    try {
+      // create composite CPA
+      CPAFactory lCPAFactory = CompositeCPA.factory();
+      lCPAFactory.setChildren(lComponentAnalyses);
+      lCPAFactory.setConfiguration(mConfiguration);
+      lCPAFactory.setLogger(mLogManager);
+      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+      
+      // create ART CPA
+      CPAFactory lARTCPAFactory = ARTCPA.factory();
+      lARTCPAFactory.setChild(lCPA);
+      lARTCPAFactory.setConfiguration(mConfiguration);
+      lARTCPAFactory.setLogger(mLogManager);
+      
+      lARTCPA = (ARTCPA)lARTCPAFactory.createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
+    
+    PredicateRefiner lRefiner;
+    try {
+      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    
+    AlternatingRefiner lAlternatingRefiner = new AlternatingRefiner(pInterpreter_AutomatonCPA, pPassingCPA, mLocationCPA, mCallStackCPA, mAssumeCPA, mCFAPathCPA, lARTCPA, pEntryNode, mWrapper.getOmegaEdge().getSuccessor(), lRefiner, mConfiguration, mLogManager);
+    
+    CEGARAlgorithm lAlgorithm;
+    try {
+      //lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
+      lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lAlternatingRefiner, mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    Statistics lARTStatistics;
+    try {
+      lARTStatistics = new ARTStatistics(mConfiguration, lARTCPA);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    Set<Statistics> lStatistics = new HashSet<Statistics>();
+    lStatistics.add(lARTStatistics);
+    lAlgorithm.collectStatistics(lStatistics);
+
+    AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
+    Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
+    
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    mTimeInReach.pause();
+    
+    return lAlternatingRefiner;
+  }
+  
+  private CounterexampleTraceInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+    mTimeInReach.proceed();
+    mTimesInReach++;
+    
+    /*
+     * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,
+     * CPAs that are not able to produce successors, are treated first such that
+     * the compound CPA stops applying further transfer relations early. Here, we
+     * have to choose between the number of times a CPA produces no successors and
+     * the computational effort necessary to determine that there are no successors.
+     */
+    
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
+    
+    lComponentAnalyses.add(mCallStackCPA);
+    
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
     
     if (pPassingCPA != null) {
       lAutomatonCPAs.add(pPassingCPA);
@@ -782,7 +890,7 @@ public class FShell3 {
     
     lAutomatonCPAs.add(pAutomatonCPA);
     
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
     lComponentAnalyses.add(mPredicateCPA);
     
     lComponentAnalyses.add(mAssumeCPA);
@@ -953,7 +1061,7 @@ public class FShell3 {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
     
-    List<GuardedEdgeAutomatonCPA> lAutomatonCPAs = new ArrayList<GuardedEdgeAutomatonCPA>(2);
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
     
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
@@ -963,7 +1071,7 @@ public class FShell3 {
     lAutomatonCPAs.add(pCoverAutomatonCPA);
 
     int lProductAutomatonCPAIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
     
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
@@ -1025,7 +1133,7 @@ public class FShell3 {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
     
-    List<GuardedEdgeAutomatonCPA> lAutomatonCPAs = new ArrayList<GuardedEdgeAutomatonCPA>(2);
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
     
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
@@ -1035,7 +1143,7 @@ public class FShell3 {
     lAutomatonCPAs.add(pCoverAutomatonCPA);
     
     int lProductAutomatonCPAIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs));
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
     
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
@@ -1291,54 +1399,186 @@ public class FShell3 {
     
     pGoals.removeAll(lSubsumedGoals);
   }
-  
-  // TODO reimplement without modifying the old automaton
-  /*
-  public void removeInfeasibleTransitions(Automaton<GuardedEdgeLabel> pAutomaton) {
-    HashSet<Automaton<GuardedEdgeLabel>.Edge> lEdgesToBeRemoved = new HashSet<Automaton<GuardedEdgeLabel>.Edge>();
+
+  public FShell3Result run_incremental_and_alternating(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+    // Parse FQL Specification
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     
-    //for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.getEdges()) {
-    for (Automaton<GuardedEdgeLabel>.Edge lEdge : pAutomaton.edges()) {
-      GuardedEdgeLabel lLabel = lEdge.getLabel();
+    System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+    
+    ElementaryCoveragePattern lPassingClause = null;
+    
+    if (lFQLSpecification.hasPassingClause()) {
+      lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lFQLSpecification.getPathPattern());
+    }
+    
+    System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+    System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+    
+    FShell3Result.Factory lResultFactory = FShell3Result.factory();
+    
+    // TODO change to ProgressCPA
+    GuardedEdgeAutomatonCPA lPassingCPA = null;
+    
+    if (lPassingClause != null) {
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    }
+    
+    // set up utility variables
+    int lIndex = 0;
+    
+    int lFeasibleTestGoalsTimeSlot = 0;
+    int lInfeasibleTestGoalsTimeSlot = 1;
+    
+    TimeAccumulator lTimeAccu = new TimeAccumulator(2);
+    
+    TimeAccumulator lTimeReach = new TimeAccumulator();
+    TimeAccumulator lTimeCover = new TimeAccumulator();
+    
+    IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+    
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    
+    //int lNumberOfTestGoals = -1;
+    
+    System.out.println("Number of test goals: " + lNumberOfTestGoals);
+    
+    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
+    
+    int lRemovedByInfeasibilityPropagation = 0;
+    
+    while (lGoalIterator.hasNext()) {
+      lIndex++;
       
-      if (lLabel.getClass().equals(GuardedEdgeLabel.class)) {
-        if (lLabel.getEdgeSet().size() == 1) {
-          // currently we only simplify singleton edge sets
-          CFAEdge lCFAEdge = lLabel.getEdgeSet().iterator().next();
+      ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+      
+      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
+      
+      lTimeAccu.proceed();
+      
+      Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      
+      boolean lIsCovered = false;
+      
+      if (pApplySubsumptionCheck) {
+        for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
+          TestCase lTestCase = lGeneratedTestCase.getKey();
           
-          boolean lKeep = false; // falsch
-          
-          int lRelevantEdgesCounter = 0;
-          
-          for (Automaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lEdge.getTarget())) {
-            GuardedEdgeLabel lOutgoingLabel = lOutgoingEdge.getLabel();
-            
-            if (lOutgoingLabel.getClass().equals(GuardedEdgeLabel.class)) {
-              lRelevantEdgesCounter++;
-              
-              for (CFAEdge lOutgoingCFAEdge : lOutgoingLabel.getEdgeSet()) {
-                if (lCFAEdge.getSuccessor().equals(lOutgoingCFAEdge.getPredecessor())) {
-                  lKeep = true;
-                  break;
-                }
-              }
-            }
-            
-            if (lKeep) {
-              break;
-            }
+          if (!lTestCase.isPrecise()) {
+            throw new RuntimeException();
           }
           
-          if (!lKeep && lRelevantEdgesCounter > 0) {
-            lEdgesToBeRemoved.add(lEdge);
+          ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()); 
+          
+          if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
+            lIsCovered = true;
+            
+            lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+            
+            break;
+          }
+          else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
+            
+            try {
+              if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
+                lIsCovered = true;
+                
+                lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
+                
+                break;
+              }
+            } catch (InvalidConfigurationException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            } catch (CPAException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            } catch (ImpreciseExecutionException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            }
           }
         }
       }
+      
+      if (lIsCovered) {
+        System.out.println("Goal #" + lIndex + " is covered by an existing test case!");
+        
+        if (!pCheckReachWhenCovered) {
+          lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+          
+          continue;
+        }
+      }
+      
+      // TODO remove
+      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+      
+      GuardedEdgeAutomatonCPA lInterpreter_AutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
+      ProgressCPA lSymbolic_AutomatonCPA = new ProgressCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
+      
+      /**
+       * REACHABILITY ANALYSIS
+       * 
+       */
+      
+      lTimeReach.proceed();
+      
+      AlternatingRefiner lAlternatingRefiner = reach(lInterpreter_AutomatonCPA, lSymbolic_AutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      
+      lTimeReach.pause();
+      
+      System.out.println("INTERMEDIATE TEST SUITE: " + lAlternatingRefiner.getIntermediateTestSuite().size());
+      
+      if (!lAlternatingRefiner.hasCoveringTestCase()) {
+        System.out.println("Goal #" + lIndex + " is infeasible!");
+        
+        if (lIsCovered) {
+          throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
+        }
+        
+        lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
+        
+        lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
+      }
+      else {
+        System.out.println("Goal #" + lIndex + " is feasible!");
+        
+        lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lAlternatingRefiner.getCoveringTestCase());
+        
+        // we only add precise test cases for coverage analysis
+        mGeneratedTestCases.put(lAlternatingRefiner.getCoveringTestCase(), lAlternatingRefiner.getExecutionPath());
+        
+        lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+      }
     }
     
-    for (Automaton<GuardedEdgeLabel>.Edge lEdge : lEdgesToBeRemoved) {
-      pAutomaton.remove(lEdge);
+    System.out.println("Time in reach: " + mTimeInReach.getSeconds());
+    System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
+    
+    FShell3Result lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot)); 
+    
+    System.out.println("Generated Test Cases:");
+    
+    for (TestCase lTestCase : lResultFactory.getTestCases()) {
+      System.out.println(lTestCase);
     }
-  }*/
   
+    System.out.println("Removed by infeasibility propagation: " + lRemovedByInfeasibilityPropagation);
+  
+    System.out.println("Size of infeasibility cache: " + mInfeasibleGoals.size());
+    
+    return lResult;
+  }
 }

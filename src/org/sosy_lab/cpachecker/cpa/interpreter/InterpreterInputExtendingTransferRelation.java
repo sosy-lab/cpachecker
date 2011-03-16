@@ -39,6 +39,7 @@ public class InterpreterInputExtendingTransferRelation extends
         lRedo = false;
       }
       catch (MissingInputException e) {
+        
         // extend input
         InterpreterElement lElement = (InterpreterElement)pElement;
         

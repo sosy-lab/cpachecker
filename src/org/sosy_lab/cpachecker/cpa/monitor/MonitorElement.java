@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -41,25 +36,41 @@ import com.google.common.base.Preconditions;
 
 public class MonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
+  static enum TimeoutElement implements AbstractElement {
+    INSTANCE;
+    
+    @Override
+    public String toString() {
+      return "Dummy element because computation timed out";
+    }
+  }
+  
   private final long totalTimeOnPath;
 
   private final int branchesOnPath;
   private final int pathLength;
-
-  private boolean shouldStop = false;
   
-  // stores what caused the element to go further
-  private Pair<PreventingHeuristicType, Long> preventingCondition = null; 
+  // stores what caused the element to go further (may be null)
+  private final Pair<PreventingHeuristicType, Long> preventingCondition; 
   
   protected MonitorElement(AbstractElement pWrappedElement,
       int pathLength, int branchesOnPath, long totalTimeOnPath) {
+    this(pWrappedElement, pathLength, branchesOnPath, totalTimeOnPath, null);
+  }
+
+  protected MonitorElement(AbstractElement pWrappedElement,
+      int pathLength, int branchesOnPath, long totalTimeOnPath,
+      Pair<PreventingHeuristicType, Long> preventingCondition) {
     super(pWrappedElement);
+    Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
+    Preconditions.checkArgument(!(pWrappedElement == TimeoutElement.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutElement");
     Preconditions.checkArgument(pathLength > branchesOnPath);
     this.pathLength = pathLength;
     this.branchesOnPath = branchesOnPath;
     this.totalTimeOnPath = totalTimeOnPath;
+    this.preventingCondition = preventingCondition; // may be null
   }
-
+  
   public long getTotalTimeOnPath() {
     return totalTimeOnPath;
   }
@@ -84,11 +95,11 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
-    return shouldStop;
+    return preventingCondition != null;
   }
-
-  public void setAsStopElement(){
-    shouldStop = true;
+  
+  Pair<PreventingHeuristicType, Long> getPreventingCondition() {
+    return preventingCondition;
   }
   
   public int getNoOfNodesOnPath() {
@@ -106,32 +117,17 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   public int getNoOfBranchesOnPath() {
     return branchesOnPath;
   }
-  
-  public void setPreventingCondition(
-      Pair<PreventingHeuristicType, Long> pPreventingCondition) {
-    preventingCondition = pPreventingCondition;
-  }
 
   @Override
-  public Collection<? extends Formula> getFormulaApproximation(FormulaManager manager) {
+  public Formula getReasonFormula(FormulaManager manager) {
 
-    List<Formula> formulasList = new ArrayList<Formula>();
-    
-    Iterable<? extends AbstractElement> wrappedElements = getWrappedElements();
-    
-    for(AbstractElement elem: wrappedElements){
-      if(elem instanceof FormulaReportingElement){
-        FormulaReportingElement fRepElement = (FormulaReportingElement) elem;
-        formulasList.addAll(fRepElement.getFormulaApproximation(manager));
-      }
-    }
-
-    if(shouldStop){
+    if (mustDumpAssumptionForAvoidance()) {
       String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
-      formulasList.add(manager.parse(preventingHeuristicStringFormula));
-    }
+      return manager.parse(preventingHeuristicStringFormula);
     
-    return formulasList;
+    } else {
+      return manager.makeTrue();
+    }
   }
   
 }

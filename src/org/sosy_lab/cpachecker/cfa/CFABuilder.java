@@ -199,9 +199,13 @@ public class CFABuilder extends ASTVisitor
       
       IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
       String nameOfFunction = fdef.getDeclarator().getName().toString();
+      if (nameOfFunction.isEmpty()) {
+        nameOfFunction = fdef.getDeclarator().getNestedDeclarator().getName().toString();
+      }
+      assert !nameOfFunction.isEmpty();
       
       if (cfas.containsKey(nameOfFunction)) {
-        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction);
+        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, fdef);
       }
 
       IASTFunctionDeclarator decl = fdef.getDeclarator();
@@ -233,7 +237,7 @@ public class CFABuilder extends ASTVisitor
       CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
       currentCFANodes.add(returnNode);
 
-      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
+      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
       currentCFANodes.add(startNode);
       cfas.put(nameOfFunction, startNode);
       currentCFA = startNode;

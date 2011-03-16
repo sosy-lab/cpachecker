@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class AssumptionStorageDomain implements AbstractDomain {
@@ -42,9 +43,24 @@ public class AssumptionStorageDomain implements AbstractDomain {
     AssumptionStorageElement storageElement1= (AssumptionStorageElement)pElement1;
     AssumptionStorageElement storageElement2 = (AssumptionStorageElement)pElement2;
 
+    // create the disjunction of the stop formulas
+    // however, if one of them is true, we would loose the information from the other
+    // so handle these special cases separately
+    Formula stopFormula1 = storageElement1.getStopFormula();
+    Formula stopFormula2 = storageElement2.getStopFormula();
+    Formula newStopFormula;
+    if (stopFormula1.isTrue()) {
+      newStopFormula = stopFormula2;
+    } else if (stopFormula2.isTrue()) {
+      newStopFormula = stopFormula1;
+    } else {
+      newStopFormula = formulaManager.makeOr(stopFormula1, stopFormula2);
+    }
+    
     return new AssumptionStorageElement(
         formulaManager.makeAnd(storageElement1.getAssumption(),
-                                       storageElement2.getAssumption()));
+                               storageElement2.getAssumption()),
+        newStopFormula);
   }
 
   @Override

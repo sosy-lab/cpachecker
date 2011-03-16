@@ -91,7 +91,8 @@ public class CFACheck {
     if (!(pNode instanceof CFAFunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
       case 0:
-        assert false : "Dead end at node " + pNode;
+        // not possible to check this, this case occurs when CFA pruning is enabled
+//        assert false : "Dead end at node " + pNode;
         break;
   
       case 1: break;

@@ -192,6 +192,12 @@ public class InterpreterTransferRelation implements TransferRelation {
       throw new RuntimeException(e);
     }*/
     
+    /*System.out.println("INTERPRETER: ");
+    System.out.println("(" + element.toString() + ", " + precision.toString() + ")");
+    System.out.println("--[" + cfaEdge.toString() + "]->");
+    System.out.println(successor.toString());
+    System.out.println("--------------");*/
+    
     if (InterpreterBottomElement.INSTANCE.equals(successor)) {
       return Collections.emptySet();
     } else {

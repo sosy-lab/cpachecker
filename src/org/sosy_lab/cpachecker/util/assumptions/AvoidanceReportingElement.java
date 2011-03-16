@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
 /**
  * Interface to implement in order for an object to be able to
  * make the system generate an assumption to avoid re-considering
@@ -30,12 +33,21 @@ package org.sosy_lab.cpachecker.util.assumptions;
  *
  * @author g.theoduloz
  */
-public interface AvoidanceReportingElement extends FormulaReportingElement{
+public interface AvoidanceReportingElement {
 
   /**
    * Returns true if an invariant must be added so as to avoid
    * the given state in the future.
    */
   public boolean mustDumpAssumptionForAvoidance();
+  
+  /**
+   * If {@link #mustDumpAssumptionForAvoidance()} returned true, this method
+   * returns a formula that provides an explanation. This formula may not be TRUE.
+   * If the element cannot provide such a formula, it SHOULD return FALSE.
+   * If {@link #mustDumpAssumptionForAvoidance()} returned false, this method
+   * SHOULD return TRUE.
+   */
+  public Formula getReasonFormula(FormulaManager mgr);
 
 }

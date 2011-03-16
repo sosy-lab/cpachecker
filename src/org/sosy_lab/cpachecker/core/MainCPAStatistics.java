@@ -103,7 +103,7 @@ class MainCPAStatistics implements Statistics {
 
     private final LogManager logger;
     private final Collection<Statistics> subStats;
-    private final MemoryStatistics memStats = new MemoryStatistics();
+    private final MemoryStatistics memStats;
     
     final Timer programTime = new Timer();
     final Timer cfaCreationTime = new Timer();
@@ -117,8 +117,15 @@ class MainCPAStatistics implements Statistics {
 
         this.logger = logger;
         subStats = new ArrayList<Statistics>();
-        memStats.setDaemon(true);
-        memStats.start();
+        
+        if (monitorMemoryUsage) {
+          memStats = new MemoryStatistics();
+          memStats.setDaemon(true);
+          memStats.start();
+        } else {
+          memStats = null;
+        }
+        
         programTime.start();
     }
 
@@ -204,7 +211,7 @@ class MainCPAStatistics implements Statistics {
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
         }
-        if (memStats.count > 0) {
+        if (memStats != null && memStats.count > 0) {
           out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
           out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
         }

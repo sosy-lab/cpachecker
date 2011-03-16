@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,7 +49,7 @@ public class PredicateMergeOperator implements MergeOperator {
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
 
-  long totalMergeTime = 0;
+  final Timer totalMergeTime = new Timer();
 
   public PredicateMergeOperator(PredicateCPA pCpa) {
     this.logger = pCpa.getLogger();
@@ -74,7 +75,7 @@ public class PredicateMergeOperator implements MergeOperator {
         merged = elem2;
       
       } else {
-        long start = System.currentTimeMillis();
+        totalMergeTime.start();
         // create a new element
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
@@ -87,9 +88,8 @@ public class PredicateMergeOperator implements MergeOperator {
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);
-        
-        long end = System.currentTimeMillis();
-        totalMergeTime = totalMergeTime + (end - start);
+
+        totalMergeTime.stop();
       }
     }
 

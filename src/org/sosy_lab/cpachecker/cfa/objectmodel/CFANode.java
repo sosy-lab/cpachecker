@@ -54,6 +54,7 @@ public class CFANode implements Comparable<CFANode> {
   public CFANode(int lineNumber, String functionName) {
     this.lineNumber = lineNumber;
     this.functionName = functionName;
+    assert !functionName.isEmpty();
     this.nodeNumber = nextNodeNumber++;
   }
 
@@ -105,6 +106,16 @@ public class CFANode implements Comparable<CFANode> {
     return enteringEdges.get(index);
   }
 
+  public CFAEdge getEdgeTo(CFANode other) {
+    for (CFAEdge edge : leavingEdges) {
+      if (edge.getSuccessor() == other) {
+        return edge;
+      }
+    }
+
+    throw new IllegalArgumentException();
+  }
+  
   public boolean hasEdgeTo(CFANode other) {
     boolean hasEdge = false;
     for (CFAEdge edge : leavingEdges) {

@@ -185,7 +185,7 @@ class PredicateCPAStatistics implements Statistics {
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ")");
       out.println("    Solving time:                    " + toTime(as.abstractionSolveTime) + " (Max: " + toTime(as.abstractionMaxSolveTime) + ")");
       out.println("    Time for BDD construction:       " + toTime(as.abstractionBddTime)   + " (Max: " + toTime(as.abstractionMaxBddTime) + ")");
-      out.println("Time for merge operator:             " + toTime(cpa.getMergeOperator().totalMergeTime));
+      out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
       out.println("Time for coverage check:             " + domain.coverageCheckTimer);
       if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);

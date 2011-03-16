@@ -198,6 +198,10 @@ reachedSet.file = reached.txt
 assumptions.export = false
 assumptions.file = assumptions.txt
 
+# When CBMC considers an error path infeasible, continue analysis
+# (this is unsound and leads to the analysis result being either UNSAFE or UNKNOWN)
+cbmc.continueAfterInfeasibleError = true
+
 # file name where to put the path program that is generated as input for CBMC
 # A temporary file is used if this is unspecified.
 cbmc.dumpCBMCfile = 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -118,6 +120,11 @@ public class ReachedSet implements UnmodifiableReachedSet {
     assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
   }
 
+  public void removeOnlyFromWaitlist(AbstractElement element) {
+    checkNotNull(element);
+    waitlist.remove(element);
+  }
+  
   public void clear() {
     firstElement = null;
     lastElement = null;

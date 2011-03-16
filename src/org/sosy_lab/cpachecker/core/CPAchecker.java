@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -310,12 +310,12 @@ public class CPAchecker {
       algorithm = new BMCAlgorithm(algorithm, config, logger);
     }
 
+    if (options.useCBMC) {
+      algorithm = new CounterexampleCheckAlgorithm(cfas, algorithm, config, logger);
+    }
+    
     if (options.useAssumptionCollector) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
-    }
-
-    if (options.useCBMC) {
-      algorithm = new CBMCAlgorithm(cfas, algorithm, config, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {

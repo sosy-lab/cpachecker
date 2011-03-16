@@ -149,6 +149,8 @@ public interface FormulaManager {
 
   public Formula makeVariable(String pVar, int pIdx);
   
+  public Formula makeVariable(String pVar);
+  
   public Formula makePredicateVariable(String pVar, int pIdx);
   
   public Formula makeAssignment(Formula pF1, Formula pF2);

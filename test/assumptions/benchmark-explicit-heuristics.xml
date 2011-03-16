@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="180" memlimit="12000">
+  <test name="explicit-heuristic">
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_10_BUG.cil.c</include></sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
+      <option name="-setprop">cpa.monitor.pathlengthlimit=200</option>
+      <option name="-heap">10000m</option>
+    </options>
+  </test>
+  <test name="explicit-heuristic">
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_11_BUG.cil.c</include></sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
+      <option name="-setprop">cpa.monitor.pathlengthlimit=600</option>
+      <option name="-heap">10000m</option>
+    </options>
+  </test>
+  <test name="explicit-heuristic">
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_12_BUG.cil.c</include></sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
+      <option name="-setprop">cpa.monitor.pathlengthlimit=1200</option>
+      <option name="-heap">10000m</option>
+    </options>
+  </test>
+  <test name="explicit-heuristic">
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_13_BUG.cil.c</include></sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
+      <option name="-setprop">cpa.monitor.pathlengthlimit=1500</option>
+      <option name="-heap">10000m</option>
+    </options>
+  </test>
+  <test name="explicit-heuristic">
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_14_BUG.cil.c</include></sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
+      <option name="-setprop">cpa.monitor.pathlengthlimit=300</option>
+      <option name="-heap">10000m</option>
+    </options>
+  </test>
+  <test name="explicit">
+    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_1[01234]_BUG.cil.c</include></sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/explicitAnalysis.properties</option>
+      <option name="-heap">10000m</option>
+    </options>
+  </test>
+  <columns>
+    <column title="time">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="infeasible counterexamples">Number of infeasible paths</column>
+    <column title="cbmc time">Time for running CBMC</column>
+  </columns>
+</benchmark>

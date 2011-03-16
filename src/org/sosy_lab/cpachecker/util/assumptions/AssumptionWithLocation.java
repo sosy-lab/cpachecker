@@ -51,6 +51,12 @@ public class AssumptionWithLocation {
     manager = pManager;
   }
   
+  public static AssumptionWithLocation copyOf(AssumptionWithLocation a) {
+    AssumptionWithLocation result = new AssumptionWithLocation(a.manager);
+    result.map.putAll(a.map);
+    return result;
+  }
+  
   /**
    * Return the number of locations for which we have an assumption.
    */

@@ -4,9 +4,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.IGuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 
 public abstract class ProductAutomatonElement extends CompositeElement {
@@ -79,14 +80,13 @@ public abstract class ProductAutomatonElement extends CompositeElement {
     super(pElements);
   }
   
-  @Override
-  public boolean isTarget() {
+  public boolean isFinalState() {
     if (super.getNumberofElements() == 0) {
       return false;
     }
     
     for (AbstractElement lElement : getElements()) {
-      GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lElement;
+      IGuardedEdgeAutomatonStateElement lStateElement = (IGuardedEdgeAutomatonStateElement)lElement;
       
       if (!lStateElement.isFinalState()) {
         return false;
@@ -94,6 +94,23 @@ public abstract class ProductAutomatonElement extends CompositeElement {
     }
     
     return true;
+  }
+  
+  @Override
+  public boolean isTarget() {
+    if (isFinalState()) {
+      return true;
+    }
+    
+    for (AbstractElement lElement : getElements()) {
+      Targetable lSubelement = (Targetable)lElement;
+      
+      if (lSubelement.isTarget()) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
 }

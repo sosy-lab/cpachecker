@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
@@ -138,8 +136,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  public static final ExecutorService executor = Executors.newCachedThreadPool();
-
   private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException {
     Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
     
@@ -242,7 +238,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       } // if lastElement is target element 
       
     } while (continueAnalysis);
-    executor.shutdownNow();
 
     stats.totalTimer.stop();
     return sound;

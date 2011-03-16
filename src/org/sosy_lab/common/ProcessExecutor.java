@@ -1,5 +1,7 @@
 package org.sosy_lab.common;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,10 +14,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.io.Closeables;
 
 /**
  * This class can be used to execute a separate process and read it's output in
@@ -47,13 +51,12 @@ public class ProcessExecutor<E extends Exception> {
   private final ExecutorService executor = Executors.newFixedThreadPool(3);
   private final Future<?> outResult;
   private final Future<?> errResult;
-  private final Future<?> exitResult;
   
   private final List<String> output = new ArrayList<String>();
   private final List<String> errorOutput = new ArrayList<String>();
-  private int exitCode = 0;
-  
-  private volatile boolean stopped = false;
+  private int exitCode = -1;
+
+  private volatile boolean stoppedByTimeout = false;
   private boolean finished = false;
   
   protected final LogManager logger;
@@ -87,7 +90,6 @@ public class ProcessExecutor<E extends Exception> {
     in = new OutputStreamWriter(process.getOutputStream());
     outResult = executor.submit(outCallable);
     errResult = executor.submit(errCallable);
-    exitResult = executor.submit(exitCallable);
   }
   
   /**
@@ -105,15 +107,10 @@ public class ProcessExecutor<E extends Exception> {
    * @throws IOException 
    */
   public void print(String s) throws IOException {
-    if (finished) {
-      throw new IllegalStateException("Cannot write to process that has already terminated.");
-    }
-    if (stopped) {
-      logger.log(Level.WARNING, "Process terminated early");
-    } else {
-      in.write(s);
-      in.flush();
-    }
+    checkState(!finished, "Cannot write to process that has already terminated.");
+
+    in.write(s);
+    in.flush();
   }
   
   /**
@@ -121,9 +118,8 @@ public class ProcessExecutor<E extends Exception> {
    * @throws IOException
    */
   public void sendEOF() throws IOException {
-    if (finished) {
-      throw new IllegalStateException("Cannot write to process that has already terminated.");
-    }
+    checkState(!finished, "Cannot write to process that has already terminated.");
+
     in.close();
   }
   
@@ -149,21 +145,104 @@ public class ProcessExecutor<E extends Exception> {
     } 
   };
   
-  private final Callable<?> exitCallable = new Callable<Void>() {
-    @Override
-    public Void call() throws E, IOException {
-      while (!stopped) {
-        try {
-          exitCode = process.waitFor();
-          stopped = true;
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
+  /**
+   * Wait for the process to terminate and read all of it's output. Whenever a
+   * line is read on stdout or stderr of the process, the {@link #handleOutput(String)}
+   * or the {@link #handleErrorOutput(String)} are called respectively.
+   * 
+   * @param timelimit Maximum time to wait for process (in milliseconds)
+   * @throws IOException
+   * @throws E passed from the handle* methods.
+   * @throws TimeoutException If timeout is hit.
+   */
+  public void join(final long timelimit) throws IOException, E, TimeoutException {
+    checkState(!finished, "Cannot read from process that has already terminated.");
+
+    Future<?> timeout = null;
+    if (timelimit > 0) {
+      final Thread waitingThread = Thread.currentThread();
+
+      timeout = executor.submit(new Callable<Void>() {
+        @Override
+        public Void call() throws InterruptedException {
+          Thread.sleep(timelimit);
+
+          stoppedByTimeout = true;
+          logger.log(Level.WARNING, "Killing", name, "due to timeout");
+          
+          // Do not call process.destroy() here! This leads to weird behaviour (see below)
+          waitingThread.interrupt();
+          
+          return null;
         }
+      });
+    }
+    
+    boolean interrupted = false;
+    while (exitCode < 0) {
+      try {
+        logger.log(Level.FINEST, "Waiting for", name);
+        exitCode = process.waitFor();
+        logger.log(Level.FINEST, name, "has terminated");
+        
+      } catch (InterruptedException e) {
+        logger.log(Level.FINEST, "Killing", name, "due to stop request");
+        
+        interrupted = true;
+                
+        // remove timeout task
+        if (timeout != null) {
+          timeout.cancel(true);
+        }
+        
+        // this is very ugly, but calling destroy() too soon seems to lead to weird behaviour
+        // specifically, it killed the Java VM and its parent instead of its child
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e1) { }
+        
+        // kill process, and call waitFor() again so that we get the exitCode
+        process.destroy();
       }
-      handleExitCode(exitCode);
-      return null;
-    } 
-  };
+    }
+    // now it's guaranteed that process.waitFor() has returned, i.e., the process is dead
+
+    // cleanup the executor with the communication threads
+    try {
+      errResult.get();
+      outResult.get();
+    
+    } catch (InterruptedException e) {
+      interrupted = true;
+    
+    } catch (ExecutionException e) {
+      Throwable t = e.getCause();
+      Throwables.propagateIfPossible(t, IOException.class, exceptionClass);
+      logger.logException(Level.SEVERE, t, "");
+      assert false : "Callables threw undeclared checked exception, this is impossible!";
+
+    } finally {
+      executor.shutdownNow();
+      Closeables.closeQuietly(out);
+      Closeables.closeQuietly(err);
+      Closeables.closeQuietly(in);
+    }
+    
+    // other cleanup
+    finished = true;
+    
+    if (stoppedByTimeout) {
+      throw new TimeoutException();
+    }
+
+    // do this here because we want to swallow interrupts caused by a timeout 
+    if (interrupted) {
+      Thread.currentThread().interrupt();
+    }
+    
+    // do this last, because we don't want to call it in case of timeout
+    handleExitCode(exitCode);
+  }
   
   /**
    * Wait for the process to terminate and read all of it's output. Whenever a
@@ -174,36 +253,11 @@ public class ProcessExecutor<E extends Exception> {
    * @throws E passed from the handle* methods.
    */
   public void join() throws IOException, E {
-    if (finished) {
-      throw new IllegalStateException("Cannot read from process that has already terminated.");
-    }
-
     try {
-      exitResult.get();
-      errResult.get();
-      outResult.get();
-    
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    
-    } catch (ExecutionException e) {
-      Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, IOException.class, exceptionClass);
-      logger.logException(Level.SEVERE, t, "");
-      assert false : "Callables threw undeclared checked exception, this is impossible!";
-
-    } finally {
-      process.destroy();
-      executor.shutdownNow();
-      try {
-        out.close();
-        err.close();
-        in.close();
-      } catch (IOException e) {
-        // ignore errors here
-      }
-      
-      finished = true;    
+      join(0);
+    } catch (TimeoutException e) {
+      // cannot occur with timeout==0
+      throw new AssertionError(e);
     }
   }
   
@@ -253,9 +307,8 @@ public class ProcessExecutor<E extends Exception> {
    * May only be called after {@link #join()} has been called.
    */
   public List<String> getOutput() {
-    if (!finished) {
-      throw new IllegalStateException("Cannot get output while process is not yet finished");
-    }
+    checkState(finished, "Cannot get output while process is not yet finished");
+
     return output;
   }
   
@@ -264,9 +317,8 @@ public class ProcessExecutor<E extends Exception> {
    * May only be called after {@link #join()} has been called.
    */
   public List<String> getErrorOutput() {
-    if (!finished) {
-      throw new IllegalStateException("Cannot get error output while process is not yet finished");
-    }
+    checkState(finished, "Cannot get error output while process is not yet finished");
+
     return errorOutput;
   }
   
@@ -275,9 +327,9 @@ public class ProcessExecutor<E extends Exception> {
    * May only be called after {@link #join()} has been called.
    */
   public int getExitCode() {
-    if (!finished) {
-      throw new IllegalStateException("Cannot get exit code while process is not yet finished");
-    }
+    checkState(finished, "Cannot get exit code while process is not yet finished");
+    checkState(exitCode >= 0, "Cannot get exit code after the process timed out");
+    
     return exitCode;
   }
 }

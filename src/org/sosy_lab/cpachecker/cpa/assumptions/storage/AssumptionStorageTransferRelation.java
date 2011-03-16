@@ -34,9 +34,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
@@ -45,9 +46,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final FormulaManager formulaManager;
-  
+
   private final Collection<AbstractElement> topElementSet;
-  
+
   public AssumptionStorageTransferRelation(FormulaManager pManager, AbstractElement pTopElement) {
     formulaManager = pManager;
     topElementSet = Collections.singleton(pTopElement);
@@ -65,13 +66,18 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
     return topElementSet;
   }
-  
+
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) {
     AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
-    //    assert (asmptStorageElem.getAssumption().isTrue());
-    //    Formula assumption = formulaManager.makeTrue();
-    Formula assumption = asmptStorageElem.getAssumption();
+    assert asmptStorageElem.getAssumption().isTrue();
+    assert asmptStorageElem.getStopFormula().isTrue();
+    
+    Formula assumption = formulaManager.makeTrue();
+    Formula stopFormula = formulaManager.makeFalse(); // initialize with false because we create a disjunction
+
+    // process stop flag
+    boolean stop = false;
 
     for (AbstractElement element : AbstractElements.asIterable(others)) {
       if (element instanceof AssumptionReportingElement) {
@@ -79,21 +85,26 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
         assumption = formulaManager.makeAnd(assumption, inv);
       }
 
-      // process stop flag
-      boolean stop = false;
       if (element instanceof AvoidanceReportingElement) {
-        stop = stop | ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
-        if (stop) {
-          assumption = ReportingUtils.extractReportedFormulas(formulaManager, element);
-          assumption = formulaManager.makeNot(assumption);
+        AvoidanceReportingElement e = (AvoidanceReportingElement)element;
+
+        if (e.mustDumpAssumptionForAvoidance()) {
+          stopFormula = formulaManager.makeOr(stopFormula, e.getReasonFormula(formulaManager));
+          stop = true;
         }
       }
     }
+    Preconditions.checkState(!stopFormula.isTrue());
 
-    if (assumption.isTrue()) {
-      return null;
+    if (!stop) {
+      stopFormula = formulaManager.makeTrue();
+    }
+    
+    if (assumption.isTrue() && stopFormula.isTrue()) {
+      return null; // nothing has changed
+      
     } else {
-      return Collections.singleton(new AssumptionStorageElement(assumption));
+      return Collections.singleton(new AssumptionStorageElement(assumption, stopFormula));
     }
   }
 }

@@ -403,9 +403,14 @@ public class ExplicitTransferRelation implements TransferRelation {
     else if (expression instanceof IASTUnaryExpression)
     {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
-      // ! exp
-      if(unaryExp.getOperator() == IASTUnaryExpression.op_not)
-      {
+      if(unaryExp instanceof IASTCastExpression){
+        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+      }
+
+      switch (unaryExp.getOperator()) {
+      case IASTUnaryExpression.op_not:
+        // ! exp
+      
 //        System.out.println("here " + expression.getRawSignature() + " tv " + truthValue);
         IASTExpression exp1 = unaryExp.getOperand();
         // ! unaryExp
@@ -438,14 +443,17 @@ public class ExplicitTransferRelation implements TransferRelation {
         else {
           throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
         }
-      }
-      else if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
+      
+      case IASTUnaryExpression.op_bracketedPrimary:
+        // (exp)
         return handleAssumption(element, unaryExp.getOperand(), cfaEdge, truthValue);
-      }
-      else if(expression instanceof IASTCastExpression){
-        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
-      }
-      else {
+      
+      case IASTUnaryExpression.op_star:
+        // *exp
+        // don't know anything
+        return element.clone();
+
+      default:
         throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }

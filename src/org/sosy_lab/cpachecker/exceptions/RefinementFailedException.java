@@ -37,6 +37,7 @@ public class RefinementFailedException extends CPAException {
     InterpolationFailed("Interpolation failed"),
     NoNewPredicates("No new predicates"),
     TooMuchUnrolling("Too much unrolling"),
+    InfeasibleCounterexample("External tool verified counterexample as infeasible"),
     TIMEOUT("SMT-solver timed out");
     
     private final String humanReableReason;

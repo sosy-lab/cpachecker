@@ -201,80 +201,56 @@ class PredicateAbstractionManager {
     return result;
   }
 
-  private Region buildCartesianAbstraction(Formula f, SSAMap ssa,
+  private Region buildCartesianAbstraction(final Formula f, final SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
     final RegionManager rmgr = amgr.getRegionManager();  
-    
-    byte[] predVals = null;
-    final byte NO_VALUE = -2;
-    if (useCache) {
-      predVals = new byte[predicates.size()];
-      int predIndex = -1;
-      for (AbstractionPredicate p : predicates) {
-        ++predIndex;
-        Pair<Formula, AbstractionPredicate> key = Pair.of(f, p);
-        if (cartesianAbstractionCache.containsKey(key)) {
-          predVals[predIndex] = cartesianAbstractionCache.get(key);
-        } else {
-          predVals[predIndex] = NO_VALUE;
-        }
-      }
-    }
-
-    boolean skipFeasibilityCheck = false;
-    if (useCache) {
-      if (feasibilityCache.containsKey(f)) {
-        skipFeasibilityCheck = true;
-        if (!feasibilityCache.get(f)) {
-          // abstract post leads to false, we can return immediately
-          return rmgr.makeFalse();
-        }
-      }
-    }
 
     Timer solveTimer = new Timer();
+    Timer totBddTimer = new Timer();
     solveTimer.start();
 
     thmProver.init();
     try {
 
-      if (!skipFeasibilityCheck) {
-        //++stats.abstractionNumMathsatQueries;
-        boolean unsat = thmProver.isUnsat(f);
-        if (useCache) {
-          feasibilityCache.put(f, !unsat);
-        }
-        if (unsat) {
-          return rmgr.makeFalse();
-        }
-      } else {
-        //++stats.abstractionNumCachedQueries;
-      }
+      boolean feasibility;
+      if (useCache && feasibilityCache.containsKey(f)) {
+        feasibility = feasibilityCache.get(f);
 
+      } else {
+        feasibility = !thmProver.isUnsat(f);
+        if (useCache) {
+          feasibilityCache.put(f, feasibility);
+        }
+      }
+      
+      if (!feasibility) {
+        // abstract post leads to false, we can return immediately
+        return rmgr.makeFalse();
+      }
+      
       thmProver.push(f);
       try {
-        Timer totBddTimer = new Timer();
-
         Region absbdd = rmgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
 
-        int predIndex = -1;
         for (AbstractionPredicate p : predicates) {
-          ++predIndex;
-          if (useCache && predVals[predIndex] != NO_VALUE) {
-            
+          Pair<Formula, AbstractionPredicate> cacheKey = Pair.of(f, p);
+          if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
+            byte predVal = cartesianAbstractionCache.get(cacheKey);
+              
             totBddTimer.start();
             Region v = p.getAbstractVariable();
-            if (predVals[predIndex] == -1) { // pred is false
+            if (predVal == -1) { // pred is false
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
-            } else if (predVals[predIndex] == 1) { // pred is true
+            } else if (predVal == 1) { // pred is true
               absbdd = rmgr.makeAnd(absbdd, v);
+            } else {
+              assert predVal == 0 : "predicate value is neither false, true, nor unknown";
             }
             totBddTimer.stop();
             
-            //++stats.abstractionNumCachedQueries;
           } else {            
             logger.log(Level.ALL, "DEBUG_1",
                 "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
@@ -287,7 +263,6 @@ class PredicateAbstractionManager {
             // state
             byte predVal = 0; // pred is neither true nor false
 
-            //++stats.abstractionNumMathsatQueries;
             boolean isTrue = thmProver.isUnsat(predFalse);
 
             if (isTrue) {
@@ -299,7 +274,6 @@ class PredicateAbstractionManager {
               predVal = 1;
             } else {
               // check whether it's false...
-              //++stats.abstractionNumMathsatQueries;
               boolean isFalse = thmProver.isUnsat(predTrue);
 
               if (isFalse) {
@@ -314,24 +288,11 @@ class PredicateAbstractionManager {
             }
 
             if (useCache) {
-              cartesianAbstractionCache.put(Pair.of(f, p), predVal);
+              cartesianAbstractionCache.put(cacheKey, predVal);
             }
           }
         }     
-        solveTimer.stop();
-
-        // update statistics
         
-        long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
-        
-        stats.abstractionMaxBddTime =
-          Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
-        stats.abstractionBddTime += totBddTimer.getSumTime();
-        
-        stats.abstractionSolveTime += solveTime;
-        stats.abstractionMaxSolveTime =
-          Math.max(solveTime, stats.abstractionMaxSolveTime);
-
         return absbdd;
 
       } finally {
@@ -340,6 +301,20 @@ class PredicateAbstractionManager {
 
     } finally {
       thmProver.reset();
+      
+      solveTimer.stop();
+
+      // update statistics
+      
+      long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
+      
+      stats.abstractionMaxBddTime =
+        Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
+      stats.abstractionBddTime += totBddTimer.getSumTime();
+      
+      stats.abstractionSolveTime += solveTime;
+      stats.abstractionMaxSolveTime =
+        Math.max(solveTime, stats.abstractionMaxSolveTime);
     }
   }
 

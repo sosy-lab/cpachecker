@@ -44,6 +44,10 @@ public class MonitorMerge implements MergeOperator{
   throws CPAException {
     MonitorElement monitorElement1= (MonitorElement)pElement1;
     MonitorElement monitorElement2 = (MonitorElement)pElement2;
+    
+    if (monitorElement1.mustDumpAssumptionForAvoidance() || monitorElement2.mustDumpAssumptionForAvoidance()) {
+      return pElement2;
+    }
 
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
     AbstractElement wrappedElement1 = monitorElement1.getWrappedElement();

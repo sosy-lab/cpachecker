@@ -31,36 +31,28 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class AlwaysTopTransferRelation implements TransferRelation {
+enum AlwaysTopTransferRelation implements TransferRelation {
 
-  private static AlwaysTopTransferRelation mInstance = new AlwaysTopTransferRelation();
-
-  private AlwaysTopTransferRelation() {
-
-  }
-
-  public static AlwaysTopTransferRelation getInstance() {
-    return mInstance;
-  }
+  INSTANCE;
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
-    assert(pElement != null);
-    assert(pPrecision != null);
-    assert(pCfaEdge != null);
+      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
+    
+    assert pElement == AlwaysTopElement.INSTANCE;
+    assert pPrecision == AlwaysTopPrecision.INSTANCE;
 
-    return Collections.singleton(AlwaysTopTopElement.getInstance());
+    return Collections.singleton(AlwaysTopElement.INSTANCE);
   }
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-      List<AbstractElement> pOtherElements, CFAEdge pCfaEdge,
-      Precision pPrecision) throws CPATransferException {
-    // TODO Auto-generated method stub
+      List<AbstractElement> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+
+    assert pElement == AlwaysTopElement.INSTANCE;
+    assert pPrecision == AlwaysTopPrecision.INSTANCE;
+
     return null;
   }
 

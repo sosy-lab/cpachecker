@@ -24,8 +24,8 @@ public class ProductAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       UnmodifiableReachedSet pElements) {
 
     ProductAutomatonElement lElement = (ProductAutomatonElement)pElement;
-        
-    if (lElement.isTarget()) {
+    
+    if (lElement.isFinalState()) {
       return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, Action.BREAK);
     }
     else {

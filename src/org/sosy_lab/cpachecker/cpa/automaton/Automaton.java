@@ -75,6 +75,10 @@ public class Automaton {
     return initState;
   }
 
+  public int getNumberOfStates() {
+    return states.size();
+  }
+  
   /**
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
    * @param pOut

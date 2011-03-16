@@ -44,11 +44,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -56,6 +56,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Primitives;
@@ -293,8 +294,8 @@ public class Configuration {
 
   private static final long serialVersionUID = -5910186668866464153L;
 
-  /** Split pattern to create string arrays */
-  private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
+  /** Splitter to create string arrays */
+  private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
   
   /** Map that stores which implementation we use for the collection classes */
   private static final Map<Class<? extends Iterable<?>>, Class<? extends Iterable<?>>> COLLECTIONS;
@@ -368,13 +369,13 @@ public class Configuration {
 
   /**
    * If there are a number of properties for a given key, this method will split them
-   * using {@link Configuration#DELIMS} and return the array of properties
+   * on commas (trimming the parts) and return the array of properties
    * @param key the key for the property
    * @return array of properties or empty array if property is not specified
    */
   public String[] getPropertiesArray(String key){
     String s = getProperty(key);
-    return (s != null) ? ARRAY_SPLIT_PATTERN.split(s) : new String[0];
+    return (s != null) ? Iterables.toArray(ARRAY_SPLITTER.split(s), String.class) : new String[0];
   }
 
   public Set<String> getUnusedProperties() {
@@ -462,7 +463,9 @@ public class Configuration {
       if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) {
         continue;
       }
-
+      
+      checkRange(option, name, value);
+      
       // set value to field
       try {
         field.set(obj, value);
@@ -504,6 +507,8 @@ public class Configuration {
         continue;
       }
 
+      checkRange(option, name, value);
+      
       // set value to field
       try {
         method.invoke(obj, value);
@@ -617,7 +622,7 @@ public class Configuration {
         if (!type.equals(String[].class)) {
           throw new UnsupportedOperationException("Currently only arrays of type String are supported for configuration options");
         }
-        result = ARRAY_SPLIT_PATTERN.split(valueStr);
+        result = Iterables.toArray(ARRAY_SPLITTER.split(valueStr), String.class);
   
       } else if (type.isPrimitive()) {
         Class<?> wrapperType = Primitives.wrap(type); // get wrapper type in order to use valueOf method
@@ -651,10 +656,15 @@ public class Configuration {
   private <T> Object invokeMethod(Class<?> type, String method, Class<T> paramType, T value, String name) throws InvalidConfigurationException {
     try {
       Method m = type.getMethod(method, paramType);
+      if (!m.isAccessible()) {
+        m.setAccessible(true);
+      }
       return m.invoke(null, value);
 
     } catch (NoSuchMethodException e) {
       throw new AssertionError("Class " + type.getSimpleName() + " without " + method + "(" + paramType.getSimpleName() + ") method!");
+    } catch (SecurityException e) {
+      throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (IllegalAccessException e) {
       throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (InvocationTargetException e) {
@@ -720,10 +730,10 @@ public class Configuration {
     Class<?> implementationClass = COLLECTIONS.get(type);
     assert implementationClass != null : "Only call this method with a class that has a mapping in COLLECTIONS";
     
-    String[] values = ARRAY_SPLIT_PATTERN.split(valueStr);
+    Iterable<String> values = ARRAY_SPLITTER.split(valueStr);
 
     // invoke ImmutableSet.copyOf(Object[]) etc.
-    return invokeMethod(implementationClass, "copyOf", Object[].class, values, name);
+    return invokeMethod(implementationClass, "copyOf", Iterable.class, values, name);
   }
   
   private static Class<?> extractUpperBoundFromType(Type type) {
@@ -746,6 +756,17 @@ public class Configuration {
     }
   }
   
+  private static void checkRange(Option option, String name, Object value) throws InvalidConfigurationException {
+    if (value instanceof Integer || value instanceof Long) {
+      long n = ((Number)value).longValue();
+      if (option.min() > n || n > option.max()) {
+        throw new InvalidConfigurationException("Invalid value in configuration file: \""
+            + name + " = " + value + '\"'
+            + " (not in range [" + option.min() + ", " + option.max() + "])");
+      }
+    }
+  }
+
   public String getRootDirectory() {
     return this.rootDirectory;
   }

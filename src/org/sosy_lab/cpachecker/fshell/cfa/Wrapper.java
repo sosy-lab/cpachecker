@@ -128,7 +128,7 @@ public class Wrapper {
           CFANode lSummarySuccessor = lSummaryEdge.getSuccessor();
           
           if (lSummarySuccessor.getNumEnteringEdges() != 1) {
-            throw new RuntimeException();
+            throw new RuntimeException("Summary successor has " + lSummarySuccessor.getNumEnteringEdges() + " entering CFA edges!");
           }
           
           mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);

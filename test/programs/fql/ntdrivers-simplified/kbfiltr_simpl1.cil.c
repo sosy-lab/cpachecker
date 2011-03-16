@@ -20,6 +20,12 @@ int setEventCalled  ;
 int customIrp  ;
 int myStatus  ;
 
+void errorFn(void);
+int IofCallDriver(int DeviceObject, int Irp);
+int KeWaitForSingleObject(int Object, int WaitReason, int WaitMode, int Alertable, int Timeout);
+void IofCompleteRequest(int Irp, int PriorityBoost);
+int KbFilter_Complete(int DeviceObject, int Irp, int Context);
+
 void stub_driver_init(void) 
 { 
 
@@ -104,6 +110,7 @@ int KbFilter_PnP(int DeviceObject , int Irp )
   int irpSp__Context ;
   int irpSp__Control ;
   long __cil_tmp23 ;
+  int __BLAST_NONDET;
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;

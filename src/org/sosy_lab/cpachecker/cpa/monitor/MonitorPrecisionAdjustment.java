@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -7,7 +8,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
+import org.sosy_lab.cpachecker.cpa.monitor.MonitorElement.TimeoutElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -35,9 +38,15 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
     Preconditions.checkArgument(pElement instanceof MonitorElement);
     MonitorElement element = (MonitorElement)pElement;
 
+    if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
+      // we can't call prec() in this case because we don't have an element of the CPA
+      return Triple.of(pElement, oldPrecision, Action.CONTINUE);
+    }
+    
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  MonitorElement.getUnwrapFunction(), Functions.<Precision>identity());
-
+    // TODO we really would have to filter out all TimeoutElements in this view
+    
     AbstractElement oldElement = element.getWrappedElement();
     
     totalTimeOfPrecAdj.start();
@@ -46,19 +55,23 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
     // add total execution time to the total time of the previous element
     long updatedTotalTime = totalTimeOfExecution + element.getTotalTimeOnPath();
     
+    Pair<PreventingHeuristicType, Long> preventingCondition = element.getPreventingCondition();
+    // TODO we should check for timeLimitForPath here
+//    if (preventingCondition != null) {
+//      if (timeLimitForPath > 0 && updatedTotalTime > timeLimitForPath) {
+//        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+//      }
+//    }
+    
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
-    if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
-      // nothing has changed
-      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
-    }
       // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
     MonitorElement resultElement = 
-      new MonitorElement(newElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), updatedTotalTime);
+      new MonitorElement(newElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), updatedTotalTime, preventingCondition);
 
-    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
+    return Triple.<AbstractElement, Precision, Action>of(resultElement, newPrecision, action);
   }
 }
