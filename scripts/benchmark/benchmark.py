@@ -173,7 +173,7 @@ class Test:
 
 class Column:
     """
-    The class Column sets text, title and digitsBehindComma of a column.
+    The class Column sets text, title and numberOfDigits of a column.
     """
 
     def __init__(self, columnTag):
@@ -184,7 +184,7 @@ class Column:
         self.title = columnTag.get("title", self.text)
 
         # get number of digits behind comma
-        self.numberOfDigits = columnTag.get("digitsBehindComma")
+        self.numberOfDigits = columnTag.get("numberOfDigits")
 
 
 class OutputHandler:
