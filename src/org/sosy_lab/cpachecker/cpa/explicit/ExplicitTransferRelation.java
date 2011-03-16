@@ -403,9 +403,6 @@ public class ExplicitTransferRelation implements TransferRelation {
     else if (expression instanceof IASTUnaryExpression)
     {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
-      if(unaryExp instanceof IASTCastExpression){
-        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
-      }
 
       switch (unaryExp.getOperator()) {
       case IASTUnaryExpression.op_not:
@@ -457,7 +454,11 @@ public class ExplicitTransferRelation implements TransferRelation {
         throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
-
+    
+    else if(expression instanceof IASTCastExpression){
+      return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+    }
+    
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference){
       return propagateBooleanExpression(element, -999, expression, null, functionName, truthValue);

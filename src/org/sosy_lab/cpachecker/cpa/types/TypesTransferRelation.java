@@ -176,7 +176,7 @@ public class TypesTransferRelation implements TransferRelation {
     //otherwise there is only one declarator
       name = funcDeclarator.getName().getRawSignature();
     }
-    assert !isNullOrEmpty(name) : standardFuncDeclarator;
+    assert !isNullOrEmpty(name) : funcDeclarator;
 
     if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       assert name.equals(cfaEdge.getSuccessor().getFunctionName());
