@@ -36,10 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
-
-import org.sosy_lab.cpachecker.cfa.CFABuilder;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
 
@@ -55,8 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -138,7 +134,7 @@ public class CPASelfCheck {
     }
   }
 
-  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, CoreException {
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, ParserException {
     String code =
 "int main() {\n" +
 "  int a;\n" +
@@ -146,14 +142,10 @@ public class CPASelfCheck {
 "  return (a);\n" +
 "}\n"
     		;
-
-    // Get Eclipse to parse the C in the current file
-    IASTTranslationUnit ast = CParser.parseString(code, Dialect.C99);
-
-    // TODO use the methods from CPAMain for this?
-    CFABuilder builder = new CFABuilder(logManager);
-    ast.accept(builder);
-    Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
+    
+    CParser parser = CParser.Factory.getParser(logManager, CParser.Dialect.C99);
+    Map<String, CFAFunctionDefinitionNode> cfas
+      = parser.parseString(code).getFunctions();
     return cfas.get("main");
   }
 

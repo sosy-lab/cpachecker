@@ -21,25 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.exceptions;
-
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+package org.sosy_lab.cpachecker.cfa.ast;
 
 /**
- * Handles problems during CFA generation
- * @author erkan
+ * Fake class, should not be used by CPAs.
  */
-public class CFAGenerationRuntimeException extends RuntimeException {
+public class IComplexType extends IType {
 
-  private static final long serialVersionUID = 6850681425709171716L;
-
-  public CFAGenerationRuntimeException(String msg) {
-    super(msg);
+  private final String name;
+  
+  public IComplexType(final String pName) {
+    name = pName;
   }
 
-
-  public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
-    this(msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
-        + ": " + astNode.getRawSignature());
+  public String getName() {
+    return name;
   }
 }

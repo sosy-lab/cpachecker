@@ -25,16 +25,16 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.DOMException;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IType;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTName;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -43,8 +43,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTBinaryExpression;
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTIdExpression;
 import org.sosy_lab.cpachecker.util.assumptions.DummyASTNumericalLiteralExpression;
 
 /**
@@ -61,12 +59,11 @@ implements GenericAssumptionBuilder
 
   private static Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> boundsForType(IType typ)
   {
-    try {
-      if (typ instanceof IBasicType) {
-        IBasicType btyp = (IBasicType) typ;
+    if (typ instanceof CBasicType) {
+      CBasicType btyp = (CBasicType) typ;
 
         switch (btyp.getType()) {
-        case IBasicType.t_int:
+        case CBasicType.t_int:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
@@ -99,9 +96,8 @@ implements GenericAssumptionBuilder
           //          else
           //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
           //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
-        }
       }
-    } catch (DOMException e) { /* oops... just ignore, and return (null, null) */ }
+    } 
     return Pair.of(null, null);
   }
 
@@ -115,36 +111,49 @@ implements GenericAssumptionBuilder
       return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
 
-    /**
-     * Compute and conjunct the assumption for the given arithmetic
-     * expression, given as its type and its expression.
-     * The two last, boolean arguments allow to avoid generating
-     * lower and/or upper bounds predicates.
-     */
-    private static IASTNode conjunctPredicateForArithmeticExpression(
-        IType typ, IASTExpression exp, IASTNode result)
-    {
-      Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds = boundsForType(typ);
-      if (bounds.getFirst() != null){
-        result = new DummyASTBinaryExpression(
-            IASTBinaryExpression.op_logicalAnd,
-            (IASTExpression)result,
-            new DummyASTBinaryExpression(
-                IASTBinaryExpression.op_greaterEqual,
-                exp,
-                bounds.getFirst()));
-      }
-      if (bounds.getSecond() != null){
-        result = new DummyASTBinaryExpression(
-            IASTBinaryExpression.op_logicalAnd,
-            (IASTExpression)result,
-            new DummyASTBinaryExpression(
-                IASTBinaryExpression.op_lessEqual,
-                exp,
-                bounds.getSecond()));
-      }
-      return result;
+  /**
+   * Compute and conjunct the assumption for the given arithmetic
+   * expression, given as its type and its expression.
+   * The two last, boolean arguments allow to avoid generating
+   * lower and/or upper bounds predicates.
+   */
+  private static IASTNode conjunctPredicateForArithmeticExpression(IType typ,
+      IASTExpression exp, IASTNode result) {
+
+    Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds =
+        boundsForType(typ);
+
+    if (bounds.getFirst() != null) {
+
+      final String rawStatementOfsecondExpr =
+          "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getRawSignature() + ")";
+      final IASTBinaryExpression secondExp =
+          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+              bounds.getFirst(), IASTBinaryExpression.op_greaterEqual);
+      final String rawStatementOfNewResult =
+          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
+              + ")";
+      result =
+          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
+              (IASTExpression) result, secondExp, IASTBinaryExpression.op_logicalAnd);
     }
+
+    if (bounds.getSecond() != null) {
+
+      final String rawStatementOfsecondExpr =
+          "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getRawSignature() + ")";
+      final IASTBinaryExpression secondExp =
+          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+              bounds.getSecond(), IASTBinaryExpression.op_lessEqual);
+      final String rawStatementOfNewResult =
+          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
+              + ")";
+      result =
+          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
+              (IASTExpression) result, secondExp, IASTBinaryExpression.op_logicalAnd);
+    }
+    return result;
+  }
 
     private static IASTNode visit(IASTExpression pExpression, IASTNode result) {
       if(pExpression instanceof IASTIdExpression){
@@ -195,10 +204,13 @@ implements GenericAssumptionBuilder
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
       if (!fcallEdge.getArguments().isEmpty()) {
         FunctionDefinitionNode fdefnode = fcallEdge.getSuccessor();
-        List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
+        List<? extends IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
-          result = visit(new DummyASTIdExpression(paramdecl.getDeclarator().getName()), result);
+          IASTName name = paramdecl.getDeclarator().getName();
+          IType type = name.getType();
+          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name);
+          result = visit(exp, result);
         }
       }
       break;

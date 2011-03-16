@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFA.findLoops;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -39,19 +40,27 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
-import org.sosy_lab.cpachecker.util.CFA;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.SortedSetMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
+ * 
+ * It is not thread-safe, but it may be re-used.
+ * The get* methods return the result of the last call to {@link #parseFileAndCreateCFA(String)}
+ * until this method is called again.
  */
 @Options
 public class CFACreator {
@@ -79,56 +88,72 @@ public class CFACreator {
 
   private final LogManager logger;
   private final Configuration config;
+  private final CParser parser;
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
   
-  public static ImmutableMultimap<String, CFA.Loop> loops = null;
-  
-  public final Timer parsingTime = new Timer();
-  public final Timer conversionTime = new Timer();
+  public static ImmutableMultimap<String, Loop> loops = null;
+
+  public final Timer parserInstantiationTime = new Timer();
+  public final Timer parsingTime;
+  public final Timer conversionTime;
   public final Timer checkTime = new Timer();
   public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
   
-  public CFACreator(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public CFACreator(Dialect dialect, Configuration config, LogManager logger)
+          throws InvalidConfigurationException {
     config.inject(this);
     
     this.config = config;
     this.logger = logger;
+    
+    parserInstantiationTime.start();
+    parser = CParser.Factory.getParser(logger, dialect);
+    parsingTime = parser.getParseTime();
+    conversionTime = parser.getCFAConstructionTime();
+    parserInstantiationTime.stop();
   }
 
+  /**
+   * Return an immutable map with all function CFAs that are the result of 
+   * the last call to  {@link #parseFileAndCreateCFA(String)}.
+   * @throws IllegalStateException If called before parsing at least once.
+   */
   public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+    Preconditions.checkState(functions != null);
     return functions;
   }
   
+  /**
+   * Return the entry node of the CFA that is the result of 
+   * the last call to  {@link #parseFileAndCreateCFA(String)}.
+   * @throws IllegalStateException If called before parsing at least once.
+   */
   public CFAFunctionDefinitionNode getMainFunction() {
+    Preconditions.checkState(mainFunction != null);
     return mainFunction;
   }
   
-  public void parseFileAndCreateCFA(String filename, Dialect dialect) throws CFAGenerationRuntimeException, InvalidConfigurationException, IOException, CoreException {
-    logger.log(Level.FINE, "Starting parsing of file");
-    parsingTime.start();
+  /**
+   * Parse a file and create a CFA, including all post-processing etc.
+   * 
+   * @param filename  The file to parse.
+   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found. 
+   * @throws IOException If an I/O error occurs.
+   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   */
+  public void parseFileAndCreateCFA(String filename)
+          throws InvalidConfigurationException, IOException, ParserException {
 
-    IASTTranslationUnit ast = CParser.parseFile(filename, dialect);
-    
-    parsingTime.stop();
+    logger.log(Level.FINE, "Starting parsing of file");
+    CFA c = parser.parseFile(filename);
     logger.log(Level.FINE, "Parser Finished");
     
-    createCFA(ast);
-  }
-  
-  public void createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
-  
-    // Build CFA
-    conversionTime.start();
-    final CFABuilder builder = new CFABuilder(logger);
-    ast.accept(builder);
-    conversionTime.stop();
-  
-    final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
-    final SortedSetMultimap<String, CFANode> cfaNodes = builder.getCFANodes();
+    final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
+    final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
     final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
     if (mainFunction == null) {
@@ -154,13 +179,13 @@ public class CFACreator {
     
     // get loop information
     try {
-      ImmutableMultimap.Builder<String, CFA.Loop> loops = ImmutableMultimap.builder();
+      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
       for (String functionName : cfaNodes.keySet()) {
         SortedSet<CFANode> nodes = cfaNodes.get(functionName);
-        loops.putAll(functionName, CFA.findLoops(nodes));
+        loops.putAll(functionName, findLoops(nodes));
       }
       CFACreator.loops = loops.build();
-    } catch (CFAGenerationRuntimeException e) {
+    } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
       logger.log(Level.WARNING, e.getMessage());
     }
@@ -178,7 +203,7 @@ public class CFACreator {
   
     if (useGlobalVars){
       // add global variables at the beginning of main
-      CFABuilder.insertGlobalDeclarations(mainFunction, builder.getGlobalDeclarations(), logger);
+      insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
     }
     
     processingTime.stop();
@@ -253,4 +278,45 @@ public class CFACreator {
     this.mainFunction = mainFunction;
   }
 
+
+  /**
+   * Insert nodes for global declarations after first node of CFA.
+   */
+  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTSimpleDeclaration> globalVars, LogManager logger) {
+    if (globalVars.isEmpty()) {
+      return;
+    }
+
+    // split off first node of CFA
+    assert cfa.getNumLeavingEdges() == 1;
+    CFAEdge firstEdge = cfa.getLeavingEdge(0);
+    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    CFANode secondNode = firstEdge.getSuccessor();
+
+    cfa.removeLeavingEdge(firstEdge);
+    secondNode.removeEnteringEdge(firstEdge);
+    
+    // insert one node to start the series of declarations
+    CFANode cur = new CFANode(0, cfa.getFunctionName());
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
+    addToCFA(be);
+
+    // create a series of GlobalDeclarationEdges, one for each declaration
+    for (IASTSimpleDeclaration sd : globalVars) {
+      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
+          sd.getFileLocation().getStartingLineNumber(), cur, n);
+      addToCFA(e);
+      cur = n;
+    }
+
+    // and a blank edge connecting the declarations with the second node of CFA
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    addToCFA(be);
+  }
+  
+  private static void addToCFA(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);
+  }
 }

@@ -25,23 +25,25 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 
 import com.google.common.collect.ImmutableList;
 
-
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
-  private final IASTFunctionDefinition functionDefinition;
-  private final List<IASTParameterDeclaration> parameters;
-  private final List<String> parameterNames;
-  
-  public FunctionDefinitionNode(int lineNumber, String functionName,
-      IASTFunctionDefinition functionDefinition, CFAFunctionExitNode exitNode,
-      List<IASTParameterDeclaration> parameters, List<String> parameterNames) {
+  private final IASTFunctionDefinition                   functionDefinition;
+  private final List<? extends IASTParameterDeclaration> parameters;
+  private final List<String>                             parameterNames;
+
+  public FunctionDefinitionNode(final int lineNumber,
+      final String functionName,
+      final IASTFunctionDefinition functionDefinition,
+      final CFAFunctionExitNode exitNode,
+      final List<? extends IASTParameterDeclaration> parameters,
+      final List<String> parameterNames) {
     super(lineNumber, functionName, exitNode);
     this.functionDefinition = functionDefinition;
     this.parameters = ImmutableList.copyOf(parameters);
@@ -56,7 +58,7 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
     return parameterNames;
   }
 
-  public List<IASTParameterDeclaration> getFunctionParameters() {
+  public List<? extends IASTParameterDeclaration> getFunctionParameters() {
     return parameters;
   }
 }

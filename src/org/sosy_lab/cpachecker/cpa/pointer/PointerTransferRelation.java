@@ -32,25 +32,25 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -287,7 +287,7 @@ public class PointerTransferRelation implements TransferRelation {
           //by first creating its context...
           successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
 
-          List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          List<? extends IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
 
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
@@ -344,8 +344,7 @@ public class PointerTransferRelation implements TransferRelation {
     }
     
     if (declarators.size() != 1) {
-      throw new UnrecognizedCCodeException("not expected in CIL", edge,
-                                    specifier.getParent());
+      throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
 
     IASTDeclarator declarator = declarators.get(0);
@@ -366,7 +365,7 @@ public class PointerTransferRelation implements TransferRelation {
         // declaration of pointer to struct
         
         String varName = declarator.getName().toString();
-        IASTPointerOperator[] operators = declarator.getPointerOperators();
+        IASTPointer[] operators = declarator.getPointerOperators();
         
         if (operators != null && operators.length > 0) {
           // pointer
@@ -446,7 +445,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     } else {
 
-      IASTPointerOperator[] operators = declarator.getPointerOperators();
+      IASTPointer[] operators = declarator.getPointerOperators();
       if (operators != null && operators.length > 0) {
         Pointer p = new Pointer(operators.length);
         if (edge instanceof GlobalDeclarationEdge) {
@@ -533,7 +532,7 @@ public class PointerTransferRelation implements TransferRelation {
           element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
         }
 
-      } else if (unaryExpression instanceof IASTCastExpression) {
+      } else if (expression instanceof IASTCastExpression) {
 
         handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
             assumeEdge);

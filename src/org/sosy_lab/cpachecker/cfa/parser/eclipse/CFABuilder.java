@@ -21,7 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse;
+
+import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -62,6 +64,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -71,10 +74,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -88,7 +89,7 @@ import com.google.common.collect.TreeMultimap;
  * <p> -- K&R style function definitions not implemented
  * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
  */
-public class CFABuilder extends ASTVisitor
+class CFABuilder extends ASTVisitor
 {
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
@@ -109,7 +110,7 @@ public class CFABuilder extends ASTVisitor
   private SortedSet<CFANode> currentCFANodes = null;
 
   // Data structure for storing global declarations
-  private final List<IASTDeclaration> globalDeclarations = new ArrayList<IASTDeclaration>();
+  private final List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> globalDeclarations = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>();
 
   private final LogManager logger;
 
@@ -151,7 +152,7 @@ public class CFABuilder extends ASTVisitor
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<IASTDeclaration> getGlobalDeclarations ()
+  public List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> getGlobalDeclarations ()
   {
     return globalDeclarations;
   }
@@ -166,6 +167,7 @@ public class CFABuilder extends ASTVisitor
 
     if (declaration instanceof IASTSimpleDeclaration)
     {
+      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)declaration;
       if (locStack.size () > 0) {// i.e. we're in a function
       
         CFANode prevNode = locStack.pop();
@@ -174,14 +176,14 @@ public class CFABuilder extends ASTVisitor
         currentCFANodes.add(nextNode);
         locStack.push(nextNode);
 
-        DeclarationEdge edge = new DeclarationEdge ((IASTSimpleDeclaration) declaration,
+        DeclarationEdge edge = new DeclarationEdge(ASTConverter.convert(sd),
                 fileloc.getStartingLineNumber(), prevNode, nextNode);
         addToCFA(edge);
       
       } else if (declaration.getParent() instanceof IASTTranslationUnit) {
       
         // else we're in the global scope
-        globalDeclarations.add (declaration);
+        globalDeclarations.add (ASTConverter.convert(sd));
       }
     }
     else if (declaration instanceof IASTFunctionDefinition)
@@ -212,7 +214,7 @@ public class CFABuilder extends ASTVisitor
       }
   
       IASTParameterDeclaration[] params = ((IASTStandardFunctionDeclarator)decl).getParameters();
-      List<IASTParameterDeclaration> parameters = new ArrayList<IASTParameterDeclaration>(params.length);
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration>(params.length);
       List<String> parameterNames = new ArrayList<String>(params.length);
       
       for (IASTParameterDeclaration param : params) {
@@ -225,7 +227,7 @@ public class CFABuilder extends ASTVisitor
 
         // function may have the parameter "void", so we need this check
         if (!name.isEmpty()) {
-          parameters.add(param);
+          parameters.add(ASTConverter.convert(param));
           parameterNames.add(name);
         }
       }
@@ -235,7 +237,7 @@ public class CFABuilder extends ASTVisitor
       CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
       currentCFANodes.add(returnNode);
 
-      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
+      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
       currentCFANodes.add(startNode);
       cfas.put(nameOfFunction, startNode);
       currentCFA = startNode;
@@ -303,7 +305,7 @@ public class CFABuilder extends ASTVisitor
           logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
           
           // remove this dead code from CFA
-          removeChainOfNodesFromCFA(n);
+          CFACreationUtils.removeChainOfNodesFromCFA(n);
         }
       }
       
@@ -324,27 +326,7 @@ public class CFABuilder extends ASTVisitor
 
     return PROCESS_CONTINUE;
   }
-
-  /**
-   * Remove nodes from the CFA beginning at a certain node n until there is a node
-   * that is reachable via some other path (not going through n).
-   * Useful for eliminating dead node, if node n is not reachable.
-   */
-	static void removeChainOfNodesFromCFA(CFANode n) {
-	  if (n.getNumEnteringEdges() > 0) {
-	    return;
-	  }
-	  
-	  for (int i = n.getNumLeavingEdges()-1; i >= 0; i--) {
-	    CFAEdge e = n.getLeavingEdge(i);
-	    CFANode succ = e.getSuccessor();
-	    
-	    n.removeLeavingEdge(e);
-	    succ.removeEnteringEdge(e);
-	    removeChainOfNodesFromCFA(succ);
-	  }
-	}
-	
+  
   // Methods for to handle visiting and leaving Statements
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTStatement)
@@ -425,7 +407,7 @@ public class CFABuilder extends ASTVisitor
     currentCFANodes.add(nextNode);
     locStack.push(nextNode);
 
-    StatementEdge edge = new StatementEdge(exprStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression());
+    StatementEdge edge = new StatementEdge(ASTConverter.convert(exprStatement), fileloc.getStartingLineNumber(), prevNode, nextNode, ASTConverter.convert(exprStatement.getExpression()));
     addToCFA(edge);
   }
 
@@ -488,14 +470,14 @@ public class CFABuilder extends ASTVisitor
       // edge connecting prevNode with thenNode
       AssumeEdge assumeEdgeTrue = new AssumeEdge(ifStatement.getConditionExpression().getRawSignature(),
               fileloc.getStartingLineNumber(), prevNode, thenNode,
-              ifStatement.getConditionExpression(),
+              ASTConverter.convert(ifStatement.getConditionExpression()),
               true);
       addToCFA(assumeEdgeTrue);
 
       // edge connecting prevNode with elseNode
       AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + ifStatement.getConditionExpression().getRawSignature() + ")",
               fileloc.getStartingLineNumber(), prevNode, elseNode,
-              ifStatement.getConditionExpression(),
+              ASTConverter.convert(ifStatement.getConditionExpression()),
               false);
       addToCFA(assumeEdgeFalse);
       break;
@@ -653,7 +635,7 @@ public class CFABuilder extends ASTVisitor
     CFANode prevNode = locStack.pop ();
     CFAFunctionExitNode functionExitNode = currentCFA.getExitNode();
 
-    ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, functionExitNode, returnStatement.getReturnValue());
+    ReturnStatementEdge edge = new ReturnStatementEdge(ASTConverter.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode, ASTConverter.convert(returnStatement.getReturnValue()));
     addToCFA(edge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
@@ -723,99 +705,12 @@ public class CFABuilder extends ASTVisitor
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
   }
   
-  private static boolean isReachableNode(CFANode node) {
-    return (node.getNumEnteringEdges() > 0)
-        || (node instanceof CFAFunctionDefinitionNode)
-        || (node instanceof CFALabelNode);
-  }
-  
   /**
    * This method adds this edge to the leaving and entering edges
    * of its predecessor and successor respectively, but it does so only
    * if the edge does not contain dead code 
    */
-  private static void addToCFA(CFAEdge edge, LogManager logger) {
-    CFANode predecessor = edge.getPredecessor();
-    CFANode successor = edge.getSuccessor();
-
-    // check control flow branching at predecessor
-    if (edge instanceof AssumeEdge) {
-      assert predecessor.getNumLeavingEdges() <= 1;
-      if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
-      }
-      
-    } else {
-      assert predecessor.getNumLeavingEdges() == 0;
-    }
-    
-    // check control flow merging at successor
-    if (   !(successor instanceof CFAFunctionExitNode)
-        && !(successor instanceof CFALabelNode)) {
-      // these two node types may have unlimited incoming edges
-      // all other may have at most two of them
-      
-      assert successor.getNumEnteringEdges() <= 1;
-    }
-    
-    // check if predecessor is reachable
-    if (isReachableNode(predecessor)) {
-    
-      // all checks passed, add it to the CFA
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
-      
-    } else {
-      // unreachable edge, don't add it to the CFA
-    
-      if (!edge.getRawStatement().isEmpty()) {
-        // warn user
-        logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
-      }
-    }
-  }
-  
   private void addToCFA(CFAEdge edge) {
-    addToCFA(edge, logger);
-  }
-
-  /**
-   * Insert nodes for global declarations after first node of CFA.
-   */
-  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, LogManager logger) {
-    if (globalVars.isEmpty()) {
-      return;
-    }
-
-    // split off first node of CFA
-    assert cfa.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = cfa.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
-    CFANode secondNode = firstEdge.getSuccessor();
-
-    cfa.removeLeavingEdge(firstEdge);
-    secondNode.removeEnteringEdge(firstEdge);
-    
-    // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
-    addToCFA(be, logger);
-
-    // create a series of GlobalDeclarationEdges, one for each declaration
-    for (IASTDeclaration d : globalVars) {
-      assert(d instanceof IASTSimpleDeclaration);
-      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
-          sd.getFileLocation().getStartingLineNumber(), cur, n);
-      addToCFA(e, logger);
-      cur = n;
-    }
-
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    addToCFA(be, logger);
-
-    return;
+    CFACreationUtils.addEdgeToCFA(edge, logger);
   }
 }

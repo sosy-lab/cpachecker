@@ -7,30 +7,26 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTProblem;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFABuilder;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 class TranslationUnit {
 
   private final Map<String, CFAFunctionDefinitionNode> mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-  private final List<IASTDeclaration> mGlobalDeclarations = new LinkedList<IASTDeclaration>();
+  private final List<IASTSimpleDeclaration> mGlobalDeclarations = new LinkedList<IASTSimpleDeclaration>();
 
   public TranslationUnit() {
   }
   
-  private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<IASTDeclaration> pGlobalDeclarations) {
+  private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<IASTSimpleDeclaration> pGlobalDeclarations) {
     assert pCFAs != null;
     
     mCFAs.putAll(pCFAs);
@@ -70,26 +66,21 @@ class TranslationUnit {
     return mCFAs.keySet();
   }
   
-  public List<IASTDeclaration> getGlobalDeclarations() {
+  public List<IASTSimpleDeclaration> getGlobalDeclarations() {
     return mGlobalDeclarations;
   }
 
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
-    IASTTranslationUnit ast;
+    CFA c;
     try {
-       ast = CParser.parseString(pSource, Dialect.C99);
-    } catch (CoreException e) {
+      CParser parser = CParser.Factory.getParser(pLogManager, CParser.Dialect.C99);
+      c = parser.parseString(pSource);
+    } catch (ParserException e) {
       throw new RuntimeException("Error during parsing C code \""
           + pSource + "\": " + e.getMessage());
     }
 
-    checkForASTProblems(ast);
-
-    CFABuilder lCFABuilder = new CFABuilder(pLogManager);
-
-    ast.accept(lCFABuilder);
-
-    Map<String, CFAFunctionDefinitionNode> cfas = lCFABuilder.getCFAs();
+    Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
     
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
@@ -97,55 +88,11 @@ class TranslationUnit {
       topSort.topologicalSort(cfa);
     }
     
-    TranslationUnit lTranslationUnit = new TranslationUnit(cfas, lCFABuilder.getGlobalDeclarations());
+    TranslationUnit lTranslationUnit = new TranslationUnit(cfas, c.getGlobalDeclarations());
     
     return lTranslationUnit;
   }
-  
-  public static TranslationUnit parseFile(String pSourceFileName, LogManager pLogManager) {
-    IASTTranslationUnit ast;
-    try {
-      ast = CParser.parseFile(pSourceFileName, Dialect.C99);
-    } catch (CoreException e) {
-      throw new RuntimeException("Error during parsing C code in file \""
-          + pSourceFileName + "\": " + e.getMessage());
-    } catch (IOException e) {
-      throw new RuntimeException("Error during parsing C code in file \""
-          + pSourceFileName + "\": " + e.getMessage());
-    }
 
-    checkForASTProblems(ast);
-
-    CFABuilder lCFABuilder = new CFABuilder(pLogManager);
-
-    ast.accept(lCFABuilder);
-    
-    List<IASTDeclaration> lGlobalDeclarations = lCFABuilder.getGlobalDeclarations();
-
-    Map<String, CFAFunctionDefinitionNode> lCfas = lCFABuilder.getCFAs();
-    
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : lCfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-    
-    TranslationUnit lTranslationUnit = new TranslationUnit(lCfas, lGlobalDeclarations);
-
-    return lTranslationUnit;
-  }
-  
-  private static void checkForASTProblems(IASTNode pAST) {
-    if (pAST instanceof IASTProblem) {
-      throw new RuntimeException("Error during parsing C code \""
-          + pAST.getRawSignature() + "\": " + ((IASTProblem)pAST).getMessage());
-    } else {
-      for (IASTNode n : pAST.getChildren()) {
-        checkForASTProblems(n);
-      }
-    }
-  }
-  
   public void insertCallEdgesRecursively(String pEntryFunction) {
     CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs);
     lBuilder.insertCallEdgesRecursively(pEntryFunction);

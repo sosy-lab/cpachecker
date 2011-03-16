@@ -29,26 +29,24 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
-import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTPointer;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -170,34 +168,28 @@ public class TypesTransferRelation implements TransferRelation {
                                         IASTDeclSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
-    if (!(funcDeclarator instanceof IASTStandardFunctionDeclarator)) {
-      throw new UnrecognizedCCodeException(null, cfaEdge, funcDeclarator);
-    }
-
-    IASTStandardFunctionDeclarator standardFuncDeclarator = (IASTStandardFunctionDeclarator)funcDeclarator;
-
     String name;
     //in case of a nested declarator, get the variable name from the inner declarator
-    if (standardFuncDeclarator.getNestedDeclarator() != null) {
-      name = standardFuncDeclarator.getNestedDeclarator().getName().getRawSignature();
+    if (funcDeclarator.getNestedDeclarator() != null) {
+      name = funcDeclarator.getNestedDeclarator().getName().getRawSignature();
     } else {
     //otherwise there is only one declarator
-      name = standardFuncDeclarator.getName().getRawSignature();
+      name = funcDeclarator.getName().getRawSignature();
     }
-    assert !isNullOrEmpty(name) : standardFuncDeclarator;
+    assert !isNullOrEmpty(name) : funcDeclarator;
 
     if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       assert name.equals(cfaEdge.getSuccessor().getFunctionName());
     }
     
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier);
-    returnType = getPointerType(returnType, cfaEdge, standardFuncDeclarator);
+    returnType = getPointerType(returnType, cfaEdge, funcDeclarator);
 
-    FunctionType function = new FunctionType(name, returnType, standardFuncDeclarator.takesVarArgs());
+    FunctionType function = new FunctionType(name, returnType, funcDeclarator.takesVarArgs());
 
     boolean external = (funcDeclSpecifier.getStorageClass() == IASTDeclSpecifier.sc_extern);
     
-    for (IASTParameterDeclaration parameter : standardFuncDeclarator.getParameters()) {
+    for (IASTParameterDeclaration parameter : funcDeclarator.getParameters()) {
       IASTDeclarator paramDeclarator = parameter.getDeclarator();
 
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
@@ -433,13 +425,11 @@ public class TypesTransferRelation implements TransferRelation {
       }
     }
 
-    IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
-    if (pointerOps != null) {
-      for (IASTPointerOperator pointerOp : pointerOps) {
+    IASTPointer[] pointers = declarator.getPointerOperators();
+    if (pointers != null) {
+      for (IASTPointer pointerOp : pointers) {
         boolean constant = false;
-        if (pointerOp instanceof IASTPointer) {
-          constant = ((IASTPointer)pointerOp).isConst();
-        }
+          constant = pointerOp.isConst();
         result = new PointerType(result, constant);
       }
     }

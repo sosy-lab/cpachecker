@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 /**

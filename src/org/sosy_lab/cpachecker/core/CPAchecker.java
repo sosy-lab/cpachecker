@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -55,11 +55,10 @@ import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -177,10 +176,10 @@ public class CPAchecker {
 
       // create CFA
       stats.cfaCreationTime.start();
-      CFACreator cfaCreator = new CFACreator(config, logger);
+      CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
       stats.setCFACreator(cfaCreator);
       
-      cfaCreator.parseFileAndCreateCFA(filename, options.parserDialect);
+      cfaCreator.parseFileAndCreateCFA(filename);
       
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
       CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
@@ -220,10 +219,7 @@ public class CPAchecker {
       logger.log(Level.SEVERE, "Could not read file", filename,
           (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
 
-    } catch (CoreException e) {
-      logger.logException(Level.SEVERE, e, "Exception thrown by Eclipse C parser");
-
-    } catch (CFAGenerationRuntimeException e) {
+    } catch (ParserException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
       logger.log(Level.SEVERE, e.getMessage());

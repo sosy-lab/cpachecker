@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -38,10 +38,10 @@ import com.google.common.collect.ImmutableList;
 public class DeclarationEdge extends AbstractCFAEdge {
 
   private final IASTSimpleDeclaration declaration;
-  private final List<IASTDeclarator> declarators;
+  private final ImmutableList<IASTDeclarator> declarators;
   
-  public DeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber,
-      CFANode predecessor, CFANode successor) {
+  public DeclarationEdge(final IASTSimpleDeclaration declaration, final int lineNumber,
+     final CFANode predecessor,final CFANode successor) {
     super(declaration.getRawSignature(), lineNumber, predecessor, successor);
     this.declaration = declaration;
     

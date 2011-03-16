@@ -30,18 +30,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
-import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -488,7 +488,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         
         return lSuccessor;
       }
-      else if(unaryExp instanceof IASTCastExpression) {
+      else if(expression instanceof IASTCastExpression) {
         AbstractElement lSuccessor = handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue); 
 
         if (lSuccessor == null) {
@@ -1048,8 +1048,8 @@ public class InterpreterTransferRelation implements TransferRelation {
           return lSuccessor;
         }
         // right hand side is a cast exp
-        else if(unaryExp instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)unaryExp;
+        else if(op2 instanceof IASTCastExpression){
+          IASTCastExpression castExp = (IASTCastExpression)op2;
           IASTExpression exprInCastOp = castExp.getOperand();
           
           AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue); 
@@ -1211,7 +1211,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         // TODO check other types of variables later - just handle primitive
         // types for the moment
         // get pointer operators of the declaration
-        IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
+        IASTPointer[] pointerOps = declarator.getPointerOperators();
         // don't add pointer variables to the list since we don't track them
         if(pointerOps.length > 0)
         {
@@ -1648,7 +1648,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           break;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
 
         newElement.assignConstant(assignedVar, value);
@@ -1658,7 +1658,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       break;
     default:
       {
-        throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+        throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
       }
     }
     return newElement;

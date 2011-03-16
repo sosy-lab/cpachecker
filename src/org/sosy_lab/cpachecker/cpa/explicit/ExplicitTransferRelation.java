@@ -30,20 +30,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTInitializer;
-import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
-import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -403,9 +403,6 @@ public class ExplicitTransferRelation implements TransferRelation {
     else if (expression instanceof IASTUnaryExpression)
     {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
-      if(unaryExp instanceof IASTCastExpression){
-        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
-      }
 
       switch (unaryExp.getOperator()) {
       case IASTUnaryExpression.op_not:
@@ -457,7 +454,11 @@ public class ExplicitTransferRelation implements TransferRelation {
         throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
-
+    
+    else if(expression instanceof IASTCastExpression){
+      return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+    }
+    
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference){
       return propagateBooleanExpression(element, -999, expression, null, functionName, truthValue);
@@ -951,8 +952,8 @@ public class ExplicitTransferRelation implements TransferRelation {
           return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
         }
         // right hand side is a cast exp
-        else if(unaryExp instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)unaryExp;
+        else if(op2 instanceof IASTCastExpression){
+          IASTCastExpression castExp = (IASTCastExpression)op2;
           IASTExpression exprInCastOp = castExp.getOperand();
           return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
         }
@@ -1095,7 +1096,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // TODO check other types of variables later - just handle primitive
         // types for the moment
         // get pointer operators of the declaration
-        IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
+        IASTPointer[] pointerOps = declarator.getPointerOperators();
         // don't add pointer variables to the list since we don't track them
         if(pointerOps.length > 0)
         {
@@ -1482,7 +1483,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           break;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
 
         newElement.assignConstant(assignedVar, value, this.threshold);
