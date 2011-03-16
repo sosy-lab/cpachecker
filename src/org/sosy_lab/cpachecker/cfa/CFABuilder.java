@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -304,7 +306,7 @@ public class CFABuilder extends ASTVisitor
           logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
           
           // remove this dead code from CFA
-          removeChainOfNodesFromCFA(n);
+          CFACreationUtils.removeChainOfNodesFromCFA(n);
         }
       }
       
@@ -324,26 +326,6 @@ public class CFABuilder extends ASTVisitor
     }
 
     return PROCESS_CONTINUE;
-  }
-
-  /**
-   * Remove nodes from the CFA beginning at a certain node n until there is a node
-   * that is reachable via some other path (not going through n).
-   * Useful for eliminating dead node, if node n is not reachable.
-   */
-  static void removeChainOfNodesFromCFA(CFANode n) {
-    if (n.getNumEnteringEdges() > 0) {
-      return;
-    }
-    
-    for (int i = n.getNumLeavingEdges()-1; i >= 0; i--) {
-      CFAEdge e = n.getLeavingEdge(i);
-      CFANode succ = e.getSuccessor();
-      
-      n.removeLeavingEdge(e);
-      succ.removeEnteringEdge(e);
-      removeChainOfNodesFromCFA(succ);
-    }
   }
   
   // Methods for to handle visiting and leaving Statements
@@ -724,55 +706,12 @@ public class CFABuilder extends ASTVisitor
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
   }
   
-  private static boolean isReachableNode(CFANode node) {
-    return (node.getNumEnteringEdges() > 0)
-        || (node instanceof CFAFunctionDefinitionNode)
-        || (node instanceof CFALabelNode);
-  }
-  
   /**
    * This method adds this edge to the leaving and entering edges
    * of its predecessor and successor respectively, but it does so only
    * if the edge does not contain dead code 
    */
   private void addToCFA(CFAEdge edge) {
-    CFANode predecessor = edge.getPredecessor();
-    CFANode successor = edge.getSuccessor();
-
-    // check control flow branching at predecessor
-    if (edge instanceof AssumeEdge) {
-      assert predecessor.getNumLeavingEdges() <= 1;
-      if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
-      }
-      
-    } else {
-      assert predecessor.getNumLeavingEdges() == 0;
-    }
-    
-    // check control flow merging at successor
-    if (   !(successor instanceof CFAFunctionExitNode)
-        && !(successor instanceof CFALabelNode)) {
-      // these two node types may have unlimited incoming edges
-      // all other may have at most two of them
-      
-      assert successor.getNumEnteringEdges() <= 1;
-    }
-    
-    // check if predecessor is reachable
-    if (isReachableNode(predecessor)) {
-    
-      // all checks passed, add it to the CFA
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
-      
-    } else {
-      // unreachable edge, don't add it to the CFA
-    
-      if (!edge.getRawStatement().isEmpty()) {
-        // warn user
-        logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
-      }
-    }
+    CFACreationUtils.addEdgeToCFA(edge, logger);
   }
 }

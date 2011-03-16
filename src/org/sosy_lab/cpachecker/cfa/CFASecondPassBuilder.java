@@ -203,7 +203,7 @@ public class CFASecondPassBuilder {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
       
-      CFABuilder.removeChainOfNodesFromCFA(successorNode);
+      CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
       
     } else {
   
