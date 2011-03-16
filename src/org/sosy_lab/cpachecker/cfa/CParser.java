@@ -28,6 +28,7 @@ import java.io.IOException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**

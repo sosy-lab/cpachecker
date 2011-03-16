@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.exceptions;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 

@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
-class DummyType extends IType {
+public class DummyType extends IType {
 
   private final String typeName;
 

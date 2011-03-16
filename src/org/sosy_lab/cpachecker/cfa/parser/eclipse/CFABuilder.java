@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
@@ -64,7 +64,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.ASTConverter;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -90,7 +89,7 @@ import com.google.common.collect.TreeMultimap;
  * <p> -- K&R style function definitions not implemented
  * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
  */
-public class CFABuilder extends ASTVisitor
+class CFABuilder extends ASTVisitor
 {
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();

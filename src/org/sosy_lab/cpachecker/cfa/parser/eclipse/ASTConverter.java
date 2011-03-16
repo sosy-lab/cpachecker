@@ -1,12 +1,53 @@
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
+import org.sosy_lab.cpachecker.cfa.ast.DummyType;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTName;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
+import org.sosy_lab.cpachecker.cfa.ast.IPointerType;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
+import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
-public class ASTConverter {
+class ASTConverter {
     
   public static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);
