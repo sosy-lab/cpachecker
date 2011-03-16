@@ -9,20 +9,10 @@ public class Goal {
   
   private ElementaryCoveragePattern mPattern;
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
-  private boolean mContainsPredicates;
   
   public Goal(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
     mPattern = pPattern;
     mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
-    
-    mContainsPredicates = false;
-    
-    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : mAutomaton.getEdges()) {
-      // pAutomaton only contains predicates as guards anymore (by construction)
-      if (lEdge.getLabel().hasGuards()) {
-        mContainsPredicates = true;
-      }
-    }
   }
   
   public ElementaryCoveragePattern getPattern() {
@@ -31,10 +21,6 @@ public class Goal {
   
   public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
     return mAutomaton;
-  }
-  
-  public boolean containsPredicates() {
-    return mContainsPredicates;
   }
   
 }
