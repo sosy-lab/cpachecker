@@ -146,7 +146,7 @@ public class AutomatonASTComparator {
     String number = "";
     if (pPotentialJoker instanceof IASTName) {
       IASTName name = (IASTName) pPotentialJoker;
-      String strName = String.copyValueOf(name.getSimpleID());
+      String strName = name.getRawSignature();
       if (strName.startsWith(NUMBERED_JOKER_EXPR)) {
         isJoker = true;
         number =  strName.substring(NUMBERED_JOKER_EXPR.length());
@@ -173,7 +173,7 @@ public class AutomatonASTComparator {
   private static boolean isJoker(IASTNode pNode) {
     if (pNode instanceof IASTName) {
       IASTName name = (IASTName) pNode;
-      return String.copyValueOf(name.getSimpleID()).equals(JOKER_EXPR);
+      return name.getRawSignature().equals(JOKER_EXPR);
       // are there more IASTsomethings that could be Jokers?
 
     } else if (pNode instanceof IASTIdExpression) {
@@ -186,11 +186,11 @@ public class AutomatonASTComparator {
   }
 
   private static boolean IASTNamesAreEqual(IASTName pA, IASTName pB) {
-    return Arrays.equals(pA.getSimpleID(), pB.getSimpleID());
+    return pA.getRawSignature().equals(pB.getRawSignature());
   }
 
   private static boolean IASTLiteralExpressionsAreEqual(IASTLiteralExpression pA, IASTLiteralExpression pB) {
-    return Arrays.equals(pA.getValue(), pB.getValue());
+    return pA.getRawSignature().equals(pB.getRawSignature());
   }
 
   /**

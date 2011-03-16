@@ -41,12 +41,6 @@ public final class IASTName extends IASTNode {
   public IType getType() {
     return type;
   }
-  
-  public char[] getSimpleID() {
-    // TODO: is this really important? 
-    // it is equal to toString() and getRawSignatue()
-    return getRawSignature().toCharArray();
-  }
 
   @Override
   public String toString() {

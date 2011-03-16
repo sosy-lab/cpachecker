@@ -37,10 +37,6 @@ public class IASTLiteralExpression extends IASTExpression {
     return kind;
   }
 
-  public char[] getValue() {
-    return getRawSignature().toCharArray();
-  }
-
   @Override
   public IASTNode[] getChildren(){
     // there are no children of this class
