@@ -23,37 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-enum AlwaysTopTransferRelation implements TransferRelation {
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+
+enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
 
   INSTANCE;
-
+  
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    
-    assert pElement == AlwaysTopElement.INSTANCE;
-    assert pPrecision == AlwaysTopPrecision.INSTANCE;
-
-    return Collections.singleton(AlwaysTopElement.INSTANCE);
-  }
-
-  @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-      List<AbstractElement> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+  public Triple<AbstractElement, Precision, Action> prec(
+      AbstractElement pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements) {
 
     assert pElement == AlwaysTopElement.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
+    assert Iterables.all(pElements, Predicates.<AbstractElement>equalTo(AlwaysTopElement.INSTANCE));
 
-    return null;
+    return Triple.<AbstractElement, Precision, Action>of(
+        AlwaysTopElement.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE);
   }
-
 }

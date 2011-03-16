@@ -23,15 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-enum AlwaysTopElement implements AbstractElement {
-  
+enum AlwaysTopPrecision implements Precision {
+
   INSTANCE;
-
-  @Override
-  public String toString() {
-    return "TRUE";
-  }
-
 }

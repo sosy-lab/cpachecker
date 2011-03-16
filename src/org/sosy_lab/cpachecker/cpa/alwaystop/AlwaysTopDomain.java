@@ -23,20 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-public class AlwaysTopTopElement implements AlwaysTopElement {
-  private static AlwaysTopTopElement mInstance = new AlwaysTopTopElement();
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-  private AlwaysTopTopElement() {
+enum AlwaysTopDomain implements AbstractDomain {
 
-  }
-
-  public static AlwaysTopTopElement getInstance() {
-    return mInstance;
-  }
-
+  INSTANCE;
+  
   @Override
-  public String toString() {
-    return "TRUE";
+  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+    
+    assert pElement1 == AlwaysTopElement.INSTANCE;
+    assert pElement2 == AlwaysTopElement.INSTANCE;
+    return true;
   }
+  
+  @Override
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
 
+    assert pElement1 == AlwaysTopElement.INSTANCE;
+    assert pElement2 == AlwaysTopElement.INSTANCE;
+    return AlwaysTopElement.INSTANCE;
+  }
 }

@@ -24,36 +24,35 @@
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
-enum AlwaysTopTransferRelation implements TransferRelation {
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+
+enum AlwaysTopStopOperator implements StopOperator {
 
   INSTANCE;
-
+  
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
+  public boolean stop(AbstractElement pElement,
+      Collection<AbstractElement> pReached, Precision pPrecision) {
     
     assert pElement == AlwaysTopElement.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-
-    return Collections.singleton(AlwaysTopElement.INSTANCE);
+    assert Iterables.all(pReached, Predicates.<AbstractElement>equalTo(AlwaysTopElement.INSTANCE));
+    
+    return !pReached.isEmpty();
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-      List<AbstractElement> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
-
+  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement) {
+    
     assert pElement == AlwaysTopElement.INSTANCE;
-    assert pPrecision == AlwaysTopPrecision.INSTANCE;
-
-    return null;
+    assert pReachedElement == AlwaysTopElement.INSTANCE;
+    return true;
   }
 
 }
