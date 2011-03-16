@@ -46,12 +46,14 @@ import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.ProgressCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
@@ -96,6 +98,7 @@ public class FShell3 {
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
   private final ConfigurableProgramAnalysis mPredicateCPA;
+
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
   private final GuardedEdgeLabel mAlphaLabel;
@@ -185,6 +188,7 @@ public class FShell3 {
     mCFAPathCPA = CFAPathCPA.getInstance();
     
     // TODO make configurable
+    // ... cache does not work well for big examples
     boolean lUseCache = false;
     
     // predicate abstraction CPA
@@ -205,7 +209,7 @@ public class FShell3 {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     mTimeInReach = new TimeAccumulator();
     mTimesInReach = 0;
     
@@ -430,6 +434,8 @@ public class FShell3 {
     
     int lRemovedByInfeasibilityPropagation = 0;
     
+    int lNumberOfCFAInfeasibleGoals = 0;
+
     while (lGoalIterator.hasNext()) {
       lIndex++;
       
@@ -537,7 +543,16 @@ public class FShell3 {
       
       lTimeReach.proceed();
       
-      CounterexampleTraceInfo lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      boolean lReachableViaIntervalAnalysis = reach_intervalCPA(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+
+      CounterexampleTraceInfo lCounterexampleTraceInfo = null;
+
+      if (lReachableViaIntervalAnalysis) {
+        lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      }
+      else {
+        lNumberOfCFAInfeasibleGoals++;
+      }
       
       lTimeReach.pause();
       
@@ -604,6 +619,8 @@ public class FShell3 {
       }
     }
     
+    System.out.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
+
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
     
@@ -1245,7 +1262,7 @@ public class FShell3 {
 
     try {
 
-      lPropertiesFile = File.createTempFile("fllesh.", ".properties");
+      lPropertiesFile = File.createTempFile("fshell.", ".properties");
       lPropertiesFile.deleteOnExit();
 
       PrintWriter lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile));
@@ -1271,6 +1288,8 @@ public class FShell3 {
       // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
       // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
       //lWriter.println("cpa.predicate.mathsat.useDtc = true");
+
+      lWriter.println("cpa.interval.merge = JOIN");
       
       lWriter.close();
 
@@ -1584,4 +1603,82 @@ public class FShell3 {
     
     return lResult;
   }
+
+  public boolean reach_intervalCPA(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+    mTimeInReach.proceed();
+    mTimesInReach++;
+    
+    /*
+     * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,
+     * CPAs that are not able to produce successors, are treated first such that
+     * the compound CPA stops applying further transfer relations early. Here, we
+     * have to choose between the number of times a CPA produces no successors and
+     * the computational effort necessary to determine that there are no successors.
+     */
+    
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
+    
+    lComponentAnalyses.add(mCallStackCPA);
+    
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
+    
+    if (pPassingCPA != null) {
+      lAutomatonCPAs.add(pPassingCPA);
+    }
+    
+    lAutomatonCPAs.add(pAutomatonCPA);
+    
+    int lProductAutomatonIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
+
+    /*try {
+      CPAFactory lFactory = IntervalAnalysisCPA.factory();
+      lFactory.setConfiguration(mConfiguration);
+      lFactory.setLogger(mLogManager);
+      ConfigurableProgramAnalysis lIntervalCPA = lFactory.createInstance();
+      lComponentAnalyses.add(lIntervalCPA);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }*/
+    
+    lComponentAnalyses.add(mAssumeCPA);
+
+    ConfigurableProgramAnalysis lCPA;
+    try {
+      // create composite CPA
+      CPAFactory lCPAFactory = CompositeCPA.factory();
+      lCPAFactory.setChildren(lComponentAnalyses);
+      lCPAFactory.setConfiguration(mConfiguration);
+      lCPAFactory.setLogger(mLogManager);
+      lCPA = lCPAFactory.createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+
+    AbstractElement lInitialElement = lCPA.getInitialElement(pEntryNode);
+    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntryNode);
+    
+    //ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.DFS);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lBasicAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    CompositeElement lLastElement = (CompositeElement)lReachedSet.getLastElement();
+    ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lLastElement.get(lProductAutomatonIndex);
+    
+    mTimeInReach.pause();
+    
+    return lProductAutomatonElement.isFinalState();
+  }
 }
+
