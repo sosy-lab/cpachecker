@@ -2,13 +2,9 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="12000">
   <test>
-    <sourcefiles>test/programs/*-simplified/*.cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/[bk]*.cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/mem_slave_tlm.1.cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/pc_sfifo_?.cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/token_ring.0[12].cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/toy?_BUG.cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/transmitter*.cil.c</sourcefiles>
+    <sourcefiles>
+      <includesfile>test/assumptions/assumptions.set</includesfile>
+    </sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>

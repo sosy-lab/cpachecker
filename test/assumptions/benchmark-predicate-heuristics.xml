@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="12000">
   <test name="sbe-heuristic">
-    <sourcefiles>test/programs/systemc/transmitter.02.BUG.cil.c</sourcefiles>
+    <sourcefiles><include>test/programs/systemc/transmitter.02.BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA-sbe-heuristics.properties</option>
@@ -11,7 +11,7 @@
     </options>
   </test>
   <test name="sbe-heuristic">
-    <sourcefiles>test/programs/systemc/transmitter.03.BUG.cil.c</sourcefiles>
+    <sourcefiles><include>test/programs/systemc/transmitter.03.BUG.cil.c</include></sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA-sbe-heuristics.properties</option>
@@ -20,8 +20,10 @@
     </options>
   </test>
   <test name="sbe">
-    <sourcefiles>test/programs/systemc/transmitter.02.BUG.cil.c</sourcefiles>
-    <sourcefiles>test/programs/systemc/transmitter.03.BUG.cil.c</sourcefiles>
+    <sourcefiles>
+      <include>test/programs/systemc/transmitter.02.BUG.cil.c</include>
+      <include>test/programs/systemc/transmitter.03.BUG.cil.c</include>
+    </sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>
       <option name="-config">test/config/symbpredabsCPA-sbe.properties</option>
