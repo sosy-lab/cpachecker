@@ -68,10 +68,10 @@ void P_1(void)
 { 
 
   {
-  if ((int )P_1_pc == 0) {
+  if (P_1_pc == 0) {
     goto P_1_ENTRY_LOC;
   } else {
-    if ((int )P_1_pc == 1) {
+    if (P_1_pc == 1) {
       goto P_1_WAIT_LOC;
     } else {
 
@@ -103,8 +103,8 @@ int is_P_1_triggered(void)
 { int __retres1 ;
 
   {
-  if ((int )P_1_pc == 1) {
-    if ((int )P_1_ev == 1) {
+  if (P_1_pc == 1) {
+    if (P_1_ev == 1) {
       __retres1 = 1;
       goto return_label;
     } else {
@@ -126,10 +126,10 @@ void P_2(void)
 { 
 
   {
-  if ((int )P_2_pc == 0) {
+  if (P_2_pc == 0) {
     goto P_2_ENTRY_LOC;
   } else {
-    if ((int )P_2_pc == 1) {
+    if (P_2_pc == 1) {
       goto P_2_WAIT_LOC;
     } else {
 
@@ -171,8 +171,8 @@ int is_P_2_triggered(void)
 { int __retres1 ;
 
   {
-  if ((int )P_2_pc == 1) {
-    if ((int )P_2_ev == 1) {
+  if (P_2_pc == 1) {
+    if (P_2_ev == 1) {
       __retres1 = 1;
       goto return_label;
     } else {
@@ -195,13 +195,13 @@ void C_1(void)
 { char c ;
 
   {
-  if ((int )C_1_pc == 0) {
+  if (C_1_pc == 0) {
     goto C_1_ENTRY_LOC;
   } else {
-    if ((int )C_1_pc == 1) {
+    if (C_1_pc == 1) {
       goto C_1_WAIT_1_LOC;
     } else {
-      if ((int )C_1_pc == 2) {
+      if (C_1_pc == 2) {
         goto C_1_WAIT_2_LOC;
       } else {
 
@@ -253,8 +253,8 @@ int is_C_1_triggered(void)
 { int __retres1 ;
 
   {
-  if ((int )C_1_pc == 1) {
-    if ((int )e == 1) {
+  if (C_1_pc == 1) {
+    if (e == 1) {
       __retres1 = 1;
       goto return_label;
     } else {
@@ -263,8 +263,8 @@ int is_C_1_triggered(void)
   } else {
 
   }
-  if ((int )C_1_pc == 2) {
-    if ((int )C_1_ev == 1) {
+  if (C_1_pc == 2) {
+    if (C_1_ev == 1) {
       __retres1 = 1;
       goto return_label;
     } else {
@@ -290,17 +290,17 @@ void init_threads(void)
 { 
 
   {
-  if ((int )P_1_i == 1) {
+  if (P_1_i == 1) {
     P_1_st = 0;
   } else {
     P_1_st = 2;
   }
-  if ((int )P_2_i == 1) {
+  if (P_2_i == 1) {
     P_2_st = 0;
   } else {
     P_2_st = 2;
   }
-  if ((int )C_1_i == 1) {
+  if (C_1_i == 1) {
     C_1_st = 0;
   } else {
     C_1_st = 2;
@@ -313,15 +313,15 @@ int exists_runnable_thread(void)
 { int __retres1 ;
 
   {
-  if ((int )P_1_st == 0) {
+  if (P_1_st == 0) {
     __retres1 = 1;
     goto return_label;
   } else {
-    if ((int )P_2_st == 0) {
+    if (P_2_st == 0) {
       __retres1 = 1;
       goto return_label;
     } else {
-      if ((int )C_1_st == 0) {
+      if (C_1_st == 0) {
         __retres1 = 1;
         goto return_label;
       } else {
@@ -353,7 +353,7 @@ void eval(void)
     } else {
       goto while_3_break;
     }
-    if ((int )P_1_st == 0) {
+    if (P_1_st == 0) {
       {
       tmp = __BLAST_NONDET;
       }
@@ -368,7 +368,7 @@ void eval(void)
     } else {
 
     }
-    if ((int )P_2_st == 0) {
+    if (P_2_st == 0) {
       {
       tmp___0 = __BLAST_NONDET;
       }
@@ -383,7 +383,7 @@ void eval(void)
     } else {
 
     }
-    if ((int )C_1_st == 0) {
+    if (C_1_st == 0) {
       {
 	tmp___1 = __BLAST_NONDET;
       }
@@ -449,17 +449,17 @@ void reset_time_events(void)
 { 
 
   {
-  if ((int )P_1_ev == 1) {
+  if (P_1_ev == 1) {
     P_1_ev = 2;
   } else {
 
   }
-  if ((int )P_2_ev == 1) {
+  if (P_2_ev == 1) {
     P_2_ev = 2;
   } else {
 
   }
-  if ((int )C_1_ev == 1) {
+  if (C_1_ev == 1) {
     C_1_ev = 2;
   } else {
 
@@ -605,6 +605,7 @@ void init_model(void)
 int main(void) 
 { int count ;
   int __retres2 ;
+  int __BLAST_NONDET;
 
   {
   {
@@ -612,7 +613,7 @@ int main(void)
   i  =    0;
   clk = 0;
   max_loop = 8;
-  e  ;
+  e = __BLAST_NONDET ;
   timer  =    0;
   P_1_pc  =    0;
   P_2_pc  =    0;
