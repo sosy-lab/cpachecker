@@ -23,24 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -48,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
@@ -152,141 +145,6 @@ public class CFA {
       }
     }
     return maxNodeId;
-  }
- 
-  /**
-   * A predicate that can be used to filter out nodes that are marked as loop start nodes.
-   */
-  public static final Predicate<CFANode> FILTER_LOOP_HEADS = new Predicate<CFANode>() {
-    @Override
-    public boolean apply(CFANode pNode) {
-      return pNode.isLoopStart();
-    }
-  };
-
-
-  /**
-   * Computes the transitive closure of the reachability relation on a set of
-   * nodes.
-   * 
-   * The result is given as a two-dimensional array, where
-   * (result[i][j] == true) iff that the node with id j is reachable from the node with id i.
-   * 
-   * This analysis does not know about the special meaning of function calls/exits,
-   * so if there exist such edges, the analysis may be imprecise because it does
-   * not keep track of the callstack.
-   * 
-   * @param allNodes The set of all nodes to consider.
-   * @param max The highest node id of all nodes in allNodes.
-   * @return A two-dimensional array with the transitive closure.
-   */
-  public static boolean[][] transitiveClosure(Set<CFANode> allNodes, int max) {
-    boolean[][] transitiveClosure = new boolean[max+1][max+1];
-    // all fields are initialized to 'false' by Java
-
-    // transitiveClosure[i][j] means that j is reachable from i (j is a successor of i)
-    
-    // initialize for all direct edges
-    for (CFANode currentNode : allNodes) {
-      final int i = currentNode.getNodeNumber();
-      final boolean[] transitiveClosureI = transitiveClosure[i];
-
-      for (int j = 0; j < currentNode.getNumLeavingEdges(); ++j) {
-        CFAEdge e = currentNode.getLeavingEdge(j);
-        transitiveClosureI[e.getSuccessor().getNodeNumber()] = true;
-      }
-      
-      CFAEdge e = currentNode.getLeavingSummaryEdge();
-      if (e != null) {
-        transitiveClosureI[e.getSuccessor().getNodeNumber()] = true;
-      }
-    }
-    
-    // (Floyd-)Warshall algorithm for transitive closure
-    for (int k = 0; k <= max; k++) {
-      for (int i = 0; i <= max; i++) {
-        final boolean[] transitiveClosureI =  transitiveClosure[i];
-        
-        for (int j = 0; j <= max; j++) {
-//        transitiveClosure[i][j] = transitiveClosure[i][j] || (transitiveClosure[i][k] && transitiveClosure[k][j]); 
-
-          // optimization:
-          transitiveClosureI[j]   = transitiveClosureI[j]   || (transitiveClosureI[k]   && transitiveClosure[k][j]); 
-        }
-      }
-    }
-    return transitiveClosure;
-  }
-  
-  /**
-   * Find all nodes that belong to the same loop as a given node.
-   * @param node A node of a loop.
-   * @return All nodes of the same loop
-   */
-  public static Sets.SetView<CFANode> findLoopNodes(CFANode node) {
-    return Sets.intersection(transitiveSuccessors(node, false), transitivePredecessors(node, false));
-  }
-  
-  /**
-   * Creates two mappings from all loop-entry and loop-exit edges respectively
-   * to the head of the loop.
-   * 
-   * The analysis is purely intraprocedural, so function call/return edges
-   * that leave or re-enter loops will always be considered as loop entry or exit edges.
-   * 
-   * Does not work with nested loops!
-   * 
-   * @param allNodes The set of all nodes of the CFA.
-   * @return Two mappings from loop-entry edges to the head of the loop and from loop-exit edges to the head of the loop.
-   */
-  public static Pair<Map<CFAEdge, CFANode>, Map<CFAEdge, CFANode>> allLoopEntryExitEdges(Set<CFANode> allNodes) {
-    Map<CFAEdge, CFANode> loopEntryEdges = new HashMap<CFAEdge, CFANode>();
-    Map<CFAEdge, CFANode> loopExitEdges = new HashMap<CFAEdge, CFANode>();
-
-    for (CFANode loopHeadNode : filter(allNodes, FILTER_LOOP_HEADS)) {
-      Collection<CFANode> loopNodes = findLoopNodes(loopHeadNode);
-      for (CFANode loopNode : loopNodes) {
-        
-        { // entry edges
-          for (int i = 0; i < loopNode.getNumEnteringEdges(); i++) {
-            CFAEdge e = loopNode.getEnteringEdge(i);
-            
-            if (!loopNodes.contains(e.getPredecessor())) {
-              CFANode old = loopEntryEdges.put(e, loopHeadNode);
-              
-              checkState(old == null, "Edge enters two loops!");
-            }
-          }
-          
-          CFAEdge e = loopNode.getEnteringSummaryEdge();
-          if (e != null && !loopNodes.contains(e.getPredecessor())) {
-            CFANode old = loopEntryEdges.put(e, loopHeadNode);
-            
-            checkState(old == null, "Edge enters two loops!");
-          }
-        }
-        
-        { // exit edges
-          for (int i = 0; i < loopNode.getNumLeavingEdges(); i++) {
-            CFAEdge e = loopNode.getLeavingEdge(i);
-            
-            if (!loopNodes.contains(e.getSuccessor())) {
-              CFANode old = loopExitEdges.put(e, loopHeadNode);
-              
-              checkState(old == null, "Edge exits two loops!");
-            }
-          }
-          
-          CFAEdge e = loopNode.getLeavingSummaryEdge();
-          if (e != null && !loopNodes.contains(e.getSuccessor())) {
-            CFANode old = loopExitEdges.put(e, loopHeadNode);
-            
-            checkState(old == null, "Edge exits two loops!");
-          }
-        }
-      }
-    }
-    return Pair.of(loopEntryEdges, loopExitEdges);
   }
   
   // wrapper class for Set<CFANode> because Java arrays don't like generics
