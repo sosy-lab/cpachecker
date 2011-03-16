@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
 
@@ -181,7 +180,7 @@ public class CFACreator {
         loops.putAll(functionName, findLoops(nodes));
       }
       CFACreator.loops = loops.build();
-    } catch (CFAGenerationRuntimeException e) {
+    } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
       logger.log(Level.WARNING, e.getMessage());
     }
