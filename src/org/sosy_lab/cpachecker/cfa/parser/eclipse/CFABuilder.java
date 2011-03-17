@@ -407,7 +407,7 @@ class CFABuilder extends ASTVisitor
     currentCFANodes.add(nextNode);
     locStack.push(nextNode);
 
-    StatementEdge edge = new StatementEdge(ASTConverter.convert(exprStatement), fileloc.getStartingLineNumber(), prevNode, nextNode, ASTConverter.convert(exprStatement.getExpression()));
+    StatementEdge edge = new StatementEdge(ASTConverter.convert(exprStatement), fileloc.getStartingLineNumber(), prevNode, nextNode);
     addToCFA(edge);
   }
 
@@ -635,7 +635,7 @@ class CFABuilder extends ASTVisitor
     CFANode prevNode = locStack.pop ();
     CFAFunctionExitNode functionExitNode = currentCFA.getExitNode();
 
-    ReturnStatementEdge edge = new ReturnStatementEdge(ASTConverter.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode, ASTConverter.convert(returnStatement.getReturnValue()));
+    ReturnStatementEdge edge = new ReturnStatementEdge(ASTConverter.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
