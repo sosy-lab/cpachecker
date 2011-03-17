@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.List;
 import com.google.common.collect.ImmutableList;
 
-public final class IASTSimpleDeclaration extends IASTDeclaration {
+public final class IASTSimpleDeclaration extends IASTNode {
 
   private final IASTDeclSpecifier    specifier;
   private final List<IASTDeclarator> declarators;

@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
@@ -181,11 +180,8 @@ class ASTConverter {
     return new IASTReturnStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getReturnValue()));
   }
 
-  private static IASTDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
-    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition) {
-      return convert((org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition)d);
-
-    } else if (d instanceof org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration) {
+  private static IASTSimpleDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
+    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d);
     
     } else {
@@ -276,7 +272,7 @@ class ASTConverter {
   }
   
   private static IASTCompositeTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier d) {
-    List<IASTDeclaration> list = new ArrayList<IASTDeclaration>(d.getMembers().length);
+    List<IASTSimpleDeclaration> list = new ArrayList<IASTSimpleDeclaration>(d.getMembers().length);
     for (org.eclipse.cdt.core.dom.ast.IASTDeclaration c : d.getMembers()) {
       list.add(convert(c));
     }

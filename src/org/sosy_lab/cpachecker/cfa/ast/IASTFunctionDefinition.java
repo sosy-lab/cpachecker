@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTFunctionDefinition extends IASTDeclaration {
+public final class IASTFunctionDefinition extends IASTNode {
 
   private final IASTDeclSpecifier      specifier;
   private final IASTFunctionDeclarator declarator;

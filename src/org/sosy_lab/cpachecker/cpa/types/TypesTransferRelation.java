@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
@@ -285,20 +284,15 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, compType); // add type "struct a"
       }
 
-      for (IASTDeclaration subDeclaration : compositeSpecifier.getMembers()) {
-        if (subDeclaration instanceof IASTSimpleDeclaration) {
-          IASTSimpleDeclaration simpleSubDeclaration = (IASTSimpleDeclaration)subDeclaration;
+      for (IASTSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
 
-          Type subType = getType(element, cfaEdge, simpleSubDeclaration.getDeclSpecifier());
+        Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
 
-          for (IASTDeclarator declarator : simpleSubDeclaration.getDeclarators()) {
-            Type thisSubType = getPointerType(subType, cfaEdge, declarator);
-            String thisSubName = declarator.getRawSignature();
+        for (IASTDeclarator declarator : subDeclaration.getDeclarators()) {
+          Type thisSubType = getPointerType(subType, cfaEdge, declarator);
+          String thisSubName = declarator.getRawSignature();
 
-            compType.addMember(thisSubName, thisSubType);
-          }
-        } else {
-          throw new UnrecognizedCCodeException(cfaEdge, subDeclaration);
+          compType.addMember(thisSubName, thisSubType);
         }
       }
 

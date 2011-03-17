@@ -30,13 +30,13 @@ import com.google.common.collect.ImmutableList;
 public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
 
   private final int                   key;
-  private final List<IASTDeclaration> members;
+  private final List<IASTSimpleDeclaration> members;
   private final IASTName              name;
 
   public IASTCompositeTypeSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation, final int pStorageClass,
       final boolean pConst, final boolean pInline, final boolean pVolatile,
-      final int pKey, final List<IASTDeclaration> pMembers, final IASTName pName) {
+      final int pKey, final List<IASTSimpleDeclaration> pMembers, final IASTName pName) {
     super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
         pVolatile);
     key = pKey;
@@ -48,8 +48,8 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
     return key;
   }
 
-  public IASTDeclaration[] getMembers() {
-    return members.toArray(new IASTDeclaration[members.size()]);
+  public IASTSimpleDeclaration[] getMembers() {
+    return members.toArray(new IASTSimpleDeclaration[members.size()]);
   }
 
   public IASTName getName() {
@@ -59,7 +59,7 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
   @Override
   public IASTNode[] getChildren() {
     final IASTNode[] children =
-        members.toArray(new IASTDeclaration[members.size() + 1]);
+        members.toArray(new IASTSimpleDeclaration[members.size() + 1]);
     children[members.size()] = name;
     return children;
   }
