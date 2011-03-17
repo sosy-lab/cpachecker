@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
