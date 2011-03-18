@@ -3,7 +3,7 @@
 # where the eclipse project directory is, relative to the location of this
 # script
 SCRIPT="$(readlink -f "$0")"
-[ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(dirname "$SCRIPT")/.."
+[ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
 
 # the location of the java command
 JAVA=java
@@ -53,7 +53,7 @@ arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin"
 
 # external jars shipped with the project
-CLASSPATH="$CLASSPATH:`find $PATH_TO_CPACHECKER/lib -name '*.jar' | tr "[:space:]" ":"`"
+CLASSPATH="$CLASSPATH$(find $PATH_TO_CPACHECKER/lib -name '*.jar' -printf ':%p' )"
 
 export CLASSPATH
 
