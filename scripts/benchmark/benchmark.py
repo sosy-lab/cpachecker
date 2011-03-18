@@ -2,6 +2,7 @@
 
 from string import Template
 from xml.etree.ElementTree import ElementTree
+from xml.parsers.expat import ExpatError
 from datetime import date
 
 import time
@@ -507,8 +508,13 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     output = output.replace("</>", "</emptyTag>")
     
     if ((returncode == 0) or (returncode == 10)):
-        tree = ET.fromstring(output)
-        status = tree.findtext('cprover-status')
+        try:
+            tree = ET.fromstring(output)
+            status = tree.findtext('cprover-status', 'ERROR')
+        except ExpatError as e:
+            status = 'ERROR'
+            sys.stdout.write("Error parsing CBMC output: %s " % e)
+
         if status == "FAILURE":
             assert returncode == 10
             reason = tree.find('goto_trace').find('failure').findtext('reason')
