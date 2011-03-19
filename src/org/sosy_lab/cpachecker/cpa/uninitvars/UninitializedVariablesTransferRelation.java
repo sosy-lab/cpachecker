@@ -198,14 +198,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       IASTDeclarator declarator = declaration.getDeclarator();
       if (declarator != null) {
-          String varName;
-          //in case of a nested declarator, get the variable name from the inner declarator
-          if (declarator.getNestedDeclarator() != null) {
-            varName = declarator.getNestedDeclarator().getName().toString();
-          } else {
-            //otherwise there is only one declarator
-            varName = declarator.getName().toString();
-          }
+          String varName = declarator.getName().toString();
           if (declaration.isGlobal()) {
             globalVars.add(varName);
           }

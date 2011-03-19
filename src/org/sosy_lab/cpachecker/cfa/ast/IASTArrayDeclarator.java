@@ -31,10 +31,10 @@ public final class IASTArrayDeclarator extends IASTDeclarator {
 
   public IASTArrayDeclarator(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
-      final IASTName pName, final IASTDeclarator pNestedDeclarator,
+      final IASTName pName,
       final List<IASTPointer> pPointerOperators,
       final List<IASTArrayModifier> pModifiers) {
-    super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator,
+    super(pRawSignature, pFileLocation, pInitializer, pName,
         pPointerOperators);
     modifiers = pModifiers;
   }

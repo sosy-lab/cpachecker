@@ -28,6 +28,7 @@ import java.util.List;
 /** This class implements the STANDARD-FunctionDeclarator of eclipse! */
 public class IASTFunctionDeclarator extends IASTDeclarator {
 
+  private final IASTDeclarator                 nestedDeclarator;
   private final List<IASTParameterDeclaration> parameters;
   private final boolean                        takesVarArgs;
 
@@ -37,24 +38,32 @@ public class IASTFunctionDeclarator extends IASTDeclarator {
       final List<IASTPointer> pPointerOperators,
       final List<IASTParameterDeclaration> pParameters,
       final boolean pTakesVarArgs) {
-    super(pRawSignature, pFileLocation, pInitializer, pName, pNestedDeclarator,
+    super(pRawSignature, pFileLocation, pInitializer, pName,
         pPointerOperators);
+    nestedDeclarator = pNestedDeclarator;
     parameters = pParameters;
     takesVarArgs = pTakesVarArgs;
+    
   }
 
   public IASTParameterDeclaration[] getParameters() {
     return parameters.toArray(new IASTParameterDeclaration[parameters.size()]);
   }
 
+  public IASTDeclarator getNestedDeclarator() {
+    return nestedDeclarator;
+  }
+  
   @Override
   public IASTNode[] getChildren() {
     final IASTNode[] children1 = super.getChildren();
     final IASTNode[] children2 = getParameters();
-    IASTNode[] allChildren = new IASTNode[children1.length + children2.length];
+    IASTNode[] allChildren = new IASTNode[children1.length + children2.length + 1];
     System.arraycopy(children1, 0, allChildren, 0, children1.length);
     System.arraycopy(children2, 0, allChildren, children1.length,
         children2.length);
+    
+    allChildren[allChildren.length - 1] = nestedDeclarator;
     return allChildren;
   }
 

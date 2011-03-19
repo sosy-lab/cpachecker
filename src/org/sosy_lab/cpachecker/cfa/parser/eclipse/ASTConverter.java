@@ -241,7 +241,10 @@ class ASTConverter {
       for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
         list.add(convert(c));
       }
-      return new IASTVariableDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), convert(d.getNestedDeclarator()), list);
+      if (d.getNestedDeclarator() != null) {
+        throw new CFAGenerationRuntimeException("Nested declarator where not expected", d);
+      }
+      return new IASTVariableDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), list);
     }
   }
   
@@ -254,7 +257,10 @@ class ASTConverter {
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
       pointerList.add(convert(c));
     }
-    return new IASTArrayDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), convert(d.getNestedDeclarator()), pointerList, arrayList);
+    if (d.getNestedDeclarator() != null) {
+      throw new CFAGenerationRuntimeException("Nested declarator where not expected", d);
+    }
+    return new IASTArrayDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), pointerList, arrayList);
   }
   
   private static IASTFunctionDeclarator convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d) {
@@ -270,7 +276,21 @@ class ASTConverter {
     for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : sd.getParameters()) {
       paramsList.add(convert(c));
     }
-    return new IASTFunctionDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), convert(d.getNestedDeclarator()), pointerList, paramsList, sd.takesVarArgs());
+    
+    IASTDeclarator nestedDeclarator = convert(d.getNestedDeclarator());
+    
+    IASTName name;
+    if (nestedDeclarator != null) {
+      assert d.getName().getRawSignature().isEmpty() : d;
+      assert !(nestedDeclarator instanceof IASTFunctionDeclarator) : d;
+      
+      name = nestedDeclarator.getName();
+    
+    } else {
+      name = convert(d.getName());
+    }
+    
+    return new IASTFunctionDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), name, nestedDeclarator, pointerList, paramsList, sd.takesVarArgs());
   }
   
   

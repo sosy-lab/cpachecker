@@ -290,9 +290,6 @@ public class TypesTransferRelation implements TransferRelation {
         IASTDeclarator declarator = subDeclaration.getDeclarator();
         if (declarator != null) {
           Type thisSubType = getPointerType(subType, cfaEdge, declarator);
-          if (declarator.getNestedDeclarator() != null) {
-            declarator = declarator.getNestedDeclarator();
-          }
           String thisSubName = declarator.getName().getRawSignature();
           
           // anonymous struct fields may occur, ignore them

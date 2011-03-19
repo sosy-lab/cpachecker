@@ -522,11 +522,7 @@ public class CtoFormulaConverter {
       for (IASTParameterDeclaration formalParam : formalParams) {
         // get formal parameter name
         String formalParamName = formalParam.getDeclarator().getName().toString();
-        if (formalParamName.isEmpty()) {
-          assert(formalParam.getDeclarator().getNestedDeclarator() != null);
-          formalParamName = formalParam.getDeclarator().getNestedDeclarator().getName().toString();
-        }
-        assert(!formalParamName.isEmpty());
+        assert(!formalParamName.isEmpty()) : edge;
 
         if (formalParam.getDeclarator().getPointerOperators().length != 0) {
           log(Level.WARNING, "Ignoring the semantics of pointer for parameter " + formalParamName,
