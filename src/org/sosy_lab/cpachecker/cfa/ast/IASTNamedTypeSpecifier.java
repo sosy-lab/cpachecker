@@ -29,9 +29,9 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier {
 
   public IASTNamedTypeSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation, final int pStorageClass,
-      final boolean pConst, final boolean pInline, final boolean pVolatile,
+      final boolean pConst, final boolean pVolatile,
       final IASTName pName) {
-    super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
+    super(pRawSignature, pFileLocation, pStorageClass, pConst,
         pVolatile);
     name = pName;
   }

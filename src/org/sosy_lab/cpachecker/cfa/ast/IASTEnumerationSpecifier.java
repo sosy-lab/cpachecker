@@ -33,9 +33,9 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier {
 
   public IASTEnumerationSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation, final int pStorageClass,
-      final boolean pConst, final boolean pInline, final boolean pVolatile,
+      final boolean pConst, final boolean pVolatile,
       final List<IASTEnumerator> pEnumerators, final IASTName pName) {
-    super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
+    super(pRawSignature, pFileLocation, pStorageClass, pConst,
         pVolatile);
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;

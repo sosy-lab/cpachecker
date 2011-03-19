@@ -33,10 +33,10 @@ public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
 
   public IASTSimpleDeclSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation, final int pStorageClass,
-      final boolean pConst, final boolean pInline, final boolean pVolatile,
+      final boolean pConst, final boolean pVolatile,
       final int pType, final boolean pIsLong, final boolean pIsShort,
       final boolean pIsSigned, final boolean pIsUnsigned) {
-    super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
+    super(pRawSignature, pFileLocation, pStorageClass, pConst,
         pVolatile);
     type = pType;
     isLong = pIsLong;

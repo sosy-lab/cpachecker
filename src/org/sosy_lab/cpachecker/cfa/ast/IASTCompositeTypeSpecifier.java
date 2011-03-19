@@ -35,9 +35,9 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
 
   public IASTCompositeTypeSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation, final int pStorageClass,
-      final boolean pConst, final boolean pInline, final boolean pVolatile,
+      final boolean pConst, final boolean pVolatile,
       final int pKey, final List<IASTSimpleDeclaration> pMembers, final IASTName pName) {
-    super(pRawSignature, pFileLocation, pStorageClass, pConst, pInline,
+    super(pRawSignature, pFileLocation, pStorageClass, pConst,
         pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);

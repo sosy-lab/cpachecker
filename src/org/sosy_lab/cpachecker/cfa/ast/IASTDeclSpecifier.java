@@ -27,16 +27,14 @@ public abstract class IASTDeclSpecifier extends IASTNode {
 
   private final int storageClass;
   private boolean   isConst;
-  private boolean   isInline;
   private boolean   isVolatile;
 
   public IASTDeclSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation, final int pStorageClass,
-      final boolean pConst, final boolean pInline, final boolean pVolatile) {
+      final boolean pConst, final boolean pVolatile) {
     super(pRawSignature, pFileLocation);
     storageClass = pStorageClass;
     isConst = pConst;
-    isInline = pInline;
     isVolatile = pVolatile;
   }
 
@@ -46,10 +44,6 @@ public abstract class IASTDeclSpecifier extends IASTNode {
 
   public boolean isConst() {
     return isConst;
-  }
-
-  public boolean isInline() {
-    return isInline;
   }
 
   public boolean isVolatile() {
