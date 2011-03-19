@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -13,6 +14,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class AssumeTransferRelation implements TransferRelation {
 
@@ -37,6 +39,11 @@ public class AssumeTransferRelation implements TransferRelation {
         IASTFunctionCallExpression lCallExpression = (IASTFunctionCallExpression)lExpression;
         
         if (lCallExpression.getFunctionNameExpression().getRawSignature().equals(mFunctionName)) {
+          IASTExpression lParameterExpression = lCallExpression.getParameterExpression();
+          if (lParameterExpression instanceof IASTExpressionList) {
+            throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",
+                                                 pCfaEdge, lCallExpression);
+          }
           AssumeElement lElement = new ConstrainedAssumeElement(lCallExpression.getParameterExpression()); 
           
           return Collections.singleton(lElement);
