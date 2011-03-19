@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
+
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -39,12 +39,12 @@ public class AssumeTransferRelation implements TransferRelation {
         IASTFunctionCallExpression lCallExpression = (IASTFunctionCallExpression)lExpression;
         
         if (lCallExpression.getFunctionNameExpression().getRawSignature().equals(mFunctionName)) {
-          IASTExpression lParameterExpression = lCallExpression.getParameterExpression();
-          if (lParameterExpression instanceof IASTExpressionList) {
+          List<IASTExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
+          if (lParameterExpressions.size() != 1) {
             throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",
                                                  pCfaEdge, lCallExpression);
           }
-          AssumeElement lElement = new ConstrainedAssumeElement(lCallExpression.getParameterExpression()); 
+          AssumeElement lElement = new ConstrainedAssumeElement(lParameterExpressions.get(0)); 
           
           return Collections.singleton(lElement);
         }

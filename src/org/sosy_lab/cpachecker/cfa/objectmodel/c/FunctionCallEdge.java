@@ -38,13 +38,10 @@ public class FunctionCallEdge extends AbstractCFAEdge
 	private final List<IASTExpression> arguments;
 	private final IASTExpression rawAST;
 
-    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, IASTExpression[] arguments) {
+    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, List<IASTExpression> arguments) {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
-        if (arguments == null) {
-          this.arguments = ImmutableList.of();
-        } else {
-          this.arguments = ImmutableList.copyOf(arguments);
-        }
+
+        this.arguments = ImmutableList.copyOf(arguments);
         this.rawAST = rawAST;
     }
 

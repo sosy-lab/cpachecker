@@ -23,33 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.List;
+
+import com.google.common.collect.ImmutableList;
+
 public class IASTFunctionCallExpression extends IASTExpression {
 
   private final IASTExpression functionName;
-  private final IASTExpression parameters;
+  private final List<IASTExpression> parameters;
 
   public IASTFunctionCallExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pFunctionName, final IASTExpression pParameters) {
+      final IASTExpression pFunctionName, final List<IASTExpression> pParameters) {
     super(pRawSignature, pFileLocation, pType);
     functionName = pFunctionName;
-    parameters = pParameters;
+    parameters = ImmutableList.copyOf(pParameters);
   }
 
   public IASTExpression getFunctionNameExpression() {
     return functionName;
   }
 
-  public IASTExpression getParameterExpression() {
+  public List<IASTExpression> getParameterExpressions() {
     return parameters;
   }
 
   @Override
   public IASTNode[] getChildren() {
-    if (parameters == null) {
-      return new IASTNode[] { functionName };
-    } else {
-      return new IASTNode[] { functionName, parameters };
+    IASTNode[] result = new IASTNode[parameters.size()+1];
+    result[0] = functionName;
+    int i = 1;
+    for (IASTExpression param : parameters) {
+      result[i++] = param;
     }
+    return result;
   }
 }

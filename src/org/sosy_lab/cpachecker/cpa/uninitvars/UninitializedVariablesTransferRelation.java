@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
@@ -287,8 +286,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //a mere function call (func(a)) does not change the initialization status of variables
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        IASTExpression params = ((IASTFunctionCallExpression)expression).getParameterExpression();
-        isExpressionUninitialized(element, params, cfaEdge);
+        for (IASTExpression param : ((IASTFunctionCallExpression)expression).getParameterExpressions()) {
+          isExpressionUninitialized(element, param, cfaEdge);
+        }
       }
 
     } else if (expression instanceof IASTUnaryExpression) {
@@ -464,9 +464,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //an external function call, and call to return edges for external calls are disabled.
       //since we can not know its return value's initialization status, only check the parameters
       if (cfaEdge instanceof StatementEdge) {
-        IASTExpression params = funcExpression.getParameterExpression();
-        if (printWarnings) {
-          isExpressionUninitialized(element, params, cfaEdge);
+        for (IASTExpression param : funcExpression.getParameterExpressions()) {
+          isExpressionUninitialized(element, param, cfaEdge);
         }
         return false;
 
@@ -485,16 +484,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
         return returnUninit;
       }
-
-    } else if (expression instanceof IASTExpressionList) {
-      IASTExpressionList expressionList = (IASTExpressionList)expression;
-      boolean result = false;
-      for (IASTExpression exp : expressionList.getExpressions()) {
-        if (isExpressionUninitialized(element, exp, cfaEdge)) {
-          result = true;
-        }
-      }
-      return result;
 
     } else if (expression instanceof IASTLiteralExpression) {
       return false;

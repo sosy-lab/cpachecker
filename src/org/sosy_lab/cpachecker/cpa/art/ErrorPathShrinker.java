@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -223,18 +223,11 @@ public final class ErrorPathShrinker {
     }
     // func(); i.e. "random()" from "value = random();"
     else if (exp instanceof IASTFunctionCallExpression) {
-      final IASTExpression paramExp =
-          ((IASTFunctionCallExpression) exp).getParameterExpression();
-      if (paramExp != null) {
+      List<IASTExpression> params =
+          ((IASTFunctionCallExpression) exp).getParameterExpressions();
+      for (IASTExpression paramExp : params) {
         addAllVarsInExpToSet(paramExp, importantVars,
             importantVarsForGlobalVars);
-      }
-    }
-
-    // "a, b, c" from "func(a, b, c);"
-    else if (exp instanceof IASTExpressionList) {
-      for (IASTExpression expElem : ((IASTExpressionList) exp).getExpressions()) {
-        addAllVarsInExpToSet(expElem, importantVars, importantVarsForGlobalVars);
       }
     }
 

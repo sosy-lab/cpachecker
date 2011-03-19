@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
@@ -1055,7 +1054,7 @@ public class CtoFormulaConverter {
   private Formula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     IASTExpression fn = fexp.getFunctionNameExpression();
-    IASTExpression pexp = fexp.getParameterExpression();
+    List<IASTExpression> pexps = fexp.getParameterExpressions();
     String func;
     if (fn instanceof IASTIdExpression) {
       func = ((IASTIdExpression)fn).getName().getRawSignature();
@@ -1067,7 +1066,7 @@ public class CtoFormulaConverter {
         return fmgr.makeVariable(func, idx);
         
       } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
-        if (pexp == null) {
+        if (pexps.isEmpty()) {
           // function of arity 0
           log(Level.INFO, "Assuming external function to be a constant function", fn);
         } else {
@@ -1079,7 +1078,7 @@ public class CtoFormulaConverter {
       func = "<func>{" + fn.getRawSignature() + "}";
     }
 
-    if (pexp == null) {
+    if (pexps.isEmpty()) {
       // this is a function of arity 0. We create a fresh global variable
       // for it (instantiated at 1 because we need an index but it never
       // increases)
@@ -1089,16 +1088,11 @@ public class CtoFormulaConverter {
       ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
       return fmgr.makeVariable(func, 1);
     } else {
-      IASTExpression[] args;
-      if (pexp instanceof IASTExpressionList) {
-        args = ((IASTExpressionList)pexp).getExpressions();
-      } else {
-        args = new IASTExpression[]{pexp};
-      }
-      func += "{" + args.length + "}"; // add #arguments to function name to cope with varargs functions
+      IASTExpression[] args = pexps.toArray(new IASTExpression[pexps.size()]);
+      func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
       Formula[] mArgs = new Formula[args.length];
-      for (int i = 0; i < args.length; ++i) {
-        mArgs[i] = buildTerm(args[i], function, ssa);
+      for (int i = 0; i < pexps.size(); ++i) {
+        mArgs[i] = buildTerm(pexps.get(i), function, ssa);
       }
 
       return fmgr.makeUIF(func, fmgr.makeList(mArgs));

@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
@@ -86,9 +85,6 @@ class ASTConverter {
     } else if (e instanceof org.eclipse.cdt.core.dom.ast.IASTCastExpression) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTCastExpression)e);
       
-    } else if (e instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionList) {
-      return convert((org.eclipse.cdt.core.dom.ast.IASTExpressionList)e);
-      
     } else if (e instanceof org.eclipse.cdt.core.dom.ast.IASTFieldReference) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTFieldReference)e);
             
@@ -124,20 +120,25 @@ class ASTConverter {
     return new IASTCastExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getOperand()), convert(e.getTypeId()));
   }
   
-  private static IASTExpressionList convert(org.eclipse.cdt.core.dom.ast.IASTExpressionList e) {
-    List<IASTExpression> list = new ArrayList<IASTExpression>(e.getExpressions().length);
-    for (org.eclipse.cdt.core.dom.ast.IASTExpression c : e.getExpressions()) {
-      list.add(convert(c));
-    }
-    return new IASTExpressionList(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), list);
-  }
-  
   private static IASTFieldReference convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference e) {
     return new IASTFieldReference(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFieldName()), convert(e.getFieldOwner()), e.isPointerDereference());
   }
   
   private static IASTFunctionCallExpression convert(org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression e) {
-    return new IASTFunctionCallExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFunctionNameExpression()), convert(e.getParameterExpression()));
+    org.eclipse.cdt.core.dom.ast.IASTExpression p = e.getParameterExpression();
+    List<IASTExpression> params = new ArrayList<IASTExpression>();
+    
+    if (p instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionList) {
+      org.eclipse.cdt.core.dom.ast.IASTExpression[] ps = ((org.eclipse.cdt.core.dom.ast.IASTExpressionList)p).getExpressions();
+      for (org.eclipse.cdt.core.dom.ast.IASTExpression param : ps) {
+        params.add(convert(param));
+      }
+    
+    } else if (p != null) {
+      params.add(convert(p));
+    }
+    
+    return new IASTFunctionCallExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFunctionNameExpression()), params);
   }
   
   private static IASTIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {

@@ -860,8 +860,12 @@ public class PointerTransferRelation implements TransferRelation {
       IASTFunctionCallExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
-    IASTExpression parameter = expression.getParameterExpression();
-
+    List<IASTExpression> parameters = expression.getParameterExpressions();
+    if (parameters.size() != 1) {
+      throw new UnrecognizedCCodeException("Wrong number of arguments for free", cfaEdge, expression);
+    }
+    IASTExpression parameter = parameters.get(0);
+    
     if (parameter instanceof IASTIdExpression) {
       Pointer p = element.lookupPointer(parameter.getRawSignature());
 
@@ -1109,8 +1113,7 @@ public class PointerTransferRelation implements TransferRelation {
           funcExpression.getFunctionNameExpression().getRawSignature();
 
       if (functionName.equals("malloc")) {
-        handleMalloc(element, leftPointer, leftDereference, funcExpression
-            .getParameterExpression(), cfaEdge);
+        handleMalloc(element, leftPointer, leftDereference, funcExpression, cfaEdge);
 
       } else {
         // if it's an internal call, it's handled in handleReturnFromFunction()
@@ -1385,15 +1388,21 @@ public class PointerTransferRelation implements TransferRelation {
    * 
    * @param element the abstract element
    * @param pointer the pointer for the result (may be null)
-   * @param parameter the parameter to the malloc call in the AST
+   * @param expression the parameter to the malloc call in the AST
    * @throws InvalidPointerException if malloc fails
    * @throws NumberFormatException if argument is a number, not a valid integer
    * @throws UnrecognizedCCodeException if parameter contains something unexpected
    */
   private void handleMalloc(PointerElement element, Pointer pointer,
-      boolean leftDereference, IASTExpression parameter, CFAEdge cfaEdge)
+      boolean leftDereference, IASTFunctionCallExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
+    List<IASTExpression> parameters = expression.getParameterExpressions();
+    if (parameters.size() != 1) {
+      throw new UnrecognizedCCodeException("Wrong number of arguments for malloc", cfaEdge, expression);
+    }
+    IASTExpression parameter = parameters.get(0);
+    
     Pointer.MallocAndAssign op = new Pointer.MallocAndAssign();
     element.pointerOp(op, pointer, leftDereference);
     MemoryAddress memAddress = op.getMallocResult();

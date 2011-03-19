@@ -33,7 +33,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -175,16 +174,7 @@ public class CFASecondPassBuilder {
     assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
     
     //get the parameter expression
-    IASTExpression parameterExpression = functionCall.getParameterExpression();
-    IASTExpression[] parameters = null;
-    //in case of an expression list, get the corresponding array
-    if (parameterExpression instanceof IASTExpressionList) {
-      IASTExpressionList paramList = (IASTExpressionList)parameterExpression;
-      parameters = paramList.getExpressions();
-    //in case of a single parameter, use a single-entry array
-    } else if (parameterExpression != null) {
-      parameters = new IASTExpression[] {parameterExpression};
-    }
+    List<IASTExpression> parameters = functionCall.getParameterExpressions();
 
     // delete old edge
     predecessorNode.removeLeavingEdge(edge);
