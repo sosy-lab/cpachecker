@@ -1,5 +1,10 @@
 package org.sosy_lab.cpachecker.fshell.testcases;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +103,28 @@ public abstract class TestCase {
     }
     
     return lBuffer.toString();
+  }
+  
+  public static Collection<TestCase> fromFile(String pFileName) throws IOException {
+    return fromFile(new File(pFileName));
+  }
+  
+  public static Collection<TestCase> fromFile(File pFile) throws IOException {
+    Collection<TestCase> lTestSuite = new LinkedList<TestCase>();
+    
+    BufferedReader lReader = new BufferedReader(new FileReader(pFile));
+    
+    String lLine = null;
+    
+    while ((lLine = lReader.readLine()) != null) {
+      lLine = lLine.trim();
+      
+      if (lLine.length() != 0) {
+        lTestSuite.add(fromString(lLine));
+      }
+    }
+    
+    return lTestSuite;
   }
   
   public static TestCase fromString(String pTestCase) {
