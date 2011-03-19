@@ -359,6 +359,10 @@ public class TypesTransferRelation implements TransferRelation {
       }
 
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
+        if (enumerator.getValue() == null) {
+          // TODO handle enum e { e1, e2 }
+          throw new UnrecognizedCCodeException("Missing value in enum declaration", cfaEdge, enumSpecifier);
+        }
         int value;
         try {
           value = Integer.parseInt(enumerator.getValue().getRawSignature());
