@@ -122,6 +122,9 @@ public class EclipseCParser implements CParser {
                                             StubCodeReaderFactory.instance,
                                             null,
                                             parserLog);
+    } catch (CFAGenerationRuntimeException e) {
+      // thrown by StubCodeReaderFactory
+      throw new ParserException(e);
     } catch (CoreException e) {
       throw new ParserException(e);
     } finally {

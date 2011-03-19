@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 
 public class CPAchecker {
@@ -222,7 +223,7 @@ public class CPAchecker {
     } catch (ParserException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
-      logger.log(Level.SEVERE, e.getMessage());
+      logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
       logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
           + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 
