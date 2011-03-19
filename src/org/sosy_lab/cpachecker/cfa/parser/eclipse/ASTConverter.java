@@ -257,10 +257,19 @@ class ASTConverter {
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
       pointerList.add(convert(c));
     }
-    if (d.getNestedDeclarator() != null) {
-      throw new CFAGenerationRuntimeException("Nested declarator where not expected", d);
+    
+    IASTDeclarator nestedDeclarator = convert(d.getNestedDeclarator());
+    
+    IASTName name;
+    if (nestedDeclarator != null) {
+      assert d.getName().getRawSignature().isEmpty() : d;
+      
+      name = nestedDeclarator.getName();
+    
+    } else {
+      name = convert(d.getName());
     }
-    return new IASTArrayDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), convert(d.getName()), pointerList, arrayList);
+    return new IASTArrayDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getInitializer()), name, pointerList, nestedDeclarator, arrayList);
   }
   
   private static IASTFunctionDeclarator convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d) {
@@ -282,7 +291,6 @@ class ASTConverter {
     IASTName name;
     if (nestedDeclarator != null) {
       assert d.getName().getRawSignature().isEmpty() : d;
-      assert !(nestedDeclarator instanceof IASTFunctionDeclarator) : d;
       
       name = nestedDeclarator.getName();
     

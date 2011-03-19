@@ -27,18 +27,25 @@ import java.util.List;
 
 public final class IASTArrayDeclarator extends IASTDeclarator {
 
+  private final IASTDeclarator          nestedDeclarator;
   private final List<IASTArrayModifier> modifiers;
 
   public IASTArrayDeclarator(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
       final IASTName pName,
       final List<IASTPointer> pPointerOperators,
+      final IASTDeclarator pNestedDeclarator,
       final List<IASTArrayModifier> pModifiers) {
     super(pRawSignature, pFileLocation, pInitializer, pName,
         pPointerOperators);
+    nestedDeclarator = pNestedDeclarator;
     modifiers = pModifiers;
   }
 
+  public IASTDeclarator getNestedDeclarator() {
+    return nestedDeclarator;
+  }
+  
   public IASTArrayModifier[] getArrayModifiers() {
     return modifiers.toArray(new IASTArrayModifier[modifiers.size()]);
   }
@@ -47,9 +54,11 @@ public final class IASTArrayDeclarator extends IASTDeclarator {
   public IASTNode[] getChildren() {
     final IASTNode[] children1 = super.getChildren();
     final IASTNode[] children2 = getArrayModifiers();
-    IASTNode[] allChildren=new IASTNode[children1.length + children2.length];
+    IASTNode[] allChildren=new IASTNode[children1.length + children2.length + 1];
     System.arraycopy(children1, 0, allChildren, 0, children1.length);
     System.arraycopy(children2, 0, allChildren, children1.length, children2.length);
+    
+    allChildren[allChildren.length - 1] = nestedDeclarator;
     return allChildren;
   }
 }
