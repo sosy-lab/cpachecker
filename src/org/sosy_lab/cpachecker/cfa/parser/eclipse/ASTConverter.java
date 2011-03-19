@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
@@ -185,7 +186,7 @@ class ASTConverter {
     return new IASTReturnStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getReturnValue()));
   }
 
-  private static IASTSimpleDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
+  private static List<IASTSimpleDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
     if (d instanceof org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d);
     
@@ -198,12 +199,30 @@ class ASTConverter {
     return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), convert(f.getDeclSpecifier()), convert(f.getDeclarator()));
   }
   
-  public static IASTSimpleDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
-    List<IASTDeclarator> list = new ArrayList<IASTDeclarator>(d.getDeclarators().length);
-    for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : d.getDeclarators()) {
-      list.add(convert(c));
+  public static List<IASTSimpleDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
+    IASTFileLocation fileLoc = convert(d.getFileLocation());
+    IASTDeclSpecifier declSpec = convert(d.getDeclSpecifier());
+    
+    org.eclipse.cdt.core.dom.ast.IASTDeclarator[] declarators = d.getDeclarators();
+    if (declarators == null || declarators.length == 0) {
+      // declaration without declarator, i.e. struct prototype
+      return Collections.singletonList(new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, null));
+    
+    } else if (declarators.length == 1) {
+      return Collections.singletonList(new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, convert(declarators[0])));
     }
-    return new IASTSimpleDeclaration(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getDeclSpecifier()), list);
+    
+    List<IASTSimpleDeclaration> result = new ArrayList<IASTSimpleDeclaration>(declarators.length);
+    for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : d.getDeclarators()) {
+      IASTDeclarator newC = convert(c);
+      
+      // fake rawSignature because otherwise the other declarators would appear in it, too
+      
+      String rawSignature = declSpec.getRawSignature() + " " + newC.getRawSignature() + ";";
+      
+      result.add(new IASTSimpleDeclaration(rawSignature, fileLoc, declSpec, newC));
+    }
+    return result;
   }
   
   
@@ -279,7 +298,15 @@ class ASTConverter {
   private static IASTCompositeTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier d) {
     List<IASTSimpleDeclaration> list = new ArrayList<IASTSimpleDeclaration>(d.getMembers().length);
     for (org.eclipse.cdt.core.dom.ast.IASTDeclaration c : d.getMembers()) {
-      list.add(convert(c));
+      List<IASTSimpleDeclaration> newCs = convert(c);
+      assert !newCs.isEmpty();
+      for (IASTSimpleDeclaration newC : newCs) {
+        if (newC.getDeclarator() == null) {
+          // declaration without declarator, i.e. struct prototype
+          throw new CFAGenerationRuntimeException("Missing declarator in CompositeTypeSpecifier", d);
+        }
+        list.add(newC);
+      }
     }
     return new IASTCompositeTypeSpecifier(d.getRawSignature(), convert(d.getFileLocation()), d.getStorageClass(), d.isConst(), d.isInline(), d.isVolatile(), d.getKey(), list, convert(d.getName()));
   }

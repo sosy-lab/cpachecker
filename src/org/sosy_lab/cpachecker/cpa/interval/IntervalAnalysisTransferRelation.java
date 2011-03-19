@@ -607,12 +607,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   throws UnrecognizedCCodeException
   {
     IntervalAnalysisElement newElement = element.clone();
+    IASTDeclarator declarator = declarationEdge.getDeclarator();
+    if (declarator != null) {
 
-    for(IASTDeclarator declarator : declarationEdge.getDeclarators())
-    {
         // ignore pointer variables
         if(declarator.getPointerOperators().length > 0)
-          continue;
+          return newElement;
 
         // if this is a global variable, add it to the list of global variables
         if(declarationEdge.isGlobal())

@@ -98,7 +98,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
-      IASTDeclarator[] decls = decl.getDeclarators();
+      IASTDeclarator declarator = decl.getDeclarator();
       IASTDeclSpecifier spec = decl.getDeclSpecifier();
 
       boolean isGlobal = ArithmeticOverflowAssumptionBuilder.isDeclGlobal;
@@ -113,11 +113,10 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
           super.addToGlobalVars(var);
         }
       }
-      for (IASTDeclarator d : decls) {
-        String var = d.getName().getRawSignature();
-        if (isGlobal) {
-          super.addToGlobalVars(var);
-        }
+
+      String var = declarator.getName().getRawSignature();
+      if (isGlobal) {
+        super.addToGlobalVars(var);
       }
     }
     return f;

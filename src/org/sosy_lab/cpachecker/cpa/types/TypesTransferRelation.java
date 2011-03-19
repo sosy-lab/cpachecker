@@ -133,17 +133,16 @@ public class TypesTransferRelation implements TransferRelation {
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
-    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
+    IASTDeclarator declarator = declarationEdge.getDeclarator();
 
-    if ((declarators.size() == 1)
-        && (declarators.get(0) instanceof IASTFunctionDeclarator)) {
-      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarators.get(0), specifier);
+    if (declarator instanceof IASTFunctionDeclarator) {
+      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarator, specifier);
 
     } else {
 
       Type type = getType(element, declarationEdge, specifier);
 
-      for (IASTDeclarator declarator : declarators) {
+      if (declarator != null) {
         Type thisType = getPointerType(type, declarationEdge, declarator);
         String thisName = declarator.getName().getRawSignature();
 
@@ -288,7 +287,8 @@ public class TypesTransferRelation implements TransferRelation {
 
         Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
 
-        for (IASTDeclarator declarator : subDeclaration.getDeclarators()) {
+        IASTDeclarator declarator = subDeclaration.getDeclarator();
+        if (declarator != null) {
           Type thisSubType = getPointerType(subType, cfaEdge, declarator);
           if (declarator.getNestedDeclarator() != null) {
             declarator = declarator.getNestedDeclarator();
@@ -300,6 +300,8 @@ public class TypesTransferRelation implements TransferRelation {
           if (!thisSubName.isEmpty()) {
             compType.addMember(thisSubName, thisSubType);
           }
+        } else {
+          throw new UnrecognizedCCodeException(cfaEdge, subDeclaration);
         }
       }
 

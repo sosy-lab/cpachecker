@@ -302,7 +302,7 @@ public class CtoFormulaConverter {
     
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarators(), d.isGlobal(), edge, function, ssa);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarator(), d.isGlobal(), edge, function, ssa);
       break;
     }
     
@@ -370,7 +370,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeDeclaration(IASTDeclSpecifier spec,
-      List<IASTDeclarator> declarators, boolean isGlobal, CFAEdge edge,
+      IASTDeclarator declarator, boolean isGlobal, CFAEdge edge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
 
     if (spec instanceof IASTEnumerationSpecifier) {
@@ -411,13 +411,11 @@ public class CtoFormulaConverter {
       }
   
       Formula result = fmgr.makeTrue();
-      for (IASTDeclarator d : declarators) {
-        if (d instanceof IASTFunctionDeclarator) {
-          // ignore function declarations here
-          continue;
-        }
+
+      // ignore function declarations and type prototypes here
+      if (!(declarator instanceof IASTFunctionDeclarator) && (declarator != null)) {
         
-        String varNameWithoutFunction = d.getName().getRawSignature();
+        String varNameWithoutFunction = declarator.getName().getRawSignature();
         if (isGlobal) {
           globalVars.add(varNameWithoutFunction);
         }
@@ -442,14 +440,14 @@ public class CtoFormulaConverter {
   
         // if there is an initializer associated to this variable,
         // take it into account
-        IASTInitializer init = d.getInitializer();
+        IASTInitializer init = declarator.getInitializer();
         if (init != null) {
           // initializer value present
           if (!(init instanceof IASTInitializerExpression)) {
             log(Level.WARNING, "Ingoring unsupported initializer", init);
           
           } else if (isNondetVariable(varNameWithoutFunction)) {
-            log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", d);
+            log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", declarator);
           
           } else {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
@@ -460,7 +458,7 @@ public class CtoFormulaConverter {
           }
   
         } else if (spec.getStorageClass() == IASTDeclSpecifier.sc_extern) {
-          log(Level.WARNING, "Ignoring initializer of extern declaration", d);
+          log(Level.WARNING, "Ignoring initializer of extern declaration", declarator);
   
         } else if (isGlobal || initAllVars) {
           // auto-initialize variables to zero

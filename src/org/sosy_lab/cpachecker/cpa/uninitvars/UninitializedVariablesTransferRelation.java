@@ -196,7 +196,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     //typedefs do not concern this CPA
     if (declaration.getDeclSpecifier().getStorageClass() != IASTDeclSpecifier.sc_typedef) {
 
-      for (IASTDeclarator declarator : declaration.getDeclarators()) {
+      IASTDeclarator declarator = declaration.getDeclarator();
+      if (declarator != null) {
           String varName;
           //in case of a nested declarator, get the variable name from the inner declarator
           if (declarator.getNestedDeclarator() != null) {

@@ -236,7 +236,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getDeclarators(), declEdge.getDeclSpecifier());
+        handleDeclaration(successor, cfaEdge, declEdge.getDeclarator(), declEdge.getDeclSpecifier());
         break;
 
       case StatementEdge:
@@ -291,9 +291,9 @@ public class PointerTransferRelation implements TransferRelation {
 
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
-            List<IASTDeclarator> declarators = Collections.singletonList(dec.getDeclarator());
+            IASTDeclarator declarator = dec.getDeclarator();
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, declarators, declSpecifier);
+            handleDeclaration(successor, cfaEdge, declarator, declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -331,23 +331,21 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
-      List<IASTDeclarator> declarators, IASTDeclSpecifier specifier) throws CPATransferException {
+      IASTDeclarator declarator, IASTDeclSpecifier specifier) throws CPATransferException {
 
     if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
     
-    if (specifier instanceof IASTElaboratedTypeSpecifier && declarators.isEmpty()) {
+    if (specifier instanceof IASTElaboratedTypeSpecifier && declarator == null) {
       // ignore struct prototypes
       return;
     }
     
-    if (declarators.size() != 1) {
+    if (declarator == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
-
-    IASTDeclarator declarator = declarators.get(0);
     
     if (declarator instanceof IASTFunctionDeclarator) {
       return;

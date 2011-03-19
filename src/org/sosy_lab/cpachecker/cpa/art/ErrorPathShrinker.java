@@ -157,12 +157,8 @@ public final class ErrorPathShrinker {
       if (cfaEdge instanceof GlobalDeclarationEdge) {
         DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
 
-        /* Normally there is only one declarator in the DeclarationEdge.
-         * If there are more than one declarators, CIL divides them into
-         * different declarators while preprocessing:
-         * "int a,b,c;"  -->  CIL  -->  "int a;  int b;  int c;". */
-        for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
-
+        IASTDeclarator declarator = declarationEdge.getDeclarator();
+        if (declarator != null) {
           // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables
           if (declarator.getPointerOperators().length == 0) {
@@ -684,12 +680,9 @@ public final class ErrorPathShrinker {
       DeclarationEdge declarationEdge =
           (DeclarationEdge) currentCFAEdgePair.getSecond();
 
-      /* Normally there is only one declarator in the DeclarationEdge.
-       * If there are more than one declarators, CIL divides them into different
-       * declarators while preprocessing:
-       * "int a,b,c;"  -->  CIL  -->  "int a;  int b;  int c;".
-       * If the declared variable is important, the edge is important. */
-      for (IASTDeclarator declarator : declarationEdge.getDeclarators()) {
+      /* If the declared variable is important, the edge is important. */
+      IASTDeclarator declarator = declarationEdge.getDeclarator();
+      if (declarator != null) {
         final String varName = declarator.getName().getRawSignature();
         if (importantVars.contains(varName)
             && !varName.equals(declarator.getRawSignature())) {

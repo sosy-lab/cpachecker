@@ -1044,11 +1044,9 @@ public class ExplicitTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
-    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
-    // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+    IASTDeclarator declarator = declarationEdge.getDeclarator();
+    if (declarator != null) {
 
-    for (IASTDeclarator declarator : declarators)
-    {
         // get the variable name in the declarator
         String varName = declarator.getName().toString();
 
@@ -1059,7 +1057,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // don't add pointer variables to the list since we don't track them
         if(pointerOps.length > 0)
         {
-          continue;
+          return newElement;
         }
         // if this is a global variable, add to the list of global variables
         if(declarationEdge.isGlobal())

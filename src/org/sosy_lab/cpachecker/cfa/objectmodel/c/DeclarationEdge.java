@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
@@ -33,23 +31,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import com.google.common.collect.ImmutableList;
-
 public class DeclarationEdge extends AbstractCFAEdge {
 
   private final IASTSimpleDeclaration declaration;
-  private final ImmutableList<IASTDeclarator> declarators;
   
   public DeclarationEdge(final IASTSimpleDeclaration declaration, final int lineNumber,
      final CFANode predecessor,final CFANode successor) {
     super(declaration.getRawSignature(), lineNumber, predecessor, successor);
     this.declaration = declaration;
-    
-    if (declaration.getDeclarators() == null) {
-      declarators = ImmutableList.of();
-    } else {
-      declarators = ImmutableList.copyOf(declaration.getDeclarators());
-    }
   }
 
   @Override
@@ -57,8 +46,19 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public List<IASTDeclarator> getDeclarators() {
-    return declarators;
+  /**
+   * Returns the variable declarator of this declaration.
+   * This is basically the variable name and the pointer operator(s) if present.
+   * 
+   * The declarator may be null, e.g. in struct prototypes without an immediate
+   * variable declaration:
+   * 
+   * struct s {
+   *    int x;
+   * };
+   */
+  public IASTDeclarator getDeclarator() {
+    return declaration.getDeclarator();
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {

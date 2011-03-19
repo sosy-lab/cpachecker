@@ -897,11 +897,9 @@ public class OctTransferRelation implements TransferRelation{
   private OctElement handleDeclaration(OctElement pElement,
       DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
-    List<IASTDeclarator> declarators = declarationEdge.getDeclarators();
-    // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+    IASTDeclarator declarator = declarationEdge.getDeclarator();
+    if (declarator != null) {
 
-    for (IASTDeclarator declarator : declarators)
-    {
       // get the variable name in the declarator
       String varName = declarator.getName().toString();
 
@@ -912,7 +910,7 @@ public class OctTransferRelation implements TransferRelation{
       // don't add pointer variables to the list since we don't track them
       if(pointerOps.length > 0)
       {
-        continue;
+        return pElement;
       }
       // if this is a global variable, add to the list of global variables
       if(declarationEdge.isGlobal())

@@ -172,18 +172,28 @@ class CFABuilder extends ASTVisitor
       
         CFANode prevNode = locStack.pop();
         
-        CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-        currentCFANodes.add(nextNode);
-        locStack.push(nextNode);
+        CFANode nextNode = null;
 
-        DeclarationEdge edge = new DeclarationEdge(ASTConverter.convert(sd),
-                fileloc.getStartingLineNumber(), prevNode, nextNode);
-        addToCFA(edge);
+        List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> newSds = ASTConverter.convert(sd);
+        assert !newSds.isEmpty();
+        for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration newSd : newSds) {
+          
+          nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+          currentCFANodes.add(nextNode);
+          
+          DeclarationEdge edge = new DeclarationEdge(newSd, fileloc.getStartingLineNumber(), prevNode, nextNode);
+          addToCFA(edge);
+          
+          prevNode = nextNode;
+        }
+        
+        assert nextNode != null;
+        locStack.push(nextNode);          
       
       } else if (declaration.getParent() instanceof IASTTranslationUnit) {
       
         // else we're in the global scope
-        globalDeclarations.add (ASTConverter.convert(sd));
+        globalDeclarations.addAll(ASTConverter.convert(sd));
       }
     }
     else if (declaration instanceof IASTFunctionDefinition)

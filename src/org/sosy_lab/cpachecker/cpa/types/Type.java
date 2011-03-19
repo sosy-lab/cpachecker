@@ -328,7 +328,7 @@ public static final class ArrayType extends AbstractType {
         throw new IllegalArgumentException();
       }
       if (members.containsKey(name)) {
-        throw new IllegalArgumentException("Member " + name + " exists already");
+        throw new IllegalArgumentException("Member " + name + " exists already in type " + name);
       }
       members.put(name, type);
     }

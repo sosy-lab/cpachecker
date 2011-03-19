@@ -23,35 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.List;
-import com.google.common.collect.ImmutableList;
-
 public final class IASTSimpleDeclaration extends IASTNode {
 
   private final IASTDeclSpecifier    specifier;
-  private final List<IASTDeclarator> declarators;
+  private final IASTDeclarator       declarator;
 
   public IASTSimpleDeclaration(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
-      final List<IASTDeclarator> pDeclarators) {
+      final IASTDeclarator pDeclarator) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
-    declarators = ImmutableList.copyOf(pDeclarators);
+    declarator = pDeclarator;
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {
     return specifier;
   }
 
-  public IASTDeclarator[] getDeclarators() {
-    return declarators.toArray(new IASTDeclarator[declarators.size()]);
+  public IASTDeclarator getDeclarator() {
+    return declarator;
   }
 
   @Override
   public IASTNode[] getChildren(){
-    // children of this node are all declarators and the specifier
-    final IASTNode[] children = declarators.toArray(new IASTDeclarator[declarators.size()+1]);
-    children[declarators.size()] = specifier;
-    return children;
+    return new IASTNode[] {declarator, specifier};
   }
 }
