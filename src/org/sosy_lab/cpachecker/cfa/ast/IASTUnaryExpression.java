@@ -60,5 +60,4 @@ public class IASTUnaryExpression extends IASTExpression {
   public static final int op_sizeof = 8;
   public static final int op_postFixIncr = 9;
   public static final int op_postFixDecr = 10;
-  public static final int op_bracketedPrimary = 11;
 }

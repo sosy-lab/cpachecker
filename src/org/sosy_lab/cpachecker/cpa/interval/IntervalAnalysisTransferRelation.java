@@ -304,10 +304,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       switch(unaryExp.getOperator())
       {
-        // remove brackets
-        case IASTUnaryExpression.op_bracketedPrimary:
-          return handleAssumption(element, unaryExp.getOperand(), cfaEdge, truthValue);
-
         // remove negation
         case IASTUnaryExpression.op_not:
           return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
@@ -955,16 +951,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // name of the updated variable, so if "a = -b" is handled, lParam is "a"
     String assignedVar = constructVariableName(lParam, functionName);
 
-    IASTExpression unaryOperand = unaryExp.getOperand();
     int unaryOperator = unaryExp.getOperator();
 
     // TODO: a = *b
     if(unaryOperator == IASTUnaryExpression.op_star)
       newElement.addInterval(assignedVar, Interval.createUnboundInterval(), this.threshold);
-
-    // a = (b + c)
-    else if(unaryOperator == IASTUnaryExpression.op_bracketedPrimary)
-      return handleAssignmentToVariable(element, lParam, unaryOperand, cfaEdge);
 
     // a = -b or similar
     else
@@ -1105,9 +1096,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           Interval interval = evaluateInterval(element, unaryOperand, functionName, cfaEdge);
 
           return (interval == null) ? Interval.createUnboundInterval() : interval.negate();
-
-        case IASTUnaryExpression.op_bracketedPrimary:
-          return evaluateInterval(element, unaryOperand, functionName, cfaEdge);
 
         default:
           throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);

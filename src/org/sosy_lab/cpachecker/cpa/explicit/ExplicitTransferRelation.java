@@ -407,43 +407,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       switch (unaryExp.getOperator()) {
       case IASTUnaryExpression.op_not:
         // ! exp
-      
-//        System.out.println("here " + expression.getRawSignature() + " tv " + truthValue);
-        IASTExpression exp1 = unaryExp.getOperand();
-        // ! unaryExp
-        if(exp1 instanceof IASTUnaryExpression){
-//          System.out.println("here2 " + expression.getRawSignature() + " tv " + truthValue);
-          IASTUnaryExpression unaryExp1 = ((IASTUnaryExpression)exp1);
-          // (exp)
-          if (unaryExp1.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-//            System.out.println("here3 " + expression.getRawSignature() + " tv " + truthValue);
-            IASTExpression exp2 = unaryExp1.getOperand();
-            // (binaryExp)
-            if(exp2 instanceof IASTBinaryExpression){
-//              System.out.println("here4 " + expression.getRawSignature() + " tv " + truthValue);
-              IASTBinaryExpression binExp2 = (IASTBinaryExpression)exp2;
-              return handleAssumption(element, binExp2, cfaEdge, !truthValue);
-            }
-            else {
-              throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-            }
-          }
-          else {
-            throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-          }
-        }
-
-        if(exp1 instanceof IASTIdExpression ||
-            exp1 instanceof IASTFieldReference){
-          return handleAssumption(element, exp1, cfaEdge, !truthValue);
-        }
-        else {
-          throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-        }
-      
-      case IASTUnaryExpression.op_bracketedPrimary:
-        // (exp)
-        return handleAssumption(element, unaryExp.getOperand(), cfaEdge, truthValue);
+        return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
       
       case IASTUnaryExpression.op_star:
         // *exp
@@ -946,11 +910,6 @@ public class ExplicitTransferRelation implements TransferRelation {
             throw new UnrecognizedCFAEdgeException("Unhandled case ");
           }
         }
-        else if(operatorType == IASTUnaryExpression.op_bracketedPrimary){
-          IASTUnaryExpression unaryExprInPar = (IASTUnaryExpression)op2;
-          IASTExpression exprInParanhesis = unaryExprInPar.getOperand();
-          return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
-        }
         // right hand side is a cast exp
         else if(op2 instanceof IASTCastExpression){
           IASTCastExpression castExp = (IASTCastExpression)op2;
@@ -1289,12 +1248,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
-      // so remove parentheses and cast
-      if (op1 instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-
-        op1 = ((IASTUnaryExpression)op1).getOperand();
-      }
+      // so remove cast
       if (op1 instanceof IASTCastExpression) {
         op1 = ((IASTCastExpression)op1).getOperand();
       }
@@ -1387,11 +1341,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       // Cil produces code like
       // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove parentheses and cast
-      if (unaryOperand instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)unaryOperand).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-        unaryOperand = ((IASTUnaryExpression)unaryOperand).getOperand();
-      }
+      // so remove cast
       if (unaryOperand instanceof IASTCastExpression) {
         unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
       }
@@ -1402,10 +1352,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       } else{
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
-
-    } else if (unaryOperator == IASTUnaryExpression.op_bracketedPrimary) {
-      // a = (b + c)
-      return handleAssignmentToVariable(element, lParam, unaryOperand, cfaEdge);
 
     } 
     else {
@@ -1548,10 +1494,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       case IASTUnaryExpression.op_minus:
         Long val = getExpressionValue(element, unaryOperand, functionName, cfaEdge);
         return (val != null) ? -val : null;
-
-      case IASTUnaryExpression.op_bracketedPrimary:
-        return getExpressionValue(element, unaryOperand, functionName, cfaEdge);
-
+      
       case IASTUnaryExpression.op_amper:
         return null; // valid expresion, but it's a pointer value
 

@@ -971,11 +971,6 @@ public class PointerTransferRelation implements TransferRelation {
         leftDereference = true;
 
         leftExpression = unaryExpression.getOperand();
-        if (leftExpression instanceof IASTUnaryExpression
-            && ((IASTUnaryExpression)leftExpression).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-
-          leftExpression = ((IASTUnaryExpression)leftExpression).getOperand();
-        }
 
         boolean leftCast = false;
         if (leftExpression instanceof IASTCastExpression) {
@@ -1136,10 +1131,6 @@ public class PointerTransferRelation implements TransferRelation {
       if (op1 instanceof IASTCastExpression) {
         op1 = ((IASTCastExpression)op1).getOperand();
       }
-      if (op1 instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-        op1 = ((IASTUnaryExpression)op1).getOperand();
-      }
 
       if (op1 instanceof IASTIdExpression) {
         Pointer rightPointer = element.lookupPointer(op1.getRawSignature());
@@ -1229,12 +1220,7 @@ public class PointerTransferRelation implements TransferRelation {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
       int op = unaryExpression.getOperator();
 
-      if (op == IASTUnaryExpression.op_bracketedPrimary) {
-        // a = (x)
-        handleAssignment(element, leftVarName, leftPointer, leftDereference,
-            unaryExpression.getOperand(), cfaEdge);
-
-      } else if (op == IASTUnaryExpression.op_amper) {
+      if (op == IASTUnaryExpression.op_amper) {
         // a = &b
         Variable var =
             element.lookupVariable(unaryExpression.getOperand()
@@ -1259,11 +1245,6 @@ public class PointerTransferRelation implements TransferRelation {
         // a = *b
 
         expression = unaryExpression.getOperand();
-        if (expression instanceof IASTUnaryExpression
-            && ((IASTUnaryExpression)expression).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-
-          expression = ((IASTUnaryExpression)expression).getOperand();
-        }
 
         boolean rightCast = false;
         if (expression instanceof IASTCastExpression) {

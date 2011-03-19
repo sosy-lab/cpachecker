@@ -372,36 +372,7 @@ public class OctTransferRelation implements TransferRelation{
       if(unaryExp.getOperator() == IASTUnaryExpression.op_not)
       {
         IASTExpression exp1 = unaryExp.getOperand();
-        // ! unaryExp
-        if(exp1 instanceof IASTUnaryExpression){
-          IASTUnaryExpression unaryExp1 = ((IASTUnaryExpression)exp1);
-          // (exp)
-          if (unaryExp1.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-            IASTExpression exp2 = unaryExp1.getOperand();
-            // (binaryExp)
-            if(exp2 instanceof IASTBinaryExpression){
-              IASTBinaryExpression binExp2 = (IASTBinaryExpression)exp2;
-              return handleAssumption(pElement, binExp2, cfaEdge, !truthValue);
-            }
-            else {
-              throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-            }
-          }
-          else {
-            throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-          }
-        }
-
-        if(exp1 instanceof IASTIdExpression ||
-            exp1 instanceof IASTFieldReference){
-          return handleAssumption(pElement, exp1, cfaEdge, !truthValue);
-        }
-        else {
-          throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-        }
-      }
-      else if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-        return handleAssumption(pElement, unaryExp.getOperand(), cfaEdge, truthValue);
+        return handleAssumption(pElement, exp1, cfaEdge, !truthValue);
       }
       else if(expression instanceof IASTCastExpression){
         return handleAssumption(pElement, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
@@ -732,11 +703,6 @@ public class OctTransferRelation implements TransferRelation{
           else{
             throw new UnrecognizedCFAEdgeException("Unhandled case ");
           }
-        }
-        else if(operatorType == IASTUnaryExpression.op_bracketedPrimary){
-          IASTUnaryExpression unaryExprInPar = (IASTUnaryExpression)op2;
-          IASTExpression exprInParanhesis = unaryExprInPar.getOperand();
-          return propagateBooleanExpression(pElement, opType, op1, exprInParanhesis, functionName, truthValue);
         }
         // right hand side is a cast exp
         else if(op2 instanceof IASTCastExpression){
@@ -1157,12 +1123,7 @@ public class OctTransferRelation implements TransferRelation{
 
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
-      // so remove parentheses and cast
-      if (op1 instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-
-        op1 = ((IASTUnaryExpression)op1).getOperand();
-      }
+      // so remove cast
       if (op1 instanceof IASTCastExpression) {
         op1 = ((IASTCastExpression)op1).getOperand();
       }
@@ -1260,11 +1221,7 @@ public class OctTransferRelation implements TransferRelation{
 
       // Cil produces code like
       // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove parentheses and cast
-      if (unaryOperand instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)unaryOperand).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-        unaryOperand = ((IASTUnaryExpression)unaryOperand).getOperand();
-      }
+      // so remove cast
       if (unaryOperand instanceof IASTCastExpression) {
         unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
       }
@@ -1275,10 +1232,6 @@ public class OctTransferRelation implements TransferRelation{
       } else{
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
-
-    } else if (unaryOperator == IASTUnaryExpression.op_bracketedPrimary) {
-      // a = (b + c)
-      return handleAssignmentToVariable(pElement, lParam, unaryOperand, cfaEdge);
 
     } 
     else {
@@ -1506,9 +1459,6 @@ public class OctTransferRelation implements TransferRelation{
       case IASTUnaryExpression.op_minus:
         Long val = getExpressionValue(pElement, unaryOperand, functionName, cfaEdge);
         return (val != null) ? -val : null;
-
-      case IASTUnaryExpression.op_bracketedPrimary:
-        return getExpressionValue(pElement, unaryOperand, functionName, cfaEdge);
 
       case IASTUnaryExpression.op_amper:
         return null; // valid expresion, but it's a pointer value

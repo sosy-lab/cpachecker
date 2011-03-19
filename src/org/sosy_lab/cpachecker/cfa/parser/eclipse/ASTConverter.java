@@ -149,7 +149,11 @@ class ASTConverter {
     return new IASTLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getKind());
   }
 
-  private static IASTUnaryExpression convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
+  private static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
+    if (e.getOperator() == org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_bracketedPrimary) {
+      return convert(e.getOperand());
+    }
+    
     return new IASTUnaryExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getOperand()), e.getOperator());
   }
 

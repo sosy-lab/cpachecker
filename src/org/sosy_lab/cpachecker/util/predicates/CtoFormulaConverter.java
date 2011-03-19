@@ -734,8 +734,6 @@ public class CtoFormulaConverter {
       IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
       int op = ((IASTUnaryExpression)exp).getOperator();
       switch (op) {
-      case IASTUnaryExpression.op_bracketedPrimary:
-        return buildTerm(operand, function, ssa);
       case IASTUnaryExpression.op_postFixIncr:
       case IASTUnaryExpression.op_prefixIncr:
       case IASTUnaryExpression.op_postFixDecr:
@@ -1180,10 +1178,6 @@ public class CtoFormulaConverter {
       if (unaryExp.getOperator() == IASTUnaryExpression.op_not) {
         // ! exp
         return makePredicate(unaryExp.getOperand(), !isTrue, function, ssa);
-      
-      } else if (unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-        // (exp)
-        return makePredicate(unaryExp.getOperand(), isTrue, function, ssa);
       }
     }
 
