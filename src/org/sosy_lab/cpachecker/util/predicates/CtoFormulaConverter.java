@@ -31,23 +31,24 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
@@ -313,7 +314,7 @@ public class CtoFormulaConverter {
     
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarator(), d.isGlobal(), d, function, ssa);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa);
       break;
     }
     
@@ -381,9 +382,13 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeDeclaration(IASTDeclSpecifier spec,
-      IASTDeclarator declarator, boolean isGlobal, DeclarationEdge edge,
+      boolean isGlobal, DeclarationEdge edge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
 
+    if (spec instanceof IASTFunctionTypeSpecifier) {
+      return fmgr.makeTrue();
+    }
+    
     if (spec instanceof IASTEnumerationSpecifier) {
       // extract the fields, and add them as global variables
       assert(isGlobal);
@@ -414,17 +419,19 @@ public class CtoFormulaConverter {
     
     } else if (spec instanceof IASTSimpleDeclSpecifier ||
                spec instanceof IASTElaboratedTypeSpecifier ||
-               spec instanceof IASTNamedTypeSpecifier) {
+               spec instanceof IASTNamedTypeSpecifier ||
+               spec instanceof IASTArrayTypeSpecifier ||
+               spec instanceof IASTPointerTypeSpecifier) {
 
       if (edge.getStorageClass() == StorageClass.TYPEDEF) {
         log(Level.ALL, "Ignoring typedef", spec);
         return fmgr.makeTrue();
       }
-  
+        
       Formula result = fmgr.makeTrue();
 
-      // ignore function declarations and type prototypes here
-      if (!(declarator instanceof IASTFunctionDeclarator) && (edge.getName() != null)) {
+      // ignore type prototypes here
+      if (edge.getName() != null) {
         
         String varNameWithoutFunction = edge.getName().getRawSignature();
         if (isGlobal) {
@@ -535,7 +542,7 @@ public class CtoFormulaConverter {
         String formalParamName = formalParam.getName().toString();
         assert(!formalParamName.isEmpty()) : edge;
 
-        if (formalParam.getDeclarator().getPointerOperators().length != 0) {
+        if (formalParam.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
           log(Level.WARNING, "Ignoring the semantics of pointer for parameter " + formalParamName,
               fn.getFunctionDefinition());
         }

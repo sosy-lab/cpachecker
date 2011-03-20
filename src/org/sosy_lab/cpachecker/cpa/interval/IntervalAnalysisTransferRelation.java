@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -609,7 +610,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     if (declarationEdge.getName() != null) {
 
         // ignore pointer variables
-        if(declarationEdge.getDeclarator().getPointerOperators().length > 0)
+        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier)
           return newElement;
 
         // if this is a global variable, add it to the list of global variables

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -52,21 +51,6 @@ public class DeclarationEdge extends AbstractCFAEdge {
   
   public StorageClass getStorageClass() {
     return declaration.getStorageClass();
-  }
-
-  /**
-   * Returns the variable declarator of this declaration.
-   * This is basically the variable name and the pointer operator(s) if present.
-   * 
-   * The declarator may be null, e.g. in struct prototypes without an immediate
-   * variable declaration:
-   * 
-   * struct s {
-   *    int x;
-   * };
-   */
-  public IASTDeclarator getDeclarator() {
-    return declaration.getDeclarator();
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {

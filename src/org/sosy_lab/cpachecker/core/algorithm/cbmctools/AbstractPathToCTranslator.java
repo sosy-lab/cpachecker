@@ -462,11 +462,12 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
 
     String lFunctionHeader =
-        lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature()
-      + " "
-      + lFunctionDefinitionNode.getFunctionName()
-      + (pAddIndex ? "_" + mFunctionIndex++ : "") 
-      + "(" + Joiner.on(", ").join(parameters) + ")";
+        lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature();
+    if (pAddIndex) {
+      lFunctionHeader = lFunctionHeader.replaceFirst(
+          lFunctionDefinitionNode.getFunctionName() + "\\(",
+          lFunctionDefinitionNode.getFunctionName() + "_" + mFunctionIndex++ + "(");
+    }
 
     mFunctionDecls.add(lFunctionHeader + ";");
 

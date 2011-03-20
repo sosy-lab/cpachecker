@@ -23,52 +23,57 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-/** This class implements the STANDARD-FunctionDeclarator of eclipse! */
-public class IASTFunctionDeclarator extends IASTDeclarator {
+public class IASTFunctionTypeSpecifier extends IASTDeclSpecifier {
 
-  private final IASTDeclarator                 nestedDeclarator;
+  private final IASTDeclSpecifier              returnType;
+  private       IASTName                       name = null;
   private final List<IASTSimpleDeclaration>    parameters;
   private final boolean                        takesVarArgs;
-
-  public IASTFunctionDeclarator(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final IASTDeclarator pNestedDeclarator,
-      final List<IASTPointer> pPointerOperators,
-      final List<IASTSimpleDeclaration> pParameters,
-      final boolean pTakesVarArgs) {
-    super(pRawSignature, pFileLocation, pPointerOperators);
-    nestedDeclarator = pNestedDeclarator;
+  
+  public IASTFunctionTypeSpecifier(String pRawSignature,
+      IASTFileLocation pFileLocation,
+      boolean pConst,
+      boolean pVolatile,
+      IASTDeclSpecifier pReturnType,
+      List<IASTSimpleDeclaration> pParameters,
+      boolean pTakesVarArgs) {
+    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    returnType = pReturnType;
     parameters = ImmutableList.copyOf(pParameters);
     takesVarArgs = pTakesVarArgs;
-    
   }
-
+  
+  public IASTDeclSpecifier getReturnType() {
+    return returnType;
+  }
+  
+  public IASTName getName() {
+    return name;
+  }
+  
+  public void setName(IASTName pName) {
+    checkState(name == null);
+    name = pName;
+  }
+  
   public List<IASTSimpleDeclaration> getParameters() {
     return parameters;
   }
-
-  public IASTDeclarator getNestedDeclarator() {
-    return nestedDeclarator;
+  
+  public boolean takesVarArgs() {
+    return takesVarArgs;
   }
   
   @Override
   public IASTNode[] getChildren() {
-    final IASTNode[] children1 = super.getChildren();
-    final IASTNode[] children2 = parameters.toArray(new IASTNode[parameters.size()]);
-    IASTNode[] allChildren = new IASTNode[children1.length + children2.length + 1];
-    System.arraycopy(children1, 0, allChildren, 0, children1.length);
-    System.arraycopy(children2, 0, allChildren, children1.length,
-        children2.length);
-    
-    allChildren[allChildren.length - 1] = nestedDeclarator;
-    return allChildren;
-  }
-
-  public boolean takesVarArgs() {
-    return takesVarArgs;
+    IASTNode[] children = parameters.toArray(new IASTNode[parameters.size() + 1]);
+    children[parameters.size()] = returnType;
+    return children;
   }
 }

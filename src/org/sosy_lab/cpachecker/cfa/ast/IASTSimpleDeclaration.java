@@ -28,27 +28,19 @@ import static com.google.common.base.Preconditions.*;
 public final class IASTSimpleDeclaration extends IASTNode {
 
   private final IASTDeclSpecifier    specifier;
-  private final IASTDeclarator       declarator;
   private final IASTName             name;
 
   public IASTSimpleDeclaration(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
-      final IASTDeclarator pDeclarator,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
-    checkArgument((pDeclarator == null) == (pName == null));
     
     specifier = checkNotNull(pSpecifier);
-    declarator = pDeclarator;
     name = pName;
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {
     return specifier;
-  }
-
-  public IASTDeclarator getDeclarator() {
-    return declarator;
   }
   
   public IASTName getName() {
@@ -57,6 +49,6 @@ public final class IASTSimpleDeclaration extends IASTNode {
 
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {declarator, specifier, name};
+    return new IASTNode[] {specifier, name};
   }
 }

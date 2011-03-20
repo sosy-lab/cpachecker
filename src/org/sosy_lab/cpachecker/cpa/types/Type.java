@@ -584,6 +584,10 @@ public static final class ArrayType extends AbstractType {
       }
       parameters.put(name, type);
     }
+    
+    public String getName() {
+      return name;
+    }
 
     public Type getParameterType(String name) {
       if (!parameters.containsKey(name)) {

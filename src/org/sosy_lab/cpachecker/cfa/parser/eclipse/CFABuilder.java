@@ -213,7 +213,7 @@ class CFABuilder extends ASTVisitor
         throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
       }
 
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = fdef.getDeclarator().getParameters();
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
       List<String> parameterNames = new ArrayList<String>(parameters.size());
       
       for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration param : parameters) {

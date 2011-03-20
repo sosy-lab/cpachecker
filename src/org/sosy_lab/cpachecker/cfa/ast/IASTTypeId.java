@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTTypeId extends IASTNode {
 
+  // TODO need storage class here?
   private final StorageClass      storageClass;
-  private final IASTDeclarator    declarator;
   private final IASTDeclSpecifier specifier;
   private final IASTName          name;
 
@@ -34,21 +34,15 @@ public final class IASTTypeId extends IASTNode {
       final IASTFileLocation pFileLocation,
       final StorageClass pStorageClass,
       final IASTDeclSpecifier pSpecifier,
-      final IASTDeclarator pDeclarator,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
     storageClass = pStorageClass;
-    declarator = pDeclarator;
     specifier = pSpecifier;
     name = pName;
   }
 
   public StorageClass getStorageClass() {
     return storageClass;
-  }
-  
-  public IASTDeclarator getAbstractDeclarator() {
-    return declarator;
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {
@@ -61,6 +55,6 @@ public final class IASTTypeId extends IASTNode {
 
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {declarator, specifier, name};
+    return new IASTNode[] {specifier, name};
   }
 }

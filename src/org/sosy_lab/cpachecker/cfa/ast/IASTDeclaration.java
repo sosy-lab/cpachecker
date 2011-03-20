@@ -53,10 +53,6 @@ public class IASTDeclaration extends IASTNode {
   public IASTDeclSpecifier getDeclSpecifier() {
     return declaration.getDeclSpecifier();
   }
-  
-  public IASTDeclarator getDeclarator() {
-    return declaration.getDeclarator();
-  }
 
   public IASTName getName() {
     return declaration.getName();
@@ -68,7 +64,7 @@ public class IASTDeclaration extends IASTNode {
   
   @Override
   public IASTNode[] getChildren() {
-    return new IASTNode[] {getDeclSpecifier(), getDeclarator(), getName(), getInitializer()};
+    return new IASTNode[] {getDeclSpecifier(), getName(), getInitializer()};
   }
 
 }

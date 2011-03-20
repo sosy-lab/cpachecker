@@ -28,20 +28,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class IASTFunctionDefinition extends IASTNode {
 
   private final StorageClass           storageClass;
-  private final IASTDeclSpecifier      specifier;
-  private final IASTFunctionDeclarator declarator;
+  private final IASTFunctionTypeSpecifier specifier;
   private final IASTName               name;
 
   public IASTFunctionDefinition(final String pRawSignature,
       final IASTFileLocation pFileLocation,
       final StorageClass pStorageClass,
-      final IASTDeclSpecifier pSpecifier,
-      final IASTFunctionDeclarator pDeclarator,
+      final IASTFunctionTypeSpecifier pSpecifier,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
     storageClass = checkNotNull(pStorageClass);
     specifier = checkNotNull(pSpecifier);
-    declarator = checkNotNull(pDeclarator);
     name = checkNotNull(pName);
   }
   
@@ -49,12 +46,8 @@ public final class IASTFunctionDefinition extends IASTNode {
     return storageClass;
   }
 
-  public IASTDeclSpecifier getDeclSpecifier() {
+  public IASTFunctionTypeSpecifier getDeclSpecifier() {
     return specifier;
-  }
-
-  public IASTFunctionDeclarator getDeclarator() {
-    return declarator;
   }
   
   public IASTName getName() {
@@ -63,6 +56,6 @@ public final class IASTFunctionDefinition extends IASTNode {
   
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {specifier, declarator, name};
+    return new IASTNode[] {specifier, name};
   }
 }

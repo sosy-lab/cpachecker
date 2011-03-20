@@ -31,15 +31,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
@@ -204,14 +204,14 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
           lastAdded = varName;
 
-          IASTDeclarator declarator = declaration.getDeclarator();
+          IASTDeclSpecifier specifier = declaration.getDeclSpecifier();
           IASTInitializer initializer = declaration.getInitializer();
           // initializers in CIL are always constant, so no need to check if
           // initializer expression contains uninitialized variables
           if (initializer == null &&
               !(declaration.getStorageClass() == StorageClass.EXTERN) &&
-              !(declarator instanceof IASTArrayDeclarator) &&
-              !(declarator instanceof IASTFunctionDeclarator)) {
+              !(specifier instanceof IASTArrayTypeSpecifier) &&
+              !(specifier instanceof IASTFunctionTypeSpecifier)) {
             setUninitialized(element, varName);
           } else {
             setInitialized(element, varName);

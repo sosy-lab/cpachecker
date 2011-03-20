@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -1154,11 +1154,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
         // TODO check other types of variables later - just handle primitive
         // types for the moment
-        // get pointer operators of the declaration
-        IASTPointer[] pointerOps = declarationEdge.getDeclarator().getPointerOperators();
         // don't add pointer variables to the list since we don't track them
-        if(pointerOps.length > 0)
-        {
+        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
           return newElement;
         }
         // if this is a global variable, add to the list of global variables

@@ -32,25 +32,24 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayModifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.common.LogManager;
@@ -238,7 +237,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclarator(), declEdge.getDeclSpecifier());
+        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclSpecifier());
         break;
 
       case StatementEdge:
@@ -293,9 +292,8 @@ public class PointerTransferRelation implements TransferRelation {
 
           //..then adding all parameters as local variables
           for (IASTSimpleDeclaration dec : l) {
-            IASTDeclarator declarator = dec.getDeclarator();
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declarator, declSpecifier);
+            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -335,7 +333,7 @@ public class PointerTransferRelation implements TransferRelation {
   private void handleDeclaration(PointerElement element, CFAEdge edge,
       StorageClass storageClass,
       IASTName name,
-      IASTDeclarator declarator, IASTDeclSpecifier specifier) throws CPATransferException {
+      IASTDeclSpecifier specifier) throws CPATransferException {
 
     if (storageClass == StorageClass.TYPEDEF) {
       // ignore, this is a type definition, not a variable declaration
@@ -347,11 +345,11 @@ public class PointerTransferRelation implements TransferRelation {
       return;
     }
     
-    if (declarator == null || name == null) {
+    if (name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
     
-    if (declarator instanceof IASTFunctionDeclarator) {
+    if (specifier instanceof IASTFunctionTypeSpecifier) {
       return;
     }
     
@@ -359,58 +357,13 @@ public class PointerTransferRelation implements TransferRelation {
         || specifier instanceof IASTElaboratedTypeSpecifier
         || specifier instanceof IASTEnumerationSpecifier) {
       
-      if (specifier instanceof IASTCompositeTypeSpecifier) {
-        // struct definition: no action -- let TypeCPA do the work
-      }
-      
-      if (specifier instanceof IASTElaboratedTypeSpecifier) {
-        // declaration of pointer to struct
-        
-        String varName = name.toString();
-        IASTPointer[] operators = declarator.getPointerOperators();
-        
-        if (operators != null && operators.length > 0) {
-          // pointer
-
-          Pointer ptr = new Pointer(operators.length);
-          
-          if (edge instanceof GlobalDeclarationEdge) {
-            element.addNewGlobalPointer(varName, ptr);
-            element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
-                ptr);
-            
-          } else {
-            // edge is instance of LocalDeclarationEdge
-            
-            element.addNewLocalPointer(varName, ptr);
-            
-            if (entryFunctionProcessed) {
-              element.pointerOp(
-                  new Pointer.Assign(Memory.UNINITIALIZED_POINTER), ptr);
-            } else {
-              // ptr is a function parameter
-              element.pointerOp(
-                  new Pointer.Assign(Memory.UNKNOWN_POINTER), ptr);
-            }
-          }
-        
-          missing = new MissingInformation();
-          missing.typeInformationPointer = ptr;
-          missing.typeInformationEdge = edge;
-          missing.typeInformationName = name;
-          
-        } else {
-          // variable on stack: ignore, because cil resolves fields to variables
-        }
-      }
-      
-      // TODO handle enums
+      // structs on stack etc.
       return;
     }
 
     String varName = name.toString();
 
-    if (declarator instanceof IASTArrayDeclarator) {
+    if (specifier instanceof IASTArrayTypeSpecifier) {
       Pointer p = new Pointer(1);
       if (edge instanceof GlobalDeclarationEdge) {
         element.addNewGlobalPointer(varName, p);
@@ -419,17 +372,16 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
       //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarator).)
-      IASTArrayModifier[] modifiers =
-          ((IASTArrayDeclarator)(declarator)).getArrayModifiers();
-      if (modifiers.length != 1 || modifiers[0] == null) {
+      IASTDeclSpecifier nestedSpecifier = ((IASTArrayTypeSpecifier)specifier).getType();
+      if (!(nestedSpecifier instanceof IASTSimpleDeclSpecifier)) {
         throw new UnrecognizedCCodeException("unsupported array declaration",
-                                                     edge, declarator);
+                                                     edge, specifier);
       }
 
-      IASTExpression lengthExpression = modifiers[0].getConstantExpression();
+      IASTExpression lengthExpression = ((IASTArrayTypeSpecifier)specifier).getLength();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported",
-            edge, declarator);
+            edge, specifier);
       }
 
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
@@ -445,11 +397,48 @@ public class PointerTransferRelation implements TransferRelation {
       missing.typeInformationEdge = edge;
       missing.typeInformationName = name;
 
-    } else {
+    } else if (specifier instanceof IASTPointerTypeSpecifier) {
 
-      IASTPointer[] operators = declarator.getPointerOperators();
-      if (operators != null && operators.length > 0) {
-        Pointer p = new Pointer(operators.length);
+      int depth = 0;
+      IASTDeclSpecifier nestedSpecifier = specifier;
+      do {
+        nestedSpecifier = ((IASTPointerTypeSpecifier)nestedSpecifier).getType();
+        depth++;
+      } while (specifier instanceof IASTPointerTypeSpecifier);          
+        
+      
+      if (nestedSpecifier instanceof IASTElaboratedTypeSpecifier) {
+        // declaration of pointer to struct
+        
+        Pointer ptr = new Pointer(depth);
+        
+        if (edge instanceof GlobalDeclarationEdge) {
+          element.addNewGlobalPointer(varName, ptr);
+          element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
+              ptr);
+          
+        } else {
+          // edge is instance of LocalDeclarationEdge
+          
+          element.addNewLocalPointer(varName, ptr);
+          
+          if (entryFunctionProcessed) {
+            element.pointerOp(
+                new Pointer.Assign(Memory.UNINITIALIZED_POINTER), ptr);
+          } else {
+            // ptr is a function parameter
+            element.pointerOp(
+                new Pointer.Assign(Memory.UNKNOWN_POINTER), ptr);
+          }
+        }
+      
+        missing = new MissingInformation();
+        missing.typeInformationPointer = ptr;
+        missing.typeInformationEdge = edge;
+        missing.typeInformationName = name;
+        
+      } else {            
+        Pointer p = new Pointer(depth);
         if (edge instanceof GlobalDeclarationEdge) {
           element.addNewGlobalPointer(varName, p);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
@@ -460,7 +449,7 @@ public class PointerTransferRelation implements TransferRelation {
           PointerTarget pTarg =
             (!entryFunctionProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER);
           element.pointerOp(new Pointer.Assign(pTarg), p);
-
+  
         }
         // store the pointer so the type analysis CPA can update its
         // type information
@@ -468,16 +457,17 @@ public class PointerTransferRelation implements TransferRelation {
         missing.typeInformationPointer = p;
         missing.typeInformationEdge = edge;
         missing.typeInformationName = name;
-
+  
         // initializers do not need to be considered, because they have to be
         // constant and constant pointers are considered null
         // local variables do not have initializers in CIL
+      }
+      
+    } else {
+      if (edge instanceof GlobalDeclarationEdge) {
+        element.addNewGlobalPointer(varName, null);
       } else {
-        if (edge instanceof GlobalDeclarationEdge) {
-          element.addNewGlobalPointer(varName, null);
-        } else {
-          element.addNewLocalPointer(varName, null);
-        }
+        element.addNewLocalPointer(varName, null);
       }
     }
   }

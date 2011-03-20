@@ -23,27 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.List;
-import com.google.common.collect.ImmutableList;
+public final class IASTPointerTypeSpecifier extends IASTDeclSpecifier {
 
-public abstract class IASTDeclarator extends IASTNode {
+  private final IASTDeclSpecifier type;
 
-  private final List<IASTPointer> pointerOperators;
-
-  public IASTDeclarator(final String pRawSignature,
+  public IASTPointerTypeSpecifier(final String pRawSignature,
       final IASTFileLocation pFileLocation,
-      final List<IASTPointer> pPointerOperators) {
-    super(pRawSignature, pFileLocation);
-    pointerOperators = ImmutableList.copyOf(pPointerOperators);
+      final boolean pConst, final boolean pVolatile,
+      final IASTDeclSpecifier pType) {
+    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    type = pType;
   }
 
-  public IASTPointer[] getPointerOperators() {
-    return pointerOperators.toArray(new IASTPointer[pointerOperators
-        .size()]);
+  public IASTDeclSpecifier getType() {
+    return type;
   }
 
   @Override
   public IASTNode[] getChildren(){
-    return pointerOperators.toArray(new IASTPointer[pointerOperators.size()]);
+    return new IASTNode[] {type};
   }
 }

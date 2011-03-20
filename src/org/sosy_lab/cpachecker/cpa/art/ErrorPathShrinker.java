@@ -32,12 +32,13 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -157,11 +158,11 @@ public final class ErrorPathShrinker {
       if (cfaEdge instanceof GlobalDeclarationEdge) {
         DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
 
-        IASTDeclarator declarator = declarationEdge.getDeclarator();
+        IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
         if (declarationEdge.getName() != null) {
           // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables
-          if (declarator.getPointerOperators().length == 0) {
+          if (!(specifier instanceof IASTPointerTypeSpecifier)) {
             GLOBAL_VARS.add(declarationEdge.getName().toString());
           }
         }
@@ -681,11 +682,9 @@ public final class ErrorPathShrinker {
           (DeclarationEdge) currentCFAEdgePair.getSecond();
 
       /* If the declared variable is important, the edge is important. */
-      IASTDeclarator declarator = declarationEdge.getDeclarator();
       if (declarationEdge.getName() != null) {
         final String varName = declarationEdge.getName().getRawSignature();
-        if (importantVars.contains(varName)
-            && !varName.equals(declarator.getRawSignature())) {
+        if (importantVars.contains(varName)) {
           addCurrentCFAEdgePairToShortPath();
 
           // the variable is declared in this statement,

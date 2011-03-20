@@ -23,31 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTPointer extends IASTNode {
+public class IASTArrayTypeSpecifier extends IASTDeclSpecifier {
 
-  private final boolean isConst;
-  private final boolean isVolatile;
-
-  public IASTPointer(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final boolean pIsConst,
-      final boolean pIsVolatile) {
-    super(pRawSignature, pFileLocation);
-    isConst = pIsConst;
-    isVolatile = pIsVolatile;
+  private final IASTDeclSpecifier type;
+  private final IASTExpression    length;
+  
+  public IASTArrayTypeSpecifier(String pRawSignature,
+      IASTFileLocation pFileLocation, boolean pConst, boolean pVolatile,
+      IASTDeclSpecifier pType, IASTExpression pLength) {
+    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    type = pType;
+    length = pLength;
   }
-
-  public boolean isConst() {
-    return isConst;
+  
+  public IASTDeclSpecifier getType() {
+    return type;
   }
-
-  public boolean isVolatile() {
-    return isVolatile;
+  
+  public IASTExpression getLength() {
+    return length;
   }
-
+  
   @Override
-  public IASTNode[] getChildren(){
-    // there are no children of this class
-    return new IASTNode[0];
+  public IASTNode[] getChildren() {
+    return new IASTNode[] { type, length };
   }
 }
-
