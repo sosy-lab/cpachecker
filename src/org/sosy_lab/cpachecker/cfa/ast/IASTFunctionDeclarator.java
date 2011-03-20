@@ -29,14 +29,14 @@ import java.util.List;
 public class IASTFunctionDeclarator extends IASTDeclarator {
 
   private final IASTDeclarator                 nestedDeclarator;
-  private final List<IASTParameterDeclaration> parameters;
+  private final List<IASTSimpleDeclaration>    parameters;
   private final boolean                        takesVarArgs;
 
   public IASTFunctionDeclarator(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
       final IASTName pName, final IASTDeclarator pNestedDeclarator,
       final List<IASTPointer> pPointerOperators,
-      final List<IASTParameterDeclaration> pParameters,
+      final List<IASTSimpleDeclaration> pParameters,
       final boolean pTakesVarArgs) {
     super(pRawSignature, pFileLocation, pInitializer, pName,
         pPointerOperators);
@@ -46,8 +46,8 @@ public class IASTFunctionDeclarator extends IASTDeclarator {
     
   }
 
-  public IASTParameterDeclaration[] getParameters() {
-    return parameters.toArray(new IASTParameterDeclaration[parameters.size()]);
+  public IASTSimpleDeclaration[] getParameters() {
+    return parameters.toArray(new IASTSimpleDeclaration[parameters.size()]);
   }
 
   public IASTDeclarator getNestedDeclarator() {

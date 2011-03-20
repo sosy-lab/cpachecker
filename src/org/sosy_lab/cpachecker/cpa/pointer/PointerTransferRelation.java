@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -288,10 +288,10 @@ public class PointerTransferRelation implements TransferRelation {
           //by first creating its context...
           successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
 
-          List<? extends IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          List<IASTSimpleDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
 
           //..then adding all parameters as local variables
-          for (IASTParameterDeclaration dec : l) {
+          for (IASTSimpleDeclaration dec : l) {
             IASTDeclarator declarator = dec.getDeclarator();
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
             handleDeclaration(successor, cfaEdge, StorageClass.AUTO, declarator, declSpecifier);

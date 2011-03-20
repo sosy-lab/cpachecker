@@ -232,7 +232,7 @@ class CFABuilder extends ASTVisitor
       }
   
       IASTParameterDeclaration[] params = ((IASTStandardFunctionDeclarator)decl).getParameters();
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration>(params.length);
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>(params.length);
       List<String> parameterNames = new ArrayList<String>(params.length);
       
       for (IASTParameterDeclaration param : params) {

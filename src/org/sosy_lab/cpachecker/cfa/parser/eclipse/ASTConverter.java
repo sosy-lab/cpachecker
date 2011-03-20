@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
@@ -289,7 +288,7 @@ class ASTConverter {
     }
     
     org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator sd = (org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator)d;
-    List<IASTParameterDeclaration> paramsList = new ArrayList<IASTParameterDeclaration>(sd.getParameters().length);
+    List<IASTSimpleDeclaration> paramsList = new ArrayList<IASTSimpleDeclaration>(sd.getParameters().length);
     for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : sd.getParameters()) {
       paramsList.add(convert(c));
     }
@@ -428,12 +427,12 @@ class ASTConverter {
     return new IASTInitializerList(iList.getRawSignature(), convert(iList.getFileLocation()), initializerList);
     }
   
-  public static IASTParameterDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
+  public static IASTSimpleDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
     Pair<StorageClass, ? extends IASTDeclSpecifier> specifier = convert(p.getDeclSpecifier());
     if (specifier.getFirst() != StorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
     }
-    return new IASTParameterDeclaration(p.getRawSignature(), convert(p.getFileLocation()), specifier.getSecond(), convert(p.getDeclarator()));
+    return new IASTSimpleDeclaration(p.getRawSignature(), convert(p.getFileLocation()), specifier.getSecond(), convert(p.getDeclarator()));
   }
   
   private static IASTPointer convert(org.eclipse.cdt.core.dom.ast.IASTPointerOperator o) {

@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -457,7 +457,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
 
     List<String> parameters = new ArrayList<String>();
-    for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
+    for (IASTSimpleDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
       parameters.add(lFunctionParameter.getRawSignature());
     }
 

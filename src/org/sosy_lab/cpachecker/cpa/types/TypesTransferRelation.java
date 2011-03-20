@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
@@ -190,7 +189,7 @@ public class TypesTransferRelation implements TransferRelation {
 
     boolean external = (storageClass == StorageClass.EXTERN);
     
-    for (IASTParameterDeclaration parameter : funcDeclarator.getParameters()) {
+    for (IASTSimpleDeclaration parameter : funcDeclarator.getParameters()) {
       IASTDeclarator paramDeclarator = parameter.getDeclarator();
 
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());

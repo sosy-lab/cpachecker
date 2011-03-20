@@ -32,7 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -183,11 +183,11 @@ public class Wrapper {
     lWriter.println("{");
     lWriter.println("  int __BLAST_NONDET;");
     
-    for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+    for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.getRawSignature() + ";");
     }
         
-    for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+    for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
       lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = __BLAST_NONDET;");
     }
@@ -197,7 +197,7 @@ public class Wrapper {
 
     boolean isFirst = true;
 
-    for (IASTParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+    for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       if (isFirst) {
         isFirst = false;
       }

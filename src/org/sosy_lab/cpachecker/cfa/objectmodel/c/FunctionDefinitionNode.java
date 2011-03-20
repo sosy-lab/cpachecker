@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 
@@ -35,14 +35,14 @@ import com.google.common.collect.ImmutableList;
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
   private final IASTFunctionDefinition                   functionDefinition;
-  private final List<? extends IASTParameterDeclaration> parameters;
+  private final List<IASTSimpleDeclaration>              parameters;
   private final List<String>                             parameterNames;
 
   public FunctionDefinitionNode(final int lineNumber,
       final String functionName,
       final IASTFunctionDefinition functionDefinition,
       final CFAFunctionExitNode exitNode,
-      final List<? extends IASTParameterDeclaration> parameters,
+      final List<IASTSimpleDeclaration> parameters,
       final List<String> parameterNames) {
     super(lineNumber, functionName, exitNode);
     this.functionDefinition = functionDefinition;
@@ -58,7 +58,7 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
     return parameterNames;
   }
 
-  public List<? extends IASTParameterDeclaration> getFunctionParameters() {
+  public List<IASTSimpleDeclaration> getFunctionParameters() {
     return parameters;
   }
 }

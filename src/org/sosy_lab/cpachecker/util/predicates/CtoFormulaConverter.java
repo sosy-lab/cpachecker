@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -512,7 +512,7 @@ public class CtoFormulaConverter {
       List<IASTExpression> actualParams = edge.getArguments();
       
       FunctionDefinitionNode fn = edge.getSuccessor();
-      List<? extends IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
+      List<IASTSimpleDeclaration> formalParams = fn.getFunctionParameters();
       
       assert formalParams.size() == actualParams.size();
 
@@ -520,7 +520,7 @@ public class CtoFormulaConverter {
       
       int i = 0;
       Formula result = fmgr.makeTrue();
-      for (IASTParameterDeclaration formalParam : formalParams) {
+      for (IASTSimpleDeclaration formalParam : formalParams) {
         // get formal parameter name
         String formalParamName = formalParam.getDeclarator().getName().toString();
         assert(!formalParamName.isEmpty()) : edge;
