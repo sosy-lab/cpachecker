@@ -317,7 +317,13 @@ class ASTConverter {
     org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator sd = (org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator)d;
     List<IASTSimpleDeclaration> paramsList = new ArrayList<IASTSimpleDeclaration>(sd.getParameters().length);
     for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : sd.getParameters()) {
-      paramsList.add(convert(c));
+      if (!c.getRawSignature().equals("void")) {
+        paramsList.add(convert(c));
+      } else {
+        // there may be a function declaration f(void), which is equal to f()
+        // we don't want this dummy parameter "void"
+        assert sd.getParameters().length == 1 : sd.getRawSignature();
+      }
     }
     
     Triple<? extends IASTDeclarator, IASTInitializer, IASTName> nestedDeclarator = convert(d.getNestedDeclarator());
