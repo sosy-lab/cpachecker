@@ -307,7 +307,9 @@ class ASTConverter {
   }
   
   private static Triple<IASTFunctionDeclarator, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d) {
-    assert d instanceof org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
+    if (!(d instanceof org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator)) {
+      throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
+    }
     
     List<IASTPointer> pointerList = new ArrayList<IASTPointer>(d.getPointerOperators().length);
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator c : d.getPointerOperators()) {
