@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
 /** This class implements the STANDARD-FunctionDeclarator of eclipse! */
 public class IASTFunctionDeclarator extends IASTDeclarator {
 
@@ -40,13 +42,13 @@ public class IASTFunctionDeclarator extends IASTDeclarator {
       final boolean pTakesVarArgs) {
     super(pRawSignature, pFileLocation, pPointerOperators);
     nestedDeclarator = pNestedDeclarator;
-    parameters = pParameters;
+    parameters = ImmutableList.copyOf(pParameters);
     takesVarArgs = pTakesVarArgs;
     
   }
 
-  public IASTSimpleDeclaration[] getParameters() {
-    return parameters.toArray(new IASTSimpleDeclaration[parameters.size()]);
+  public List<IASTSimpleDeclaration> getParameters() {
+    return parameters;
   }
 
   public IASTDeclarator getNestedDeclarator() {
@@ -56,7 +58,7 @@ public class IASTFunctionDeclarator extends IASTDeclarator {
   @Override
   public IASTNode[] getChildren() {
     final IASTNode[] children1 = super.getChildren();
-    final IASTNode[] children2 = getParameters();
+    final IASTNode[] children2 = parameters.toArray(new IASTNode[parameters.size()]);
     IASTNode[] allChildren = new IASTNode[children1.length + children2.length + 1];
     System.arraycopy(children1, 0, allChildren, 0, children1.length);
     System.arraycopy(children2, 0, allChildren, children1.length,
