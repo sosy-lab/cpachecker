@@ -28,10 +28,10 @@ import java.util.List;
 public final class IASTVariableDeclarator extends IASTDeclarator {
 
   public IASTVariableDeclarator(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTInitializer pInitializer,
+      IASTFileLocation pFileLocation,
       IASTName pName,
       List<IASTPointer> pPointerOperators) {
-    super(pRawSignature, pFileLocation, pInitializer, pName, pPointerOperators);
+    super(pRawSignature, pFileLocation, pName, pPointerOperators);
   }
 
 }

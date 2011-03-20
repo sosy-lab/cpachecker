@@ -205,7 +205,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
           lastAdded = varName;
 
-          IASTInitializer initializer = declarator.getInitializer();
+          IASTInitializer initializer = declaration.getInitializer();
           // initializers in CIL are always constant, so no need to check if
           // initializer expression contains uninitialized variables
           if (initializer == null &&

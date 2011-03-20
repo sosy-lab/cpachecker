@@ -88,10 +88,10 @@ public class DefUseTransferRelation implements TransferRelation
     return defUseElement;
   }
 
-  private DefUseElement handleDeclaration (DefUseElement defUseElement, IASTDeclarator declarator, CFAEdge cfaEdge)
+  private DefUseElement handleDeclaration (DefUseElement defUseElement, IASTDeclarator declarator, DeclarationEdge cfaEdge)
   {
     if (declarator != null) {
-      IASTInitializer initializer = declarator.getInitializer ();
+      IASTInitializer initializer = cfaEdge.getInitializer ();
       if (initializer != null)
       {
         String varName = declarator.getName ().getRawSignature ();
@@ -127,7 +127,7 @@ public class DefUseTransferRelation implements TransferRelation
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       IASTDeclarator declarator = declarationEdge.getDeclarator();
-      defUseElement = handleDeclaration (defUseElement, declarator, cfaEdge);
+      defUseElement = handleDeclaration (defUseElement, declarator, declarationEdge);
       break;
     }
     }

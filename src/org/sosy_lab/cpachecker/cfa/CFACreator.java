@@ -35,15 +35,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -284,7 +282,7 @@ public class CFACreator {
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<Pair<StorageClass, IASTSimpleDeclaration>> globalVars, LogManager logger) {
+  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, LogManager logger) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -304,10 +302,10 @@ public class CFACreator {
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (Pair<StorageClass, IASTSimpleDeclaration> sd : globalVars) {
-      CFANode n = new CFANode(sd.getSecond().getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd.getSecond(), sd.getFirst(),
-          sd.getSecond().getFileLocation().getStartingLineNumber(), cur, n);
+    for (IASTDeclaration d : globalVars) {
+      CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
+          d.getFileLocation().getStartingLineNumber(), cur, n);
       addToCFA(e);
       cur = n;
     }

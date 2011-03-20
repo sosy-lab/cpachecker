@@ -33,12 +33,12 @@ public class IASTFunctionDeclarator extends IASTDeclarator {
   private final boolean                        takesVarArgs;
 
   public IASTFunctionDeclarator(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTInitializer pInitializer,
+      final IASTFileLocation pFileLocation,
       final IASTName pName, final IASTDeclarator pNestedDeclarator,
       final List<IASTPointer> pPointerOperators,
       final List<IASTSimpleDeclaration> pParameters,
       final boolean pTakesVarArgs) {
-    super(pRawSignature, pFileLocation, pInitializer, pName,
+    super(pRawSignature, pFileLocation, pName,
         pPointerOperators);
     nestedDeclarator = pNestedDeclarator;
     parameters = pParameters;

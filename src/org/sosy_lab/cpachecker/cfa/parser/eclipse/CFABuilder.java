@@ -64,9 +64,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -113,7 +111,7 @@ class CFABuilder extends ASTVisitor
   private SortedSet<CFANode> currentCFANodes = null;
 
   // Data structure for storing global declarations
-  private final List<Pair<StorageClass, org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>> globalDeclarations = Lists.newArrayList();
+  private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
 
   private final LogManager logger;
 
@@ -155,7 +153,7 @@ class CFABuilder extends ASTVisitor
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<StorageClass, org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>> getGlobalDeclarations ()
+  public List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> getGlobalDeclarations ()
   {
     return globalDeclarations;
   }
@@ -177,15 +175,14 @@ class CFABuilder extends ASTVisitor
         
         CFANode nextNode = null;
 
-        Pair<StorageClass, List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>> newSds = ASTConverter.convert(sd);
-        StorageClass storageClass = newSds.getFirst();
-        assert !newSds.getSecond().isEmpty();
-        for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration newSd : newSds.getSecond()) {
+        List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = ASTConverter.convert(sd);
+        assert !newDs.isEmpty();
+        for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
           
           nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
           currentCFANodes.add(nextNode);
           
-          DeclarationEdge edge = new DeclarationEdge(newSd, storageClass, fileloc.getStartingLineNumber(), prevNode, nextNode);
+          DeclarationEdge edge = new DeclarationEdge(newD, fileloc.getStartingLineNumber(), prevNode, nextNode);
           addToCFA(edge);
           
           prevNode = nextNode;
@@ -197,11 +194,7 @@ class CFABuilder extends ASTVisitor
       } else if (declaration.getParent() instanceof IASTTranslationUnit) {
       
         // else we're in the global scope
-        Pair<StorageClass, List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>> newSds = ASTConverter.convert(sd);
-        StorageClass storageClass = newSds.getFirst();
-        for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration newSd : newSds.getSecond()) {
-          globalDeclarations.add(Pair.of(storageClass, newSd));
-        }
+        globalDeclarations.addAll(ASTConverter.convert(sd));
       }
     }
     else if (declaration instanceof IASTFunctionDefinition)

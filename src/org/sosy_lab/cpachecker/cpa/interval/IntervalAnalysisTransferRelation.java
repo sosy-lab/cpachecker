@@ -621,7 +621,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
           Interval interval;
 
-          IASTInitializer init = declarator.getInitializer();
+          IASTInitializer init = declarationEdge.getInitializer();
 
           // global variables may be initialized explicitly on the spot ...
           if(init instanceof IASTInitializerExpression)

@@ -919,7 +919,7 @@ public class OctTransferRelation implements TransferRelation{
 
         Long v;
 
-        IASTInitializer init = declarator.getInitializer();
+        IASTInitializer init = declarationEdge.getInitializer();
         if (init != null) {
           if (init instanceof IASTInitializerExpression) {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();

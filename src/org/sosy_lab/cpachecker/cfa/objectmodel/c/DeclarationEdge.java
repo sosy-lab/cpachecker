@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
@@ -34,15 +35,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class DeclarationEdge extends AbstractCFAEdge {
 
-  private final StorageClass          storageClass;
-  private final IASTSimpleDeclaration declaration;
+  private final IASTDeclaration declaration;
   
-  public DeclarationEdge(final IASTSimpleDeclaration declaration,
-      final StorageClass storageClass,
+  public DeclarationEdge(final IASTDeclaration declaration,
       final int lineNumber,
       final CFANode predecessor,final CFANode successor) {
     super(declaration.getRawSignature(), lineNumber, predecessor, successor);
-    this.storageClass = storageClass;
     this.declaration = declaration;
   }
 
@@ -52,7 +50,7 @@ public class DeclarationEdge extends AbstractCFAEdge {
   }
   
   public StorageClass getStorageClass() {
-    return storageClass;
+    return declaration.getStorageClass();
   }
 
   /**
@@ -74,8 +72,12 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return declaration.getDeclSpecifier();
   }
 
+  public IASTInitializer getInitializer() {
+    return declaration.getInitializer();
+  }
+  
   @Override
-  public IASTSimpleDeclaration getRawAST() {
+  public IASTDeclaration getRawAST() {
     return declaration;
   }
   

@@ -8,9 +8,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
@@ -24,12 +22,12 @@ import com.google.common.collect.Lists;
 class TranslationUnit {
 
   private final Map<String, CFAFunctionDefinitionNode> mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-  private final List<Pair<StorageClass, IASTSimpleDeclaration>> mGlobalDeclarations = Lists.newLinkedList();
+  private final List<IASTDeclaration> mGlobalDeclarations = Lists.newLinkedList();
 
   public TranslationUnit() {
   }
   
-  private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<Pair<StorageClass, IASTSimpleDeclaration>> pGlobalDeclarations) {
+  private TranslationUnit(Map<String, CFAFunctionDefinitionNode> pCFAs, List<IASTDeclaration> pGlobalDeclarations) {
     assert pCFAs != null;
     
     mCFAs.putAll(pCFAs);
@@ -69,7 +67,7 @@ class TranslationUnit {
     return mCFAs.keySet();
   }
   
-  public List<Pair<StorageClass, IASTSimpleDeclaration>> getGlobalDeclarations() {
+  public List<IASTDeclaration> getGlobalDeclarations() {
     return mGlobalDeclarations;
   }
 

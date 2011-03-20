@@ -441,7 +441,7 @@ public class CtoFormulaConverter {
   
         // if there is an initializer associated to this variable,
         // take it into account
-        IASTInitializer init = declarator.getInitializer();
+        IASTInitializer init = edge.getInitializer();
         if (init != null) {
           // initializer value present
           if (!(init instanceof IASTInitializerExpression)) {
