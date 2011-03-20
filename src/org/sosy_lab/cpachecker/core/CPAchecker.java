@@ -183,13 +183,14 @@ public class CPAchecker {
       cfaCreator.parseFileAndCreateCFA(filename);
       
       Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
-      CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
       stats.cfaCreationTime.stop();
       
       if (cfas.isEmpty()) {
         // empty program, do nothing
         return new CPAcheckerResult(Result.UNKNOWN, null, null);
       }
+
+      CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
 
       stats.cpaCreationTime.start();
       ConfigurableProgramAnalysis cpa = createCPA(stats);
