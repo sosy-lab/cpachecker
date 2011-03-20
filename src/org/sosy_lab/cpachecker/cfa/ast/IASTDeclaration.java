@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class IASTDeclaration extends IASTNode {
 
   private final StorageClass         storageClass;
@@ -35,8 +37,8 @@ public class IASTDeclaration extends IASTNode {
       IASTSimpleDeclaration pDeclaration,
       IASTInitializer pInitializer) {
     super(pRawSignature, pFileLocation);
-    storageClass = pStorageClass;
-    declaration = pDeclaration;
+    storageClass = checkNotNull(pStorageClass);
+    declaration = checkNotNull(pDeclaration);
     initializer = pInitializer;
   }
 

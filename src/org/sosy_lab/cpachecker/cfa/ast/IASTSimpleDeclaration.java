@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.*;
+
 public final class IASTSimpleDeclaration extends IASTNode {
 
   private final IASTDeclSpecifier    specifier;
@@ -34,7 +36,9 @@ public final class IASTSimpleDeclaration extends IASTNode {
       final IASTDeclarator pDeclarator,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
-    specifier = pSpecifier;
+    checkArgument((pDeclarator == null) == (pName == null));
+    
+    specifier = checkNotNull(pSpecifier);
     declarator = pDeclarator;
     name = pName;
   }
