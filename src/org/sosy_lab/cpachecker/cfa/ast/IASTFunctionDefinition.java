@@ -25,15 +25,23 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTFunctionDefinition extends IASTNode {
 
+  private final StorageClass           storageClass;
   private final IASTDeclSpecifier      specifier;
   private final IASTFunctionDeclarator declarator;
 
   public IASTFunctionDefinition(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
+      final IASTFileLocation pFileLocation,
+      final StorageClass pStorageClass,
+      final IASTDeclSpecifier pSpecifier,
       final IASTFunctionDeclarator pDeclarator) {
     super(pRawSignature, pFileLocation);
+    storageClass = pStorageClass;
     specifier = pSpecifier;
     declarator = pDeclarator;
+  }
+  
+  public StorageClass getStorageClass() {
+    return storageClass;
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {

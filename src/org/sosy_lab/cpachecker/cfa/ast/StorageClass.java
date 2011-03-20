@@ -23,30 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public abstract class IASTDeclSpecifier extends IASTNode {
+/**
+ * Enum for the possible storage classes of C declarations.
+ * REGISTER is missing because it is semantically equal to AUTO.
+ */
+public enum StorageClass {
 
-  private boolean   isConst;
-  private boolean   isVolatile;
-
-  public IASTDeclSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final boolean pConst, final boolean pVolatile) {
-    super(pRawSignature, pFileLocation);
-    isConst = pConst;
-    isVolatile = pVolatile;
-  }
-
-  public boolean isConst() {
-    return isConst;
-  }
-
-  public boolean isVolatile() {
-    return isVolatile;
-  }
-
-  @Override
-  public IASTNode[] getChildren(){
-    // there are no children of this class
-    return new IASTNode[0];
-  }
+  AUTO,
+  STATIC,
+  EXTERN,
+  TYPEDEF,
+  ;
+  
 }

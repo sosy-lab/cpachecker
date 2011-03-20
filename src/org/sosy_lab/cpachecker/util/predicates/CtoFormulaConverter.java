@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -302,7 +303,7 @@ public class CtoFormulaConverter {
     
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarator(), d.isGlobal(), edge, function, ssa);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.getDeclarator(), d.isGlobal(), d, function, ssa);
       break;
     }
     
@@ -370,7 +371,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeDeclaration(IASTDeclSpecifier spec,
-      IASTDeclarator declarator, boolean isGlobal, CFAEdge edge,
+      IASTDeclarator declarator, boolean isGlobal, DeclarationEdge edge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
 
     if (spec instanceof IASTEnumerationSpecifier) {
@@ -405,7 +406,7 @@ public class CtoFormulaConverter {
                spec instanceof IASTElaboratedTypeSpecifier ||
                spec instanceof IASTNamedTypeSpecifier) {
 
-      if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+      if (edge.getStorageClass() == StorageClass.TYPEDEF) {
         log(Level.ALL, "Ignoring typedef", spec);
         return fmgr.makeTrue();
       }
@@ -457,7 +458,7 @@ public class CtoFormulaConverter {
             result = fmgr.makeAnd(result, t);
           }
   
-        } else if (spec.getStorageClass() == IASTDeclSpecifier.sc_extern) {
+        } else if (edge.getStorageClass() == StorageClass.EXTERN) {
           log(Level.WARNING, "Ignoring initializer of extern declaration", declarator);
   
         } else if (isGlobal || initAllVars) {

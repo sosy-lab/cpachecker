@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -194,7 +194,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       DeclarationEdge declaration) {
 
     //typedefs do not concern this CPA
-    if (declaration.getDeclSpecifier().getStorageClass() != IASTDeclSpecifier.sc_typedef) {
+    if (declaration.getStorageClass() != StorageClass.TYPEDEF) {
 
       IASTDeclarator declarator = declaration.getDeclarator();
       if (declarator != null) {
@@ -209,7 +209,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           // initializers in CIL are always constant, so no need to check if
           // initializer expression contains uninitialized variables
           if (initializer == null &&
-              !(declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern) &&
+              !(declaration.getStorageClass() == StorageClass.EXTERN) &&
               !(declarator instanceof IASTArrayDeclarator) &&
               !(declarator instanceof IASTFunctionDeclarator)) {
             setUninitialized(element, varName);
@@ -526,7 +526,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //and set it uninitialized (since it is only declared at this point); do this recursively for all
             //fields that are structs themselves
             if (t.getTypeClass() == TypeClass.STRUCT &&
-                !(declEdge.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
+                !(declEdge.getStorageClass() == StorageClass.EXTERN)) {
 
               handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
                                       (Type.CompositeType)t, lastAdded, lastAdded, 

@@ -29,11 +29,10 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier {
   private final IASTName name;
 
   public IASTElaboratedTypeSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final int pStorageClass,
+      final IASTFileLocation pFileLocation,
       boolean pConst, final boolean pVolatile,
       final int pKind, final IASTName pName) {
-    super(pRawSignature, pFileLocation, pStorageClass, pConst,
-        pVolatile);
+    super(pRawSignature, pFileLocation, pConst, pVolatile);
     kind = pKind;
     name = pName;
   }

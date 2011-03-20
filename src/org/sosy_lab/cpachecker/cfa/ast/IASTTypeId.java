@@ -25,17 +25,25 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTTypeId extends IASTNode {
 
+  private final StorageClass      storageClass;
   private final IASTDeclarator    declarator;
   private final IASTDeclSpecifier specifier;
 
   public IASTTypeId(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTDeclarator pDeclarator,
-      final IASTDeclSpecifier pSpecifier) {
+      final IASTFileLocation pFileLocation,
+      final StorageClass pStorageClass,
+      final IASTDeclSpecifier pSpecifier,
+      final IASTDeclarator pDeclarator) {
     super(pRawSignature, pFileLocation);
+    storageClass = pStorageClass;
     declarator = pDeclarator;
     specifier = pSpecifier;
   }
 
+  public StorageClass getStorageClass() {
+    return storageClass;
+  }
+  
   public IASTDeclarator getAbstractDeclarator() {
     return declarator;
   }

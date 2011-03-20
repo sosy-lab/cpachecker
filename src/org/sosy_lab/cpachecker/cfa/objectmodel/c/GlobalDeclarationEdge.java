@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -37,8 +38,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 
-    public GlobalDeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber, CFANode predecessor, CFANode successor) {
-        super(declaration, lineNumber, predecessor, successor);
+    public GlobalDeclarationEdge(IASTSimpleDeclaration declaration,  StorageClass storageClass, int lineNumber, CFANode predecessor, CFANode successor) {
+        super(declaration, storageClass, lineNumber, predecessor, successor);
     }
 
     @Override

@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -49,11 +51,11 @@ public class CFA {
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
-  private final List<IASTSimpleDeclaration> globalDeclarations;
+  private final List<Pair<StorageClass, IASTSimpleDeclaration>> globalDeclarations;
 
   public CFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
-      List<IASTSimpleDeclaration> pGlobalDeclarations) {
+      List<Pair<StorageClass, IASTSimpleDeclaration>> pGlobalDeclarations) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
@@ -67,7 +69,7 @@ public class CFA {
     return cfaNodes;
   }
 
-  public List<IASTSimpleDeclaration> getGlobalDeclarations() {
+  public List<Pair<StorageClass, IASTSimpleDeclaration>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 }

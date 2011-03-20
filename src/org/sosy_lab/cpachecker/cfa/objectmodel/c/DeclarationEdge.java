@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -33,17 +34,25 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class DeclarationEdge extends AbstractCFAEdge {
 
+  private final StorageClass          storageClass;
   private final IASTSimpleDeclaration declaration;
   
-  public DeclarationEdge(final IASTSimpleDeclaration declaration, final int lineNumber,
-     final CFANode predecessor,final CFANode successor) {
+  public DeclarationEdge(final IASTSimpleDeclaration declaration,
+      final StorageClass storageClass,
+      final int lineNumber,
+      final CFANode predecessor,final CFANode successor) {
     super(declaration.getRawSignature(), lineNumber, predecessor, successor);
+    this.storageClass = storageClass;
     this.declaration = declaration;
   }
 
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.DeclarationEdge;
+  }
+  
+  public StorageClass getStorageClass() {
+    return storageClass;
   }
 
   /**

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -236,7 +237,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getDeclarator(), declEdge.getDeclSpecifier());
+        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getDeclarator(), declEdge.getDeclSpecifier());
         break;
 
       case StatementEdge:
@@ -293,7 +294,7 @@ public class PointerTransferRelation implements TransferRelation {
           for (IASTParameterDeclaration dec : l) {
             IASTDeclarator declarator = dec.getDeclarator();
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, declarator, declSpecifier);
+            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, declarator, declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -331,9 +332,10 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
+      StorageClass storageClass,
       IASTDeclarator declarator, IASTDeclSpecifier specifier) throws CPATransferException {
 
-    if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+    if (storageClass == StorageClass.TYPEDEF) {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
