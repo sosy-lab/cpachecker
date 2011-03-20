@@ -94,7 +94,7 @@ public class DefUseTransferRelation implements TransferRelation
       IASTInitializer initializer = cfaEdge.getInitializer ();
       if (initializer != null)
       {
-        String varName = declarator.getName ().getRawSignature ();
+        String varName = cfaEdge.getName().getRawSignature ();
         DefUseDefinition definition = new DefUseDefinition (varName, cfaEdge);
 
         defUseElement = new DefUseElement(defUseElement, definition);

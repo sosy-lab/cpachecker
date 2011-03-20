@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
@@ -98,7 +97,6 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
-      IASTDeclarator declarator = decl.getDeclarator();
       IASTDeclSpecifier spec = decl.getDeclSpecifier();
 
       boolean isGlobal = ArithmeticOverflowAssumptionBuilder.isDeclGlobal;
@@ -114,7 +112,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
         }
       }
 
-      String var = declarator.getName().getRawSignature();
+      String var = decl.getName().getRawSignature();
       if (isGlobal) {
         super.addToGlobalVars(var);
       }

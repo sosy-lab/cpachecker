@@ -1048,7 +1048,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (declarator != null) {
 
         // get the variable name in the declarator
-        String varName = declarator.getName().toString();
+        String varName = declarationEdge.getName().toString();
 
         // TODO check other types of variables later - just handle primitive
         // types for the moment

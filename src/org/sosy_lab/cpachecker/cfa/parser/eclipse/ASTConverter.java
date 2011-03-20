@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
 import org.sosy_lab.cpachecker.cfa.ast.DummyType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayDeclarator;
@@ -200,12 +201,12 @@ class ASTConverter {
   public static IASTFunctionDefinition convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
     Pair<StorageClass, ? extends IASTDeclSpecifier> specifier = convert(f.getDeclSpecifier());
     
-    Pair<IASTFunctionDeclarator, IASTInitializer> declarator = convert(f.getDeclarator());
+    Triple<IASTFunctionDeclarator, IASTInitializer, IASTName> declarator = convert(f.getDeclarator());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", f);
     }
     
-    return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), specifier.getFirst(), specifier.getSecond(), declarator.getFirst());
+    return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), specifier.getFirst(), specifier.getSecond(), declarator.getFirst(), declarator.getThird());
   }
   
   public static List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
@@ -218,27 +219,27 @@ class ASTConverter {
     org.eclipse.cdt.core.dom.ast.IASTDeclarator[] declarators = d.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, i.e. struct prototype
-      IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, null);
+      IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, null, null);
       IASTDeclaration newD = new IASTDeclaration(newSd.getRawSignature(), fileLoc, storageClass, newSd, null);
       result = Collections.singletonList(newD);
     
     } else if (declarators.length == 1) {
-      Pair<? extends IASTDeclarator, IASTInitializer> declarator = convert(declarators[0]);
+      Triple<? extends IASTDeclarator, IASTInitializer, IASTName> declarator = convert(declarators[0]);
 
-      IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, declarator.getFirst());
+      IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, declarator.getFirst(), declarator.getThird());
       IASTDeclaration newD = new IASTDeclaration(newSd.getRawSignature(), fileLoc, storageClass, newSd, declarator.getSecond());
       result = Collections.singletonList(newD);
     
     } else {
       result = new ArrayList<IASTDeclaration>(declarators.length);
       for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : d.getDeclarators()) {
-        Pair<? extends IASTDeclarator, IASTInitializer> declarator = convert(c);
+        Triple<? extends IASTDeclarator, IASTInitializer, IASTName> declarator = convert(c);
         
         // fake rawSignature because otherwise the other declarators would appear in it, too
         
         String rawSignature = declSpec.getRawSignature() + " " + c.getRawSignature() + ";";
         
-        IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, declSpec, declarator.getFirst());
+        IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, declSpec, declarator.getFirst(), declarator.getThird());
         IASTDeclaration newD = new IASTDeclaration(rawSignature, fileLoc, storageClass, newSd, declarator.getSecond());
 
         result.add(newD);
@@ -249,7 +250,7 @@ class ASTConverter {
   }
   
   
-  private static Pair<? extends IASTDeclarator, IASTInitializer> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
+  private static Triple<? extends IASTDeclarator, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
     if (d == null) {
       return null;
     
@@ -267,13 +268,14 @@ class ASTConverter {
       if (d.getNestedDeclarator() != null) {
         throw new CFAGenerationRuntimeException("Nested declarator where not expected", d);
       }
-      return Pair.of(
-             new IASTVariableDeclarator(d.getRawSignature(), convert(d.getFileLocation()), convert(d.getName()), list),
-             convert(d.getInitializer()));
+      return Triple.of(
+             new IASTVariableDeclarator(d.getRawSignature(), convert(d.getFileLocation()), list),
+             convert(d.getInitializer()),
+             convert(d.getName()));
     }
   }
   
-  private static Pair<IASTArrayDeclarator, IASTInitializer> convert(org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator d)  {
+  private static Triple<IASTArrayDeclarator, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator d)  {
     List<IASTArrayModifier> arrayList = new ArrayList<IASTArrayModifier>(d.getArrayModifiers().length);
     for (org.eclipse.cdt.core.dom.ast.IASTArrayModifier c : d.getArrayModifiers()) {
       arrayList.add(convert(c));
@@ -283,7 +285,7 @@ class ASTConverter {
       pointerList.add(convert(c));
     }
     
-    Pair<? extends IASTDeclarator, IASTInitializer> nestedDeclarator = convert(d.getNestedDeclarator());
+    Triple<? extends IASTDeclarator, IASTInitializer, IASTName> nestedDeclarator = convert(d.getNestedDeclarator());
     
     IASTDeclarator nestedD;
     IASTName name;
@@ -292,18 +294,19 @@ class ASTConverter {
       assert nestedDeclarator.getSecond() == null;
       
       nestedD = nestedDeclarator.getFirst();
-      name = nestedDeclarator.getFirst().getName();
+      name = nestedDeclarator.getThird();
     
     } else {
       nestedD = null;
       name = convert(d.getName());
     }
-    return Pair.of(
-           new IASTArrayDeclarator(d.getRawSignature(), convert(d.getFileLocation()), name, pointerList, nestedD, arrayList),
-           convert(d.getInitializer()));
+    return Triple.of(
+           new IASTArrayDeclarator(d.getRawSignature(), convert(d.getFileLocation()), pointerList, nestedD, arrayList),
+           convert(d.getInitializer()),
+           name);
   }
   
-  private static Pair<IASTFunctionDeclarator, IASTInitializer> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d) {
+  private static Triple<IASTFunctionDeclarator, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d) {
     assert d instanceof org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
     
     List<IASTPointer> pointerList = new ArrayList<IASTPointer>(d.getPointerOperators().length);
@@ -317,7 +320,7 @@ class ASTConverter {
       paramsList.add(convert(c));
     }
     
-    Pair<? extends IASTDeclarator, IASTInitializer> nestedDeclarator = convert(d.getNestedDeclarator());
+    Triple<? extends IASTDeclarator, IASTInitializer, IASTName> nestedDeclarator = convert(d.getNestedDeclarator());
     
     IASTDeclarator nestedD;
     IASTName name;
@@ -326,16 +329,17 @@ class ASTConverter {
       assert nestedDeclarator.getSecond() == null;
       
       nestedD = nestedDeclarator.getFirst();
-      name = nestedDeclarator.getFirst().getName();
+      name = nestedDeclarator.getThird();
     
     } else {
       nestedD = null;
       name = convert(d.getName());
     }
     
-    return Pair.of(
-           new IASTFunctionDeclarator(d.getRawSignature(), convert(d.getFileLocation()), name, nestedD, pointerList, paramsList, sd.takesVarArgs()),
-           convert(d.getInitializer()));
+    return Triple.of(
+           new IASTFunctionDeclarator(d.getRawSignature(), convert(d.getFileLocation()), nestedD, pointerList, paramsList, sd.takesVarArgs()),
+           convert(d.getInitializer()),
+           name);
   }
   
   
@@ -467,12 +471,12 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
     }
     
-    Pair<? extends IASTDeclarator, IASTInitializer> declarator = convert(p.getDeclarator());
+    Triple<? extends IASTDeclarator, IASTInitializer, IASTName> declarator = convert(p.getDeclarator());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
     }
     
-    return new IASTSimpleDeclaration(p.getRawSignature(), convert(p.getFileLocation()), specifier.getSecond(), declarator.getFirst());
+    return new IASTSimpleDeclaration(p.getRawSignature(), convert(p.getFileLocation()), specifier.getSecond(), declarator.getFirst(), declarator.getThird());
   }
   
   private static IASTPointer convert(org.eclipse.cdt.core.dom.ast.IASTPointerOperator o) {
@@ -523,11 +527,12 @@ class ASTConverter {
   private static IASTTypeId convert(org.eclipse.cdt.core.dom.ast.IASTTypeId t) {
     Pair<StorageClass, ? extends IASTDeclSpecifier> specifier = convert(t.getDeclSpecifier());
 
-    Pair<? extends IASTDeclarator, IASTInitializer> declarator = convert(t.getAbstractDeclarator());
+    Triple<? extends IASTDeclarator, IASTInitializer, IASTName> declarator = convert(t.getAbstractDeclarator());
     if (declarator.getSecond() != null) {
-      throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", t);
+      throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }
-    return new IASTTypeId(t.getRawSignature(), convert(t.getFileLocation()), specifier.getFirst(), specifier.getSecond(), declarator.getFirst());
+    
+    return new IASTTypeId(t.getRawSignature(), convert(t.getFileLocation()), specifier.getFirst(), specifier.getSecond(), declarator.getFirst(), declarator.getThird());
   }
   
   private static IType convert(org.eclipse.cdt.core.dom.ast.IType t) {

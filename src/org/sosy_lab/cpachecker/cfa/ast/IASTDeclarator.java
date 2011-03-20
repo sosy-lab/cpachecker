@@ -28,20 +28,13 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class IASTDeclarator extends IASTNode {
 
-  private final IASTName                  name;
   private final List<IASTPointer> pointerOperators;
 
   public IASTDeclarator(final String pRawSignature,
       final IASTFileLocation pFileLocation,
-      final IASTName pName,
       final List<IASTPointer> pPointerOperators) {
     super(pRawSignature, pFileLocation);
-    name = pName;
     pointerOperators = ImmutableList.copyOf(pPointerOperators);
-  }
-
-  public IASTName getName() {
-    return name;
   }
 
   public IASTPointer[] getPointerOperators() {
@@ -51,9 +44,6 @@ public abstract class IASTDeclarator extends IASTNode {
 
   @Override
   public IASTNode[] getChildren(){
-    final IASTNode[] children = pointerOperators.toArray(
-        new IASTPointer[pointerOperators.size() + 1]);
-    children[pointerOperators.size()] = name;
-    return children;
+    return pointerOperators.toArray(new IASTPointer[pointerOperators.size()]);
   }
 }

@@ -416,7 +416,7 @@ public class CtoFormulaConverter {
       // ignore function declarations and type prototypes here
       if (!(declarator instanceof IASTFunctionDeclarator) && (declarator != null)) {
         
-        String varNameWithoutFunction = declarator.getName().getRawSignature();
+        String varNameWithoutFunction = edge.getName().getRawSignature();
         if (isGlobal) {
           globalVars.add(varNameWithoutFunction);
         }
@@ -522,7 +522,7 @@ public class CtoFormulaConverter {
       Formula result = fmgr.makeTrue();
       for (IASTSimpleDeclaration formalParam : formalParams) {
         // get formal parameter name
-        String formalParamName = formalParam.getDeclarator().getName().toString();
+        String formalParamName = formalParam.getName().toString();
         assert(!formalParamName.isEmpty()) : edge;
 
         if (formalParam.getDeclarator().getPointerOperators().length != 0) {

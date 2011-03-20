@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
@@ -102,6 +103,7 @@ public class TypesTransferRelation implements TransferRelation {
         IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, funcCallEdge,
             StorageClass.EXTERN,
+            funcDef.getName(),
             funcDef.getDeclarator(), funcDef.getDeclSpecifier());
       }
       break;
@@ -117,7 +119,7 @@ public class TypesTransferRelation implements TransferRelation {
           && cfaEdge.getRawStatement().equals("Function start dummy edge")) {
         //since by this point all global variables have been processed, we can now process the entry function
         IASTFunctionDefinition funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, StorageClass.AUTO, funcDef.getDeclarator(), funcDef.getDeclSpecifier());
+        handleFunctionDeclaration(successor, null, StorageClass.AUTO, funcDef.getName(), funcDef.getDeclarator(), funcDef.getDeclSpecifier());
 
         entryFunctionProcessed = true;
       }
@@ -137,7 +139,7 @@ public class TypesTransferRelation implements TransferRelation {
     IASTDeclarator declarator = declarationEdge.getDeclarator();
 
     if (declarator instanceof IASTFunctionDeclarator) {
-      handleFunctionDeclaration(element, declarationEdge, declarationEdge.getStorageClass(), (IASTFunctionDeclarator)declarator, specifier);
+      handleFunctionDeclaration(element, declarationEdge, declarationEdge.getStorageClass(), declarationEdge.getName(), (IASTFunctionDeclarator)declarator, specifier);
 
     } else {
 
@@ -145,7 +147,7 @@ public class TypesTransferRelation implements TransferRelation {
 
       if (declarator != null) {
         Type thisType = getPointerType(type, declarationEdge, declarator);
-        String thisName = declarator.getName().getRawSignature();
+        String thisName = declarationEdge.getName().getRawSignature();
 
         if (declarationEdge.getStorageClass() == StorageClass.TYPEDEF) {
           element.addTypedef(thisName, thisType);
@@ -164,19 +166,13 @@ public class TypesTransferRelation implements TransferRelation {
   private void handleFunctionDeclaration(TypesElement element,
                                         CFAEdge cfaEdge,
                                         StorageClass storageClass,
+                                        IASTName pName,
                                         IASTFunctionDeclarator funcDeclarator,
                                         IASTDeclSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
-    String name;
-    //in case of a nested declarator, get the variable name from the inner declarator
-    if (funcDeclarator.getNestedDeclarator() != null) {
-      name = funcDeclarator.getNestedDeclarator().getName().getRawSignature();
-    } else {
-    //otherwise there is only one declarator
-      name = funcDeclarator.getName().getRawSignature();
-    }
-    assert !isNullOrEmpty(name) : funcDeclarator;
+    String name = pName.getRawSignature();
+    assert !isNullOrEmpty(name) : cfaEdge;
 
     if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       assert name.equals(cfaEdge.getSuccessor().getFunctionName());
@@ -195,7 +191,7 @@ public class TypesTransferRelation implements TransferRelation {
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
       parameterType = getPointerType(parameterType, cfaEdge, paramDeclarator);
 
-      String parameterName = (external ? null : paramDeclarator.getName().getRawSignature());
+      String parameterName = (external ? null : paramDeclarator.getRawSignature());
 
       function.addParameter(parameterName, parameterType);
     }
@@ -292,7 +288,7 @@ public class TypesTransferRelation implements TransferRelation {
         IASTDeclarator declarator = subDeclaration.getDeclarator();
         if (declarator != null) {
           Type thisSubType = getPointerType(subType, cfaEdge, declarator);
-          String thisSubName = declarator.getName().getRawSignature();
+          String thisSubName = subDeclaration.getRawSignature();
           
           // anonymous struct fields may occur, ignore them
           // TODO they should be added so that the struct has the correct size

@@ -28,16 +28,19 @@ public final class IASTTypeId extends IASTNode {
   private final StorageClass      storageClass;
   private final IASTDeclarator    declarator;
   private final IASTDeclSpecifier specifier;
+  private final IASTName          name;
 
   public IASTTypeId(final String pRawSignature,
       final IASTFileLocation pFileLocation,
       final StorageClass pStorageClass,
       final IASTDeclSpecifier pSpecifier,
-      final IASTDeclarator pDeclarator) {
+      final IASTDeclarator pDeclarator,
+      final IASTName pName) {
     super(pRawSignature, pFileLocation);
     storageClass = pStorageClass;
     declarator = pDeclarator;
     specifier = pSpecifier;
+    name = pName;
   }
 
   public StorageClass getStorageClass() {
@@ -51,9 +54,13 @@ public final class IASTTypeId extends IASTNode {
   public IASTDeclSpecifier getDeclSpecifier() {
     return specifier;
   }
+  
+  public IASTName getName() {
+    return name;
+  }
 
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {declarator, specifier};
+    return new IASTNode[] {declarator, specifier, name};
   }
 }

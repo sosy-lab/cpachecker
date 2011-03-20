@@ -162,7 +162,7 @@ public final class ErrorPathShrinker {
           // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables
           if (declarator.getPointerOperators().length == 0) {
-            GLOBAL_VARS.add(declarator.getName().toString());
+            GLOBAL_VARS.add(declarationEdge.getName().toString());
           }
         }
       }
@@ -683,7 +683,7 @@ public final class ErrorPathShrinker {
       /* If the declared variable is important, the edge is important. */
       IASTDeclarator declarator = declarationEdge.getDeclarator();
       if (declarator != null) {
-        final String varName = declarator.getName().getRawSignature();
+        final String varName = declarationEdge.getName().getRawSignature();
         if (importantVars.contains(varName)
             && !varName.equals(declarator.getRawSignature())) {
           addCurrentCFAEdgePairToShortPath();

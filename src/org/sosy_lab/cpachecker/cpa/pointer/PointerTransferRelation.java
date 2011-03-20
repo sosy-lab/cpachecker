@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointer;
@@ -140,7 +141,7 @@ public class PointerTransferRelation implements TransferRelation {
   private static class MissingInformation {
     private Pointer         typeInformationPointer = null;
     private CFAEdge         typeInformationEdge    = null;
-    private IASTDeclarator  typeInformationDeclarator = null;
+    private IASTName        typeInformationName    = null;
 
     private Pointer         actionLeftPointer      = null;
     private Pointer         actionRightPointer     = null;
@@ -237,7 +238,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getDeclarator(), declEdge.getDeclSpecifier());
+        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclarator(), declEdge.getDeclSpecifier());
         break;
 
       case StatementEdge:
@@ -294,7 +295,7 @@ public class PointerTransferRelation implements TransferRelation {
           for (IASTSimpleDeclaration dec : l) {
             IASTDeclarator declarator = dec.getDeclarator();
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, declarator, declSpecifier);
+            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declarator, declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -333,6 +334,7 @@ public class PointerTransferRelation implements TransferRelation {
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
       StorageClass storageClass,
+      IASTName name,
       IASTDeclarator declarator, IASTDeclSpecifier specifier) throws CPATransferException {
 
     if (storageClass == StorageClass.TYPEDEF) {
@@ -364,7 +366,7 @@ public class PointerTransferRelation implements TransferRelation {
       if (specifier instanceof IASTElaboratedTypeSpecifier) {
         // declaration of pointer to struct
         
-        String varName = declarator.getName().toString();
+        String varName = name.toString();
         IASTPointer[] operators = declarator.getPointerOperators();
         
         if (operators != null && operators.length > 0) {
@@ -395,7 +397,7 @@ public class PointerTransferRelation implements TransferRelation {
           missing = new MissingInformation();
           missing.typeInformationPointer = ptr;
           missing.typeInformationEdge = edge;
-          missing.typeInformationDeclarator = declarator;
+          missing.typeInformationName = name;
           
         } else {
           // variable on stack: ignore, because cil resolves fields to variables
@@ -406,7 +408,7 @@ public class PointerTransferRelation implements TransferRelation {
       return;
     }
 
-    String varName = declarator.getName().toString();
+    String varName = name.toString();
 
     if (declarator instanceof IASTArrayDeclarator) {
       Pointer p = new Pointer(1);
@@ -441,7 +443,7 @@ public class PointerTransferRelation implements TransferRelation {
       missing = new MissingInformation();
       missing.typeInformationPointer = p;
       missing.typeInformationEdge = edge;
-      missing.typeInformationDeclarator = declarator;
+      missing.typeInformationName = name;
 
     } else {
 
@@ -465,7 +467,7 @@ public class PointerTransferRelation implements TransferRelation {
         missing = new MissingInformation();
         missing.typeInformationPointer = p;
         missing.typeInformationEdge = edge;
-        missing.typeInformationDeclarator = declarator;
+        missing.typeInformationName = name;
 
         // initializers do not need to be considered, because they have to be
         // constant and constant pointers are considered null
@@ -1600,8 +1602,7 @@ public class PointerTransferRelation implements TransferRelation {
         functionName = null;
       }
 
-      IASTDeclarator declarator = missing.typeInformationDeclarator;
-      String varName = declarator.getName().getRawSignature();
+      String varName = missing.typeInformationName.getRawSignature();
       Type type = typesElement.getVariableType(functionName, varName);
 
       setSizeOfTarget(missing.typeInformationPointer, type);

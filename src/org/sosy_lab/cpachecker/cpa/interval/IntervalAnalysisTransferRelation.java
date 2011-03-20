@@ -617,7 +617,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         // if this is a global variable, add it to the list of global variables
         if(declarationEdge.isGlobal())
         {
-          globalVars.add(declarator.getName().toString());
+          globalVars.add(declarationEdge.getName().toString());
 
           Interval interval;
 
@@ -635,7 +635,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           else
             interval = new Interval(0L);
 
-          String varName = constructVariableName(declarator.getName().toString(), "");
+          String varName = constructVariableName(declarationEdge.getName().toString(), "");
 
           newElement.addInterval(varName, interval, this.threshold);
         }
@@ -643,7 +643,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         // non-global variables are initialized with an unbound interval
         else
         {
-          String varName = constructVariableName(declarator.getName().toString(), declarationEdge.getPredecessor().getFunctionName());
+          String varName = constructVariableName(declarationEdge.getName().toString(), declarationEdge.getPredecessor().getFunctionName());
 
           newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
           //newElement.addInterval(varName, new Interval(0L), this.threshold);

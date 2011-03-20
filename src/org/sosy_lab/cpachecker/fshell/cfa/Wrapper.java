@@ -189,7 +189,7 @@ public class Wrapper {
         
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getDeclarator().getName() + " = __BLAST_NONDET;");
+      lWriter.println("  " + lDeclaration.getName() + " = __BLAST_NONDET;");
     }
     
     lWriter.println();
@@ -205,7 +205,7 @@ public class Wrapper {
         lWriter.print(", ");
       }
 
-      lWriter.print(lDeclaration.getDeclarator().getName());
+      lWriter.print(lDeclaration.getName());
     }
 
     lWriter.println(");");

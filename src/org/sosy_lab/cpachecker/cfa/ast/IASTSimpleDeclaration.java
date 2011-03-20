@@ -27,13 +27,16 @@ public final class IASTSimpleDeclaration extends IASTNode {
 
   private final IASTDeclSpecifier    specifier;
   private final IASTDeclarator       declarator;
+  private final IASTName             name;
 
   public IASTSimpleDeclaration(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
-      final IASTDeclarator pDeclarator) {
+      final IASTDeclarator pDeclarator,
+      final IASTName pName) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
     declarator = pDeclarator;
+    name = pName;
   }
 
   public IASTDeclSpecifier getDeclSpecifier() {
@@ -43,9 +46,13 @@ public final class IASTSimpleDeclaration extends IASTNode {
   public IASTDeclarator getDeclarator() {
     return declarator;
   }
+  
+  public IASTName getName() {
+    return name;
+  }
 
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {declarator, specifier};
+    return new IASTNode[] {declarator, specifier, name};
   }
 }

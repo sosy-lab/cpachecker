@@ -198,7 +198,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       IASTDeclarator declarator = declaration.getDeclarator();
       if (declarator != null) {
-          String varName = declarator.getName().toString();
+          String varName = declaration.getName().toString();
           if (declaration.isGlobal()) {
             globalVars.add(varName);
           }

@@ -207,7 +207,7 @@ implements GenericAssumptionBuilder
         List<IASTSimpleDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTSimpleDeclaration paramdecl : formalParams)
         {
-          IASTName name = paramdecl.getDeclarator().getName();
+          IASTName name = paramdecl.getName();
           IType type = name.getType();
           IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name);
           result = visit(exp, result);
