@@ -537,7 +537,7 @@ public class CtoFormulaConverter {
 
         if (formalParam.getDeclarator().getPointerOperators().length != 0) {
           log(Level.WARNING, "Ignoring the semantics of pointer for parameter " + formalParamName,
-              fn.getFunctionDefinition().getDeclarator());
+              fn.getFunctionDefinition());
         }
         
         // get value of actual parameter
