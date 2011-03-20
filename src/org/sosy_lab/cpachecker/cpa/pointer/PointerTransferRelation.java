@@ -342,12 +342,12 @@ public class PointerTransferRelation implements TransferRelation {
       return;
     }
     
-    if (specifier instanceof IASTElaboratedTypeSpecifier && declarator == null) {
+    if (specifier instanceof IASTElaboratedTypeSpecifier && name == null) {
       // ignore struct prototypes
       return;
     }
     
-    if (declarator == null) {
+    if (declarator == null || name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
     

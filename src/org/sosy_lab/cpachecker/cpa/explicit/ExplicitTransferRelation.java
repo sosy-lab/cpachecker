@@ -33,7 +33,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
@@ -1044,8 +1043,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
-    IASTDeclarator declarator = declarationEdge.getDeclarator();
-    if (declarator != null) {
+    if (declarationEdge.getName() != null) {
 
         // get the variable name in the declarator
         String varName = declarationEdge.getName().toString();
@@ -1053,7 +1051,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // TODO check other types of variables later - just handle primitive
         // types for the moment
         // get pointer operators of the declaration
-        IASTPointer[] pointerOps = declarator.getPointerOperators();
+        IASTPointer[] pointerOps = declarationEdge.getDeclarator().getPointerOperators();
         // don't add pointer variables to the list since we don't track them
         if(pointerOps.length > 0)
         {

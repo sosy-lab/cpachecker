@@ -145,7 +145,7 @@ public class TypesTransferRelation implements TransferRelation {
 
       Type type = getType(element, declarationEdge, specifier);
 
-      if (declarator != null) {
+      if (declarationEdge.getName() != null) {
         Type thisType = getPointerType(type, declarationEdge, declarator);
         String thisName = declarationEdge.getName().getRawSignature();
 
@@ -186,10 +186,9 @@ public class TypesTransferRelation implements TransferRelation {
     boolean external = (storageClass == StorageClass.EXTERN);
     
     for (IASTSimpleDeclaration parameter : funcDeclarator.getParameters()) {
-      IASTDeclarator paramDeclarator = parameter.getDeclarator();
 
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
-      parameterType = getPointerType(parameterType, cfaEdge, paramDeclarator);
+      parameterType = getPointerType(parameterType, cfaEdge, parameter.getDeclarator());
 
       String parameterName = (external ? null : parameter.getName().getRawSignature());
 
@@ -285,9 +284,8 @@ public class TypesTransferRelation implements TransferRelation {
 
         Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
 
-        IASTDeclarator declarator = subDeclaration.getDeclarator();
-        if (declarator != null) {
-          Type thisSubType = getPointerType(subType, cfaEdge, declarator);
+        if (subDeclaration.getName() != null) {
+          Type thisSubType = getPointerType(subType, cfaEdge, subDeclaration.getDeclarator());
           String thisSubName = subDeclaration.getName().getRawSignature();
           
           // anonymous struct fields may occur, ignore them

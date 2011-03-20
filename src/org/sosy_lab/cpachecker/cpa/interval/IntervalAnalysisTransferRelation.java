@@ -32,7 +32,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
@@ -607,11 +606,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   throws UnrecognizedCCodeException
   {
     IntervalAnalysisElement newElement = element.clone();
-    IASTDeclarator declarator = declarationEdge.getDeclarator();
-    if (declarator != null) {
+    if (declarationEdge.getName() != null) {
 
         // ignore pointer variables
-        if(declarator.getPointerOperators().length > 0)
+        if(declarationEdge.getDeclarator().getPointerOperators().length > 0)
           return newElement;
 
         // if this is a global variable, add it to the list of global variables

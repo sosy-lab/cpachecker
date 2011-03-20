@@ -154,6 +154,16 @@ public class CtoFormulaConverter {
     }
   }
 
+  private void log(Level level, String msg, CFAEdge edge) {
+    msg = "Line " + edge.getLineNumber()
+        + ": " + msg
+        + ": " + edge.getRawStatement();
+
+    if (printedWarnings.add(msg)) {
+      logger.log(level, 1, msg);
+    }
+  }
+  
   // looks up the variable in the current namespace
   protected String scoped(String var, String function) {
     if (globalVars.contains(var)) {
@@ -414,7 +424,7 @@ public class CtoFormulaConverter {
       Formula result = fmgr.makeTrue();
 
       // ignore function declarations and type prototypes here
-      if (!(declarator instanceof IASTFunctionDeclarator) && (declarator != null)) {
+      if (!(declarator instanceof IASTFunctionDeclarator) && (edge.getName() != null)) {
         
         String varNameWithoutFunction = edge.getName().getRawSignature();
         if (isGlobal) {
@@ -448,7 +458,7 @@ public class CtoFormulaConverter {
             log(Level.WARNING, "Ingoring unsupported initializer", init);
           
           } else if (isNondetVariable(varNameWithoutFunction)) {
-            log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", declarator);
+            log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", edge);
           
           } else {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
@@ -459,7 +469,7 @@ public class CtoFormulaConverter {
           }
   
         } else if (edge.getStorageClass() == StorageClass.EXTERN) {
-          log(Level.WARNING, "Ignoring initializer of extern declaration", declarator);
+          log(Level.WARNING, "Ignoring initializer of extern declaration", edge);
   
         } else if (isGlobal || initAllVars) {
           // auto-initialize variables to zero

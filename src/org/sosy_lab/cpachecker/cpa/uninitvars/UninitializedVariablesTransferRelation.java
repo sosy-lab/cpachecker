@@ -196,8 +196,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     //typedefs do not concern this CPA
     if (declaration.getStorageClass() != StorageClass.TYPEDEF) {
 
-      IASTDeclarator declarator = declaration.getDeclarator();
-      if (declarator != null) {
+      if (declaration.getName() != null) {
           String varName = declaration.getName().toString();
           if (declaration.isGlobal()) {
             globalVars.add(varName);
@@ -205,6 +204,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
           lastAdded = varName;
 
+          IASTDeclarator declarator = declaration.getDeclarator();
           IASTInitializer initializer = declaration.getInitializer();
           // initializers in CIL are always constant, so no need to check if
           // initializer expression contains uninitialized variables

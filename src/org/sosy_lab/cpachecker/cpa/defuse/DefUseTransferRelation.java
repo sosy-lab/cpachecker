@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclarator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -88,9 +87,9 @@ public class DefUseTransferRelation implements TransferRelation
     return defUseElement;
   }
 
-  private DefUseElement handleDeclaration (DefUseElement defUseElement, IASTDeclarator declarator, DeclarationEdge cfaEdge)
+  private DefUseElement handleDeclaration (DefUseElement defUseElement, DeclarationEdge cfaEdge)
   {
-    if (declarator != null) {
+    if (cfaEdge.getName() != null) {
       IASTInitializer initializer = cfaEdge.getInitializer ();
       if (initializer != null)
       {
@@ -126,8 +125,7 @@ public class DefUseTransferRelation implements TransferRelation
     case DeclarationEdge:
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      IASTDeclarator declarator = declarationEdge.getDeclarator();
-      defUseElement = handleDeclaration (defUseElement, declarator, declarationEdge);
+      defUseElement = handleDeclaration (defUseElement, declarationEdge);
       break;
     }
     }
