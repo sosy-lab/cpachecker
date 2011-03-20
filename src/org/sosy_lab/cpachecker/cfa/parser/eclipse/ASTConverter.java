@@ -202,8 +202,18 @@ class ASTConverter {
     Pair<StorageClass, ? extends IASTDeclSpecifier> specifier = convert(f.getDeclSpecifier());
     
     Triple<IASTFunctionDeclarator, IASTInitializer, IASTName> declarator = convert(f.getDeclarator());
+    if (declarator.getFirst().getNestedDeclarator() != null) {
+      IASTDeclarator nestedDeclarator = declarator.getFirst().getNestedDeclarator();
+      if (!(nestedDeclarator instanceof IASTVariableDeclarator)
+          || (nestedDeclarator.getPointerOperators().length != 0)) {
+        throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
+      }
+    }
     if (declarator.getSecond() != null) {
-      throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", f);
+      throw new CFAGenerationRuntimeException("Unsupported initializer for function definition", f);
+    }
+    if (declarator.getThird() == null) {
+      throw new CFAGenerationRuntimeException("Missing name for function definition", f);
     }
     
     return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), specifier.getFirst(), specifier.getSecond(), declarator.getFirst(), declarator.getThird());
