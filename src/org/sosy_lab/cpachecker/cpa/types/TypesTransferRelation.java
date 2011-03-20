@@ -191,7 +191,7 @@ public class TypesTransferRelation implements TransferRelation {
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
       parameterType = getPointerType(parameterType, cfaEdge, paramDeclarator);
 
-      String parameterName = (external ? null : paramDeclarator.getRawSignature());
+      String parameterName = (external ? null : parameter.getName().getRawSignature());
 
       function.addParameter(parameterName, parameterType);
     }
