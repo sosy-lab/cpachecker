@@ -45,20 +45,17 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
@@ -208,39 +205,19 @@ class CFABuilder extends ASTVisitor
       assert currentCFA == null;
       assert currentCFANodes == null;
       
-      IASTFunctionDefinition fdef = (IASTFunctionDefinition) declaration;
-      String nameOfFunction = fdef.getDeclarator().getName().toString();
-      if (nameOfFunction.isEmpty()) {
-        nameOfFunction = fdef.getDeclarator().getNestedDeclarator().getName().toString();
-      }
+      org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition fdef = ASTConverter.convert((IASTFunctionDefinition)declaration);
+      String nameOfFunction = fdef.getName().getRawSignature();
       assert !nameOfFunction.isEmpty();
       
       if (cfas.containsKey(nameOfFunction)) {
-        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, fdef);
+        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
       }
 
-      IASTFunctionDeclarator decl = fdef.getDeclarator();
-      if (!(decl instanceof IASTStandardFunctionDeclarator)) {
-        throw new CFAGenerationRuntimeException("Unknown non-standard function definition", decl);
-      }
-  
-      IASTParameterDeclaration[] params = ((IASTStandardFunctionDeclarator)decl).getParameters();
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration>(params.length);
-      List<String> parameterNames = new ArrayList<String>(params.length);
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = fdef.getDeclarator().getParameters();
+      List<String> parameterNames = new ArrayList<String>(parameters.size());
       
-      for (IASTParameterDeclaration param : params) {
-        String name = param.getDeclarator().getName().toString();
-
-        if (name.isEmpty() &&
-            param.getDeclarator().getNestedDeclarator() != null) {
-          name = param.getDeclarator().getNestedDeclarator().getName().toString();
-        }
-
-        // function may have the parameter "void", so we need this check
-        if (!name.isEmpty()) {
-          parameters.add(ASTConverter.convert(param));
-          parameterNames.add(name);
-        }
+      for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration param : parameters) {
+        parameterNames.add(param.getName().getRawSignature());
       }
       
       currentCFANodes = cfaNodes.get(nameOfFunction); 
@@ -248,7 +225,7 @@ class CFABuilder extends ASTVisitor
       CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
       currentCFANodes.add(returnNode);
 
-      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, ASTConverter.convert(fdef), returnNode, parameters, parameterNames);
+      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
       currentCFANodes.add(startNode);
       cfas.put(nameOfFunction, startNode);
       currentCFA = startNode;
