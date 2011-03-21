@@ -33,6 +33,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -356,7 +357,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       else if(arg instanceof IASTUnaryExpression){
         IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
-        assert(unaryExp.getOperator() == IASTUnaryExpression.op_star || unaryExp.getOperator() == IASTUnaryExpression.op_amper);
+        assert(unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
       }
 
       else if(arg instanceof IASTFunctionCallExpression){
@@ -405,11 +406,11 @@ public class ExplicitTransferRelation implements TransferRelation {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
 
       switch (unaryExp.getOperator()) {
-      case IASTUnaryExpression.op_not:
+      case NOT:
         // ! exp
         return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
       
-      case IASTUnaryExpression.op_star:
+      case STAR:
         // *exp
         // don't know anything
         return element.clone();
@@ -647,8 +648,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       // a (bop) b
       else if(op2 instanceof IASTIdExpression ||
           (op2 instanceof IASTUnaryExpression && (
-              (((IASTUnaryExpression)op2).getOperator() == IASTUnaryExpression.op_amper) || 
-              (((IASTUnaryExpression)op2).getOperator() == IASTUnaryExpression.op_star))))
+              (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.AMPER) || 
+              (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.STAR))))
       {
         String leftVarName = op1.getRawSignature();
         String rightVarName = op2.getRawSignature();
@@ -785,9 +786,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
 
-        int operatorType = unaryExp.getOperator();
+        UnaryOperator operatorType = unaryExp.getOperator();
         // a == -8
-        if(operatorType == IASTUnaryExpression.op_minus){
+        if(operatorType == UnaryOperator.MINUS){
 
           if(unaryExpOp instanceof IASTLiteralExpression){
             IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
@@ -961,7 +962,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   //      case IASTUnaryExpression.op_bracketedPrimary: // [(exp)]
   //        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, truthValue);
   //
-  //      case IASTUnaryExpression.op_not: // [! exp]
+  //      case IASTUnaryExpression.NOT: // [! exp]
   //        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
   //
   //      default:
@@ -1115,16 +1116,16 @@ public class ExplicitTransferRelation implements TransferRelation {
   throws UnrecognizedCCodeException {
 
     IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-    int operator = unaryExpression.getOperator();
+    UnaryOperator operator = unaryExpression.getOperator();
 
     int shift;
-    if (operator == IASTUnaryExpression.op_postFixIncr ||
-        operator == IASTUnaryExpression.op_prefixIncr) {
+    if (operator == UnaryOperator.POSTFIX_INCREMENT ||
+        operator == UnaryOperator.PREFIX_INCREMENT) {
       // a++, ++a
       shift = 1;
 
-    } else if(operator == IASTUnaryExpression.op_prefixDecr ||
-        operator == IASTUnaryExpression.op_postFixDecr) {
+    } else if(operator == UnaryOperator.PREFIX_DECREMENT ||
+        operator == UnaryOperator.POSTFIX_DECREMENT) {
       // a--, --a
       shift = -1;
     } else {
@@ -1196,7 +1197,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
 
     } else if (op1 instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star) {
+        && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
 
       op1 = ((IASTUnaryExpression)op1).getOperand();
@@ -1288,9 +1289,9 @@ public class ExplicitTransferRelation implements TransferRelation {
     ExplicitElement newElement = element.clone();
 
     IASTExpression unaryOperand = unaryExp.getOperand();
-    int unaryOperator = unaryExp.getOperator();
+    UnaryOperator unaryOperator = unaryExp.getOperator();
 
-    if (unaryOperator == IASTUnaryExpression.op_star) {
+    if (unaryOperator == UnaryOperator.STAR) {
       // a = * b
       newElement.forget(assignedVar);
 
@@ -1351,7 +1352,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       Long val2;
 
       if(lVarInBinaryExp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)lVarInBinaryExp).getOperator() == IASTUnaryExpression.op_star) {
+          && ((IASTUnaryExpression)lVarInBinaryExp).getOperator() == UnaryOperator.STAR) {
         // a = *b + c
         // TODO prepare for using strengthen operator to dereference pointer
         val1 = null;
@@ -1441,16 +1442,16 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-      int unaryOperator = unaryExpression.getOperator();
+      UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
 
       switch (unaryOperator) {
 
-      case IASTUnaryExpression.op_minus:
+      case MINUS:
         Long val = getExpressionValue(element, unaryOperand, functionName, cfaEdge);
         return (val != null) ? -val : null;
       
-      case IASTUnaryExpression.op_amper:
+      case AMPER:
         return null; // valid expresion, but it's a pointer value
 
       default:

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -60,9 +61,9 @@ public class DefUseTransferRelation implements TransferRelation
     else if (expression instanceof IASTUnaryExpression)
     {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-      int operator = unaryExpression.getOperator ();
-      if (operator == IASTUnaryExpression.op_postFixDecr || operator == IASTUnaryExpression.op_postFixIncr
-          || operator == IASTUnaryExpression.op_prefixDecr || operator == IASTUnaryExpression.op_prefixIncr)
+      UnaryOperator operator = unaryExpression.getOperator ();
+      if (operator == UnaryOperator.POSTFIX_DECREMENT || operator == UnaryOperator.POSTFIX_INCREMENT
+          || operator == UnaryOperator.PREFIX_DECREMENT || operator == UnaryOperator.PREFIX_INCREMENT)
       {
         String lParam = unaryExpression.getOperand ().getRawSignature ();
 

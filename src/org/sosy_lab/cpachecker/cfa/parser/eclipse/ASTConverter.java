@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 class ASTConverter {
     
@@ -220,7 +221,36 @@ class ASTConverter {
       return convert(e.getOperand());
     }
     
-    return new IASTUnaryExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getOperand()), e.getOperator());
+    return new IASTUnaryExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getOperand()), convertUnaryOperator(e));
+  }
+  
+  private static UnaryOperator convertUnaryOperator(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
+    switch (e.getOperator()) {
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_amper:
+      return UnaryOperator.AMPER;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_minus:
+      return UnaryOperator.MINUS;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_not:
+      return UnaryOperator.NOT;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_plus:
+      return UnaryOperator.PLUS;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixIncr:
+      return UnaryOperator.PREFIX_INCREMENT;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixDecr:
+      return UnaryOperator.PREFIX_DECREMENT;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
+      return UnaryOperator.POSTFIX_INCREMENT;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
+      return UnaryOperator.POSTFIX_DECREMENT;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_sizeof:
+      return UnaryOperator.SIZEOF;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_star:
+      return UnaryOperator.STAR;
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_tilde:
+      return UnaryOperator.TILDE;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown unary operator", e);
+    }
   }
 
   private static IASTTypeIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression e) {

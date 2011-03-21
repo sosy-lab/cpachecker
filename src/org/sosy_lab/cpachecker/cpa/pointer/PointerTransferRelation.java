@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -492,11 +493,11 @@ public class PointerTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
 
-      if (unaryExpression.getOperator() == IASTUnaryExpression.op_not) {
+      if (unaryExpression.getOperator() == UnaryOperator.NOT) {
         handleAssume(element, unaryExpression.getOperand(), !isTrueBranch,
             assumeEdge);
 
-      } else if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
+      } else if (unaryExpression.getOperator() == UnaryOperator.STAR) {
         // if (*var)
         String varName = expression.getRawSignature();
         Pointer p = element.lookupPointer(varName);
@@ -643,7 +644,7 @@ public class PointerTransferRelation implements TransferRelation {
         } else if (parameter instanceof IASTUnaryExpression) {
           IASTUnaryExpression unaryExpression = (IASTUnaryExpression)parameter;
 
-          if (unaryExpression.getOperator() == IASTUnaryExpression.op_amper
+          if (unaryExpression.getOperator() == UnaryOperator.AMPER
               && unaryExpression.getOperand() instanceof IASTIdExpression) {
 
             String varName = unaryExpression.getOperand().getRawSignature();
@@ -801,14 +802,14 @@ public class PointerTransferRelation implements TransferRelation {
                 .getRawSignature());
 
         if (p != null) {
-          int typeOfOperator = unaryExpression.getOperator();
-          if (typeOfOperator == IASTUnaryExpression.op_postFixIncr
-              || typeOfOperator == IASTUnaryExpression.op_prefixIncr) {
+          UnaryOperator typeOfOperator = unaryExpression.getOperator();
+          if (typeOfOperator == UnaryOperator.POSTFIX_INCREMENT
+              || typeOfOperator == UnaryOperator.PREFIX_INCREMENT) {
 
             element.pointerOp(new Pointer.AddOffset(1), p);
 
-          } else if (typeOfOperator == IASTUnaryExpression.op_postFixIncr
-              || typeOfOperator == IASTUnaryExpression.op_prefixIncr) {
+          } else if (typeOfOperator == UnaryOperator.POSTFIX_INCREMENT
+              || typeOfOperator == UnaryOperator.PREFIX_INCREMENT) {
 
             element.pointerOp(new Pointer.AddOffset(-1), p);
 
@@ -961,7 +962,7 @@ public class PointerTransferRelation implements TransferRelation {
     } else if (leftExpression instanceof IASTUnaryExpression) {
 
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)leftExpression;
-      if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
+      if (unaryExpression.getOperator() == UnaryOperator.STAR) {
         // *a
         leftDereference = true;
 
@@ -1212,9 +1213,9 @@ public class PointerTransferRelation implements TransferRelation {
 
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-      int op = unaryExpression.getOperator();
+      UnaryOperator op = unaryExpression.getOperator();
 
-      if (op == IASTUnaryExpression.op_amper) {
+      if (op == UnaryOperator.AMPER) {
         // a = &b
         Variable var =
             element.lookupVariable(unaryExpression.getOperand()
@@ -1223,7 +1224,7 @@ public class PointerTransferRelation implements TransferRelation {
         element
             .pointerOp(new Pointer.Assign(var), leftPointer, leftDereference);
 
-      } else if (op == IASTUnaryExpression.op_minus) {
+      } else if (op == UnaryOperator.MINUS) {
         if (leftPointer != null) {
           addWarning("Assigning non-pointer value "
               + unaryExpression.getRawSignature() + " to pointer "
@@ -1235,7 +1236,7 @@ public class PointerTransferRelation implements TransferRelation {
 
         }
 
-      } else if (op == IASTUnaryExpression.op_star) {
+      } else if (op == UnaryOperator.STAR) {
         // a = *b
 
         expression = unaryExpression.getOperand();

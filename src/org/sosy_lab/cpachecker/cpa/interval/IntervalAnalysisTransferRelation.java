@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -313,7 +314,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       switch(unaryExp.getOperator())
       {
         // remove negation
-        case IASTUnaryExpression.op_not:
+        case NOT:
           return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
         default:
@@ -763,16 +764,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     if(operand instanceof IASTIdExpression)
     {
-      int operator = unaryExpression.getOperator();
+      UnaryOperator operator = unaryExpression.getOperator();
 
       int offset;
 
       // a++, ++a
-      if(operator == IASTUnaryExpression.op_postFixIncr || operator == IASTUnaryExpression.op_prefixIncr)
+      if(operator == UnaryOperator.POSTFIX_INCREMENT || operator == UnaryOperator.PREFIX_INCREMENT)
         offset = 1;
 
       // a--, --a
-      else if(operator == IASTUnaryExpression.op_prefixDecr || operator == IASTUnaryExpression.op_postFixDecr)
+      else if(operator == UnaryOperator.PREFIX_DECREMENT || operator == UnaryOperator.POSTFIX_DECREMENT)
         offset = -1;
 
       else
@@ -882,7 +883,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
 
     // TODO: assignment to pointer, *a = ?
-    else if(op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star)
+    else if(op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR)
       return element.clone();
 
     // TODO assignment to field, a->b = ?
@@ -984,10 +985,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // name of the updated variable, so if "a = -b" is handled, lParam is "a"
     String assignedVar = constructVariableName(lParam, functionName);
 
-    int unaryOperator = unaryExp.getOperator();
+    UnaryOperator unaryOperator = unaryExp.getOperator();
 
     // TODO: a = *b
-    if(unaryOperator == IASTUnaryExpression.op_star)
+    if(unaryOperator == UnaryOperator.STAR)
       newElement.addInterval(assignedVar, Interval.createUnboundInterval(), this.threshold);
 
     // a = -b or similar
@@ -1048,7 +1049,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         // a = *b + c
         // TODO prepare for using strengthen operator to dereference pointer
-        if(!(lVarInBinaryExp instanceof IASTUnaryExpression) || ((IASTUnaryExpression)lVarInBinaryExp).getOperator() != IASTUnaryExpression.op_star)
+        if(!(lVarInBinaryExp instanceof IASTUnaryExpression) || ((IASTUnaryExpression)lVarInBinaryExp).getOperator() != UnaryOperator.STAR)
           interval1 = evaluateInterval(element, lVarInBinaryExp, functionName, cfaEdge);
 
         if(interval1 != null)
@@ -1120,12 +1121,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
 
-      int unaryOperator = unaryExpression.getOperator();
+      UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
 
       switch(unaryOperator)
       {
-        case IASTUnaryExpression.op_minus:
+        case MINUS:
           Interval interval = evaluateInterval(element, unaryOperand, functionName, cfaEdge);
 
           return (interval == null) ? Interval.createUnboundInterval() : interval.negate();

@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public class IASTUnaryExpression extends IASTExpression {
 
   private final IASTExpression operand;
-  private final int            operator;
+  private final UnaryOperator  operator;
 
   public IASTUnaryExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pOperand, final int pOperator) {
+      final IASTExpression pOperand, final UnaryOperator pOperator) {
     super(pRawSignature, pFileLocation, pType);
     operand = pOperand;
     operator = pOperator;
@@ -40,7 +40,7 @@ public class IASTUnaryExpression extends IASTExpression {
     return operand;
   }
 
-  public int getOperator() {
+  public UnaryOperator getOperator() {
     return operator;
   }
 
@@ -49,15 +49,18 @@ public class IASTUnaryExpression extends IASTExpression {
     return new IASTNode[] {operand};
   }
   
-  public static final int op_prefixIncr = 0;
-  public static final int op_prefixDecr = 1;
-  public static final int op_plus = 2;
-  public static final int op_minus = 3;
-  public static final int op_star = 4;
-  public static final int op_amper = 5;
-  public static final int op_tilde = 6;
-  public static final int op_not = 7;
-  public static final int op_sizeof = 8;
-  public static final int op_postFixIncr = 9;
-  public static final int op_postFixDecr = 10;
+  public static enum UnaryOperator {
+    PREFIX_INCREMENT,
+    PREFIX_DECREMENT,
+    PLUS,
+    MINUS,
+    STAR,
+    AMPER,
+    TILDE,
+    NOT,
+    SIZEOF,
+    POSTFIX_INCREMENT,
+    POSTFIX_DECREMENT,
+    ;
+  }
 }

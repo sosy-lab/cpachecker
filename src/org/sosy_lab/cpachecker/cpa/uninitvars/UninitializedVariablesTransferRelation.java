@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -368,7 +369,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     } else if (
 
         ((op1 instanceof IASTUnaryExpression)
-            && (((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star))
+            && (((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR))
             || (op1 instanceof IASTArraySubscriptExpression)) {
       // assignment to the target of a pointer or an array element,
       // this does not change the initialization status of the variable
@@ -425,9 +426,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
 
-      int typeOfOperator = unaryExpression.getOperator();
-      if (   (typeOfOperator == IASTUnaryExpression.op_amper)
-          || (typeOfOperator == IASTUnaryExpression.op_sizeof)) {
+      UnaryOperator typeOfOperator = unaryExpression.getOperator();
+      if (   (typeOfOperator == UnaryOperator.AMPER)
+          || (typeOfOperator == UnaryOperator.SIZEOF)) {
         return false;
 
       } else {

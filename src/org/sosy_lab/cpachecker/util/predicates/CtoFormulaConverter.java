@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -742,18 +743,18 @@ public class CtoFormulaConverter {
       return buildTerm(((IASTCastExpression)exp).getOperand(), function, ssa);
     } else if (exp instanceof IASTUnaryExpression) {
       IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
-      int op = ((IASTUnaryExpression)exp).getOperator();
+      UnaryOperator op = ((IASTUnaryExpression)exp).getOperator();
       switch (op) {
-      case IASTUnaryExpression.op_postFixIncr:
-      case IASTUnaryExpression.op_prefixIncr:
-      case IASTUnaryExpression.op_postFixDecr:
-      case IASTUnaryExpression.op_prefixDecr: {
+      case POSTFIX_INCREMENT:
+      case PREFIX_INCREMENT:
+      case POSTFIX_DECREMENT:
+      case PREFIX_DECREMENT: {
         Formula mvar = buildTerm(operand, function, ssa);
         Formula newvar = buildLvalueTerm(operand, function, ssa);
         Formula me;
         Formula one = fmgr.makeNumber(1);
-        if (op == IASTUnaryExpression.op_postFixIncr ||
-            op == IASTUnaryExpression.op_prefixIncr) {
+        if (op == UnaryOperator.POSTFIX_INCREMENT ||
+            op == UnaryOperator.PREFIX_INCREMENT) {
           me = fmgr.makePlus(mvar, one);
         } else {
           me = fmgr.makeMinus(mvar, one);
@@ -761,16 +762,16 @@ public class CtoFormulaConverter {
         return fmgr.makeAssignment(newvar, me);
       }
 
-      case IASTUnaryExpression.op_minus: {
+      case MINUS: {
         Formula mop = buildTerm(operand, function, ssa);
         return fmgr.makeNegate(mop);
       }
 
-      case IASTUnaryExpression.op_amper:
-      case IASTUnaryExpression.op_star:
+      case AMPER:
+      case STAR:
         if (lvalsAsUif) {
           String opname;
-          if (op == IASTUnaryExpression.op_amper) {
+          if (op == UnaryOperator.AMPER) {
             opname = OP_ADDRESSOF_NAME;
           } else {
             opname = OP_STAR_NAME;
@@ -790,7 +791,7 @@ public class CtoFormulaConverter {
           return makeVariable(exprToVarName(exp), function, ssa);
         }
 
-      case IASTUnaryExpression.op_tilde: {
+      case TILDE: {
         Formula term = buildTerm(operand, function, ssa);
         return fmgr.makeBitwiseNot(term);
       }
@@ -798,12 +799,12 @@ public class CtoFormulaConverter {
       /* !operand cannot be handled directly in case operand is a variable
        * we would need to know if operand is of type boolean or something else
        * currently ! is handled by the default branch
-      case IASTUnaryExpression.op_not: {
+      case IASTUnaryExpression.NOT: {
         long operandMsat = buildMsatTerm(operand, ssa);
         return mathsat.api.msat_make_not(msatEnv, operandMsat);
       }*/
 
-      case IASTUnaryExpression.op_sizeof: {
+      case SIZEOF: {
         // TODO
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
@@ -1000,14 +1001,14 @@ public class CtoFormulaConverter {
       Formula mvar = fmgr.makeVariable(var, idx);
       return mvar;
     } else if (exp instanceof IASTUnaryExpression) {
-      int op = ((IASTUnaryExpression)exp).getOperator();
+      UnaryOperator op = ((IASTUnaryExpression)exp).getOperator();
       IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
       String opname;
       switch (op) {
-      case IASTUnaryExpression.op_amper:
+      case AMPER:
         opname = OP_ADDRESSOF_NAME;
         break;
-      case IASTUnaryExpression.op_star:
+      case STAR:
         opname = OP_STAR_NAME;
         break;
       default:
@@ -1180,7 +1181,7 @@ public class CtoFormulaConverter {
       // now create the formula
     } else if (exp instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)exp);
-      if (unaryExp.getOperator() == IASTUnaryExpression.op_not) {
+      if (unaryExp.getOperator() == UnaryOperator.NOT) {
         // ! exp
         return makePredicate(unaryExp.getOperand(), !isTrue, function, ssa);
       }
