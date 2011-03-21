@@ -133,6 +133,11 @@ public class Interval
       return false;
   }
 
+  public boolean isSingular()
+  {
+    return low.equals(high);
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */
@@ -526,5 +531,15 @@ public class Interval
   public static Interval createUpperBoundedInterval(Long upperBound)
   {
     return new Interval(Long.MIN_VALUE, upperBound);
+  }
+
+  /**
+   * This method is a factory method for an interval representing the FALSE value.
+   *
+   * @return an interval representing the FALSE value, i.e. the lower and upper bound are set to 0
+   */
+  public static Interval createFalseInterval()
+  {
+    return new Interval(0, 0);
   }
 }

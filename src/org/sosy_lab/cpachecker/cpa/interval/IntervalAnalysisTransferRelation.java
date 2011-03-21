@@ -26,9 +26,14 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
@@ -41,10 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -75,6 +76,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
   private final Set<String> globalVars = new HashSet<String>();
 
+  public static int doubled = 0;
+
   @Option
   private int threshold = 0;
 
@@ -84,10 +87,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
+  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
   {
-    AbstractElement successor;
-    IntervalAnalysisElement intervalElement = (IntervalAnalysisElement)element;
+    Collection<? extends AbstractElement> successors  = null;
+
+    AbstractElement successor                         = null;
+
+    IntervalAnalysisElement intervalElement           = (IntervalAnalysisElement)element;
 
     // check the type of the edge
     switch(cfaEdge.getEdgeType())
@@ -112,7 +118,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // this is an assumption, e.g. if(a == b)
       case AssumeEdge:
         AssumeEdge assumeEdge = (AssumeEdge)cfaEdge;
-        successor = handleAssumption(intervalElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
+        successors = handleAssumption(intervalElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
         break;
 
       case BlankEdge:
@@ -134,11 +140,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
-    if(successor == null)
-      return Collections.emptySet();
+    if(successors != null)
+      return successors;
+
+    else if(successor == null)
+      return noSuccessors();
 
     else
-      return Collections.singleton(successor);
+      return soleSuccessor(successor);
   }
 
   /**
@@ -294,7 +303,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
    * @return the successor elements
    */
-  private AbstractElement handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private Collection<? extends AbstractElement> handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException
   {
     // first, unpack the expression to deal with a raw assumption
@@ -336,9 +345,59 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       Interval interval = evaluateInterval(element, expression, functionName, cfaEdge);
 
-      // in the then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-      if((truthValue && !interval.isFalse()) || (!truthValue && !interval.isTrue()))
-          return element.clone();
+      boolean thenBrach = false, elseBranch = false;
+
+      // in the then-branch and interval maybe true, or in else-branch and interval maybe false, add successors
+      if((thenBrach = (truthValue && !interval.isFalse()))
+          || (elseBranch = (!truthValue && !interval.isTrue())))
+      {
+        if(true) return soleSuccessor(element.clone());
+
+        IntervalAnalysisElement newElement = null;
+
+        String variableName = constructVariableName(expression.getRawSignature(), functionName);
+
+        Collection<IntervalAnalysisElement> successors = new LinkedList<IntervalAnalysisElement>();
+
+        if(thenBrach)
+        {
+          Interval result = null;
+
+          if(!(result = interval.intersect(Interval.createUpperBoundedInterval(-1L))).isEmpty())
+          {
+            newElement = element.clone();
+
+            newElement.addInterval(variableName, result, threshold);
+
+            successors.add(newElement);
+          }
+
+          if(!(result = interval.intersect(Interval.createLowerBoundedInterval(1L))).isEmpty())
+          {
+            newElement = element.clone();
+
+            newElement.addInterval(variableName, result, threshold);
+
+            successors.add(newElement);
+          }
+
+          if(successors.size() > 1)
+            doubled++;
+        }
+
+        else if(elseBranch)
+        {
+          assert(interval.intersect(Interval.createFalseInterval()).equals(Interval.createFalseInterval()));
+
+          newElement = element.clone();
+
+          newElement.addInterval(variableName, Interval.createFalseInterval(), threshold);
+
+          successors.add(newElement);
+        }
+
+        return successors;
+      }
     }
 
     // [exp1 op exp2]
@@ -383,10 +442,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
             // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
             if((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue()))
-              return newElement;
+              return soleSuccessor(newElement);
 
             else
-              return null;
+              return noSuccessors();
 
           case IASTBinaryExpression.op_equals:
           case IASTBinaryExpression.op_notequals:
@@ -402,10 +461,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
     }
 
-    return null;
+    return noSuccessors();
   }
 
-  private IntervalAnalysisElement processAssumption(IntervalAnalysisElement element, int operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractElement> processAssumption(IntervalAnalysisElement element, int operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
     if(!truthValue)
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
@@ -454,7 +513,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       // a is always greater than b, so a can't be less than b, so there can't be a successor
       else
-        element = null;
+        return noSuccessors();
     }
 
     // a <= b, a <= 1
@@ -469,7 +528,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       // a is always greater than b, so a can't be less than b, so there can't be a successor
       else
-        element = null;
+        return noSuccessors();
     }
 
     // a > b, a > 1
@@ -484,7 +543,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       // a is always less than b, so a can't be greater than b, so there can't be a successor
       else
-        element = null;
+        return noSuccessors();
     }
 
     // a >= b, a >= 1
@@ -499,7 +558,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       // a is always less than b, so a can't be greater than b, so there can't be a successor
       else
-        element = null;
+        return noSuccessors();
     }
 
     // a == b, a == 1
@@ -514,20 +573,53 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       // a and b do not intersect, so they can't be equal, so there can't be a successor
       else
-        element = null;
+        return noSuccessors();
     }
 
     // a != b, a != 1
     else if(operator == IASTBinaryExpression.op_notequals)
     {
       // a = [x, x] = b => a and b are always equal, so there can't be a successor
-      if(tmpInterval1.equals(tmpInterval2) && tmpInterval1.getLow().equals(tmpInterval1.getHigh()))
-        element = null;
+      if(tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2))
+        return noSuccessors();
+
+      // TODO: currently depends on the fact that operand1 is a identifier, while operand2 is a literal
+      if(false && isIdOp1 && !isIdOp2)
+      {
+        IntervalAnalysisElement newElement = null;
+
+        Collection<IntervalAnalysisElement> successors = new LinkedList<IntervalAnalysisElement>();
+
+        Interval result = null;
+
+        if(!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1))).isEmpty())
+        {
+          newElement = element.clone();
+
+          newElement.addInterval(variableName1, result, threshold);
+
+          successors.add(newElement);
+        }
+
+        if(!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1))).isEmpty())
+        {
+          newElement = element.clone();
+
+          newElement.addInterval(variableName1, result, threshold);
+
+          successors.add(newElement);
+        }
+
+        if(successors.size() > 1)
+          doubled++;
+
+        return successors;
+      }
     }
     else
       throw new UnrecognizedCCodeException("unknown operator", cfaEdge);
 
-    return element;
+    return soleSuccessor(element);
   }
 
   /**
@@ -1101,6 +1193,24 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
     }
 
+    // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
+    else if(expression instanceof IASTBinaryExpression)
+    {
+      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
+
+      Interval interval1 = evaluateInterval(element, binaryExpression.getOperand1(), functionName, cfaEdge);
+      Interval interval2 = evaluateInterval(element, binaryExpression.getOperand2(), functionName, cfaEdge);
+
+      switch(binaryExpression.getOperator())
+      {
+        case IASTBinaryExpression.op_plus:
+          return interval1.plus(interval2);
+
+        default:
+          throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
+      }
+    }
+
     // TODO fields, arrays
     else
       throw new UnrecognizedCCodeException(cfaEdge, expression);
@@ -1236,4 +1346,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   {
     return null;
   }
+
+  private Collection<? extends AbstractElement> soleSuccessor(AbstractElement successor)
+  {
+    return Collections.singleton(successor);
+  }
+
+  private Collection<? extends AbstractElement> noSuccessors()
+  {
+    return Collections.emptySet();
+  }
 }
+
