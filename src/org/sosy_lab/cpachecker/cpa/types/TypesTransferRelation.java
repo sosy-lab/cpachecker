@@ -182,12 +182,12 @@ public class TypesTransferRelation implements TransferRelation {
 
       switch (simpleSpecifier.getType()) {
 
-      case IASTSimpleDeclSpecifier.t_char:
+      case CHAR:
         primitiveType = Primitive.CHAR;
         break;
 
-      case IASTSimpleDeclSpecifier.t_int:
-      case IASTSimpleDeclSpecifier.t_unspecified:
+      case INT:
+      case UNSPECIFIED:
         if (simpleSpecifier.isShort()) {
           primitiveType = Primitive.SHORT;
         } else if (simpleSpecifier.isLong()) {
@@ -197,11 +197,11 @@ public class TypesTransferRelation implements TransferRelation {
         }
         break;
 
-      case IASTSimpleDeclSpecifier.t_float:
+      case FLOAT:
         primitiveType = Primitive.SHORT;
         break;
 
-      case IASTSimpleDeclSpecifier.t_double:
+      case DOUBLE:
         if (simpleSpecifier.isLong()) {
           primitiveType = Primitive.LONGDOUBLE;
         } else {
@@ -209,7 +209,7 @@ public class TypesTransferRelation implements TransferRelation {
         }
         break;
 
-      case IASTSimpleDeclSpecifier.t_void:
+      case VOID:
         primitiveType = Primitive.VOID;
         break;
 

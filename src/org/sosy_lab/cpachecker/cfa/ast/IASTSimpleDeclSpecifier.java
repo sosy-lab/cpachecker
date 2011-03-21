@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
 
-  private final int     type;
+  private final BasicType type;
   private final boolean isLong;
   private final boolean isShort;
   private final boolean isSigned;
@@ -35,7 +35,7 @@ public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
   private final boolean isLongLong;
 
   public IASTSimpleDeclSpecifier(final boolean pConst, final boolean pVolatile,
-      final int pType, final boolean pIsLong, final boolean pIsShort,
+      final BasicType pType, final boolean pIsLong, final boolean pIsShort,
       final boolean pIsSigned, final boolean pIsUnsigned,
       final boolean pIsComplex, final boolean pIsImaginary,
       final boolean pIsLongLong) {
@@ -50,7 +50,7 @@ public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
     isLongLong = pIsLongLong;
   }
 
-  public int getType() {
+  public BasicType getType() {
     return type;
   }
 

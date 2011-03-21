@@ -63,7 +63,7 @@ implements GenericAssumptionBuilder
       IASTSimpleDeclSpecifier btyp = (IASTSimpleDeclSpecifier) typ;
 
         switch (btyp.getType()) {
-        case IASTSimpleDeclSpecifier.t_int:
+        case INT:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
