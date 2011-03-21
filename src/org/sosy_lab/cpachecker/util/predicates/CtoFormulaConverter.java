@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -507,7 +508,7 @@ public class CtoFormulaConverter {
       
     } else if (retExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
-      assert(exp.getOperator() == IASTBinaryExpression.op_assign);
+      assert(exp.getOperator() == BinaryOperator.ASSIGN);
       
       Formula retvarFormula = makeVariable(VAR_RETURN_NAME, function, ssa);
       IASTExpression e = exp.getOperand1();
@@ -817,57 +818,57 @@ public class CtoFormulaConverter {
       }
 
     } else if (exp instanceof IASTBinaryExpression) {
-      int op = ((IASTBinaryExpression)exp).getOperator();
+      BinaryOperator op = ((IASTBinaryExpression)exp).getOperator();
       IASTExpression e1 = ((IASTBinaryExpression)exp).getOperand1();
       IASTExpression e2 = ((IASTBinaryExpression)exp).getOperand2();
 
       switch (op) {
-      case IASTBinaryExpression.op_assign:
-      case IASTBinaryExpression.op_plusAssign:
-      case IASTBinaryExpression.op_minusAssign:
-      case IASTBinaryExpression.op_multiplyAssign:
-      case IASTBinaryExpression.op_divideAssign:
-      case IASTBinaryExpression.op_moduloAssign:
-      case IASTBinaryExpression.op_binaryAndAssign:
-      case IASTBinaryExpression.op_binaryOrAssign:
-      case IASTBinaryExpression.op_binaryXorAssign:
-      case IASTBinaryExpression.op_shiftLeftAssign:
-      case IASTBinaryExpression.op_shiftRightAssign: {
+      case ASSIGN:
+      case PLUS_ASSIGN:
+      case MINUS_ASSIGN:
+      case MULTIPLY_ASSIGN:
+      case DIVIDE_ASSIGN:
+      case MODULO_ASSIGN:
+      case BINARY_AND_ASSIGN:
+      case BINARY_OR_ASSIGN:
+      case BINARY_XOR_ASSIGN:
+      case SHIFT_LEFT_ASSIGN:
+      case SHIFT_RIGHT_ASSIGN: {
         Formula me2 = buildTerm(e2, function, ssa);
-        if (op != IASTBinaryExpression.op_assign) {
+        if (op != BinaryOperator.ASSIGN) {
           // in this case, we have to get the old SSA instance for
           // reading the value of the variable, and build the
           // corresponding expression
           Formula oldvar = buildTerm(e1, function, ssa);
           switch (op) {
-          case IASTBinaryExpression.op_plusAssign:
+          case PLUS_ASSIGN:
             me2 = fmgr.makePlus(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_minusAssign:
+          case MINUS_ASSIGN:
             me2 = fmgr.makeMinus(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_multiplyAssign:
+          case MULTIPLY_ASSIGN:
             me2 = fmgr.makeMultiply(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_divideAssign:
+          case DIVIDE_ASSIGN:
             me2 = fmgr.makeDivide(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_moduloAssign:
+          case MODULO_ASSIGN:
             me2 = fmgr.makeModulo(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_binaryAndAssign:
+          case BINARY_AND_ASSIGN:
             me2 = fmgr.makeBitwiseAnd(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_binaryOrAssign:
+          case BINARY_OR_ASSIGN:
             me2 = fmgr.makeBitwiseOr(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_binaryXorAssign:
+          case BINARY_XOR_ASSIGN:
             me2 = fmgr.makeBitwiseXor(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_shiftLeftAssign:
+          case SHIFT_LEFT_ASSIGN:
             me2 = fmgr.makeShiftLeft(oldvar, me2);
             break;
-          case IASTBinaryExpression.op_shiftRightAssign:
+          case SHIFT_RIGHT_ASSIGN:
             me2 = fmgr.makeShiftRight(oldvar, me2);
             break;
           default:
@@ -878,47 +879,47 @@ public class CtoFormulaConverter {
         return fmgr.makeAssignment(mvar, me2);
       }
 
-      case IASTBinaryExpression.op_plus:
-      case IASTBinaryExpression.op_minus:
-      case IASTBinaryExpression.op_multiply:
-      case IASTBinaryExpression.op_divide:
-      case IASTBinaryExpression.op_modulo:
-      case IASTBinaryExpression.op_binaryAnd:
-      case IASTBinaryExpression.op_binaryOr:
-      case IASTBinaryExpression.op_binaryXor:
-      case IASTBinaryExpression.op_shiftLeft:
-      case IASTBinaryExpression.op_shiftRight: {
+      case PLUS:
+      case MINUS:
+      case MULTIPLY:
+      case DIVIDE:
+      case MODULO:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT: {
         Formula me1 = buildTerm(e1, function, ssa);
         Formula me2 = buildTerm(e2, function, ssa);
 
         switch (op) {
-        case IASTBinaryExpression.op_plus:
+        case PLUS:
           return fmgr.makePlus(me1, me2);
-        case IASTBinaryExpression.op_minus:
+        case MINUS:
           return fmgr.makeMinus(me1, me2);
-        case IASTBinaryExpression.op_multiply:
+        case MULTIPLY:
           return fmgr.makeMultiply(me1, me2);
-        case IASTBinaryExpression.op_divide:
+        case DIVIDE:
           return fmgr.makeDivide(me1, me2);
-        case IASTBinaryExpression.op_modulo:
+        case MODULO:
           return fmgr.makeModulo(me1, me2);
-        case IASTBinaryExpression.op_binaryAnd:
+        case BINARY_AND:
           return fmgr.makeBitwiseAnd(me1, me2);
-        case IASTBinaryExpression.op_binaryOr:
+        case BINARY_OR:
           return fmgr.makeBitwiseOr(me1, me2);
-        case IASTBinaryExpression.op_binaryXor:
+        case BINARY_XOR:
           return fmgr.makeBitwiseXor(me1, me2);
-        case IASTBinaryExpression.op_shiftLeft:
+        case SHIFT_LEFT:
           return fmgr.makeShiftLeft(me1, me2);
-        case IASTBinaryExpression.op_shiftRight:
+        case SHIFT_RIGHT:
           return fmgr.makeShiftRight(me1, me2);
         default:
           throw new AssertionError("Missing switch case");
         }
       }
       
-      case IASTBinaryExpression.op_logicalAnd:
-      case IASTBinaryExpression.op_logicalOr: {
+      case LOGICAL_AND:
+      case LOGICAL_OR: {
         throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
       }
 
@@ -1116,23 +1117,23 @@ public class CtoFormulaConverter {
     
     if (exp instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)exp);
-      int opType = binExp.getOperator();
+      BinaryOperator opType = binExp.getOperator();
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
 
-      if ((opType == IASTBinaryExpression.op_logicalAnd)
-          || (opType == IASTBinaryExpression.op_logicalOr)) {
+      if ((opType == BinaryOperator.LOGICAL_AND)
+          || (opType == BinaryOperator.LOGICAL_OR)) {
         
         // these operators expect boolean arguments
         Formula t1 = makePredicate(op1, true, function, ssa);
         Formula t2 = makePredicate(op2, true, function, ssa);
         
         switch (opType) {
-        case IASTBinaryExpression.op_logicalAnd:
+        case LOGICAL_AND:
           result = fmgr.makeAnd(t1, t2);
           break;
           
-        case IASTBinaryExpression.op_logicalOr:
+        case LOGICAL_OR:
           result = fmgr.makeOr(t1, t2);
           break;
           
@@ -1145,27 +1146,27 @@ public class CtoFormulaConverter {
         Formula t2 = buildTerm(op2, function, ssa);
   
         switch (opType) {
-        case IASTBinaryExpression.op_greaterThan:
+        case GREATER_THAN:
           result = fmgr.makeGt(t1, t2);
           break;
   
-        case IASTBinaryExpression.op_greaterEqual:
+        case GREATER_EQUAL:
           result = fmgr.makeGeq(t1, t2);
           break;
   
-        case IASTBinaryExpression.op_lessThan:
+        case LESS_THAN:
           result = fmgr.makeLt(t1, t2);
           break;
   
-        case IASTBinaryExpression.op_lessEqual:
+        case LESS_EQUAL:
           result = fmgr.makeLeq(t1, t2);
           break;
   
-        case IASTBinaryExpression.op_equals:
+        case EQUALS:
           result = fmgr.makeEqual(t1, t2);
           break;
   
-        case IASTBinaryExpression.op_notequals:
+        case NOT_EQUALS:
           result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
           break;
           

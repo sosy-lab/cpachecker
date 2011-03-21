@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -477,10 +478,10 @@ public class PointerTransferRelation implements TransferRelation {
     if (expression instanceof IASTBinaryExpression) {
       IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
 
-      if (binaryExpression.getOperator() == IASTBinaryExpression.op_equals) {
+      if (binaryExpression.getOperator() == BinaryOperator.EQUALS) {
         handleBinaryAssume(element, binaryExpression, isTrueBranch, assumeEdge);
 
-      } else if (binaryExpression.getOperator() == IASTBinaryExpression.op_notequals) {
+      } else if (binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
         handleBinaryAssume(element, binaryExpression, !isTrueBranch, assumeEdge);
 
       } else {
@@ -737,7 +738,7 @@ public class PointerTransferRelation implements TransferRelation {
             element.lookupPointer(leftOperand.getRawSignature());
 
         if (leftPointer != null) {
-          if (binExpression.getOperator() == IASTBinaryExpression.op_assign) {
+          if (binExpression.getOperator() == BinaryOperator.ASSIGN) {
             if (resultPointer != null) {
               // do not use Assign(resultPointer) here, as this would try to make
               // resultPointer an alias of leftPointer
@@ -1031,16 +1032,16 @@ public class PointerTransferRelation implements TransferRelation {
     }
 
     // right hand side
-    int typeOfOperator = expression.getOperator();
+    BinaryOperator typeOfOperator = expression.getOperator();
     IASTExpression op2 = expression.getOperand2();
 
-    if (typeOfOperator == IASTBinaryExpression.op_assign) {
+    if (typeOfOperator == BinaryOperator.ASSIGN) {
       // handles *a = x and a = x
       handleAssignment(element, leftVarName, leftPointer, leftDereference, op2,
           cfaEdge);
 
-    } else if (typeOfOperator == IASTBinaryExpression.op_minusAssign
-        || typeOfOperator == IASTBinaryExpression.op_plusAssign) {
+    } else if (typeOfOperator == BinaryOperator.MINUS_ASSIGN
+        || typeOfOperator == BinaryOperator.PLUS_ASSIGN) {
       // a += x
 
       if (op2 instanceof IASTLiteralExpression) {
@@ -1048,7 +1049,7 @@ public class PointerTransferRelation implements TransferRelation {
 
         if (leftPointer != null) {
           long offset = parseIntegerLiteral((IASTLiteralExpression)op2);
-          if (typeOfOperator == IASTBinaryExpression.op_minusAssign) {
+          if (typeOfOperator == BinaryOperator.MINUS_ASSIGN) {
             offset = -offset;
           }
           element.pointerOp(new Pointer.AddOffset(offset), leftPointer, leftDereference);
@@ -1061,7 +1062,7 @@ public class PointerTransferRelation implements TransferRelation {
         missing.actionDereferenceFirst = leftDereference;
         missing.actionASTNode = op2;
         missing.actionOffsetNegative =
-            (typeOfOperator == IASTBinaryExpression.op_minusAssign);
+            (typeOfOperator == BinaryOperator.MINUS_ASSIGN);
 
       } else {
         throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
@@ -1117,7 +1118,7 @@ public class PointerTransferRelation implements TransferRelation {
       // a = b + c
 
       IASTBinaryExpression binExpression = (IASTBinaryExpression)expression;
-      int typeOfOperator = binExpression.getOperator();
+      BinaryOperator typeOfOperator = binExpression.getOperator();
       IASTExpression op1 = binExpression.getOperand1();
       IASTExpression op2 = binExpression.getOperand2();
 
@@ -1155,14 +1156,14 @@ public class PointerTransferRelation implements TransferRelation {
             assert leftPointer != null;
           }
 
-          if (!(typeOfOperator == IASTBinaryExpression.op_plus 
-              || typeOfOperator == IASTBinaryExpression.op_minus)) {
+          if (!(typeOfOperator == BinaryOperator.PLUS 
+              || typeOfOperator == BinaryOperator.MINUS)) {
             throw new UnrecognizedCCodeException(cfaEdge, binExpression); 
           }
 
           if (op2 instanceof IASTLiteralExpression) {
             long offset = parseIntegerLiteral((IASTLiteralExpression)op2);
-            if (typeOfOperator == IASTBinaryExpression.op_minus) {
+            if (typeOfOperator == BinaryOperator.MINUS) {
               offset = -offset;
             }
 
@@ -1175,7 +1176,7 @@ public class PointerTransferRelation implements TransferRelation {
             missing.actionRightPointer = rightPointer;
             missing.actionDereferenceFirst = leftDereference;
             missing.actionOffsetNegative =
-                (typeOfOperator == IASTBinaryExpression.op_minus);
+                (typeOfOperator == BinaryOperator.MINUS);
             missing.actionASTNode = op2;
 
           } else {

@@ -49,26 +49,12 @@ public class DefUseTransferRelation implements TransferRelation
     {
       IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
 
-      switch (binaryExpression.getOperator ())
-      {
-      case IASTBinaryExpression.op_assign:
-      case IASTBinaryExpression.op_binaryAndAssign:
-      case IASTBinaryExpression.op_binaryOrAssign:
-      case IASTBinaryExpression.op_binaryXorAssign:
-      case IASTBinaryExpression.op_divideAssign:
-      case IASTBinaryExpression.op_minusAssign:
-      case IASTBinaryExpression.op_moduloAssign:
-      case IASTBinaryExpression.op_multiplyAssign:
-      case IASTBinaryExpression.op_plusAssign:
-      case IASTBinaryExpression.op_shiftLeftAssign:
-      case IASTBinaryExpression.op_shiftRightAssign:
-      {
+      if (binaryExpression.getOperator().isAssign()) {
         String lParam = binaryExpression.getOperand1 ().getRawSignature ();
         // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 
         DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
         defUseElement = new DefUseElement(defUseElement, definition);
-      }
       }
     }
     else if (expression instanceof IASTUnaryExpression)

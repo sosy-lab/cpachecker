@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -440,7 +441,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
     if(expressionOnSummaryEdge instanceof IASTBinaryExpression){
       IASTBinaryExpression binaryExp = (IASTBinaryExpression) expressionOnSummaryEdge;
-      assert(binaryExp.getOperator() == IASTBinaryExpression.op_assign);
+      assert(binaryExp.getOperator() == BinaryOperator.ASSIGN);
       String assignedVarName = binaryExp.getOperand1().getRawSignature();
       return(assignedVarName + " = " + lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
     }

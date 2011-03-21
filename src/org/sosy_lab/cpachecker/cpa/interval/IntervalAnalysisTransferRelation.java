@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -66,8 +67,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation
 {
-  private static final int OFFSET_ARITHMETIC_OPERATOR = 17;
-  private static final int OFFSET_LOGIC_OPERATOR = 13;
 
   /**
    * base name of the variable that is introduced to pass results from returning function calls
@@ -174,7 +173,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       IASTBinaryExpression binExp = (IASTBinaryExpression)expression;
 
-      assert(binExp.getOperator() == IASTBinaryExpression.op_assign);
+      assert(binExp.getOperator() == BinaryOperator.ASSIGN);
 
       IASTExpression operand1 = binExp.getOperand1();
 
@@ -405,7 +404,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       IntervalAnalysisElement newElement = element.clone();
 
-      int operator            = ((IASTBinaryExpression)expression).getOperator();
+      BinaryOperator operator = ((IASTBinaryExpression)expression).getOperator();
       IASTExpression operand1 = ((IASTBinaryExpression)expression).getOperand1();
       IASTExpression operand2 = ((IASTBinaryExpression)expression).getOperand2();
 
@@ -430,14 +429,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         switch(operator)
         {
-          case IASTBinaryExpression.op_minus:
-          case IASTBinaryExpression.op_plus:
+          case MINUS:
+          case PLUS:
             Interval result = null;
 
-            if(operator == IASTBinaryExpression.op_minus)
+            if(operator == BinaryOperator.MINUS)
               result = interval1.minus(interval2);
 
-            else if(operator == IASTBinaryExpression.op_plus)
+            else if(operator == BinaryOperator.PLUS)
               result = interval1.plus(interval2);
 
             // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
@@ -447,12 +446,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
             else
               return noSuccessors();
 
-          case IASTBinaryExpression.op_equals:
-          case IASTBinaryExpression.op_notequals:
-          case IASTBinaryExpression.op_greaterThan:
-          case IASTBinaryExpression.op_greaterEqual:
-          case IASTBinaryExpression.op_lessThan:
-          case IASTBinaryExpression.op_lessEqual:
+          case EQUALS:
+          case NOT_EQUALS:
+          case GREATER_THAN:
+          case GREATER_EQUAL:
+          case LESS_THAN:
+          case LESS_EQUAL:
             return processAssumption(newElement, operator, operand1, operand2, truthValue, cfaEdge);
 
           default:
@@ -464,7 +463,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return noSuccessors();
   }
 
-  private Collection<? extends AbstractElement> processAssumption(IntervalAnalysisElement element, int operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractElement> processAssumption(IntervalAnalysisElement element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
     if(!truthValue)
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
@@ -502,7 +501,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     boolean isIdOp2 = operand2 instanceof IASTIdExpression;
 
     // a < b, a < 1
-    if(operator == IASTBinaryExpression.op_lessThan)
+    if(operator == BinaryOperator.LESS_THAN)
     {
       // a may be less than b, so there can be a successor
       if(tmpInterval1.mayBeLessThan(tmpInterval2))
@@ -517,7 +516,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // a <= b, a <= 1
-    else if(operator == IASTBinaryExpression.op_lessEqual)
+    else if(operator == BinaryOperator.LESS_EQUAL)
     {
       // a may be less or equal than b, so there can be a successor
       if(tmpInterval1.mayBeLessOrEqualThan(tmpInterval2))
@@ -532,7 +531,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // a > b, a > 1
-    else if(operator == IASTBinaryExpression.op_greaterThan)
+    else if(operator == BinaryOperator.GREATER_THAN)
     {
       // a may be greater than b, so there can be a successor
       if(tmpInterval1.mayBeGreaterThan(tmpInterval2))
@@ -547,7 +546,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // a >= b, a >= 1
-    else if(operator == IASTBinaryExpression.op_greaterEqual)
+    else if(operator == BinaryOperator.GREATER_EQUAL)
     {
       // a may be greater or equal than b, so there can be a successor
       if(tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2))
@@ -562,7 +561,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // a == b, a == 1
-    else if(operator == IASTBinaryExpression.op_equals)
+    else if(operator == BinaryOperator.EQUALS)
     {
       // a and b intersect, so they may have the same value, so they may be equal
       if(tmpInterval1.intersects(tmpInterval2))
@@ -577,7 +576,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // a != b, a != 1
-    else if(operator == IASTBinaryExpression.op_notequals)
+    else if(operator == BinaryOperator.NOT_EQUALS)
     {
       // a = [x, x] = b => a and b are always equal, so there can't be a successor
       if(tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2))
@@ -629,56 +628,26 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param operator
    * @return the negated counter part of the given operator
    */
-  private int negateOperator(int operator)
+  private BinaryOperator negateOperator(BinaryOperator operator)
   {
-    switch(operator)
-    {
-      case IASTBinaryExpression.op_equals:
-        return IASTBinaryExpression.op_notequals;
+    switch(operator) {
+      case EQUALS:
+        return BinaryOperator.NOT_EQUALS;
 
-      case IASTBinaryExpression.op_notequals:
-        return IASTBinaryExpression.op_equals;
+      case NOT_EQUALS:
+        return BinaryOperator.EQUALS;
 
-      case IASTBinaryExpression.op_lessThan:
-        return IASTBinaryExpression.op_greaterEqual;
+      case LESS_THAN:
+        return BinaryOperator.GREATER_EQUAL;
 
-      case IASTBinaryExpression.op_lessEqual:
-        return IASTBinaryExpression.op_greaterThan;
+      case LESS_EQUAL:
+        return BinaryOperator.GREATER_THAN;
 
-      case IASTBinaryExpression.op_greaterEqual:
-        return IASTBinaryExpression.op_lessThan;
+      case GREATER_EQUAL:
+        return BinaryOperator.LESS_THAN;
 
-      case IASTBinaryExpression.op_greaterThan:
-        return IASTBinaryExpression.op_lessEqual;
-
-      default:
-        return operator;
-    }
-  }
-
-  /**
-   * This method return the counter part for a given operator
-   *
-   * @author loewe
-   * @param operator
-   * @return the counter part of the given operator
-   */
-  @SuppressWarnings("unused")
-  private int flipOperator(int operator)
-  {
-    switch(operator)
-    {
-      case IASTBinaryExpression.op_lessThan:
-        return IASTBinaryExpression.op_greaterThan;
-
-      case IASTBinaryExpression.op_lessEqual:
-        return IASTBinaryExpression.op_greaterEqual;
-
-      case IASTBinaryExpression.op_greaterEqual:
-        return IASTBinaryExpression.op_lessEqual;
-
-      case IASTBinaryExpression.op_greaterThan:
-        return IASTBinaryExpression.op_lessThan;
+      case GREATER_THAN:
+        return BinaryOperator.LESS_EQUAL;
 
       default:
         return operator;
@@ -842,18 +811,18 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     switch(binaryExpression.getOperator())
     {
       // a = ?
-      case IASTBinaryExpression.op_assign:
+      case ASSIGN:
         return handleAssignment(element, binaryExpression, cfaEdge);
 
       // a += ?
-      case IASTBinaryExpression.op_plusAssign:
-      case IASTBinaryExpression.op_minusAssign:
-      case IASTBinaryExpression.op_multiplyAssign:
-      case IASTBinaryExpression.op_shiftLeftAssign:
-      case IASTBinaryExpression.op_shiftRightAssign:
-      case IASTBinaryExpression.op_binaryAndAssign:
-      case IASTBinaryExpression.op_binaryXorAssign:
-      case IASTBinaryExpression.op_binaryOrAssign:
+      case PLUS_ASSIGN:
+      case MINUS_ASSIGN:
+      case MULTIPLY_ASSIGN:
+      case SHIFT_LEFT_ASSIGN:
+      case SHIFT_RIGHT_ASSIGN:
+      case BINARY_AND_ASSIGN:
+      case BINARY_XOR_ASSIGN:
+      case BINARY_OR_ASSIGN:
         return handleOperationAndAssign(element, binaryExpression, cfaEdge);
 
       default:
@@ -878,11 +847,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     if(leftOp instanceof IASTIdExpression)
     {
-      // convert the assigning operator to a binary operator
-      int operator = toBinaryOperator(binaryExpression.getOperator());
-
-      if(operator == -1)
+      if (!binaryExpression.getOperator().isAssign())
         throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
+
+      // convert the assigning operator to a binary operator
+      BinaryOperator operator = BinaryOperator.stripAssign(binaryExpression.getOperator());
 
       return handleAssignmentOfBinaryExp(element, leftOp.getRawSignature(), leftOp, rightOp, operator, cfaEdge);
     }
@@ -890,33 +859,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // TODO handle fields, arrays
     else
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
-  }
-
-  /**
-   * This method converts an assigning operator, e.g. "+=" to its binary counterpart, e.g. "+"
-   *
-   * @param assingingOperator the assigning operator
-   * @return the respective binary operator or -1 if and invalid operator was given
-   */
-  private int toBinaryOperator(int assingingOperator)
-  {
-    switch(assingingOperator)
-    {
-      case IASTBinaryExpression.op_plusAssign:
-      case IASTBinaryExpression.op_minusAssign:
-      case IASTBinaryExpression.op_multiplyAssign:
-      case IASTBinaryExpression.op_shiftLeftAssign:
-      case IASTBinaryExpression.op_shiftRightAssign:
-        return assingingOperator - OFFSET_ARITHMETIC_OPERATOR;
-
-      case IASTBinaryExpression.op_binaryAndAssign:
-      case IASTBinaryExpression.op_binaryXorAssign:
-      case IASTBinaryExpression.op_binaryOrAssign:
-        return assingingOperator - OFFSET_LOGIC_OPERATOR;
-
-      default:
-        return -1;
-    }
   }
 
   /**
@@ -1075,7 +1017,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisElement handleAssignmentOfBinaryExp(IntervalAnalysisElement element, String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp, int binaryOperator, CFAEdge cfaEdge)
+  private IntervalAnalysisElement handleAssignmentOfBinaryExp(IntervalAnalysisElement element, String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp, BinaryOperator binaryOperator, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1087,19 +1029,19 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     switch (binaryOperator)
     {
-      case IASTBinaryExpression.op_divide:
-      case IASTBinaryExpression.op_modulo:
-      case IASTBinaryExpression.op_lessEqual:
-      case IASTBinaryExpression.op_greaterEqual:
-      case IASTBinaryExpression.op_binaryAnd:
-      case IASTBinaryExpression.op_binaryOr:
+      case DIVIDE:
+      case MODULO:
+      case LESS_EQUAL:
+      case GREATER_EQUAL:
+      case BINARY_AND:
+      case BINARY_OR:
         // TODO which cases can be handled?
         newElement.addInterval(assignedVar, Interval.createUnboundInterval(), this.threshold);
         break;
 
-      case IASTBinaryExpression.op_plus:
-      case IASTBinaryExpression.op_minus:
-      case IASTBinaryExpression.op_multiply:
+      case PLUS:
+      case MINUS:
+      case MULTIPLY:
 
         Interval interval1 = null;
         Interval interval2 = null;
@@ -1120,15 +1062,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           Interval interval;
           switch (binaryOperator)
           {
-            case IASTBinaryExpression.op_plus:
+            case PLUS:
               interval = interval1.plus(interval2);
               break;
 
-            case IASTBinaryExpression.op_minus:
+            case MINUS:
               interval = interval1.minus(interval2);
               break;
 
-            case IASTBinaryExpression.op_multiply:
+            case MULTIPLY:
               interval = interval1.times(interval2);
               break;
 
@@ -1203,7 +1145,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       switch(binaryExpression.getOperator())
       {
-        case IASTBinaryExpression.op_plus:
+        case PLUS:
           return interval1.plus(interval2);
 
         default:

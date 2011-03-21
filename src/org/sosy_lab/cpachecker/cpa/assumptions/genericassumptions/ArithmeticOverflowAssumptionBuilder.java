@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -129,13 +130,13 @@ implements GenericAssumptionBuilder
           "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getRawSignature() + ")";
       final IASTBinaryExpression secondExp =
           new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
-              bounds.getFirst(), IASTBinaryExpression.op_greaterEqual);
+              bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
       final String rawStatementOfNewResult =
           "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
               + ")";
       result =
           new IASTBinaryExpression(rawStatementOfNewResult, null, null,
-              (IASTExpression) result, secondExp, IASTBinaryExpression.op_logicalAnd);
+              (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
     }
 
     if (bounds.getSecond() != null) {
@@ -144,13 +145,13 @@ implements GenericAssumptionBuilder
           "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getRawSignature() + ")";
       final IASTBinaryExpression secondExp =
           new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
-              bounds.getSecond(), IASTBinaryExpression.op_lessEqual);
+              bounds.getSecond(), BinaryOperator.LESS_EQUAL);
       final String rawStatementOfNewResult =
           "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
               + ")";
       result =
           new IASTBinaryExpression(rawStatementOfNewResult, null, null,
-              (IASTExpression) result, secondExp, IASTBinaryExpression.op_logicalAnd);
+              (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
     }
     return result;
   }

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -298,23 +299,12 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       IASTBinaryExpression binExpression = (IASTBinaryExpression)expression;
 
-      int typeOfOperator = binExpression.getOperator();
-      if (typeOfOperator == IASTBinaryExpression.op_assign) {
+      BinaryOperator typeOfOperator = binExpression.getOperator();
+      if (typeOfOperator == BinaryOperator.ASSIGN) {
         // a = b
         handleAssign(element, binExpression, cfaEdge);
 
-      } else if (
-             typeOfOperator == IASTBinaryExpression.op_binaryAndAssign
-          || typeOfOperator == IASTBinaryExpression.op_binaryOrAssign
-          || typeOfOperator == IASTBinaryExpression.op_binaryXorAssign
-          || typeOfOperator == IASTBinaryExpression.op_divideAssign
-          || typeOfOperator == IASTBinaryExpression.op_minusAssign
-          || typeOfOperator == IASTBinaryExpression.op_moduloAssign
-          || typeOfOperator == IASTBinaryExpression.op_multiplyAssign
-          || typeOfOperator == IASTBinaryExpression.op_plusAssign
-          || typeOfOperator == IASTBinaryExpression.op_shiftLeftAssign
-          || typeOfOperator == IASTBinaryExpression.op_shiftRightAssign
-          ) {
+      } else if (typeOfOperator.isAssign()) {
         // a += b etc.
 
         String leftName = binExpression.getOperand1().getRawSignature();
@@ -554,7 +544,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       if (exp instanceof IASTBinaryExpression) {
 
-        if (((IASTBinaryExpression)exp).getOperator() == IASTBinaryExpression.op_assign) {
+        if (((IASTBinaryExpression)exp).getOperator() == BinaryOperator.ASSIGN) {
 
           IASTExpression op1 = ((IASTBinaryExpression) exp).getOperand1();
           IASTExpression op2 = ((IASTBinaryExpression) exp).getOperand2();

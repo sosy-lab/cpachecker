@@ -27,12 +27,12 @@ public class IASTBinaryExpression extends IASTExpression {
 
   private final IASTExpression operand1;
   private final IASTExpression operand2;
-  private final int            operator;
+  private final BinaryOperator operator;
 
   public IASTBinaryExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
       final IASTExpression pOperand1, final IASTExpression pOperand2,
-      final int pOperator) {
+      final BinaryOperator pOperator) {
     super(pRawSignature, pFileLocation, pType);
     operand1 = pOperand1;
     operand2 = pOperand2;
@@ -47,7 +47,7 @@ public class IASTBinaryExpression extends IASTExpression {
     return operand2;
   }
 
-  public int getOperator() {
+  public BinaryOperator getOperator() {
     return operator;
   }
 
@@ -56,34 +56,96 @@ public class IASTBinaryExpression extends IASTExpression {
     return new IASTNode[] {operand1, operand2};
   }
 
-  public static final int op_multiply         = 1;
-  public static final int op_divide           = 2;
-  public static final int op_modulo           = 3;
-  public static final int op_plus             = 4;
-  public static final int op_minus            = 5;
-  public static final int op_shiftLeft        = 6;
-  public static final int op_shiftRight       = 7;
-  public static final int op_lessThan         = 8;
-  public static final int op_greaterThan      = 9;
-  public static final int op_lessEqual        = 10;
-  public static final int op_greaterEqual     = 11;
-  public static final int op_binaryAnd        = 12;
-  public static final int op_binaryXor        = 13;
-  public static final int op_binaryOr         = 14;
-  public static final int op_logicalAnd       = 15;
-  public static final int op_logicalOr        = 16;
-  public static final int op_assign           = 17;
-  public static final int op_multiplyAssign   = 18;
-  public static final int op_divideAssign     = 19;
-  public static final int op_moduloAssign     = 20;
-  public static final int op_plusAssign       = 21;
-  public static final int op_minusAssign      = 22;
-  public static final int op_shiftLeftAssign  = 23;
-  public static final int op_shiftRightAssign = 24;
-  public static final int op_binaryAndAssign  = 25;
-  public static final int op_binaryXorAssign  = 26;
-  public static final int op_binaryOrAssign   = 27;
-  public static final int op_equals           = 28;
-  public static final int op_notequals        = 29;
+  public static enum BinaryOperator {
+    MULTIPLY(false),
+    DIVIDE(false),
+    MODULO(false),
+    PLUS(false),
+    MINUS(false),
+    SHIFT_LEFT(false),
+    SHIFT_RIGHT(false),
+    LESS_THAN(false),
+    GREATER_THAN(false),
+    LESS_EQUAL(false),
+    GREATER_EQUAL(false),
+    BINARY_AND(false),
+    BINARY_XOR(false),
+    BINARY_OR(false),
+    LOGICAL_AND(false),
+    LOGICAL_OR(false),
+    ASSIGN(true),
+    MULTIPLY_ASSIGN(true),
+    DIVIDE_ASSIGN(true),
+    MODULO_ASSIGN(true),
+    PLUS_ASSIGN(true),
+    MINUS_ASSIGN(true),
+    SHIFT_LEFT_ASSIGN(true),
+    SHIFT_RIGHT_ASSIGN(true),
+    LESS_THAN_ASSIGN(true),
+    GREATER_THAN_ASSIGN(true),
+    LESS_EQUAL_ASSIGN(true),
+    GREATER_EQUAL_ASSIGN(true),
+    BINARY_AND_ASSIGN(true),
+    BINARY_XOR_ASSIGN(true),
+    BINARY_OR_ASSIGN(true),
+    LOGICAL_AND_ASSIGN(true),
+    LOGICAL_OR_ASSIGN(true),
+    EQUALS(false),
+    NOT_EQUALS(false),
+    ;
+    
+    private final boolean isAssign;
+    
+    private BinaryOperator(boolean pIsAssign) {
+      isAssign = pIsAssign;
+    }
+    
+    /**
+     * Returns true if this operator is some form of an assignment operator
+     * (e.g. "=", "+=" etc.)
+     */
+    public boolean isAssign() {
+      return isAssign;
+    }
+    
+    public static BinaryOperator stripAssign(BinaryOperator op) {
+      switch(op) {
+      case MULTIPLY_ASSIGN:
+        return BinaryOperator.MULTIPLY;
+      case DIVIDE_ASSIGN:
+        return DIVIDE;
+      case MODULO_ASSIGN:
+        return MODULO;
+      case PLUS_ASSIGN:
+        return BinaryOperator.PLUS;
+      case MINUS_ASSIGN:
+        return BinaryOperator.MINUS;
+      case SHIFT_LEFT_ASSIGN:
+        return BinaryOperator.SHIFT_LEFT;
+      case SHIFT_RIGHT_ASSIGN:
+        return BinaryOperator.SHIFT_RIGHT;
+      case LESS_THAN_ASSIGN:
+        return LESS_THAN;
+      case GREATER_THAN_ASSIGN:
+        return BinaryOperator.GREATER_THAN;
+      case LESS_EQUAL_ASSIGN:
+        return LESS_EQUAL;
+      case GREATER_EQUAL_ASSIGN:
+        return GREATER_EQUAL;
+      case BINARY_AND_ASSIGN:
+        return BinaryOperator.BINARY_AND;
+      case BINARY_XOR_ASSIGN:
+        return BinaryOperator.BINARY_XOR;
+      case BINARY_OR_ASSIGN:
+        return BinaryOperator.BINARY_OR;
+      case LOGICAL_AND_ASSIGN:
+        return LOGICAL_AND;
+      case LOGICAL_OR_ASSIGN:
+        return LOGICAL_OR;
 
+      default:
+        throw new IllegalArgumentException("Not an assigning operator");
+      }
+    }
+  }
 }

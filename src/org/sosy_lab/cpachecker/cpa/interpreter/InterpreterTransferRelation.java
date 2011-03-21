@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -236,10 +237,10 @@ public class InterpreterTransferRelation implements TransferRelation {
     //expression is a binary operation, e.g. a = g(b);
     if (exprOnSummary instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
-      int opType = binExp.getOperator ();
+      BinaryOperator opType = binExp.getOperator ();
       IASTExpression op1 = binExp.getOperand1();
 
-      assert(opType == IASTBinaryExpression.op_assign);
+      assert(opType == BinaryOperator.ASSIGN);
 
       //we expect left hand side of the expression to be a variable
       if(op1 instanceof IASTIdExpression ||
@@ -418,7 +419,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     // Binary operation
     if (expression instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
-      int opType = binExp.getOperator ();
+      BinaryOperator opType = binExp.getOperator ();
 
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
@@ -462,7 +463,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
     else if(expression instanceof IASTIdExpression 
         || expression instanceof IASTFieldReference) {
-      AbstractElement lSuccessor = propagateBooleanExpression(element, -999, expression, null, functionName, truthValue);
+      AbstractElement lSuccessor = propagateBooleanExpression(element, null, expression, null, functionName, truthValue);
       
       if (lSuccessor == null) {
         throw new RuntimeException();
@@ -478,7 +479,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private AbstractElement propagateBooleanExpression(AbstractElement element, 
-      int opType,IASTExpression op1, 
+      BinaryOperator opType,IASTExpression op1, 
       IASTExpression op2, String functionName, boolean truthValue) 
   throws UnrecognizedCFAEdgeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
 
@@ -490,7 +491,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         op1 instanceof IASTArraySubscriptExpression)
     {
       // [literal]
-      if (op2 == null && opType == -999){
+      if (op2 == null && opType == null){
         String lVariableName = op1.getRawSignature();
         
         String lScopedVariableName = getvarName(lVariableName, functionName);
@@ -525,7 +526,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           int valueOfLiteral = Integer.valueOf(literalString).intValue();
 
           // a == 9
-          if (opType == IASTBinaryExpression.op_equals) {
+          if (opType == BinaryOperator.EQUALS) {
             if (truthValue) {
               if (newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral) {
                 return InterpreterBottomElement.INSTANCE;
@@ -533,7 +534,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
             // ! a == 9
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue); 
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue); 
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -543,7 +544,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           // a != 9
-          else if (opType == IASTBinaryExpression.op_notequals)
+          else if (opType == BinaryOperator.NOT_EQUALS)
           {
             if (truthValue){
               if (newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
@@ -552,7 +553,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
             // ! a != 9
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -563,7 +564,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
 
           // a > 9
-          else if(opType == IASTBinaryExpression.op_greaterThan)
+          else if(opType == BinaryOperator.GREATER_THAN)
           {
             if(truthValue){
               if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
@@ -571,7 +572,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue); 
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue); 
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -581,7 +582,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           // a >= 9
-          else if(opType == IASTBinaryExpression.op_greaterEqual)
+          else if(opType == BinaryOperator.GREATER_EQUAL)
           {
             if(truthValue){
               if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
@@ -589,7 +590,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -599,7 +600,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           // a < 9
-          else if(opType == IASTBinaryExpression.op_lessThan)
+          else if(opType == BinaryOperator.LESS_THAN)
           {
             if(truthValue) {
               if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral) {
@@ -607,7 +608,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -617,7 +618,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           // a <= 9
-          else if(opType == IASTBinaryExpression.op_lessEqual)
+          else if(opType == BinaryOperator.LESS_EQUAL)
           {
             if(truthValue) {
               if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral) {
@@ -625,7 +626,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -635,7 +636,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           // [a - 9]
-          else if(opType == IASTBinaryExpression.op_minus)
+          else if(opType == BinaryOperator.MINUS)
           {
             if(truthValue) {
               if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral) {
@@ -643,7 +644,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else { // ! a - 9
-              AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
               
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -654,7 +655,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
 
           // [a + 9]
-          else if (opType == IASTBinaryExpression.op_plus) {
+          else if (opType == BinaryOperator.PLUS) {
             if (truthValue) {
               if (newElement.getValueFor(getvarName(varName, functionName)) == (0 - valueOfLiteral)) {
                 return InterpreterBottomElement.INSTANCE;
@@ -668,9 +669,9 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
 
           // TODO nothing
-          else if(opType == IASTBinaryExpression.op_binaryAnd ||
-              opType == IASTBinaryExpression.op_binaryOr ||
-              opType == IASTBinaryExpression.op_binaryXor){
+          else if(opType == BinaryOperator.BINARY_AND ||
+              opType == BinaryOperator.BINARY_OR ||
+              opType == BinaryOperator.BINARY_XOR){
             //return newElement;
             
             throw new RuntimeException();
@@ -694,7 +695,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         String rightVarName = op2.getRawSignature();
 
         // a == b
-        if(opType == IASTBinaryExpression.op_equals)
+        if(opType == BinaryOperator.EQUALS)
         {
           if(truthValue) {
             if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
@@ -704,7 +705,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else{
-            AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
             
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -714,7 +715,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a != b
-        else if(opType == IASTBinaryExpression.op_notequals) {
+        else if(opType == BinaryOperator.NOT_EQUALS) {
           if(truthValue) {
             if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
               newElement.getValueFor(getvarName(leftVarName, functionName))) {
@@ -723,7 +724,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue); 
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue); 
             
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -733,7 +734,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a > b
-        else if(opType == IASTBinaryExpression.op_greaterThan) {
+        else if(opType == BinaryOperator.GREATER_THAN) {
           if(truthValue) {
             if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
               newElement.getValueFor(getvarName(rightVarName, functionName))) {
@@ -742,7 +743,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
             
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -752,7 +753,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a >= b
-        else if(opType == IASTBinaryExpression.op_greaterEqual) {
+        else if(opType == BinaryOperator.GREATER_EQUAL) {
           if(truthValue) {
             if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
               newElement.getValueFor(getvarName(rightVarName, functionName))) {
@@ -761,7 +762,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
             
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -771,7 +772,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a < b
-        else if(opType == IASTBinaryExpression.op_lessThan) {
+        else if(opType == BinaryOperator.LESS_THAN) {
           if(truthValue) {
             if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
               newElement.getValueFor(getvarName(rightVarName, functionName))) {
@@ -780,7 +781,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue); 
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue); 
             
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -790,7 +791,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         // a <= b
-        else if(opType == IASTBinaryExpression.op_lessEqual) {
+        else if(opType == BinaryOperator.LESS_EQUAL) {
           if(truthValue) {
             if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
               newElement.getValueFor(getvarName(rightVarName, functionName))) {
@@ -799,7 +800,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
             
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -839,7 +840,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               int valueOfLiteral = Integer.valueOf(literalValue).intValue();
 
               // a == 9
-              if(opType == IASTBinaryExpression.op_equals) {
+              if(opType == BinaryOperator.EQUALS) {
                 if(truthValue){
                   String lVariableName = getvarName(varName, functionName);
 
@@ -855,7 +856,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
                 // ! a == 9
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
                   
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -865,7 +866,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               // a != 9
-              else if(opType == IASTBinaryExpression.op_notequals)
+              else if(opType == BinaryOperator.NOT_EQUALS)
               {
                 if(truthValue){
                   String lVariableName = getvarName(varName, functionName);
@@ -880,7 +881,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
                 // ! a != 9
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
                   
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -891,7 +892,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
 
               // a > 9
-              else if(opType == IASTBinaryExpression.op_greaterThan)
+              else if(opType == BinaryOperator.GREATER_THAN)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
@@ -904,7 +905,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
                   
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -914,7 +915,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               // a >= 9
-              else if(opType == IASTBinaryExpression.op_greaterEqual)
+              else if(opType == BinaryOperator.GREATER_EQUAL)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
@@ -927,7 +928,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
                   
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -937,7 +938,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               // a < 9
-              else if(opType == IASTBinaryExpression.op_lessThan)
+              else if(opType == BinaryOperator.LESS_THAN)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
@@ -950,7 +951,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue); 
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue); 
                   
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -960,7 +961,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               // a <= 9
-              else if(opType == IASTBinaryExpression.op_lessEqual)
+              else if(opType == BinaryOperator.LESS_EQUAL)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
@@ -973,7 +974,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue); 
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue); 
                   
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -1097,27 +1098,27 @@ public class InterpreterTransferRelation implements TransferRelation {
 //        boolean expressionValue;
 //
 //        switch (binExp.getOperator()) {
-//        case IASTBinaryExpression.op_equals:
+//        case equals:
 //          expressionValue = val1.equals(val2);
 //          break;
 //
-//        case IASTBinaryExpression.op_notequals:
+//        case notequals:
 //          expressionValue = !val1.equals(val2);
 //          break;
 //
-//        case IASTBinaryExpression.op_greaterThan:
+//        case greaterThan:
 //          expressionValue = val1 > val2;
 //          break;
 //
-//        case IASTBinaryExpression.op_greaterEqual:
+//        case greaterEqual:
 //          expressionValue = val1 >= val2;
 //          break;
 //
-//        case IASTBinaryExpression.op_lessThan:
+//        case lessThan:
 //          expressionValue = val1 < val2;
 //          break;
 //
-//        case IASTBinaryExpression.op_lessEqual:
+//        case lessEqual:
 //          expressionValue = val1 <= val2;
 //          break;
 //
@@ -1238,26 +1239,13 @@ public class InterpreterTransferRelation implements TransferRelation {
   throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
   {
     IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-    switch (binaryExpression.getOperator ())
-    {
-    // a = ?
-    case IASTBinaryExpression.op_assign:
-    {
+    if (binaryExpression.getOperator() == BinaryOperator.ASSIGN) {
+      // a = ?
       return handleAssignment(element, binaryExpression, cfaEdge);
-    }
-    // a += 2
-    case IASTBinaryExpression.op_plusAssign:
-    case IASTBinaryExpression.op_minusAssign:
-    case IASTBinaryExpression.op_multiplyAssign:
-    case IASTBinaryExpression.op_shiftLeftAssign:
-    case IASTBinaryExpression.op_shiftRightAssign:
-    case IASTBinaryExpression.op_binaryAndAssign:
-    case IASTBinaryExpression.op_binaryXorAssign:
-    case IASTBinaryExpression.op_binaryOrAssign:
-    {
+    } else if (binaryExpression.getOperator().isAssign()) {
+      // a += 2
       return handleOperationAndAssign(element, binaryExpression, cfaEdge);
-    }
-    default:
+    } else {
       throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
     }
   }
@@ -1268,42 +1256,14 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     IASTExpression leftOp = binaryExpression.getOperand1();
     IASTExpression rightOp = binaryExpression.getOperand2();
-    int operator = binaryExpression.getOperator();
+    BinaryOperator operator = binaryExpression.getOperator();
 
     if (!(leftOp instanceof IASTIdExpression)) {
       // TODO handle fields, arrays
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
     }
 
-    int newOperator;
-    switch (operator) {
-    case IASTBinaryExpression.op_plusAssign:
-      newOperator = IASTBinaryExpression.op_plus;
-      break;
-    case IASTBinaryExpression.op_minusAssign:
-      newOperator = IASTBinaryExpression.op_minus;
-      break;
-    case IASTBinaryExpression.op_multiplyAssign:
-      newOperator = IASTBinaryExpression.op_multiply;
-      break;
-    case IASTBinaryExpression.op_shiftLeftAssign:
-      newOperator = IASTBinaryExpression.op_shiftLeft;
-      break;
-    case IASTBinaryExpression.op_shiftRightAssign:
-      newOperator = IASTBinaryExpression.op_shiftRight;
-      break;
-    case IASTBinaryExpression.op_binaryAndAssign:
-      newOperator = IASTBinaryExpression.op_binaryAnd;
-      break;
-    case IASTBinaryExpression.op_binaryXorAssign:
-      newOperator = IASTBinaryExpression.op_binaryXor;
-      break;
-    case IASTBinaryExpression.op_binaryOrAssign:
-      newOperator = IASTBinaryExpression.op_binaryOr;
-      break;
-    default:
-      throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
-    }
+    BinaryOperator newOperator = BinaryOperator.stripAssign(operator);
 
     return handleAssignmentOfBinaryExp(element, leftOp.getRawSignature(), leftOp,
                                                   rightOp, newOperator, cfaEdge);
@@ -1463,7 +1423,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfBinaryExp(InterpreterElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
-                       int binaryOperator, CFAEdge cfaEdge)
+                       BinaryOperator binaryOperator, CFAEdge cfaEdge)
                        throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1472,21 +1432,21 @@ public class InterpreterTransferRelation implements TransferRelation {
     InterpreterElement newElement = element.clone();
 
     switch (binaryOperator) {
-    case IASTBinaryExpression.op_plus:
-    case IASTBinaryExpression.op_minus:
-    case IASTBinaryExpression.op_multiply:
-    case IASTBinaryExpression.op_greaterThan:
-    case IASTBinaryExpression.op_greaterEqual:
-    case IASTBinaryExpression.op_lessThan:
-    case IASTBinaryExpression.op_lessEqual:
-    case IASTBinaryExpression.op_equals:
-    case IASTBinaryExpression.op_notequals:
-    case IASTBinaryExpression.op_shiftRight:
-    case IASTBinaryExpression.op_shiftLeft:
-    case IASTBinaryExpression.op_divide:
-    case IASTBinaryExpression.op_modulo:
-    case IASTBinaryExpression.op_binaryAnd:
-    case IASTBinaryExpression.op_binaryOr:
+    case PLUS:
+    case MINUS:
+    case MULTIPLY:
+    case GREATER_THAN:
+    case GREATER_EQUAL:
+    case LESS_THAN:
+    case LESS_EQUAL:
+    case EQUALS:
+    case NOT_EQUALS:
+    case SHIFT_RIGHT:
+    case SHIFT_LEFT:
+    case DIVIDE:
+    case MODULO:
+    case BINARY_AND:
+    case BINARY_OR:
 
       
       Long val1;
@@ -1518,63 +1478,63 @@ public class InterpreterTransferRelation implements TransferRelation {
         
         switch (binaryOperator) {
 
-        case IASTBinaryExpression.op_plus:
+        case PLUS:
           value = lValue1 + lValue2;
           break;
 
-        case IASTBinaryExpression.op_minus:
+        case MINUS:
           value = lValue1 - lValue2;
           break;
 
-        case IASTBinaryExpression.op_multiply:
+        case MULTIPLY:
           value = lValue1 * lValue2;
           break;
           
-        case IASTBinaryExpression.op_greaterThan:
+        case GREATER_THAN:
           value = (lValue1 > lValue2)?1:0;
           break;
           
-        case IASTBinaryExpression.op_greaterEqual:
+        case GREATER_EQUAL:
           value = (lValue1 >= lValue2)?1:0;
           break;
         
-        case IASTBinaryExpression.op_lessThan:
+        case LESS_THAN:
           value = (lValue1 < lValue2)?1:0;
           break;
           
-        case IASTBinaryExpression.op_lessEqual:
+        case LESS_EQUAL:
           value = (lValue1 <= lValue2)?1:0;
           break;
           
-        case IASTBinaryExpression.op_equals:
+        case EQUALS:
           value = (lValue1 == lValue2)?1:0;
           break;
           
-        case IASTBinaryExpression.op_notequals:
+        case NOT_EQUALS:
           value = (lValue1 != lValue2)?1:0;
           break;
           
-        case IASTBinaryExpression.op_shiftRight:
+        case SHIFT_RIGHT:
           value = lValue1 >> lValue2;
           break;
           
-        case IASTBinaryExpression.op_shiftLeft:
+        case SHIFT_LEFT:
           value = lValue1 << lValue2;
           break;
           
-        case IASTBinaryExpression.op_divide:
+        case DIVIDE:
           value = lValue1 / lValue2;
           break;
           
-        case IASTBinaryExpression.op_modulo:
+        case MODULO:
           value = lValue1 % lValue2;
           break;
           
-        case IASTBinaryExpression.op_binaryAnd:
+        case BINARY_AND:
           value = lValue1 & lValue2;
           break;
           
-        case IASTBinaryExpression.op_binaryOr:
+        case BINARY_OR:
           value = lValue1 | lValue2;
           break;
 
