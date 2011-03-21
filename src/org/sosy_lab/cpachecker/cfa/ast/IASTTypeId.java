@@ -55,6 +55,6 @@ public final class IASTTypeId extends IASTNode {
 
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {specifier, name};
+    return new IASTNode[] {name};
   }
 }

@@ -64,7 +64,7 @@ public class IASTDeclaration extends IASTNode {
   
   @Override
   public IASTNode[] getChildren() {
-    return new IASTNode[] {getDeclSpecifier(), getName(), getInitializer()};
+    return new IASTNode[] {getName(), getInitializer()};
   }
 
 }

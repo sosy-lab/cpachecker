@@ -27,20 +27,13 @@ public final class IASTPointerTypeSpecifier extends IASTDeclSpecifier {
 
   private final IASTDeclSpecifier type;
 
-  public IASTPointerTypeSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final boolean pConst, final boolean pVolatile,
+  public IASTPointerTypeSpecifier(final boolean pConst, final boolean pVolatile,
       final IASTDeclSpecifier pType) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     type = pType;
   }
 
   public IASTDeclSpecifier getType() {
     return type;
-  }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {type};
   }
 }

@@ -33,11 +33,9 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
   private final List<IASTSimpleDeclaration> members;
   private final IASTName              name;
 
-  public IASTCompositeTypeSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final boolean pConst, final boolean pVolatile,
+  public IASTCompositeTypeSpecifier(final boolean pConst, final boolean pVolatile,
       final int pKey, final List<IASTSimpleDeclaration> pMembers, final IASTName pName) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
     name = pName;
@@ -53,14 +51,6 @@ public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
 
   public IASTName getName() {
     return name;
-  }
-
-  @Override
-  public IASTNode[] getChildren() {
-    final IASTNode[] children =
-        members.toArray(new IASTSimpleDeclaration[members.size() + 1]);
-    children[members.size()] = name;
-    return children;
   }
 
   public static final int k_struct = 1;

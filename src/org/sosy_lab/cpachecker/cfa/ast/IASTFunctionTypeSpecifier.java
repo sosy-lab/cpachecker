@@ -36,14 +36,13 @@ public class IASTFunctionTypeSpecifier extends IASTDeclSpecifier {
   private final List<IASTSimpleDeclaration>    parameters;
   private final boolean                        takesVarArgs;
   
-  public IASTFunctionTypeSpecifier(String pRawSignature,
-      IASTFileLocation pFileLocation,
+  public IASTFunctionTypeSpecifier(
       boolean pConst,
       boolean pVolatile,
       IASTDeclSpecifier pReturnType,
       List<IASTSimpleDeclaration> pParameters,
       boolean pTakesVarArgs) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     returnType = pReturnType;
     parameters = ImmutableList.copyOf(pParameters);
     takesVarArgs = pTakesVarArgs;
@@ -68,12 +67,5 @@ public class IASTFunctionTypeSpecifier extends IASTDeclSpecifier {
   
   public boolean takesVarArgs() {
     return takesVarArgs;
-  }
-  
-  @Override
-  public IASTNode[] getChildren() {
-    IASTNode[] children = parameters.toArray(new IASTNode[parameters.size() + 1]);
-    children[parameters.size()] = returnType;
-    return children;
   }
 }

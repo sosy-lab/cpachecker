@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public abstract class IASTDeclSpecifier extends IASTNode {
+public abstract class IASTDeclSpecifier {
 
   private boolean   isConst;
   private boolean   isVolatile;
 
-  public IASTDeclSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final boolean pConst, final boolean pVolatile) {
-    super(pRawSignature, pFileLocation);
+  public IASTDeclSpecifier(final boolean pConst, final boolean pVolatile) {
     isConst = pConst;
     isVolatile = pVolatile;
   }
@@ -42,11 +39,5 @@ public abstract class IASTDeclSpecifier extends IASTNode {
 
   public boolean isVolatile() {
     return isVolatile;
-  }
-
-  @Override
-  public IASTNode[] getChildren(){
-    // there are no children of this class
-    return new IASTNode[0];
   }
 }

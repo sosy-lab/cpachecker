@@ -27,20 +27,13 @@ public final class IASTNamedTypeSpecifier extends IASTDeclSpecifier {
 
   private final IASTName name;
 
-  public IASTNamedTypeSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final boolean pConst, final boolean pVolatile,
+  public IASTNamedTypeSpecifier(final boolean pConst, final boolean pVolatile,
       final IASTName pName) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     name = pName;
   }
 
   public IASTName getName() {
     return name;
-  }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {name};
   }
 }

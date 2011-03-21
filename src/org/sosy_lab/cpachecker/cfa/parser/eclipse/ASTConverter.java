@@ -290,8 +290,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Unknown pointer operator", p);
       }
       
-      // TODO rawSignature is bad here
-      type = new IASTPointerTypeSpecifier(p.getRawSignature(), convert(p.getFileLocation()), isConst, isVolatile, type);
+      type = new IASTPointerTypeSpecifier(isConst, isVolatile, type);
     }
     return type;
   }
@@ -325,8 +324,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Unknown array modifier", a);
       }
       
-      // TODO rawSignature is bad here
-      type = new IASTArrayTypeSpecifier(a.getRawSignature(), convert(a.getFileLocation()), isConst, isVolatile, type, convert(a.getConstantExpression()));
+      type = new IASTArrayTypeSpecifier(isConst, isVolatile, type, convert(a.getConstantExpression()));
     }
     
     return Triple.of(type, convert(d.getInitializer()), name);
@@ -354,7 +352,7 @@ class ASTConverter {
     }
     
     // TODO constant and volatile
-    IASTFunctionTypeSpecifier fType = new IASTFunctionTypeSpecifier(returnType.getRawSignature() + " " + d.getRawSignature(), convert(d.getFileLocation()), false, false, returnType, paramsList, sd.takesVarArgs());
+    IASTFunctionTypeSpecifier fType = new IASTFunctionTypeSpecifier(false, false, returnType, paramsList, sd.takesVarArgs());
 
     IASTDeclSpecifier type = fType;
     IASTName name;
@@ -438,11 +436,11 @@ class ASTConverter {
         list.add(newC.getDeclaration());
       }
     }
-    return new IASTCompositeTypeSpecifier(d.getRawSignature(), convert(d.getFileLocation()), d.isConst(), d.isVolatile(), d.getKey(), list, convert(d.getName()));
+    return new IASTCompositeTypeSpecifier(d.isConst(), d.isVolatile(), d.getKey(), list, convert(d.getName()));
   }
   
   private static IASTElaboratedTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier d) {
-    return new IASTElaboratedTypeSpecifier(d.getRawSignature(), convert(d.getFileLocation()), d.isConst(), d.isVolatile(), d.getKind(), convert(d.getName()));
+    return new IASTElaboratedTypeSpecifier(d.isConst(), d.isVolatile(), d.getKind(), convert(d.getName()));
   }
   
   private static IASTEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
@@ -450,15 +448,15 @@ class ASTConverter {
     for (org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       list.add(convert(c));
     }
-    return new IASTEnumerationSpecifier(d.getRawSignature(), convert(d.getFileLocation()), d.isConst(), d.isVolatile(), list, convert(d.getName()));
+    return new IASTEnumerationSpecifier(d.isConst(), d.isVolatile(), list, convert(d.getName()));
   }
   
   private static IASTNamedTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier d) {
-    return new IASTNamedTypeSpecifier(d.getRawSignature(), convert(d.getFileLocation()), d.isConst(), d.isVolatile(), convert(d.getName()));
+    return new IASTNamedTypeSpecifier(d.isConst(), d.isVolatile(), convert(d.getName()));
   }
   
   private static IASTSimpleDeclSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier d) {
-    return new IASTSimpleDeclSpecifier(d.getRawSignature(), convert(d.getFileLocation()), d.isConst(), d.isVolatile(), d.getType(), d.isLong(), d.isShort(), d.isSigned(), d.isUnsigned());
+    return new IASTSimpleDeclSpecifier(d.isConst(), d.isVolatile(), d.getType(), d.isLong(), d.isShort(), d.isSigned(), d.isUnsigned());
   }
   
 

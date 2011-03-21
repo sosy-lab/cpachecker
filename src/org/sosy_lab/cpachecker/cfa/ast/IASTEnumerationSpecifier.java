@@ -31,27 +31,15 @@ public final class IASTEnumerationSpecifier extends IASTDeclSpecifier {
   private final List<IASTEnumerator> enumerators;
   private final IASTName             name;
 
-  public IASTEnumerationSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final boolean pConst, final boolean pVolatile,
+  public IASTEnumerationSpecifier(final boolean pConst, final boolean pVolatile,
       final List<IASTEnumerator> pEnumerators, final IASTName pName) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;
   }
 
   public IASTEnumerator[] getEnumerators() {
     return enumerators.toArray(new IASTEnumerator[enumerators.size()]);
-  }
-
-  @Override
-  public IASTNode[] getChildren() {
-    final IASTNode[] children1 = super.getChildren();
-    final IASTNode[] children2 = getEnumerators();
-    IASTNode[] allChildren=new IASTNode[children1.length + children2.length];
-    System.arraycopy(children1, 0, allChildren, 0, children1.length);
-    System.arraycopy(children2, 0, allChildren, children1.length, children2.length);
-    return allChildren;
   }
 
   public IASTName getName() {

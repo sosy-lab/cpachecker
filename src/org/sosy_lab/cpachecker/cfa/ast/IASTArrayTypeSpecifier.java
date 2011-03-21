@@ -28,10 +28,9 @@ public class IASTArrayTypeSpecifier extends IASTDeclSpecifier {
   private final IASTDeclSpecifier type;
   private final IASTExpression    length;
   
-  public IASTArrayTypeSpecifier(String pRawSignature,
-      IASTFileLocation pFileLocation, boolean pConst, boolean pVolatile,
+  public IASTArrayTypeSpecifier(boolean pConst, boolean pVolatile,
       IASTDeclSpecifier pType, IASTExpression pLength) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     type = pType;
     length = pLength;
   }
@@ -42,10 +41,5 @@ public class IASTArrayTypeSpecifier extends IASTDeclSpecifier {
   
   public IASTExpression getLength() {
     return length;
-  }
-  
-  @Override
-  public IASTNode[] getChildren() {
-    return new IASTNode[] { type, length };
   }
 }

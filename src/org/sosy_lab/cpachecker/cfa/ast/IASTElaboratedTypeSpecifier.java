@@ -28,11 +28,9 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier {
   private final int      kind;
   private final IASTName name;
 
-  public IASTElaboratedTypeSpecifier(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      boolean pConst, final boolean pVolatile,
+  public IASTElaboratedTypeSpecifier(boolean pConst, final boolean pVolatile,
       final int pKind, final IASTName pName) {
-    super(pRawSignature, pFileLocation, pConst, pVolatile);
+    super(pConst, pVolatile);
     kind = pKind;
     name = pName;
   }
@@ -43,11 +41,6 @@ public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier {
 
   public IASTName getName() {
     return name;
-  }
-  
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {name};
   }
 
   public static final int k_enum = 0;
