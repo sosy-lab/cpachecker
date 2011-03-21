@@ -456,7 +456,14 @@ class ASTConverter {
   }
   
   private static IASTSimpleDeclSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier d) {
-    return new IASTSimpleDeclSpecifier(d.isConst(), d.isVolatile(), d.getType(), d.isLong(), d.isShort(), d.isSigned(), d.isUnsigned());
+    if (!(d instanceof org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier)) {
+      throw new CFAGenerationRuntimeException("Unsupported type", d);
+    }
+    org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier dd = (org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier)d; 
+    
+    return new IASTSimpleDeclSpecifier(dd.isConst(), dd.isVolatile(), dd.getType(),
+        dd.isLong(), dd.isShort(), dd.isSigned(), d.isUnsigned(),
+        dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
   
 

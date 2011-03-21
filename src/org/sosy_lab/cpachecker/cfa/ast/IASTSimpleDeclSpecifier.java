@@ -30,16 +30,24 @@ public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
   private final boolean isShort;
   private final boolean isSigned;
   private final boolean isUnsigned;
+  private final boolean isComplex;
+  private final boolean isImaginary;
+  private final boolean isLongLong;
 
   public IASTSimpleDeclSpecifier(final boolean pConst, final boolean pVolatile,
       final int pType, final boolean pIsLong, final boolean pIsShort,
-      final boolean pIsSigned, final boolean pIsUnsigned) {
+      final boolean pIsSigned, final boolean pIsUnsigned,
+      final boolean pIsComplex, final boolean pIsImaginary,
+      final boolean pIsLongLong) {
     super(pConst, pVolatile);
     type = pType;
     isLong = pIsLong;
     isShort = pIsShort;
     isSigned = pIsSigned;
     isUnsigned = pIsUnsigned;
+    isComplex = pIsComplex;
+    isImaginary = pIsImaginary;
+    isLongLong = pIsLongLong;
   }
 
   public int getType() {
@@ -60,6 +68,18 @@ public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
 
   public boolean isUnsigned() {
     return isUnsigned;
+  }
+  
+  public boolean isComplex() {
+    return isComplex;
+  }
+  
+  public boolean isImaginary() {
+    return isImaginary;
+  }
+  
+  public boolean isLongLong() {
+    return isLongLong;
   }
 
   public static final int t_unspecified = 0;
