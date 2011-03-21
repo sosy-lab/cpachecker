@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
@@ -204,7 +204,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
           lastAdded = varName;
 
-          IASTDeclSpecifier specifier = declaration.getDeclSpecifier();
+          IType specifier = declaration.getDeclSpecifier();
           IASTInitializer initializer = declaration.getInitializer();
           // initializers in CIL are always constant, so no need to check if
           // initializer expression contains uninitialized variables

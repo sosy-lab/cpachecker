@@ -28,11 +28,22 @@ public class DummyType extends IType {
   private final String typeName;
 
   public DummyType(String pTypeName) {
+    super(false, false);
     typeName = pTypeName;
   }
 
   @Override
   public String toString() {
     return typeName;
+  }
+  
+  @Override
+  public boolean isConst() {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public boolean isVolatile() {
+    throw new UnsupportedOperationException();
   }
 }

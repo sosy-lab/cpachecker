@@ -24,4 +24,20 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class IType {
+
+  private boolean   isConst;
+  private boolean   isVolatile;
+
+  public IType(final boolean pConst, final boolean pVolatile) {
+    isConst = pConst;
+    isVolatile = pVolatile;
+  }
+
+  public boolean isConst() {
+    return isConst;
+  }
+
+  public boolean isVolatile() {
+    return isVolatile;
+  }
 }

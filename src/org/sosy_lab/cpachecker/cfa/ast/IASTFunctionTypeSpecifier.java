@@ -29,9 +29,9 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-public class IASTFunctionTypeSpecifier extends IASTDeclSpecifier {
+public class IASTFunctionTypeSpecifier extends IType {
 
-  private final IASTDeclSpecifier              returnType;
+  private final IType              returnType;
   private       IASTName                       name = null;
   private final List<IASTSimpleDeclaration>    parameters;
   private final boolean                        takesVarArgs;
@@ -39,7 +39,7 @@ public class IASTFunctionTypeSpecifier extends IASTDeclSpecifier {
   public IASTFunctionTypeSpecifier(
       boolean pConst,
       boolean pVolatile,
-      IASTDeclSpecifier pReturnType,
+      IType pReturnType,
       List<IASTSimpleDeclaration> pParameters,
       boolean pTakesVarArgs) {
     super(pConst, pVolatile);
@@ -48,7 +48,7 @@ public class IASTFunctionTypeSpecifier extends IASTDeclSpecifier {
     takesVarArgs = pTakesVarArgs;
   }
   
-  public IASTDeclSpecifier getReturnType() {
+  public IType getReturnType() {
     return returnType;
   }
   

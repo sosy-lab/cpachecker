@@ -27,13 +27,13 @@ public final class IASTTypeId extends IASTNode {
 
   // TODO need storage class here?
   private final StorageClass      storageClass;
-  private final IASTDeclSpecifier specifier;
+  private final IType specifier;
   private final IASTName          name;
 
   public IASTTypeId(final String pRawSignature,
       final IASTFileLocation pFileLocation,
       final StorageClass pStorageClass,
-      final IASTDeclSpecifier pSpecifier,
+      final IType pSpecifier,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
     storageClass = pStorageClass;
@@ -45,7 +45,7 @@ public final class IASTTypeId extends IASTNode {
     return storageClass;
   }
 
-  public IASTDeclSpecifier getDeclSpecifier() {
+  public IType getDeclSpecifier() {
     return specifier;
   }
   

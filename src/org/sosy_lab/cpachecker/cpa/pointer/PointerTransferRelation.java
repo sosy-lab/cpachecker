@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -292,7 +292,7 @@ public class PointerTransferRelation implements TransferRelation {
 
           //..then adding all parameters as local variables
           for (IASTSimpleDeclaration dec : l) {
-            IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
+            IType declSpecifier = dec.getDeclSpecifier();
             handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
@@ -333,7 +333,7 @@ public class PointerTransferRelation implements TransferRelation {
   private void handleDeclaration(PointerElement element, CFAEdge edge,
       StorageClass storageClass,
       IASTName name,
-      IASTDeclSpecifier specifier) throws CPATransferException {
+      IType specifier) throws CPATransferException {
 
     if (storageClass == StorageClass.TYPEDEF) {
       // ignore, this is a type definition, not a variable declaration
@@ -372,7 +372,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
       //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarator).)
-      IASTDeclSpecifier nestedSpecifier = ((IASTArrayTypeSpecifier)specifier).getType();
+      IType nestedSpecifier = ((IASTArrayTypeSpecifier)specifier).getType();
       if (!(nestedSpecifier instanceof IASTSimpleDeclSpecifier)) {
         throw new UnrecognizedCCodeException("unsupported array declaration", edge);
       }
@@ -398,7 +398,7 @@ public class PointerTransferRelation implements TransferRelation {
     } else if (specifier instanceof IASTPointerTypeSpecifier) {
 
       int depth = 0;
-      IASTDeclSpecifier nestedSpecifier = specifier;
+      IType nestedSpecifier = specifier;
       do {
         nestedSpecifier = ((IASTPointerTypeSpecifier)nestedSpecifier).getType();
         depth++;

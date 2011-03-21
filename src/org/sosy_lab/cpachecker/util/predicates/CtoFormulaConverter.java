@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -381,7 +380,7 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newLength, reachingPathsFormula, branchingCounter);
   }
 
-  private Formula makeDeclaration(IASTDeclSpecifier spec,
+  private Formula makeDeclaration(IType spec,
       boolean isGlobal, DeclarationEdge edge,
       String function, SSAMapBuilder ssa) throws CPATransferException {
 

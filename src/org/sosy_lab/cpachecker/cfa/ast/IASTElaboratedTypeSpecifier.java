@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTElaboratedTypeSpecifier extends IASTDeclSpecifier {
+public final class IASTElaboratedTypeSpecifier extends IType {
 
   private final int      kind;
   private final IASTName name;

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
@@ -97,7 +97,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     }
     else if(p instanceof IASTSimpleDeclaration){
       IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
-      IASTDeclSpecifier spec = decl.getDeclSpecifier();
+      IType spec = decl.getDeclSpecifier();
 
       boolean isGlobal = ArithmeticOverflowAssumptionBuilder.isDeclGlobal;
 

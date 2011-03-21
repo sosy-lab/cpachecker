@@ -32,7 +32,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
@@ -158,7 +158,7 @@ public final class ErrorPathShrinker {
       if (cfaEdge instanceof GlobalDeclarationEdge) {
         DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
 
-        IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+        IType specifier = declarationEdge.getDeclSpecifier();
         if (declarationEdge.getName() != null) {
           // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables

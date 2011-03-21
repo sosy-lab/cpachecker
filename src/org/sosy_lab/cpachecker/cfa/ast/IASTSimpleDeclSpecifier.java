@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTSimpleDeclSpecifier extends IASTDeclSpecifier {
+public final class IASTSimpleDeclSpecifier extends IType {
 
   private final BasicType type;
   private final boolean isLong;

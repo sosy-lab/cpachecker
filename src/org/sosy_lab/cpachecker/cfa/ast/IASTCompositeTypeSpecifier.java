@@ -27,7 +27,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-public final class IASTCompositeTypeSpecifier extends IASTDeclSpecifier {
+public final class IASTCompositeTypeSpecifier extends IType {
 
   private final int                   key;
   private final List<IASTSimpleDeclaration> members;

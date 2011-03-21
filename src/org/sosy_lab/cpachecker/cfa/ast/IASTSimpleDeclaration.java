@@ -27,11 +27,11 @@ import static com.google.common.base.Preconditions.*;
 
 public final class IASTSimpleDeclaration extends IASTNode {
 
-  private final IASTDeclSpecifier    specifier;
+  private final IType    specifier;
   private final IASTName             name;
 
   public IASTSimpleDeclaration(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTDeclSpecifier pSpecifier,
+      final IASTFileLocation pFileLocation, final IType pSpecifier,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
     
@@ -39,7 +39,7 @@ public final class IASTSimpleDeclaration extends IASTNode {
     name = pName;
   }
 
-  public IASTDeclSpecifier getDeclSpecifier() {
+  public IType getDeclSpecifier() {
     return specifier;
   }
   

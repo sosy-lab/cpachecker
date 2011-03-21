@@ -31,6 +31,7 @@ public final class IPointerType extends IType {
 
   public IPointerType(final IType pType, final boolean pIsConst,
       final boolean pIsVolatile) {
+    super(pIsConst, pIsVolatile);
     type = pType;
     isConst = pIsConst;
     isVolatile = pIsVolatile;

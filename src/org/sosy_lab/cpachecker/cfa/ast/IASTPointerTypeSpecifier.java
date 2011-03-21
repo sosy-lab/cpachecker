@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTPointerTypeSpecifier extends IASTDeclSpecifier {
+public final class IASTPointerTypeSpecifier extends IType {
 
-  private final IASTDeclSpecifier type;
+  private final IType type;
 
   public IASTPointerTypeSpecifier(final boolean pConst, final boolean pVolatile,
-      final IASTDeclSpecifier pType) {
+      final IType pType) {
     super(pConst, pVolatile);
     type = pType;
   }
 
-  public IASTDeclSpecifier getType() {
+  public IType getType() {
     return type;
   }
 }

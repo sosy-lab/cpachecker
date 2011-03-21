@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -129,7 +129,7 @@ public class TypesTransferRelation implements TransferRelation {
   private void handleDeclaration(TypesElement element,
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
-    IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+    IType specifier = declarationEdge.getDeclSpecifier();
 
     if (specifier instanceof IASTFunctionTypeSpecifier) {
       handleFunctionDeclaration(element, declarationEdge, declarationEdge.getStorageClass(), (IASTFunctionTypeSpecifier)specifier);
@@ -170,7 +170,7 @@ public class TypesTransferRelation implements TransferRelation {
     element.addFunction(function.getName(), function);
   }
 
-  private Type getType(TypesElement element, CFAEdge cfaEdge, IASTDeclSpecifier declSpecifier)
+  private Type getType(TypesElement element, CFAEdge cfaEdge, IType declSpecifier)
                        throws UnrecognizedCCodeException {
     Type type;
     boolean constant = declSpecifier.isConst();

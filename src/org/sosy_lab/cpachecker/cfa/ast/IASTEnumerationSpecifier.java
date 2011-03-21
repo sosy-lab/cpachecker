@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.List;
 import com.google.common.collect.ImmutableList;
 
-public final class IASTEnumerationSpecifier extends IASTDeclSpecifier {
+public final class IASTEnumerationSpecifier extends IType {
 
   private final List<IASTEnumerator> enumerators;
   private final IASTName             name;

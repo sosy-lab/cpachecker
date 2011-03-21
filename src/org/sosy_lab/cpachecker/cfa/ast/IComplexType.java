@@ -31,10 +31,21 @@ public class IComplexType extends IType {
   private final String name;
   
   public IComplexType(final String pName) {
+    super(false, false);
     name = pName;
   }
 
   public String getName() {
     return name;
+  }
+  
+  @Override
+  public boolean isConst() {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public boolean isVolatile() {
+    throw new UnsupportedOperationException();
   }
 }

@@ -50,7 +50,7 @@ public class IASTDeclaration extends IASTNode {
     return declaration;
   }
   
-  public IASTDeclSpecifier getDeclSpecifier() {
+  public IType getDeclSpecifier() {
     return declaration.getDeclSpecifier();
   }
 
