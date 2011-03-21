@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
-import org.sosy_lab.cpachecker.cfa.ast.IPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -183,8 +182,8 @@ public class CtoFormulaConverter {
 
   private String getTypeName(final IType tp) {
     
-    if (tp instanceof IPointerType) {
-      return getTypeName(((IPointerType)tp).getType());
+    if (tp instanceof IASTPointerTypeSpecifier) {
+      return getTypeName(((IASTPointerTypeSpecifier)tp).getType());
       
     } else if (tp instanceof ITypedef) {
       return getTypeName(((ITypedef)tp).getType());

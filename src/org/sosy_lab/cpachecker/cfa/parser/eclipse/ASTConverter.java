@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
-import org.sosy_lab.cpachecker.cfa.ast.IPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -652,9 +651,9 @@ class ASTConverter {
     }
   }
   
-  private static IPointerType convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
+  private static IASTPointerTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
     try {
-      return new IPointerType(convert(t.getType()), t.isConst(), t.isVolatile());
+      return new IASTPointerTypeSpecifier(t.isConst(), t.isVolatile(), convert(t.getType()));
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
       throw new CFAGenerationRuntimeException(e.getMessage());
     }
