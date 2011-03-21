@@ -29,7 +29,6 @@ import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
 import org.sosy_lab.cpachecker.cfa.ast.DummyType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
@@ -577,7 +576,7 @@ class ASTConverter {
     }
   }
 
-  private static CBasicType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
+  private static IASTSimpleDeclSpecifier convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
 
     try {
       
@@ -587,15 +586,14 @@ class ASTConverter {
         final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
           (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
 
-        return new CBasicType(t.getType(), t.isLong(), t.isShort(), t.isSigned(),
-          t.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
+        // TODO why is there no isConst() and isVolatile() here?
+        return new IASTSimpleDeclSpecifier(false, false, c.getType(), c.isLong(), c.isShort(), c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
 
       } else if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
           
-          // the three values isComplex, isImaginary, isLongLong are initialized
-          // with FALSE, because we do not know about them
-          return new CBasicType(t.getType(), t.isLong(), t.isShort(),
-            t.isSigned(), t.isUnsigned(), false, false, false);
+        // the three values isComplex, isImaginary, isLongLong are initialized
+        // with FALSE, because we do not know about them
+        return new IASTSimpleDeclSpecifier(false, false, t.getType(), t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), false, false, false);
 
       } else {
         throw new CFAGenerationRuntimeException("Unknown type " + t.toString());

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public abstract class IASTDeclSpecifier {
+public abstract class IASTDeclSpecifier extends IType {
 
   private boolean   isConst;
   private boolean   isVolatile;

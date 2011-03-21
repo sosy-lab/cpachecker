@@ -31,9 +31,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CBasicType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -59,11 +59,11 @@ implements GenericAssumptionBuilder
 
   private static Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> boundsForType(IType typ)
   {
-    if (typ instanceof CBasicType) {
-      CBasicType btyp = (CBasicType) typ;
+    if (typ instanceof IASTSimpleDeclSpecifier) {
+      IASTSimpleDeclSpecifier btyp = (IASTSimpleDeclSpecifier) typ;
 
         switch (btyp.getType()) {
-        case CBasicType.t_int:
+        case IASTSimpleDeclSpecifier.t_int:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
