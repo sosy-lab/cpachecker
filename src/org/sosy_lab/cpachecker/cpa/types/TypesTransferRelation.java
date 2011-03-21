@@ -214,7 +214,7 @@ public class TypesTransferRelation implements TransferRelation {
         break;
 
       default:
-        throw new UnrecognizedCCodeException(cfaEdge, simpleSpecifier);
+        throw new UnrecognizedCCodeException("Unknown basic type", cfaEdge);
       }
 
       boolean signed = (simpleSpecifier.isUnsigned() ? false : true);
@@ -239,7 +239,7 @@ public class TypesTransferRelation implements TransferRelation {
         break;
 
       default:
-        throw new UnrecognizedCCodeException(cfaEdge, compositeSpecifier);
+        throw new UnrecognizedCCodeException("Unknown composite type", cfaEdge);
       }
 
       if (element.getTypedefs().containsKey(name)) {
@@ -289,7 +289,7 @@ public class TypesTransferRelation implements TransferRelation {
         break;
 
       default:
-        throw new UnrecognizedCCodeException(cfaEdge, elaboratedTypeSpecifier);
+        throw new UnrecognizedCCodeException("Unknown elaborated type", cfaEdge);
       }
 
       type = element.getTypedef(name);
@@ -335,7 +335,7 @@ public class TypesTransferRelation implements TransferRelation {
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
         if (enumerator.getValue() == null) {
           // TODO handle enum e { e1, e2 }
-          throw new UnrecognizedCCodeException("Missing value in enum declaration", cfaEdge, enumSpecifier);
+          throw new UnrecognizedCCodeException("Missing value in enum declaration", cfaEdge);
         }
         int value;
         try {
@@ -360,7 +360,7 @@ public class TypesTransferRelation implements TransferRelation {
        }
 
       if (type == null) {
-        throw new UnrecognizedCCodeException("type not defined", cfaEdge, namedTypeSpecifier);
+        throw new UnrecognizedCCodeException("Undefined type " + namedTypeSpecifier.getName().getRawSignature(), cfaEdge);
        }
 
     } else if (declSpecifier instanceof IASTArrayTypeSpecifier) {
@@ -382,7 +382,7 @@ public class TypesTransferRelation implements TransferRelation {
             length = 0;
           }
         } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException(cfaEdge, declSpecifier);
+          throw new UnrecognizedCCodeException("Invalid numeric literal " + lengthExpression.getRawSignature(), cfaEdge);
         }
       }
       type = new ArrayType(type, length);
@@ -401,7 +401,7 @@ public class TypesTransferRelation implements TransferRelation {
       type = new PointerType(type, pointerSpecifier.isConst());
       
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, declSpecifier);
+      throw new UnrecognizedCCodeException("Unknown type class " + declSpecifier.getClass().getSimpleName(), cfaEdge);
     }
 
     return type;

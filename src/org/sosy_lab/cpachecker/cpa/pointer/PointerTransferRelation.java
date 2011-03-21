@@ -374,14 +374,12 @@ public class PointerTransferRelation implements TransferRelation {
       //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarator).)
       IASTDeclSpecifier nestedSpecifier = ((IASTArrayTypeSpecifier)specifier).getType();
       if (!(nestedSpecifier instanceof IASTSimpleDeclSpecifier)) {
-        throw new UnrecognizedCCodeException("unsupported array declaration",
-                                                     edge, specifier);
+        throw new UnrecognizedCCodeException("unsupported array declaration", edge);
       }
 
       IASTExpression lengthExpression = ((IASTArrayTypeSpecifier)specifier).getLength();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
-        throw new UnrecognizedCCodeException("variable sized stack arrays are not supported",
-            edge, specifier);
+        throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", edge);
       }
 
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);

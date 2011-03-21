@@ -414,7 +414,7 @@ public class CtoFormulaConverter {
     
     } else if (spec instanceof IASTCompositeTypeSpecifier) {
       // this is the declaration of a struct, just ignore it...
-      log(Level.ALL, "Ignoring declaration", spec);
+      log(Level.ALL, "Ignoring declaration", edge);
       return fmgr.makeTrue();
     
     } else if (spec instanceof IASTSimpleDeclSpecifier ||
@@ -424,7 +424,7 @@ public class CtoFormulaConverter {
                spec instanceof IASTPointerTypeSpecifier) {
 
       if (edge.getStorageClass() == StorageClass.TYPEDEF) {
-        log(Level.ALL, "Ignoring typedef", spec);
+        log(Level.ALL, "Ignoring typedef", edge);
         return fmgr.makeTrue();
       }
         
