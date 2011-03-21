@@ -572,13 +572,16 @@ class ASTConverter {
   
   private static IASTTypeId convert(org.eclipse.cdt.core.dom.ast.IASTTypeId t) {
     Pair<StorageClass, ? extends IType> specifier = convert(t.getDeclSpecifier());
-
+    if (specifier.getFirst() != StorageClass.AUTO) {
+      throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t);
+    }
+    
     Triple<IType, IASTInitializer, IASTName> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }
     
-    return new IASTTypeId(t.getRawSignature(), convert(t.getFileLocation()), specifier.getFirst(), declarator.getFirst(), declarator.getThird());
+    return new IASTTypeId(t.getRawSignature(), convert(t.getFileLocation()), declarator.getFirst(), declarator.getThird());
   }
   
   private static IType convert(org.eclipse.cdt.core.dom.ast.IType t) {

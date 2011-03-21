@@ -25,24 +25,16 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTTypeId extends IASTNode {
 
-  // TODO need storage class here?
-  private final StorageClass      storageClass;
   private final IType specifier;
   private final IASTName          name;
 
   public IASTTypeId(final String pRawSignature,
       final IASTFileLocation pFileLocation,
-      final StorageClass pStorageClass,
       final IType pSpecifier,
       final IASTName pName) {
     super(pRawSignature, pFileLocation);
-    storageClass = pStorageClass;
     specifier = pSpecifier;
     name = pName;
-  }
-
-  public StorageClass getStorageClass() {
-    return storageClass;
   }
 
   public IType getDeclSpecifier() {
