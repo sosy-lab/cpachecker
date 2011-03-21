@@ -443,6 +443,10 @@ public class FShell3 {
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = lGoal.getAutomaton();
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lGoalAutomaton);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton2);
+      
       boolean lIsCovered = false;
       
       if (pApplySubsumptionCheck) {
@@ -453,7 +457,7 @@ public class FShell3 {
             throw new RuntimeException();
           }
           
-          ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()); 
+          ThreeValuedAnswer lCoverageAnswer = accepts(lGoalAutomaton3, lGeneratedTestCase.getValue()); 
           
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             lIsCovered = true;
@@ -463,7 +467,7 @@ public class FShell3 {
             break;
           }
           else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3, new HashSet<NondeterministicFiniteAutomaton.State>());
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -535,7 +539,7 @@ public class FShell3 {
       // TODO remove
       HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3, mReachedAutomatonStates);
       
       lTimeReach.proceed();
       

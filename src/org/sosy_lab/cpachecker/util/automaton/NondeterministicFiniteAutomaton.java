@@ -52,7 +52,10 @@ public class NondeterministicFiniteAutomaton<T> {
 
       @Override
       public State next() {
-        return STATE_POOL.mPool.get(mCounter);
+        State lState = STATE_POOL.mPool.get(mCounter);
+        mCounter++;
+        
+        return lState;
       }
 
       @Override

@@ -2,13 +2,16 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeDomain;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.product.ProgressProductAutomatonPrecisionAdjustment;
 
 import com.google.common.base.Preconditions;
@@ -46,6 +49,13 @@ public class ProductAutomatonCPA extends CompositeCPA {
       ImmutableList<ConfigurableProgramAnalysis> cpas, boolean pUseProgressPrecisionAdjustment) {
     super(abstractDomain, transferRelation, new MergeSepOperator(), stopOperator,
         pUseProgressPrecisionAdjustment?ProgressProductAutomatonPrecisionAdjustment.INSTANCE:ProductAutomatonPrecisionAdjustment.getInstance(), cpas);
+  }
+  
+  @Override
+  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+    CompositeElement lInitialElement = (CompositeElement)super.getInitialElement(node);
+    
+    return ProductAutomatonElement.createElement(lInitialElement.getElements());
   }
 
 }
