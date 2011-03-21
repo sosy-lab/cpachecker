@@ -462,7 +462,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
 
     String lFunctionHeader =
-        lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature();
+        lFunctionDefinitionNode.getFunctionDefinition().getRawSignature();
     if (pAddIndex) {
       lFunctionHeader = lFunctionHeader.replaceFirst(
           lFunctionDefinitionNode.getFunctionName() + "\\(",

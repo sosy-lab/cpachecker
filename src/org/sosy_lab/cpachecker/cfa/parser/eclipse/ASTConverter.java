@@ -211,7 +211,10 @@ class ASTConverter {
     
     IASTFunctionTypeSpecifier declSpec = (IASTFunctionTypeSpecifier)declarator.getFirst();
     
-    return new IASTFunctionDefinition(f.getRawSignature(), convert(f.getFileLocation()), specifier.getFirst(), declSpec, declarator.getThird());
+    // fake raw signature because otherwise it would contain the whole function body
+    String rawSignature = f.getDeclSpecifier().getRawSignature() + " " + f.getDeclarator().getRawSignature();
+    
+    return new IASTFunctionDefinition(rawSignature, convert(f.getFileLocation()), specifier.getFirst(), declSpec, declarator.getThird());
   }
   
   public static List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
@@ -241,8 +244,7 @@ class ASTConverter {
         Triple<IASTDeclSpecifier, IASTInitializer, IASTName> declarator = convert(c, declSpec);
         
         // fake rawSignature because otherwise the other declarators would appear in it, too
-        
-        String rawSignature = declSpec.getRawSignature() + " " + c.getRawSignature() + ";";
+        String rawSignature = d.getDeclSpecifier().getRawSignature() + " " + c.getRawSignature() + ";";
         
         IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, declarator.getFirst(), declarator.getThird());
         IASTDeclaration newD = new IASTDeclaration(rawSignature, fileLoc, storageClass, newSd, declarator.getSecond());
