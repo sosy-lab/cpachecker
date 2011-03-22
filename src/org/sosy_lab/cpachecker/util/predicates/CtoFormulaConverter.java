@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
@@ -628,42 +629,16 @@ public class CtoFormulaConverter {
       IASTCharLiteralExpression cExp = (IASTCharLiteralExpression)lexp;
       // we just take the byte value
       return fmgr.makeNumber(cExp.getCharacter());
+    
+    } else if (lexp instanceof IASTIntegerLiteralExpression) {
+      IASTIntegerLiteralExpression iExp = (IASTIntegerLiteralExpression)lexp;
+
+      return fmgr.makeNumber(iExp.getValue().toString());
     }
     
     // this should be a number...
     String num = lexp.getRawSignature();
     switch (lexp.getKind()) {
-    case IASTLiteralExpression.lk_integer_constant:
-      // this might have some modifiers attached (e.g. 0UL), we
-      // have to get rid of them
-      int pos = num.length()-1;
-      while (!Character.isDigit(num.charAt(pos))) {
-        --pos;
-      }
-      num = num.substring(0, pos+1);
-      if (num.startsWith("0x")) {
-        // this should be in hex format
-        // remove "0x" from the string
-        num = num.substring(2);
-        // we use Long instead of Integer to avoid getting negative
-        // numbers (e.g. for 0xffffff we would get -1)
-        num = Long.valueOf(num, 16).toString();
-      }
-      
-      // TODO here we assume 32 bit integers!!! This is because CIL
-      // seems to do so as well...
-      try {
-        Integer.parseInt(num);
-      } catch (NumberFormatException nfe) {
-        long l = Long.parseLong(num);
-        if (l < 0) {
-          num = Long.toString(Integer.MAX_VALUE + l);
-        } else {
-          num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
-        }
-      }
-      return fmgr.makeNumber(num);
-      
     case IASTLiteralExpression.lk_float_constant:
       // parse with valueOf and convert to String again, because Mathsat
       // does not accept all possible C float constants (but Java hopefully does)

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static java.lang.Character.isDigit;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
@@ -234,7 +236,9 @@ class ASTConverter {
       check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
       return new IASTCharLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), parseCharacterLiteral(e.getRawSignature(), e));
     
-      
+    case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_integer_constant:
+      check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
+      return new IASTIntegerLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), parseIntegerLiteral(e.getRawSignature(), e));
     }
     
     assert e.getRawSignature().equals(String.valueOf(e.getValue()));
@@ -295,6 +299,64 @@ class ASTConverter {
         }
       }
     }
+    return result;
+  }
+  
+  static BigInteger parseIntegerLiteral(String s, org.eclipse.cdt.core.dom.ast.IASTNode e) {
+    // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
+    int last = s.length()-1;
+    int bits = 32;
+    boolean signed = true;
+        
+    if (s.charAt(last) == 'L' || s.charAt(last) == 'l' ) {
+      last--;
+      // one 'L' is equal to no 'L' (TODO this assumes a 32bit machine)
+    }
+    if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
+      last--;
+      bits = 64; // two 'L' are a long long
+    }
+    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      last--;
+      signed = false;
+    }
+
+    s = s.substring(0, last+1);
+    BigInteger result;
+    try {
+      if (s.startsWith("0x") || s.startsWith("0X")) {
+        // this should be in hex format, remove "0x" from the string
+        s = s.substring(2);
+        result = new BigInteger(s, 16);
+      
+      } else if (s.startsWith("0")) {
+        result = new BigInteger(s, 8);
+  
+      } else {
+        result = new BigInteger(s, 10);
+      }
+    } catch (NumberFormatException _) {
+      throw new CFAGenerationRuntimeException("invalid number", e);
+    }
+    check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
+    
+    // clear the bits that don't fit in the type 
+    // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
+    BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
+    result = result.and(mask);
+    assert result.bitLength() <= bits;
+
+    // compute twos complement if necessary
+    if (signed && result.testBit(bits-1)) {
+      // highest bit is set
+      result = result.clearBit(bits-1);
+
+      // a BigInteger for -2^(bits-1) (e.g. -2^-31 or -2^-63)
+      BigInteger minValue = BigInteger.ZERO.setBit(bits-1).negate();
+      
+      result = minValue.add(result);
+    }
+    
     return result;
   }
   
