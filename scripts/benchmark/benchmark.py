@@ -211,20 +211,37 @@ class OutputHandler:
         if not os.path.isdir(self.logFolder):
             os.mkdir(self.logFolder)
 
-        # create head of outputLogFile
-        headLine = "benchmark: " + self.benchmark.name + "\n"
-        dateLine = "date:      " + str(date.today()) + "\n"
-        toolLine = "tool:      " + self.benchmark.tool + "\n"
+        # create header of outputLogFile
+        columnWidth = 20
+        headLine = "   BENCHMARK INFORMATION\n" +\
+                    "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"
+        dateLine = "date:".ljust(columnWidth) + str(date.today()) + "\n"
+        toolLine = "tool:".ljust(columnWidth) + self.benchmark.tool +\
+                    " " + self.getVersion(self.benchmark.tool) + "\n"
+  
         if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
-            toolLine += "memlimit:  " + str(self.benchmark.rlimits[9][0] / 1024 / 1024) + "\n"
+            toolLine += "memlimit:".ljust(columnWidth)\
+                        + str(self.benchmark.rlimits[9][0] / 1024 / 1024) + "\n"
         if (0 in self.benchmark.rlimits): # 0 is key of timelimit
-            toolLine += "timelimit: " + str(self.benchmark.rlimits[0][0]) + "\n"
-        simpleLine = "-" * (len(headLine) + 5) + "\n"
+            toolLine += "timelimit:".ljust(columnWidth)\
+                        + str(self.benchmark.rlimits[0][0]) + "\n"
+        simpleLine = "-" * (len(headLine) + 15) + "\n"
+        header = headLine + dateLine + toolLine + simpleLine + "\n"
+        
+        # get information about computer
+        (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
+        systemInfo = "   SYSTEM INFORMATION\n"\
+                    + "os:".ljust(columnWidth) + opSystem + "\n"\
+                    + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
+                    + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
+                    + "- max frequency:".ljust(columnWidth) + maxFrequency + "\n"\
+                    + "ram:".ljust(columnWidth) + memory + "\n"\
+                    + simpleLine
 
         # create outputLogFile
         # if the file exist, it will be OVERWRITTEN without a message!
         outputLogFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".txt"
-        self.outputLog = FileWriter(outputLogFileName, headLine + dateLine + toolLine + simpleLine)
+        self.outputLog = FileWriter(outputLogFileName, header + systemInfo)
         logging.debug("OutputLogFile {0} created.".format(repr(outputLogFileName)))
 
         # create outputCSVFile with titleLine
@@ -235,6 +252,70 @@ class OutputHandler:
             CSVtitleLine += CSV_SEPARATOR + column.title
         self.outputCSV = FileWriter(outputCSVFileName, CSVtitleLine + "\n")
         logging.debug("OutputCSVFile {0} created.".format(repr(outputCSVFileName)))
+
+
+    def getVersion(self, tool):
+        """
+        This function return a String representing the version of the tool.
+        """
+
+        version = ""
+        if (tool == "cpachecker"):
+            version = "(Revision: "
+
+            # get info about the local svn-directory of CPAchecker
+            output = subprocess.Popen(['svn', 'info'], 
+                                  stdout=subprocess.PIPE).communicate()[0]
+
+            # parse output and get revision
+            svnInfo = dict(map(lambda str: tuple(str.split(': ')),
+                        output.strip('\n').split('\n')))
+            if 'Revision' in svnInfo:
+                version += svnInfo['Revision'] + ")"
+
+        elif (tool == "cbmc") or (tool == "satabs"):
+            version += subprocess.Popen([tool, '--version'], 
+                              stdout=subprocess.PIPE).communicate()[0].strip()                
+
+        return version
+
+    def getSystemInfo(self):
+        """
+        This function returns some information about the computer.
+        """
+
+        # get info about OS
+        opSystem = subprocess.Popen(['uname', '-o'], 
+                            stdout=subprocess.PIPE).communicate()[0].strip('\n')
+
+        # get info about CPU
+        cpuOutput = subprocess.Popen(['cat', '/proc/cpuinfo'], 
+                            stdout=subprocess.PIPE).communicate()[0]
+        cpuInfo = dict(map(lambda str: tuple(str.split(': ')),
+                            cpuOutput.replace('\n\n','\n').replace('\t','')
+                            .strip('\n').split('\n')))
+
+        if 'model name' in cpuInfo:
+            cpuModel = cpuInfo['model name']
+        if 'cpu cores' in cpuInfo:
+            numberOfCores = cpuInfo['cpu cores']
+
+        # modern cpus may not work with full speed the whole day
+        maxFrequency = int(subprocess.Popen(['cat', 
+            '/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies'],
+            stdout=subprocess.PIPE).communicate()[0].split()[0])
+        maxFrequency = str(maxFrequency/ 1000) + ' MHz'
+
+        # get info about memory
+        memOutput = subprocess.Popen(['cat', '/proc/meminfo'], 
+                            stdout=subprocess.PIPE).communicate()[0]
+        memInfo = dict(map(lambda str: tuple(str.split(': ')),
+                            memOutput.replace('\t','')
+                            .strip('\n').split('\n')))
+        if 'MemTotal' in memInfo:
+            memTotal = memInfo['MemTotal'].strip()
+
+        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal)
 
 
     def outputBeforeTest(self, test):
