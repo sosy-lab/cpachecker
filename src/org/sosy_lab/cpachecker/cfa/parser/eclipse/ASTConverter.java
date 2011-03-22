@@ -192,19 +192,27 @@ class ASTConverter {
   
   private static IASTFunctionCallExpression convert(org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression e) {
     org.eclipse.cdt.core.dom.ast.IASTExpression p = e.getParameterExpression();
-    List<IASTExpression> params = new ArrayList<IASTExpression>();
-    
+
+    List<IASTExpression> params;
     if (p instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionList) {
-      org.eclipse.cdt.core.dom.ast.IASTExpression[] ps = ((org.eclipse.cdt.core.dom.ast.IASTExpressionList)p).getExpressions();
-      for (org.eclipse.cdt.core.dom.ast.IASTExpression param : ps) {
-        params.add(convert(param));
-      }
+      params = convert((org.eclipse.cdt.core.dom.ast.IASTExpressionList)p);
     
-    } else if (p != null) {
-      params.add(convert(p));
+    } else {
+      params = new ArrayList<IASTExpression>();
+      if (p != null) {
+        params.add(convert(p));
+      }
     }
     
     return new IASTFunctionCallExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFunctionNameExpression()), params);
+  }
+  
+  private static List<IASTExpression> convert(org.eclipse.cdt.core.dom.ast.IASTExpressionList es) {
+    List<IASTExpression> result = new ArrayList<IASTExpression>(es.getExpressions().length);
+    for (org.eclipse.cdt.core.dom.ast.IASTExpression expression : es.getExpressions()) {
+      result.add(convert(expression));
+    }
+    return result;
   }
   
   private static IASTIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {
@@ -257,8 +265,7 @@ class ASTConverter {
     return new IASTTypeIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getOperator(), convert(e.getTypeId()));
   }
 
-  public static IASTStatement convert(
-      final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
+  public static IASTStatement convert(final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
 
     if (s instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) s);
@@ -267,8 +274,7 @@ class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.IASTReturnStatement) s);
 
     } else {
-      throw new CFAGenerationRuntimeException("unknown statement: "
-          + s.getClass(), s);
+      throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s);
     }
   }
 
@@ -285,7 +291,7 @@ class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d);
     
     } else {
-      throw new CFAGenerationRuntimeException("", d);
+      throw new CFAGenerationRuntimeException("unknown declaration type", d);
     }
   }
   
@@ -315,47 +321,50 @@ class ASTConverter {
     IASTFileLocation fileLoc = convert(d.getFileLocation());
     Pair<StorageClass, ? extends IType> specifier = convert(d.getDeclSpecifier());
     StorageClass storageClass = specifier.getFirst();
-    IType declSpec = specifier.getSecond();
+    IType type = specifier.getSecond();
     
     List<IASTDeclaration> result;
     org.eclipse.cdt.core.dom.ast.IASTDeclarator[] declarators = d.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, i.e. struct prototype
-      IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declSpec, null);
-      IASTDeclaration newD = new IASTDeclaration(newSd.getRawSignature(), fileLoc, storageClass, newSd, null);
+      IASTDeclaration newD = createDeclaration(d.getRawSignature(), fileLoc, storageClass, type, null);
       result = Collections.singletonList(newD);
     
     } else if (declarators.length == 1) {
-      Triple<IType, IASTInitializer, IASTName> declarator = convert(declarators[0], declSpec);
-
-      IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(d.getRawSignature(), fileLoc, declarator.getFirst(), declarator.getThird());
-      IASTDeclaration newD = new IASTDeclaration(newSd.getRawSignature(), fileLoc, storageClass, newSd, declarator.getSecond());
+      IASTDeclaration newD = createDeclaration(d.getRawSignature(), fileLoc, storageClass, type, declarators[0]);
       result = Collections.singletonList(newD);
     
     } else {
       result = new ArrayList<IASTDeclaration>(declarators.length);
       for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : d.getDeclarators()) {
-        Triple<IType, IASTInitializer, IASTName> declarator = convert(c, declSpec);
         
         // fake rawSignature because otherwise the other declarators would appear in it, too
         String rawSignature = d.getDeclSpecifier().getRawSignature() + " " + c.getRawSignature() + ";";
         
-        IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, declarator.getFirst(), declarator.getThird());
-        IASTDeclaration newD = new IASTDeclaration(rawSignature, fileLoc, storageClass, newSd, declarator.getSecond());
-
-        result.add(newD);
+        result.add(createDeclaration(rawSignature, fileLoc, storageClass, type, c));
       }
     }
     
     return result;
   }
   
+  private static IASTDeclaration createDeclaration(String rawSignature, IASTFileLocation fileLoc, StorageClass storageClass, IType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
+    IASTInitializer initializer = null;
+    IASTName name = null;
+    
+    if (d != null) {
+      Triple<IType, IASTInitializer, IASTName> declarator = convert(d, type);
+      type = declarator.getFirst();
+      initializer = declarator.getSecond();
+      name = declarator.getThird();
+    }
+
+    IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, type, name);
+    return new IASTDeclaration(rawSignature, fileLoc, storageClass, newSd, initializer);
+  }
   
   private static Triple<IType, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d, IType specifier) {
-    if (d == null) {
-      return null;
-    
-    } else if (d instanceof org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator) {
+    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator)d, specifier);
       
     } else if (d instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator) {
@@ -374,19 +383,19 @@ class ASTConverter {
   
   private static IType convertPointerOperators(org.eclipse.cdt.core.dom.ast.IASTPointerOperator[] ps, IType type) {
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator p : ps) {
-      boolean isConst = false;
-      boolean isVolatile = false;
+     
       if (p instanceof org.eclipse.cdt.core.dom.ast.IASTPointer) {
-        org.eclipse.cdt.core.dom.ast.IASTPointer pp = (org.eclipse.cdt.core.dom.ast.IASTPointer)p;
-        isConst = pp.isConst();
-        isVolatile = pp.isVolatile();             
+        type = convert((org.eclipse.cdt.core.dom.ast.IASTPointer)p, type);
+
       } else {
         throw new CFAGenerationRuntimeException("Unknown pointer operator", p);
       }
-      
-      type = new IASTPointerTypeSpecifier(isConst, isVolatile, type);
     }
     return type;
+  }
+  
+  private static IASTPointerTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTPointer p, IType type) {
+    return new IASTPointerTypeSpecifier(p.isConst(), p.isVolatile(), type);
   }
   
   private static Triple<IType, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator d, IType type)  {
@@ -408,20 +417,19 @@ class ASTConverter {
     
     // TODO check order of pointer operators and array modifiers
     for (org.eclipse.cdt.core.dom.ast.IASTArrayModifier a : d.getArrayModifiers()) {
-      boolean isConst = false;
-      boolean isVolatile = false;
+
       if (a instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
-        org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier aa = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)a;
-        isConst = aa.isConst();
-        isVolatile = aa.isVolatile();             
+        type = convert((org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)a, type);
+
       } else {
         throw new CFAGenerationRuntimeException("Unknown array modifier", a);
       }
-      
-      type = new IASTArrayTypeSpecifier(isConst, isVolatile, type, convert(a.getConstantExpression()));
     }
-    
     return Triple.of(type, convert(d.getInitializer()), name);
+  }
+  
+  private static IASTArrayTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a, IType type) {
+    return new IASTArrayTypeSpecifier(a.isConst(), a.isVolatile(), type, convert(a.getConstantExpression()));
   }
   
   private static Triple<IType, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d, IType returnType) {
@@ -434,21 +442,12 @@ class ASTConverter {
     returnType = convertPointerOperators(d.getPointerOperators(), returnType);
 
     // handle parameters
-    List<IASTSimpleDeclaration> paramsList = new ArrayList<IASTSimpleDeclaration>(sd.getParameters().length);
-    for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : sd.getParameters()) {
-      if (!c.getRawSignature().equals("void")) {
-        paramsList.add(convert(c));
-      } else {
-        // there may be a function declaration f(void), which is equal to f()
-        // we don't want this dummy parameter "void"
-        assert sd.getParameters().length == 1 : sd.getRawSignature();
-      }
-    }
+    List<IASTSimpleDeclaration> paramsList = convert(sd.getParameters());
     
     // TODO constant and volatile
     IASTFunctionTypeSpecifier fType = new IASTFunctionTypeSpecifier(false, false, returnType, paramsList, sd.takesVarArgs());
-
     IType type = fType;
+    
     IASTName name;
     if (d.getNestedDeclarator() != null) {
       Triple<? extends IType, IASTInitializer, IASTName> nestedDeclarator = convert(d.getNestedDeclarator(), type);
@@ -470,29 +469,7 @@ class ASTConverter {
   
   
   private static Pair<StorageClass, ? extends IType> convert(org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier d) {
-    StorageClass sc;
-    switch (d.getStorageClass()) {
-    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_unspecified:
-    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_auto:
-    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_register:
-      sc = StorageClass.AUTO;
-      break;
-      
-    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_static:
-      sc = StorageClass.STATIC;
-      break;
-
-    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_extern:
-      sc = StorageClass.EXTERN;
-      break;
-
-    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_typedef:
-      sc = StorageClass.TYPEDEF;
-      break;
-      
-    default:
-      throw new CFAGenerationRuntimeException("Unsupported storage class", d);  
-    }
+    StorageClass sc = convertStorageClass(d);
     
     if (d instanceof org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier) {
       return Pair.of(sc, convert((org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier)d));
@@ -510,7 +487,28 @@ class ASTConverter {
       return Pair.of(sc, convert((org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier)d));
            
     } else {
-      throw new CFAGenerationRuntimeException("", d);
+      throw new CFAGenerationRuntimeException("unknown declSpecifier", d);
+    }
+  }
+  
+  private static StorageClass convertStorageClass(org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier d) {
+    switch (d.getStorageClass()) {
+    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_unspecified:
+    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_auto:
+    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_register:
+      return StorageClass.AUTO;
+      
+    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_static:
+      return StorageClass.STATIC;
+
+    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_extern:
+      return StorageClass.EXTERN;
+
+    case org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier.sc_typedef:
+      return StorageClass.TYPEDEF;
+      
+    default:
+      throw new CFAGenerationRuntimeException("Unsupported storage class", d);  
     }
   }
   
@@ -598,7 +596,7 @@ class ASTConverter {
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)i);
     } else {
-      throw new CFAGenerationRuntimeException("", i);
+      throw new CFAGenerationRuntimeException("unknown initializer", i);
     }
   }
   
@@ -612,7 +610,21 @@ class ASTConverter {
       initializerList.add(convert(i));
     }
     return new IASTInitializerList(iList.getRawSignature(), convert(iList.getFileLocation()), initializerList);
+  }
+  
+  public static List<IASTSimpleDeclaration> convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration[] ps) {
+    List<IASTSimpleDeclaration> paramsList = new ArrayList<IASTSimpleDeclaration>(ps.length);
+    for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : ps) {
+      if (!c.getRawSignature().equals("void")) {
+        paramsList.add(convert(c));
+      } else {
+        // there may be a function declaration f(void), which is equal to f()
+        // we don't want this dummy parameter "void"
+        assert ps.length == 1;
+      }
     }
+    return paramsList;
+  }
   
   public static IASTSimpleDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
     Pair<StorageClass, ? extends IType> specifier = convert(p.getDeclSpecifier());
