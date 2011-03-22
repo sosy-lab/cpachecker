@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import static java.lang.Character.isDigit;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -71,6 +74,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 class ASTConverter {
     
+  private static void check(boolean assertion, String msg, org.eclipse.cdt.core.dom.ast.IASTNode astNode) throws CFAGenerationRuntimeException {
+    if (!assertion) {
+      throw new CFAGenerationRuntimeException(msg, astNode);
+    }
+  }
+
   public static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);
 
@@ -218,12 +227,77 @@ class ASTConverter {
   private static IASTIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {
     return new IASTIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getName()));
   }
-
+  
   private static IASTLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
+    switch (e.getKind()) {
+    case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_char_constant: 
+      check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
+      return new IASTCharLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), parseCharacterLiteral(e.getRawSignature(), e));
+    
+      
+    }
+    
     assert e.getRawSignature().equals(String.valueOf(e.getValue()));
+
     return new IASTLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getKind());
   }
 
+  private static char parseCharacterLiteral(String s, org.eclipse.cdt.core.dom.ast.IASTNode e) {
+    check(s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'', "character literal without quotation marks", e);
+    s = s.substring(1, s.length()-1); // remove the surrounding quotation marks ''
+    check(s.length() > 0, "empty character literal", e);
+    
+    char result;
+    if (s.length() == 1) {
+      result = s.charAt(0);
+    
+    } else {
+      check(s.charAt(0) == '\\', "character literal too long", e);
+      // quoted character literal
+      s = s.substring(1); // remove leading backslash \
+      check(s.length() >= 1, "invalid quoting sequence", e);
+      
+      final char c = s.charAt(0);
+      if (c == 'x') {
+        // something like '\xFF'
+        s = s.substring(1); // remove leading x
+        check(s.length() > 0 && s.length() <= 3, "character literal with illegal hex number", e);
+        try {
+          result = (char) Integer.parseInt(s, 16);
+          check(result <= 0xFF, "hex escape sequence out of range", e);
+        } catch (NumberFormatException _) {
+          throw new CFAGenerationRuntimeException("character literal with illegal hex number", e);
+        }
+      
+      } else if (isDigit(c)) {
+        // something like '\000'
+        check(s.length() <= 3, "character literal with illegal octal number", e);
+        try {
+          result = (char)Integer.parseInt(s, 8);
+          check(result <= 0xFF, "octal escape sequence out of range", e);
+        } catch (NumberFormatException _) {
+          throw new CFAGenerationRuntimeException("character literal with illegal octal number", e);
+        }
+        
+      } else {
+        // something like '\n'
+        check(s.length() == 1, "character literal too long", e);
+        switch (c) {
+        case 'b'  : result = '\b'; break;
+        case 't'  : result = '\t'; break;
+        case 'n'  : result = '\n'; break;
+        case 'f'  : result = '\f'; break;
+        case 'r'  : result = '\r'; break;
+        case '"'  : result = '\"'; break;
+        case '\'' : result = '\''; break;
+        case '\\' : result = '\\'; break;
+        default   : throw new CFAGenerationRuntimeException("unknown character literal", e);
+        }
+      }
+    }
+    return result;
+  }
+  
   private static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
     if (e.getOperator() == org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_bracketedPrimary) {
       return convert(e.getOperand());

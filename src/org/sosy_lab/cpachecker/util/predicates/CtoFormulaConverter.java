@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
@@ -623,6 +624,12 @@ public class CtoFormulaConverter {
   }
   
   private Formula buildLiteralExpression(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
+    if (lexp instanceof IASTCharLiteralExpression) {
+      IASTCharLiteralExpression cExp = (IASTCharLiteralExpression)lexp;
+      // we just take the byte value
+      return fmgr.makeNumber(cExp.getCharacter());
+    }
+    
     // this should be a number...
     String num = lexp.getRawSignature();
     switch (lexp.getKind()) {
@@ -661,53 +668,6 @@ public class CtoFormulaConverter {
       // parse with valueOf and convert to String again, because Mathsat
       // does not accept all possible C float constants (but Java hopefully does)
       return fmgr.makeNumber(Double.valueOf(num).toString());
-
-    case IASTLiteralExpression.lk_char_constant: {
-      // we convert to a byte, and take the integer value
-      String s = lexp.getRawSignature();
-      assert(s.charAt(0) == '\'');
-      assert(s.charAt(s.length()-1) == '\'');
-      s = s.substring(1, s.length()-1); // remove ''
-      assert s.length() > 0;
-      char c = s.charAt(0); // always the first character of s
-      int n;
-
-      if (c == '\\') {
-        s = s.substring(1); // remove leading \
-        assert s.length() >= 1 && s.length() <= 3;
-        c = s.charAt(0);
-        try {
-          if (s.length() == 1 && !Character.isDigit(c)) {
-            // something like '\n'
-            switch (c) {
-            case 'b' : n = '\b'; break;
-            case 't' : n = '\t'; break;
-            case 'n' : n = '\n'; break;
-            case 'f' : n = '\f'; break;
-            case 'r' : n = '\r'; break;
-            case '"' : n = '\"'; break;
-            case '\'' : n = '\''; break;
-            case '\\' : n = '\\'; break;
-            default:
-              throw new UnrecognizedCCodeException("unknown character literal", null, lexp);
-            }
-          } else if (c == 'x') {
-            // something like '\xFF'
-            n = Integer.parseInt(s.substring(1), 16);
-          } else {
-            // something like '\000'
-            n = Integer.parseInt(s, 8);
-          }
-        } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException("character with illegal number", null, lexp);
-        }
-      } else {
-        // something like 'a'
-        assert s.length() == 1;
-        n = c;
-      }
-      return fmgr.makeNumber("" + n);
-    }
 
     case IASTLiteralExpression.lk_string_literal: {
       // we create a string constant representing the given
