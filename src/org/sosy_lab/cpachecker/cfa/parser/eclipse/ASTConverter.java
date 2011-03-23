@@ -246,10 +246,10 @@ class ASTConverter {
     return new IASTLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getKind());
   }
 
-  private static char parseCharacterLiteral(String s, org.eclipse.cdt.core.dom.ast.IASTNode e) {
+  static char parseCharacterLiteral(String s, org.eclipse.cdt.core.dom.ast.IASTNode e) {
+    check(s.length() >= 3, "invalid character literal (too short)", e);
     check(s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'', "character literal without quotation marks", e);
     s = s.substring(1, s.length()-1); // remove the surrounding quotation marks ''
-    check(s.length() > 0, "empty character literal", e);
     
     char result;
     if (s.length() == 1) {
@@ -262,7 +262,7 @@ class ASTConverter {
       check(s.length() >= 1, "invalid quoting sequence", e);
       
       final char c = s.charAt(0);
-      if (c == 'x') {
+      if (c == 'x' || c == 'X') {
         // something like '\xFF'
         s = s.substring(1); // remove leading x
         check(s.length() > 0 && s.length() <= 3, "character literal with illegal hex number", e);

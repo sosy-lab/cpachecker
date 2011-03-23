@@ -24,10 +24,62 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static org.junit.Assert.*;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.ASTConverter.parseCharacterLiteral;
 
 import org.junit.Test;
 
 public class ASTConverterTest {
+  
+  @Test
+  public final void testCharacterExpression() {
+    assertEquals('\000',   parseCharacterLiteral("'\\000'", null));
+    assertEquals('\u00FF', parseCharacterLiteral("'\\xFF'", null));
+    assertEquals('\u00BC', parseCharacterLiteral("'\\xBC'", null));
+    assertEquals('\u0080', parseCharacterLiteral("'\\x80'", null));
+    assertEquals('\u007F', parseCharacterLiteral("'\\X7F'", null));
+    assertEquals('\\', parseCharacterLiteral("'\\\\'", null));
+    assertEquals('\'', parseCharacterLiteral("'\\''", null));
+    assertEquals('"',  parseCharacterLiteral("'\\\"'", null));
+    assertEquals('\0', parseCharacterLiteral("'\\0'", null));
+    assertEquals('\t', parseCharacterLiteral("'\\t'", null));
+    assertEquals('\n', parseCharacterLiteral("'\\n'", null));
+    assertEquals('\r', parseCharacterLiteral("'\\r'", null));
+    assertEquals('a', parseCharacterLiteral("'a'", null));
+    assertEquals(' ', parseCharacterLiteral("' '", null));
+    assertEquals('9', parseCharacterLiteral("'9'", null));
+    assertEquals('´', parseCharacterLiteral("'´'", null));
+    assertEquals('´', parseCharacterLiteral("'´'", null));
+  }
+  
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression1() {
+    parseCharacterLiteral("", null);
+  }
+  
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression2() {
+    parseCharacterLiteral("\\", null);
+  }
+
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression3() {
+    parseCharacterLiteral("aa", null);
+  }
+  
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression4() {
+    parseCharacterLiteral("\\777", null);
+  }
+  
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression5() {
+    parseCharacterLiteral("\\xFFF", null);
+  }
+
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression6() {
+    parseCharacterLiteral("\\z", null);
+  }
   
   private static String parseIntegerExpression(String s) {
     return ASTConverter.parseIntegerLiteral(s, null).toString();
