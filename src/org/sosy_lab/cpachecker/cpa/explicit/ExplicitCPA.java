@@ -23,17 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
@@ -61,6 +58,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"})
   private String stopType = "SEP";
   
+  @Option(name="variableBlacklist")
+  private String variableBlacklist = "";
+  
+  private ExplicitPrecision precision;
+  
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -69,6 +71,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
   private ExplicitCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+    
+    precision = new ExplicitPrecision(variableBlacklist);
 
     ExplicitDomain explicitDomain = new ExplicitDomain ();
     MergeOperator explicitMergeOp = null;
@@ -131,7 +135,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return SingletonPrecision.getInstance();
+    //return SingletonPrecision.getInstance();
+    return precision;
   }
 
   @Override

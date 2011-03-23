@@ -200,21 +200,26 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     pProperty = pProperty.trim();
-    String[] parts = pProperty.split("==");
-    if (parts.length != 2) {
-      Long value = this.constantsMap.get(pProperty);
-      if (value != null) {
-        return value;
-      } else {
-        throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
-      }
+    if (pProperty.startsWith("contains(")) {
+      String varName = pProperty.substring("contains(".length(),pProperty.length()-1);
+      return this.constantsMap.containsKey(varName);
     } else {
-      return checkProperty(pProperty);
+      String[] parts = pProperty.split("==");
+      if (parts.length != 2) {
+        Long value = this.constantsMap.get(pProperty);
+        if (value != null) {
+          return value;
+        } else {
+          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
+        }
+      } else {
+        return checkProperty(pProperty);
+      }
     }
   }
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
+  // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
     String[] parts = pProperty.split("==");
     if (parts.length != 2)
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");

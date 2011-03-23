@@ -93,7 +93,12 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+      AbstractElement element, Precision pPrecision, CFAEdge cfaEdge) throws CPATransferException {
+    if (! (pPrecision instanceof ExplicitPrecision)) {
+      throw new IllegalArgumentException("precision is no ExplicitPrecision");
+    }
+    ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
+    
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
     // check the type of the edge
@@ -102,7 +107,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge);
+      successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge, precision);
       break;
     }
 
@@ -120,14 +125,14 @@ public class ExplicitTransferRelation implements TransferRelation {
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge: {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      successor = handleDeclaration(explicitElement, declarationEdge);
+      successor = handleDeclaration(explicitElement, declarationEdge, precision);
       break;
     }
 
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(explicitElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
+      successor = handleAssumption(explicitElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
       break;
     }
 
@@ -387,7 +392,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private AbstractElement handleAssumption(ExplicitElement element,
-      IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+      IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
   throws UnrecognizedCFAEdgeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -398,7 +403,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
-      return propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue);
+      return propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue, precision);
     }
     // Unary operation
     else if (expression instanceof IASTUnaryExpression)
@@ -408,7 +413,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       switch (unaryExp.getOperator()) {
       case NOT:
         // ! exp
-        return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
+        return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue, precision);
       
       case STAR:
         // *exp
@@ -421,12 +426,12 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     
     else if(expression instanceof IASTCastExpression){
-      return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+      return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue, precision);
     }
     
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference){
-      return propagateBooleanExpression(element, null, expression, null, functionName, truthValue);
+      return propagateBooleanExpression(element, null, expression, null, functionName, truthValue, precision);
     }
 
     else{
@@ -437,7 +442,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private AbstractElement propagateBooleanExpression(AbstractElement element, 
       BinaryOperator opType,IASTExpression op1, 
-      IASTExpression op2, String functionName, boolean truthValue) 
+      IASTExpression op2, String functionName, boolean truthValue, ExplicitPrecision precision) 
   throws UnrecognizedCFAEdgeException {
 
     ExplicitElement newElement = ((ExplicitElement)element).clone();
@@ -450,7 +455,9 @@ public class ExplicitTransferRelation implements TransferRelation {
       // [literal]
       if(op2 == null && opType == null){
         String varName = op1.getRawSignature();
-        if(truthValue){
+        if (precision.isOnBlacklist(varName))
+          return element;
+        if(truthValue) {
           if(newElement.contains(getvarName(varName, functionName))){
             if(newElement.getValueFor(getvarName(varName, functionName)) == 0){
               return null;
@@ -475,6 +482,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       else if(op2 instanceof IASTLiteralExpression)
       {
         String varName = op1.getRawSignature();
+        if (precision.isOnBlacklist(varName))
+          return element;
         int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
             || typeOfLiteral == IASTLiteralExpression.lk_float_constant
@@ -496,7 +505,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
             // ! a == 9
             else {
-              return propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, precision);
             }
           }
           // a != 9
@@ -517,7 +526,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
             // ! a != 9
             else {
-              return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, precision);
             }
           }
 
@@ -534,7 +543,7 @@ public class ExplicitTransferRelation implements TransferRelation {
               }
             }
             else {
-              return propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, precision);
             }
           }
           // a >= 9
@@ -550,7 +559,7 @@ public class ExplicitTransferRelation implements TransferRelation {
               }
             }
             else {
-              return propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, precision);
             }
           }
           // a < 9
@@ -566,7 +575,7 @@ public class ExplicitTransferRelation implements TransferRelation {
               }
             }
             else {
-              return propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, precision);
             }
           }
           // a <= 9
@@ -582,7 +591,7 @@ public class ExplicitTransferRelation implements TransferRelation {
               }
             }
             else {
-              return propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, precision);
             }
           }
           // [a - 9]
@@ -599,7 +608,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
             // ! a != 9
             else {
-              return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+              return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, precision);
             }
           }
 
@@ -653,7 +662,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       {
         String leftVarName = op1.getRawSignature();
         String rightVarName = op2.getRawSignature();
-
+        if (precision.isOnBlacklist(leftVarName) || precision.isOnBlacklist(rightVarName))
+          return element;
         // a == b
         if(opType == BinaryOperator.EQUALS)
         {
@@ -677,7 +687,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
           else{
-            return propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
+            return propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, precision);
           }
         }
         // a != b
@@ -696,7 +706,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
           else{
-            return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+            return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, precision);
           }
         }
         // a > b
@@ -715,7 +725,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
           else{
-            return  propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
+            return  propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, precision);
           }
         }
         // a >= b
@@ -734,7 +744,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
           else{
-            return propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
+            return propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, precision);
           }
         }
         // a < b
@@ -753,7 +763,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
           else{
-            return propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
+            return propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, precision);
           }
         }
         // a <= b
@@ -772,7 +782,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
           else{
-            return propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
+            return propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, precision);
           }
         }
         else{
@@ -782,7 +792,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       else if(op2 instanceof IASTUnaryExpression)
       {
         String varName = op1.getRawSignature();
-
+        if (precision.isOnBlacklist(varName))
+          return element;
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
 
@@ -814,7 +825,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
                 // ! a == 9
                 else {
-                  return propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
+                  return propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, precision);
                 }
               }
               // a != 9
@@ -831,7 +842,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
                 // ! a != 9
                 else {
-                  return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+                  return propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, precision);
                 }
               }
 
@@ -848,7 +859,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
+                  return propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, precision);
                 }
               }
               // a >= 9
@@ -864,7 +875,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
+                  return propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, precision);
                 }
               }
               // a < 9
@@ -880,7 +891,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
+                  return propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, precision);
                 }
               }
               // a <= 9
@@ -896,7 +907,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
+                  return propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, precision);
                 }
               }
               else{
@@ -915,7 +926,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         else if(op2 instanceof IASTCastExpression){
           IASTCastExpression castExp = (IASTCastExpression)op2;
           IASTExpression exprInCastOp = castExp.getOperand();
-          return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
+          return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue, precision);
         }
         else{
           throw new UnrecognizedCFAEdgeException("Unhandled case ");
@@ -923,6 +934,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
       else if(op2 instanceof IASTBinaryExpression){
         String varName = op1.getRawSignature();
+        if (precision.isOnBlacklist(varName))
+          return element;
         // TODO forgetting
         newElement.forget(varName);
       }
@@ -939,10 +952,13 @@ public class ExplicitTransferRelation implements TransferRelation {
     else if(op1 instanceof IASTCastExpression){
       IASTCastExpression castExp = (IASTCastExpression) op1;
       IASTExpression castOperand = castExp.getOperand();
-      return propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue);
+      return propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue, precision);
     }
     else{
       String varName = op1.getRawSignature();
+      if (precision.isOnBlacklist(varName)) {
+        return element;
+      }
       // TODO forgetting
       newElement.forget(varName);
       //      throw new UnrecognizedCFAEdgeException("Unhandled case " );
@@ -1042,7 +1058,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   //  }
 
   private ExplicitElement handleDeclaration(ExplicitElement element,
-      DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
+      DeclarationEdge declarationEdge, ExplicitPrecision precision) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
     if (declarationEdge.getName() != null) {
@@ -1057,7 +1073,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           return newElement;
         }
         // if this is a global variable, add to the list of global variables
-        if(declarationEdge.isGlobal())
+        if(declarationEdge.isGlobal() && ! precision.isOnBlacklist(varName))
         {
           globalVars.add(varName);
           
@@ -1086,16 +1102,16 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleStatement(ExplicitElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof IASTBinaryExpression) {
-      return handleBinaryStatement(element, expression, cfaEdge);
+      return handleBinaryStatement(element, expression, cfaEdge, precision);
     }
     // expression is a unary operation, e.g. a++;
     else if (expression instanceof IASTUnaryExpression)
     {
-      return handleUnaryStatement(element, expression, cfaEdge);
+      return handleUnaryStatement(element, expression, cfaEdge, precision);
     }
     // external function call
     else if(expression instanceof IASTFunctionCallExpression){
@@ -1112,7 +1128,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleUnaryStatement(ExplicitElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
 
     IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
@@ -1136,9 +1152,9 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (operand instanceof IASTIdExpression) {
       String functionName = cfaEdge.getPredecessor().getFunctionName();
       String varName = getvarName(operand.getRawSignature(), functionName);
-
+      
       ExplicitElement newElement = element.clone();
-      if(newElement.contains(varName)){
+      if(newElement.contains(varName) && ! precision.isOnBlacklist(varName)){
         newElement.assignConstant(varName, newElement.getValueFor(varName) + shift, this.threshold);
       }
       return newElement;
@@ -1149,17 +1165,17 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleBinaryStatement(ExplicitElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException
   {
     IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
     if (binaryExpression.getOperator() == BinaryOperator.ASSIGN) {
       // a = ?
-      return handleAssignment(element, binaryExpression, cfaEdge);
+      return handleAssignment(element, binaryExpression, cfaEdge, precision);
     
     } else if (binaryExpression.getOperator().isAssign()) {
       // a += 2
-      return handleOperationAndAssign(element, binaryExpression, cfaEdge);
+      return handleOperationAndAssign(element, binaryExpression, cfaEdge, precision);
     
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
@@ -1167,7 +1183,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleOperationAndAssign(ExplicitElement element,
-      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
+      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
 
     IASTExpression leftOp = binaryExpression.getOperand1();
@@ -1178,6 +1194,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       // TODO handle fields, arrays
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
     }
+    if (precision.isOnBlacklist(leftOp.getRawSignature()))
+      return element;
 
     BinaryOperator newOperator = BinaryOperator.stripAssign(operator);
 
@@ -1186,7 +1204,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleAssignment(ExplicitElement element,
-      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
+      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
 
     IASTExpression op1 = binaryExpression.getOperand1();
@@ -1194,8 +1212,10 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
-
+      if (precision.isOnBlacklist(op1.getRawSignature())) 
+        return element;
+      else
+        return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
     } else if (op1 instanceof IASTUnaryExpression
         && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
