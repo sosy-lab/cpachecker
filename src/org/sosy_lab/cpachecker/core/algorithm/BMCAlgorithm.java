@@ -35,6 +35,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -53,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+@Options(prefix="bmc")
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private static final Function<AbstractElement, PredicateAbstractElement> EXTRACT_PREDICATE_ELEMENT
@@ -61,10 +65,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private static class BMCStatistics implements Statistics {
 
     private final Timer satCheck = new Timer();
+    private final Timer assertionsCheck = new Timer();
     
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("Time for final sat check:  " + satCheck);
+      out.println("Time for final sat check:           " + satCheck);
+      if (assertionsCheck.getNumberOfIntervals() > 0) {
+        out.println("Time for bounding assertions check: " + assertionsCheck);
+      }
     }
 
     @Override
@@ -73,12 +81,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
   
+  @Option
+  private boolean boundingAssertions = true;
+  
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final PredicateCPA cpa;
   private final LogManager logger;
   
   public BMCAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+    config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
     
@@ -119,7 +131,30 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     
     if (safe) {
       pReachedSet.removeAll(targetElements);
-    }    
+    }
+    
+    // check loop unwinding assertions, but don't bother if we are unsound anyway
+    // or we have found a bug
+    if (sound && safe && boundingAssertions) {
+      program = fmgr.makeFalse();
+      
+      // create formula for unwinding assertions
+      for (AbstractElement e : pReachedSet) {
+        AssumptionStorageElement asmpt = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
+        if (asmpt.isStop()) {
+          PredicateAbstractElement pred = AbstractElements.extractElementByType(e, PredicateAbstractElement.class);
+          program = fmgr.makeOr(program, pred.getPathFormula().getFormula());
+        }
+      }
+      
+      stats.assertionsCheck.start();
+      sound = prover.isUnsat(program);
+      stats.assertionsCheck.stop();
+
+    } else {
+      sound = false; // signal that this is unsound
+    }
+    
     prover.reset();
     return sound;
   }
