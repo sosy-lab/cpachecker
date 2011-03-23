@@ -610,7 +610,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
             else:
                 status = "SAFE"
 
-    elif returncode == 9:
+    elif returncode == -9:
         status = "TIMEOUT"
     elif returncode == 134:
         status = "ABORTED"
@@ -638,8 +638,19 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
-    
-    status = getCPAcheckerStatus(returncode, output)
+
+    if resource.RLIMIT_CPU in rlimits:
+        limit = rlimits.get(resource.RLIMIT_CPU)[0]
+    else:
+        limit = float('inf')
+
+    if returncode == 137 and (cpuTimeDelta+0.5) > limit:
+        # if return code is "KILLED BY SIGNAL 9" and
+        # used CPU time is larger than the time limit (approximately at least)
+        status = 'TIMEOUT'
+    else:
+        status = getCPAcheckerStatus(returncode, output)
+
     getCPAcheckerColumns(output, columns)
 
     return (status, cpuTimeDelta, wallTimeDelta, output)
@@ -657,7 +668,7 @@ def getCPAcheckerStatus(returncode, output):
     elif returncode == 134:
         status = "ABORTED (probably by Mathsat)"
     elif returncode == 137:
-        status = "KILLED BY SIGNAL 9 (probably ulimit)"
+        status = "KILLED BY SIGNAL 9"
     elif returncode == 143:
         status = "KILLED"
     else:
