@@ -963,11 +963,6 @@ public class OctTransferRelation implements TransferRelation{
     if (expression instanceof IASTAssignmentExpression) {
       return handleAssignment(pElement, (IASTAssignmentExpression)expression, cfaEdge);
     }
-    // expression is a unary operation, e.g. a++;
-    else if (expression instanceof IASTUnaryExpression)
-    {
-      return handleUnaryStatement(pElement, expression, cfaEdge);
-    }
     // external function call
     else if(expression instanceof IASTFunctionCallExpression){
       // do nothing
@@ -981,44 +976,6 @@ public class OctTransferRelation implements TransferRelation{
     }
     assert(false);
     return null;
-  }
-
-  private OctElement handleUnaryStatement(OctElement pElement,
-      IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
-
-    IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-    UnaryOperator operator = unaryExpression.getOperator();
-
-    int shift;
-    if (operator == UnaryOperator.POSTFIX_INCREMENT ||
-        operator == UnaryOperator.PREFIX_INCREMENT) {
-      // a++, ++a
-      shift = 1;
-
-    } else if(operator == UnaryOperator.PREFIX_DECREMENT ||
-        operator == UnaryOperator.POSTFIX_DECREMENT) {
-      // a--, --a
-      shift = -1;
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, unaryExpression);
-    }
-
-    IASTExpression operand = unaryExpression.getOperand();
-    if (operand instanceof IASTIdExpression) {
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-      String varName = getvarName(operand.getRawSignature(), functionName);
-
-      return shiftConstant(pElement, varName, shift);
-
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, operand);
-    }
-  }
-
-  private OctElement shiftConstant(OctElement pElement, String pVarName,
-      int pShift) {
-    return assignmentOfBinaryExp(pElement, pVarName, pVarName, 1, null, -1, pShift);
   }
 
   private OctElement handleAssignment(OctElement pElement,

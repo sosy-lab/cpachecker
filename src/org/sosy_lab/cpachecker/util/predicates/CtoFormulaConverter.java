@@ -680,23 +680,6 @@ public class CtoFormulaConverter {
       IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
       UnaryOperator op = ((IASTUnaryExpression)exp).getOperator();
       switch (op) {
-      case POSTFIX_INCREMENT:
-      case PREFIX_INCREMENT:
-      case POSTFIX_DECREMENT:
-      case PREFIX_DECREMENT: {
-        Formula mvar = buildTerm(operand, function, ssa);
-        Formula newvar = buildLvalueTerm(operand, function, ssa);
-        Formula me;
-        Formula one = fmgr.makeNumber(1);
-        if (op == UnaryOperator.POSTFIX_INCREMENT ||
-            op == UnaryOperator.PREFIX_INCREMENT) {
-          me = fmgr.makePlus(mvar, one);
-        } else {
-          me = fmgr.makeMinus(mvar, one);
-        }
-        return fmgr.makeAssignment(newvar, me);
-      }
-
       case MINUS: {
         Formula mop = buildTerm(operand, function, ssa);
         return fmgr.makeNegate(mop);

@@ -435,11 +435,45 @@ class ASTConverter {
   }
   
   private static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
+    IASTExpression operand = convert(e.getOperand());
+
     if (e.getOperator() == org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_bracketedPrimary) {
-      return convert(e.getOperand());
+      return operand;
     }
+     
+    IASTFileLocation fileLoc = convert(e.getFileLocation());
+    IType type = convert(e.getExpressionType());
     
-    return new IASTUnaryExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getOperand()), convertUnaryOperator(e));
+    switch (e.getOperator()) {
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixIncr:
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixDecr:
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
+      // instead of x++, create "x = x+1"
+      
+      BinaryOperator op; 
+      switch (e.getOperator()) {
+      case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixIncr:
+      case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
+        op = BinaryOperator.PLUS;
+        break;
+      case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixDecr:
+      case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
+        op = BinaryOperator.MINUS;
+        break;
+      default: throw new AssertionError();
+      }
+      
+      IASTExpression one = new IASTIntegerLiteralExpression("1", fileLoc, type, BigInteger.ONE);
+
+      String rawSignature = operand.getRawSignature() + " " + op.getOperator() + " " + one.getRawSignature();
+      IASTBinaryExpression exp = new IASTBinaryExpression(rawSignature, fileLoc, type, operand, one, op);
+      
+      return new IASTAssignmentExpression(e.getRawSignature(), fileLoc, type, operand, exp);
+      
+    default:
+      return new IASTUnaryExpression(e.getRawSignature(), fileLoc, type, operand, convertUnaryOperator(e));
+    }
   }
   
   private static UnaryOperator convertUnaryOperator(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
@@ -452,14 +486,6 @@ class ASTConverter {
       return UnaryOperator.NOT;
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_plus:
       return UnaryOperator.PLUS;
-    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixIncr:
-      return UnaryOperator.PREFIX_INCREMENT;
-    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixDecr:
-      return UnaryOperator.PREFIX_DECREMENT;
-    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
-      return UnaryOperator.POSTFIX_INCREMENT;
-    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
-      return UnaryOperator.POSTFIX_DECREMENT;
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_sizeof:
       return UnaryOperator.SIZEOF;
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_star:

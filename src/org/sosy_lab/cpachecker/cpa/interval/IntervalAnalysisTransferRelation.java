@@ -725,12 +725,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private IntervalAnalysisElement handleStatement(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    // expression is a unary operation, e.g. a++;
-    if(expression instanceof IASTUnaryExpression)
-      return handleUnaryStatement(element, expression, cfaEdge);
-
     // expression is an assignment operation, e.g. a = b;
-    else if(expression instanceof IASTAssignmentExpression)
+    if(expression instanceof IASTAssignmentExpression)
       return handleAssignment(element, (IASTAssignmentExpression)expression, cfaEdge);
 
     // ext(); => do nothing
@@ -745,54 +741,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       throw new UnrecognizedCCodeException(cfaEdge, expression);
   }
 
-  /**
-   * This method handles unary statements.
-   *
-   * @param element the analysis element
-   * @param expression the current expression
-   * @param cfaEdge the CFA edge
-   * @return the successor
-   * @throws UnrecognizedCCodeException
-   */
-  private IntervalAnalysisElement handleUnaryStatement(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException
-  {
-    IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-
-    IASTExpression operand = unaryExpression.getOperand();
-
-    if(operand instanceof IASTIdExpression)
-    {
-      UnaryOperator operator = unaryExpression.getOperator();
-
-      int offset;
-
-      // a++, ++a
-      if(operator == UnaryOperator.POSTFIX_INCREMENT || operator == UnaryOperator.PREFIX_INCREMENT)
-        offset = 1;
-
-      // a--, --a
-      else if(operator == UnaryOperator.PREFIX_DECREMENT || operator == UnaryOperator.POSTFIX_DECREMENT)
-        offset = -1;
-
-      else
-        throw new UnrecognizedCCodeException(cfaEdge, unaryExpression);
-
-      String varName = constructVariableName(operand.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-
-      IntervalAnalysisElement newElement = element.clone();
-
-      // add or subtract 1 of the current interval associated to the variable
-      if(newElement.contains(varName))
-        newElement.addInterval(varName, newElement.getInterval(varName).plus(offset), this.threshold);
-
-      return newElement;
-    }
-    else
-      throw new UnrecognizedCCodeException(cfaEdge, operand);
-  }
-
-  /**
+   /**
    * This method handles assignments.
    *
    * @author loewe

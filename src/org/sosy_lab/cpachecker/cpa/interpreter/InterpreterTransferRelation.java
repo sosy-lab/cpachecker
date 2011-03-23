@@ -1177,12 +1177,6 @@ public class InterpreterTransferRelation implements TransferRelation {
     if (expression instanceof IASTAssignmentExpression) {
       return handleAssignment(element, (IASTAssignmentExpression)expression, cfaEdge);
     }
-    // expression is a unary operation, e.g. a++;
-    else if (expression instanceof IASTUnaryExpression)
-    {
-      return handleUnaryStatement(element, expression, cfaEdge);
-    }
-    // external function call
     else if(expression instanceof IASTFunctionCallExpression){
       // do nothing
       return element.clone();
@@ -1193,43 +1187,6 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
     else{
       throw new UnrecognizedCCodeException(cfaEdge, expression);
-    }
-  }
-
-  private InterpreterElement handleUnaryStatement(InterpreterElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
-
-    IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-    UnaryOperator operator = unaryExpression.getOperator();
-
-    int shift;
-    if (operator == UnaryOperator.POSTFIX_INCREMENT ||
-        operator == UnaryOperator.PREFIX_INCREMENT) {
-      // a++, ++a
-      shift = 1;
-
-    } else if(operator == UnaryOperator.PREFIX_DECREMENT ||
-              operator == UnaryOperator.POSTFIX_DECREMENT) {
-      // a--, --a
-      shift = -1;
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, unaryExpression);
-    }
-
-    IASTExpression operand = unaryExpression.getOperand();
-    if (operand instanceof IASTIdExpression) {
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-      String varName = getvarName(operand.getRawSignature(), functionName);
-
-      InterpreterElement newElement = element.clone();
-      if(newElement.contains(varName)){
-        newElement.assignConstant(varName, newElement.getValueFor(varName) + shift);
-      }
-      return newElement;
-
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, operand);
     }
   }
 

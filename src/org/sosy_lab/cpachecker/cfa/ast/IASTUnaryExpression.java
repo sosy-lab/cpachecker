@@ -50,8 +50,6 @@ public class IASTUnaryExpression extends IASTExpression {
   }
   
   public static enum UnaryOperator {
-    PREFIX_INCREMENT,
-    PREFIX_DECREMENT,
     PLUS,
     MINUS,
     STAR,
@@ -59,8 +57,6 @@ public class IASTUnaryExpression extends IASTExpression {
     TILDE,
     NOT,
     SIZEOF,
-    POSTFIX_INCREMENT,
-    POSTFIX_DECREMENT,
     ;
   }
 }

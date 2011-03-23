@@ -785,35 +785,7 @@ public class PointerTransferRelation implements TransferRelation {
       IASTExpression expression, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
-    if (expression instanceof IASTUnaryExpression) {
-      // this is an unary operation (a++)
-
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-      if (unaryExpression.getOperand() instanceof IASTIdExpression) {
-        Pointer p =
-            element.lookupPointer(unaryExpression.getOperand()
-                .getRawSignature());
-
-        if (p != null) {
-          UnaryOperator typeOfOperator = unaryExpression.getOperator();
-          if (typeOfOperator == UnaryOperator.POSTFIX_INCREMENT
-              || typeOfOperator == UnaryOperator.PREFIX_INCREMENT) {
-
-            element.pointerOp(new Pointer.AddOffset(1), p);
-
-          } else if (typeOfOperator == UnaryOperator.POSTFIX_INCREMENT
-              || typeOfOperator == UnaryOperator.PREFIX_INCREMENT) {
-
-            element.pointerOp(new Pointer.AddOffset(-1), p);
-
-          } else {
-            throw new UnrecognizedCCodeException("unknown unary operator",
-                cfaEdge, unaryExpression);
-          }
-        }
-      }
-
-    } else if (expression instanceof IASTFunctionCallExpression) {
+    if (expression instanceof IASTFunctionCallExpression) {
       // this is a mere function call (func(a))
       IASTFunctionCallExpression funcExpression =
           (IASTFunctionCallExpression)expression;
