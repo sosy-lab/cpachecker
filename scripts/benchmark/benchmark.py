@@ -261,20 +261,25 @@ class OutputHandler:
 
         version = ""
         if (tool == "cpachecker"):
-            version = "(Revision: "
 
             # get info about the local svn-directory of CPAchecker
-            output = subprocess.Popen(['svn', 'info'], 
+            exe = findExecutable("cpachecker", "scripts/cpa.sh")
+            cpaFolder = subprocess.Popen(['which', exe], 
+                                  stdout=subprocess.PIPE).communicate()[0].strip('\n')
+            output = subprocess.Popen(['svn', 'info', cpaFolder], 
                                   stdout=subprocess.PIPE).communicate()[0]
-
+                                  
             # parse output and get revision
             svnInfo = dict(map(lambda str: tuple(str.split(': ')),
                         output.strip('\n').split('\n')))
+
+            version = "(Revision: "
             if 'Revision' in svnInfo:
                 version += svnInfo['Revision'] + ")"
 
         elif (tool == "cbmc") or (tool == "satabs"):
-            version += subprocess.Popen([tool, '--version'], 
+            exe = findExecutable(tool, None)
+            version += subprocess.Popen([exe, '--version'], 
                               stdout=subprocess.PIPE).communicate()[0].strip()                
 
         return version
@@ -291,14 +296,16 @@ class OutputHandler:
         # get info about CPU
         cpuOutput = subprocess.Popen(['cat', '/proc/cpuinfo'], 
                             stdout=subprocess.PIPE).communicate()[0]
-        cpuInfo = dict(map(lambda str: tuple(str.split(': ')),
+
+        # append space after 'str', if there is an empty value in 'cpuOutput'
+        cpuInfo = dict(map(lambda str: tuple((str + " ").split(': ')),
                             cpuOutput.replace('\n\n','\n').replace('\t','')
                             .strip('\n').split('\n')))
 
         if 'model name' in cpuInfo:
-            cpuModel = cpuInfo['model name']
+            cpuModel = cpuInfo['model name'].strip()
         if 'cpu cores' in cpuInfo:
-            numberOfCores = cpuInfo['cpu cores']
+            numberOfCores = cpuInfo['cpu cores'].strip()
 
         # modern cpus may not work with full speed the whole day
         maxFrequency = int(subprocess.Popen(['cat', 
