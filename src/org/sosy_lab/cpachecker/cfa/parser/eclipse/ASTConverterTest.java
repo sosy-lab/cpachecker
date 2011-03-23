@@ -80,6 +80,21 @@ public class ASTConverterTest {
   public final void testInvalidCharacterExpression6() {
     parseCharacterLiteral("\\z", null);
   }
+
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression7() {
+    parseCharacterLiteral("\\0777", null);
+  }
+  
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression8() {
+    parseCharacterLiteral("\\088", null);
+  }
+  
+  @Test(expected=CFAGenerationRuntimeException.class)
+  public final void testInvalidCharacterExpression9() {
+    parseCharacterLiteral("\\xGG", null);
+  }
   
   private static String parseIntegerExpression(String s) {
     return ASTConverter.parseIntegerLiteral(s, null).toString();
