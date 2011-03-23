@@ -33,6 +33,7 @@ public class ASTConverterTest {
   @Test
   public final void testCharacterExpression() {
     assertEquals('\000',   parseCharacterLiteral("'\\000'", null));
+    assertEquals('\077',   parseCharacterLiteral("'\\077'", null));
     assertEquals('\u00FF', parseCharacterLiteral("'\\xFF'", null));
     assertEquals('\u00BC', parseCharacterLiteral("'\\xBC'", null));
     assertEquals('\u0080', parseCharacterLiteral("'\\x80'", null));
@@ -58,42 +59,42 @@ public class ASTConverterTest {
   
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression2() {
-    parseCharacterLiteral("\\", null);
+    parseCharacterLiteral("'\\'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression3() {
-    parseCharacterLiteral("aa", null);
+    parseCharacterLiteral("'aa'", null);
   }
   
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression4() {
-    parseCharacterLiteral("\\777", null);
+    parseCharacterLiteral("'\\777'", null);
   }
   
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression5() {
-    parseCharacterLiteral("\\xFFF", null);
+    parseCharacterLiteral("'\\xFFF'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression6() {
-    parseCharacterLiteral("\\z", null);
+    parseCharacterLiteral("'\\z'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression7() {
-    parseCharacterLiteral("\\0777", null);
+    parseCharacterLiteral("'\\0777'", null);
   }
   
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression8() {
-    parseCharacterLiteral("\\088", null);
+    parseCharacterLiteral("'\\088'", null);
   }
   
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression9() {
-    parseCharacterLiteral("\\xGG", null);
+    parseCharacterLiteral("'\\xGG'", null);
   }
   
   private static String parseIntegerExpression(String s) {

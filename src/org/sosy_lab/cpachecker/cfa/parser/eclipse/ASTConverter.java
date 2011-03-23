@@ -254,6 +254,7 @@ class ASTConverter {
     char result;
     if (s.length() == 1) {
       result = s.charAt(0);
+      check(result != '\\', "invalid quoting sequence", e); 
     
     } else {
       check(s.charAt(0) == '\\', "character literal too long", e);
