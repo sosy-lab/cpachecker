@@ -453,7 +453,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       // [literal]
       if(op2 == null && opType == null){
         String varName = op1.getRawSignature();
-        if (precision.isOnBlacklist(varName))
+        if (precision.isOnBlacklist(getvarName(varName,functionName)))
           return element;
         if(truthValue) {
           if(newElement.contains(getvarName(varName, functionName))){
@@ -1071,7 +1071,8 @@ public class ExplicitTransferRelation implements TransferRelation {
           return newElement;
         }
         // if this is a global variable, add to the list of global variables
-        if(declarationEdge.isGlobal() && ! precision.isOnBlacklist(varName))
+        boolean onBlacklist = precision.isOnBlacklist(getvarName(varName,declarationEdge.getPredecessor().getFunctionName()));
+        if(declarationEdge.isGlobal() && ! onBlacklist)
         {
           globalVars.add(varName);
           
@@ -1129,7 +1130,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      if (precision.isOnBlacklist(op1.getRawSignature())) 
+      if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName()))) 
         return element;
       else
         return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);

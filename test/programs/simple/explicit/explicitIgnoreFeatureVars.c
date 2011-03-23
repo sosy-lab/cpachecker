@@ -13,7 +13,7 @@ int __SELECTED_FEATURE_base;
 int main()
 {
 	__SELECTED_FEATURE_base = 1;
-	if (__SELECTED_FEATURE_base == 1) {
+	if (__SELECTED_FEATURE_base) {
 		error();
 	}
 }

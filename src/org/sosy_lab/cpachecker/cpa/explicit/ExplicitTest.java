@@ -47,7 +47,7 @@ public class ExplicitTest {
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "cfa.removeIrrelevantForErrorLocations", "false",
-        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
         "cpa.explicit.threshold", "200000"
       );
     try {
