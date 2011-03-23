@@ -198,6 +198,10 @@ reachedSet.file = reached.txt
 assumptions.export = false
 assumptions.file = assumptions.txt
 
+# If BMC did not find a bug, check whether the bounding did actually remove parts
+# of the state space (this is similar to CBMC's unwinding assertions).
+bmc.boundingAssertions = true
+
 # When CBMC considers an error path infeasible, continue analysis
 # (this is unsound and leads to the analysis result being either UNSAFE or UNKNOWN)
 cbmc.continueAfterInfeasibleError = true
