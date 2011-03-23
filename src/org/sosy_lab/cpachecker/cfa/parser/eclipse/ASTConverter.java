@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
@@ -124,73 +125,145 @@ class ASTConverter {
     return new IASTArraySubscriptExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getArrayExpression()), convert(e.getSubscriptExpression()));
   }
 
-  private static IASTBinaryExpression convert(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
-    return new IASTBinaryExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getOperand1()), convert(e.getOperand2()), convertBinaryOperator(e));
+  private static IASTExpression convert(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
+    IASTFileLocation fileLoc = convert(e.getFileLocation());
+    IType type = convert(e.getExpressionType());
+    IASTExpression leftHandSide = convert(e.getOperand1());
+    IASTExpression rightHandSide = convert(e.getOperand2());
+    
+    Pair<BinaryOperator, Boolean> opPair = convertBinaryOperator(e);
+    BinaryOperator op = opPair.getFirst();
+    boolean isAssign = opPair.getSecond();
+    
+    if (isAssign) {
+      if (op == null) {
+        // a = b
+        return new IASTAssignmentExpression(e.getRawSignature(), fileLoc, type, leftHandSide, rightHandSide); 
+      
+      } else {
+        // a += b etc.
+
+        // first create expression "a + b"
+        String rawSignature = leftHandSide.getRawSignature() + " " + op.getOperator() + " " + rightHandSide.getRawSignature();
+        IASTBinaryExpression exp = new IASTBinaryExpression(rawSignature, fileLoc, type, leftHandSide, rightHandSide, op);
+
+        // and now the assignment
+        return new IASTAssignmentExpression(e.getRawSignature(), fileLoc, type, leftHandSide, exp);
+      }
+      
+    } else {
+      return new IASTBinaryExpression(e.getRawSignature(), fileLoc, type, leftHandSide, rightHandSide, op);
+    }
   }
   
-  private static BinaryOperator convertBinaryOperator(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
+  private static Pair<BinaryOperator, Boolean> convertBinaryOperator(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
+    boolean isAssign = false;
+    BinaryOperator operator;
+    
     switch (e.getOperator()) {
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_multiply:
-      return BinaryOperator.MULTIPLY;
+      operator = BinaryOperator.MULTIPLY;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_divide:
-      return BinaryOperator.DIVIDE;
+      operator = BinaryOperator.DIVIDE;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_modulo:
-      return BinaryOperator.MODULO;
+      operator = BinaryOperator.MODULO;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_plus:
-      return BinaryOperator.PLUS;
+      operator = BinaryOperator.PLUS;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_minus:
-      return BinaryOperator.MINUS;
+      operator = BinaryOperator.MINUS;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_shiftLeft:
-      return BinaryOperator.SHIFT_LEFT;
+      operator = BinaryOperator.SHIFT_LEFT;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_shiftRight:
-      return BinaryOperator.SHIFT_RIGHT;
+      operator = BinaryOperator.SHIFT_RIGHT;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_lessThan:
-      return BinaryOperator.LESS_THAN;
+      operator = BinaryOperator.LESS_THAN;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_greaterThan:
-      return BinaryOperator.GREATER_THAN;
+      operator = BinaryOperator.GREATER_THAN;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_lessEqual:
-      return BinaryOperator.LESS_EQUAL;
+      operator = BinaryOperator.LESS_EQUAL;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_greaterEqual:
-      return BinaryOperator.GREATER_EQUAL;
+      operator = BinaryOperator.GREATER_EQUAL;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_binaryAnd:
-      return BinaryOperator.BINARY_AND;
+      operator = BinaryOperator.BINARY_AND;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_binaryXor:
-      return BinaryOperator.BINARY_XOR;
+      operator = BinaryOperator.BINARY_XOR;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_binaryOr:
-      return BinaryOperator.BINARY_OR;
+      operator = BinaryOperator.BINARY_OR;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_logicalAnd:
-      return BinaryOperator.LOGICAL_AND;
+      operator = BinaryOperator.LOGICAL_AND;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_logicalOr:
-      return BinaryOperator.LOGICAL_OR;
+      operator = BinaryOperator.LOGICAL_OR;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_assign:
-      return BinaryOperator.ASSIGN;
+      operator = null;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_multiplyAssign:
-      return BinaryOperator.MULTIPLY_ASSIGN;
+      operator = BinaryOperator.MULTIPLY;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_divideAssign:
-      return BinaryOperator.DIVIDE_ASSIGN;
+      operator = BinaryOperator.DIVIDE;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_moduloAssign:
-      return BinaryOperator.MODULO_ASSIGN;
+      operator = BinaryOperator.MODULO;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_plusAssign:
-      return BinaryOperator.PLUS_ASSIGN;
+      operator = BinaryOperator.PLUS;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_minusAssign:
-      return BinaryOperator.MINUS_ASSIGN;
+      operator = BinaryOperator.MINUS;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_shiftLeftAssign:
-      return BinaryOperator.SHIFT_LEFT_ASSIGN;
+      operator = BinaryOperator.SHIFT_LEFT;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_shiftRightAssign:
-      return BinaryOperator.SHIFT_RIGHT_ASSIGN;
+      operator = BinaryOperator.SHIFT_RIGHT;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_binaryAndAssign:
-      return BinaryOperator.BINARY_AND_ASSIGN;
+      operator = BinaryOperator.BINARY_AND;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_binaryXorAssign:
-      return BinaryOperator.BINARY_XOR_ASSIGN;
+      operator = BinaryOperator.BINARY_XOR;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_binaryOrAssign:
-      return BinaryOperator.BINARY_OR_ASSIGN;
+      operator = BinaryOperator.BINARY_OR;
+      isAssign = true;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_equals:
-      return BinaryOperator.EQUALS;
+      operator = BinaryOperator.EQUALS;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTBinaryExpression.op_notequals:
-      return BinaryOperator.NOT_EQUALS;
+      operator = BinaryOperator.NOT_EQUALS;
+      break;
     default:
       throw new CFAGenerationRuntimeException("Unknown binary operator", e);
     }
+    
+    return Pair.of(operator, isAssign);
   }
   
   private static IASTCastExpression convert(org.eclipse.cdt.core.dom.ast.IASTCastExpression e) {

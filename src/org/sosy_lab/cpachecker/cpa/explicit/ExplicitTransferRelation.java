@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -191,13 +192,10 @@ public class ExplicitTransferRelation implements TransferRelation {
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
     //System.out.println(exprOnSummary.getRawSignature());
-    //expression is a binary operation, e.g. a = g(b);
-    if (exprOnSummary instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
-      BinaryOperator opType = binExp.getOperator ();
-      IASTExpression op1 = binExp.getOperand1();
-
-      assert(opType == BinaryOperator.ASSIGN);
+    //expression is an assignment operation, e.g. a = g(b);
+    if (exprOnSummary instanceof IASTAssignmentExpression) {
+      IASTAssignmentExpression assignExp = ((IASTAssignmentExpression)exprOnSummary);
+      IASTExpression op1 = assignExp.getLeftHandSide();
 
       //we expect left hand side of the expression to be a variable
       if(op1 instanceof IASTIdExpression ||
@@ -1105,8 +1103,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       IASTExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
-    if (expression instanceof IASTBinaryExpression) {
-      return handleBinaryStatement(element, expression, cfaEdge, precision);
+    if (expression instanceof IASTAssignmentExpression) {
+      return handleAssignment(element, (IASTAssignmentExpression)expression, cfaEdge, precision);
     }
     // expression is a unary operation, e.g. a++;
     else if (expression instanceof IASTUnaryExpression)
@@ -1164,51 +1162,12 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitElement handleBinaryStatement(ExplicitElement element,
-      IASTExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision)
-  throws UnrecognizedCCodeException
-  {
-    IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-    if (binaryExpression.getOperator() == BinaryOperator.ASSIGN) {
-      // a = ?
-      return handleAssignment(element, binaryExpression, cfaEdge, precision);
-    
-    } else if (binaryExpression.getOperator().isAssign()) {
-      // a += 2
-      return handleOperationAndAssign(element, binaryExpression, cfaEdge, precision);
-    
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
-    }
-  }
-
-  private ExplicitElement handleOperationAndAssign(ExplicitElement element,
-      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
-  throws UnrecognizedCCodeException {
-
-    IASTExpression leftOp = binaryExpression.getOperand1();
-    IASTExpression rightOp = binaryExpression.getOperand2();
-    BinaryOperator operator = binaryExpression.getOperator();
-
-    if (!(leftOp instanceof IASTIdExpression)) {
-      // TODO handle fields, arrays
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
-    }
-    if (precision.isOnBlacklist(leftOp.getRawSignature()))
-      return element;
-
-    BinaryOperator newOperator = BinaryOperator.stripAssign(operator);
-
-    return handleAssignmentOfBinaryExp(element, leftOp.getRawSignature(), leftOp,
-        rightOp, newOperator, cfaEdge);
-  }
-
   private ExplicitElement handleAssignment(ExplicitElement element,
-      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
+      IASTAssignmentExpression assignExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
 
-    IASTExpression op1 = binaryExpression.getOperand1();
-    IASTExpression op2 = binaryExpression.getOperand2();
+    IASTExpression op1 = assignExpression.getLeftHandSide();
+    IASTExpression op2 = assignExpression.getRightHandSide();
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...

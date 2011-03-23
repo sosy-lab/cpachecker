@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -46,17 +46,15 @@ public class DefUseTransferRelation implements TransferRelation
 {
   private DefUseElement handleExpression (DefUseElement defUseElement, IASTExpression expression, CFAEdge cfaEdge)
   {
-    if (expression instanceof IASTBinaryExpression)
+    if (expression instanceof IASTAssignmentExpression)
     {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
+      IASTAssignmentExpression assignExpression = (IASTAssignmentExpression) expression;
 
-      if (binaryExpression.getOperator().isAssign()) {
-        String lParam = binaryExpression.getOperand1 ().getRawSignature ();
-        // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
+      String lParam = assignExpression.getLeftHandSide().getRawSignature ();
+      // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 
-        DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
-        defUseElement = new DefUseElement(defUseElement, definition);
-      }
+      DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
+      defUseElement = new DefUseElement(defUseElement, definition);
     }
     else if (expression instanceof IASTUnaryExpression)
     {

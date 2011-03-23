@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -169,14 +170,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
-    // expression is a binary operation, e.g. a = g(b);
-    if(expression instanceof IASTBinaryExpression)
+    // expression is an assignment operation, e.g. a = g(b);
+    if(expression instanceof IASTAssignmentExpression)
     {
-      IASTBinaryExpression binExp = (IASTBinaryExpression)expression;
+      IASTAssignmentExpression binExp = (IASTAssignmentExpression)expression;
 
-      assert(binExp.getOperator() == BinaryOperator.ASSIGN);
-
-      IASTExpression operand1 = binExp.getOperand1();
+      IASTExpression operand1 = binExp.getLeftHandSide();
 
       // left hand side of the expression has to be a variable
       if(operand1 instanceof IASTIdExpression)
@@ -730,9 +729,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     if(expression instanceof IASTUnaryExpression)
       return handleUnaryStatement(element, expression, cfaEdge);
 
-    // expression is a binary operation, e.g. a = b;
-    else if(expression instanceof IASTBinaryExpression)
-      return handleBinaryStatement(element, expression, cfaEdge);
+    // expression is an assignment operation, e.g. a = b;
+    else if(expression instanceof IASTAssignmentExpression)
+      return handleAssignment(element, (IASTAssignmentExpression)expression, cfaEdge);
 
     // ext(); => do nothing
     else if(expression instanceof IASTFunctionCallExpression)
@@ -794,89 +793,20 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   }
 
   /**
-   * This method handles binary statements.
-   *
-   * This method routes back to either {@link IntervalAnalysisTransferRelation#handleAssignment(IntervalAnalysisElement, IASTBinaryExpression, CFAEdge)} or {@link IntervalAnalysisTransferRelation#handleOperationAndAssign(IntervalAnalysisElement, IASTBinaryExpression, CFAEdge)} depending on the type of the binary operator.
-   *
-   * @author loewe
-   * @param element the analysis element
-   * @param expresion the expression containing the binary expression
-   * @param declarationEdge the CFA edge
-   * @return the successor element
-   */
-  private IntervalAnalysisElement handleBinaryStatement(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException
-  {
-    IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
-
-    switch(binaryExpression.getOperator())
-    {
-      // a = ?
-      case ASSIGN:
-        return handleAssignment(element, binaryExpression, cfaEdge);
-
-      // a += ?
-      case PLUS_ASSIGN:
-      case MINUS_ASSIGN:
-      case MULTIPLY_ASSIGN:
-      case SHIFT_LEFT_ASSIGN:
-      case SHIFT_RIGHT_ASSIGN:
-      case BINARY_AND_ASSIGN:
-      case BINARY_XOR_ASSIGN:
-      case BINARY_OR_ASSIGN:
-        return handleOperationAndAssign(element, binaryExpression, cfaEdge);
-
-      default:
-        throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
-    }
-  }
-
-  /**
-   * This method handles assigning operations, e.g. a += b.
-   *
-   * @author loewe
-   * @param element the analysis element
-   * @param binaryExpression the expression containing the binary expression
-   * @param declarationEdge the CFA edge
-   * @return the successor element
-   */
-  private IntervalAnalysisElement handleOperationAndAssign(IntervalAnalysisElement element, IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException
-  {
-    IASTExpression leftOp   = binaryExpression.getOperand1();
-    IASTExpression rightOp  = binaryExpression.getOperand2();
-
-    if(leftOp instanceof IASTIdExpression)
-    {
-      if (!binaryExpression.getOperator().isAssign())
-        throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
-
-      // convert the assigning operator to a binary operator
-      BinaryOperator operator = BinaryOperator.stripAssign(binaryExpression.getOperator());
-
-      return handleAssignmentOfBinaryExp(element, leftOp.getRawSignature(), leftOp, rightOp, operator, cfaEdge);
-    }
-
-    // TODO handle fields, arrays
-    else
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
-  }
-
-  /**
    * This method handles assignments.
    *
    * @author loewe
    * @param element the analysis element
-   * @param binaryExpression the expression containing the binary expression
+   * @param assignExpression the expression containing the binary expression
    * @param declarationEdge the CFA edge
    * @return the successor element
    * TODO pointer dereferencing via strengthening
    */
-  private IntervalAnalysisElement handleAssignment(IntervalAnalysisElement element, IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
+  private IntervalAnalysisElement handleAssignment(IntervalAnalysisElement element, IASTAssignmentExpression assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    IASTExpression op1 = binaryExpression.getOperand1();
-    IASTExpression op2 = binaryExpression.getOperand2();
+    IASTExpression op1 = assignExpression.getLeftHandSide();
+    IASTExpression op2 = assignExpression.getRightHandSide();
 
     // a = ?
     if(op1 instanceof IASTIdExpression)

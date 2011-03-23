@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 
@@ -120,8 +120,8 @@ public class CFASecondPassBuilder {
           IASTExpression expr = statement.getExpression();
 
           // if statement is of the form x = call(a,b);
-          if (expr instanceof IASTBinaryExpression) {
-            IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
+          if (expr instanceof IASTAssignmentExpression) {
+            IASTExpression operand2 = ((IASTAssignmentExpression)expr).getRightHandSide();
             if (shouldCreateCallEdges(operand2)) {
               IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)operand2;
               calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());

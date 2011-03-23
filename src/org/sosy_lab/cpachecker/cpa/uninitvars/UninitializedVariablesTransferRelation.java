@@ -33,6 +33,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
@@ -46,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 import org.sosy_lab.common.LogManager;
@@ -295,48 +295,25 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         isExpressionUninitialized(element, expression, cfaEdge);
       }
 
-    } else if (expression instanceof IASTBinaryExpression) {
-      // expression is a binary operation, e.g. a = b or a += b;
+    } else if (expression instanceof IASTAssignmentExpression) {
+      // expression is an assignment operation, e.g. a = b or a = a+b;
 
-      IASTBinaryExpression binExpression = (IASTBinaryExpression)expression;
+      IASTAssignmentExpression assignExpression = (IASTAssignmentExpression)expression;
 
-      BinaryOperator typeOfOperator = binExpression.getOperator();
-      if (typeOfOperator == BinaryOperator.ASSIGN) {
-        // a = b
-        handleAssign(element, binExpression, cfaEdge);
-
-      } else if (typeOfOperator.isAssign()) {
-        // a += b etc.
-
-        String leftName = binExpression.getOperand1().getRawSignature();
-        if (element.isUninitialized(leftName)) {
-          // a +=5 where a is uninitialized -> everything stays the same
-          if (printWarnings) {
-            addWarning(cfaEdge, leftName, expression, element);
-            // check wether there are further uninitialized variables on right side
-            isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
-          }
-
-        } else {
-          handleAssign(element, binExpression, cfaEdge);
-        }
-
-      } else {
-        // a + b etc.
-        throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binExpression);
-      }
-
+      // a = b
+      handleAssign(element, assignExpression, cfaEdge);
+      
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
 
   private void handleAssign(UninitializedVariablesElement element,
-                            IASTBinaryExpression expression, CFAEdge cfaEdge)
+                            IASTAssignmentExpression expression, CFAEdge cfaEdge)
                             throws UnrecognizedCCodeException {
 
-    IASTExpression op1 = expression.getOperand1();
-    IASTExpression op2 = expression.getOperand2();
+    IASTExpression op1 = expression.getLeftHandSide();
+    IASTExpression op2 = expression.getRightHandSide();
 
     if (op1 instanceof IASTIdExpression) {
       // assignment to simple variable
@@ -543,12 +520,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       IASTExpression exp = ((StatementEdge)cfaEdge).getExpression();
 
-      if (exp instanceof IASTBinaryExpression) {
+      if (exp instanceof IASTAssignmentExpression) {
 
-        if (((IASTBinaryExpression)exp).getOperator() == BinaryOperator.ASSIGN) {
-
-          IASTExpression op1 = ((IASTBinaryExpression) exp).getOperand1();
-          IASTExpression op2 = ((IASTBinaryExpression) exp).getOperand2();
+          IASTExpression op1 = ((IASTAssignmentExpression) exp).getLeftHandSide();
+          IASTExpression op2 = ((IASTAssignmentExpression) exp).getRightHandSide();
 
           String leftName = op1.getRawSignature();
           String rightName = op2.getRawSignature();
@@ -579,7 +554,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
               }
             }
           }
-        }
       }
     }
     return null;

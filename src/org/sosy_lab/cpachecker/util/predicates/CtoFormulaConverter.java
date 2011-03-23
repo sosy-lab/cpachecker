@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -509,12 +510,11 @@ public class CtoFormulaConverter {
       // this should be a void return, just do nothing...
       return fmgr.makeTrue();
       
-    } else if (retExp instanceof IASTBinaryExpression) {
-      IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
-      assert(exp.getOperator() == BinaryOperator.ASSIGN);
+    } else if (retExp instanceof IASTAssignmentExpression) {
+      IASTAssignmentExpression exp = (IASTAssignmentExpression)retExp;
       
       Formula retvarFormula = makeVariable(VAR_RETURN_NAME, function, ssa);
-      IASTExpression e = exp.getOperand1();
+      IASTExpression e = exp.getLeftHandSide();
       
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, function, ssa);
@@ -753,68 +753,19 @@ public class CtoFormulaConverter {
       }
       }
 
+    } else if (exp instanceof IASTAssignmentExpression) {
+      IASTAssignmentExpression assignment = (IASTAssignmentExpression)exp;
+      
+      Formula r = buildTerm(assignment.getRightHandSide(), function, ssa);
+      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa);
+      return fmgr.makeAssignment(l, r);
+      
     } else if (exp instanceof IASTBinaryExpression) {
       BinaryOperator op = ((IASTBinaryExpression)exp).getOperator();
       IASTExpression e1 = ((IASTBinaryExpression)exp).getOperand1();
       IASTExpression e2 = ((IASTBinaryExpression)exp).getOperand2();
 
       switch (op) {
-      case ASSIGN:
-      case PLUS_ASSIGN:
-      case MINUS_ASSIGN:
-      case MULTIPLY_ASSIGN:
-      case DIVIDE_ASSIGN:
-      case MODULO_ASSIGN:
-      case BINARY_AND_ASSIGN:
-      case BINARY_OR_ASSIGN:
-      case BINARY_XOR_ASSIGN:
-      case SHIFT_LEFT_ASSIGN:
-      case SHIFT_RIGHT_ASSIGN: {
-        Formula me2 = buildTerm(e2, function, ssa);
-        if (op != BinaryOperator.ASSIGN) {
-          // in this case, we have to get the old SSA instance for
-          // reading the value of the variable, and build the
-          // corresponding expression
-          Formula oldvar = buildTerm(e1, function, ssa);
-          switch (op) {
-          case PLUS_ASSIGN:
-            me2 = fmgr.makePlus(oldvar, me2);
-            break;
-          case MINUS_ASSIGN:
-            me2 = fmgr.makeMinus(oldvar, me2);
-            break;
-          case MULTIPLY_ASSIGN:
-            me2 = fmgr.makeMultiply(oldvar, me2);
-            break;
-          case DIVIDE_ASSIGN:
-            me2 = fmgr.makeDivide(oldvar, me2);
-            break;
-          case MODULO_ASSIGN:
-            me2 = fmgr.makeModulo(oldvar, me2);
-            break;
-          case BINARY_AND_ASSIGN:
-            me2 = fmgr.makeBitwiseAnd(oldvar, me2);
-            break;
-          case BINARY_OR_ASSIGN:
-            me2 = fmgr.makeBitwiseOr(oldvar, me2);
-            break;
-          case BINARY_XOR_ASSIGN:
-            me2 = fmgr.makeBitwiseXor(oldvar, me2);
-            break;
-          case SHIFT_LEFT_ASSIGN:
-            me2 = fmgr.makeShiftLeft(oldvar, me2);
-            break;
-          case SHIFT_RIGHT_ASSIGN:
-            me2 = fmgr.makeShiftRight(oldvar, me2);
-            break;
-          default:
-            throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
-          }
-        }
-        Formula mvar = buildLvalueTerm(e1, function, ssa);
-        return fmgr.makeAssignment(mvar, me2);
-      }
-
       case PLUS:
       case MINUS:
       case MULTIPLY:

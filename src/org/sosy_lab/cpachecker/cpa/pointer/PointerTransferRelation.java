@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
@@ -729,35 +730,27 @@ public class PointerTransferRelation implements TransferRelation {
     element.returnFromFunction(); // throw away local context
 
     // use function result
-    if (expression instanceof IASTBinaryExpression) {
+    if (expression instanceof IASTAssignmentExpression) {
       // a = func()
-      IASTBinaryExpression binExpression = (IASTBinaryExpression)expression;
-      IASTExpression leftOperand = binExpression.getOperand1();
+      IASTAssignmentExpression assignExpression = (IASTAssignmentExpression)expression;
+      IASTExpression leftOperand = assignExpression.getLeftHandSide();
 
       if (leftOperand instanceof IASTIdExpression) {
         Pointer leftPointer =
             element.lookupPointer(leftOperand.getRawSignature());
 
         if (leftPointer != null) {
-          if (binExpression.getOperator() == BinaryOperator.ASSIGN) {
-            if (resultPointer != null) {
-              // do not use Assign(resultPointer) here, as this would try to make
-              // resultPointer an alias of leftPointer
-              element.pointerOp(new Pointer.AssignListOfTargets(resultPointer
-                  .getTargets()), leftPointer);
-            } else {
-
-              throw new UnrecognizedCCodeException(
-                  "assigning non-pointer value to pointer variable", cfaEdge,
-                  binExpression);
-            }
-
+          if (resultPointer != null) {
+            // do not use Assign(resultPointer) here, as this would try to make
+            // resultPointer an alias of leftPointer
+            element.pointerOp(new Pointer.AssignListOfTargets(resultPointer
+                .getTargets()), leftPointer);
           } else {
-            // a += func()
-            throw new UnrecognizedCCodeException("not expected in CIL",
-                cfaEdge, binExpression);
-          }
 
+            throw new UnrecognizedCCodeException(
+                "assigning non-pointer value to pointer variable", cfaEdge,
+                assignExpression);
+          }
         } else {
           // function result is not assigned to a pointer, ignore
         }
@@ -765,7 +758,7 @@ public class PointerTransferRelation implements TransferRelation {
       } else {
         // *x = func() etc.
         throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-            binExpression);
+            assignExpression);
       }
 
     } else if (expression instanceof IASTFunctionCallExpression) {
@@ -839,9 +832,9 @@ public class PointerTransferRelation implements TransferRelation {
             cfaEdge, "");
       }
 
-    } else if (expression instanceof IASTBinaryExpression) {
-      // statement is a binary expression, e.g. a = b or a += b;
-      handleBinaryStatement(element, (IASTBinaryExpression)expression, cfaEdge);
+    } else if (expression instanceof IASTAssignmentExpression) {
+      // statement is an assignment expression, e.g. a = b or a = a+b;
+      handleAssignmentStatement(element, (IASTAssignmentExpression)expression, cfaEdge);
 
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
@@ -943,12 +936,12 @@ public class PointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleBinaryStatement(PointerElement element,
-      IASTBinaryExpression expression, CFAEdge cfaEdge)
+  private void handleAssignmentStatement(PointerElement element,
+      IASTAssignmentExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     // left hand side
-    IASTExpression leftExpression = expression.getOperand1();
+    IASTExpression leftExpression = expression.getLeftHandSide();
     String leftVarName = null;
     Pointer leftPointer;
     boolean leftDereference;
@@ -1033,46 +1026,11 @@ public class PointerTransferRelation implements TransferRelation {
     }
 
     // right hand side
-    BinaryOperator typeOfOperator = expression.getOperator();
-    IASTExpression op2 = expression.getOperand2();
+    IASTExpression op2 = expression.getRightHandSide();
 
-    if (typeOfOperator == BinaryOperator.ASSIGN) {
-      // handles *a = x and a = x
-      handleAssignment(element, leftVarName, leftPointer, leftDereference, op2,
-          cfaEdge);
-
-    } else if (typeOfOperator == BinaryOperator.MINUS_ASSIGN
-        || typeOfOperator == BinaryOperator.PLUS_ASSIGN) {
-      // a += x
-
-      if (op2 instanceof IASTLiteralExpression) {
-        // a += 5
-
-        if (leftPointer != null) {
-          long offset = parseIntegerLiteral((IASTLiteralExpression)op2);
-          if (typeOfOperator == BinaryOperator.MINUS_ASSIGN) {
-            offset = -offset;
-          }
-          element.pointerOp(new Pointer.AddOffset(offset), leftPointer, leftDereference);
-        }
-
-      } else if (op2 instanceof IASTIdExpression) {
-        // a += b
-        missing = new MissingInformation();
-        missing.actionLeftPointer = leftPointer;
-        missing.actionDereferenceFirst = leftDereference;
-        missing.actionASTNode = op2;
-        missing.actionOffsetNegative =
-            (typeOfOperator == BinaryOperator.MINUS_ASSIGN);
-
-      } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-            op2);
-      }
-    } else {
-      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-          expression);
-    }
+    // handles *a = x and a = x
+    handleAssignment(element, leftVarName, leftPointer, leftDereference, op2,
+        cfaEdge);
   }
 
   /**

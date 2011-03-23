@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -229,13 +230,10 @@ public class OctTransferRelation implements TransferRelation{
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
-    //expression is a binary operation, e.g. a = g(b);
-    if (exprOnSummary instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
-      BinaryOperator opType = binExp.getOperator ();
-      IASTExpression op1 = binExp.getOperand1();
-
-      assert(opType == BinaryOperator.ASSIGN);
+    //expression is an assignment operation, e.g. a = g(b);
+    if (exprOnSummary instanceof IASTAssignmentExpression) {
+      IASTAssignmentExpression binExp = ((IASTAssignmentExpression)exprOnSummary);
+      IASTExpression op1 = binExp.getLeftHandSide();
 
       //we expect left hand side of the expression to be a variable
       if(op1 instanceof IASTIdExpression ||
@@ -962,8 +960,8 @@ public class OctTransferRelation implements TransferRelation{
       IASTExpression expression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
-    if (expression instanceof IASTBinaryExpression) {
-      return handleBinaryStatement(pElement, expression, cfaEdge);
+    if (expression instanceof IASTAssignmentExpression) {
+      return handleAssignment(pElement, (IASTAssignmentExpression)expression, cfaEdge);
     }
     // expression is a unary operation, e.g. a++;
     else if (expression instanceof IASTUnaryExpression)
@@ -1023,47 +1021,12 @@ public class OctTransferRelation implements TransferRelation{
     return assignmentOfBinaryExp(pElement, pVarName, pVarName, 1, null, -1, pShift);
   }
 
-  private OctElement handleBinaryStatement(OctElement pElement,
-      IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException
-  {
-    IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-    if (binaryExpression.getOperator() == BinaryOperator.ASSIGN) {
-      // a = ?
-      return handleAssignment(pElement, binaryExpression, cfaEdge);
-    } else if (binaryExpression.getOperator().isAssign()) {
-      // a += 2
-      return handleOperationAndAssign(pElement, binaryExpression, cfaEdge);
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
-    }
-  }
-
-  private OctElement handleOperationAndAssign(OctElement pElement,
-      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
-
-    IASTExpression leftOp = binaryExpression.getOperand1();
-    IASTExpression rightOp = binaryExpression.getOperand2();
-    BinaryOperator operator = binaryExpression.getOperator();
-
-    if (!(leftOp instanceof IASTIdExpression)) {
-      // TODO handle fields, arrays
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
-    }
-
-    BinaryOperator newOperator = BinaryOperator.stripAssign(operator);
-
-    return handleAssignmentOfBinaryExp(pElement, leftOp.getRawSignature(), leftOp,
-        rightOp, newOperator, cfaEdge);
-  }
-
   private OctElement handleAssignment(OctElement pElement,
-      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
+      IASTAssignmentExpression assignExpression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
-    IASTExpression op1 = binaryExpression.getOperand1();
-    IASTExpression op2 = binaryExpression.getOperand2();
+    IASTExpression op1 = assignExpression.getLeftHandSide();
+    IASTExpression op2 = assignExpression.getRightHandSide();
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...

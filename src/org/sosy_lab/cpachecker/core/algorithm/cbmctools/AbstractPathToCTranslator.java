@@ -37,12 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -439,10 +438,9 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
     IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
-    if(expressionOnSummaryEdge instanceof IASTBinaryExpression){
-      IASTBinaryExpression binaryExp = (IASTBinaryExpression) expressionOnSummaryEdge;
-      assert(binaryExp.getOperator() == BinaryOperator.ASSIGN);
-      String assignedVarName = binaryExp.getOperand1().getRawSignature();
+    if(expressionOnSummaryEdge instanceof IASTAssignmentExpression){
+      IASTAssignmentExpression assignExp = (IASTAssignmentExpression) expressionOnSummaryEdge;
+      String assignedVarName = assignExp.getLeftHandSide().getRawSignature();
       return(assignedVarName + " = " + lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
     }
     else{
