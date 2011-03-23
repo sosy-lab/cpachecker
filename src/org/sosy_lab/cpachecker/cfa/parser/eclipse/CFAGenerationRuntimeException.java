@@ -39,7 +39,8 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
 
   public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
-    this(msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
-        + ": " + astNode.getRawSignature());
+    this(astNode == null ? msg :
+         (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
+             + ": " + astNode.getRawSignature()));
   }
 }
