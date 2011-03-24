@@ -402,23 +402,19 @@ public class MathsatFormulaManager implements FormulaManager  {
         stringLitUfDecl, new long[]{n}));
   }
 
-  private long buildMsatVariable(String var, int idx) {
-    return buildMsatVariable(makeName(var, idx));
-  }
-  
-  private long buildMsatVariable(String var) {
-    long decl = msat_declare_variable(msatEnv, var, msatVarType);
+  private long buildMsatVariable(String var, int type) {
+    long decl = msat_declare_variable(msatEnv, var, type);
     return msat_make_variable(msatEnv, decl);
   }
 
   @Override
   public Formula makeVariable(String var, int idx) {
-    return encapsulate(buildMsatVariable(var, idx));
+    return encapsulate(buildMsatVariable(makeName(var, idx), msatVarType));
   }
   
   @Override
   public Formula makeVariable(String var) {
-    return encapsulate(buildMsatVariable(var));
+    return encapsulate(buildMsatVariable(var, msatVarType));
   }
   
   @Override
@@ -542,7 +538,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         int idx = ssa.getIndex(name);
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
-          long newt = buildMsatVariable(name, idx);
+          long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
           cache.put(tt, encapsulate(newt));
         } else {
           // the variable is not used in the SSA, keep it as is
@@ -614,10 +610,9 @@ public class MathsatFormulaManager implements FormulaManager  {
       final long t = getTerm(tt);
 
       if (msat_term_is_variable(t) != 0) {
-        assert msat_term_get_type(t) == msatVarType : "Invalid type for variable " + tt;
         String name = parseName(msat_term_repr(t)).getFirst();
         
-        long newt = buildMsatVariable(name);
+        long newt = buildMsatVariable(name, msat_term_get_type(t));
         cache.put(tt, encapsulate(newt));
 
       } else {
