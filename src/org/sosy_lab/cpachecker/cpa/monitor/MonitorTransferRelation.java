@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,8 +56,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation implements TransferRelation {
   
-  long maxSizeOfSinglePath = 0;
-  long maxNumberOfBranches = 0;
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
@@ -67,12 +64,6 @@ public class MonitorTransferRelation implements TransferRelation {
 
   @Option(name="pathcomputationlimit")
   private long timeLimitForPath = 0;
-
-  @Option(name="pathlengthlimit")
-  private long nodeLimitForPath = 0;
-
-  @Option(name="brancheslimit")
-  private long limitForBranches = 0;
 
   private final TransferRelation transferRelation;
   
@@ -159,37 +150,15 @@ public class MonitorTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    // update path length information
-    int pathLength = element.getNoOfNodesOnPath() + 1;
-    int branchesOnPath = element.getNoOfBranchesOnPath();
-    if (pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      branchesOnPath++;  
-    }
-
-    if (pathLength > maxSizeOfSinglePath) {
-      maxSizeOfSinglePath = pathLength;
-    }
-    if (branchesOnPath > maxNumberOfBranches) {
-      maxNumberOfBranches = branchesOnPath;
-    }
-
     // check for violation of limits
-    if (preventingCondition == null) {
-      if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
+    if (preventingCondition == null && timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
         preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
-      
-      } else if (nodeLimitForPath > 0 && pathLength > nodeLimitForPath) {
-        preventingCondition = Pair.of(PreventingHeuristicType.PATHLENGTH, nodeLimitForPath);
-      
-      } else if (limitForBranches > 0 && branchesOnPath > limitForBranches) {
-        preventingCondition = Pair.of(PreventingHeuristicType.ASSUMEEDGESINPATH, limitForBranches);
-      }
     }
 
     // wrap elements
     List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
-      MonitorElement successorElem = new MonitorElement(absElement, pathLength, branchesOnPath, totalTimeOnPath, preventingCondition);
+      MonitorElement successorElem = new MonitorElement(absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
@@ -280,7 +249,7 @@ public class MonitorTransferRelation implements TransferRelation {
     List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
     for (AbstractElement absElement : successors) {
       MonitorElement successorElem = new MonitorElement(
-          absElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), totalTimeOnPath, preventingCondition);
+          absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }

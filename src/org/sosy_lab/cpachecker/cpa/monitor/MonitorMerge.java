@@ -57,16 +57,11 @@ public class MonitorMerge implements MergeOperator{
       return pElement2;
     }
 
-
-    int pathLength = Math.max(monitorElement1.getNoOfNodesOnPath(),
-                              monitorElement2.getNoOfNodesOnPath());
-    int branchesOnPath = Math.max(monitorElement1.getNoOfBranchesOnPath(),
-                                  monitorElement2.getNoOfBranchesOnPath());
     long totalTimeOnPath = Math.max(monitorElement1.getTotalTimeOnPath(),
                                     monitorElement2.getTotalTimeOnPath());
     
     MonitorElement mergedElement = new MonitorElement(
-        retElement, pathLength, branchesOnPath, totalTimeOnPath);
+        retElement, totalTimeOnPath);
 
     return mergedElement;
   }

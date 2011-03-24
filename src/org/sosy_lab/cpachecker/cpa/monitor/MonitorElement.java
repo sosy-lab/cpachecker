@@ -47,26 +47,18 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   
   private final long totalTimeOnPath;
 
-  private final int branchesOnPath;
-  private final int pathLength;
-  
   // stores what caused the element to go further (may be null)
   private final Pair<PreventingHeuristicType, Long> preventingCondition; 
   
-  protected MonitorElement(AbstractElement pWrappedElement,
-      int pathLength, int branchesOnPath, long totalTimeOnPath) {
-    this(pWrappedElement, pathLength, branchesOnPath, totalTimeOnPath, null);
+  protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath) {
+    this(pWrappedElement, totalTimeOnPath, null);
   }
 
-  protected MonitorElement(AbstractElement pWrappedElement,
-      int pathLength, int branchesOnPath, long totalTimeOnPath,
+  protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath,
       Pair<PreventingHeuristicType, Long> preventingCondition) {
     super(pWrappedElement);
     Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
     Preconditions.checkArgument(!(pWrappedElement == TimeoutElement.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutElement");
-    Preconditions.checkArgument(pathLength > branchesOnPath);
-    this.pathLength = pathLength;
-    this.branchesOnPath = branchesOnPath;
     this.totalTimeOnPath = totalTimeOnPath;
     this.preventingCondition = preventingCondition; // may be null
   }
@@ -102,21 +94,12 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     return preventingCondition;
   }
   
-  public int getNoOfNodesOnPath() {
-    return pathLength;
-  }
-  
   @Override
   public String toString() {
-    return "No of nodes: " + this.pathLength
-    + " Total time: " + this.totalTimeOnPath 
-    + " Number of Branches: " + branchesOnPath
+    return "Total time: " + this.totalTimeOnPath 
     + " Wrapped elem: " + getWrappedElements();
   }
 
-  public int getNoOfBranchesOnPath() {
-    return branchesOnPath;
-  }
 
   @Override
   public Formula getReasonFormula(FormulaManager manager) {

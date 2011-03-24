@@ -70,7 +70,7 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new MonitorElement(getWrappedCpa().getInitialElement(pNode), 1, 0, 0L);
+    return new MonitorElement(getWrappedCpa().getInitialElement(pNode), 0L);
   }
 
   @Override

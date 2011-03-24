@@ -70,7 +70,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
       // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
     MonitorElement resultElement = 
-      new MonitorElement(newElement, element.getNoOfNodesOnPath(), element.getNoOfBranchesOnPath(), updatedTotalTime, preventingCondition);
+      new MonitorElement(newElement, updatedTotalTime, preventingCondition);
 
     return Triple.<AbstractElement, Precision, Action>of(resultElement, newPrecision, action);
   }
