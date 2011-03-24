@@ -272,10 +272,9 @@ class OutputHandler:
             # parse output and get revision
             svnInfo = dict(map(lambda str: tuple(str.split(': ')),
                         output.strip('\n').split('\n')))
-
-            version = "(Revision: "
+            version = ""
             if 'Revision' in svnInfo:
-                version += svnInfo['Revision'] + ")"
+                version = "(Revision: " + svnInfo['Revision'] + ")"
 
         elif (tool == "cbmc") or (tool == "satabs"):
             exe = findExecutable(tool, None)
@@ -289,16 +288,17 @@ class OutputHandler:
         This function returns some information about the computer.
         """
 
-        # get info about OS
+        # get info about OS and Kernelversion
         opSystem = subprocess.Popen(['uname', '-o'], 
+                            stdout=subprocess.PIPE).communicate()[0].strip('\n')\
+                   + " " + subprocess.Popen(['uname', '-r'], 
                             stdout=subprocess.PIPE).communicate()[0].strip('\n')
 
         # get info about CPU
         cpuOutput = subprocess.Popen(['cat', '/proc/cpuinfo'], 
                             stdout=subprocess.PIPE).communicate()[0]
 
-        # append space after 'str', if there is an empty value in 'cpuOutput'
-        cpuInfo = dict(map(lambda str: tuple((str + " ").split(': ')),
+        cpuInfo = dict(map(lambda str: tuple((str).split(':')),
                             cpuOutput.replace('\n\n','\n').replace('\t','')
                             .strip('\n').split('\n')))
 
@@ -311,7 +311,7 @@ class OutputHandler:
         maxFrequency = int(subprocess.Popen(['cat', 
             '/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies'],
             stdout=subprocess.PIPE).communicate()[0].split()[0])
-        maxFrequency = str(maxFrequency/ 1000) + ' MHz'
+        maxFrequency = str(maxFrequency / 1000) + ' MHz'
 
         # get info about memory
         memOutput = subprocess.Popen(['cat', '/proc/meminfo'], 
