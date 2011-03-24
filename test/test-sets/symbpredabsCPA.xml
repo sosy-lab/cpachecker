@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="600" memlimit="2000">
+  <test>
+    <sourcefiles>
+      <includesfile>test/test-sets/symbpredabsCPA.set</includesfile>
+      <exclude>test/programs/ntdrivers/parport*</exclude>
+    </sourcefiles>
+    <options>
+      <option name="-setprop">output.disable=true</option>
+      <option name="-config">test/config/symbpredabsCPA.properties</option>
+      <option name="-heap">1200m</option>
+    </options>
+  </test>
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="refinements">Number of refinements</column>
+  </columns>
+</benchmark>
