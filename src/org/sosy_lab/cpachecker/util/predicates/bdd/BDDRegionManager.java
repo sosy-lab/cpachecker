@@ -81,6 +81,11 @@ public class BDDRegionManager implements RegionManager {
   }
 
   @Override
+  public boolean isTrue(Region f) {
+    return ((BDDRegion)f).getBDD().isOne();
+  }
+  
+  @Override
   public Region makeTrue() {
     return trueFormula;
   }

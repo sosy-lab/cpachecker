@@ -49,6 +49,12 @@ public interface RegionManager {
   public boolean isFalse(Region f);
 
   /**
+   * checks whether f represents "true"
+   * @return true if f represents logical truth, false otherwise
+   */
+  public boolean isTrue(Region pF);
+  
+  /**
    * @return a representation of logical truth
    */
   public Region makeTrue();
