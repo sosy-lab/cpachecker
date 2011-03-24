@@ -20,7 +20,6 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
     noOfAssumeEdges = -1;
   }
 
-
   public AssumeEdgesInPathHeuristicsData updateForEdge(StopHeuristicsData pData, int pThreshold, CFAEdge pEdge){
 
     int newValue = (((AssumeEdgesInPathHeuristicsData)pData).noOfAssumeEdges);

@@ -8,6 +8,11 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
+/**
+ * This heuristic keeps track of the number of assume edges on a path.
+ * If the given threshold is exceed, it returns bottom and the assumption
+ * collector algorithm is notified.
+ */
 public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesInPathHeuristicsData>{
 
   private final int threshold;
