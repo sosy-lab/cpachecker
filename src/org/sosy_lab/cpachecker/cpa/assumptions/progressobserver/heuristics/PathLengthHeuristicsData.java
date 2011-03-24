@@ -31,7 +31,6 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
     else{
       return new PathLengthHeuristicsData(newValue);
     }
-    
   }
   
   public static final PathLengthHeuristicsData TOP = new PathLengthHeuristicsData() {
