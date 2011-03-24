@@ -288,19 +288,18 @@ class OutputHandler:
         This function returns some information about the computer.
         """
 
-        # get info about OS and Kernelversion
-        opSystem = subprocess.Popen(['uname', '-o'], 
-                            stdout=subprocess.PIPE).communicate()[0].strip('\n')\
-                   + " " + subprocess.Popen(['uname', '-r'], 
-                            stdout=subprocess.PIPE).communicate()[0].strip('\n')
+        # get info about OS
+        import os
+        (sysname, name, kernel, version, machine) = os.uname()
+        opSystem = sysname + " " + kernel + " " + machine
 
         # get info about CPU
-        cpuOutput = subprocess.Popen(['cat', '/proc/cpuinfo'], 
-                            stdout=subprocess.PIPE).communicate()[0]
-
-        cpuInfo = dict(map(lambda str: tuple((str).split(':')),
-                            cpuOutput.replace('\n\n','\n').replace('\t','')
+        cpuInfoFile = open('/proc/cpuinfo', "r")
+        cpuInfo = dict(map(lambda str: tuple(str.split(':')),
+                            cpuInfoFile.read()
+                            .replace('\n\n','\n').replace('\t','')
                             .strip('\n').split('\n')))
+        cpuInfoFile.close()
 
         if 'model name' in cpuInfo:
             cpuModel = cpuInfo['model name'].strip()
@@ -308,17 +307,21 @@ class OutputHandler:
             numberOfCores = cpuInfo['cpu cores'].strip()
 
         # modern cpus may not work with full speed the whole day
-        maxFrequency = int(subprocess.Popen(['cat', 
-            '/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies'],
-            stdout=subprocess.PIPE).communicate()[0].split()[0])
-        maxFrequency = str(maxFrequency / 1000) + ' MHz'
+        # read list of frequencies from file and take first number
+        frequencyInfoFile = open('/sys/devices/system/cpu/cpu0/cpufreq/'\
+                              + 'scaling_available_frequencies', "r")
+        maxFrequency = frequencyInfoFile.read().strip('\n').split()[0]
+        frequencyInfoFile.close()
+        maxFrequency = str(int(maxFrequency) / 1000) + ' MHz'
 
         # get info about memory
-        memOutput = subprocess.Popen(['cat', '/proc/meminfo'], 
-                            stdout=subprocess.PIPE).communicate()[0]
+        memInfoFile = open('/proc/meminfo', "r")
         memInfo = dict(map(lambda str: tuple(str.split(': ')),
-                            memOutput.replace('\t','')
+                            memInfoFile.read()
+                            .replace('\t','')
                             .strip('\n').split('\n')))
+        memInfoFile.close()
+
         if 'MemTotal' in memInfo:
             memTotal = memInfo['MemTotal'].strip()
 
