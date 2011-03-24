@@ -255,6 +255,12 @@ class OutputHandler:
         self.outputCSV = FileWriter(outputCSVFileName, CSVtitleLine + "\n")
         logging.debug("OutputCSVFile {0} created.".format(repr(outputCSVFileName)))
 
+        # resultSet for JSON-file
+        if options.json:
+            global resultSet    # 'global' only for printing after keyboard-interrupt
+            resultSet = ResultSet()
+            self.resultSet = resultSet
+
 
     def getVersion(self, tool):
         """
@@ -424,6 +430,14 @@ class OutputHandler:
         for column in self.benchmark.columns:
             outputCSVLine += CSV_SEPARATOR + column.value
         self.outputCSV.append(outputCSVLine + "\n")
+        
+        # store result for JSON-file
+        if options.json:
+            self.resultSet.addResult(sourcefile, self.benchmark.tool, self.test.name, {
+                          'status':         status,
+                          'cpuTimeDelta':   cpuTimeDelta,
+                          'wallTimeDelta':  wallTimeDelta
+                          })
 
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
@@ -447,6 +461,12 @@ class OutputHandler:
                     self.ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
         endline = self.createOutputLine(endline, "done", cpuTimeTest, wallTimeTest, [], False) + "\n"
         self.outputLog.append(self.simpleLine + endline)
+
+        # write output to JSON-file
+        if (options.json):
+            outputJSONFileName = OUTPUT_PATH + self.benchmark.name + ".results."\
+                                + str(date.today()) + ".json"
+            FileWriter(outputJSONFileName, self.resultSet.toJson())
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
@@ -764,7 +784,7 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def runBenchmark(benchmarkFile, resultSet):
+def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
@@ -794,13 +814,6 @@ def runBenchmark(benchmarkFile, resultSet):
             (status, cpuTimeDelta, wallTimeDelta, output) =\
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
-            resultSet.addResult(sourcefile, benchmark.tool, test.name, {
-                                                              'status':         status,
-                                                              'cpuTimeDelta':   cpuTimeDelta,
-                                                              'wallTimeDelta':  wallTimeDelta
-                                                          })
-
-
             outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta, 
                                          wallTimeDelta, output)
 
@@ -812,6 +825,7 @@ def runBenchmark(benchmarkFile, resultSet):
         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
         outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
+
 
 def main(argv=None):
 
@@ -826,11 +840,9 @@ def main(argv=None):
     parser.add_option("-j", "--json",
                       action="store_true",
                       help="enable json output")
+
+    global options
     (options, args) = parser.parse_args(argv)
-
-    global resultSet
-
-    resultSet = ResultSet()
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
@@ -846,13 +858,11 @@ def main(argv=None):
 
     for arg in args[1:]:
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        runBenchmark(arg, resultSet)
+        runBenchmark(arg)
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
+
     logging.debug("I think my job is done. Have a nice day!")
 
-    if (options.json):
-        outputLogFileName = OUTPUT_PATH + ".results." + str(date.today()) + ".json"
-        FileWriter(outputLogFileName, resultSet.toJson())
 
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
