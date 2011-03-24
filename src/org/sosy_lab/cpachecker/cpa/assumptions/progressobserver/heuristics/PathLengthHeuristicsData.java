@@ -27,7 +27,6 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
       setThreshold(pThreshold);
       return BOTTOM;
     }
-    
     else{
       return new PathLengthHeuristicsData(newValue);
     }
