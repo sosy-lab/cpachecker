@@ -4,6 +4,7 @@ from string import Template
 from xml.etree.ElementTree import ElementTree
 from xml.parsers.expat import ExpatError
 from datetime import date
+from collections import defaultdict
 
 import time
 import glob
@@ -15,6 +16,7 @@ import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+import json
 
 OUTPUT_PATH = "./test/results/"
 
@@ -505,8 +507,6 @@ class OutputHandler:
     
             return "%.{0}f".format(numberOfDigits) % number
 
-
-
 class FileWriter:
     """
     The class FileWrtiter is a wrapper for writing content into a file.
@@ -527,6 +527,38 @@ class FileWriter:
         file = open(self.__filename, "a")
         file.write(content)
         file.close()
+
+
+class ResultSet:
+    """
+    The class ResultSet is a collection of all results of a whole benchmark execution
+    """
+
+    __resultSet = defaultdict(lambda: defaultdict())
+
+    def __init__(self):
+        """
+        The constructor of ResultSet
+        """
+
+    def addResult(self, sourceFileName, toolName, testName, result):
+        """
+        This method adds a result, associated to a source file and tool, to the result set.
+
+        @param sourceFileName: the name of the source file associated with the result
+        @param sourceFileName: the name of the tool associated with the result
+        @param sourceFileName: the result to store
+        """
+        self.__resultSet[sourceFileName][toolName + "_" + testName] = result
+
+    def toJson(self):
+        """
+        This method returns a human-readable JSON-formatted string representation of the result set
+
+        @return: a human-readable JSON-formatted string representation of the result set
+        """
+
+        return json.dumps(self.__resultSet, sort_keys=True, indent=4)
 
 
 def findExecutable(program, default):
@@ -732,7 +764,7 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def runBenchmark(benchmarkFile):
+def runBenchmark(benchmarkFile, resultSet):
     benchmark = Benchmark(benchmarkFile)
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
@@ -762,6 +794,13 @@ def runBenchmark(benchmarkFile):
             (status, cpuTimeDelta, wallTimeDelta, output) =\
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
+            resultSet.addResult(sourcefile, benchmark.tool, test.name, {
+                                                              'status':         status,
+                                                              'cpuTimeDelta':   cpuTimeDelta,
+                                                              'wallTimeDelta':  wallTimeDelta
+                                                          })
+
+
             outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta, 
                                          wallTimeDelta, output)
 
@@ -774,8 +813,8 @@ def runBenchmark(benchmarkFile):
 
         outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
-
 def main(argv=None):
+
     if argv is None:
         argv = sys.argv
     from optparse import OptionParser
@@ -783,7 +822,15 @@ def main(argv=None):
     parser.add_option("-d", "--debug",
                       action="store_true",
                       help="enable debug output")
+
+    parser.add_option("-j", "--json",
+                      action="store_true",
+                      help="enable json output")
     (options, args) = parser.parse_args(argv)
+
+    global resultSet
+
+    resultSet = ResultSet()
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
@@ -799,9 +846,13 @@ def main(argv=None):
 
     for arg in args[1:]:
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        runBenchmark(arg)
+        runBenchmark(arg, resultSet)
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
     logging.debug("I think my job is done. Have a nice day!")
+
+    if (options.json):
+        outputLogFileName = OUTPUT_PATH + ".results." + str(date.today()) + ".json"
+        FileWriter(outputLogFileName, resultSet.toJson())
 
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
@@ -816,5 +867,9 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         interruptMessage = "script was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
+
+        print resultSet.toJson()
+
         print interruptMessage
         pass
+
