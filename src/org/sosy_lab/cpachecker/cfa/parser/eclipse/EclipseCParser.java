@@ -111,7 +111,7 @@ public class EclipseCParser implements CParser {
       throw new ParserException("Not exactly one statement in function body: " + body);
     }
 
-    return ASTConverter.convert(statements[0]);
+    return new ASTConverter().convert(statements[0]);
   }
 
   private IASTTranslationUnit parse(CodeReader codeReader) throws ParserException {
