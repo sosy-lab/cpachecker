@@ -135,4 +135,12 @@ public class BDDRegionManager implements RegionManager {
 
     return new Triple<Region, Region, Region>(predicate, fThen, fElse);
   }
+  
+  @Override
+  public boolean equalRegions(Region r1, Region r2) {
+    BDDRegion f1 = (BDDRegion)r1;
+    BDDRegion f2 = (BDDRegion)r2;
+
+    return f1.getBDD().equals(f2.getBDD()); 
+  }
 }

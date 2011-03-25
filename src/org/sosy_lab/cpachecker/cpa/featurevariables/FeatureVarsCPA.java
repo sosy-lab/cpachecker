@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -59,21 +60,24 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
+  
+  public static LogManager logger;
 
-  private FeatureVarsCPA(Configuration config) throws InvalidConfigurationException {
+  private FeatureVarsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+    FeatureVarsCPA.logger = logger;
     
     precision = new FeatureVarsPrecision(variableWhitelist);
 
     FeatureVarsDomain fvDomain = new FeatureVarsDomain ();
-    MergeOperator fvMergeOp = null;
-    fvMergeOp = MergeSepOperator.getInstance();
-
+    //MergeOperator fvMergeOp = MergeSepOperator.getInstance();
+    
     StopSepOperator fvStopOp = new StopSepOperator(fvDomain);
 
     TransferRelation fvRelation = new FeatureVarsTransferRelation(config);
 
     this.abstractDomain = fvDomain;
+    MergeJoinOperator fvMergeOp = new MergeJoinOperator(this.abstractDomain);
     this.mergeOperator = fvMergeOp;
     this.stopOperator = fvStopOp;
     this.transferRelation = fvRelation;

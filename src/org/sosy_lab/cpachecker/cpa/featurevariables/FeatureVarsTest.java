@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.featurevariables;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -42,13 +43,116 @@ import com.google.common.collect.ImmutableMap;
 public class FeatureVarsTest {
   // Specification Tests
   @Test
+  public void cooperationWithExplicit3VarsWithFunctionCall() {
+    Map<String, String> prop = ImmutableMap.of(
+        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "cpa.explicit.threshold", "200",
+        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
+      );
+    try {
+      prop = new HashMap<String, String>(prop);
+      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
+      prop.put("cpa","cpa.art.ARTCPA");
+      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
+      
+      TestResults results = run(prop, "test/programs/simple/featureVarsTest.c");
+      //results.getCheckerResult().printStatistics(System.out); // to get an error path
+      System.out.println(results.getLog());
+      //System.out.println(results.getCheckerResult().getResult());
+      
+      Assert.assertTrue(results.isUnsafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration " + e.getMessage());
+    }
+  }
+  @Test
+  public void cooperationWithExplicit3VarsWithoutFunctionCall() {
+    Map<String, String> prop = ImmutableMap.of(
+        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "cpa.explicit.threshold", "200",
+        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
+      );
+    try {
+      prop = new HashMap<String, String>(prop);
+      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
+      prop.put("cpa","cpa.art.ARTCPA");
+      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
+      
+      File sourceFile = new File("test/programs/simple/tmpProgram.c");
+      sourceFile.deleteOnExit();
+      Files.writeFile(sourceFile, "int main() {\n"+
+        "  int tmp = 0;\n"+
+        "    if (! __SELECTED_FEATURE_Verify)\n"+
+        "        if (__SELECTED_FEATURE_Forward)\n"+
+        "            if (! __SELECTED_FEATURE_Sign)\n"+
+        "              tmp = 0;\n"+
+        "            else tmp =  1;\n"+
+        "        else tmp =  1;\n"+
+        "    else tmp =  1;\n"+
+        "  if (! tmp) error: fail();\n"+
+        "  }");
+      TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
+      //results.getCheckerResult().printStatistics(System.out); // to get an error path
+      System.out.println(results.getLog());
+      //System.out.println(results.getCheckerResult().getResult());
+      Assert.assertTrue(results.logContains("Product violating in line 10:"));
+      Assert.assertTrue(results.logContains("!__SELECTED_FEATURE_Verify"));
+      Assert.assertTrue(results.logContains("!__SELECTED_FEATURE_Sign"));
+      Assert.assertTrue(results.logContains("__SELECTED_FEATURE_Forward"));
+      Assert.assertTrue(results.isUnsafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration " + e.getMessage());
+    } catch (IOException e) {
+      Assert.fail("IOException " + e.getMessage());
+    }
+  }
+  @Test
+  public void cooperationWithExplicit() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA",
+        "specification",     "test/config/automata/tmpSpecification.spc",
+        "cfa.removeIrrelevantForErrorLocations", "false",
+        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
+      );
+    try {
+      File tmpFile = new File("test/config/automata/tmpSpecification.spc");
+      tmpFile.deleteOnExit();
+      Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
+          "INITIAL STATE Init;\n"+
+          "STATE Init :\n"+
+          "MATCH {$1} ->\n"+
+          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "END AUTOMATON");
+      File sourceFile = new File("test/programs/simple/tmpProgram.c");
+      sourceFile.deleteOnExit();
+      Files.writeFile(sourceFile, "int __SELECTED_FEATURE_base; int main() { " +
+          "if (__SELECTED_FEATURE_base && !__SELECTED_FEATURE_base ) { foo(1); } else {foo(2);} " +
+          "}");
+      TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
+      //System.out.println(results.getLog());
+      //System.out.println(results.getCheckerResult().getResult());
+      Assert.assertTrue(results.logContains("Found foo(2);"));
+      Assert.assertFalse(results.logContains("Found foo(1);"));
+      Assert.assertTrue(results.isSafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration " + e.getMessage());
+    } catch (IOException e) {
+      Assert.fail("IOException " + e.getMessage());
+    }
+  }
+  @Test
   public void trackVariable() {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
         "cfa.removeIrrelevantForErrorLocations", "false",
-        "cpa.featurevars.variableWhitelist", "main::__SELECTED_FEATURE_(\\w)*"
+        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
       );
     try {
       File tmpFile = new File("test/config/automata/tmpSpecification.spc");
@@ -111,6 +215,80 @@ public class FeatureVarsTest {
       Assert.fail("IOException " + e.getMessage());
     }
   }
+  @Test
+  public void trackVariable2Vars() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
+        "specification",     "test/config/automata/tmpSpecification.spc",
+        "log.consoleLevel",               "INFO",
+        "cfa.removeIrrelevantForErrorLocations", "false",
+        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
+      );
+    try {
+      File tmpFile = new File("test/config/automata/tmpSpecification.spc");
+      tmpFile.deleteOnExit();
+      Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
+          "INITIAL STATE Init;\n"+
+          "STATE Init :\n"+
+          "MATCH {$1} ->\n"+
+          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "END AUTOMATON");
+      File sourceFile = new File("test/programs/simple/tmpProgram.c");
+      sourceFile.deleteOnExit();
+      Files.writeFile(sourceFile, "int __SELECTED_FEATURE_base; int __SELECTED_FEATURE_F2; int main() { " +
+          "if (__SELECTED_FEATURE_base && __SELECTED_FEATURE_F2 ){ " +
+          "if (! __SELECTED_FEATURE_F2 ) { foo(1); } else {foo(2);} " +
+          "}" +
+          "}");
+      TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
+      //System.out.println(results.getLog());
+      //System.out.println(results.getCheckerResult().getResult());
+      Assert.assertTrue(results.logContains("Found foo(2);"));
+      Assert.assertFalse(results.logContains("Found foo(1);"));
+      Assert.assertTrue(results.isSafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration " + e.getMessage());
+    } catch (IOException e) {
+      Assert.fail("IOException " + e.getMessage());
+    }
+  }
+  @Test
+  public void ignoreVariable2Vars() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
+        "specification",     "test/config/automata/tmpSpecification.spc",
+        "log.consoleLevel",               "INFO",
+        "cfa.removeIrrelevantForErrorLocations", "false",
+        "cpa.featurevars.variableWhitelist", ""
+      );
+    try {
+      File tmpFile = new File("test/config/automata/tmpSpecification.spc");
+      tmpFile.deleteOnExit();
+      Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
+          "INITIAL STATE Init;\n"+
+          "STATE Init :\n"+
+          "MATCH {$1} ->\n"+
+          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "END AUTOMATON");
+      File sourceFile = new File("test/programs/simple/tmpProgram.c");
+      sourceFile.deleteOnExit();
+      Files.writeFile(sourceFile, "int __SELECTED_FEATURE_base; int __SELECTED_FEATURE_F2; int main() { " +
+          "if (__SELECTED_FEATURE_base && __SELECTED_FEATURE_F2 ){ " +
+          "if (! __SELECTED_FEATURE_F2 ) { foo(1); } else {foo(2);} " +
+          "}" +
+          "}");
+      TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
+      //System.out.println(results.getLog());
+      //System.out.println(results.getCheckerResult().getResult());
+      Assert.assertTrue(results.logContains("Found foo(2);"));
+      Assert.assertTrue(results.logContains("Found foo(1);"));
+      Assert.assertTrue(results.isSafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration " + e.getMessage());
+    } catch (IOException e) {
+      Assert.fail("IOException " + e.getMessage());
+    }
+  }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
     Configuration config = Configuration.builder().setOptions(pProperties).build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
@@ -154,7 +332,6 @@ public class FeatureVarsTest {
     boolean isSafe() {
       return checkerResult.getResult().equals(CPAcheckerResult.Result.SAFE);
     }
-    @SuppressWarnings("unused")
     boolean isUnsafe() {
       return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
     }

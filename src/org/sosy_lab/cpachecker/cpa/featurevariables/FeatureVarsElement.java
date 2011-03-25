@@ -23,7 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
+import java.util.logging.Level;
+
+import javax.management.QueryExp;
+
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -31,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-public class FeatureVarsElement implements AbstractElement, Cloneable {
+public class FeatureVarsElement implements AbstractQueryableElement, Cloneable {
 
   static BiMap<String, Region> regionMap = HashBiMap.create();
   static RegionManager manager = BDDRegionManager.getInstance();
@@ -49,12 +56,84 @@ public class FeatureVarsElement implements AbstractElement, Cloneable {
   public Region getVariableRegion(String pVarName) {
     Region ret = regionMap.get(pVarName);
     if (ret == null) {
+      FeatureVarsCPA.logger.log(Level.INFO, "FeatureVars tracks: " + pVarName);
+      //System.out.println("FeatureVars tracks: " + pVarName);
       ret = manager.createPredicate();
       regionMap.put(pVarName, ret);      
     }
     return ret;
   }
   
+  @Override
+  public String toString() {
+    return FeatureVarsElement.regionToString(currentState);
+  }
   
+  /**
+   * Returns a String representation of the parameter.
+   * It is important that every predicate in the region is contained in the regionMap.
+   * @param r
+   * @return
+   */
+  static String regionToString(Region r) {
+    if (regionMap.containsValue(r)) {
+      return regionMap.inverse().get(r);
+    } else if (manager.isFalse(r))
+      return "FALSE";
+    else if (manager.isTrue(r))
+      return "TRUE";
+    else {
+      Triple<Region, Region, Region> triple = manager.getIfThenElse(r);
+      String predName = regionMap.inverse().get(triple.getFirst());
+      String ifTrue = "";
+      if (manager.isFalse(triple.getSecond())) {
+        // omit
+      } else if (manager.isTrue(triple.getSecond())) {
+        ifTrue = predName;
+      } else {
+        ifTrue = predName + " & " + regionToString(triple.getSecond());
+      }
+      String ifFalse = "";
+      if (manager.isFalse(triple.getThird())) {
+        // omit
+      } else if (manager.isTrue(triple.getThird())) {
+        ifFalse = "!" + predName;
+      } else {
+        ifFalse = "!" + predName + " & " + regionToString(triple.getThird());
+      }
+      if (ifTrue != "" && ifFalse != "") {
+        return "(" + ifTrue + ") | (" + ifFalse + ")";
+      } else if (ifTrue == "") {
+        return ifFalse;
+      } else if (ifFalse == "") {
+        return ifTrue;
+      } else {
+        throw new InternalError("Both BDD Branches are empty!?");
+      }
+    }
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    throw new InvalidQueryException("Feature Vars Element cannot check anything");
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.equals("VALUES")) {
+      return regionToString(this.currentState);
+    } else
+    throw new InvalidQueryException("Feature Vars Element can only return the current values (\"VALUES\")");
+  }
+
+  @Override
+  public String getCPAName() {
+    return "FeatureVars";
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("Feature Vars Element cannot be modified");
+  }
 
 }

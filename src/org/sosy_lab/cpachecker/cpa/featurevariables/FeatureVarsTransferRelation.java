@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
+import com.google.common.base.Preconditions;
+
 @Options(prefix = "cpa.explicit")
 public class FeatureVarsTransferRelation implements TransferRelation {
 
@@ -56,13 +58,22 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     config.inject(this);
   }
 
+  /* (non-Javadoc)
+   * This Transfer Relation tracks the variables defined by the precision operator.
+   * It assumes that all such variables are boolean (only the case ==0 and the case !=0 are tracked).
+   * Only assume edges (conditions of if-statements) and only the operators && and || are considered.
+   * All other operators (e.g. =, ==, !=, &, |, ...) are ignored.
+   * Only global variables (we don't make a difference between a variable that is defined globally and 
+   * a local variable with the same name)
+   */
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
-    if (!(pPrecision instanceof FeatureVarsPrecision)) { throw new IllegalArgumentException(
-        "precision is no ExplicitPrecision"); }
+    Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
+    if (precision.isDisabled()) // this means that no variables should be tracked (whitelist is empty)
+      return Collections.singleton(element);
 
     FeatureVarsElement fvElement = (FeatureVarsElement) element;
     AbstractElement successor = fvElement;
@@ -85,6 +96,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       successor =
           handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
               assumeEdge.getTruthAssumption(), precision);
+      /*if (successor != null && successor != element) {
+        System.out.println("FV new state: " + successor.toString() 
+            + " after edge " + cfaEdge.getRawStatement() 
+            + " in line" + cfaEdge.getLineNumber());
+      }*/
       break;
     }
     case BlankEdge: {
@@ -146,7 +162,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
-      String varName = this.getvarName(op.getRawSignature(), functionName);
+      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
       operand = element.getVariableRegion(varName);
     } else if (op instanceof IASTUnaryExpression) {
@@ -171,7 +187,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
-      String varName = this.getvarName(op.getRawSignature(), functionName);
+      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
       operand = element.getVariableRegion(varName);
     } else if (op instanceof IASTUnaryExpression) {
@@ -210,7 +226,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand1 = null;
     if (op1 instanceof IASTIdExpression || op1 instanceof IASTFieldReference
         || op1 instanceof IASTArraySubscriptExpression) {
-      String varName = this.getvarName(op1.getRawSignature(), functionName);
+      String varName = op1.getRawSignature();// this.getvarName(op1.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
       operand1 = element.getVariableRegion(varName);
     } else if (op1 instanceof IASTUnaryExpression) {
@@ -229,7 +245,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand2 = null;
     if (op2 instanceof IASTIdExpression || op2 instanceof IASTFieldReference
         || op2 instanceof IASTArraySubscriptExpression) {
-      String varName = this.getvarName(op2.getRawSignature(), functionName);
+      String varName = op2.getRawSignature(); //this.getvarName(op2.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
       operand2 = element.getVariableRegion(varName);
     } else if (op2 instanceof IASTUnaryExpression) {
@@ -262,13 +278,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
     return returnValue;
   }
-
+/*
   public String getvarName(String variableName, String functionName) {
-    /*if(globalVars.contains(variableName)){
+    if(globalVars.contains(variableName)){
       return "$global::" + variableName;
-    }*/
+    }
     return functionName + "::" + variableName;
-  }
+  }*/
 
   @Override
   public Collection<? extends AbstractElement> strengthen(

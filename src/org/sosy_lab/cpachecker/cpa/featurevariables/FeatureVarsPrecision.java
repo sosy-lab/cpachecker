@@ -11,6 +11,10 @@ public class FeatureVarsPrecision implements Precision {
     whiteListPattern = Pattern.compile(variableWhitelist);
   }
   
+  boolean isDisabled() {
+    return whiteListPattern.pattern() == "";
+  }
+  
   boolean isOnWhitelist(String variable) {
     return this.whiteListPattern.matcher(variable).matches();
   }

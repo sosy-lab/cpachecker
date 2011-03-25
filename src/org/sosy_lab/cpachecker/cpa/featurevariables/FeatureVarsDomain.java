@@ -31,10 +31,11 @@ public class FeatureVarsDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
       // returns true if element1 < element2 on lattice
+      // true if newElement represents less states (and a subset of the states of) reachedElement
     if (newElement instanceof FeatureVarsElement && reachedElement instanceof FeatureVarsElement){
       FeatureVarsElement fvn = (FeatureVarsElement)newElement;
       FeatureVarsElement fvr = (FeatureVarsElement)reachedElement;
-      return FeatureVarsElement.manager.entails(fvr.getRegion(), fvn.getRegion());
+      return FeatureVarsElement.manager.entails(fvn.getRegion(), fvr.getRegion());
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
     }
@@ -45,7 +46,7 @@ public class FeatureVarsDomain implements AbstractDomain {
     if (element1 instanceof FeatureVarsElement && element2 instanceof FeatureVarsElement){
       FeatureVarsElement fv1 = (FeatureVarsElement)element1;
       FeatureVarsElement fv2 = (FeatureVarsElement)element2;
-      return new FeatureVarsElement(FeatureVarsElement.manager.makeAnd(fv1.getRegion(), fv2.getRegion()));
+      return new FeatureVarsElement(FeatureVarsElement.manager.makeOr(fv1.getRegion(), fv2.getRegion()));
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
     }

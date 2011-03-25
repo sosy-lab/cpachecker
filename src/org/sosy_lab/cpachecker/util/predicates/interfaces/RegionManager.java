@@ -104,4 +104,6 @@ public interface RegionManager {
   public Triple<Region, Region, Region>
       getIfThenElse(Region f);
 
+  boolean equalRegions(Region pR1, Region pR2);
+
 }
