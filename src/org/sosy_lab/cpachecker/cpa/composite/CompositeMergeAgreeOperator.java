@@ -28,17 +28,32 @@ import java.util.Iterator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
 
-public class CompositeMergeOperator implements MergeOperator{
+/**
+ * Provides a MergeOperator implementation that delegates to the component CPA.
+ * If any of those CPAs returns an element that does not cover both its input
+ * elements, this implementation returns its second input element
+ * (i.e., it behaves like MergeSep).
+ * 
+ * This operator is good for the combination of CPAs where some CPAs never merge
+ * and some may merge.
+ * 
+ * Note that the definition of MergeOperator already requires that the returned
+ * element covers the second input element. This implementation relies on that
+ * guarantee and always assumes this is true.
+ */
+public class CompositeMergeAgreeOperator implements MergeOperator {
 
   private final ImmutableList<MergeOperator> mergeOperators;
+  private final ImmutableList<StopOperator> stopOperators;
 
-  public CompositeMergeOperator(ImmutableList<MergeOperator> mergeOperators)
-  {
+  public CompositeMergeAgreeOperator(ImmutableList<MergeOperator> mergeOperators, ImmutableList<StopOperator> stopOperators) {
     this.mergeOperators = mergeOperators;
+    this.stopOperators = stopOperators;
   }
 
   @Override
@@ -53,12 +68,8 @@ public class CompositeMergeOperator implements MergeOperator{
 
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
 
-    if (!comp1.retrieveLocationElement().equals (comp2.retrieveLocationElement()))
-    {
-      return element2;
-    }
-
     ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
+    Iterator<StopOperator> stopIter = stopOperators.iterator();
     Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
     Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
     Iterator<Precision> precIter = prec.getPrecisions().iterator();
@@ -67,11 +78,24 @@ public class CompositeMergeOperator implements MergeOperator{
     for (MergeOperator mergeOp : mergeOperators) {
       AbstractElement absElem1 = iter1.next();
       AbstractElement absElem2 = iter2.next();
+      StopOperator stopOp = stopIter.next();
+      
       AbstractElement merged = mergeOp.merge(absElem1, absElem2, precIter.next());
-      // if the element is not location and it is not merged we do not need to merge
+
+      // check whether merged covers absElem1
+      // by definition of MergeOperator, we know it covers absElem2
+      if (!stopOp.stop(absElem1, merged)) {
+        // the result of merge doesn't cover absElem1
+        // (which is the successor element currently considered by the CPAAlgorithm
+        // We prevent merging for all CPAs in this case, because the current
+        // element wouldn't be covered anyway, so widening other elements is just a loss of precision.
+        return element2;
+      }
+
       if (merged != absElem2) {
         identicElements = false;
       }
+
       mergedElements.add (merged);
     }
 

@@ -251,6 +251,11 @@ cpa.automaton.dotExport = false
 # file for saving the automaton in DOT format
 cpa.automaton.dotExportFile = automaton.txt
 
+# which composite merge operator to use (plain or agree)
+# Both delegate to the component cpas, but agree only allows
+# merging if all cpas agree on this. This is probably what you want.
+cpa.composite.merge = agree
+
 # which merge operator to use for DefUseCPA (join or sep)
 cpa.defuse.merge = sep
 

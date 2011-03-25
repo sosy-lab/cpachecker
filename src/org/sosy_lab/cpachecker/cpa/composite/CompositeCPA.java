@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.base.Preconditions;
@@ -47,14 +50,24 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA
 {
+  
+  @Options(prefix="cpa.composite")
+  private static class CompositeOptions {
+    @Option(toUppercase=true, values={"PLAIN", "AGREE"})
+    private String merge = "AGREE";
+  }
+  
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
 
+      CompositeOptions options = new CompositeOptions();
+      getConfiguration().inject(options);
+      
       ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
       ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
@@ -69,10 +82,20 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         precisionAdjustments.add(sp.getPrecisionAdjustment());
       }
 
+      ImmutableList<StopOperator> stopOps = stopOperators.build();
+      
+      MergeOperator compositeMerge;
+      if (options.merge.equals("AGREE")) {
+        compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
+      } else if (options.merge.equals("PLAIN")) {
+        compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
+      } else {
+        throw new AssertionError();
+      }
+      
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
-      CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
-      CompositeStopOperator compositeStop = new CompositeStopOperator(stopOperators.build());
+      CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
       CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
