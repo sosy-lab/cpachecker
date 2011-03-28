@@ -210,7 +210,7 @@ implements GenericAssumptionBuilder
         {
           IASTName name = paramdecl.getName();
           IType type = name.getType();
-          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name);
+          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }
       }

@@ -76,7 +76,13 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 class ASTConverter {
-    
+  
+  private Scope scope;
+
+  public ASTConverter(Scope pScope) {
+    scope = pScope;
+  }
+
   private static void check(boolean assertion, String msg, org.eclipse.cdt.core.dom.ast.IASTNode astNode) throws CFAGenerationRuntimeException {
     if (!assertion) {
       throw new CFAGenerationRuntimeException(msg, astNode);
@@ -288,7 +294,24 @@ class ASTConverter {
       }
     }
     
-    return new IASTFunctionCallExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFunctionNameExpression()), params);
+    IASTExpression functionName = convert(e.getFunctionNameExpression());
+    IASTSimpleDeclaration declaration = null;
+    
+    if (functionName instanceof IASTIdExpression) {
+      IASTIdExpression idExpression = (IASTIdExpression)functionName;
+      String name = idExpression.getName().getRawSignature();
+      declaration = scope.lookupFunction(name);
+      
+      if (idExpression.getDeclaration() != null) {
+        // clone idExpression because the declaration in it is wrong
+        // (it's the declaration of an equally named variable)
+        // TODO this is ugly 
+        
+        functionName = new IASTIdExpression(idExpression.getRawSignature(), idExpression.getFileLocation(), idExpression.getExpressionType(), idExpression.getName(), declaration);
+      }
+    }
+    
+    return new IASTFunctionCallExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), functionName, params, declaration);
   }
   
   private List<IASTExpression> convert(org.eclipse.cdt.core.dom.ast.IASTExpressionList es) {
@@ -300,7 +323,9 @@ class ASTConverter {
   }
   
   private IASTIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {
-    return new IASTIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getName()));
+    IASTName name = convert(e.getName());
+    IASTSimpleDeclaration declaration = scope.lookupVariable(name.getRawSignature());
+    return new IASTIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), name, declaration);
   }
   
   private IASTLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
@@ -877,7 +902,8 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
     }
     
-    return new IASTSimpleDeclaration(p.getRawSignature(), convert(p.getFileLocation()), declarator.getFirst(), declarator.getThird());
+    IASTSimpleDeclaration result = new IASTSimpleDeclaration(p.getRawSignature(), convert(p.getFileLocation()), declarator.getFirst(), declarator.getThird());
+    return result;
   }
   
   private IASTFileLocation convert(org.eclipse.cdt.core.dom.ast.IASTFileLocation l) {

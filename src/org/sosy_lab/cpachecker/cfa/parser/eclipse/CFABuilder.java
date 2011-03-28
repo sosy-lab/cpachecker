@@ -62,6 +62,7 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -110,7 +111,8 @@ class CFABuilder extends ASTVisitor
   // Data structure for storing global declarations
   private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
 
-  private final ASTConverter astCreator = new ASTConverter();
+  private final Scope scope = new Scope();
+  private final ASTConverter astCreator = new ASTConverter(scope);
   
   private final LogManager logger;
 
@@ -168,14 +170,26 @@ class CFABuilder extends ASTVisitor
     if (declaration instanceof IASTSimpleDeclaration)
     {
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)declaration;
+      
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
+      assert !newDs.isEmpty();
+
+      for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
+        if (newD.getStorageClass() != StorageClass.TYPEDEF
+            && newD.getName() != null) {
+          // this is neither a typedef nor a struct prototype nor a function declaration,
+          // so it's a variable declaration
+          
+          scope.registerDeclaration(newD.getDeclaration());
+        }
+      }
+      
       if (locStack.size () > 0) {// i.e. we're in a function
       
         CFANode prevNode = locStack.pop();
         
         CFANode nextNode = null;
-
-        List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
-        assert !newDs.isEmpty();
+        
         for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
           
           nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
@@ -194,7 +208,7 @@ class CFABuilder extends ASTVisitor
         assert declaration.getParent() instanceof IASTTranslationUnit : "not a real global declaration";
       
         // else we're in the global scope
-        globalDeclarations.addAll(astCreator.convert(sd));
+        globalDeclarations.addAll(newDs);
       }
       
       return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
@@ -218,10 +232,14 @@ class CFABuilder extends ASTVisitor
         throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
       }
 
+      scope.registerDeclaration(fdef.getDeclaration());
+      scope.enterFunction();
+      
       List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
       List<String> parameterNames = new ArrayList<String>(parameters.size());
       
       for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration param : parameters) {
+        scope.registerDeclaration(param); // declare parameter as local variable
         parameterNames.add(param.getName().getRawSignature());
       }
       
@@ -317,6 +335,7 @@ class CFABuilder extends ASTVisitor
       currentCFANodes = null;
       
       currentCFA = null;
+      scope.leaveFunction();
     }
 
     return PROCESS_CONTINUE;

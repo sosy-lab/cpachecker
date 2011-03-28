@@ -34,7 +34,7 @@ public class ASTConverterTest {
   
   @Before
   public final void setup() {
-    converter = new ASTConverter();
+    converter = new ASTConverter(new Scope());
   }
   
   @Test

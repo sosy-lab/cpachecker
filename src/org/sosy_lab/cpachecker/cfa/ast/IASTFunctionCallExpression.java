@@ -31,13 +31,16 @@ public class IASTFunctionCallExpression extends IASTExpression {
 
   private final IASTExpression functionName;
   private final List<IASTExpression> parameters;
+  private final IASTSimpleDeclaration declaration;
 
   public IASTFunctionCallExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pFunctionName, final List<IASTExpression> pParameters) {
+      final IASTExpression pFunctionName, final List<IASTExpression> pParameters,
+      final IASTSimpleDeclaration pDeclaration) {
     super(pRawSignature, pFileLocation, pType);
     functionName = pFunctionName;
     parameters = ImmutableList.copyOf(pParameters);
+    declaration = pDeclaration;
   }
 
   public IASTExpression getFunctionNameExpression() {
@@ -47,7 +50,20 @@ public class IASTFunctionCallExpression extends IASTExpression {
   public List<IASTExpression> getParameterExpressions() {
     return parameters;
   }
-
+  
+  /**
+   * Get the declaration of the function.
+   * A function may have several declarations in a C file (several forward
+   * declarations without a body, and one with it). In this case, it is not
+   * defined which declaration is returned.
+   * 
+   * The result may be null if the function was not declared, or if a complex
+   * function name expression is used (i.e., a function pointer).
+   */
+  public IASTSimpleDeclaration getDeclaration() {
+    return declaration;
+  }
+  
   @Override
   public IASTNode[] getChildren() {
     IASTNode[] result = new IASTNode[parameters.size()+1];

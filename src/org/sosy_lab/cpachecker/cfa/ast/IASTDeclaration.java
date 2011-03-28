@@ -46,6 +46,10 @@ public class IASTDeclaration extends IASTNode {
     return storageClass;
   }
   
+  /**
+   * Get the declaration of the variable.
+   * The result may be null if the variable was not declared.
+   */
   public IASTSimpleDeclaration getDeclaration() {
     return declaration;
   }
