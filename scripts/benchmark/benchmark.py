@@ -4,7 +4,6 @@ from string import Template
 from xml.etree.ElementTree import ElementTree
 from xml.parsers.expat import ExpatError
 from datetime import date
-from collections import defaultdict
 
 import time
 import glob
@@ -16,11 +15,8 @@ import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-import json
 
 OUTPUT_PATH = "./test/results/"
-
-CSV_SEPARATOR = "\t"
 
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
@@ -48,14 +44,13 @@ class Benchmark:
         #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
         #     logging.debug("If you want xml validation please install pyxml.")
         logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
-        tree = ElementTree()
-        root = tree.parse(benchmarkFile)
+        root = ET.ElementTree().parse(benchmarkFile)
 
         # get benchmark-name
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
 
         # get tool
-        self.tool = (root.get("tool"))
+        self.tool = root.get("tool")
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
@@ -124,7 +119,7 @@ class Test:
                 for file in self.getFileList(includesFilesFile.text):
 
                     # read files from list
-                    fileWithList = open(file,"r")
+                    fileWithList = open(file, "r")
                     for line in fileWithList:
                         # strip() removes 'newline' behind the line
                         currentSourcefiles += self.getFileList(line.strip())
@@ -198,9 +193,8 @@ class OutputHandler:
 
     def __init__(self, benchmark):
         """
-        The constructor of OutputHandler initializes some variables
-        (logFolder, outputLogFileName, outputCSVFileName)
-        and prints the heads into log- and CSV-file.
+        The constructor of OutputHandler creates the folder to store logfiles
+        and collects information about the benchmark and the computer.
         """
 
         self.benchmark = benchmark
@@ -213,53 +207,38 @@ class OutputHandler:
         if not os.path.isdir(self.logFolder):
             os.mkdir(self.logFolder)
 
-        # create header of outputLogFile
-        columnWidth = 20
-        headLine = "   BENCHMARK INFORMATION\n" +\
-                    "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"
-        dateLine = "date:".ljust(columnWidth) + str(date.today()) + "\n"
-        toolLine = "tool:".ljust(columnWidth) + self.benchmark.tool +\
-                    " " + self.getVersion(self.benchmark.tool) + "\n"
-  
-        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
-            toolLine += "memlimit:".ljust(columnWidth)\
-                        + str(self.benchmark.rlimits[9][0] / 1024 / 1024) + "\n"
-        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
-            toolLine += "timelimit:".ljust(columnWidth)\
-                        + str(self.benchmark.rlimits[0][0]) + "\n"
-        simpleLine = "-" * (len(headLine) + 15) + "\n"
-        header = headLine + dateLine + toolLine + simpleLine + "\n"
-        
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
-        systemInfo = "   SYSTEM INFORMATION\n"\
-                    + "os:".ljust(columnWidth) + opSystem + "\n"\
-                    + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
-                    + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
-                    + "- max frequency:".ljust(columnWidth) + maxFrequency + "\n"\
-                    + "ram:".ljust(columnWidth) + memory + "\n"\
-                    + simpleLine
 
-        # create outputLogFile
-        # if the file exist, it will be OVERWRITTEN without a message!
-        outputLogFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".txt"
-        self.outputLog = FileWriter(outputLogFileName, header + systemInfo)
-        logging.debug("OutputLogFile {0} created.".format(repr(outputLogFileName)))
+        # store benchmarkInfo in XML
+        global benchmarkResults   # 'global' only for printing after keyboard-interrupt
+        benchmarkResults = ET.Element("benchmark",
+                    {"name": self.benchmark.name, "date": str(date.today()),
+                     "tool": self.benchmark.tool, "version": self.getVersion(self.benchmark.tool)})
+        self.benchmarkResults = benchmarkResults
+        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
+            self.benchmarkResults.set("memlimit", str(self.benchmark.rlimits[9][0] / 1024 / 1024) + " MB")
+        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
+            self.benchmarkResults.set("timelimit", str(self.benchmark.rlimits[0][0]) + " s")
 
-        # create outputCSVFile with titleLine
-        # if the file exist, it will be OVERWRITTEN without a message!
-        outputCSVFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".csv"
-        CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "cpu time", "wall time"])
+        # store systemInfo in XML          
+        osElem = ET.Element("os", {"name": opSystem})
+        cpuElem = ET.Element("cpu", 
+            {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
+        ramElem = ET.Element("ram", {"size": memory})
+
+        systemInfo = ET.Element("systeminfo")
+        systemInfo.append(osElem)
+        systemInfo.append(cpuElem)
+        systemInfo.append(ramElem)
+        self.benchmarkResults.append(systemInfo)
+
+        # store columnTitles in XML
+        columntitlesElem = ET.Element("columns")
         for column in self.benchmark.columns:
-            CSVtitleLine += CSV_SEPARATOR + column.title
-        self.outputCSV = FileWriter(outputCSVFileName, CSVtitleLine + "\n")
-        logging.debug("OutputCSVFile {0} created.".format(repr(outputCSVFileName)))
-
-        # resultSet for JSON-file
-        if options.json:
-            global resultSet    # 'global' only for printing after keyboard-interrupt
-            resultSet = ResultSet()
-            self.resultSet = resultSet
+            columnElem = ET.Element("column", {"title": column.title})
+            columntitlesElem.append(columnElem)
+        self.benchmarkResults.append(columntitlesElem)
 
 
     def getVersion(self, tool):
@@ -272,9 +251,9 @@ class OutputHandler:
 
             # get info about the local svn-directory of CPAchecker
             exe = findExecutable("cpachecker", "scripts/cpa.sh")
-            cpaFolder = subprocess.Popen(['which', exe], 
+            cpaFolder = subprocess.Popen(['which', exe],
                                   stdout=subprocess.PIPE).communicate()[0].strip('\n')
-            output = subprocess.Popen(['svn', 'info', cpaFolder], 
+            output = subprocess.Popen(['svn', 'info', cpaFolder],
                                   stdout=subprocess.PIPE).communicate()[0]
                                   
             # parse output and get revision
@@ -282,11 +261,11 @@ class OutputHandler:
                         output.strip('\n').split('\n')))
             version = ""
             if 'Revision' in svnInfo:
-                version = "(Revision: " + svnInfo['Revision'] + ")"
+                version = "Revision: " + svnInfo['Revision']
 
         elif (tool == "cbmc") or (tool == "satabs"):
             exe = findExecutable(tool, None)
-            version += subprocess.Popen([exe, '--version'], 
+            version += subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()                
 
         return version
@@ -305,7 +284,7 @@ class OutputHandler:
         cpuInfoFile = open('/proc/cpuinfo', "r")
         cpuInfo = dict(map(lambda str: tuple(str.split(':')),
                             cpuInfoFile.read()
-                            .replace('\n\n','\n').replace('\t','')
+                            .replace('\n\n', '\n').replace('\t', '')
                             .strip('\n').split('\n')))
         cpuInfoFile.close()
 
@@ -326,7 +305,7 @@ class OutputHandler:
         memInfoFile = open('/proc/meminfo', "r")
         memInfo = dict(map(lambda str: tuple(str.split(': ')),
                             memInfoFile.read()
-                            .replace('\t','')
+                            .replace('\t', '')
                             .strip('\n').split('\n')))
         memInfoFile.close()
 
@@ -338,7 +317,9 @@ class OutputHandler:
 
     def outputBeforeTest(self, test):
         """
-        The method outputBeforeTest() prints the head of a test into the log-file.
+        The method outputBeforeTest() calculates the length of the 
+        first column for the output in terminal and stores information
+        about the test in XML.
         @param test: current test with a list of testfiles
         """
 
@@ -346,29 +327,26 @@ class OutputHandler:
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
         if len(self.test.sourcefiles) == 1:
-            logging.debug("The {0} test consists of 1 sourcefile.".format(
-                    self.ordinalNumeral(numberOfTest)))
+            logging.debug("test {0} consists of 1 sourcefile.".format(
+                    numberOfTest))
         else:
-            logging.debug("The {0} test consists of {1} sourcefiles.".format(
-                    self.ordinalNumeral(numberOfTest),
-                    len(self.test.sourcefiles)))
+            logging.debug("test {0} consists of {1} sourcefiles.".format(
+                    numberOfTest, len(self.test.sourcefiles)))
 
-        # values for the table with the results of currentTest
-        self.maxLengthOfFileName = 40
+        # length of the first column in terminal
+        self.maxLengthOfFileName = 20
         for sourcefile in self.test.sourcefiles:
             self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
 
-        # write headline and columntitles for currentTest to file
+        # store testname and options in XML
         options = " ".join(self.test.options)
-        optionLine = "\n\n"
+        self.testElem = ET.Element("test", {"options": options})
         if self.test.name is not None:
-            optionLine += self.test.name + "\n"
-        optionLine += "test {0} of {1} with options: {2}\n\n".format(
-                    numberOfTest, len(self.benchmark.tests), options)
-        titleLine = self.createOutputLine("sourcefile", "status", 
-                                     "cpu time", "wall time", self.benchmark.columns, True)
-        self.simpleLine = "-" * (len(titleLine)) + "\n"
-        self.outputLog.append(optionLine + titleLine + "\n" + self.simpleLine)
+            self.testElem.set("name", self.test.name)
+        else:
+            self.testElem.set("name", str(numberOfTest))
+
+        self.benchmarkResults.append(self.testElem)
 
 
     def outputBeforeRun(self, sourcefile):
@@ -388,8 +366,8 @@ class OutputHandler:
 
     def outputAfterRun(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, output):
         """
-        The method outputAfterRun() prints (filename,) result, time and status 
-        of a test to terminal and into the log and CSV-file. 
+        The method outputAfterRun() prints filename, result, time and status 
+        of a test to terminal and stores all data in XML 
         The output is written to a file-specific log-file.
         """
 
@@ -416,34 +394,28 @@ class OutputHandler:
         if self.test.name is not None:
             logFileName += self.test.name + "."
         logFileName += os.path.basename(sourcefile) + ".log"
-        FileWriter(logFileName, output)
+        logFile = open(logFileName, "w")
+        logFile.write(output)
+        logFile.close()
 
         # output in terminal/console
         print status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8)
 
-        # output in log-file
-        self.outputLog.append(self.createOutputLine(sourcefile, status, 
-                            cpuTimeDelta, wallTimeDelta, self.benchmark.columns, False) + "\n")
+        # store filename, status, times, columns in XML
+        fileElem = ET.Element("sourcefile", {"name": sourcefile, "status": status})
+        timesElem = ET.Element("time", {"cpuTime": cpuTimeDelta, "wallTime": wallTimeDelta})
+        fileElem.append(timesElem)
 
-        # output in CSV-file
-        outputCSVLine = CSV_SEPARATOR.join([sourcefile, status, cpuTimeDelta, wallTimeDelta])
         for column in self.benchmark.columns:
-            outputCSVLine += CSV_SEPARATOR + column.value
-        self.outputCSV.append(outputCSVLine + "\n")
-        
-        # store result for JSON-file
-        if options.json:
-            self.resultSet.addResult(sourcefile, self.benchmark.tool, self.test.name, {
-                          'status':         status,
-                          'cpuTimeDelta':   cpuTimeDelta,
-                          'wallTimeDelta':  wallTimeDelta
-                          })
+            fileElem.append(ET.Element("column", 
+                    {"title": column.title, "value": column.value}))
+
+        self.testElem.append(fileElem)
 
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
         """
-        The method outputAfterTest() prints number of files and the time of a 
-        test into the log-file. 
+        The method outputAfterTest() stores the times of a test in XML. 
         @params cpuTimeTest, wallTimeTest: times of the test
         """
 
@@ -451,22 +423,35 @@ class OutputHandler:
         cpuTimeTest = self.formatNumber(cpuTimeTest, TIME_PRECISION)
         wallTimeTest = self.formatNumber(wallTimeTest, TIME_PRECISION)
 
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
+        # store testtime in XML
+        timesElem = ET.Element("time", {"cpuTime": cpuTimeTest, "wallTime": wallTimeTest})
+        self.testElem.append(timesElem)
 
-        if len(self.test.sourcefiles) == 1:
-            endline = ("The {0} test consisted of 1 sourcefile.".format(
-                    self.ordinalNumeral(numberOfTest)))
-        else:
-            endline = ("The {0} test consisted of {1} sourcefiles.".format(
-                    self.ordinalNumeral(numberOfTest), len(self.test.sourcefiles)))
-        endline = self.createOutputLine(endline, "done", cpuTimeTest, wallTimeTest, [], False) + "\n"
-        self.outputLog.append(self.simpleLine + endline)
 
-        # write output to JSON-file
-        if (options.json):
-            outputJSONFileName = OUTPUT_PATH + self.benchmark.name + ".results."\
-                                + str(date.today()) + ".json"
-            FileWriter(outputJSONFileName, self.resultSet.toJson())
+    def outputAfterBenchmark(self):
+        """
+        The method outputAfterBenchmark() converts and writes all files.
+        """
+
+        # write XML-file
+        XMLFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".xml"
+        XMLFile = open(XMLFileName, "w")
+        XMLFile.write(XMLtoString(self.benchmarkResults))
+        XMLFile.close()
+
+        # convert XML-file into specific formats
+        if options.txt:
+            import xml2txt
+            xml2txt.convert(XMLFileName, OUTPUT_PATH)
+        
+        if options.json:
+            import xml2json
+            xml2json.convert(XMLFileName, OUTPUT_PATH)
+
+        if options.csv:
+            import xml2csv
+            xml2csv.convert(XMLFileName, OUTPUT_PATH)
+        
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
@@ -484,9 +469,9 @@ class OutputHandler:
         lengthOfTime = 11
         minLengthOfColumns = 8
 
-        outputLine = sourcefile.ljust(self.maxLengthOfFileName + 4) +\
-                     status.ljust(lengthOfStatus) +\
-                     cpuTimeDelta.rjust(lengthOfTime) +\
+        outputLine = sourcefile.ljust(self.maxLengthOfFileName + 4) + \
+                     status.ljust(lengthOfStatus) + \
+                     cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime)
 
         for column in columns:
@@ -502,18 +487,6 @@ class OutputHandler:
         return outputLine
 
 
-    def ordinalNumeral(self, number):
-        last_cipher = number % 10
-        if last_cipher == 1:
-            return "{0}st".format(number)
-        elif last_cipher == 2:
-            return "{0}nd".format(number)
-        elif last_cipher == 3:
-            return "{0}rd".format(number)
-        else:
-            return "{0}th".format(number)
-    
-    
     def formatNumber(self, number, numberOfDigits):
             """
             The function formatNumber() return a string-representation of a number
@@ -527,58 +500,15 @@ class OutputHandler:
     
             return "%.{0}f".format(numberOfDigits) % number
 
-class FileWriter:
-    """
-    The class FileWrtiter is a wrapper for writing content into a file.
-    """
 
-    def __init__(self, filename, content):
+def XMLtoString(elem):
         """
-        The constructor of FileWriter creates the file.
-        If the file exist, it will be OVERWRITTEN without a message!
+        Return a pretty-printed XML string for the Element.
         """
-
-        self.__filename = filename
-        file = open(self.__filename, "w")
-        file.write(content)
-        file.close()
-
-    def append(self, content):
-        file = open(self.__filename, "a")
-        file.write(content)
-        file.close()
-
-
-class ResultSet:
-    """
-    The class ResultSet is a collection of all results of a whole benchmark execution
-    """
-
-    __resultSet = defaultdict(lambda: defaultdict())
-
-    def __init__(self):
-        """
-        The constructor of ResultSet
-        """
-
-    def addResult(self, sourceFileName, toolName, testName, result):
-        """
-        This method adds a result, associated to a source file and tool, to the result set.
-
-        @param sourceFileName: the name of the source file associated with the result
-        @param sourceFileName: the name of the tool associated with the result
-        @param sourceFileName: the result to store
-        """
-        self.__resultSet[sourceFileName][toolName + "_" + testName] = result
-
-    def toJson(self):
-        """
-        This method returns a human-readable JSON-formatted string representation of the result set
-
-        @return: a human-readable JSON-formatted string representation of the result set
-        """
-
-        return json.dumps(self.__resultSet, sort_keys=True, indent=4)
+        from xml.dom import minidom
+        rough_string = ET.tostring(elem, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        return reparsed.toprettyxml(indent="  ")
 
 
 def findExecutable(program, default):
@@ -706,7 +636,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     else:
         limit = float('inf')
 
-    if returncode == 137 and (cpuTimeDelta+0.5) > limit:
+    if returncode == 137 and (cpuTimeDelta + 0.5) > limit:
         # if return code is "KILLED BY SIGNAL 9" and
         # used CPU time is larger than the time limit (approximately at least)
         status = 'TIMEOUT'
@@ -811,10 +741,10 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputBeforeRun(sourcefile)
 
             # run test
-            (status, cpuTimeDelta, wallTimeDelta, output) =\
+            (status, cpuTimeDelta, wallTimeDelta, output) = \
                 run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
 
-            outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta, 
+            outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta,
                                          wallTimeDelta, output)
 
         # get times after test
@@ -826,6 +756,7 @@ def runBenchmark(benchmarkFile):
 
         outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
+    outputHandler.outputAfterBenchmark()
 
 def main(argv=None):
 
@@ -840,6 +771,14 @@ def main(argv=None):
     parser.add_option("-j", "--json",
                       action="store_true",
                       help="enable json output")
+
+    parser.add_option("-c", "--csv",
+                      action="store_true",
+                      help="enable csv output")
+    
+    parser.add_option("-t", "--txt",
+                      action="store_true",
+                      help="enable txt output")
 
     global options
     (options, args) = parser.parse_args(argv)
@@ -875,11 +814,11 @@ if __name__ == "__main__":
     except LookupError as e:
         print e
     except KeyboardInterrupt:
-        interruptMessage = "script was interrupted by user, some tests may not be done"
+        interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
 
-        print resultSet.toJson()
-
         print interruptMessage
+        print "\n\n" + XMLtoString(benchmarkResults)
+
         pass
 
