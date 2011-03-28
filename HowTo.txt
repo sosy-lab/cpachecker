@@ -16,7 +16,8 @@ Building CPAchecker:
 1. Install Java 1.6 SDK or higher (OpenJDK 6 works, too).
    http://java.sun.com/
 2. Checkout CPAchecker from SVN repository.
-   URL: http://svn.sosy-lab.org/software/cpachecker/trunk
+   URL for users with account: http://svn.sosy-lab.org/software/cpachecker/trunk
+   URL for anonymous checkout: http://cpachecker.googlecode.com/svn/trunk
 3. Install ant (anything since version 1.6 should be ok).
    The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
 4. Run "ant" in CPAchecker directory to build CPAchecker.
@@ -70,7 +71,8 @@ Building and running CPAchecker from within Eclipse:
 2. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org,
    Eclipse update site: http://subclipse.tigris.org/update_1.6.x)
    Create new project from SVN repository
-   URL: http://svn.sosy-lab.org/software/cpachecker/trunk
+   URL for users with account: http://svn.sosy-lab.org/software/cpachecker/trunk
+   URL for anonymous checkout: http://cpachecker.googlecode.com/svn/trunk
 3. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
    and "Bundle 'org.eclipse.cdt.core' cannot be resolved'".
 4. Follow the instructions in section "Running CPAchecker", but instead of step 8
