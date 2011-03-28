@@ -233,7 +233,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
               }
               else{
-                newElement.forget(varName);
+                newElement.forget(globalVar);
               }
             }
           }
