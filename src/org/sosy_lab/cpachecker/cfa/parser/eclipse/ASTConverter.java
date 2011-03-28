@@ -546,11 +546,15 @@ class ASTConverter {
     }
     
     IASTFunctionTypeSpecifier declSpec = (IASTFunctionTypeSpecifier)declarator.getFirst();
-    
+    IASTName name = declarator.getThird();    
+
     // fake raw signature because otherwise it would contain the whole function body
     String rawSignature = f.getDeclSpecifier().getRawSignature() + " " + f.getDeclarator().getRawSignature();
     
-    return new IASTFunctionDefinition(rawSignature, convert(f.getFileLocation()), specifier.getFirst(), declSpec, declarator.getThird());
+    IASTFileLocation fileLoc = convert(f.getFileLocation());
+    
+    IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, declSpec, name);
+    return new IASTFunctionDefinition(rawSignature, fileLoc, specifier.getFirst(), newSd);
   }
   
   public List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
@@ -848,7 +852,7 @@ class ASTConverter {
     return new IASTInitializerList(iList.getRawSignature(), convert(iList.getFileLocation()), initializerList);
   }
   
-  public List<IASTSimpleDeclaration> convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration[] ps) {
+  private List<IASTSimpleDeclaration> convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration[] ps) {
     List<IASTSimpleDeclaration> paramsList = new ArrayList<IASTSimpleDeclaration>(ps.length);
     for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : ps) {
       if (!c.getRawSignature().equals("void")) {
@@ -862,7 +866,7 @@ class ASTConverter {
     return paramsList;
   }
   
-  public IASTSimpleDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
+  private IASTSimpleDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
     Pair<StorageClass, ? extends IType> specifier = convert(p.getDeclSpecifier());
     if (specifier.getFirst() != StorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);

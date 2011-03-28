@@ -23,23 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class IASTFunctionDefinition extends IASTNode {
 
   private final StorageClass           storageClass;
-  private final IASTFunctionTypeSpecifier specifier;
-  private final IASTName               name;
+  private final IASTSimpleDeclaration  declaration;
 
   public IASTFunctionDefinition(final String pRawSignature,
       final IASTFileLocation pFileLocation,
       final StorageClass pStorageClass,
-      final IASTFunctionTypeSpecifier pSpecifier,
-      final IASTName pName) {
+      final IASTSimpleDeclaration pDeclaration) {
     super(pRawSignature, pFileLocation);
     storageClass = checkNotNull(pStorageClass);
-    specifier = checkNotNull(pSpecifier);
-    name = checkNotNull(pName);
+    declaration = checkNotNull(pDeclaration);
+    checkArgument(declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier);
   }
   
   public StorageClass getStorageClass() {
@@ -47,15 +46,19 @@ public final class IASTFunctionDefinition extends IASTNode {
   }
 
   public IASTFunctionTypeSpecifier getDeclSpecifier() {
-    return specifier;
+    return (IASTFunctionTypeSpecifier) declaration.getDeclSpecifier();
   }
   
   public IASTName getName() {
-    return name;
+    return declaration.getName();
+  }
+  
+  public IASTSimpleDeclaration getDeclaration() {
+    return declaration;
   }
   
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {name};
+    return new IASTNode[] {declaration};
   }
 }
