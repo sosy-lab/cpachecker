@@ -190,11 +190,14 @@ class CFABuilder extends ASTVisitor
         assert nextNode != null;
         locStack.push(nextNode);          
       
-      } else if (declaration.getParent() instanceof IASTTranslationUnit) {
+      } else {
+        assert declaration.getParent() instanceof IASTTranslationUnit : "not a real global declaration";
       
         // else we're in the global scope
         globalDeclarations.addAll(astCreator.convert(sd));
       }
+      
+      return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
     }
     else if (declaration instanceof IASTFunctionDefinition)
     {
@@ -239,6 +242,8 @@ class CFABuilder extends ASTVisitor
       BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), startNode, nextNode);
       addToCFA(dummyEdge);
 
+      return PROCESS_CONTINUE;
+
       
     } else if (declaration instanceof IASTProblemDeclaration) {
       // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
@@ -246,6 +251,7 @@ class CFABuilder extends ASTVisitor
       // #define  __attribute__(x)  /*NOTHING*/
       // or insert "parser.dialect = GNUC" into properties file
       visit(((IASTProblemDeclaration)declaration).getProblem());
+      return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
@@ -263,12 +269,11 @@ class CFABuilder extends ASTVisitor
         BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
         addToCFA(edge);
       }
+      return PROCESS_SKIP;
 
     } else {
       throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(),  declaration);
     }
-
-    return PROCESS_CONTINUE;
   }
 
   @Override
