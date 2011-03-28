@@ -2,10 +2,14 @@
 
 # where the eclipse project directory is, relative to the location of this
 # script
-[ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="`dirname \"$0\"`/.."
+SCRIPT="$(readlink -f "$0")"
+[ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
 
 # the location of the java command
 JAVA=java
+
+# the default heap size of the javaVM
+DEFAULT_HEAP_SIZE="1200m"
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -32,6 +36,9 @@ case "$arch-$platform" in
   x86_64-Linux)
     arch_platform="x86_64-linux"
     ;;
+  i386-Darwin)
+    arch_platform="x86-macosx"
+    ;;
   "Power Macintosh-Darwin")
     arch_platform="ppc-macosx"
     ;;
@@ -46,19 +53,40 @@ arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin"
 
 # external jars shipped with the project
-CLASSPATH="$CLASSPATH:`find $PATH_TO_CPACHECKER/lib -name '*.jar' | tr "[:space:]" ":"`"
+CLASSPATH="$CLASSPATH$(find $PATH_TO_CPACHECKER/lib -name '*.jar' -printf ':%p' )"
 
 export CLASSPATH
 
 # where to find the native binaries
 export PATH="$PATH:$arch_platform_path"
 
-if [ "$1" = "-debug" ]; then
-  JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+# loop over all input parameters and parse them
+declare -a OPTIONS
+while [ $# -gt 0 ]; do 
+
+  case $1 in
+   "-heap")
+       shift
+       JAVA_HEAP_SIZE=$1
+       ;;
+   "-debug")  
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+       ;;
+   *) # other params are only for CPAchecker
+       OPTIONS+=("$1")
+       ;;
+  esac
+
   shift
+done
+
+if [ -n "$JAVA_HEAP_SIZE" ]; then
+  echo "Running JavaVM with special heap size: $JAVA_HEAP_SIZE"
 fi
 
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
-"$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx7000m -ea org.sosy_lab.cpachecker.cmdline.CPAMain "$@"
+
+# run CPAchecker
+"$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -ea org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}"
