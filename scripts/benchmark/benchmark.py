@@ -246,7 +246,6 @@ class OutputHandler:
         This function return a String representing the version of the tool.
         """
 
-        version = ""
         if (tool == "cpachecker"):
 
             # get info about the local svn-directory of CPAchecker
@@ -255,7 +254,7 @@ class OutputHandler:
                                   stdout=subprocess.PIPE).communicate()[0].strip('\n')
             output = subprocess.Popen(['svn', 'info', cpaFolder],
                                   stdout=subprocess.PIPE).communicate()[0]
-             
+
             # parse output and get revision
             svnInfo = dict(map(lambda str: tuple(str.split(': ')),
                         output.strip('\n').split('\n')))
@@ -264,7 +263,6 @@ class OutputHandler:
                 version = "Revision: " + svnInfo['Revision']
 
         elif (tool == "cbmc"):
-
             defaultExe = None
             if platform.machine() == "x86_64":
                 defaultExe = "lib/native/x86_64-linux/cbmc"
@@ -272,12 +270,12 @@ class OutputHandler:
                 defaultExe = "lib/native/x86-linux/cbmc"
 
             exe = findExecutable("cbmc", defaultExe)
-            version += subprocess.Popen([exe, '--version'],
+            version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()                
 
-        if (tool == "satabs"):
+        elif (tool == "satabs"):
             exe = findExecutable(tool, None)
-            version += subprocess.Popen([exe, '--version'],
+            version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         return version
