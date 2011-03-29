@@ -53,8 +53,12 @@ def convert(filename, outputFolder):
 
         # get info and titles of test
         numberOfTest = benchmarkTag.findall("test").index(testTag) + 1
-        testInfo = testTag.get("name") + "\n"\
-                    + "test {0} of {1} with options: {2}\n\n".format(
+        testName = testTag.get("name")
+        if testName is None:
+            testInfo = ""
+        else:
+            testInfo = testTag.get("name") + "\n" 
+        testInfo += "test {0} of {1} with options: {2}\n\n".format(
                                     numberOfTest, 
                                     len(benchmarkTag.findall("test")),
                                     testTag.get("options"))

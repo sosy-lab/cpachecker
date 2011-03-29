@@ -28,7 +28,10 @@ class ResultSet:
         @param sourceFileName: the name of the tool associated with the result
         @param sourceFileName: the result to store
         """
-        self.__resultSet[sourceFileName][toolName + "_" + testName] = result
+        if testName is None:
+            self.__resultSet[sourceFileName][toolName] = result
+        else:
+            self.__resultSet[sourceFileName][toolName + "_" + testName] = result
 
     def toJson(self):
         """

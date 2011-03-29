@@ -22,9 +22,13 @@ def convert(filename, outputFolder):
     for column in benchmarkTag.find("columns"):
         CSVtitleLine += CSV_SEPARATOR + column.get("title")
 
-    CSVContent = CSVtitleLine + "\n"
+    CSVtitleLine = CSVtitleLine + "\n"
+    contentWithoutTestName = ""
 
     for testTag in benchmarkTag.findall("test"):
+        
+        CSVContent = CSVtitleLine
+        
         for sourcefileTag in testTag.findall("sourcefile"):
 
             outputCSVLine = CSV_SEPARATOR.join([sourcefileTag.get("name"),
@@ -36,12 +40,21 @@ def convert(filename, outputFolder):
 
             CSVContent += outputCSVLine + "\n"
 
-    # write to file
-    CSVFileName = outputFolder + benchmarkTag.get("name") + ".results." + str(date.today()) + ".csv"
-    CSVFile = open(CSVFileName, "w")
-    CSVFile.write(CSVContent)
-    CSVFile.close()
+        # write to file if name exists, else store in 
+        testName = testTag.get("name")
+        if testName is None:
+            contentWithoutTestName += CSVContent
+        else:
+            CSVFileName = outputFolder + benchmarkTag.get("name") + "." + testName + ".results." + str(date.today()) + ".csv"
+            CSVFile = open(CSVFileName, "w")
+            CSVFile.write(CSVContent)
+            CSVFile.close()
 
+    if contentWithoutTestName is not "":
+        CSVFileName = outputFolder + benchmarkTag.get("name") + ".results." + str(date.today()) + ".csv"
+        CSVFile = open(CSVFileName, "w")
+        CSVFile.write(contentWithoutTestName)
+        CSVFile.close()
     print "done"
 
 

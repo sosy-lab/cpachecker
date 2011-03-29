@@ -353,9 +353,6 @@ class OutputHandler:
         self.testElem = ET.Element("test", {"options": options})
         if self.test.name is not None:
             self.testElem.set("name", self.test.name)
-        else:
-            self.testElem.set("name", str(numberOfTest))
-
         self.benchmarkResults.append(self.testElem)
 
 
