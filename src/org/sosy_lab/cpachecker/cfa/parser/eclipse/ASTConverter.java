@@ -559,6 +559,13 @@ class ASTConverter {
   public IASTFunctionDefinition convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
     Pair<StorageClass, ? extends IType> specifier = convert(f.getDeclSpecifier());
     
+    StorageClass storageClass = specifier.getFirst();
+    if (!(storageClass == StorageClass.AUTO || storageClass == StorageClass.STATIC)) {
+      // Storage class static is the same as auto, just with reduced visibility to a single compilation unit.
+      // As we only handle single compilation units, we can ignore it.
+      throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f);
+    }
+    
     Triple<IType, IASTInitializer, IASTName> declarator = convert(f.getDeclarator(), specifier.getSecond());
     if (!(declarator.getFirst() instanceof IASTFunctionTypeSpecifier)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
@@ -579,7 +586,7 @@ class ASTConverter {
     IASTFileLocation fileLoc = convert(f.getFileLocation());
     
     IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, declSpec, name);
-    return new IASTFunctionDefinition(rawSignature, fileLoc, specifier.getFirst(), newSd);
+    return new IASTFunctionDefinition(rawSignature, fileLoc, newSd);
   }
   
   public List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {

@@ -27,27 +27,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * This is a function definition. It contains a storage class, a type and a name.
+ * This is a function definition. It contains a type and a name.
+ * The storage class should assumed to be "auto" (i.e., the default). 
  * It is only used for functions that are actually defined in the code, although
  * it stores no information about the function body.
  */
 public final class IASTFunctionDefinition extends IASTNode {
 
-  private final StorageClass           storageClass;
   private final IASTSimpleDeclaration  declaration;
 
   public IASTFunctionDefinition(final String pRawSignature,
       final IASTFileLocation pFileLocation,
-      final StorageClass pStorageClass,
       final IASTSimpleDeclaration pDeclaration) {
     super(pRawSignature, pFileLocation);
-    storageClass = checkNotNull(pStorageClass);
     declaration = checkNotNull(pDeclaration);
     checkArgument(declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier);
-  }
-  
-  public StorageClass getStorageClass() {
-    return storageClass;
   }
 
   public IASTFunctionTypeSpecifier getDeclSpecifier() {
