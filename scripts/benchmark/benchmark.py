@@ -255,7 +255,7 @@ class OutputHandler:
                                   stdout=subprocess.PIPE).communicate()[0].strip('\n')
             output = subprocess.Popen(['svn', 'info', cpaFolder],
                                   stdout=subprocess.PIPE).communicate()[0]
-                                  
+             
             # parse output and get revision
             svnInfo = dict(map(lambda str: tuple(str.split(': ')),
                         output.strip('\n').split('\n')))
@@ -263,10 +263,22 @@ class OutputHandler:
             if 'Revision' in svnInfo:
                 version = "Revision: " + svnInfo['Revision']
 
-        elif (tool == "cbmc") or (tool == "satabs"):
-            exe = findExecutable(tool, None)
+        elif (tool == "cbmc"):
+
+            defaultExe = None
+            if platform.machine() == "x86_64":
+                defaultExe = "lib/native/x86_64-linux/cbmc"
+            elif platform.machine() == "i386":
+                defaultExe = "lib/native/x86-linux/cbmc"
+
+            exe = findExecutable("cbmc", defaultExe)
             version += subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()                
+
+        if (tool == "satabs"):
+            exe = findExecutable(tool, None)
+            version += subprocess.Popen([exe, '--version'],
+                              stdout=subprocess.PIPE).communicate()[0].strip()
 
         return version
 
