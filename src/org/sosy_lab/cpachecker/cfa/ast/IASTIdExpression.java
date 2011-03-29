@@ -40,6 +40,10 @@ public class IASTIdExpression extends IASTExpression {
     return name;
   }
   
+  /**
+   * Get the declaration of the variable.
+   * The result may be null if the variable was not declared.
+   */
   public IASTSimpleDeclaration getDeclaration() {
     return declaration;
   }
