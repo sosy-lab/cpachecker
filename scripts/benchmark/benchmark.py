@@ -209,21 +209,36 @@ class OutputHandler:
 
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
+        version = self.getVersion(self.benchmark.tool)
+        
+        memlimit = None
+        timelimit = None
+        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
+            memlimit = str(self.benchmark.rlimits[9][0] / 1024 / 1024) + " MB"
+        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
+            timelimit = str(self.benchmark.rlimits[0][0]) + " s"
+
+        self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
+                              numberOfCores, maxFrequency, memory)
+        self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
+                              numberOfCores, maxFrequency, memory)
+
+
+    def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
+                         cpuModel, numberOfCores, maxFrequency, memory):
 
         # store benchmarkInfo in XML
-        global benchmarkResults   # 'global' only for printing after keyboard-interrupt
-        benchmarkResults = ET.Element("benchmark",
+        self.benchmarkResults = ET.Element("benchmark",
                     {"name": self.benchmark.name, "date": str(date.today()),
-                     "tool": self.benchmark.tool, "version": self.getVersion(self.benchmark.tool)})
-        self.benchmarkResults = benchmarkResults
-        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
-            self.benchmarkResults.set("memlimit", str(self.benchmark.rlimits[9][0] / 1024 / 1024) + " MB")
-        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
-            self.benchmarkResults.set("timelimit", str(self.benchmark.rlimits[0][0]) + " s")
+                     "tool": self.benchmark.tool, "version": version})
+        if memlimit is not None:
+            self.benchmarkResults.set("memlimit", memlimit)
+        if timelimit is not None:
+            self.benchmarkResults.set("timelimit", timelimit)
 
         # store systemInfo in XML          
         osElem = ET.Element("os", {"name": opSystem})
-        cpuElem = ET.Element("cpu", 
+        cpuElem = ET.Element("cpu",
             {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
         ramElem = ET.Element("ram", {"size": memory})
 
@@ -239,6 +254,40 @@ class OutputHandler:
             columnElem = ET.Element("column", {"title": column.title})
             columntitlesElem.append(columnElem)
         self.benchmarkResults.append(columntitlesElem)
+
+
+    def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
+                         cpuModel, numberOfCores, maxFrequency, memory):
+        """
+        This method writes information about benchmark and system into TXTFile.
+        """
+
+        columnWidth = 20
+        simpleLine = "-" * (60) + "\n\n"
+    
+        header = "   BENCHMARK INFORMATION\n"\
+                + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
+                + "date:".ljust(columnWidth) + str(date.today()) + "\n"\
+                + "tool:".ljust(columnWidth) + self.benchmark.tool\
+                + " " + version + "\n"
+    
+        if memlimit is not None:
+            header += "memlimit:".ljust(columnWidth) + memlimit + "\n"
+        if timelimit is not None:
+            header += "timelimit:".ljust(columnWidth) + timelimit + "\n"
+        header += simpleLine
+    
+        systemInfo = "   SYSTEM INFORMATION\n"\
+                + "os:".ljust(columnWidth) + opSystem + "\n"\
+                + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
+                + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
+                + "- max frequency:".ljust(columnWidth) + maxFrequency + "\n"\
+                + "ram:".ljust(columnWidth) + memory + "\n"\
+                + simpleLine
+    
+        # write to file    
+        TXTFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".txt"
+        self.TXTFile = FileWriter(TXTFileName, header + systemInfo)
 
 
     def getVersion(self, tool):
@@ -279,6 +328,7 @@ class OutputHandler:
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         return version
+
 
     def getSystemInfo(self):
         """
@@ -355,6 +405,31 @@ class OutputHandler:
             self.testElem.set("name", self.test.name)
         self.benchmarkResults.append(self.testElem)
 
+        # write information about the test into TXTFile
+        self.writeTestInfoToLog()
+
+
+    def writeTestInfoToLog(self):
+        """
+        THis method writes the information about a test into the TXTFile.
+        """
+
+        numberOfTest = self.benchmark.tests.index(self.test) + 1
+        if self.test.name is None:
+            testInfo = ""
+        else:
+            testInfo = self.test.name + "\n" 
+        testInfo += "test {0} of {1} with options: {2}\n\n".format(
+                numberOfTest, len(self.benchmark.tests), " ".join(self.test.options))
+
+        titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+                            "wall time", self.benchmark.columns, True)
+
+        self.test.simpleLine = "-" * (len(titleLine)) + "\n"
+
+        # write into TXTFile    
+        self.TXTFile.append("\n\n" + testInfo + titleLine + "\n" + self.test.simpleLine)
+
 
     def outputBeforeRun(self, sourcefile):
         """
@@ -401,9 +476,7 @@ class OutputHandler:
         if self.test.name is not None:
             logFileName += self.test.name + "."
         logFileName += os.path.basename(sourcefile) + ".log"
-        logFile = open(logFileName, "w")
-        logFile.write(output)
-        logFile.close()
+        FileWriter(logFileName, output)
 
         # output in terminal/console
         print status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8)
@@ -414,10 +487,15 @@ class OutputHandler:
         fileElem.append(timesElem)
 
         for column in self.benchmark.columns:
-            fileElem.append(ET.Element("column", 
+            fileElem.append(ET.Element("column",
                     {"title": column.title, "value": column.value}))
 
         self.testElem.append(fileElem)
+
+        # write resultline in TXTFile
+        resultline = self.createOutputLine(sourcefile, status,
+                    cpuTimeDelta, wallTimeDelta, self.benchmark.columns, False)
+        self.TXTFile.append(resultline + "\n")
 
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
@@ -434,6 +512,20 @@ class OutputHandler:
         timesElem = ET.Element("time", {"cpuTime": cpuTimeTest, "wallTime": wallTimeTest})
         self.testElem.append(timesElem)
 
+        # write endline into TXTFile
+        numberOfFiles = len(self.test.sourcefiles)
+        numberOfTest = self.benchmark.tests.index(self.test) + 1
+        if numberOfFiles == 1:
+            endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
+        else:
+            endline = ("test {0} consisted of {1} sourcefiles.".format(
+                    numberOfTest, numberOfFiles))
+
+        endline = self.createOutputLine(endline, "done", cpuTimeTest,
+                             wallTimeTest, [], False)
+
+        self.TXTFile.append(self.test.simpleLine + endline + "\n")
+
 
     def outputAfterBenchmark(self):
         """
@@ -442,22 +534,15 @@ class OutputHandler:
 
         # write XML-file
         XMLFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".xml"
-        XMLFile = open(XMLFileName, "w")
-        XMLFile.write(XMLtoString(self.benchmarkResults))
-        XMLFile.close()
+        FileWriter(XMLFileName, XMLtoString(self.benchmarkResults))
 
         # convert XML-file into specific formats
-        if options.txt:
-            import xml2txt
-            xml2txt.convert(XMLFileName, OUTPUT_PATH)
-        
         if options.json:
             import xml2json
             xml2json.convert(XMLFileName, OUTPUT_PATH)
 
-        if options.csv:
-            import xml2csv
-            xml2csv.convert(XMLFileName, OUTPUT_PATH)
+        import xml2csv
+        xml2csv.convert(XMLFileName, OUTPUT_PATH)
         
 
 
@@ -516,6 +601,28 @@ def XMLtoString(elem):
         rough_string = ET.tostring(elem, 'utf-8')
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
+
+
+class FileWriter:
+     """
+     The class FileWrtiter is a wrapper for writing content into a file.
+     """
+
+     def __init__(self, filename, content):
+         """
+         The constructor of FileWriter creates the file.
+         If the file exist, it will be OVERWRITTEN without a message!
+         """
+
+         self.__filename = filename
+         file = open(self.__filename, "w")
+         file.write(content)
+         file.close()
+
+     def append(self, content):
+         file = open(self.__filename, "a")
+         file.write(content)
+         file.close()
 
 
 def findExecutable(program, default):
@@ -779,14 +886,6 @@ def main(argv=None):
                       action="store_true",
                       help="enable json output")
 
-    parser.add_option("-c", "--csv",
-                      action="store_true",
-                      help="enable csv output")
-    
-    parser.add_option("-t", "--txt",
-                      action="store_true",
-                      help="enable txt output")
-
     global options
     (options, args) = parser.parse_args(argv)
 
@@ -825,7 +924,6 @@ if __name__ == "__main__":
         logging.debug(interruptMessage)
 
         print interruptMessage
-        print "\n\n" + XMLtoString(benchmarkResults)
 
         pass
 
