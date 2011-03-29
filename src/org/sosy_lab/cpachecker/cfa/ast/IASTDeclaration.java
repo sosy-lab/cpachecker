@@ -23,13 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class IASTDeclaration extends IASTNode {
+/**
+ * This class represents declaration of types and variables. It contains a
+ * storage class, a type, a name and an initializer.
+ * 
+ * If the storage class is TYPEDEF, then the given name is aliased to the
+ * given type (as typedef does in C).
+ * Otherwise the name may be null, then it is a struct prototype.
+ * In any other case, it is a variable declaration with the given name and type.
+ */
+public final class IASTDeclaration extends IASTNode {
 
-  private final StorageClass         storageClass;
+  private final StorageClass          storageClass;
   private final IASTSimpleDeclaration declaration;
-  private final IASTInitializer      initializer;
+  private final IASTInitializer       initializer;
   
   public IASTDeclaration(String pRawSignature,
       IASTFileLocation pFileLocation,
@@ -40,6 +50,8 @@ public class IASTDeclaration extends IASTNode {
     storageClass = checkNotNull(pStorageClass);
     declaration = checkNotNull(pDeclaration);
     initializer = pInitializer;
+    
+    checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
   }
 
   public StorageClass getStorageClass() {

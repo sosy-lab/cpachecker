@@ -26,6 +26,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * This is a function definition. It contains a storage class, a type and a name.
+ * It is only used for functions that are actually defined in the code, although
+ * it stores no information about the function body.
+ */
 public final class IASTFunctionDefinition extends IASTNode {
 
   private final StorageClass           storageClass;
@@ -59,6 +64,6 @@ public final class IASTFunctionDefinition extends IASTNode {
   
   @Override
   public IASTNode[] getChildren(){
-    return new IASTNode[] {declaration};
+    return new IASTNode[] {getName()};
   }
 }

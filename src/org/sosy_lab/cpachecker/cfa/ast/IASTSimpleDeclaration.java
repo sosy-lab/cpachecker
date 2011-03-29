@@ -25,10 +25,19 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.*;
 
+/**
+ * This class represents the core components that occur in each declaration:
+ * a type an an (optional) name.
+ * 
+ * It is part of the declaration of types and variables (see {@link IASTDeclaration})
+ * and functions (see {@link IASTFunctionDefinition}).
+ * It is also used stand-alone for the declaration of members of composite types
+ * (e.g. structs) and for the declaration of function parameters. 
+ */
 public final class IASTSimpleDeclaration extends IASTNode {
 
   private final IType    specifier;
-  private final IASTName             name;
+  private final IASTName name;
 
   public IASTSimpleDeclaration(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pSpecifier,
