@@ -18,6 +18,17 @@ def convert(filename, outputFolder):
     print "converting xml to csv ...",
     benchmarkTag = ET.ElementTree().parse(filename)
 
+    # remove old CSV-files
+    for testTag in benchmarkTag.findall("test"):
+        testName = testTag.get("name")
+        if testName is None:
+            CSVFileName = outputFolder + benchmarkTag.get("name") + ".results." + str(date.today()) + ".csv"
+        else:
+            CSVFileName = outputFolder + benchmarkTag.get("name") + "." + testName + ".results." + str(date.today()) + ".csv"
+        if os.path.isfile(CSVFileName):
+            os.remove(CSVFileName)
+
+    # write new files
     CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "cpu time", "wall time"])
     for column in benchmarkTag.find("columns"):
         CSVtitleLine += CSV_SEPARATOR + column.get("title")
@@ -26,9 +37,8 @@ def convert(filename, outputFolder):
     contentWithoutTestName = ""
 
     for testTag in benchmarkTag.findall("test"):
-        
-        CSVContent = CSVtitleLine
-        
+
+        CSVContent = ""
         for sourcefileTag in testTag.findall("sourcefile"):
 
             outputCSVLine = CSV_SEPARATOR.join([sourcefileTag.get("name"),
@@ -40,20 +50,24 @@ def convert(filename, outputFolder):
 
             CSVContent += outputCSVLine + "\n"
 
-        # write to file if name exists, else store in 
+        # write to file if name exists, else store in contentWithoutTestName
         testName = testTag.get("name")
         if testName is None:
             contentWithoutTestName += CSVContent
         else:
             CSVFileName = outputFolder + benchmarkTag.get("name") + "." + testName + ".results." + str(date.today()) + ".csv"
-            CSVFile = open(CSVFileName, "w")
-            CSVFile.write(CSVContent)
+            if os.path.isfile(CSVFileName):
+                CSVFile = open(CSVFileName, "a")
+                CSVFile.write(CSVContent)
+            else:
+                CSVFile = open(CSVFileName, "w")
+                CSVFile.write(CSVtitleLine + CSVContent)
             CSVFile.close()
 
     if contentWithoutTestName is not "":
         CSVFileName = outputFolder + benchmarkTag.get("name") + ".results." + str(date.today()) + ".csv"
         CSVFile = open(CSVFileName, "w")
-        CSVFile.write(contentWithoutTestName)
+        CSVFile.write(CSVtitleLine + contentWithoutTestName)
         CSVFile.close()
     print "done"
 
