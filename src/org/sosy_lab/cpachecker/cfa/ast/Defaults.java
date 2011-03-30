@@ -45,6 +45,7 @@ public class Defaults {
       case FLOAT:
         return new IASTLiteralExpression("0.0", fileLoc, type, IASTLiteralExpression.lk_float_constant);
         
+      case UNSPECIFIED:
       case INT:
         return new IASTIntegerLiteralExpression("0", fileLoc, type, BigInteger.ZERO);
       default:

@@ -626,7 +626,10 @@ class ASTConverter {
       if (initializer == null && scope.isGlobalScope()) {
         // global variables are initialized to zero by default in C
         IASTExpression init = Defaults.forType(type, fileLoc); 
-        initializer = new IASTInitializerExpression(init.getRawSignature(), fileLoc, init);        
+        // may still be null, because we currently don't handle initializers for complex types
+        if (init != null) {
+          initializer = new IASTInitializerExpression(init.getRawSignature(), fileLoc, init);
+        }
       }
     }
 
