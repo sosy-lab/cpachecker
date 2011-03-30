@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -1179,7 +1180,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     // a = b
     else if (rightExp instanceof IASTIdExpression){
-      return handleAssignmentOfVariable(element, lParam, rightExp, functionName);
+      return handleAssignmentOfVariable(element, lParam, (IASTIdExpression)rightExp, functionName);
     }
     // a = (cast) ?
     else if(rightExp instanceof IASTCastExpression) {
@@ -1367,6 +1368,11 @@ public class ExplicitTransferRelation implements TransferRelation {
       return parseLiteral(expression);
 
     } else if (expression instanceof IASTIdExpression) {
+      IASTIdExpression idExp = (IASTIdExpression)expression;
+      if (idExp.getDeclaration() instanceof IASTEnumerator) {
+        return ((IASTEnumerator)idExp.getDeclaration()).getValue();
+      }
+      
       String varName = getvarName(expression.getRawSignature(), functionName);
       if (element.contains(varName)) {
         return element.getValueFor(varName);
@@ -1402,11 +1408,18 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleAssignmentOfVariable(ExplicitElement element,
-      String lParam, IASTExpression op2, String functionName)
+      String lParam, IASTIdExpression var, String functionName)
   {
-    String rParam = op2.getRawSignature();
-
     String leftVarName = getvarName(lParam, functionName);
+
+    if (var.getDeclaration() instanceof IASTEnumerator) {
+      long value = ((IASTEnumerator)var.getDeclaration()).getValue();
+      ExplicitElement newElement = element.clone();
+      newElement.assignConstant(leftVarName, value, this.threshold);
+      return newElement;
+    }
+    
+    String rParam = var.getRawSignature();
     String rightVarName = getvarName(rParam, functionName);
 
     ExplicitElement newElement = element.clone();
