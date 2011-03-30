@@ -35,20 +35,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Otherwise the name may be null, then it is a struct prototype.
  * In any other case, it is a variable declaration with the given name and type.
  */
-public final class IASTDeclaration extends IASTNode {
+public final class IASTDeclaration extends IASTSimpleDeclaration {
 
   private final StorageClass          storageClass;
-  private final IASTSimpleDeclaration declaration;
   private final IASTInitializer       initializer;
   
   public IASTDeclaration(String pRawSignature,
       IASTFileLocation pFileLocation,
       StorageClass pStorageClass,
-      IASTSimpleDeclaration pDeclaration,
+      IType pSpecifier, IASTName pName,
       IASTInitializer pInitializer) {
-    super(pRawSignature, pFileLocation);
+    super(pRawSignature, pFileLocation, pSpecifier, pName);
     storageClass = checkNotNull(pStorageClass);
-    declaration = checkNotNull(pDeclaration);
     initializer = pInitializer;
     
     checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
@@ -56,18 +54,6 @@ public final class IASTDeclaration extends IASTNode {
 
   public StorageClass getStorageClass() {
     return storageClass;
-  }
-  
-  public IASTSimpleDeclaration getDeclaration() {
-    return declaration;
-  }
-  
-  public IType getDeclSpecifier() {
-    return declaration.getDeclSpecifier();
-  }
-
-  public IASTName getName() {
-    return declaration.getName();
   }
 
   public IASTInitializer getInitializer() {

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
@@ -50,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
@@ -291,10 +291,10 @@ public class PointerTransferRelation implements TransferRelation {
           //by first creating its context...
           successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
 
-          List<IASTSimpleDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
 
           //..then adding all parameters as local variables
-          for (IASTSimpleDeclaration dec : l) {
+          for (IASTParameterDeclaration dec : l) {
             IType declSpecifier = dec.getDeclSpecifier();
             handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declSpecifier);
           }

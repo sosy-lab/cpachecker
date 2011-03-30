@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.*;
  * It is also used stand-alone for the declaration of members of composite types
  * (e.g. structs) and for the declaration of function parameters. 
  */
-public final class IASTSimpleDeclaration extends IASTNode {
+public abstract class IASTSimpleDeclaration extends IASTNode {
 
   private final IType    specifier;
   private final IASTName name;

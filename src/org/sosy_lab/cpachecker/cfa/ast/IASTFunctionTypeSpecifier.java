@@ -33,14 +33,14 @@ public class IASTFunctionTypeSpecifier extends IType {
 
   private final IType              returnType;
   private       IASTName                       name = null;
-  private final List<IASTSimpleDeclaration>    parameters;
+  private final List<IASTParameterDeclaration> parameters;
   private final boolean                        takesVarArgs;
   
   public IASTFunctionTypeSpecifier(
       boolean pConst,
       boolean pVolatile,
       IType pReturnType,
-      List<IASTSimpleDeclaration> pParameters,
+      List<IASTParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
     super(pConst, pVolatile);
     returnType = pReturnType;
@@ -61,7 +61,7 @@ public class IASTFunctionTypeSpecifier extends IType {
     name = pName;
   }
   
-  public List<IASTSimpleDeclaration> getParameters() {
+  public List<IASTParameterDeclaration> getParameters() {
     return parameters;
   }
   

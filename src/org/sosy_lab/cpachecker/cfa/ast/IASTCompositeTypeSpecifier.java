@@ -30,11 +30,11 @@ import com.google.common.collect.ImmutableList;
 public final class IASTCompositeTypeSpecifier extends IType {
 
   private final int                   key;
-  private final List<IASTSimpleDeclaration> members;
+  private final List<IASTCompositeTypeMemberDeclaration> members;
   private final IASTName              name;
 
   public IASTCompositeTypeSpecifier(final boolean pConst, final boolean pVolatile,
-      final int pKey, final List<IASTSimpleDeclaration> pMembers, final IASTName pName) {
+      final int pKey, final List<IASTCompositeTypeMemberDeclaration> pMembers, final IASTName pName) {
     super(pConst, pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
@@ -45,8 +45,8 @@ public final class IASTCompositeTypeSpecifier extends IType {
     return key;
   }
 
-  public IASTSimpleDeclaration[] getMembers() {
-    return members.toArray(new IASTSimpleDeclaration[members.size()]);
+  public IASTCompositeTypeMemberDeclaration[] getMembers() {
+    return members.toArray(new IASTCompositeTypeMemberDeclaration[members.size()]);
   }
 
   public IASTName getName() {

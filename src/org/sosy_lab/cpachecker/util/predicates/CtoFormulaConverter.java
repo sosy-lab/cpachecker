@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -531,7 +531,7 @@ public class CtoFormulaConverter {
       List<IASTExpression> actualParams = edge.getArguments();
       
       FunctionDefinitionNode fn = edge.getSuccessor();
-      List<IASTSimpleDeclaration> formalParams = fn.getFunctionParameters();
+      List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
       
       assert formalParams.size() == actualParams.size();
 
@@ -539,7 +539,7 @@ public class CtoFormulaConverter {
       
       int i = 0;
       Formula result = fmgr.makeTrue();
-      for (IASTSimpleDeclaration formalParam : formalParams) {
+      for (IASTParameterDeclaration formalParam : formalParams) {
         // get formal parameter name
         String formalParamName = formalParam.getName().toString();
         assert(!formalParamName.isEmpty()) : edge;

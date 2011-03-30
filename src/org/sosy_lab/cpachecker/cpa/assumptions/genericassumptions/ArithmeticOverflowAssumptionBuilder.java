@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.common.Pair;
@@ -205,8 +205,8 @@ implements GenericAssumptionBuilder
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
       if (!fcallEdge.getArguments().isEmpty()) {
         FunctionDefinitionNode fdefnode = fcallEdge.getSuccessor();
-        List<IASTSimpleDeclaration> formalParams = fdefnode.getFunctionParameters();
-        for (IASTSimpleDeclaration paramdecl : formalParams)
+        List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
+        for (IASTParameterDeclaration paramdecl : formalParams)
         {
           IASTName name = paramdecl.getName();
           IType type = name.getType();

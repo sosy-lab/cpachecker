@@ -180,7 +180,7 @@ class CFABuilder extends ASTVisitor
           // this is neither a typedef nor a struct prototype nor a function declaration,
           // so it's a variable declaration
           
-          scope.registerDeclaration(newD.getDeclaration());
+          scope.registerDeclaration(newD);
         }
       }
       
@@ -232,13 +232,13 @@ class CFABuilder extends ASTVisitor
         throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
       }
 
-      scope.registerDeclaration(fdef.getDeclaration());
+      scope.registerDeclaration(fdef);
       scope.enterFunction();
       
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
+      List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
       List<String> parameterNames = new ArrayList<String>(parameters.size());
       
-      for (org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration param : parameters) {
+      for (org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration param : parameters) {
         scope.registerDeclaration(param); // declare parameter as local variable
         parameterNames.add(param.getName().getRawSignature());
       }

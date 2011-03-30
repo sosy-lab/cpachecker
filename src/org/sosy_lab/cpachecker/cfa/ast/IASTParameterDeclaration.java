@@ -27,20 +27,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 
 /**
- * This is a function definition. It contains a type and a name.
- * The storage class should assumed to be "auto" (i.e., the default). 
- * It is only used for functions that are actually defined in the code, although
- * it stores no information about the function body.
+ * This is the declaration of a function parameter. It contains a type and a name.
  */
-public final class IASTFunctionDefinition extends IASTSimpleDeclaration {
+public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
 
-  public IASTFunctionDefinition(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTFunctionTypeSpecifier pSpecifier, IASTName pName) {
+  public IASTParameterDeclaration(String pRawSignature,
+      IASTFileLocation pFileLocation, IType pSpecifier, IASTName pName) {
     super(pRawSignature, pFileLocation, pSpecifier, checkNotNull(pName));
   }
 
-  @Override
-  public IASTFunctionTypeSpecifier getDeclSpecifier() {
-    return (IASTFunctionTypeSpecifier) super.getDeclSpecifier();
-  }
 }
