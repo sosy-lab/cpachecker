@@ -303,6 +303,8 @@ public class CFACreator {
 
     // create a series of GlobalDeclarationEdges, one for each declaration
     for (IASTDeclaration d : globalVars) {
+      assert d.isGlobal();
+      
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);

@@ -623,7 +623,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    return new IASTDeclaration(rawSignature, fileLoc, storageClass, type, name, initializer);
+    return new IASTDeclaration(rawSignature, fileLoc, scope.isGlobalScope(), storageClass, type, name, initializer);
   }
   
   private List<IASTCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {

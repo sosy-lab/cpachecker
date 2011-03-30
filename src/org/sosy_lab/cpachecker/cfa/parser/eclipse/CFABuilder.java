@@ -191,6 +191,7 @@ class CFABuilder extends ASTVisitor
         CFANode nextNode = null;
         
         for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
+          assert !newD.isGlobal();
           
           nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
           currentCFANodes.add(nextNode);

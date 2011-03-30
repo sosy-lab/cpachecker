@@ -37,21 +37,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class IASTDeclaration extends IASTSimpleDeclaration {
 
+  private final boolean               isGlobal;
   private final StorageClass          storageClass;
   private final IASTInitializer       initializer;
   
   public IASTDeclaration(String pRawSignature,
       IASTFileLocation pFileLocation,
+      boolean pIsGlobal,
       StorageClass pStorageClass,
       IType pSpecifier, IASTName pName,
       IASTInitializer pInitializer) {
     super(pRawSignature, pFileLocation, pSpecifier, pName);
+    isGlobal = pIsGlobal;
     storageClass = checkNotNull(pStorageClass);
     initializer = pInitializer;
     
     checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
   }
 
+  public boolean isGlobal() {
+    return isGlobal;
+  }
+  
   public StorageClass getStorageClass() {
     return storageClass;
   }
