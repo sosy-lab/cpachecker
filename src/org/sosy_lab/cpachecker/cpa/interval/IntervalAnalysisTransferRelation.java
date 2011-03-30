@@ -35,14 +35,20 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
@@ -102,7 +108,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
         StatementEdge statementEdge = (StatementEdge)cfaEdge;
-        successor = handleStatement(intervalElement, statementEdge.getExpression(), cfaEdge);
+        successor = handleStatement(intervalElement, statementEdge.getStatement(), cfaEdge);
         break;
 
         // this is the statement edge which leads the function to the last node of its CFA (not same as a return edge)
@@ -163,7 +169,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   {
     CallToReturnEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
 
-    IASTExpression expression = summaryEdge.getExpression();
+    IASTFunctionCall expression = summaryEdge.getExpression();
 
     IntervalAnalysisElement newElement = element.getPreviousElement().clone();
 
@@ -171,11 +177,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if(expression instanceof IASTAssignmentExpression)
+    if(expression instanceof IASTFunctionCallAssignmentStatement)
     {
-      IASTAssignmentExpression binExp = (IASTAssignmentExpression)expression;
+      IASTFunctionCallAssignmentStatement funcExp = (IASTFunctionCallAssignmentStatement)expression;
 
-      IASTExpression operand1 = binExp.getLeftHandSide();
+      IASTExpression operand1 = funcExp.getLeftHandSide();
 
       // left hand side of the expression has to be a variable
       if(operand1 instanceof IASTIdExpression)
@@ -217,7 +223,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // import the global variables back into the scope of the calling function
-    else if(expression instanceof IASTUnaryExpression || expression instanceof IASTFunctionCallExpression)
+    else if(expression instanceof IASTFunctionCallStatement)
     {
       for(String globalVar : globalVars)
       {
@@ -228,7 +234,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     else
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, expression.asStatement());
 
     return newElement;
   }
@@ -722,19 +728,19 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisElement handleStatement(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge)
+  private IntervalAnalysisElement handleStatement(IntervalAnalysisElement element, IASTStatement expression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     // expression is an assignment operation, e.g. a = b;
-    if(expression instanceof IASTAssignmentExpression)
-      return handleAssignment(element, (IASTAssignmentExpression)expression, cfaEdge);
+    if(expression instanceof IASTAssignment)
+      return handleAssignment(element, (IASTAssignment)expression, cfaEdge);
 
     // ext(); => do nothing
-    else if(expression instanceof IASTFunctionCallExpression)
+    else if(expression instanceof IASTFunctionCallStatement)
       return element.clone();
 
     // a; nothing to do
-    else if(expression instanceof IASTIdExpression)
+    else if(expression instanceof IASTExpressionStatement)
       return element.clone();
 
     else
@@ -751,11 +757,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * TODO pointer dereferencing via strengthening
    */
-  private IntervalAnalysisElement handleAssignment(IntervalAnalysisElement element, IASTAssignmentExpression assignExpression, CFAEdge cfaEdge)
+  private IntervalAnalysisElement handleAssignment(IntervalAnalysisElement element, IASTAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     IASTExpression op1 = assignExpression.getLeftHandSide();
-    IASTExpression op2 = assignExpression.getRightHandSide();
+    IASTRightHandSide op2 = assignExpression.getRightHandSide();
 
     // a = ?
     if(op1 instanceof IASTIdExpression)
@@ -787,18 +793,18 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param cfaEdge the respective CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisElement handleAssignmentToVariable(IntervalAnalysisElement element, String lParam, IASTExpression rightExp, CFAEdge cfaEdge)
+  private IntervalAnalysisElement handleAssignmentToVariable(IntervalAnalysisElement element, String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
     if(rightExp instanceof IASTLiteralExpression || rightExp == null)
-      return handleAssignmentOfLiteral(element, lParam, rightExp, functionName);
+      return handleAssignmentOfLiteral(element, lParam, (IASTLiteralExpression)rightExp, functionName);
 
     // a = b
     else if (rightExp instanceof IASTIdExpression)
-      return handleAssignmentOfVariable(element, lParam, rightExp, functionName);
+      return handleAssignmentOfVariable(element, lParam, (IASTIdExpression)rightExp, functionName);
 
     // a = (cast) ?
     else if(rightExp instanceof IASTCastExpression)

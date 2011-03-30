@@ -23,29 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-/**
- * AST node for the expression "a = b".
- */
-public class IASTAssignmentExpression extends IASTStatement implements IASTAssignment {
+public final class IASTFunctionCallAssignmentStatement extends IASTStatement
+                                                          implements IASTAssignment, IASTFunctionCall {
 
   private final IASTExpression leftHandSide;
-  private final IASTExpression rightHandSide;
+  private final IASTFunctionCallExpression rightHandSide;
   
-  public IASTAssignmentExpression(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      IASTExpression pLeftHandSide, IASTExpression pRightHandSide) {
+  public IASTFunctionCallAssignmentStatement(String pRawSignature,
+      IASTFileLocation pFileLocation, IASTExpression pLeftHandSide,
+      IASTFunctionCallExpression pRightHandSide) {
     super(pRawSignature, pFileLocation);
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
   }
-
+  
   @Override
   public IASTExpression getLeftHandSide() {
     return leftHandSide;
   }
   
   @Override
-  public IASTExpression getRightHandSide() {
+  public IASTFunctionCallExpression getRightHandSide() {
+    return rightHandSide;
+  }
+  
+  @Override
+  public IASTFunctionCallExpression getFunctionCallExpression() {
     return rightHandSide;
   }
   
@@ -53,10 +56,9 @@ public class IASTAssignmentExpression extends IASTStatement implements IASTAssig
   public IASTStatement asStatement() {
     return this;
   }
-
+  
   @Override
   public IASTNode[] getChildren() {
     return new IASTNode[] {leftHandSide, rightHandSide};
   }
-
 }

@@ -27,13 +27,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,11 +41,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-  private DefUseElement handleExpression (DefUseElement defUseElement, IASTExpression expression, CFAEdge cfaEdge)
+  private DefUseElement handleExpression (DefUseElement defUseElement, IASTStatement expression, CFAEdge cfaEdge)
   {
-    if (expression instanceof IASTAssignmentExpression)
+    if (expression instanceof IASTAssignment)
     {
-      IASTAssignmentExpression assignExpression = (IASTAssignmentExpression) expression;
+      IASTAssignment assignExpression = (IASTAssignment) expression;
 
       String lParam = assignExpression.getLeftHandSide().getRawSignature ();
       // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
@@ -81,14 +80,7 @@ public class DefUseTransferRelation implements TransferRelation
     case StatementEdge:
     {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      IASTExpression expression = statementEdge.getExpression ();
-      defUseElement = handleExpression (defUseElement, expression, cfaEdge);
-      break;
-    }
-    case ReturnStatementEdge:
-    {
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge) cfaEdge;
-      IASTExpression expression = returnEdge.getExpression ();
+      IASTStatement expression = statementEdge.getStatement();
       defUseElement = handleExpression (defUseElement, expression, cfaEdge);
       break;
     }

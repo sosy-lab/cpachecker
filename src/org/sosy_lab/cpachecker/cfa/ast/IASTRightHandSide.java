@@ -21,29 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel.c;
+package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+/**
+ * Super class for all possible right-hand sides of an assignment.
+ */
+public abstract class IASTRightHandSide extends IASTNode {
 
-public class CallToReturnEdge extends AbstractCFAEdge {
+  private final IType type;
 
-	private final IASTFunctionCall expression;
+  public IASTRightHandSide(final String pRawSignature,
+      final IASTFileLocation pFileLocation, final IType pType) {
+    super(pRawSignature, pFileLocation);
+    type = pType;
+  }
 
-	public CallToReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTFunctionCall exp) {
-		super(rawStatement, lineNumber, predecessor, successor);
-		this.expression = exp;
-	}
-
-	public IASTFunctionCall getExpression() {
-		return expression;
-	}
-
-	@Override
-  public CFAEdgeType getEdgeType ()
-	{
-		return CFAEdgeType.CallToReturnEdge;
-	}
+  public IType getExpressionType() {
+    return type;
+  }
 }

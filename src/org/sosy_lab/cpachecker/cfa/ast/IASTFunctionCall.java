@@ -21,29 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel.c;
+package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-public class CallToReturnEdge extends AbstractCFAEdge {
-
-	private final IASTFunctionCall expression;
-
-	public CallToReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTFunctionCall exp) {
-		super(rawStatement, lineNumber, predecessor, successor);
-		this.expression = exp;
-	}
-
-	public IASTFunctionCall getExpression() {
-		return expression;
-	}
-
-	@Override
-  public CFAEdgeType getEdgeType ()
-	{
-		return CFAEdgeType.CallToReturnEdge;
-	}
+/**
+ * Interface for all statements that contain function calls.
+ * Only sub-classes of {@link IASTStatement} may implement this interface.
+ */
+public interface IASTFunctionCall {
+ 
+  IASTFunctionCallExpression getFunctionCallExpression();
+    
+  /**
+   * Return "this" casted to IASTStatement, i.e., this methods performs an upcast.
+   */
+  IASTStatement asStatement();
 }

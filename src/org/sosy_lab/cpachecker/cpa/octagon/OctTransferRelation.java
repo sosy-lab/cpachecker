@@ -29,17 +29,23 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
@@ -111,7 +117,7 @@ public class OctTransferRelation implements TransferRelation{
     case StatementEdge:
     {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      IASTExpression expression = statementEdge.getExpression ();
+      IASTStatement expression = statementEdge.getStatement();
       try {
         octElement = handleStatement (octElement, expression, cfaEdge);
       } catch (UnrecognizedCCodeException e) {
@@ -223,7 +229,7 @@ public class OctTransferRelation implements TransferRelation{
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
-    IASTExpression exprOnSummary = summaryEdge.getExpression();
+    IASTFunctionCall exprOnSummary = summaryEdge.getExpression();
 
     OctElement previousElem = element.getPreviousElement();
 
@@ -231,8 +237,8 @@ public class OctTransferRelation implements TransferRelation{
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
     //expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof IASTAssignmentExpression) {
-      IASTAssignmentExpression binExp = ((IASTAssignmentExpression)exprOnSummary);
+    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
+      IASTFunctionCallAssignmentStatement binExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
       IASTExpression op1 = binExp.getLeftHandSide();
 
       //we expect left hand side of the expression to be a variable
@@ -250,18 +256,13 @@ public class OctTransferRelation implements TransferRelation{
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
-    // TODO this is not called -- expression is a unary operation, e.g. g(b);
-    else if (exprOnSummary instanceof IASTUnaryExpression)
-    {
-      // do nothing
-    }
     // g(b)
-    else if (exprOnSummary instanceof IASTFunctionCallExpression)
+    else if (exprOnSummary instanceof IASTFunctionCallStatement)
     {
       // do nothing
     }
     else{
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary);
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary.asStatement());
     }
 
     // delete local variables
@@ -329,10 +330,6 @@ public class OctTransferRelation implements TransferRelation{
       else if(arg instanceof IASTUnaryExpression){
         IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
         assert(unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
-      }
-
-      else if(arg instanceof IASTFunctionCallExpression){
-        assert(false);
       }
 
       else if(arg instanceof IASTFieldReference){
@@ -957,18 +954,18 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private OctElement handleStatement(OctElement pElement,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTStatement expression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
-    if (expression instanceof IASTAssignmentExpression) {
-      return handleAssignment(pElement, (IASTAssignmentExpression)expression, cfaEdge);
+    if (expression instanceof IASTAssignment) {
+      return handleAssignment(pElement, (IASTAssignment)expression, cfaEdge);
     }
     // external function call
-    else if(expression instanceof IASTFunctionCallExpression){
+    else if(expression instanceof IASTFunctionCallStatement){
       // do nothing
     }
     // there is such a case
-    else if(expression instanceof IASTIdExpression){
+    else if(expression instanceof IASTExpressionStatement){
       // do nothing
     }
     else{
@@ -979,11 +976,11 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private OctElement handleAssignment(OctElement pElement,
-      IASTAssignmentExpression assignExpression, CFAEdge cfaEdge)
+      IASTAssignment assignExpression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
     IASTExpression op1 = assignExpression.getLeftHandSide();
-    IASTExpression op2 = assignExpression.getRightHandSide();
+    IASTRightHandSide op2 = assignExpression.getRightHandSide();
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
@@ -1025,16 +1022,16 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private OctElement handleAssignmentToVariable(OctElement pElement,
-      String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+      String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
     if(rightExp == null || rightExp instanceof IASTLiteralExpression){
-      return handleAssignmentOfLiteral(pElement, lParam, rightExp, functionName);
+      return handleAssignmentOfLiteral(pElement, lParam, (IASTLiteralExpression)rightExp, functionName);
     }
     // a = b
     else if (rightExp instanceof IASTIdExpression){
-      return handleAssignmentOfVariable(pElement, lParam, rightExp, functionName, 1);
+      return handleAssignmentOfVariable(pElement, lParam, (IASTIdExpression)rightExp, functionName, 1);
     }
     // a = (cast) ?
     else if(rightExp instanceof IASTCastExpression) {

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -36,9 +37,9 @@ import com.google.common.collect.ImmutableList;
 public class FunctionCallEdge extends AbstractCFAEdge
 {
 	private final List<IASTExpression> arguments;
-	private final IASTExpression rawAST;
+	private final IASTStatement rawAST;
 
-    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, List<IASTExpression> arguments) {
+    public FunctionCallEdge (String rawStatement, IASTStatement rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, List<IASTExpression> arguments) {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
 
         this.arguments = ImmutableList.copyOf(arguments);
@@ -56,7 +57,7 @@ public class FunctionCallEdge extends AbstractCFAEdge
   }
     
   @Override
-  public IASTExpression getRawAST() {
+  public IASTStatement getRawAST() {
     return rawAST;
   }
   

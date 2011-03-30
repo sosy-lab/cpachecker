@@ -33,11 +33,16 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
@@ -244,7 +249,7 @@ public class PointerTransferRelation implements TransferRelation {
         break;
 
       case StatementEdge:
-        handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(),
+        handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(),
                                                       (StatementEdge)cfaEdge);
         break;
         
@@ -703,7 +708,7 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleReturnFromFunction(PointerElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTFunctionCall expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     Pointer resultPointer = element.lookupPointer(RETURN_VALUE_VARIABLE);
@@ -730,9 +735,9 @@ public class PointerTransferRelation implements TransferRelation {
     element.returnFromFunction(); // throw away local context
 
     // use function result
-    if (expression instanceof IASTAssignmentExpression) {
+    if (expression instanceof IASTFunctionCallAssignmentStatement) {
       // a = func()
-      IASTAssignmentExpression assignExpression = (IASTAssignmentExpression)expression;
+      IASTFunctionCallAssignmentStatement assignExpression = (IASTFunctionCallAssignmentStatement)expression;
       IASTExpression leftOperand = assignExpression.getLeftHandSide();
 
       if (leftOperand instanceof IASTIdExpression) {
@@ -761,11 +766,11 @@ public class PointerTransferRelation implements TransferRelation {
             assignExpression);
       }
 
-    } else if (expression instanceof IASTFunctionCallExpression) {
+    } else if (expression instanceof IASTFunctionCallStatement) {
       // func()
       // ignore
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException(cfaEdge, expression.asStatement());
     }
 
     // check for memory leaks
@@ -782,13 +787,13 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleStatement(PointerElement element,
-      IASTExpression expression, StatementEdge cfaEdge)
+      IASTStatement expression, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
-    if (expression instanceof IASTFunctionCallExpression) {
+    if (expression instanceof IASTFunctionCallStatement) {
       // this is a mere function call (func(a))
       IASTFunctionCallExpression funcExpression =
-          (IASTFunctionCallExpression)expression;
+          ((IASTFunctionCallStatement)expression).getFunctionCallExpression();
       String functionName =
           funcExpression.getFunctionNameExpression().getRawSignature();
 
@@ -804,9 +809,9 @@ public class PointerTransferRelation implements TransferRelation {
             cfaEdge, "");
       }
 
-    } else if (expression instanceof IASTAssignmentExpression) {
+    } else if (expression instanceof IASTAssignment) {
       // statement is an assignment expression, e.g. a = b or a = a+b;
-      handleAssignmentStatement(element, (IASTAssignmentExpression)expression, cfaEdge);
+      handleAssignmentStatement(element, (IASTAssignment)expression, cfaEdge);
 
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
@@ -909,7 +914,7 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleAssignmentStatement(PointerElement element,
-      IASTAssignmentExpression expression, CFAEdge cfaEdge)
+      IASTAssignment expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     // left hand side
@@ -998,7 +1003,7 @@ public class PointerTransferRelation implements TransferRelation {
     }
 
     // right hand side
-    IASTExpression op2 = expression.getRightHandSide();
+    IASTRightHandSide op2 = expression.getRightHandSide();
 
     // handles *a = x and a = x
     handleAssignment(element, leftVarName, leftPointer, leftDereference, op2,
@@ -1012,7 +1017,7 @@ public class PointerTransferRelation implements TransferRelation {
    */
   private void handleAssignment(PointerElement element,
       String leftVarName, Pointer leftPointer, boolean leftDereference,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTRightHandSide expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     if (expression instanceof IASTLiteralExpression) {

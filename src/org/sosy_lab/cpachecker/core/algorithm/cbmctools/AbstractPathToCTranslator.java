@@ -37,9 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
@@ -368,15 +369,7 @@ public class AbstractPathToCTranslator {
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
 
-      IASTExpression lExpression = lStatementEdge.getExpression();
-
-      String ret = "";
-
-      if (lExpression != null) {
-        ret = lStatementEdge.getExpression().getRawSignature() + ";";
-      }
-
-      return (ret);
+      return lStatementEdge.getStatement().getRawSignature() + ";";
     }
     case ReturnStatementEdge: {
       ReturnStatementEdge lStatementEdge = (ReturnStatementEdge)pCFAEdge;
@@ -437,14 +430,14 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
     CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
-    IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
-    if(expressionOnSummaryEdge instanceof IASTAssignmentExpression){
-      IASTAssignmentExpression assignExp = (IASTAssignmentExpression) expressionOnSummaryEdge;
+    IASTFunctionCall expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
+    if (expressionOnSummaryEdge instanceof IASTFunctionCallAssignmentStatement) {
+      IASTFunctionCallAssignmentStatement assignExp = (IASTFunctionCallAssignmentStatement)expressionOnSummaryEdge;
       String assignedVarName = assignExp.getLeftHandSide().getRawSignature();
       return(assignedVarName + " = " + lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
     }
     else{
-      assert(expressionOnSummaryEdge instanceof IASTFunctionCallExpression);
+      assert(expressionOnSummaryEdge instanceof IASTFunctionCallStatement);
       return(lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
     }
   }

@@ -27,7 +27,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-public class IASTFunctionCallExpression extends IASTExpression {
+public class IASTFunctionCallExpression extends IASTRightHandSide {
 
   private final IASTExpression functionName;
   private final List<IASTExpression> parameters;

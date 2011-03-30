@@ -31,10 +31,16 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -87,7 +93,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   private String missingInformationLeftVariable = null;
   private String missingInformationRightPointer = null;
   private String missingInformationLeftPointer  = null;
-  private IASTExpression missingInformationRightExpression = null;
+  private IASTRightHandSide missingInformationRightExpression = null;
 
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -109,7 +115,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge, precision);
+      successor = handleStatement(explicitElement, statementEdge.getStatement(), cfaEdge, precision);
       break;
     }
 
@@ -186,7 +192,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
-    IASTExpression exprOnSummary = summaryEdge.getExpression();
+    IASTFunctionCall exprOnSummary = summaryEdge.getExpression();
     // TODO get from stack
     ExplicitElement previousElem = element.getPreviousElement();
     ExplicitElement newElement = previousElem.clone();
@@ -194,8 +200,8 @@ public class ExplicitTransferRelation implements TransferRelation {
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
     //System.out.println(exprOnSummary.getRawSignature());
     //expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof IASTAssignmentExpression) {
-      IASTAssignmentExpression assignExp = ((IASTAssignmentExpression)exprOnSummary);
+    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
+      IASTFunctionCallAssignmentStatement assignExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
       IASTExpression op1 = assignExp.getLeftHandSide();
 
       //we expect left hand side of the expression to be a variable
@@ -254,29 +260,8 @@ public class ExplicitTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
-    // TODO this is not called -- expression is a unary operation, e.g. g(b);
-    else if (exprOnSummary instanceof IASTUnaryExpression)
-    {
-      // only globals
-      for(String globalVar:globalVars){
-        if(element.getNoOfReferences().containsKey(globalVar) &&
-            element.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
-          newElement.forget(globalVar);
-          newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-        }
-        else{
-          if(element.contains(globalVar)){
-            newElement.assignConstant(globalVar, element.getValueFor(globalVar), this.threshold);
-            newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-          }
-          else{
-            newElement.forget(globalVar);
-          }
-        }
-      }
-    }
     // g(b)
-    else if (exprOnSummary instanceof IASTFunctionCallExpression)
+    else if (exprOnSummary instanceof IASTFunctionCallStatement)
     {
       // only globals
       for(String globalVar:globalVars){
@@ -297,7 +282,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
     else{
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary);
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary.asStatement());
     }
 
     return newElement;
@@ -362,10 +347,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       else if(arg instanceof IASTUnaryExpression){
         IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
         assert(unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
-      }
-
-      else if(arg instanceof IASTFunctionCallExpression){
-        assert(false);
       }
 
       else if(arg instanceof IASTFieldReference){
@@ -1102,19 +1083,19 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleStatement(ExplicitElement element,
-      IASTExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision)
+      IASTStatement expression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
-    if (expression instanceof IASTAssignmentExpression) {
-      return handleAssignment(element, (IASTAssignmentExpression)expression, cfaEdge, precision);
+    if (expression instanceof IASTAssignment) {
+      return handleAssignment(element, (IASTAssignment)expression, cfaEdge, precision);
     }
     // external function call
-    else if(expression instanceof IASTFunctionCallExpression){
+    else if(expression instanceof IASTFunctionCallStatement){
       // do nothing
       return element.clone();
     }
     // there is such a case
-    else if(expression instanceof IASTIdExpression){
+    else if(expression instanceof IASTExpressionStatement){
       return element.clone();
     }
     else{
@@ -1123,11 +1104,11 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleAssignment(ExplicitElement element,
-      IASTAssignmentExpression assignExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
+      IASTAssignment assignExpression, CFAEdge cfaEdge, ExplicitPrecision precision)
   throws UnrecognizedCCodeException {
 
     IASTExpression op1 = assignExpression.getLeftHandSide();
-    IASTExpression op2 = assignExpression.getRightHandSide();
+    IASTRightHandSide op2 = assignExpression.getRightHandSide();
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
@@ -1171,12 +1152,12 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleAssignmentToVariable(ExplicitElement element,
-      String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+      String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
     if(rightExp == null || rightExp instanceof IASTLiteralExpression){
-      return handleAssignmentOfLiteral(element, lParam, rightExp, functionName);
+      return handleAssignmentOfLiteral(element, lParam, (IASTLiteralExpression)rightExp, functionName);
     }
     // a = b
     else if (rightExp instanceof IASTIdExpression){

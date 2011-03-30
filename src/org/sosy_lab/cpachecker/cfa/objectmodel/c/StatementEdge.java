@@ -23,23 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-
-
 public class StatementEdge extends AbstractCFAEdge
 {
-    private final IASTExpressionStatement rawAST;
+    private final IASTStatement statement;
 
-    public StatementEdge(IASTExpressionStatement rawAST, int lineNumber, CFANode predecessor, CFANode successor)
+    public StatementEdge(IASTStatement pStatement, int lineNumber, CFANode predecessor, CFANode successor)
     {
-        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
-        this.rawAST = rawAST;
+        super(pStatement.getRawSignature(), lineNumber, predecessor, successor);
+        this.statement = pStatement;
     }
 
     @Override
@@ -48,13 +45,13 @@ public class StatementEdge extends AbstractCFAEdge
         return CFAEdgeType.StatementEdge;
     }
 
-    public IASTExpression getExpression ()
+    public IASTStatement getStatement()
     {
-        return rawAST.getExpression();
+        return statement;
     }
 
     @Override
-    public IASTExpressionStatement getRawAST() {
-      return rawAST;
+    public IASTStatement getRawAST() {
+      return statement;
     }
 }

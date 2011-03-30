@@ -26,16 +26,19 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
@@ -112,33 +115,25 @@ public final class ErrorPathShrinker {
       // so if the lastEdge is a functionCall, the path is not finished.
       final CFAEdge lastEdge = shortErrorPath.getFirst().getSecond();
       if (lastEdge instanceof FunctionCallEdge) {
-
-        // there exist a CallToReturnEdge, that jumps over the hole function
         final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
-        final CallToReturnEdge funcSummaryEdge =
-            funcEdge.getPredecessor().getLeavingSummaryEdge();
-        final IASTExpression funcExp = funcSummaryEdge.getExpression();
 
         // "f(x)" or "a = f(x)",
         // the Error occured in the function, the left param is not important,
         // only global vars and the 'x' from 'f(x)' can influence the Error.
-        if (funcExp instanceof IASTFunctionCallExpression
-            || funcExp instanceof IASTBinaryExpression) {
 
-          // put only global vars to the new Set
-          final Set<String> newImportantVars = new LinkedHashSet<String>();
-          addGlobalVarsFromSetToSet(importantVars, newImportantVars);
-          importantVars = newImportantVars;
+        // put only global vars to the new Set
+        final Set<String> newImportantVars = new LinkedHashSet<String>();
+        addGlobalVarsFromSetToSet(importantVars, newImportantVars);
+        importantVars = newImportantVars;
 
-          final Set<String> newImportantVarsForGlobalVars =
-              new LinkedHashSet<String>();
-          addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
-              newImportantVarsForGlobalVars);
-          importantVarsForGlobalVars = newImportantVarsForGlobalVars;
+        final Set<String> newImportantVarsForGlobalVars =
+            new LinkedHashSet<String>();
+        addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
+            newImportantVarsForGlobalVars);
+        importantVarsForGlobalVars = newImportantVarsForGlobalVars;
 
-          getImportantVarsFromFunctionCall(funcEdge, importantVars,
-              importantVarsForGlobalVars);
-        }
+        getImportantVarsFromFunctionCall(funcEdge, importantVars,
+            importantVarsForGlobalVars);
       }
     }
     return shortErrorPath;
@@ -218,15 +213,6 @@ public final class ErrorPathShrinker {
           importantVarsForGlobalVars);
       addAllVarsInExpToSet(binExp.getOperand2(), importantVars,
           importantVarsForGlobalVars);
-    }
-    // func(); i.e. "random()" from "value = random();"
-    else if (exp instanceof IASTFunctionCallExpression) {
-      List<IASTExpression> params =
-          ((IASTFunctionCallExpression) exp).getParameterExpressions();
-      for (IASTExpression paramExp : params) {
-        addAllVarsInExpToSet(paramExp, importantVars,
-            importantVarsForGlobalVars);
-      }
     }
 
     // a fieldReference "b->c" is handled as one variable with the name "b->c".
@@ -458,12 +444,12 @@ public final class ErrorPathShrinker {
       final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
       final CallToReturnEdge funcSummaryEdge =
           funcEdge.getPredecessor().getLeavingSummaryEdge();
-      final IASTExpression funcExp = funcSummaryEdge.getExpression();
+      final IASTFunctionCall funcExp = funcSummaryEdge.getExpression();
 
       // "f(x)", without a variable "a" as "a = f(x)".
       // if the function changes the global variables,
       // get the variables from the function and update the Sets and Paths
-      if (funcExp instanceof IASTFunctionCallExpression
+      if (funcExp instanceof IASTFunctionCallStatement
           && !functionGlobalVarsPath.isEmpty()) {
 
         getImportantVarsFromFunction(possibleImportantVarsForGlobalVars);
@@ -478,9 +464,9 @@ public final class ErrorPathShrinker {
       }
 
       // "a = f(x)"
-      if (funcExp instanceof IASTBinaryExpression) {
+      if (funcExp instanceof IASTFunctionCallAssignmentStatement) {
         final String lParam =
-            ((IASTBinaryExpression) funcExp).getOperand1().getRawSignature();
+            ((IASTFunctionCallAssignmentStatement) funcExp).getLeftHandSide().getRawSignature();
 
         // if the function has a important result or changes the global
         // variables, get the params from the function and update the Sets.
@@ -539,71 +525,27 @@ public final class ErrorPathShrinker {
     /** This method handles statements. */
     private void handleStatement() {
 
-      IASTExpression statementExp =
-          ((StatementEdge) currentCFAEdgePair.getSecond()).getExpression();
+      IASTStatement statementExp =
+          ((StatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
-      // a unary operation, e.g. a++
-      // this does not change the Set of important variables,
-      // but the edge could be important
-      if (statementExp instanceof IASTUnaryExpression) {
-        handleUnaryStatement((IASTUnaryExpression) statementExp);
-      }
-
-      // expression is a binary operation, e.g. a = b;
-      else if (statementExp instanceof IASTBinaryExpression) {
-        handleAssignment((IASTBinaryExpression) statementExp);
+      // expression is an assignment operation, e.g. a = b;
+      if (statementExp instanceof IASTAssignmentExpression) {
+        handleAssignment((IASTAssignmentExpression) statementExp);
       }
 
       // ext();
-      else if (statementExp instanceof IASTFunctionCallExpression) {
+      else if (statementExp instanceof IASTFunctionCall) {
         addCurrentCFAEdgePairToShortPath();
-      }
-
-      // a;
-      else if (statementExp instanceof IASTIdExpression) {
-        final String varName = statementExp.getRawSignature();
-        if (importantVars.contains(varName)) {
-          addCurrentCFAEdgePairToShortPath();
-        }
-        if (importantVarsForGlobalVars.contains(varName)) {
-          globalVarsPath.addFirst(currentCFAEdgePair);
-        }
-      }
-
-      else {
-        addCurrentCFAEdgePairToShortPath();
-      }
-    }
-
-    /** This method handles unary statements (a++, a--).
-     *
-     * @param unaryExpression the expression to prove */
-    private void handleUnaryStatement(final IASTUnaryExpression unaryExpression) {
-
-      // get operand, i.e. "a"
-      final IASTExpression operand = unaryExpression.getOperand();
-
-      if (operand instanceof IASTIdExpression) {
-        final String varName = operand.getRawSignature();
-
-        // an identifier is important, if it has been marked as important before.
-        if (importantVars.contains(varName)) {
-          addCurrentCFAEdgePairToShortPath();
-        }
-
-        if (importantVarsForGlobalVars.contains(varName)) {
-          globalVarsPath.addFirst(currentCFAEdgePair);
-        }
       }
     }
 
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private void handleAssignment(final IASTBinaryExpression binaryExpression) {
+    private void handleAssignment(final IASTAssignmentExpression assignmentExpression) {
 
-      IASTExpression lParam = binaryExpression.getOperand1();
-      IASTExpression rightExp = binaryExpression.getOperand2();
+      IASTExpression lParam = assignmentExpression.getLeftHandSide();
+      IASTExpression rightExp = assignmentExpression.getRightHandSide();
 
       // a = ?
       if (lParam instanceof IASTIdExpression) {

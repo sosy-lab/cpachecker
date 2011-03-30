@@ -37,9 +37,15 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
@@ -47,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
@@ -308,7 +313,7 @@ public class CtoFormulaConverter {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge)edge;
-      edgeFormula = makeStatement(statementEdge.getExpression(), function, ssa);
+      edgeFormula = makeStatement(statementEdge.getStatement(), function, ssa);
       break;
     }
     
@@ -394,17 +399,13 @@ public class CtoFormulaConverter {
     if (spec instanceof IASTFunctionTypeSpecifier) {
       return fmgr.makeTrue();
     
-    } else if (spec instanceof IASTEnumerationSpecifier) {
-      // don't need to handle enums, when an enum is referenced,
-      // we can get the value from the AST
-      return fmgr.makeTrue();
-    
     } else if (spec instanceof IASTCompositeTypeSpecifier) {
       // this is the declaration of a struct, just ignore it...
       log(Level.ALL, "Ignoring declaration", edge);
       return fmgr.makeTrue();
     
     } else if (spec instanceof IASTSimpleDeclSpecifier ||
+               spec instanceof IASTEnumerationSpecifier ||
                spec instanceof IASTElaboratedTypeSpecifier ||
                spec instanceof IASTNamedTypeSpecifier ||
                spec instanceof IASTArrayTypeSpecifier ||
@@ -465,7 +466,7 @@ public class CtoFormulaConverter {
         } else if (edge.getStorageClass() == StorageClass.EXTERN) {
           log(Level.WARNING, "Ignoring initializer of extern declaration", edge);
   
-        } else if (isGlobal || initAllVars) {
+        } else if (initAllVars) {
           // auto-initialize variables to zero
 
           if (isNondetVariable(varNameWithoutFunction)) {
@@ -489,13 +490,13 @@ public class CtoFormulaConverter {
   private Formula makeExitFunction(CallToReturnEdge ce, String function,
       SSAMapBuilder ssa) throws CPATransferException {
     
-    IASTExpression retExp = ce.getExpression();
-    if (retExp instanceof IASTFunctionCallExpression) {
+    IASTFunctionCall retExp = ce.getExpression();
+    if (retExp instanceof IASTFunctionCallStatement) {
       // this should be a void return, just do nothing...
       return fmgr.makeTrue();
       
-    } else if (retExp instanceof IASTAssignmentExpression) {
-      IASTAssignmentExpression exp = (IASTAssignmentExpression)retExp;
+    } else if (retExp instanceof IASTFunctionCallAssignmentStatement) {
+      IASTFunctionCallAssignmentStatement exp = (IASTFunctionCallAssignmentStatement)retExp;
       
       Formula retvarFormula = makeVariable(VAR_RETURN_NAME, function, ssa);
       IASTExpression e = exp.getLeftHandSide();
@@ -560,27 +561,43 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeStatement(IASTExpression expr, String function,
+  private Formula makeStatement(IASTStatement expr, String function,
       SSAMapBuilder ssa) throws CPATransferException {
 
-    Formula f = buildTerm(expr, function, ssa);
+    if (expr instanceof IASTAssignment) {
+      IASTAssignment assignment = (IASTAssignment)expr;
 
-    if (!fmgr.isBoolean(f)) {
-      // in this case, we have something like:
-        // f(x);
-      // i.e. an expression that gets assigned to nothing. Since
-      // we don't handle side-effects, this means that the
-      // expression has no effect, and we can just drop it
-      
-      // if it is a (external) function call, it was already logged if needed
-      // don't log here to avoid warning about cases like printf() 
-      if (!(expr instanceof IASTFunctionCallExpression)) {
-        log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
-                        expr);
+      Formula r;
+      if (assignment instanceof IASTFunctionCallAssignmentStatement) {
+        // this is an external call
+        IASTFunctionCallAssignmentStatement fexp = (IASTFunctionCallAssignmentStatement)assignment;
+        r = makeExternalFunctionCall(fexp, function, ssa);
+
+      } else if (assignment instanceof IASTAssignmentExpression) {
+        IASTAssignmentExpression aexp = (IASTAssignmentExpression)assignment;
+        r = buildTerm(aexp.getRightHandSide(), function, ssa);
+
+      } else {
+        throw new UnrecognizedCCodeException("Unknown statement", null, expr);
       }
+
+      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa);
+      return fmgr.makeAssignment(l, r);
+
+    } else if (expr instanceof IASTFunctionCallStatement) {
+      // this is an external call
+      // call makeExternalFunctionCall in order to print warnings if necessary
+      IASTFunctionCallStatement fexp = (IASTFunctionCallStatement)expr;
+      makeExternalFunctionCall(fexp, function, ssa);
       return fmgr.makeTrue();
+      
+    } else if (expr instanceof IASTExpressionStatement) {
+      // side-effect free statement, ignore
+      return fmgr.makeTrue();
+
+    } else {
+      throw new UnrecognizedCCodeException("Unknown statement", null, expr);
     }
-    return f;
   }
 
   private Pair<Formula, Formula> makeAssume(AssumeEdge assume,
@@ -726,13 +743,6 @@ public class CtoFormulaConverter {
         return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
       }
       }
-
-    } else if (exp instanceof IASTAssignmentExpression) {
-      IASTAssignmentExpression assignment = (IASTAssignmentExpression)exp;
-      
-      Formula r = buildTerm(assignment.getRightHandSide(), function, ssa);
-      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa);
-      return fmgr.makeAssignment(l, r);
       
     } else if (exp instanceof IASTBinaryExpression) {
       BinaryOperator op = ((IASTBinaryExpression)exp).getOperator();
@@ -827,10 +837,6 @@ public class CtoFormulaConverter {
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
       }
-    } else if (exp instanceof IASTFunctionCallExpression) {
-      // this is an external call. We have to create an UIF.
-      IASTFunctionCallExpression fexp = (IASTFunctionCallExpression)exp;
-      return makeExternalFunctionCall(fexp, function, ssa);
     } else if (exp instanceof IASTTypeIdExpression) {
       assert(((IASTTypeIdExpression)exp).getOperator() ==
         IASTTypeIdExpression.op_sizeof);
@@ -936,10 +942,10 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeExternalFunctionCall(IASTFunctionCallExpression fexp,
+  private Formula makeExternalFunctionCall(IASTFunctionCall fexp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    IASTExpression fn = fexp.getFunctionNameExpression();
-    List<IASTExpression> pexps = fexp.getParameterExpressions();
+    IASTExpression fn = fexp.getFunctionCallExpression().getFunctionNameExpression();
+    List<IASTExpression> pexps = fexp.getFunctionCallExpression().getParameterExpressions();
     String func;
     if (fn instanceof IASTIdExpression) {
       func = ((IASTIdExpression)fn).getName().getRawSignature();
@@ -959,7 +965,7 @@ public class CtoFormulaConverter {
         }
       }
     } else {
-      log(Level.WARNING, "Ignoring function call through function pointer", fexp);
+      log(Level.WARNING, "Ignoring function call through function pointer", fexp.asStatement());
       func = "<func>{" + fn.getRawSignature() + "}";
     }
 

@@ -21,29 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel.c;
+package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+public final class IASTFunctionCallStatement extends IASTStatement implements IASTFunctionCall {
 
-public class CallToReturnEdge extends AbstractCFAEdge {
-
-	private final IASTFunctionCall expression;
-
-	public CallToReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTFunctionCall exp) {
-		super(rawStatement, lineNumber, predecessor, successor);
-		this.expression = exp;
-	}
-
-	public IASTFunctionCall getExpression() {
-		return expression;
-	}
-
-	@Override
-  public CFAEdgeType getEdgeType ()
-	{
-		return CFAEdgeType.CallToReturnEdge;
-	}
+  private final IASTFunctionCallExpression functionCall;
+  
+  public IASTFunctionCallStatement(String pRawSignature,
+      IASTFileLocation pFileLocation,
+      IASTFunctionCallExpression pFunctionCall) {
+    super(pRawSignature, pFileLocation);
+    functionCall = pFunctionCall;
+  }
+  
+  @Override
+  public IASTFunctionCallExpression getFunctionCallExpression() {
+    return functionCall;
+  }
+  
+  @Override
+  public IASTStatement asStatement() {
+    return this;
+  }
+  
+  @Override
+  public IASTNode[] getChildren() {
+    return new IASTNode[] {functionCall};
+  }
 }

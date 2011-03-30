@@ -485,14 +485,14 @@ class CFABuilder extends ASTVisitor
       // edge connecting prevNode with thenNode
       AssumeEdge assumeEdgeTrue = new AssumeEdge(ifStatement.getConditionExpression().getRawSignature(),
               fileloc.getStartingLineNumber(), prevNode, thenNode,
-              astCreator.convert(ifStatement.getConditionExpression()),
+              astCreator.convertExpressionWithoutSideEffects(ifStatement.getConditionExpression()),
               true);
       addToCFA(assumeEdgeTrue);
 
       // edge connecting prevNode with elseNode
       AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + ifStatement.getConditionExpression().getRawSignature() + ")",
               fileloc.getStartingLineNumber(), prevNode, elseNode,
-              astCreator.convert(ifStatement.getConditionExpression()),
+              astCreator.convertExpressionWithoutSideEffects(ifStatement.getConditionExpression()),
               false);
       addToCFA(assumeEdgeFalse);
       break;

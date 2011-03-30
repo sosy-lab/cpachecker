@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.common.Pair;
@@ -219,14 +221,13 @@ implements GenericAssumptionBuilder
     case StatementEdge:
       StatementEdge stmtEdge = (StatementEdge) pEdge;
 
-      IASTExpression iastExp = stmtEdge.getExpression();
+      IASTStatement stmt = stmtEdge.getStatement();
       // TODO replace with a global nondet variable
-      if(iastExp != null && iastExp.getRawSignature().contains("__BLAST_NONDET")){
+      if(stmt.getRawSignature().contains("__BLAST_NONDET")){
         break;
       }
-
-      if(stmtEdge.getExpression() != null){
-        result = visit(stmtEdge.getExpression(), result);
+      if (stmt instanceof IASTAssignment) {
+        result = visit(((IASTAssignment)stmt).getLeftHandSide(), result);
       }
       break;
     case ReturnStatementEdge:

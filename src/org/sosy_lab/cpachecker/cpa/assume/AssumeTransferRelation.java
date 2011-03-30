@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -33,10 +35,10 @@ public class AssumeTransferRelation implements TransferRelation {
     if (pCfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)) {
       StatementEdge lEdge = (StatementEdge)pCfaEdge;
       
-      IASTExpression lExpression = lEdge.getExpression();
+      IASTStatement lExpression = lEdge.getStatement();
       
-      if (lExpression instanceof IASTFunctionCallExpression) {
-        IASTFunctionCallExpression lCallExpression = (IASTFunctionCallExpression)lExpression;
+      if (lExpression instanceof IASTFunctionCallStatement) {
+        IASTFunctionCallExpression lCallExpression = ((IASTFunctionCallStatement)lExpression).getFunctionCallExpression();
         
         if (lCallExpression.getFunctionNameExpression().getRawSignature().equals(mFunctionName)) {
           List<IASTExpression> lParameterExpressions = lCallExpression.getParameterExpressions();

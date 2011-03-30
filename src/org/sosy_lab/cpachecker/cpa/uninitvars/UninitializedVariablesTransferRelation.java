@@ -33,9 +33,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -112,7 +116,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       break;
 
     case StatementEdge:
-      handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
+      handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(), cfaEdge);
       break;
       
     case ReturnStatementEdge:
@@ -129,7 +133,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //handle statement like a = func(x) in the CallToReturnEdge
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)cfaEdge;
       CallToReturnEdge ctrEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
-      handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
+      handleStatement(successor, ctrEdge.getExpression().asStatement(), ctrEdge);
       break;
 
     case AssumeEdge:
@@ -154,7 +158,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     return successor;
   }
 
-  private void addWarning(CFAEdge edge, String variable, IASTExpression expression,
+  private void addWarning(CFAEdge edge, String variable, IASTRightHandSide expression,
                                                       UninitializedVariablesElement element) {
 
     if (printWarnings) {
@@ -271,10 +275,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private void handleStatement(UninitializedVariablesElement element,
-                               IASTExpression expression, CFAEdge cfaEdge)
+                               IASTStatement expression, CFAEdge cfaEdge)
                                throws UnrecognizedCCodeException {
 
-    if (expression instanceof IASTFunctionCallExpression) {
+    if (expression instanceof IASTFunctionCallStatement) {
       //in case of a return edge, remove the local context of the function from which we returned
       if (cfaEdge instanceof CallToReturnEdge) {
         element.returnFromFunction();
@@ -282,23 +286,22 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //a mere function call (func(a)) does not change the initialization status of variables
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        for (IASTExpression param : ((IASTFunctionCallExpression)expression).getParameterExpressions()) {
+        for (IASTExpression param : ((IASTFunctionCallStatement)expression).getFunctionCallExpression().getParameterExpressions()) {
           isExpressionUninitialized(element, param, cfaEdge);
         }
       }
 
-    } else if (expression instanceof IASTUnaryExpression) {
-      // a unary operation (a++) does not change the initialization status of variables
+    } else if (expression instanceof IASTExpressionStatement) {
 
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        isExpressionUninitialized(element, expression, cfaEdge);
+        isExpressionUninitialized(element, ((IASTExpressionStatement)expression).getExpression(), cfaEdge);
       }
 
-    } else if (expression instanceof IASTAssignmentExpression) {
+    } else if (expression instanceof IASTAssignment) {
       // expression is an assignment operation, e.g. a = b or a = a+b;
 
-      IASTAssignmentExpression assignExpression = (IASTAssignmentExpression)expression;
+      IASTAssignment assignExpression = (IASTAssignment)expression;
 
       // a = b
       handleAssign(element, assignExpression, cfaEdge);
@@ -309,11 +312,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private void handleAssign(UninitializedVariablesElement element,
-                            IASTAssignmentExpression expression, CFAEdge cfaEdge)
+                            IASTAssignment expression, CFAEdge cfaEdge)
                             throws UnrecognizedCCodeException {
 
     IASTExpression op1 = expression.getLeftHandSide();
-    IASTExpression op2 = expression.getRightHandSide();
+    IASTRightHandSide op2 = expression.getRightHandSide();
 
     if (op1 instanceof IASTIdExpression) {
       // assignment to simple variable
@@ -362,7 +365,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private boolean isExpressionUninitialized(UninitializedVariablesElement element,
-                                            IASTExpression expression,
+                                            IASTRightHandSide expression,
                                             CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     if (expression == null) {
       // e.g. empty parameter list
@@ -518,12 +521,12 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     //the following deals with structs being assigned to other structs
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
-      IASTExpression exp = ((StatementEdge)cfaEdge).getExpression();
+      IASTStatement exp = ((StatementEdge)cfaEdge).getStatement();
 
-      if (exp instanceof IASTAssignmentExpression) {
+      if (exp instanceof IASTAssignment) {
 
-          IASTExpression op1 = ((IASTAssignmentExpression) exp).getLeftHandSide();
-          IASTExpression op2 = ((IASTAssignmentExpression) exp).getRightHandSide();
+          IASTExpression op1 = ((IASTAssignment) exp).getLeftHandSide();
+          IASTRightHandSide op2 = ((IASTAssignment) exp).getRightHandSide();
 
           String leftName = op1.getRawSignature();
           String rightName = op2.getRawSignature();
@@ -548,7 +551,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                   assert t1.equals(t2);
 
                   //check all fields of the structures' type and set their status
-                  initializeFields((UninitializedVariablesElement)element, cfaEdge, exp, typeElem,
+                  initializeFields((UninitializedVariablesElement)element, cfaEdge, op2, typeElem,
                                    (Type.CompositeType)t1, leftName, rightName, leftName, rightName);
                 }
               }
@@ -564,7 +567,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * another struct of the same type, setting the status of the assignee's fields accordingly
    */
   private void initializeFields(UninitializedVariablesElement element,
-                                CFAEdge cfaEdge, IASTExpression exp,
+                                CFAEdge cfaEdge, IASTRightHandSide exp,
                                 TypesElement typeElem, Type.CompositeType structType,
                                 String leftName, String rightName,
                                 String recursiveLeftName, String recursiveRightName) {
@@ -626,7 +629,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * checks wether a given expression is a field reference;
    * if yes, find the type of the referenced field, if no, try to determine the type of the variable
    */
-  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, CFAEdge cfaEdge) {
+  private Type checkForFieldReferenceType(IASTRightHandSide exp, TypesElement typeElem, CFAEdge cfaEdge) {
 
     String name = exp.getRawSignature();
     Type t = null;
