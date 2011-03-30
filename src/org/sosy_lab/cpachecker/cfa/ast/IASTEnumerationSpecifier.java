@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import com.google.common.collect.ImmutableList;
 
@@ -46,30 +48,23 @@ public final class IASTEnumerationSpecifier extends IType {
     return name;
   }
 
-  public static final class IASTEnumerator extends IASTNode {
+  public static final class IASTEnumerator extends IASTSimpleDeclaration {
 
-    private final IASTName       name;
+    private static final IType INT_TYPE = new IASTSimpleDeclSpecifier(true, false, BasicType.INT, false, false, true, false, false, false, false);
+    
     private final long           value;
 
     public IASTEnumerator(final String pRawSignature,
         final IASTFileLocation pFileLocation, final IASTName pName,
         final long pValue) {
-      super(pRawSignature, pFileLocation);
-      name = pName;
+      super(pRawSignature, pFileLocation, INT_TYPE, pName);
+      
+      checkNotNull(pName);
       value = pValue;
-    }
-
-    public IASTName getName() {
-      return name;
     }
 
     public long getValue() {
       return value;
-    }
-
-    @Override
-    public IASTNode[] getChildren(){
-      return new IASTNode[] {name};
     }
   }
 }
