@@ -33,6 +33,7 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.BasicType;
+import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.DummyType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
@@ -619,8 +620,14 @@ class ASTConverter {
     if (d != null) {
       Triple<IType, IASTInitializer, IASTName> declarator = convert(d, type);
       type = declarator.getFirst();
-      initializer = declarator.getSecond();
       name = declarator.getThird();
+
+      initializer = declarator.getSecond();
+      if (initializer == null && scope.isGlobalScope()) {
+        // global variables are initialized to zero by default in C
+        IASTExpression init = Defaults.forType(type, fileLoc); 
+        initializer = new IASTInitializerExpression(init.getRawSignature(), fileLoc, init);        
+      }
     }
 
     return new IASTDeclaration(rawSignature, fileLoc, scope.isGlobalScope(), storageClass, type, name, initializer);
