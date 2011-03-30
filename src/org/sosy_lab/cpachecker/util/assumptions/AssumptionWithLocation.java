@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -81,6 +83,9 @@ public class AssumptionWithLocation {
   };
 
   public void add(CFANode node, Formula assumption) {
+    checkNotNull(node);
+    checkNotNull(assumption);
+    
     if (!assumption.isTrue()) {
       Formula oldInvariant = map.get(node);
       if (oldInvariant == null) {

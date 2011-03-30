@@ -217,7 +217,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
       Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
       
-      addAssumption(result, assumption, e);
+      addAssumption(result, assumption, element);
     }
    
     // create assumptions for target elements
@@ -241,7 +241,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractElement state) {
     Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, state);
     
-    invariant.add(extractLocation(state), formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
+    CFANode loc = extractLocation(state);
+    assert loc != null;
+    invariant.add(loc, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
   }
 
   /**
