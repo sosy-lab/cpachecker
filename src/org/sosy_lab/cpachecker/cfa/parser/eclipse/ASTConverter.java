@@ -920,7 +920,9 @@ class ASTConverter {
       }
     }
     
-    return new IASTEnumerator(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getName()), value);
+    IASTEnumerator result = new IASTEnumerator(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getName()), value);
+    scope.registerDeclaration(result);
+    return result;
   }
 
   private IASTInitializer convert(org.eclipse.cdt.core.dom.ast.IASTInitializer i) {
