@@ -333,17 +333,7 @@ public class TypesTransferRelation implements TransferRelation {
       }
 
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
-        if (enumerator.getValue() == null) {
-          // TODO handle enum e { e1, e2 }
-          throw new UnrecognizedCCodeException("Missing value in enum declaration", cfaEdge);
-        }
-        int value;
-        try {
-          value = Integer.parseInt(enumerator.getValue().getRawSignature());
-        } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException(e.getMessage(), cfaEdge, enumerator);
-        }
-        enumType.addEnumerator(enumerator.getName().getRawSignature(), value);
+        enumType.addEnumerator(enumerator.getName().getRawSignature(), enumerator.getValue());
       }
 
       type = enumType;

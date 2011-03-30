@@ -847,8 +847,11 @@ class ASTConverter {
   
   private IASTEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
     List<IASTEnumerator> list = new ArrayList<IASTEnumerator>(d.getEnumerators().length);
+    long lastValue = -1; // initialize with -1, so the first one gets value 0
     for (org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
-      list.add(convert(c));
+      IASTEnumerator newC = convert(c, lastValue);
+      list.add(newC);
+      lastValue = newC.getValue();
     }
     return new IASTEnumerationSpecifier(d.isConst(), d.isVolatile(), list, convert(d.getName()));
   }
@@ -893,8 +896,31 @@ class ASTConverter {
   }
   
 
-  private IASTEnumerator convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator e) {
-    return new IASTEnumerator(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getName()), convert(e.getValue()));
+  private IASTEnumerator convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator e, long lastValue) {
+    long value;
+    
+    if (e.getValue() == null) {
+      value = lastValue + 1;
+    } else {
+      IASTExpression v = convert(e.getValue());
+      boolean negate = false;
+      
+      if (v instanceof IASTUnaryExpression) {
+        IASTUnaryExpression u = (IASTUnaryExpression)v;
+        assert u.getOperator() == UnaryOperator.MINUS : v;
+        negate = true;
+        v = u.getOperand();
+      }
+      
+      assert v instanceof IASTIntegerLiteralExpression : v;
+      
+      value = ((IASTIntegerLiteralExpression)v).getValue().longValue();
+      if (negate) {
+        value = -value;
+      }
+    }
+    
+    return new IASTEnumerator(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getName()), value);
   }
 
   private IASTInitializer convert(org.eclipse.cdt.core.dom.ast.IASTInitializer i) {

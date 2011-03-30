@@ -460,26 +460,26 @@ public static final class ArrayType extends AbstractType {
 
   public static final class EnumType extends AbstractType {
 
-    private final Map<String, Integer> enumerators;
+    private final Map<String, Long> enumerators;
     private final String name;
 
     public EnumType(String name, boolean constant) {
       super(constant);
-      this.enumerators = new HashMap<String, Integer>();
+      this.enumerators = new HashMap<String, Long>();
       this.name = name;
     }
 
-    public void addEnumerator(String name, int value) {
+    public void addEnumerator(String name, long pL) {
       if (name == null) {
         throw new IllegalArgumentException();
       }
       if (enumerators.containsKey(name)) {
         throw new IllegalArgumentException("Enumerator " + name + " exists already");
       }
-      enumerators.put(name, value);
+      enumerators.put(name, pL);
     }
 
-    public int getEnumerator(String name) {
+    public long getEnumerator(String name) {
       if (!enumerators.containsKey(name)) {
         throw new IllegalArgumentException("No such enumerator");
       }
@@ -532,10 +532,10 @@ public static final class ArrayType extends AbstractType {
       StringBuilder sb = new StringBuilder();
       sb.append(toString());
       sb.append(" { ");
-      int lastValue = -1;
+      long lastValue = -1;
       for (String enumerator : enumerators.keySet()) {
         sb.append(enumerator);
-        int currentValue = enumerators.get(enumerator);
+        long currentValue = enumerators.get(enumerator);
         if (currentValue != lastValue+1) {
           sb.append("=");
           sb.append(currentValue);

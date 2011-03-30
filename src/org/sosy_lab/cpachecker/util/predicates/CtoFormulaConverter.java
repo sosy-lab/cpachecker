@@ -402,13 +402,11 @@ public class CtoFormulaConverter {
       for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
         String var = e.getName().getRawSignature();
         globalVars.add(var);
-        IASTExpression exp = e.getValue();
-        assert(exp != null);
 
         int idx = 1;
         ssa.setIndex(var, idx);
 
-        Formula minit = buildTerm(exp, function, ssa);
+        Formula minit = fmgr.makeNumber(Long.toString(e.getValue()));
         Formula mvar = fmgr.makeVariable(var, idx);
         Formula t = fmgr.makeAssignment(mvar, minit);
         result = fmgr.makeAnd(result, t);

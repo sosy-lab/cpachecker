@@ -49,11 +49,11 @@ public final class IASTEnumerationSpecifier extends IType {
   public static final class IASTEnumerator extends IASTNode {
 
     private final IASTName       name;
-    private final IASTExpression value;
+    private final long           value;
 
     public IASTEnumerator(final String pRawSignature,
         final IASTFileLocation pFileLocation, final IASTName pName,
-        final IASTExpression pValue) {
+        final long pValue) {
       super(pRawSignature, pFileLocation);
       name = pName;
       value = pValue;
@@ -63,13 +63,13 @@ public final class IASTEnumerationSpecifier extends IType {
       return name;
     }
 
-    public IASTExpression getValue() {
+    public long getValue() {
       return value;
     }
 
     @Override
     public IASTNode[] getChildren(){
-      return new IASTNode[] {value};
+      return new IASTNode[] {name};
     }
   }
 }
