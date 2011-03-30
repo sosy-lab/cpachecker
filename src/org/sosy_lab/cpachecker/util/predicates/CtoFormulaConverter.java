@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
@@ -845,7 +847,20 @@ public class CtoFormulaConverter {
     if (exp instanceof IASTIdExpression || !lvalsAsUif) {
       String var;
       if (exp instanceof IASTIdExpression) {
-        var = ((IASTIdExpression)exp).getName().getRawSignature();
+        IASTIdExpression idExp = (IASTIdExpression)exp;
+        IASTSimpleDeclaration decl = idExp.getDeclaration();
+        var = idExp.getName().getRawSignature();
+
+        // some checks to determine whether our set of global variables
+        // and the AST concord
+        if (decl == null) {
+          assert !globalVars.contains(var) : "Undeclared global variables cannot exist";
+        } else {
+          if (decl instanceof IASTDeclaration) {
+            assert globalVars.contains(var) == ((IASTDeclaration)decl).isGlobal();
+          }
+        }
+        
       } else {
         var = exprToVarName(exp);
       }
