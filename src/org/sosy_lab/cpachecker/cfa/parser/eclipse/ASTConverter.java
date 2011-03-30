@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeMemberDeclaration;
@@ -164,7 +164,7 @@ class ASTConverter {
         
         if (rightHandSide instanceof IASTExpression) {
           // a = b
-          return new IASTAssignmentExpression(e.getRawSignature(), fileLoc, leftHandSide, (IASTExpression)rightHandSide);
+          return new IASTExpressionAssignmentStatement(e.getRawSignature(), fileLoc, leftHandSide, (IASTExpression)rightHandSide);
         
         } else if (rightHandSide instanceof IASTFunctionCallExpression) {
           // a = f()
@@ -183,7 +183,7 @@ class ASTConverter {
         IASTBinaryExpression exp = new IASTBinaryExpression(rawSignature, fileLoc, type, leftHandSide, rightHandSide, op);
 
         // and now the assignment
-        return new IASTAssignmentExpression(e.getRawSignature(), fileLoc, leftHandSide, exp);
+        return new IASTExpressionAssignmentStatement(e.getRawSignature(), fileLoc, leftHandSide, exp);
       }
       
     } else {
@@ -524,7 +524,7 @@ class ASTConverter {
       String rawSignature = operand.getRawSignature() + " " + op.getOperator() + " " + one.getRawSignature();
       IASTBinaryExpression exp = new IASTBinaryExpression(rawSignature, fileLoc, type, operand, one, op);
       
-      return new IASTAssignmentExpression(e.getRawSignature(), fileLoc, operand, exp);
+      return new IASTExpressionAssignmentStatement(e.getRawSignature(), fileLoc, operand, exp);
       
     default:
       return new IASTUnaryExpression(e.getRawSignature(), fileLoc, type, operand, convertUnaryOperator(e));
@@ -572,8 +572,8 @@ class ASTConverter {
   public IASTStatement convert(final org.eclipse.cdt.core.dom.ast.IASTExpressionStatement s) {
     IASTNode node = convertExpressionWithSideEffects(s.getExpression());
     
-    if (node instanceof IASTAssignmentExpression) {
-      return (IASTAssignmentExpression)node;
+    if (node instanceof IASTExpressionAssignmentStatement) {
+      return (IASTExpressionAssignmentStatement)node;
       
     } else if (node instanceof IASTFunctionCallAssignmentStatement) {
       return (IASTFunctionCallAssignmentStatement)node;

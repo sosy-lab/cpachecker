@@ -29,7 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
@@ -529,8 +529,8 @@ public final class ErrorPathShrinker {
           ((StatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
-      if (statementExp instanceof IASTAssignmentExpression) {
-        handleAssignment((IASTAssignmentExpression) statementExp);
+      if (statementExp instanceof IASTExpressionAssignmentStatement) {
+        handleAssignment((IASTExpressionAssignmentStatement) statementExp);
       }
 
       // ext();
@@ -542,7 +542,7 @@ public final class ErrorPathShrinker {
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private void handleAssignment(final IASTAssignmentExpression assignmentExpression) {
+    private void handleAssignment(final IASTExpressionAssignmentStatement assignmentExpression) {
 
       IASTExpression lParam = assignmentExpression.getLeftHandSide();
       IASTExpression rightExp = assignmentExpression.getRightHandSide();

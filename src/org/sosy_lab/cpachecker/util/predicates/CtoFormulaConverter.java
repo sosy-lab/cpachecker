@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignmentExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -573,8 +573,8 @@ public class CtoFormulaConverter {
         IASTFunctionCallAssignmentStatement fexp = (IASTFunctionCallAssignmentStatement)assignment;
         r = makeExternalFunctionCall(fexp, function, ssa);
 
-      } else if (assignment instanceof IASTAssignmentExpression) {
-        IASTAssignmentExpression aexp = (IASTAssignmentExpression)assignment;
+      } else if (assignment instanceof IASTExpressionAssignmentStatement) {
+        IASTExpressionAssignmentStatement aexp = (IASTExpressionAssignmentStatement)assignment;
         r = buildTerm(aexp.getRightHandSide(), function, ssa);
 
       } else {
