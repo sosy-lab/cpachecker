@@ -546,15 +546,6 @@ class ASTConverter {
   public IASTReturnStatement convert(final org.eclipse.cdt.core.dom.ast.IASTReturnStatement s) {
     return new IASTReturnStatement(s.getRawSignature(), convert(s.getFileLocation()), convert(s.getReturnValue()));
   }
-
-  private List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
-    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration) {
-      return convert((org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d);
-    
-    } else {
-      throw new CFAGenerationRuntimeException("unknown declaration type", d);
-    }
-  }
   
   public IASTFunctionDefinition convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
     Pair<StorageClass, ? extends IType> specifier = convert(f.getDeclSpecifier());
@@ -608,7 +599,7 @@ class ASTConverter {
     
     } else {
       result = new ArrayList<IASTDeclaration>(declarators.length);
-      for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : d.getDeclarators()) {
+      for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : declarators) {
         
         // fake rawSignature because otherwise the other declarators would appear in it, too
         String rawSignature = d.getDeclSpecifier().getRawSignature() + " " + c.getRawSignature() + ";";
@@ -633,6 +624,61 @@ class ASTConverter {
 
     IASTSimpleDeclaration newSd = new IASTSimpleDeclaration(rawSignature, fileLoc, type, name);
     return new IASTDeclaration(rawSignature, fileLoc, storageClass, newSd, initializer);
+  }
+  
+  private List<IASTSimpleDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
+    if (!(d instanceof org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)) {
+      throw new CFAGenerationRuntimeException("unknown declaration type", d);
+    }
+    org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration sd = (org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d; 
+    
+    IASTFileLocation fileLoc = convert(d.getFileLocation());
+    Pair<StorageClass, ? extends IType> specifier = convert(sd.getDeclSpecifier());
+    if (specifier.getFirst() != StorageClass.AUTO) {
+      throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
+    }
+    IType type = specifier.getSecond();
+    
+    List<IASTSimpleDeclaration> result;
+    org.eclipse.cdt.core.dom.ast.IASTDeclarator[] declarators = sd.getDeclarators();
+    if (declarators == null || declarators.length == 0) {
+      // declaration without declarator, anonymous struct field?
+      IASTSimpleDeclaration newD = createDeclarationForCompositeType(d.getRawSignature(), fileLoc, type, null);
+      result = Collections.singletonList(newD);
+    
+    } else if (declarators.length == 1) {
+      IASTSimpleDeclaration newD = createDeclarationForCompositeType(d.getRawSignature(), fileLoc, type, declarators[0]);
+      result = Collections.singletonList(newD);
+    
+    } else {
+      result = new ArrayList<IASTSimpleDeclaration>(declarators.length);
+      for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : declarators) {
+        
+        // fake rawSignature because otherwise the other declarators would appear in it, too
+        String rawSignature = sd.getDeclSpecifier().getRawSignature() + " " + c.getRawSignature() + ";";
+        
+        result.add(createDeclarationForCompositeType(rawSignature, fileLoc, type, c));
+      }
+    }
+    
+    return result;
+  }
+  
+  private IASTSimpleDeclaration createDeclarationForCompositeType(String rawSignature, IASTFileLocation fileLoc, IType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
+    IASTName name = null;
+    
+    if (d != null) {
+      Triple<IType, IASTInitializer, IASTName> declarator = convert(d, type);
+      
+      if (declarator.getSecond() != null) {
+        throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d);
+      }
+      
+      type = declarator.getFirst();
+      name = declarator.getThird();
+    }
+
+    return new IASTSimpleDeclaration(rawSignature, fileLoc, type, name);
   }
   
   private Triple<IType, IASTInitializer, IASTName> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d, IType specifier) {
@@ -786,19 +832,11 @@ class ASTConverter {
   
   private IASTCompositeTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier d) {
     List<IASTSimpleDeclaration> list = new ArrayList<IASTSimpleDeclaration>(d.getMembers().length);
+    
     for (org.eclipse.cdt.core.dom.ast.IASTDeclaration c : d.getMembers()) {
-      List<IASTDeclaration> newCs = convert(c);
+      List<IASTSimpleDeclaration> newCs = convertDeclarationInCompositeType(c);
       assert !newCs.isEmpty();
-
-      for (IASTDeclaration newC : newCs) {
-        if (newC.getStorageClass() != StorageClass.AUTO) {
-          throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", c);
-        }
-        if (newC.getInitializer() != null) {
-          throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", c);
-        }
-        list.add(newC.getDeclaration());
-      }
+      list.addAll(newCs);
     }
     return new IASTCompositeTypeSpecifier(d.isConst(), d.isVolatile(), d.getKey(), list, convert(d.getName()));
   }
