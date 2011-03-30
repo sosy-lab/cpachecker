@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -390,28 +391,11 @@ public class CtoFormulaConverter {
 
     if (spec instanceof IASTFunctionTypeSpecifier) {
       return fmgr.makeTrue();
-    }
     
-    if (spec instanceof IASTEnumerationSpecifier) {
-      // extract the fields, and add them as global variables
-      assert(isGlobal);
-      IASTEnumerationSpecifier.IASTEnumerator[] enums =
-        ((IASTEnumerationSpecifier)spec).getEnumerators();
-      
-      Formula result = fmgr.makeTrue();
-      for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
-        String var = e.getName().getRawSignature();
-        globalVars.add(var);
-
-        int idx = 1;
-        ssa.setIndex(var, idx);
-
-        Formula minit = fmgr.makeNumber(Long.toString(e.getValue()));
-        Formula mvar = fmgr.makeVariable(var, idx);
-        Formula t = fmgr.makeAssignment(mvar, minit);
-        result = fmgr.makeAnd(result, t);
-      }
-      return result;
+    } else if (spec instanceof IASTEnumerationSpecifier) {
+      // don't need to handle enums, when an enum is referenced,
+      // we can get the value from the AST
+      return fmgr.makeTrue();
     
     } else if (spec instanceof IASTCompositeTypeSpecifier) {
       // this is the declaration of a struct, just ignore it...
@@ -663,6 +647,13 @@ public class CtoFormulaConverter {
   private Formula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)
         throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression) {
+      IASTIdExpression idExp = (IASTIdExpression)exp;
+      
+      if (idExp.getDeclaration() instanceof IASTEnumerator) {
+        IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
+        return fmgr.makeNumber(Long.toString(enumerator.getValue()));
+      }
+
       // this is a variable: get the right index for the SSA
       String var = ((IASTIdExpression)exp).getName().getRawSignature();
       return makeVariable(var, function, ssa);

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
@@ -100,17 +99,6 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
       IType spec = decl.getDeclSpecifier();
 
       boolean isGlobal = ArithmeticOverflowAssumptionBuilder.isDeclGlobal;
-
-      if (spec instanceof IASTEnumerationSpecifier) {
-        // extract the fields, and add them as global variables
-        assert(isGlobal);
-        IASTEnumerationSpecifier.IASTEnumerator[] enums =
-          ((IASTEnumerationSpecifier)spec).getEnumerators();
-        for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
-          String var = e.getName().getRawSignature();
-          super.addToGlobalVars(var);
-        }
-      }
 
       String var = decl.getName().getRawSignature();
       if (isGlobal) {
