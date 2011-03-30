@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.util.assumptions.DummyASTNumericalLiteralExpression;
+import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 /**
  * Class to generate assumptions related to over/underflow
@@ -58,7 +59,7 @@ implements GenericAssumptionBuilder
 
   public static boolean isDeclGlobal = false;
 
-  private static Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> boundsForType(IType typ)
+  private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(IType typ)
   {
     if (typ instanceof IASTSimpleDeclSpecifier) {
       IASTSimpleDeclSpecifier btyp = (IASTSimpleDeclSpecifier) typ;
@@ -68,7 +69,7 @@ implements GenericAssumptionBuilder
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
-          (DummyASTNumericalLiteralExpression.INT_MIN, DummyASTNumericalLiteralExpression.INT_MAX);
+          (NumericTypes.INT_MIN, NumericTypes.INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
           //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
@@ -121,7 +122,7 @@ implements GenericAssumptionBuilder
   private static IASTNode conjunctPredicateForArithmeticExpression(IType typ,
       IASTExpression exp, IASTNode result) {
 
-    Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> bounds =
+    Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> bounds =
         boundsForType(typ);
 
     if (bounds.getFirst() != null) {
@@ -189,7 +190,7 @@ implements GenericAssumptionBuilder
 
   @Override
   public IASTNode assumptionsForEdge(CFAEdge pEdge) {
-    IASTNode result = DummyASTNumericalLiteralExpression.TRUE;
+    IASTNode result = NumericTypes.TRUE;
     
     switch (pEdge.getEdgeType()) {
     case DeclarationEdge:
