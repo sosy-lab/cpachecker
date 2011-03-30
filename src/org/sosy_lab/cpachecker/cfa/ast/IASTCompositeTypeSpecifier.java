@@ -45,8 +45,8 @@ public final class IASTCompositeTypeSpecifier extends IType {
     return key;
   }
 
-  public IASTCompositeTypeMemberDeclaration[] getMembers() {
-    return members.toArray(new IASTCompositeTypeMemberDeclaration[members.size()]);
+  public List<IASTCompositeTypeMemberDeclaration> getMembers() {
+    return members;
   }
 
   public IASTName getName() {
