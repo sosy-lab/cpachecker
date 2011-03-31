@@ -27,7 +27,7 @@ import java.io.IOException;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -77,7 +77,7 @@ public interface CParser {
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  IASTStatement parseSingleStatement(String code) throws ParserException;
+  IASTNode parseSingleStatement(String code) throws ParserException;
   
   /** 
    * Return a timer that measured the time needed for parsing.

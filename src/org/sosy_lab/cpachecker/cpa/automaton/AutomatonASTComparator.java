@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Preconditions;
@@ -201,7 +200,7 @@ public class AutomatonASTComparator {
    * @throws InvalidAutomatonException
    */
   private static IASTNode parse(String code) throws InvalidAutomatonException {
-    IASTStatement statement;
+    IASTNode statement;
     try {
       CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
       statement = parser.parseSingleStatement(code);

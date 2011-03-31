@@ -87,7 +87,7 @@ public class EclipseCParser implements CParser {
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cfa.ast.IASTStatement parseSingleStatement(String pCode) throws ParserException {
+  public org.sosy_lab.cpachecker.cfa.ast.IASTNode parseSingleStatement(String pCode) throws ParserException {
     
     // parse
     IASTTranslationUnit ast = parse(new CodeReader(pCode.toCharArray()));

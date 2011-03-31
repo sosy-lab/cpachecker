@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTReturnStatement extends IASTStatement {
+public class IASTReturnStatement extends IASTNode {
 
   private final IASTExpression expression;
 

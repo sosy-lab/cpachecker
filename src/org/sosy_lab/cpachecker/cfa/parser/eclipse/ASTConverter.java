@@ -556,7 +556,7 @@ class ASTConverter {
     return new IASTTypeIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getOperator(), convert(e.getTypeId()));
   }
 
-  public IASTStatement convert(final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
+  public IASTNode convert(final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
 
     if (s instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) s);

@@ -6,7 +6,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -26,7 +26,7 @@ public class ToFlleShAssumeEdgeTranslator {
       lPredicateExpression = mExpressionCache.get(lPredicateFunction);
     }
     else {
-      IASTStatement statement;
+      IASTNode statement;
       try {
         CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
         statement = parser.parseSingleStatement(lPredicateFunction);
