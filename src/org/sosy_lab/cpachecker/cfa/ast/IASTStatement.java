@@ -29,4 +29,6 @@ public abstract class IASTStatement extends IASTNode {
       final IASTFileLocation pFileLocation) {
     super(pRawSignature, pFileLocation);
   }
+  
+  public abstract <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X;
 }

@@ -43,6 +43,16 @@ public class IASTLiteralExpression extends IASTExpression {
     return new IASTNode[0];
   }
   
+  @Override
+  public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+  
+  @Override
+  public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+  
   public static final int lk_integer_constant = 0;
   public static final int lk_float_constant = 1;
   public static final int lk_char_constant = 2;

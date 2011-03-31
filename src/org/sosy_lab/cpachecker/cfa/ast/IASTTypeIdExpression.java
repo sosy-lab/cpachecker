@@ -48,7 +48,17 @@ public final class IASTTypeIdExpression extends IASTExpression {
   public IASTNode[] getChildren(){
     return new IASTNode[] {type};
   }
- 
+  
+  @Override
+  public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+  
+  @Override
+  public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+  
   public static final int op_sizeof = 0;
   public static final int op_typeid = 1;
   public static final int op_alignof = 2;

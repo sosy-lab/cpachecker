@@ -49,4 +49,14 @@ public final class IASTArraySubscriptExpression extends IASTExpression {
   public IASTNode[] getChildren(){
     return new IASTNode[] {arrayExpression, subscriptExpression};
   }
+  
+  @Override
+  public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+  
+  @Override
+  public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
 }

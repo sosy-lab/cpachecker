@@ -39,4 +39,6 @@ public abstract class IASTRightHandSide extends IASTNode {
   public IType getExpressionType() {
     return type;
   }
+
+  public abstract <R, X extends Exception> R accept(RightHandSideVisitor<R, X> pV) throws X;
 }

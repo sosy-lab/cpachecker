@@ -33,4 +33,5 @@ public abstract class IASTExpression extends IASTRightHandSide {
     super(pRawSignature, pFileLocation, pType);
   }
 
+  public abstract <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X;
 }

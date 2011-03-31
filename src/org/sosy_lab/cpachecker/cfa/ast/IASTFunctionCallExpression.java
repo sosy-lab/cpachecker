@@ -74,4 +74,9 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
     }
     return result;
   }
+  
+  @Override
+  public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
 }
