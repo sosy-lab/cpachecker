@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.cpa.featurevariables;
 
 import java.util.logging.Level;
 
-import javax.management.QueryExp;
-
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;

@@ -318,7 +318,6 @@ public class FeatureVarsTest {
       log = pLog;
       checkerResult = pCheckerResult;
     }
-    @SuppressWarnings("unused")
     public String getLog() {
       return log;
     }
