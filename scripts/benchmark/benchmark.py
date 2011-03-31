@@ -483,7 +483,7 @@ class OutputHandler:
 
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile, "status": status})
-        timesElem = ET.Element("time", {"cpuTime": cpuTimeDelta, "wallTime": wallTimeDelta})
+        timesElem = ET.Element("time", {"cputime": cpuTimeDelta, "walltime": wallTimeDelta})
         fileElem.append(timesElem)
 
         for column in self.benchmark.columns:
@@ -509,7 +509,7 @@ class OutputHandler:
         wallTimeTest = self.formatNumber(wallTimeTest, TIME_PRECISION)
 
         # store testtime in XML
-        timesElem = ET.Element("time", {"cpuTime": cpuTimeTest, "wallTime": wallTimeTest})
+        timesElem = ET.Element("time", {"cputime": cpuTimeTest, "walltime": wallTimeTest})
         self.testElem.append(timesElem)
 
         # write endline into TXTFile
