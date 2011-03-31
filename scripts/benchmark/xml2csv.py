@@ -3,8 +3,6 @@
 import xml.etree.ElementTree as ET
 import os.path
 
-from datetime import date
-
 
 CSV_SEPARATOR = "\t"
 
@@ -17,14 +15,17 @@ def convert(filename, outputFolder):
 
     print "converting xml to csv ...",
     benchmarkTag = ET.ElementTree().parse(filename)
+    date = benchmarkTag.get("date")
 
     # remove old CSV-files
     for testTag in benchmarkTag.findall("test"):
         testName = testTag.get("name")
         if testName is None:
-            CSVFileName = outputFolder + benchmarkTag.get("name") + ".results." + str(date.today()) + ".csv"
+            CSVFileName = outputFolder + benchmarkTag.get("name") \
+                            + ".results." + date + ".csv"
         else:
-            CSVFileName = outputFolder + benchmarkTag.get("name") + "." + testName + ".results." + str(date.today()) + ".csv"
+            CSVFileName = outputFolder + benchmarkTag.get("name") \
+                            + "." + testName + ".results." + date + ".csv"
         if os.path.isfile(CSVFileName):
             os.remove(CSVFileName)
 
@@ -43,8 +44,8 @@ def convert(filename, outputFolder):
 
             outputCSVLine = CSV_SEPARATOR.join([sourcefileTag.get("name"),
                                                 sourcefileTag.get("status"),
-                                                sourcefileTag.find("time").get("cpuTime"),
-                                                sourcefileTag.find("time").get("wallTime")])
+                                                sourcefileTag.find("time").get("cputime"),
+                                                sourcefileTag.find("time").get("walltime")])
             for column in sourcefileTag.findall("column"):
                 outputCSVLine += CSV_SEPARATOR + column.get("value")
 
@@ -55,7 +56,8 @@ def convert(filename, outputFolder):
         if testName is None:
             contentWithoutTestName += CSVContent
         else:
-            CSVFileName = outputFolder + benchmarkTag.get("name") + "." + testName + ".results." + str(date.today()) + ".csv"
+            CSVFileName = outputFolder + benchmarkTag.get("name") \
+                            + "." + testName + ".results." + date + ".csv"
             if os.path.isfile(CSVFileName):
                 CSVFile = open(CSVFileName, "a")
                 CSVFile.write(CSVContent)
@@ -65,7 +67,8 @@ def convert(filename, outputFolder):
             CSVFile.close()
 
     if contentWithoutTestName is not "":
-        CSVFileName = outputFolder + benchmarkTag.get("name") + ".results." + str(date.today()) + ".csv"
+        CSVFileName = outputFolder + benchmarkTag.get("name") \
+                        + ".results." + date + ".csv"
         CSVFile = open(CSVFileName, "w")
         CSVFile.write(CSVtitleLine + contentWithoutTestName)
         CSVFile.close()
