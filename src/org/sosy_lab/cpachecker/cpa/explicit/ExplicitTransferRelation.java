@@ -1299,22 +1299,22 @@ public class ExplicitTransferRelation implements TransferRelation {
     
     @Override
     public Long visit(IASTCharLiteralExpression pE) throws UnrecognizedCCodeException {
-      return parseLiteral(pE);
+      return parseCharLiteral(pE);
     }
     
     @Override
     public Long visit(IASTFloatLiteralExpression pE) throws UnrecognizedCCodeException {
-      return parseLiteral(pE);
+      return null;
     }
     
     @Override
     public Long visit(IASTIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-      return parseLiteral(pE);
+      return parseIntegerLiteral(pE);
     }
     
     @Override
     public Long visit(IASTStringLiteralExpression pE) throws UnrecognizedCCodeException {
-      return parseLiteral(pE);
+      return null;
     }
     
     @Override
@@ -1406,103 +1406,102 @@ public class ExplicitTransferRelation implements TransferRelation {
     return expression.accept(v);
   }
 
+  private static Long parseCharLiteral(IASTCharLiteralExpression cExp) {
+    // we convert to a byte, and take the integer value
+    String s = cExp.getRawSignature();
+    int length = s.length();
+    assert(s.charAt(0) == '\'');
+    assert(s.charAt(length-1) == '\'');
+    int n;
+
+    if (s.charAt(1) == '\\') {
+      n = Integer.parseInt(s.substring(2, length-1));
+    } else {
+      assert (cExp.getRawSignature().length() == 3);
+      n = cExp.getRawSignature().charAt(1);
+    }
+    return (long)n;
+  }
+  
+  private static Long parseIntegerLiteral(IASTIntegerLiteralExpression lexp) {
+//  String s = expression.getRawSignature();
+//        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
+//          s = s.replace("L", "");
+//          s = s.replace("U", "");
+//          s = s.replace("UL", "");
+//        }
+//        try {
+//          return Long.valueOf(s);
+//        } catch (NumberFormatException e) {
+//          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
+//        }
+    
+    String num = lexp.getRawSignature();
+    Long retVal = null;
+    if (num.startsWith("0x")) {
+      // this should be in hex format
+      // we use Long instead of Integer to avoid getting negative
+      // numbers (e.g. for 0xffffff we would get -1)
+      num = Long.valueOf(num, 16).toString();
+    } else {
+      // this might have some modifiers attached (e.g. 0UL), we
+      // have to get rid of them
+      int pos = num.length()-1;
+      while (!Character.isDigit(num.charAt(pos))) {
+        --pos;
+      }
+      num = num.substring(0, pos+1);
+//      System.out.println("num is " + num);
+    }
+    
+    // TODO here we assume 32 bit integers!!! This is because CIL
+    // seems to do so as well...
+    try {
+      int i = Integer.parseInt(num);
+      retVal = (long)i;
+    } catch (NumberFormatException nfe) {
+//      System.out.print("catching ");
+      long l = Long.parseLong(num);
+//      System.out.println(l);
+      if (l < 0) {
+        retVal = Integer.MAX_VALUE + l;
+      } else {
+        //retVal = (l - ((long)Integer.MAX_VALUE + 1)*2);
+        retVal = l;
+      }
+    }
+    return retVal;
+  }
+  
   private static Long parseLiteral(IASTLiteralExpression lexp) {
-//      System.out.println("expr " + expression.getRawSignature());
-
-      //      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
-      //      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
-      //
-      //        String s = expression.getRawSignature();
-      //        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
-      //          s = s.replace("L", "");
-      //          s = s.replace("U", "");
-      //          s = s.replace("UL", "");
-      //        }
-      //        try {
-      //          return Long.valueOf(s);
-      //        } catch (NumberFormatException e) {
-      //          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
-      //        }
-      //      }
-      //      if (typeOfLiteral == IASTLiteralExpression.lk_string_literal) {
-      //        return (long) expression.hashCode();
-      //      }
-
       // this should be a number...
-      String num = lexp.getRawSignature();
-      Long retVal = null;
       switch (lexp.getKind()) {
       case IASTLiteralExpression.lk_integer_constant:
+        return parseIntegerLiteral((IASTIntegerLiteralExpression)lexp);
+              
+      case IASTLiteralExpression.lk_char_constant:
+        return parseCharLiteral((IASTCharLiteralExpression)lexp);
+
       case IASTLiteralExpression.lk_float_constant:
-        if (num.startsWith("0x")) {
-          // this should be in hex format
-          // we use Long instead of Integer to avoid getting negative
-          // numbers (e.g. for 0xffffff we would get -1)
-          num = Long.valueOf(num, 16).toString();
-        } else {
-          // this might have some modifiers attached (e.g. 0UL), we
-          // have to get rid of them
-          int pos = num.length()-1;
-          while (!Character.isDigit(num.charAt(pos))) {
-            --pos;
-          }
-          num = num.substring(0, pos+1);
-//          System.out.println("num is " + num);
-        }
-        break;
-      case IASTLiteralExpression.lk_char_constant: {
-        // we convert to a byte, and take the integer value
-        String s = lexp.getRawSignature();
-        int length = s.length();
-        assert(s.charAt(0) == '\'');
-        assert(s.charAt(length-1) == '\'');
-        int n;
-
-        if (s.charAt(1) == '\\') {
-          n = Integer.parseInt(s.substring(2, length-1));
-        } else {
-          assert (lexp.getRawSignature().length() == 3);
-          n = lexp.getRawSignature().charAt(1);
-        }
-        num = "" + n;
-
-      }
-      break;
-      case IASTLiteralExpression.lk_string_literal: {
+      case IASTLiteralExpression.lk_string_literal:
         // can't handle
         return null;
-      }
+
       default:
         assert(false) : lexp;
         return null;
       }
-      // TODO here we assume 32 bit integers!!! This is because CIL
-      // seems to do so as well...
-      try {
-        int i = Integer.parseInt(num);
-        retVal = (long)i;
-      } catch (NumberFormatException nfe) {
-//        System.out.print("catching ");
-        long l = Long.parseLong(num);
-//        System.out.println(l);
-        if (l < 0) {
-          retVal = Integer.MAX_VALUE + l;
-        } else {
-          //retVal = (l - ((long)Integer.MAX_VALUE + 1)*2);
-          retVal = l;
-        }
-      }
-      return retVal;
   }
 
   private Long parseLiteralWithOppositeSign(IASTLiteralExpression lexp){
       // this should be a number...
-      String num = lexp.getRawSignature();
-      Long retVal = null;
-      boolean isUnsigned = false;
+
       switch (lexp.getKind()) {
-      case IASTLiteralExpression.lk_integer_constant:
-      case IASTLiteralExpression.lk_float_constant:
+      case IASTLiteralExpression.lk_integer_constant: {
+        String num = lexp.getRawSignature();
+        Long retVal = null;
+        boolean isUnsigned = false;
+        
         if (num.startsWith("0x")) {
           // this should be in hex format
           // we use Long instead of Integer to avoid getting negative
@@ -1520,52 +1519,45 @@ public class ExplicitTransferRelation implements TransferRelation {
           }
           num = num.substring(0, pos+1);
         }
-        break;
-      case IASTLiteralExpression.lk_char_constant: {
-        // we convert to a byte, and take the integer value
-        String s = lexp.getRawSignature();
-        int length = s.length();
-        assert(s.charAt(0) == '\'');
-        assert(s.charAt(length-1) == '\'');
-        int n;
-
-        if (s.charAt(1) == '\\') {
-          n = Integer.parseInt(s.substring(2, length-1));
-        } else {
-          assert (lexp.getRawSignature().length() == 3);
-          n = lexp.getRawSignature().charAt(1);
+        
+        // TODO here we assume 32 bit integers!!! This is because CIL
+        // seems to do so as well...
+        try {
+          int i = Integer.parseInt(num);
+          retVal = 0 - (long)i;
+          if(isUnsigned){
+            if (retVal < 0) {
+              retVal = ((long)Integer.MAX_VALUE + 1)*2 + retVal;
+            } else {
+              retVal = (retVal - ((long)Integer.MAX_VALUE + 1)*2);
+            }
+          }
+        } catch (NumberFormatException nfe) {
+          long l = Long.parseLong(num);
+          l = 0 - l;
+          if (l < 0) {
+            retVal = Integer.MAX_VALUE + l;
+          } else {
+            //retVal = (l - ((long)Integer.MAX_VALUE + 1)*2);
+            retVal = l;
+          }
         }
-        num = "" + n;
-
+        return retVal;
       }
-      break;
+      
+      case IASTLiteralExpression.lk_char_constant: {
+        return 0 - parseCharLiteral((IASTCharLiteralExpression)lexp);
+      }
+
+      case IASTLiteralExpression.lk_float_constant:
+      case IASTLiteralExpression.lk_string_literal:
+        // can't handle
+        return null;
+
       default:
         assert(false);
         return null;
       }
-      // TODO here we assume 32 bit integers!!! This is because CIL
-      // seems to do so as well...
-      try {
-        int i = Integer.parseInt(num);
-        retVal = 0 - (long)i;
-        if(isUnsigned){
-          if (retVal < 0) {
-            retVal = ((long)Integer.MAX_VALUE + 1)*2 + retVal;
-          } else {
-            retVal = (retVal - ((long)Integer.MAX_VALUE + 1)*2);
-          }
-        }
-      } catch (NumberFormatException nfe) {
-        long l = Long.parseLong(num);
-        l = 0 - l;
-        if (l < 0) {
-          retVal = Integer.MAX_VALUE + l;
-        } else {
-          //retVal = (l - ((long)Integer.MAX_VALUE + 1)*2);
-          retVal = l;
-        }
-      }
-      return retVal;
   }
 
   public String getvarName(String variableName, String functionName){
