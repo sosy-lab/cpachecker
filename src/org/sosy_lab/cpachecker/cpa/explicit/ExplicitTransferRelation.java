@@ -43,14 +43,18 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
@@ -331,7 +335,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
 
       else if(arg instanceof IASTLiteralExpression){
-        Long val = parseLiteral(arg);
+        Long val = parseLiteral((IASTLiteralExpression)arg);
 
         if (val != null) {
           newElement.assignConstant(formalParamName, val, this.threshold);
@@ -469,16 +473,17 @@ public class ExplicitTransferRelation implements TransferRelation {
       // a (bop) 9
       else if(op2 instanceof IASTLiteralExpression)
       {
+        IASTLiteralExpression lop2 = (IASTLiteralExpression)op2;
         String varName = op1.getRawSignature();
         if (precision.isOnBlacklist(varName))
           return element;
-        int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
+        int typeOfLiteral = lop2.getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
             || typeOfLiteral == IASTLiteralExpression.lk_float_constant
             || typeOfLiteral == IASTLiteralExpression.lk_char_constant
         )
         {
-          long valueOfLiteral = parseLiteral(op2);
+          long valueOfLiteral = parseLiteral(lop2);
           // a == 9
           if(opType == BinaryOperator.EQUALS) {
             if(truthValue){
@@ -605,7 +610,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           {
             if(truthValue){
               if(newElement.contains(getvarName(varName, functionName))){
-                valueOfLiteral = parseLiteralWithOppositeSign(op2);
+                valueOfLiteral = parseLiteralWithOppositeSign(lop2);
                 if(newElement.getValueFor(getvarName(varName, functionName)) == (valueOfLiteral)){
                   return null;
                 }
@@ -615,13 +620,13 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
             else {
               if(newElement.contains(getvarName(varName, functionName))){
-                valueOfLiteral = parseLiteralWithOppositeSign(op2);
+                valueOfLiteral = parseLiteralWithOppositeSign(lop2);
                 if(newElement.getValueFor(getvarName(varName, functionName)) != (valueOfLiteral)){
                   return null;
                 }
               }
               else{
-                valueOfLiteral = parseLiteralWithOppositeSign(op2);
+                valueOfLiteral = parseLiteralWithOppositeSign(lop2);
                 newElement.assignConstant(getvarName(varName, functionName), (valueOfLiteral), this.threshold);
               }
             }
@@ -1293,7 +1298,22 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     
     @Override
-    public Long visit(IASTLiteralExpression pE) throws UnrecognizedCCodeException {
+    public Long visit(IASTCharLiteralExpression pE) throws UnrecognizedCCodeException {
+      return parseLiteral(pE);
+    }
+    
+    @Override
+    public Long visit(IASTFloatLiteralExpression pE) throws UnrecognizedCCodeException {
+      return parseLiteral(pE);
+    }
+    
+    @Override
+    public Long visit(IASTIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+      return parseLiteral(pE);
+    }
+    
+    @Override
+    public Long visit(IASTStringLiteralExpression pE) throws UnrecognizedCCodeException {
       return parseLiteral(pE);
     }
     
@@ -1386,8 +1406,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     return expression.accept(v);
   }
 
-  private static Long parseLiteral(IASTExpression expression) {
-    if (expression instanceof IASTLiteralExpression) {
+  private static Long parseLiteral(IASTLiteralExpression lexp) {
 //      System.out.println("expr " + expression.getRawSignature());
 
       //      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
@@ -1410,7 +1429,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       //      }
 
       // this should be a number...
-      IASTLiteralExpression lexp = (IASTLiteralExpression)expression;
       String num = lexp.getRawSignature();
       Long retVal = null;
       switch (lexp.getKind()) {
@@ -1434,7 +1452,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         break;
       case IASTLiteralExpression.lk_char_constant: {
         // we convert to a byte, and take the integer value
-        String s = expression.getRawSignature();
+        String s = lexp.getRawSignature();
         int length = s.length();
         assert(s.charAt(0) == '\'');
         assert(s.charAt(length-1) == '\'');
@@ -1443,8 +1461,8 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (s.charAt(1) == '\\') {
           n = Integer.parseInt(s.substring(2, length-1));
         } else {
-          assert (expression.getRawSignature().length() == 3);
-          n = expression.getRawSignature().charAt(1);
+          assert (lexp.getRawSignature().length() == 3);
+          n = lexp.getRawSignature().charAt(1);
         }
         num = "" + n;
 
@@ -1455,7 +1473,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         return null;
       }
       default:
-        assert(false) : expression;
+        assert(false) : lexp;
         return null;
       }
       // TODO here we assume 32 bit integers!!! This is because CIL
@@ -1475,14 +1493,10 @@ public class ExplicitTransferRelation implements TransferRelation {
         }
       }
       return retVal;
-    }
-    return null;
   }
 
-  private Long parseLiteralWithOppositeSign(IASTExpression expression){
-    if (expression instanceof IASTLiteralExpression) {
+  private Long parseLiteralWithOppositeSign(IASTLiteralExpression lexp){
       // this should be a number...
-      IASTLiteralExpression lexp = (IASTLiteralExpression)expression;
       String num = lexp.getRawSignature();
       Long retVal = null;
       boolean isUnsigned = false;
@@ -1509,7 +1523,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         break;
       case IASTLiteralExpression.lk_char_constant: {
         // we convert to a byte, and take the integer value
-        String s = expression.getRawSignature();
+        String s = lexp.getRawSignature();
         int length = s.length();
         assert(s.charAt(0) == '\'');
         assert(s.charAt(length-1) == '\'');
@@ -1518,8 +1532,8 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (s.charAt(1) == '\\') {
           n = Integer.parseInt(s.substring(2, length-1));
         } else {
-          assert (expression.getRawSignature().length() == 3);
-          n = expression.getRawSignature().charAt(1);
+          assert (lexp.getRawSignature().length() == 3);
+          n = lexp.getRawSignature().charAt(1);
         }
         num = "" + n;
 
@@ -1552,9 +1566,6 @@ public class ExplicitTransferRelation implements TransferRelation {
         }
       }
       return retVal;
-    }
-    return null;
-
   }
 
   public String getvarName(String variableName, String functionName){

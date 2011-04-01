@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
@@ -54,12 +55,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
@@ -763,42 +764,38 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
-      if (lexp instanceof IASTCharLiteralExpression) {
-        IASTCharLiteralExpression cExp = (IASTCharLiteralExpression)lexp;
-        // we just take the byte value
-        return fmgr.makeNumber(cExp.getCharacter());
-      
-      } else if (lexp instanceof IASTIntegerLiteralExpression) {
-        IASTIntegerLiteralExpression iExp = (IASTIntegerLiteralExpression)lexp;
+    public Formula visit(IASTCharLiteralExpression cExp) throws UnrecognizedCCodeException {
+      // we just take the byte value
+      return fmgr.makeNumber(cExp.getCharacter());
+    }
 
-        return fmgr.makeNumber(iExp.getValue().toString());
+    @Override
+    public Formula visit(IASTIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
+      return fmgr.makeNumber(iExp.getValue().toString());
+    }
+      
+    @Override
+    public Formula visit(IASTFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
+      // parse with valueOf and convert to String again, because Mathsat
+      // does not accept all possible C float constants (but Java hopefully does)
+      return fmgr.makeNumber(Double.valueOf(fExp.getRawSignature()).toString());
+    }
+
+    @Override
+    public Formula visit(IASTStringLiteralExpression lexp) throws UnrecognizedCCodeException {
+      // we create a string constant representing the given
+      // string literal
+      String literal = lexp.getRawSignature();
+      Formula result = stringLitToFormula.get(literal);
+
+      if (result == null) {
+        // generate a new string literal. We generate a new UIf
+        int n = nextStringLitIndex++;
+        result = fmgr.makeString(n);
+        stringLitToFormula.put(literal, result);
       }
       
-      // this should be a number...
-      String num = lexp.getRawSignature();
-      switch (lexp.getKind()) {
-      case IASTLiteralExpression.lk_float_constant:
-        // parse with valueOf and convert to String again, because Mathsat
-        // does not accept all possible C float constants (but Java hopefully does)
-        return fmgr.makeNumber(Double.valueOf(num).toString());
-
-      case IASTLiteralExpression.lk_string_literal: {
-        // we create a string constant representing the given
-        // string literal
-        if (stringLitToFormula.containsKey(lexp.getRawSignature())) {
-          return stringLitToFormula.get(lexp.getRawSignature());
-        } else {
-          // generate a new string literal. We generate a new UIf
-          int n = nextStringLitIndex++;
-          Formula t = fmgr.makeString(n);
-          stringLitToFormula.put(lexp.getRawSignature(), t);
-          return t;
-        }
-      }
-      default:
-        throw new UnrecognizedCCodeException("Unknown literal", null, lexp);
-      }
+      return result;
     }
 
     @Override

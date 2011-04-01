@@ -54,10 +54,25 @@ public abstract class DefaultExpressionVisitor<R, X extends Exception>
   }
 
   @Override
-  public R visit(IASTLiteralExpression e) throws X {
+  public R visit(IASTCharLiteralExpression e) throws X {
     return visitDefault(e);
   }
 
+  @Override
+  public R visit(IASTFloatLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+  
+  @Override
+  public R visit(IASTIntegerLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+  
+  @Override
+  public R visit(IASTStringLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+  
   @Override
   public R visit(IASTTypeIdExpression e) throws X {
     return visitDefault(e);

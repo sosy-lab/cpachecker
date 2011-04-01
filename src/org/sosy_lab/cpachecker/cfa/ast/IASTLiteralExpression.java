@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTLiteralExpression extends IASTExpression {
+public abstract class IASTLiteralExpression extends IASTExpression {
 
   private final int    kind;
 
@@ -41,16 +41,6 @@ public class IASTLiteralExpression extends IASTExpression {
   public IASTNode[] getChildren(){
     // there are no children of this class
     return new IASTNode[0];
-  }
-  
-  @Override
-  public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-  
-  @Override
-  public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
   
   public static final int lk_integer_constant = 0;

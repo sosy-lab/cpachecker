@@ -43,7 +43,7 @@ public class Defaults {
         
       case DOUBLE:
       case FLOAT:
-        return new IASTLiteralExpression("0.0", fileLoc, type, IASTLiteralExpression.lk_float_constant);
+        return new IASTFloatLiteralExpression("0.0", fileLoc, type);
         
       case UNSPECIFIED:
       case INT:

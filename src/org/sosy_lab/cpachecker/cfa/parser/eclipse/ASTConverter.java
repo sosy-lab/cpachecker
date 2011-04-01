@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -359,19 +361,26 @@ class ASTConverter {
   }
   
   private IASTLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
+    check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
+    IASTFileLocation fileLoc = convert(e.getFileLocation());
+    IType type = convert(e.getExpressionType());
+
     switch (e.getKind()) {
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_char_constant: 
-      check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
-      return new IASTCharLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), parseCharacterLiteral(e.getRawSignature(), e));
+      return new IASTCharLiteralExpression(e.getRawSignature(), fileLoc, type, parseCharacterLiteral(e.getRawSignature(), e));
     
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_integer_constant:
-      check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
-      return new IASTIntegerLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), parseIntegerLiteral(e.getRawSignature(), e));
-    }
+      return new IASTIntegerLiteralExpression(e.getRawSignature(), fileLoc, type, parseIntegerLiteral(e.getRawSignature(), e));
     
-    assert e.getRawSignature().equals(String.valueOf(e.getValue()));
+    case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_float_constant:
+      return new IASTFloatLiteralExpression(e.getRawSignature(), fileLoc, type);
 
-    return new IASTLiteralExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getKind());
+    case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_string_literal:
+      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type);
+    
+    default:
+      throw new CFAGenerationRuntimeException("Unknown literal", e);
+    }
   }
 
   char parseCharacterLiteral(String s, org.eclipse.cdt.core.dom.ast.IASTNode e) {
