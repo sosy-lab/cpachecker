@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation {
@@ -369,6 +371,10 @@ public class ExplicitTransferRelation implements TransferRelation {
       ReturnStatementEdge returnEdge)
   throws UnrecognizedCCodeException {
 
+    if (expression == null) {
+      expression = NumericTypes.ZERO; // this is the default in C
+    }
+    
     return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge);
   }
 
@@ -1153,192 +1159,25 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   private ExplicitElement handleAssignmentToVariable(ExplicitElement element,
-      String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+      String lParam, IASTRightHandSide exp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-    // a = 8.2 or "return;" (when rightExp == null)
-    if(rightExp == null || rightExp instanceof IASTLiteralExpression){
-      return handleAssignmentOfLiteral(element, lParam, (IASTLiteralExpression)rightExp, functionName);
-    }
-    // a = b
-    else if (rightExp instanceof IASTIdExpression){
-      return handleAssignmentOfVariable(element, lParam, (IASTIdExpression)rightExp, functionName);
-    }
-    // a = (cast) ?
-    else if(rightExp instanceof IASTCastExpression) {
-      return handleAssignmentOfCast(element, lParam, (IASTCastExpression)rightExp, cfaEdge);
-    }
-    // a = -b
-    else if(rightExp instanceof IASTUnaryExpression){
-      return handleAssignmentOfUnaryExp(element, lParam, (IASTUnaryExpression)rightExp, cfaEdge);
-    }
-    // a = b op c
-    else if(rightExp instanceof IASTBinaryExpression){
-      IASTBinaryExpression binExp = (IASTBinaryExpression)rightExp;
-
-      return handleAssignmentOfBinaryExp(element, lParam, binExp.getOperand1(),
-          binExp.getOperand2(), binExp.getOperator(), cfaEdge);
-    }
-    // a = extCall();  or  a = b->c;
-    else if(rightExp instanceof IASTFunctionCallExpression
-        || rightExp instanceof IASTFieldReference){
-      ExplicitElement newElement = element.clone();
-      String lvarName = getvarName(lParam, functionName);
-      newElement.forget(lvarName);
-      return newElement;
-    }
-    else{
-      throw new UnrecognizedCCodeException(cfaEdge, rightExp);
-    }
-  }
-
-  private ExplicitElement handleAssignmentOfCast(ExplicitElement element,
-      String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException
-  {
-    IASTExpression castOperand = castExp.getOperand();
-    return handleAssignmentToVariable(element, lParam, castOperand, cfaEdge);
-  }
-
-  private ExplicitElement handleAssignmentOfUnaryExp(ExplicitElement element,
-      String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
-
-    String functionName = cfaEdge.getPredecessor().getFunctionName();
-    // name of the updated variable, so if a = -b is handled, lParam is a
-    String assignedVar = getvarName(lParam, functionName);
+    ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
+    Long value = exp.accept(v);
+    
     ExplicitElement newElement = element.clone();
-
-    IASTExpression unaryOperand = unaryExp.getOperand();
-    UnaryOperator unaryOperator = unaryExp.getOperator();
-
-    if (unaryOperator == UnaryOperator.STAR) {
-      // a = * b
-      newElement.forget(assignedVar);
-
-      // Cil produces code like
-      // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove cast
-      if (unaryOperand instanceof IASTCastExpression) {
-        unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
-      }
-
-      if (unaryOperand instanceof IASTIdExpression) {
-        missingInformationLeftVariable = assignedVar;
-        missingInformationRightPointer = unaryOperand.getRawSignature();
-      } else{
-        throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
-      }
-
-    } 
-    else {
-      // a = -b or similar
-      Long value = getExpressionValue(element, unaryExp, functionName, cfaEdge);
-      if (value != null) {
-        newElement.assignConstant(assignedVar, value, this.threshold);
-      } else {
-        newElement.forget(assignedVar);
-      }
+    String assignedVar = getvarName(lParam, functionName);
+    
+    if (v.missingPointer != null) {
+      missingInformationLeftVariable = assignedVar;
+      missingInformationRightPointer = v.missingPointer;
+      assert value == null;
     }
 
-    return newElement;
-  }
-
-  private ExplicitElement handleAssignmentOfBinaryExp(ExplicitElement element,
-      String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
-      BinaryOperator binaryOperator, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
-
-    String functionName = cfaEdge.getPredecessor().getFunctionName();
-    // name of the updated variable, so if a = b + c is handled, lParam is a
-    String assignedVar = getvarName(lParam, functionName);
-    ExplicitElement newElement = element.clone();
-
-    switch (binaryOperator) {
-    case DIVIDE:
-    case MODULO:
-    case LESS_EQUAL:
-    case GREATER_EQUAL:
-    case BINARY_AND:
-    case BINARY_OR:
-      // TODO check which cases can be handled (I think all)
+    if (value == null) {
       newElement.forget(assignedVar);
-      break;
-
-    case PLUS:
-    case MINUS:
-    case MULTIPLY:
-
-      Long val1;
-      Long val2;
-
-      if(lVarInBinaryExp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)lVarInBinaryExp).getOperator() == UnaryOperator.STAR) {
-        // a = *b + c
-        // TODO prepare for using strengthen operator to dereference pointer
-        val1 = null;
-      } else {
-
-        val1 = getExpressionValue(element, lVarInBinaryExp, functionName, cfaEdge);
-      }
-
-      if (val1 != null) {
-        val2 = getExpressionValue(element, rVarInBinaryExp, functionName, cfaEdge);
-      } else {
-        val2 = null;
-      }
-
-      if (val2 != null) { // this implies val1 != null
-
-        long value;
-        switch (binaryOperator) {
-
-        case PLUS:
-          value = val1 + val2;
-          break;
-
-        case MINUS:
-          value = val1 - val2;
-          break;
-
-        case MULTIPLY:
-          value = val1 * val2;
-          break;
-
-        default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
-        }
-
-        newElement.assignConstant(assignedVar, value, this.threshold);
-      } else {
-        newElement.forget(assignedVar);
-      }
-      break;
-      
-    case EQUALS:
-    case NOT_EQUALS:
-
-      Long lVal = getExpressionValue(element, lVarInBinaryExp, functionName, cfaEdge);
-      Long rVal = getExpressionValue(element, rVarInBinaryExp, functionName, cfaEdge);
-      
-      if (lVal == null || rVal == null) {
-        newElement.forget(assignedVar);
-      
-      } else {
-        // assign 1 if expression holds, 0 otherwise
-        long result = (lVal.equals(rVal) ? 1 : 0);
-        
-        if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-          // negate
-          result = 1 - result;
-        }
-        newElement.assignConstant(assignedVar, result, this.threshold);
-      }
-      break;
-      
-    default:
-      // TODO warning
-      newElement.forget(assignedVar);
+    } else {
+      newElement.assignConstant(assignedVar, value, this.threshold);
     }
     return newElement;
   }
@@ -1347,10 +1186,13 @@ public class ExplicitTransferRelation implements TransferRelation {
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException> {
+  private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException>
+                                       implements RightHandSideVisitor<Long, UnrecognizedCCodeException> {
     
     private final ExplicitElement element;
     private final String functionName;
+    
+    private String missingPointer = null;
 
     public ExpressionValueVisitor(ExplicitElement pElement, String pFunctionName) {
       element = pElement;
@@ -1365,8 +1207,87 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     
     @Override
+    public Long visit(IASTBinaryExpression pE) throws UnrecognizedCCodeException {
+      BinaryOperator binaryOperator = pE.getOperator();
+      IASTExpression lVarInBinaryExp = pE.getOperand1();
+      IASTExpression rVarInBinaryExp = pE.getOperand2();
+      
+      switch (binaryOperator) {
+      case DIVIDE:
+      case MODULO:
+      case LESS_EQUAL:
+      case GREATER_EQUAL:
+      case BINARY_AND:
+      case BINARY_OR:
+        // TODO check which cases can be handled (I think all)
+        return null;
+
+      case PLUS:
+      case MINUS:
+      case MULTIPLY: {
+
+        Long lVal = lVarInBinaryExp.accept(this);
+        if (lVal == null) {
+          return null;
+        }
+        
+        Long rVal = rVarInBinaryExp.accept(this);
+        if (rVal == null) {
+          return null;
+        }
+
+        switch (binaryOperator) {
+
+        case PLUS:
+          return lVal + rVal;
+
+        case MINUS:
+          return lVal - rVal;
+
+        case MULTIPLY:
+          return lVal * rVal;
+
+        default:
+          throw new UnrecognizedCCodeException("unkown binary operator", null, pE);
+        }
+      }
+      
+      case EQUALS:
+      case NOT_EQUALS: {
+
+        Long lVal = lVarInBinaryExp.accept(this);
+        if (lVal == null) {
+          return null;
+        }
+        
+        Long rVal = rVarInBinaryExp.accept(this);
+        if (rVal == null) {
+          return null;
+        }
+
+        // assign 1 if expression holds, 0 otherwise
+        long result = (lVal.equals(rVal) ? 1 : 0);
+        
+        if (binaryOperator == BinaryOperator.NOT_EQUALS) {
+          // negate
+          result = 1 - result;
+        }
+        return result;
+      }
+        
+      default:
+        return null;
+      }
+    }
+    
+    @Override
     public Long visit(IASTCastExpression pE) throws UnrecognizedCCodeException {
       return pE.getOperand().accept(this);
+    }
+    
+    @Override
+    public Long visit(IASTFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+      return null;
     }
     
     @Override
@@ -1393,7 +1314,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     public Long visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
-
+      
       switch (unaryOperator) {
 
       case MINUS:
@@ -1403,6 +1324,27 @@ public class ExplicitTransferRelation implements TransferRelation {
       case AMPER:
         return null; // valid expression, but it's a pointer value
 
+      case STAR: {
+        // Cil produces code like
+        // __cil_tmp8 = *((int *)__cil_tmp7);
+        // so remove cast
+        if (unaryOperand instanceof IASTCastExpression) {
+          unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
+        }
+
+        if (unaryOperand instanceof IASTIdExpression) {
+          if (missingPointer == null) {
+            missingPointer =  unaryOperand.getRawSignature();
+          } else {
+            throw new UnrecognizedCCodeException("Several pointer dereferences in a single expression", null, unaryExpression);
+          }
+        } else{
+          throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", null, unaryExpression);
+        }
+
+        return null;
+      } 
+        
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
@@ -1414,50 +1356,6 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
     return expression.accept(v);
-  }
-
-  private ExplicitElement handleAssignmentOfVariable(ExplicitElement element,
-      String lParam, IASTIdExpression var, String functionName)
-  {
-    String leftVarName = getvarName(lParam, functionName);
-
-    if (var.getDeclaration() instanceof IASTEnumerator) {
-      long value = ((IASTEnumerator)var.getDeclaration()).getValue();
-      ExplicitElement newElement = element.clone();
-      newElement.assignConstant(leftVarName, value, this.threshold);
-      return newElement;
-    }
-    
-    String rParam = var.getRawSignature();
-    String rightVarName = getvarName(rParam, functionName);
-
-    ExplicitElement newElement = element.clone();
-    if(newElement.contains(rightVarName)){
-      newElement.assignConstant(leftVarName, newElement.getValueFor(rightVarName), this.threshold);
-    }
-    else{
-      newElement.forget(leftVarName);
-    }
-    return newElement;
-  }
-
-  private ExplicitElement handleAssignmentOfLiteral(ExplicitElement element,
-      String lParam, IASTExpression op2, String functionName)
-  throws UnrecognizedCCodeException
-  {
-    ExplicitElement newElement = element.clone();
-
-    // op2 may be null if this is a "return;" statement
-    Long val = (op2 == null ? Long.valueOf(0L) : parseLiteral(op2));
-
-    String assignedVar = getvarName(lParam, functionName);
-    if (val != null) {
-      newElement.assignConstant(assignedVar, val, this.threshold);
-    } else {
-      newElement.forget(assignedVar);
-    }
-
-    return newElement;
   }
 
   private static Long parseLiteral(IASTExpression expression) {
