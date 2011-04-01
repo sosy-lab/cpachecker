@@ -180,7 +180,7 @@ public class CtoFormulaConverter {
   }
   
   // looks up the variable in the current namespace
-  protected String scopedIfNecessary(String var, String function) {
+  private String scopedIfNecessary(String var, String function) {
     if (globalVars.contains(var)) {
       return var;
     } else {
