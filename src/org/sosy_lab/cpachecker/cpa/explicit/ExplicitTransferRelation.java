@@ -202,93 +202,47 @@ public class ExplicitTransferRelation implements TransferRelation {
     ExplicitElement newElement = previousElem.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
-    //System.out.println(exprOnSummary.getRawSignature());
-    //expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
-      IASTFunctionCallAssignmentStatement assignExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
-      IASTExpression op1 = assignExp.getLeftHandSide();
 
-      //we expect left hand side of the expression to be a variable
-      if(op1 instanceof IASTIdExpression ||
-          op1 instanceof IASTFieldReference)
-      {
-        //      IASExpression leftHandSideVar = op1;
-        String varName = op1.getRawSignature();
-        String returnVarName = calledFunctionName + "::" + "___cpa_temp_result_var_";
-
-        for(String globalVar:globalVars){
-          if(globalVar.equals(varName)){
-            if(element.getNoOfReferences().containsKey(globalVar) &&
-                element.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
-              newElement.forget(globalVar);
-              newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-            }
-            else{
-              if(element.contains(returnVarName)){
-                newElement.assignConstant(varName, element.getValueFor(returnVarName), this.threshold);
-              }
-              else{
-                newElement.forget(varName);
-              }
-            }
-          }
-          else{
-            if(element.getNoOfReferences().containsKey(globalVar) &&
-                element.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
-              newElement.forget(globalVar);
-              newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-            }
-            else{
-              if(element.contains(globalVar)){
-                newElement.assignConstant(globalVar, element.getValueFor(globalVar), this.threshold);
-                newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-              }
-              else{
-                newElement.forget(globalVar);
-              }
-            }
-          }
-        }
-
-        if(!globalVars.contains(varName)){
-          String assignedVarName = getvarName(varName, callerFunctionName);
-          if(element.contains(returnVarName)){
-            newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName), this.threshold);
-          }
-          else{
-            newElement.forget(assignedVarName);
-          }
-        }
+    // copy global variables
+    for(String globalVar:globalVars){
+      if(element.getNoOfReferences().containsKey(globalVar) &&
+          element.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
+        newElement.forget(globalVar);
+        newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
       }
       else{
-        throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
-      }
-    }
-    // g(b)
-    else if (exprOnSummary instanceof IASTFunctionCallStatement)
-    {
-      // only globals
-      for(String globalVar:globalVars){
-        if(element.getNoOfReferences().containsKey(globalVar) &&
-            element.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
-          newElement.forget(globalVar);
+        if(element.contains(globalVar)){
+          newElement.assignConstant(globalVar, element.getValueFor(globalVar), this.threshold);
           newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
         }
         else{
-          if(element.contains(globalVar)){
-            newElement.assignConstant(globalVar, element.getValueFor(globalVar), this.threshold);
-            newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-          }
-          else{
-            newElement.forget(globalVar);
-          }
+          newElement.forget(globalVar);
         }
       }
     }
-    else{
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary.asStatement());
-    }
 
+    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
+      //expression is an assignment operation, e.g. a = g(b);
+  
+      IASTFunctionCallAssignmentStatement assignExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
+      IASTExpression op1 = assignExp.getLeftHandSide();
+  
+      //we expect left hand side of the expression to be a variable
+      if((op1 instanceof IASTIdExpression) || (op1 instanceof IASTFieldReference)) {
+        String returnVarName = getvarName("___cpa_temp_result_var_", calledFunctionName);
+  
+        String assignedVarName = getvarName(op1.getRawSignature(), callerFunctionName);
+  
+        if (element.contains(returnVarName)) {
+          newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName), this.threshold);
+        } else {
+          newElement.forget(assignedVarName);
+        }
+      } else {
+        throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
+      }
+    }
+      
     return newElement;
   }
 
