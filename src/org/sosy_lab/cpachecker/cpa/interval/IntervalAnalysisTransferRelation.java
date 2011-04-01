@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,24 +38,25 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -82,8 +84,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   private final Set<String> globalVars = new HashSet<String>();
-
-  public static int doubled = 0;
 
   @Option
   private int threshold = 0;
@@ -327,87 +327,27 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
     }
 
-    // a plain (boolean) identifier, e.g. if(a)
-    else if(expression instanceof IASTIdExpression)
+    // a plain (boolean) identifier, e.g. if(a) or [exp1 op exp2]
+    else if(expression instanceof IASTIdExpression
+        || expression instanceof IASTBinaryExpression)
     {
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-/*
-      String variableName = constructVariableName(expression.getRawSignature(), functionName);
-
-      // do not add a successor if threshold is exceeded
-      if(element.exceedsThreshold(variableName, threshold))
-        return null;
-*/
-
-/*
-      Interval interval   = element.getInterval(variableName);
-
-      if(interval != null
-          // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-          && ((truthValue && !interval.isFalse()) || (!truthValue && !interval.isTrue())))
-          return element.clone();
-*/
-
-      Interval interval = evaluateInterval(element, expression, functionName, cfaEdge);
-
-      boolean thenBrach = false, elseBranch = false;
-
-      // in the then-branch and interval maybe true, or in else-branch and interval maybe false, add successors
-      if((thenBrach = (truthValue && !interval.isFalse()))
-          || (elseBranch = (!truthValue && !interval.isTrue())))
+      // convert if(a) to a BinaryExpression, i.e. if(a != 0)
+      if(expression instanceof IASTIdExpression)
       {
-        if(true) return soleSuccessor(element.clone());
+        IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
+            expression.getFileLocation(),
+            expression.getExpressionType(),
+            BigInteger.ZERO);
 
-        IntervalAnalysisElement newElement = null;
-
-        String variableName = constructVariableName(expression.getRawSignature(), functionName);
-
-        Collection<IntervalAnalysisElement> successors = new LinkedList<IntervalAnalysisElement>();
-
-        if(thenBrach)
-        {
-          Interval result = null;
-
-          if(!(result = interval.intersect(Interval.createUpperBoundedInterval(-1L))).isEmpty())
-          {
-            newElement = element.clone();
-
-            newElement.addInterval(variableName, result, threshold);
-
-            successors.add(newElement);
-          }
-
-          if(!(result = interval.intersect(Interval.createLowerBoundedInterval(1L))).isEmpty())
-          {
-            newElement = element.clone();
-
-            newElement.addInterval(variableName, result, threshold);
-
-            successors.add(newElement);
-          }
-
-          if(successors.size() > 1)
-            doubled++;
-        }
-
-        else if(elseBranch)
-        {
-          assert(interval.intersect(Interval.createFalseInterval()).equals(Interval.createFalseInterval()));
-
-          newElement = element.clone();
-
-          newElement.addInterval(variableName, Interval.createFalseInterval(), threshold);
-
-          successors.add(newElement);
-        }
-
-        return successors;
+        expression = new IASTBinaryExpression(expression.getRawSignature(),
+                                    expression.getFileLocation(),
+                                    expression.getExpressionType(),
+                                    expression,
+                                    zero,
+                                    truthValue ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
       }
-    }
 
-    // [exp1 op exp2]
-    else if(expression instanceof IASTBinaryExpression)
-    {
+      // handle the binary expression
       IntervalAnalysisElement newElement = element.clone();
 
       BinaryOperator operator = ((IASTBinaryExpression)expression).getOperator();
@@ -416,53 +356,38 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       String functionName     = cfaEdge.getPredecessor().getFunctionName();
 
-/*
-      // do not add a successor if thresholds are already exceeded
-      if(element.exceedsThreshold(constructVariableName(operand1.getRawSignature(), functionName), threshold)
-          || element.exceedsThreshold(constructVariableName(operand2.getRawSignature(), functionName), threshold))
-        return null;
-*/
-/*
-      // both operands are literals -> no gain in information
-      if((operand1 instanceof IASTLiteralExpression) && (operand2 instanceof IASTLiteralExpression))
-        return newElement;
+      Interval interval1 = evaluateInterval(newElement, operand1, functionName, cfaEdge);
+      Interval interval2 = evaluateInterval(newElement, operand2, functionName, cfaEdge);
 
-      // at least one of the operators is an identifier
-      else*/
+      switch(operator)
       {
-        Interval interval1 = evaluateInterval(newElement, operand1, functionName, cfaEdge);
-        Interval interval2 = evaluateInterval(newElement, operand2, functionName, cfaEdge);
+        case MINUS:
+        case PLUS:
+          Interval result = null;
 
-        switch(operator)
-        {
-          case MINUS:
-          case PLUS:
-            Interval result = null;
+          if(operator == BinaryOperator.MINUS)
+            result = interval1.minus(interval2);
 
-            if(operator == BinaryOperator.MINUS)
-              result = interval1.minus(interval2);
+          else if(operator == BinaryOperator.PLUS)
+            result = interval1.plus(interval2);
 
-            else if(operator == BinaryOperator.PLUS)
-              result = interval1.plus(interval2);
+          // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
+          if((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue()))
+            return soleSuccessor(newElement);
 
-            // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-            if((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue()))
-              return soleSuccessor(newElement);
+          else
+            return noSuccessors();
 
-            else
-              return noSuccessors();
+        case EQUALS:
+        case NOT_EQUALS:
+        case GREATER_THAN:
+        case GREATER_EQUAL:
+        case LESS_THAN:
+        case LESS_EQUAL:
+          return processAssumption(newElement, operator, operand1, operand2, truthValue, cfaEdge);
 
-          case EQUALS:
-          case NOT_EQUALS:
-          case GREATER_THAN:
-          case GREATER_EQUAL:
-          case LESS_THAN:
-          case LESS_EQUAL:
-            return processAssumption(newElement, operator, operand1, operand2, truthValue, cfaEdge);
-
-          default:
-            throw new UnrecognizedCCodeException(cfaEdge, expression);
-        }
+        default:
+          throw new UnrecognizedCCodeException(cfaEdge, expression);
       }
     }
 
@@ -474,31 +399,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     if(!truthValue)
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
 
-    /* unnecessary ..?
-    if(operand1 instanceof IASTLiteralExpression)
-      processAssumption(element, flipOperator(operator), operand2, operand1, truthValue, cfaEdge);
-    */
-
     Interval orgInterval1 = evaluateInterval(element, operand1, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval1 = orgInterval1.clone();
 
     Interval orgInterval2 = evaluateInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval2 = orgInterval2.clone();
-/*
-    // reduce "<=" to "<"
-    if(operator == IASTBinaryExpression.op_lessEqual)
-    {
-      tmpInterval2  = tmpInterval2.plus(1);
-      operator      = IASTBinaryExpression.op_lessThan;
-    }
 
-    // reduce ">=" to ">"
-    else if(operator == IASTBinaryExpression.op_greaterEqual)
-    {
-      tmpInterval1  = tmpInterval1.plus(1);
-      operator      = IASTBinaryExpression.op_greaterThan;
-    }
-*/
     String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
     String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
 
@@ -589,7 +495,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         return noSuccessors();
 
       // TODO: currently depends on the fact that operand1 is a identifier, while operand2 is a literal
-      if(false && isIdOp1 && !isIdOp2)
+      if(isIdOp1 && !isIdOp2)
       {
         IntervalAnalysisElement newElement = null;
 
@@ -614,9 +520,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
           successors.add(newElement);
         }
-
-        if(successors.size() > 1)
-          doubled++;
 
         return successors;
       }
