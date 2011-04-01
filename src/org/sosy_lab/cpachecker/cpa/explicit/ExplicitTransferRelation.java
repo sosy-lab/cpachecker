@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -94,7 +93,6 @@ public class ExplicitTransferRelation implements TransferRelation {
   private int threshold = 0;
 
   private String missingInformationLeftVariable = null;
-  private String missingInformationRightPointer = null;
   private String missingInformationLeftPointer  = null;
   private IASTRightHandSide missingInformationRightExpression = null;
 
@@ -374,8 +372,11 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (expression == null) {
       expression = NumericTypes.ZERO; // this is the default in C
     }
-    
-    return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge);
+
+    String functionName = returnEdge.getPredecessor().getFunctionName();
+    ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
+
+    return handleAssignmentToVariable("___cpa_temp_result_var_", expression, v);
   }
 
   private AbstractElement handleAssumption(ExplicitElement element,
@@ -1121,8 +1122,12 @@ public class ExplicitTransferRelation implements TransferRelation {
       // a = ...
       if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName()))) 
         return element;
-      else
-        return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
+      else {
+        String functionName = cfaEdge.getPredecessor().getFunctionName();
+        ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
+
+        return handleAssignmentToVariable(op1.getRawSignature(), op2, v);
+      }
     } else if (op1 instanceof IASTUnaryExpression
         && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
@@ -1158,21 +1163,18 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitElement handleAssignmentToVariable(ExplicitElement element,
-      String lParam, IASTRightHandSide exp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
-    String functionName = cfaEdge.getPredecessor().getFunctionName();
+  private ExplicitElement handleAssignmentToVariable(String lParam,
+      IASTRightHandSide exp, ExpressionValueVisitor v) throws UnrecognizedCCodeException {
 
-    ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
     Long value = exp.accept(v);
     
-    ExplicitElement newElement = element.clone();
-    String assignedVar = getvarName(lParam, functionName);
-    
-    if (v.missingPointer != null) {
-      missingInformationLeftVariable = assignedVar;
-      missingInformationRightPointer = v.missingPointer;
+    if (v.missingPointer) {
+      missingInformationRightExpression = exp;
       assert value == null;
     }
+    
+    ExplicitElement newElement = v.element.clone();
+    String assignedVar = getvarName(lParam, v.functionName);
 
     if (value == null) {
       newElement.forget(assignedVar);
@@ -1189,10 +1191,10 @@ public class ExplicitTransferRelation implements TransferRelation {
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Long, UnrecognizedCCodeException> {
     
-    private final ExplicitElement element;
-    private final String functionName;
+    protected final ExplicitElement element;
+    protected final String functionName;
     
-    private String missingPointer = null;
+    private boolean missingPointer = false;
 
     public ExpressionValueVisitor(ExplicitElement pElement, String pFunctionName) {
       element = pElement;
@@ -1325,29 +1327,55 @@ public class ExplicitTransferRelation implements TransferRelation {
         return null; // valid expression, but it's a pointer value
 
       case STAR: {
-        // Cil produces code like
-        // __cil_tmp8 = *((int *)__cil_tmp7);
-        // so remove cast
-        if (unaryOperand instanceof IASTCastExpression) {
-          unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
-        }
-
-        if (unaryOperand instanceof IASTIdExpression) {
-          if (missingPointer == null) {
-            missingPointer =  unaryOperand.getRawSignature();
-          } else {
-            throw new UnrecognizedCCodeException("Several pointer dereferences in a single expression", null, unaryExpression);
-          }
-        } else{
-          throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", null, unaryExpression);
-        }
-
+        missingPointer = true;
         return null;
       } 
         
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
+    }
+  }
+  
+  private class PointerExpressionValueVisitor extends ExpressionValueVisitor {
+    
+    private final PointerElement pointerElement;
+
+    public PointerExpressionValueVisitor(ExplicitElement pElement,
+        String pFunctionName, PointerElement pPointerElement) {
+      super(pElement, pFunctionName);
+      pointerElement = pPointerElement;
+    }
+    
+    @Override
+    public Long visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+      
+      if (unaryExpression.getOperator() != UnaryOperator.STAR) {      
+        return super.visit(unaryExpression);
+      }
+      
+      // Cil produces code like
+      // __cil_tmp8 = *((int *)__cil_tmp7);
+      // so remove cast
+      IASTExpression unaryOperand = unaryExpression.getOperand();
+      if (unaryOperand instanceof IASTCastExpression) {
+        unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
+      }
+      
+      if (unaryOperand instanceof IASTIdExpression) {
+        
+        String rightVar = derefPointerToVariable(pointerElement, unaryOperand.getRawSignature());
+        if (rightVar != null) {
+          rightVar = getvarName(rightVar, functionName);
+          if (element.contains(rightVar)) {
+            return element.getValueFor(rightVar);
+          }
+        }
+        
+      } else {
+        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", null, unaryExpression);
+      }
+      return null;
     }
   }
   
@@ -1566,34 +1594,32 @@ public class ExplicitTransferRelation implements TransferRelation {
   private Collection<? extends AbstractElement> strengthen(ExplicitElement explicitElement,
       PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
 
-    List<ExplicitElement> retList = new ArrayList<ExplicitElement>();
+    try {
+      if (missingInformationRightExpression != null) {
+        String functionName = cfaEdge.getPredecessor().getFunctionName();
+        ExpressionValueVisitor v = new PointerExpressionValueVisitor(explicitElement, functionName, pointerElement);
 
-    if (missingInformationLeftVariable != null && missingInformationRightPointer != null) {
-
-      String rightVar = derefPointerToVariable(pointerElement, missingInformationRightPointer);
-      if (rightVar != null) {
-        rightVar = getvarName(rightVar, cfaEdge.getPredecessor().getFunctionName());
-        if (explicitElement.contains(rightVar)) {
-          explicitElement.assignConstant(missingInformationLeftVariable,
-              explicitElement.getValueFor(rightVar), this.threshold);
+        if (missingInformationLeftVariable != null) {
+          ExplicitElement newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
+          return Collections.singleton(newElement);
+    
+        } else if (missingInformationLeftPointer != null) {
+  
+          String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
+          if (leftVar != null) {
+            leftVar = getvarName(leftVar, functionName);
+            ExplicitElement newElement = handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
+            return Collections.singleton(newElement);
+          }
         }
       }
+      return null;
+
+    } finally {
       missingInformationLeftVariable = null;
-      missingInformationRightPointer = null;
-
-    } else if (missingInformationLeftPointer != null && missingInformationRightExpression != null) {
-
-      String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
-      if (leftVar != null) {
-        leftVar = getvarName(leftVar, cfaEdge.getPredecessor().getFunctionName());
-        retList.add(handleAssignmentToVariable(explicitElement, leftVar, missingInformationRightExpression, cfaEdge));
-        return retList;
-      }
-
       missingInformationLeftPointer = null;
       missingInformationRightExpression = null;
     }
-    return null;
   }
 
   private String derefPointerToVariable(PointerElement pointerElement,
