@@ -591,15 +591,42 @@ public class CtoFormulaConverter {
   }
   
   private Formula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    return exp.accept(new ExpressionToFormulaVisitor(function, ssa));
+    return toNumericFormula(exp.accept(getExpressionVisitor(function, ssa)));
   }
   
+  protected Formula makePredicate(IASTExpression exp, boolean isTrue,
+      String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    
+    Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(function, ssa)));
+  
+    if (!isTrue) {
+      result = fmgr.makeNot(result);
+    }
+    return result;
+  }
+
   private ExpressionToFormulaVisitor getExpressionVisitor(String pFunction, SSAMapBuilder pSsa) {
     if (lvalsAsUif) {
       return new ExpressionToFormulaVisitorUIF(pFunction, pSsa);
     } else {
       return new ExpressionToFormulaVisitor(pFunction, pSsa);
     }
+  }
+  
+  private Formula toBooleanFormula(Formula f) {
+    // If this is not a predicate, make it a predicate by adding a "!= 0"
+    if (!fmgr.isBoolean(f)) {
+      Formula z = fmgr.makeNumber(0);
+      f = fmgr.makeNot(fmgr.makeEqual(f, z));
+    }
+    return f;
+  }
+  
+  private Formula toNumericFormula(Formula f) {
+    if (fmgr.isBoolean(f)) {
+      f = fmgr.makeIfThenElse(f, fmgr.makeNumber(1), fmgr.makeNumber(0));
+    }
+    return f;
   }
   
   private class ExpressionToFormulaVisitor extends DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
@@ -635,9 +662,17 @@ public class CtoFormulaConverter {
       case BINARY_OR:
       case BINARY_XOR:
       case SHIFT_LEFT:
-      case SHIFT_RIGHT: {
-        Formula me1 = e1.accept(this);
-        Formula me2 = e2.accept(this);
+      case SHIFT_RIGHT:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
+      case LESS_THAN:
+      case LESS_EQUAL:
+      case EQUALS:
+      case NOT_EQUALS: {
+
+        // these operators expect numeric arguments
+        Formula me1 = toNumericFormula(e1.accept(this));
+        Formula me2 = toNumericFormula(e2.accept(this));
 
         switch (op) {
         case PLUS:
@@ -660,6 +695,20 @@ public class CtoFormulaConverter {
           return fmgr.makeShiftLeft(me1, me2);
         case SHIFT_RIGHT:
           return fmgr.makeShiftRight(me1, me2);
+    
+        case GREATER_THAN:
+          return fmgr.makeGt(me1, me2);
+        case GREATER_EQUAL:
+          return fmgr.makeGeq(me1, me2);
+        case LESS_THAN:
+          return fmgr.makeLt(me1, me2);
+        case LESS_EQUAL:
+          return fmgr.makeLeq(me1, me2);
+        case EQUALS:
+          return fmgr.makeEqual(me1, me2);
+        case NOT_EQUALS:
+          return fmgr.makeNot(fmgr.makeEqual(me1, me2));
+          
         default:
           throw new AssertionError("Missing switch case");
         }
@@ -667,15 +716,23 @@ public class CtoFormulaConverter {
       
       case LOGICAL_AND:
       case LOGICAL_OR: {
-        throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
+          
+        // these operators expect boolean arguments
+        Formula me1 = toBooleanFormula(e1.accept(this));
+        Formula me2 = toBooleanFormula(e2.accept(this));
+        
+        switch (op) {
+        case LOGICAL_AND:
+          return fmgr.makeAnd(me1, me2);
+        case LOGICAL_OR:
+          return fmgr.makeOr(me1, me2);
+        default:
+          throw new AssertionError();
+        }
       }
 
       default:
-        // this might be a predicate implicitly cast to an int, like this:
-        // int tmp = (a == b)
-        // Let's see if this is indeed the case...
-        Formula ftmp = makePredicate(exp, true, function, ssa);
-        return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
+        throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
       }
     }
 
@@ -744,27 +801,24 @@ public class CtoFormulaConverter {
       UnaryOperator op = exp.getOperator();
       switch (op) {
       case MINUS: {
-        Formula mop = operand.accept(this);
+        Formula mop = toNumericFormula(operand.accept(this));
         return fmgr.makeNegate(mop);
       }
 
+      case NOT: {
+        Formula term = toBooleanFormula(operand.accept(this));
+        return fmgr.makeNot(term);
+      }
+      
       case AMPER:
       case STAR:
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
 
       case TILDE: {
-        Formula term = operand.accept(this);
+        Formula term = toNumericFormula(operand.accept(this));
         return fmgr.makeBitwiseNot(term);
       }
-
-      /* !operand cannot be handled directly in case operand is a variable
-       * we would need to know if operand is of type boolean or something else
-       * currently ! is handled by the default branch
-      case IASTUnaryExpression.NOT: {
-        long operandMsat = buildMsatTerm(operand, ssa);
-        return mathsat.api.msat_make_not(msatEnv, operandMsat);
-      }*/
 
       case SIZEOF: {
         // TODO
@@ -775,8 +829,7 @@ public class CtoFormulaConverter {
       default: {
         // this might be a predicate implicitly cast to an int. Let's
         // see if this is indeed the case...
-        Formula ftmp = makePredicate(exp, true, function, ssa);
-        return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
+        return toNumericFormula(makePredicate(exp, true, function, ssa));
       }
       }
     }
@@ -792,8 +845,8 @@ public class CtoFormulaConverter {
     public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       IASTExpression arrexp = aexp.getArrayExpression();
       IASTExpression subexp = aexp.getSubscriptExpression();
-      Formula aterm = arrexp.accept(this);
-      Formula sterm = subexp.accept(this);
+      Formula aterm = toNumericFormula(arrexp.accept(this));
+      Formula sterm = toNumericFormula(subexp.accept(this));
 
       String ufname = OP_ARRAY_SUBSCRIPT;
       return makeUIF(ufname, fmgr.makeList(aterm, sterm), ssa);
@@ -803,7 +856,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName().getRawSignature();
       IASTExpression owner = fexp.getFieldOwner();
-      Formula term = owner.accept(this);
+      Formula term = toNumericFormula(owner.accept(this));
 
       String tpname = getTypeName(owner.getExpressionType());
       String ufname =
@@ -826,7 +879,7 @@ public class CtoFormulaConverter {
         } else {
           opname = OP_STAR_NAME;
         }
-        Formula term = exp.getOperand().accept(this);
+        Formula term = toNumericFormula(exp.getOperand().accept(this));
 
         // PW make SSA index of * independent from argument
         int idx = getIndex(opname, ssa);
@@ -917,7 +970,7 @@ public class CtoFormulaConverter {
     }
 
     private Formula visit(IASTAssignment assignment) throws UnrecognizedCCodeException {
-      Formula r = assignment.getRightHandSide().accept(this);
+      Formula r = toNumericFormula(assignment.getRightHandSide().accept(this));
       Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa);
       return fmgr.makeAssignment(l, r);
     }
@@ -1035,100 +1088,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  protected Formula makePredicate(IASTExpression exp, boolean isTrue,
-        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    
-    Formula result = null;
-    
-    if (exp instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression)exp);
-      BinaryOperator opType = binExp.getOperator();
-      IASTExpression op1 = binExp.getOperand1();
-      IASTExpression op2 = binExp.getOperand2();
-
-      if ((opType == BinaryOperator.LOGICAL_AND)
-          || (opType == BinaryOperator.LOGICAL_OR)) {
-        
-        // these operators expect boolean arguments
-        Formula t1 = makePredicate(op1, true, function, ssa);
-        Formula t2 = makePredicate(op2, true, function, ssa);
-        
-        switch (opType) {
-        case LOGICAL_AND:
-          result = fmgr.makeAnd(t1, t2);
-          break;
-          
-        case LOGICAL_OR:
-          result = fmgr.makeOr(t1, t2);
-          break;
-          
-        default: throw new AssertionError();
-        }
-      
-      } else {
-        // the rest of the operators expect numeric arguments
-        Formula t1 = buildTerm(op1, function, ssa);
-        Formula t2 = buildTerm(op2, function, ssa);
-  
-        switch (opType) {
-        case GREATER_THAN:
-          result = fmgr.makeGt(t1, t2);
-          break;
-  
-        case GREATER_EQUAL:
-          result = fmgr.makeGeq(t1, t2);
-          break;
-  
-        case LESS_THAN:
-          result = fmgr.makeLt(t1, t2);
-          break;
-  
-        case LESS_EQUAL:
-          result = fmgr.makeLeq(t1, t2);
-          break;
-  
-        case EQUALS:
-          result = fmgr.makeEqual(t1, t2);
-          break;
-  
-        case NOT_EQUALS:
-          result = fmgr.makeNot(fmgr.makeEqual(t1, t2));
-          break;
-          
-        default:
-          // do nothing, because it is not a boolean operator
-          // will be handled by call to buildTerm()
-          break;
-        }
-      }
-
-      // now create the formula
-    } else if (exp instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExp = ((IASTUnaryExpression)exp);
-      if (unaryExp.getOperator() == UnaryOperator.NOT) {
-        // ! exp
-        return makePredicate(unaryExp.getOperand(), !isTrue, function, ssa);
-      }
-    }
-
-    if (result == null) {
-      // not handled above, check whether this is an implict cast to bool
-      // build the term. If this is not a predicate, make
-      // it a predicate by adding a "!= 0"
-      result = buildTerm(exp, function, ssa);
-
-      if (!fmgr.isBoolean(result)) {
-        Formula z = fmgr.makeNumber(0);
-        result = fmgr.makeNot(fmgr.makeEqual(result, z));
-      }
-    }
-    
-    if (!isTrue) {
-      result = fmgr.makeNot(result);
-    }
-    return result;
-  }
-  
   protected void addToGlobalVars(String pVar){
     globalVars.add(pVar);
   }
