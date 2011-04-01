@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
@@ -37,22 +39,22 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
@@ -63,11 +65,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
+import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -313,7 +316,8 @@ public class CtoFormulaConverter {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge)edge;
-      edgeFormula = makeStatement(statementEdge.getStatement(), function, ssa);
+      StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssa);
+      edgeFormula = statementEdge.getStatement().accept(v);
       break;
     }
     
@@ -561,45 +565,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeStatement(IASTStatement expr, String function,
-      SSAMapBuilder ssa) throws CPATransferException {
-
-    if (expr instanceof IASTAssignment) {
-      IASTAssignment assignment = (IASTAssignment)expr;
-
-      Formula r;
-      if (assignment instanceof IASTFunctionCallAssignmentStatement) {
-        // this is an external call
-        IASTFunctionCallAssignmentStatement fexp = (IASTFunctionCallAssignmentStatement)assignment;
-        r = makeExternalFunctionCall(fexp, function, ssa);
-
-      } else if (assignment instanceof IASTExpressionAssignmentStatement) {
-        IASTExpressionAssignmentStatement aexp = (IASTExpressionAssignmentStatement)assignment;
-        r = buildTerm(aexp.getRightHandSide(), function, ssa);
-
-      } else {
-        throw new UnrecognizedCCodeException("Unknown statement", null, expr);
-      }
-
-      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa);
-      return fmgr.makeAssignment(l, r);
-
-    } else if (expr instanceof IASTFunctionCallStatement) {
-      // this is an external call
-      // call makeExternalFunctionCall in order to print warnings if necessary
-      IASTFunctionCallStatement fexp = (IASTFunctionCallStatement)expr;
-      makeExternalFunctionCall(fexp, function, ssa);
-      return fmgr.makeTrue();
-      
-    } else if (expr instanceof IASTExpressionStatement) {
-      // side-effect free statement, ignore
-      return fmgr.makeTrue();
-
-    } else {
-      throw new UnrecognizedCCodeException("Unknown statement", null, expr);
-    }
-  }
-
   private Pair<Formula, Formula> makeAssume(AssumeEdge assume,
       String function, SSAMapBuilder ssa, int branchingIdx) throws CPATransferException {
 
@@ -625,129 +590,40 @@ public class CtoFormulaConverter {
     return Pair.of(edgeFormula, branchingInformation);
   }
   
-  private Formula buildLiteralExpression(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
-    if (lexp instanceof IASTCharLiteralExpression) {
-      IASTCharLiteralExpression cExp = (IASTCharLiteralExpression)lexp;
-      // we just take the byte value
-      return fmgr.makeNumber(cExp.getCharacter());
-    
-    } else if (lexp instanceof IASTIntegerLiteralExpression) {
-      IASTIntegerLiteralExpression iExp = (IASTIntegerLiteralExpression)lexp;
-
-      return fmgr.makeNumber(iExp.getValue().toString());
-    }
-    
-    // this should be a number...
-    String num = lexp.getRawSignature();
-    switch (lexp.getKind()) {
-    case IASTLiteralExpression.lk_float_constant:
-      // parse with valueOf and convert to String again, because Mathsat
-      // does not accept all possible C float constants (but Java hopefully does)
-      return fmgr.makeNumber(Double.valueOf(num).toString());
-
-    case IASTLiteralExpression.lk_string_literal: {
-      // we create a string constant representing the given
-      // string literal
-      if (stringLitToFormula.containsKey(lexp.getRawSignature())) {
-        return stringLitToFormula.get(lexp.getRawSignature());
-      } else {
-        // generate a new string literal. We generate a new UIf
-        int n = nextStringLitIndex++;
-        Formula t = fmgr.makeString(n);
-        stringLitToFormula.put(lexp.getRawSignature(), t);
-        return t;
-      }
-    }
-    default:
-      throw new UnrecognizedCCodeException("Unknown literal", null, lexp);
+  private Formula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    return exp.accept(new ExpressionToFormulaVisitor(function, ssa));
+  }
+  
+  private ExpressionToFormulaVisitor getExpressionVisitor(String pFunction, SSAMapBuilder pSsa) {
+    if (lvalsAsUif) {
+      return new ExpressionToFormulaVisitorUIF(pFunction, pSsa);
+    } else {
+      return new ExpressionToFormulaVisitor(pFunction, pSsa);
     }
   }
+  
+  private class ExpressionToFormulaVisitor extends DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
-  private Formula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa)
+    private final String function;
+    protected final SSAMapBuilder ssa;
+    
+    public ExpressionToFormulaVisitor(String pFunction, SSAMapBuilder pSsa) {
+      function = pFunction;
+      ssa = pSsa;
+    }
+
+    @Override
+    protected Formula visitDefault(IASTExpression exp)
         throws UnrecognizedCCodeException {
-    if (exp instanceof IASTIdExpression) {
-      IASTIdExpression idExp = (IASTIdExpression)exp;
-      
-      if (idExp.getDeclaration() instanceof IASTEnumerator) {
-        IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
-        return fmgr.makeNumber(Long.toString(enumerator.getValue()));
-      }
+      warnUnsafeVar(exp);
+      return makeVariable(exprToVarName(exp), function, ssa);
+    }
 
-      // this is a variable: get the right index for the SSA
-      String var = ((IASTIdExpression)exp).getName().getRawSignature();
-      return makeVariable(var, function, ssa);
-    } 
-    else if (exp instanceof IASTLiteralExpression) {
-      return buildLiteralExpression((IASTLiteralExpression)exp);
-    } else if (exp instanceof IASTCastExpression) {
-      // we completely ignore type casts
-      logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
-          exp.getRawSignature());
-      return buildTerm(((IASTCastExpression)exp).getOperand(), function, ssa);
-    } else if (exp instanceof IASTUnaryExpression) {
-      IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
-      UnaryOperator op = ((IASTUnaryExpression)exp).getOperator();
-      switch (op) {
-      case MINUS: {
-        Formula mop = buildTerm(operand, function, ssa);
-        return fmgr.makeNegate(mop);
-      }
-
-      case AMPER:
-      case STAR:
-        if (lvalsAsUif) {
-          String opname;
-          if (op == UnaryOperator.AMPER) {
-            opname = OP_ADDRESSOF_NAME;
-          } else {
-            opname = OP_STAR_NAME;
-          }
-          Formula term = buildTerm(operand, function, ssa);
-
-          // PW make SSA index of * independent from argument
-          int idx = getIndex(opname, ssa);
-          //int idx = getIndex(
-          //    opname, term, ssa, absoluteSSAIndices);
-
-          // build the  function corresponding to this operation.
-          return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
-
-        } else {
-          warnUnsafeVar(exp);
-          return makeVariable(exprToVarName(exp), function, ssa);
-        }
-
-      case TILDE: {
-        Formula term = buildTerm(operand, function, ssa);
-        return fmgr.makeBitwiseNot(term);
-      }
-
-      /* !operand cannot be handled directly in case operand is a variable
-       * we would need to know if operand is of type boolean or something else
-       * currently ! is handled by the default branch
-      case IASTUnaryExpression.NOT: {
-        long operandMsat = buildMsatTerm(operand, ssa);
-        return mathsat.api.msat_make_not(msatEnv, operandMsat);
-      }*/
-
-      case SIZEOF: {
-        // TODO
-        warnUnsafeVar(exp);
-        return makeVariable(exprToVarName(exp), function, ssa);
-      }
-
-      default: {
-        // this might be a predicate implicitly cast to an int. Let's
-        // see if this is indeed the case...
-        Formula ftmp = makePredicate(exp, true, function, ssa);
-        return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
-      }
-      }
-      
-    } else if (exp instanceof IASTBinaryExpression) {
-      BinaryOperator op = ((IASTBinaryExpression)exp).getOperator();
-      IASTExpression e1 = ((IASTBinaryExpression)exp).getOperand1();
-      IASTExpression e2 = ((IASTBinaryExpression)exp).getOperand2();
+    @Override
+    public Formula visit(IASTBinaryExpression exp) throws UnrecognizedCCodeException {
+      BinaryOperator op = exp.getOperator();
+      IASTExpression e1 = exp.getOperand1();
+      IASTExpression e2 = exp.getOperand2();
 
       switch (op) {
       case PLUS:
@@ -760,8 +636,8 @@ public class CtoFormulaConverter {
       case BINARY_XOR:
       case SHIFT_LEFT:
       case SHIFT_RIGHT: {
-        Formula me1 = buildTerm(e1, function, ssa);
-        Formula me2 = buildTerm(e2, function, ssa);
+        Formula me1 = e1.accept(this);
+        Formula me2 = e2.accept(this);
 
         switch (op) {
         case PLUS:
@@ -801,53 +677,270 @@ public class CtoFormulaConverter {
         Formula ftmp = makePredicate(exp, true, function, ssa);
         return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
       }
+    }
 
-    } else if (exp instanceof IASTFieldReference) {
-      if (lvalsAsUif) {
-        IASTFieldReference fexp = (IASTFieldReference)exp;
-        String field = fexp.getFieldName().getRawSignature();
-        IASTExpression owner = fexp.getFieldOwner();
-        Formula term = buildTerm(owner, function, ssa);
+    @Override
+    public Formula visit(IASTCastExpression cexp) throws UnrecognizedCCodeException {
+      // we completely ignore type casts
+      logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
+          cexp.getRawSignature());
+      return cexp.getOperand().accept(this);
+    }
 
-        String tpname = getTypeName(owner.getExpressionType());
-        String ufname =
-          (fexp.isPointerDereference() ? "->{" : ".{") +
-          tpname + "," + field + "}";
+    @Override
+    public Formula visit(IASTIdExpression idExp) {
+      if (idExp.getDeclaration() instanceof IASTEnumerator) {
+        IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
+        return fmgr.makeNumber(Long.toString(enumerator.getValue()));
+      }
 
-        // see above for the case of &x and *x
-        return makeUIF(ufname, fmgr.makeList(term), ssa);
-      } else {
+      // this is a variable: get the right index for the SSA
+      String var = idExp.getName().getRawSignature();
+      return makeVariable(var, function, ssa);
+    }
+
+    @Override
+    public Formula visit(IASTLiteralExpression lexp) throws UnrecognizedCCodeException {
+      if (lexp instanceof IASTCharLiteralExpression) {
+        IASTCharLiteralExpression cExp = (IASTCharLiteralExpression)lexp;
+        // we just take the byte value
+        return fmgr.makeNumber(cExp.getCharacter());
+      
+      } else if (lexp instanceof IASTIntegerLiteralExpression) {
+        IASTIntegerLiteralExpression iExp = (IASTIntegerLiteralExpression)lexp;
+
+        return fmgr.makeNumber(iExp.getValue().toString());
+      }
+      
+      // this should be a number...
+      String num = lexp.getRawSignature();
+      switch (lexp.getKind()) {
+      case IASTLiteralExpression.lk_float_constant:
+        // parse with valueOf and convert to String again, because Mathsat
+        // does not accept all possible C float constants (but Java hopefully does)
+        return fmgr.makeNumber(Double.valueOf(num).toString());
+
+      case IASTLiteralExpression.lk_string_literal: {
+        // we create a string constant representing the given
+        // string literal
+        if (stringLitToFormula.containsKey(lexp.getRawSignature())) {
+          return stringLitToFormula.get(lexp.getRawSignature());
+        } else {
+          // generate a new string literal. We generate a new UIf
+          int n = nextStringLitIndex++;
+          Formula t = fmgr.makeString(n);
+          stringLitToFormula.put(lexp.getRawSignature(), t);
+          return t;
+        }
+      }
+      default:
+        throw new UnrecognizedCCodeException("Unknown literal", null, lexp);
+      }
+    }
+
+    @Override
+    public Formula visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
+      IASTExpression operand = exp.getOperand();
+      UnaryOperator op = exp.getOperator();
+      switch (op) {
+      case MINUS: {
+        Formula mop = operand.accept(this);
+        return fmgr.makeNegate(mop);
+      }
+
+      case AMPER:
+      case STAR:
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
 
+      case TILDE: {
+        Formula term = operand.accept(this);
+        return fmgr.makeBitwiseNot(term);
       }
-    } else if (exp instanceof IASTArraySubscriptExpression) {
-      if (lvalsAsUif) {
-        IASTArraySubscriptExpression aexp =
-          (IASTArraySubscriptExpression)exp;
-        IASTExpression arrexp = aexp.getArrayExpression();
-        IASTExpression subexp = aexp.getSubscriptExpression();
-        Formula aterm = buildTerm(arrexp, function, ssa);
-        Formula sterm = buildTerm(subexp, function, ssa);
 
-        String ufname = OP_ARRAY_SUBSCRIPT;
-        return makeUIF(ufname, fmgr.makeList(aterm, sterm), ssa);
+      /* !operand cannot be handled directly in case operand is a variable
+       * we would need to know if operand is of type boolean or something else
+       * currently ! is handled by the default branch
+      case IASTUnaryExpression.NOT: {
+        long operandMsat = buildMsatTerm(operand, ssa);
+        return mathsat.api.msat_make_not(msatEnv, operandMsat);
+      }*/
 
-      } else {
+      case SIZEOF: {
+        // TODO
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
       }
-    } else if (exp instanceof IASTTypeIdExpression) {
-      assert(((IASTTypeIdExpression)exp).getOperator() ==
-        IASTTypeIdExpression.op_sizeof);
-      warnUnsafeVar(exp);
-      return makeVariable(exprToVarName(exp), function, ssa);
 
-    } else {
-      throw new UnrecognizedCCodeException("Unknown expression", null, exp);
+      default: {
+        // this might be a predicate implicitly cast to an int. Let's
+        // see if this is indeed the case...
+        Formula ftmp = makePredicate(exp, true, function, ssa);
+        return fmgr.makeIfThenElse(ftmp, fmgr.makeNumber(1), fmgr.makeNumber(0));
+      }
+      }
+    }
+  }
+  
+  private class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
+   
+    public ExpressionToFormulaVisitorUIF(String pFunction, SSAMapBuilder pSsa) {
+      super(pFunction, pSsa);
+    }
+
+    @Override
+    public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
+      IASTExpression arrexp = aexp.getArrayExpression();
+      IASTExpression subexp = aexp.getSubscriptExpression();
+      Formula aterm = arrexp.accept(this);
+      Formula sterm = subexp.accept(this);
+
+      String ufname = OP_ARRAY_SUBSCRIPT;
+      return makeUIF(ufname, fmgr.makeList(aterm, sterm), ssa);
+    }
+
+    @Override
+    public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
+      String field = fexp.getFieldName().getRawSignature();
+      IASTExpression owner = fexp.getFieldOwner();
+      Formula term = owner.accept(this);
+
+      String tpname = getTypeName(owner.getExpressionType());
+      String ufname =
+        (fexp.isPointerDereference() ? "->{" : ".{") +
+        tpname + "," + field + "}";
+
+      // see above for the case of &x and *x
+      return makeUIF(ufname, fmgr.makeList(term), ssa);
+    }
+
+    @Override
+    public Formula visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
+      UnaryOperator op = exp.getOperator();
+      switch (op) {
+      case AMPER:
+      case STAR:
+        String opname;
+        if (op == UnaryOperator.AMPER) {
+          opname = OP_ADDRESSOF_NAME;
+        } else {
+          opname = OP_STAR_NAME;
+        }
+        Formula term = exp.getOperand().accept(this);
+
+        // PW make SSA index of * independent from argument
+        int idx = getIndex(opname, ssa);
+        //int idx = getIndex(
+        //    opname, term, ssa, absoluteSSAIndices);
+
+        // build the  function corresponding to this operation.
+        return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
+
+      default:
+        return super.visit(exp);
+      }
+    }
+  }
+  
+  private class RightHandSideToFormulaVisitor extends ForwardingExpressionVisitor<Formula, UnrecognizedCCodeException>
+                                              implements RightHandSideVisitor<Formula, UnrecognizedCCodeException> {
+    
+    protected final String function;
+    protected final SSAMapBuilder ssa;
+    
+    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa) {
+      super(getExpressionVisitor(pFunction, pSsa));
+      function = pFunction;
+      ssa = pSsa;
+    }
+    
+    @Override
+    public Formula visit(IASTFunctionCallExpression fexp) throws UnrecognizedCCodeException {
+      
+      IASTExpression fn = fexp.getFunctionNameExpression();
+      List<IASTExpression> pexps = fexp.getParameterExpressions();
+      String func;
+      if (fn instanceof IASTIdExpression) {
+        func = ((IASTIdExpression)fn).getName().getRawSignature();
+        if (nondetFunctions.contains(func)) {
+          // function call like "random()"
+          // ignore parameters and just create a fresh variable for it  
+          globalVars.add(func);
+          int idx = makeLvalIndex(func, ssa);
+          return fmgr.makeVariable(func, idx);
+          
+        } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
+          if (pexps.isEmpty()) {
+            // function of arity 0
+            log(Level.INFO, "Assuming external function to be a constant function", fn);
+          } else {
+            log(Level.INFO, "Assuming external function to be a pure function", fn);
+          }
+        }
+      } else {
+        log(Level.WARNING, "Ignoring function call through function pointer", fexp);
+        func = "<func>{" + fn.getRawSignature() + "}";
+      }
+
+      if (pexps.isEmpty()) {
+        // this is a function of arity 0. We create a fresh global variable
+        // for it (instantiated at 1 because we need an index but it never
+        // increases)
+        // TODO better use variables without index (this piece of code prevents
+        // SSAMapBuilder from checking for strict monotony)
+        globalVars.add(func);
+        ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
+        return fmgr.makeVariable(func, 1);
+      } else {
+        IASTExpression[] args = pexps.toArray(new IASTExpression[pexps.size()]);
+        func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
+        Formula[] mArgs = new Formula[args.length];
+        for (int i = 0; i < pexps.size(); ++i) {
+          mArgs[i] = buildTerm(pexps.get(i), function, ssa);
+        }
+
+        return fmgr.makeUIF(func, fmgr.makeList(mArgs));
+      }
     }
   }
 
+  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements StatementVisitor<Formula, UnrecognizedCCodeException> {
+
+    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa) {
+      super(pFunction, pSsa);
+    }
+
+    @Override
+    public Formula visit(IASTExpressionStatement pIastExpressionStatement) {
+      // side-effect free statement, ignore
+      return fmgr.makeTrue();
+    }
+
+    private Formula visit(IASTAssignment assignment) throws UnrecognizedCCodeException {
+      Formula r = assignment.getRightHandSide().accept(this);
+      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa);
+      return fmgr.makeAssignment(l, r);
+    }
+    
+    @Override
+    public Formula visit(IASTExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
+      return visit((IASTAssignment)pIastExpressionAssignmentStatement);
+    }
+
+    @Override
+    public Formula visit(IASTFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
+      return visit((IASTAssignment)pIastFunctionCallAssignmentStatement);
+    }
+
+    @Override
+    public Formula visit(IASTFunctionCallStatement fexp) throws UnrecognizedCCodeException {
+      // this is an external call
+      // visit expression in order to print warnings if necessary
+      visit(fexp.getFunctionCallExpression());
+      return fmgr.makeTrue();
+    }    
+  }
+  
   private Formula buildLvalueTerm(IASTExpression exp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     if (exp instanceof IASTIdExpression || !lvalsAsUif) {
@@ -939,54 +1032,6 @@ public class CtoFormulaConverter {
 
     } else {
       throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
-    }
-  }
-
-  private Formula makeExternalFunctionCall(IASTFunctionCall fexp,
-        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    IASTExpression fn = fexp.getFunctionCallExpression().getFunctionNameExpression();
-    List<IASTExpression> pexps = fexp.getFunctionCallExpression().getParameterExpressions();
-    String func;
-    if (fn instanceof IASTIdExpression) {
-      func = ((IASTIdExpression)fn).getName().getRawSignature();
-      if (nondetFunctions.contains(func)) {
-        // function call like "random()"
-        // ignore parameters and just create a fresh variable for it  
-        globalVars.add(func);
-        int idx = makeLvalIndex(func, ssa);
-        return fmgr.makeVariable(func, idx);
-        
-      } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
-        if (pexps.isEmpty()) {
-          // function of arity 0
-          log(Level.INFO, "Assuming external function to be a constant function", fn);
-        } else {
-          log(Level.INFO, "Assuming external function to be a pure function", fn);
-        }
-      }
-    } else {
-      log(Level.WARNING, "Ignoring function call through function pointer", fexp.asStatement());
-      func = "<func>{" + fn.getRawSignature() + "}";
-    }
-
-    if (pexps.isEmpty()) {
-      // this is a function of arity 0. We create a fresh global variable
-      // for it (instantiated at 1 because we need an index but it never
-      // increases)
-      // TODO better use variables without index (this piece of code prevents
-      // SSAMapBuilder from checking for strict monotony)
-      globalVars.add(func);
-      ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
-      return fmgr.makeVariable(func, 1);
-    } else {
-      IASTExpression[] args = pexps.toArray(new IASTExpression[pexps.size()]);
-      func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
-      Formula[] mArgs = new Formula[args.length];
-      for (int i = 0; i < pexps.size(); ++i) {
-        mArgs[i] = buildTerm(pexps.get(i), function, ssa);
-      }
-
-      return fmgr.makeUIF(func, fmgr.makeList(mArgs));
     }
   }
 
