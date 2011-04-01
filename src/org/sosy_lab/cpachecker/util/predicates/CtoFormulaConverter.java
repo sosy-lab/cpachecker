@@ -922,7 +922,7 @@ public class CtoFormulaConverter {
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
         Formula[] mArgs = new Formula[args.length];
         for (int i = 0; i < pexps.size(); ++i) {
-          mArgs[i] = buildTerm(pexps.get(i), function, ssa);
+          mArgs[i] = toNumericFormula(pexps.get(i).accept(this));
         }
 
         return fmgr.makeUIF(func, fmgr.makeList(mArgs));
