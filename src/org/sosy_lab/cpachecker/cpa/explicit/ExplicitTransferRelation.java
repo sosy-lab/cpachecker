@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
@@ -1342,50 +1343,77 @@ public class ExplicitTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long getExpressionValue(ExplicitElement element, IASTExpression expression,
-      String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  /**
+   * Visitor that get's the value from an expression.
+   * The result may be null, i.e., the value is unknown.
+   */
+  private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException> {
+    
+    private final ExplicitElement element;
+    private final String functionName;
 
-    if (expression instanceof IASTLiteralExpression) {
-      return parseLiteral(expression);
+    public ExpressionValueVisitor(ExplicitElement pElement, String pFunctionName) {
+      element = pElement;
+      functionName = pFunctionName;
+    }
 
-    } else if (expression instanceof IASTIdExpression) {
-      IASTIdExpression idExp = (IASTIdExpression)expression;
+    // TODO fields, arrays
+
+    @Override
+    protected Long visitDefault(IASTExpression pExp) {
+      return null;
+    }
+    
+    @Override
+    public Long visit(IASTCastExpression pE) throws UnrecognizedCCodeException {
+      return pE.getOperand().accept(this);
+    }
+    
+    @Override
+    public Long visit(IASTLiteralExpression pE) throws UnrecognizedCCodeException {
+      return parseLiteral(pE);
+    }
+    
+    @Override
+    public Long visit(IASTIdExpression idExp) throws UnrecognizedCCodeException {
+
       if (idExp.getDeclaration() instanceof IASTEnumerator) {
         return ((IASTEnumerator)idExp.getDeclaration()).getValue();
       }
       
-      String varName = getvarName(expression.getRawSignature(), functionName);
+      String varName = getvarName(idExp.getRawSignature(), functionName);
       if (element.contains(varName)) {
         return element.getValueFor(varName);
       } else {
         return null;
       }
-
-    } else if (expression instanceof IASTCastExpression) {
-      return getExpressionValue(element, ((IASTCastExpression)expression).getOperand(),
-          functionName, cfaEdge);
-
-    } else if (expression instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
+    }
+    
+    @Override
+    public Long visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
 
       switch (unaryOperator) {
 
       case MINUS:
-        Long val = getExpressionValue(element, unaryOperand, functionName, cfaEdge);
+        Long val = unaryOperand.accept(this);
         return (val != null) ? -val : null;
       
       case AMPER:
-        return null; // valid expresion, but it's a pointer value
+        return null; // valid expression, but it's a pointer value
 
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
+        throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
-    } else {
-      // TODO fields, arrays
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
+  }
+  
+  private Long getExpressionValue(ExplicitElement element, IASTExpression expression,
+      String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+
+    ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
+    return expression.accept(v);
   }
 
   private ExplicitElement handleAssignmentOfVariable(ExplicitElement element,
@@ -1432,7 +1460,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long parseLiteral(IASTExpression expression) {
+  private static Long parseLiteral(IASTExpression expression) {
     if (expression instanceof IASTLiteralExpression) {
 //      System.out.println("expr " + expression.getRawSignature());
 
