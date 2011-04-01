@@ -180,20 +180,26 @@ public class CtoFormulaConverter {
   }
   
   // looks up the variable in the current namespace
-  protected String scoped(String var, String function) {
+  protected String scopedIfNecessary(String var, String function) {
     if (globalVars.contains(var)) {
       return var;
     } else {
-      return function + "::" + var;
+      return scoped(var, function);
     }
+  }
+  
+  // prefixes function to variable name
+  // Call only if you are sure you have a local variable!
+  private static String scoped(String var, String function) {
+    return function + "::" + var;
   }
 
   private boolean isNondetVariable(String var) {
     return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix); 
   }
 
-  private static String exprToVarName(IASTExpression e) {
-    return e.getRawSignature().replaceAll("[ \n\t]", "");
+  private static String exprToVarName(IASTExpression e, String function) {
+    return scoped(e.getRawSignature().replaceAll("[ \n\t]", ""), function);
   }
 
   private String getTypeName(final IType tp) {
@@ -259,23 +265,19 @@ public class CtoFormulaConverter {
     return idx;
   }
   
-  private Formula makeVariable(String var, String function, SSAMapBuilder ssa) {
-    int idx;
-    if (isNondetVariable(var)) {
-      // on every read access to special non-determininism variable, increase index
-      var = NONDET_VARIABLE;
-      idx = makeLvalIndex(var, ssa);
-    } else {
-      var = scoped(var, function);
-      idx = getIndex(var, ssa);
-    }
+  /**
+   * Create a formula for a given variable.
+   * This method does not handle scoping and the NON_DET_VARIABLE!
+   */
+  private Formula makeVariable(String var, SSAMapBuilder ssa) {
+    int idx = getIndex(var, ssa);
     return fmgr.makeVariable(var, idx);
   }
   
-  private Formula makeAssignment(String var, String function,
+  // name has to be scoped already
+  private Formula makeAssignment(String name,
           Formula rightHandSide, SSAMapBuilder ssa) {
     
-    String name = scoped(var, function);
     int idx = makeLvalIndex(name, ssa);
     Formula f = fmgr.makeVariable(name, idx);
     return fmgr.makeAssignment(f, rightHandSide);
@@ -426,10 +428,13 @@ public class CtoFormulaConverter {
       if (edge.getName() != null) {
         
         String varNameWithoutFunction = edge.getName().getRawSignature();
+        String var;
         if (isGlobal) {
           globalVars.add(varNameWithoutFunction);
+          var = varNameWithoutFunction;
+        } else {
+          var = scoped(varNameWithoutFunction, function);
         }
-        String var = scoped(varNameWithoutFunction, function);
   
         // assign new index to variable
         // (a declaration contains an implicit assignment, even without initializer)
@@ -502,7 +507,7 @@ public class CtoFormulaConverter {
     } else if (retExp instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement exp = (IASTFunctionCallAssignmentStatement)retExp;
       
-      Formula retvarFormula = makeVariable(VAR_RETURN_NAME, function, ssa);
+      Formula retvarFormula = makeVariable(scoped(VAR_RETURN_NAME, function), ssa);
       IASTExpression e = exp.getLeftHandSide();
       
       function = ce.getSuccessor().getFunctionName();
@@ -541,7 +546,7 @@ public class CtoFormulaConverter {
         // get value of actual parameter
         Formula actualParam = buildTerm(actualParams.get(i++), callerFunction, ssa);
         
-        Formula eq = makeAssignment(formalParamName, calledFunction, actualParam, ssa);
+        Formula eq = makeAssignment(scoped(formalParamName, calledFunction), actualParam, ssa);
         
         result = fmgr.makeAnd(result, eq);
       }
@@ -561,7 +566,7 @@ public class CtoFormulaConverter {
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
       Formula retval = buildTerm(exp, function, ssa);
-      return makeAssignment(VAR_RETURN_NAME, function, retval, ssa); 
+      return makeAssignment(scoped(VAR_RETURN_NAME, function), retval, ssa); 
     }
   }
 
@@ -643,7 +648,7 @@ public class CtoFormulaConverter {
     protected Formula visitDefault(IASTExpression exp)
         throws UnrecognizedCCodeException {
       warnUnsafeVar(exp);
-      return makeVariable(exprToVarName(exp), function, ssa);
+      return makeVariable(exprToVarName(exp, function), ssa);
     }
 
     @Override
@@ -726,14 +731,35 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTIdExpression idExp) {
+      
       if (idExp.getDeclaration() instanceof IASTEnumerator) {
         IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
         return fmgr.makeNumber(Long.toString(enumerator.getValue()));
       }
 
-      // this is a variable: get the right index for the SSA
+      IASTSimpleDeclaration decl = idExp.getDeclaration();
       String var = idExp.getName().getRawSignature();
-      return makeVariable(var, function, ssa);
+      
+      // some checks to determine whether our set of global variables
+      // and the AST concord
+      if (decl == null) {
+        assert !globalVars.contains(var) : "Undeclared global variables cannot exist";
+      } else {
+        if (decl instanceof IASTDeclaration) {
+          assert globalVars.contains(var) == ((IASTDeclaration)decl).isGlobal();
+        }
+      }
+      
+      if (isNondetVariable(var)) {
+        // on every read access to special non-determininism variable, increase index
+        var = NONDET_VARIABLE;
+        int idx = makeLvalIndex(var, ssa);
+        return fmgr.makeVariable(var, idx);
+        
+      } else {
+        return makeVariable(scopedIfNecessary(var, function), ssa);
+      }
+      
     }
 
     @Override
@@ -799,8 +825,7 @@ public class CtoFormulaConverter {
       case AMPER:
       case STAR:
       case SIZEOF:
-        warnUnsafeVar(exp);
-        return makeVariable(exprToVarName(exp), function, ssa);
+        return visitDefault(exp);
 
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", null, exp);
@@ -969,35 +994,39 @@ public class CtoFormulaConverter {
   
   private Formula buildLvalueTerm(IASTExpression exp,
         String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    if (exp instanceof IASTIdExpression || !lvalsAsUif) {
-      String var;
-      if (exp instanceof IASTIdExpression) {
-        IASTIdExpression idExp = (IASTIdExpression)exp;
-        IASTSimpleDeclaration decl = idExp.getDeclaration();
-        var = idExp.getName().getRawSignature();
+    
+    if (exp instanceof IASTIdExpression) {
+      IASTIdExpression idExp = (IASTIdExpression)exp;
+      IASTSimpleDeclaration decl = idExp.getDeclaration();
+      String var = idExp.getName().getRawSignature();
 
-        // some checks to determine whether our set of global variables
-        // and the AST concord
-        if (decl == null) {
-          assert !globalVars.contains(var) : "Undeclared global variables cannot exist";
-        } else {
-          if (decl instanceof IASTDeclaration) {
-            assert globalVars.contains(var) == ((IASTDeclaration)decl).isGlobal();
-          }
-        }
-        
+      // some checks to determine whether our set of global variables
+      // and the AST concord
+      if (decl == null) {
+        assert !globalVars.contains(var) : "Undeclared global variables cannot exist";
       } else {
-        var = exprToVarName(exp);
+        if (decl instanceof IASTDeclaration) {
+          assert globalVars.contains(var) == ((IASTDeclaration)decl).isGlobal();
+        }
       }
+
       if (isNondetVariable(var)) {
         logger.log(Level.WARNING, "Assignment to special non-determinism variable",
             exp.getRawSignature(), "will be ignored.");
       }
-      var = scoped(var, function);
+      var = scopedIfNecessary(var, function);
       int idx = makeLvalIndex(var, ssa);
 
       Formula mvar = fmgr.makeVariable(var, idx);
       return mvar;
+      
+    } else if (!lvalsAsUif) {
+      String var = exprToVarName(exp, function);
+      int idx = makeLvalIndex(var, ssa);
+
+      Formula mvar = fmgr.makeVariable(var, idx);
+      return mvar;
+      
     } else if (exp instanceof IASTUnaryExpression) {
       UnaryOperator op = ((IASTUnaryExpression)exp).getOperator();
       IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
