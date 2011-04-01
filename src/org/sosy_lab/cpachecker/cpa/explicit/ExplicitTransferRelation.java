@@ -53,11 +53,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1054,42 +1054,43 @@ public class ExplicitTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge, ExplicitPrecision precision) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
-    if (declarationEdge.getName() != null) {
+    if ((declarationEdge.getName() != null)
+        && (declarationEdge.getStorageClass() != StorageClass.TYPEDEF)) {
 
         // get the variable name in the declarator
         String varName = declarationEdge.getName().toString();
+        String functionName = declarationEdge.getPredecessor().getFunctionName();
 
-        // TODO check other types of variables later - just handle primitive
-        // types for the moment
-        // don't add pointer variables to the list since we don't track them
-        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
-          return newElement;
-        }
-        // if this is a global variable, add to the list of global variables
-        boolean onBlacklist = precision.isOnBlacklist(getvarName(varName,declarationEdge.getPredecessor().getFunctionName()));
-        if(declarationEdge.isGlobal() && ! onBlacklist)
-        {
+        Long initialValue = null;
+
+        // handle global variables
+        if (declarationEdge.isGlobal()) {
+          // if this is a global variable, add to the list of global variables
           globalVars.add(varName);
-          
-          Long v;
 
-          IASTInitializer init = declarationEdge.getInitializer();
-          if (init != null) {
-            if (init instanceof IASTInitializerExpression) {
-              IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+          // global variables without initializer are set to 0 in C
+          initialValue = 0L;
+        }
+        
+        // get initial value
+        IASTInitializer init = declarationEdge.getInitializer();
+        if (init != null) {
+          if (init instanceof IASTInitializerExpression) {
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
-              v = getExpressionValue(element, exp, varName, declarationEdge);
-            } else {
-              // TODO show warning
-              v = null;
-            }
+            initialValue = getExpressionValue(element, exp, functionName, declarationEdge);
           } else {
-            // global variables without initializer are set to 0 in C
-            v = 0L;
+            throw new UnrecognizedCCodeException("Unknown initalizer", declarationEdge, init);
           }
-          if (v != null) {
-            newElement.assignConstant(varName, v, this.threshold);
-          }
+        }
+        
+        // assign initial value if necessary
+        String scopedVarName = getvarName(varName, functionName);
+        
+        if (initialValue != null && !precision.isOnBlacklist(scopedVarName)) {
+          newElement.assignConstant(scopedVarName, initialValue, this.threshold);
+        } else {
+          newElement.forget(scopedVarName);
         }
     }
     return newElement;
