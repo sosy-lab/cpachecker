@@ -653,24 +653,24 @@ public class CtoFormulaConverter {
       IASTExpression e2 = exp.getOperand2();
 
       switch (op) {
-      case PLUS:
-      case MINUS:
-      case MULTIPLY:
-      case DIVIDE:
-      case MODULO:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case EQUALS:
-      case NOT_EQUALS: {
-
-        // these operators expect numeric arguments
+      case LOGICAL_AND:
+      case LOGICAL_OR: {
+        // these operators expect boolean arguments
+        Formula me1 = toBooleanFormula(e1.accept(this));
+        Formula me2 = toBooleanFormula(e2.accept(this));
+        
+        switch (op) {
+        case LOGICAL_AND:
+          return fmgr.makeAnd(me1, me2);
+        case LOGICAL_OR:
+          return fmgr.makeOr(me1, me2);
+        default:
+          throw new AssertionError();
+        }
+      }
+      
+      default: {
+        // these other operators expect numeric arguments
         Formula me1 = toNumericFormula(e1.accept(this));
         Formula me2 = toNumericFormula(e2.accept(this));
 
@@ -710,29 +710,9 @@ public class CtoFormulaConverter {
           return fmgr.makeNot(fmgr.makeEqual(me1, me2));
           
         default:
-          throw new AssertionError("Missing switch case");
+          throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
         }
       }
-      
-      case LOGICAL_AND:
-      case LOGICAL_OR: {
-          
-        // these operators expect boolean arguments
-        Formula me1 = toBooleanFormula(e1.accept(this));
-        Formula me2 = toBooleanFormula(e2.accept(this));
-        
-        switch (op) {
-        case LOGICAL_AND:
-          return fmgr.makeAnd(me1, me2);
-        case LOGICAL_OR:
-          return fmgr.makeOr(me1, me2);
-        default:
-          throw new AssertionError();
-        }
-      }
-
-      default:
-        throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
       }
     }
 
@@ -799,10 +779,16 @@ public class CtoFormulaConverter {
     public Formula visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
       IASTExpression operand = exp.getOperand();
       UnaryOperator op = exp.getOperator();
+      
       switch (op) {
       case MINUS: {
-        Formula mop = toNumericFormula(operand.accept(this));
-        return fmgr.makeNegate(mop);
+        Formula term = toNumericFormula(operand.accept(this));
+        return fmgr.makeNegate(term);
+      }
+
+      case TILDE: {
+        Formula term = toNumericFormula(operand.accept(this));
+        return fmgr.makeBitwiseNot(term);
       }
 
       case NOT: {
@@ -812,25 +798,12 @@ public class CtoFormulaConverter {
       
       case AMPER:
       case STAR:
+      case SIZEOF:
         warnUnsafeVar(exp);
         return makeVariable(exprToVarName(exp), function, ssa);
 
-      case TILDE: {
-        Formula term = toNumericFormula(operand.accept(this));
-        return fmgr.makeBitwiseNot(term);
-      }
-
-      case SIZEOF: {
-        // TODO
-        warnUnsafeVar(exp);
-        return makeVariable(exprToVarName(exp), function, ssa);
-      }
-
-      default: {
-        // this might be a predicate implicitly cast to an int. Let's
-        // see if this is indeed the case...
-        return toNumericFormula(makePredicate(exp, true, function, ssa));
-      }
+      default:
+        throw new UnrecognizedCCodeException("Unknown unary operator", null, exp);
       }
     }
   }
