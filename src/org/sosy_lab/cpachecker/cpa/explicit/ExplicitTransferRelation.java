@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -297,15 +296,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       FunctionCallEdge callEdge)
   throws UnrecognizedCCodeException {
 
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
-    String calledFunctionName = functionEntryNode.getFunctionName();
-    String callerFunctionName = callEdge.getPredecessor().getFunctionName();
-
-    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    List<IASTExpression> arguments = callEdge.getArguments();
-
-    assert (paramNames.size() == arguments.size());
-
     ExplicitElement newElement = new ExplicitElement(element);
 
     for(String globalVar:globalVars){
@@ -315,53 +305,28 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
 
-    for (int i=0; i<arguments.size(); i++){
-      IASTExpression arg = arguments.get(i);
-      if (arg instanceof IASTCastExpression) {
-        // ignore casts
-        arg = ((IASTCastExpression)arg).getOperand();
-      }
+    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    String calledFunctionName = functionEntryNode.getFunctionName();
+    String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
-      String nameOfParam = paramNames.get(i);
-      String formalParamName = getvarName(nameOfParam, calledFunctionName);
-      if(arg instanceof IASTIdExpression){
-        IASTIdExpression idExp = (IASTIdExpression) arg;
-        String nameOfArg = idExp.getRawSignature();
-        String actualParamName = getvarName(nameOfArg, callerFunctionName);
+    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+    List<IASTExpression> arguments = callEdge.getArguments();
 
-        if(element.contains(actualParamName)){
-          newElement.assignConstant(formalParamName, element.getValueFor(actualParamName), this.threshold);
-        }
-      }
+    assert (paramNames.size() == arguments.size());
+    
+    // visitor for getting the values of the actual parameters in caller function context
+    ExpressionValueVisitor v = new ExpressionValueVisitor(element, callerFunctionName);
 
-      else if(arg instanceof IASTLiteralExpression){
-        Long val = parseLiteral((IASTLiteralExpression)arg);
+    for (int i=0; i < arguments.size(); i++) {
+      // get value of actual parameter in caller function context
+      Long value = arguments.get(i).accept(v);
+      
+      String formalParamName = getvarName(paramNames.get(i), calledFunctionName);
 
-        if (val != null) {
-          newElement.assignConstant(formalParamName, val, this.threshold);
-        } else {
-          // TODO forgetting
-          newElement.forget(formalParamName);
-        }
-      }
-
-      else if(arg instanceof IASTTypeIdExpression){
+      if (value == null) {
         newElement.forget(formalParamName);
-      }
-
-      else if(arg instanceof IASTUnaryExpression){
-        IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
-        assert(unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
-      }
-
-      else if(arg instanceof IASTFieldReference){
-        newElement.forget(formalParamName);
-      }
-
-      else{
-        // TODO forgetting
-        newElement.forget(formalParamName);
-        //      throw new ExplicitTransferException("Unhandled case");
+      } else {
+        newElement.assignConstant(formalParamName, value, this.threshold);
       }
     }
 
@@ -1078,7 +1043,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           if (init instanceof IASTInitializerExpression) {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
-            initialValue = getExpressionValue(element, exp, functionName, declarationEdge);
+            initialValue = getExpressionValue(element, exp, functionName);
           } else {
             throw new UnrecognizedCCodeException("Unknown initalizer", declarationEdge, init);
           }
@@ -1401,7 +1366,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
   
   private Long getExpressionValue(ExplicitElement element, IASTExpression expression,
-      String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+      String functionName) throws UnrecognizedCCodeException {
 
     ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
     return expression.accept(v);
