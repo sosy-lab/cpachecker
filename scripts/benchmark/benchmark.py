@@ -250,6 +250,9 @@ class OutputHandler:
 
         # store columnTitles in XML
         columntitlesElem = ET.Element("columns")
+        columntitlesElem.append(ET.Element("column", {"title": "status"}))
+        columntitlesElem.append(ET.Element("column", {"title": "cputime"}))
+        columntitlesElem.append(ET.Element("column", {"title": "walltime"}))
         for column in self.benchmark.columns:
             columnElem = ET.Element("column", {"title": column.title})
             columntitlesElem.append(columnElem)
@@ -482,9 +485,10 @@ class OutputHandler:
         print status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8)
 
         # store filename, status, times, columns in XML
-        fileElem = ET.Element("sourcefile", {"name": sourcefile, "status": status})
-        timesElem = ET.Element("time", {"cputime": cpuTimeDelta, "walltime": wallTimeDelta})
-        fileElem.append(timesElem)
+        fileElem = ET.Element("sourcefile", {"name": sourcefile})
+        fileElem.append(ET.Element("column", {"title": "status", "value": status}))
+        fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
+        fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
 
         for column in self.benchmark.columns:
             fileElem.append(ET.Element("column",
@@ -537,12 +541,10 @@ class OutputHandler:
         FileWriter(XMLFileName, XMLtoString(self.benchmarkResults))
 
         # convert XML-file into specific formats
-        if options.json:
-            import xml2json
-            xml2json.convert(XMLFileName, OUTPUT_PATH)
-
         import xml2csv
         xml2csv.convert(XMLFileName, OUTPUT_PATH)
+        import splitXMLtoTests
+        splitXMLtoTests.split(XMLFileName, OUTPUT_PATH)
         
 
 
@@ -882,11 +884,6 @@ def main(argv=None):
                       action="store_true",
                       help="enable debug output")
 
-    parser.add_option("-j", "--json",
-                      action="store_true",
-                      help="enable json output")
-
-    global options
     (options, args) = parser.parse_args(argv)
 
     if len(args) < 2:

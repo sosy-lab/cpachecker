@@ -30,26 +30,21 @@ def convert(filename, outputFolder):
             os.remove(CSVFileName)
 
     # write new files
-    CSVtitleLine = CSV_SEPARATOR.join(["sourcefile", "status", "cpu time", "wall time"])
-    for column in benchmarkTag.find("columns"):
-        CSVtitleLine += CSV_SEPARATOR + column.get("title")
+    columnValues = ["sourcefile"]
+    columnValues.extend([column.get("title") 
+                         for column in benchmarkTag.find("columns")])
+    CSVtitleLine = CSV_SEPARATOR.join(columnValues) + "\n"
 
-    CSVtitleLine = CSVtitleLine + "\n"
     contentWithoutTestName = ""
 
     for testTag in benchmarkTag.findall("test"):
 
         CSVContent = ""
         for sourcefileTag in testTag.findall("sourcefile"):
-
-            outputCSVLine = CSV_SEPARATOR.join([sourcefileTag.get("name"),
-                                                sourcefileTag.get("status"),
-                                                sourcefileTag.find("time").get("cputime"),
-                                                sourcefileTag.find("time").get("walltime")])
-            for column in sourcefileTag.findall("column"):
-                outputCSVLine += CSV_SEPARATOR + column.get("value")
-
-            CSVContent += outputCSVLine + "\n"
+            columnValues = [sourcefileTag.get("name")]
+            columnValues.extend([column.get("value") 
+                                 for column in sourcefileTag.findall("column")])
+            CSVContent += CSV_SEPARATOR.join(columnValues) + "\n"
 
         # write to file if name exists, else store in contentWithoutTestName
         testName = testTag.get("name")
