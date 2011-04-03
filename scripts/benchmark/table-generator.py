@@ -251,6 +251,8 @@ def createHTML(file):
     parse inputfile, create html-code and write it to file
     '''
 
+    print 'generating html ...',
+
     listOfTests = getListOfTests(file)
 
     tableCode = '<table>\n' \
@@ -262,14 +264,11 @@ def createHTML(file):
     htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n' \
                 + tableCode + '</body>\n\n</html>'
 
-
-    print htmlCode
-
     HTMLFile = open(OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html", "w")
     HTMLFile.write(htmlCode)
     HTMLFile.close()
 
-    print '....................done'
+    print 'done'
 
 
 def allEqual(list):
