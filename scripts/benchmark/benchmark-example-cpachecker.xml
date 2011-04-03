@@ -6,7 +6,7 @@
 
   <test name="locks-lbe">
     <sourcefiles>
-      <include>test/programs/locks/*0.c</include>
+      <include>test/programs/locks/*.c</include>
     </sourcefiles>
     
     <options>
@@ -23,7 +23,7 @@
 
   <test>
     <sourcefiles>
-      <include>test/programs/locks/*1.c</include>
+      <include>test/programs/locks/*.c</include>
     </sourcefiles>
     
     <options>

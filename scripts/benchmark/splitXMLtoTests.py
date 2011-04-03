@@ -28,7 +28,7 @@ def split(filename, outputFolder):
 
         testName = testTag.get("name")
         if testName is not None:
-            XMLTestFileName = outputFolder + benchmarkTag.get("name") + "."\
+            XMLTestFileName = outputFolder + benchmarkTag.get("name") \
                             + ".results.test." + testName + "." + date + ".xml"
         else:
             XMLTestFileName = outputFolder + benchmarkTag.get("name") \
