@@ -1,1 +1,2 @@
-test/programs/ssh/*.cil.c
+test/programs/ssh/*.BUG.i.cil.c
+test/programs/ssh/*[!G].i.cil.c
