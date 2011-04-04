@@ -107,10 +107,11 @@ def getTableHead(listOfTests):
     toolRow = getToolRow(listOfTests, testWidths)
     limitRow = getLimitRow(listOfTests, testWidths)
     systemRow = getSystemRow(listOfTests, testWidths)
+    dateRow = getDateRow(listOfTests, testWidths)
     testRow = getTestRow(listOfTests, testWidths)
 
     return ('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, testRow, columnRow]) + '\n</thead>'
+            limitRow, systemRow, dateRow, testRow, columnRow]) + '\n</thead>'
 
 
 def getColumnsRowAndTestWidths(listOfTests):
@@ -179,6 +180,7 @@ def getLimitRow(listOfTests, testWidths):
 
     return limitRow
 
+
 def getSystemRow(listOfTests, testWidths):
     '''
     get systemRow, each cell of it spans over all tests with this system
@@ -206,6 +208,27 @@ def getSystemRow(listOfTests, testWidths):
             frequency: {4}, ram: {5}</td></tr>'.format(systemWidth, *system)
 
     return systemLine
+
+
+def getDateRow(listOfTests, testWidths):
+    '''
+    get dateRow, each cell of it spans over all tests with this date
+    '''
+
+    dateRow = '<tr><td>date of test</td>'
+    dateWidth = 0
+    date = listOfTests[0][0].get('date')
+
+    for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
+        newDate = testResult.get('date')
+        if newDate != date:
+            dateRow += '<td colspan="{0}">{1}</td>'.format(dateWidth, date)
+            dateWidth = 0
+            date = newDate
+        dateWidth += numberOfColumns
+    dateRow += '<td colspan="{0}">{1}</td></tr>'.format(dateWidth, date)
+
+    return dateRow
 
 
 def getTestRow(listOfTests, testWidths):
