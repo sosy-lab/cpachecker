@@ -39,15 +39,15 @@ import com.google.common.base.Joiner;
 
 public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   
-  private final NonincrementalFQLTestGenerator pNonincrementalTestGenerator;
-  private final IncrementalFQLTestGenerator pIncrementalTestGenerator;
-  private final IncrementalAndAlternatingFQLTestGenerator pIncrementalAndAlternatingTestGenerator;
+  private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
+  private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
+  private final IncrementalAndAlternatingFQLTestGenerator mIncrementalAndAlternatingTestGenerator;
   private final StandardFQLCoverageAnalyser mCoverageAnalyser;
   
   public FShell3(String pSourceFileName, String pEntryFunction) {
-    pNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
-    pIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
-    pIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
+    mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
+    mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
+    mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
     
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
   }
@@ -59,14 +59,14 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   @Override
   public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     if (pGenerateTestGoalAutomataInAdvance) {
-      return pNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+      return mNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
     }
     else {
       if (pAlternating) {
-        return pIncrementalAndAlternatingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        return mIncrementalAndAlternatingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
       }
       else {
-        return pIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
       }
     }
   }
