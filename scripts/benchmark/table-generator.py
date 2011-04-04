@@ -238,7 +238,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                         not isSafeFile and status == 'unsafe'):
                         valuesOfLine.append('<td class="correctStatus">{0}</td>'.format(status))
                     else:
-                        valuesOfLine.append('<td class="wrongStatus">{1}</td>'.format(status))
+                        valuesOfLine.append('<td class="wrongStatus">{0}</td>'.format(status))
 
                 else:
                     valuesOfLine.append('<td>{0}</td>'.format(column.get('value')))
