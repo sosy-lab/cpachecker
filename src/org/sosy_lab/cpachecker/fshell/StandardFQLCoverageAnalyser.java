@@ -1,0 +1,572 @@
+package org.sosy_lab.cpachecker.fshell;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathCPA;
+import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardElement;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
+import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
+import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
+
+import com.google.common.base.Joiner;
+
+/*
+ * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time 
+ * measurements when invoking FlleSh several times in a unit test.
+ * 
+ * TODO Incremental test goal automaton creation: extending automata (can we reuse
+ * parts of the reached set?) This requires a change in the coverage check.
+ * -> Handle enormous amounts of test goals. 
+ * 
+ */
+
+public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
+  
+  private final Configuration mConfiguration;
+  private final LogManager mLogManager;
+  private final Wrapper mWrapper;
+  private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
+  private final LocationCPA mLocationCPA;
+  private final CallstackCPA mCallStackCPA;
+  private final AssumeCPA mAssumeCPA;
+  private final CFAPathCPA mCFAPathCPA;
+
+  private final GuardedEdgeLabel mAlphaLabel;
+  private final GuardedEdgeLabel mOmegaLabel;
+  private final GuardedEdgeLabel mInverseAlphaLabel;
+  
+  public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+    CFACreator lCFACreator = new CFACreator(Dialect.GNUC, pConfiguration, pLogManager);
+    
+    // parse code file
+    try {
+      lCFACreator.parseFileAndCreateCFA(pSourceFileName);
+    } catch (Exception e) {
+      e.printStackTrace();
+      
+      throw new RuntimeException(e);
+    }
+    
+    return lCFACreator.getFunctions();
+  }
+  
+  public StandardFQLCoverageAnalyser(String pSourceFileName, String pEntryFunction) {
+    Map<String, CFAFunctionDefinitionNode> lCFAMap;
+    CFAFunctionDefinitionNode lMainFunction;
+    
+    try {
+      mConfiguration = StandardFQLCoverageAnalyser.createConfiguration(pSourceFileName, pEntryFunction);
+      mLogManager = new LogManager(mConfiguration);
+      
+      lCFAMap = StandardFQLCoverageAnalyser.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lMainFunction = lCFAMap.get(pEntryFunction);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    
+    /*
+     * We have to instantiate mCoverageSpecificationTranslator before the wrapper
+     * changes the underlying CFA. FQL specifications are evaluated against the 
+     * target graph generated during initialization of mCoverageSpecificationTranslator.
+     */
+    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
+
+    mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
+    
+    try {
+      mWrapper.toDot("test/output/wrapper.dot");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    
+    mAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getAlphaEdge()));
+    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
+    mOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getOmegaEdge()));
+    
+    
+    /*
+     * Initialize shared CPAs.
+     */
+    // location CPA
+    try {
+      mLocationCPA = (LocationCPA)LocationCPA.factory().createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    // callstack CPA
+    CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
+    try {
+      mCallStackCPA = (CallstackCPA)lCallStackCPAFactory.createInstance();
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    // assume CPA
+    mAssumeCPA = AssumeCPA.getCBMCAssume();
+    
+    // cfa path CPA
+    mCFAPathCPA = CFAPathCPA.getInstance();
+  }
+  
+  @Override
+  public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
+    // Parse FQL Specification
+    FQLSpecification lFQLSpecification;
+    try {
+      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    
+    checkCoverage(lFQLSpecification, pTestSuite, pPedantic);
+  }
+  
+  private void checkCoverage(FQLSpecification pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
+    
+    GuardedEdgeAutomatonCPA lPassingCPA = null;
+    
+    if (pFQLSpecification.hasPassingClause()) {
+      ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    }
+    
+    IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+    
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLSpecification.getCoverageSpecification());
+    
+    System.out.println("Number of test goals: " + lNumberOfTestGoals);
+    
+    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLSpecification.getCoverageSpecification());
+    
+    int lIndex = 0;
+    
+    int lNumberOfCoveredTestGoals = 0;
+    
+    Map<TestCase, CFAEdge[]> mPathCache = new HashMap<TestCase, CFAEdge[]>();
+    
+    FQLSpecification lIdStarFQLSpecification;
+    try {
+      lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
+    } catch (Exception e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+      throw new RuntimeException(e1);
+    }
+    ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+    GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    
+    while (lGoalIterator.hasNext()) {
+      lIndex++;
+      
+      ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+      
+      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
+      
+      Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
+      
+      boolean lIsCovered = false;
+      
+      for (TestCase lTestCase : pTestSuite) {
+        if (!lTestCase.isPrecise()) {
+          throw new RuntimeException();
+        }
+        
+        CFAEdge[] lCFAPath = mPathCache.get(lTestCase);
+        
+        boolean lIsPrecise = true;
+        
+        if (lCFAPath == null) {
+          try {
+            lCFAPath = reconstructPath(lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
+          } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+          } catch (CPAException e) {
+            throw new RuntimeException(e);
+          } catch (ImpreciseExecutionException e) {
+            lIsPrecise = false;
+            lTestCase = e.getTestCase();
+            
+            if (pPedantic) {
+              throw new RuntimeException(e);
+            }
+          }
+          
+          if (lIsPrecise) {
+            mPathCache.put(lTestCase, lCFAPath);
+          }
+        }
+        
+        ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lCFAPath); 
+        
+        if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
+          lIsCovered = true;
+          
+          break;
+        }
+        else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
+          try {
+            if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
+              lIsCovered = true;
+              
+              break;
+            }
+          } catch (InvalidConfigurationException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          } catch (CPAException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          } catch (ImpreciseExecutionException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          }
+        }
+      }
+      
+      if (lIsCovered) {
+        System.out.println("COVERED");
+        
+        lNumberOfCoveredTestGoals++;
+      }
+    }
+    
+    System.out.println("Coverage: " + ((double)lNumberOfCoveredTestGoals)/((double)lIndex));
+  }
+  
+  private static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+    
+    lCurrentStates.add(pAutomaton.getInitialState());
+    
+    boolean lHasPredicates = false;
+    
+    for (CFAEdge lCFAEdge : pCFAPath) {
+      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+        // Automaton accepts as soon as it sees a final state (implicit self-loop)
+        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+          return ThreeValuedAnswer.ACCEPT;
+        }
+        
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
+          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+          
+          if (lLabel.hasGuards()) {
+            lHasPredicates = true;
+          }
+          else {
+            if (lLabel.contains(lCFAEdge)) {
+              lNextStates.add(lOutgoingEdge.getTarget());
+            }
+          }
+        }
+      }
+      
+      lCurrentStates.clear();
+      
+      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
+      lCurrentStates = lNextStates;
+      lNextStates = lTmp;
+    }
+    
+    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+      // Automaton accepts as soon as it sees a final state (implicit self-loop)
+      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+        return ThreeValuedAnswer.ACCEPT;
+      }
+    }
+    
+    if (lHasPredicates) {
+      return ThreeValuedAnswer.UNKNOWN;
+    }
+    else {
+      return ThreeValuedAnswer.REJECT;
+    }
+  }
+  
+  private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
+    
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
+    
+    // test goal automata CPAs
+    if (pPassingAutomatonCPA != null) {
+      lAutomatonCPAs.add(pPassingAutomatonCPA);
+    }
+    
+    lAutomatonCPAs.add(pCoverAutomatonCPA);
+
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
+    
+    // call stack CPA
+    lComponentAnalyses.add(mCallStackCPA);
+    
+    // explicit CPA
+    InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
+    lComponentAnalyses.add(lInterpreterCPA);
+        
+    // assume CPA
+    lComponentAnalyses.add(mAssumeCPA);
+    
+    
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    lCPAFactory.setChildren(lComponentAnalyses);
+    lCPAFactory.setConfiguration(mConfiguration);
+    lCPAFactory.setLogger(mLogManager);
+    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+    
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+
+    AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
+    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
+
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    // TODO sanity check by assertion
+    CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
+    
+    if (lEndNode == null) {
+      return false;
+    }
+    else {
+      if (((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
+        // location of last element is at end node
+
+        AbstractElement lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
+        
+        if (lProductAutomatonElement instanceof Targetable) {
+          Targetable lTargetable = (Targetable)lProductAutomatonElement;
+          
+          return lTargetable.isTarget();
+        }
+        
+        return false;
+      }
+      
+      return false;
+    }
+  }
+  
+  private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    lComponentAnalyses.add(mLocationCPA);
+    
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
+    
+    // test goal automata CPAs
+    if (pPassingAutomatonCPA != null) {
+      lAutomatonCPAs.add(pPassingAutomatonCPA);
+    }
+    
+    lAutomatonCPAs.add(pCoverAutomatonCPA);
+    
+    int lProductAutomatonCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
+    
+    // call stack CPA
+    lComponentAnalyses.add(mCallStackCPA);
+    
+    // explicit CPA
+    InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
+    lComponentAnalyses.add(lInterpreterCPA);
+    
+    // CFA path CPA
+    int lCFAPathCPAIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(mCFAPathCPA);
+    
+    // assume CPA
+    lComponentAnalyses.add(mAssumeCPA);
+    
+    
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    lCPAFactory.setChildren(lComponentAnalyses);
+    lCPAFactory.setConfiguration(mConfiguration);
+    lCPAFactory.setLogger(mLogManager);
+    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+    
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+
+    AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
+    Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
+
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    lReachedSet.add(lInitialElement, lInitialPrecision);
+
+    try {
+      lAlgorithm.run(lReachedSet);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+    
+    // TODO sanity check by assertion
+    CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
+    
+    if (lEndNode == null) {
+      throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
+    }
+    
+    if (!((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
+      throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
+    }
+    
+    AbstractElement lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
+    
+    if (!(lProductAutomatonElement instanceof Targetable)) {
+      throw new RuntimeException();
+    }
+    
+    Targetable lTargetable = (Targetable)lProductAutomatonElement;
+    
+    if (!lTargetable.isTarget()) {
+      throw new RuntimeException();
+    }
+    
+    CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
+    
+    return lPathElement.toArray();
+  }
+  
+  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
+    File lPropertiesFile = StandardFQLCoverageAnalyser.createPropertiesFile(pEntryFunction);
+    return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
+  }
+  
+  private static Configuration createConfiguration(List<String> pSourceFiles, String pPropertiesFile) throws InvalidConfigurationException {
+    Map<String, String> lCommandLineOptions = new HashMap<String, String>();
+
+    lCommandLineOptions.put("analysis.programNames", Joiner.on(", ").join(pSourceFiles));
+    //lCommandLineOptions.put("output.path", "test/output");
+
+    Configuration lConfiguration = null;
+    try {
+      lConfiguration = Configuration.builder()
+                                    .loadFromFile(pPropertiesFile)
+                                    .setOptions(lCommandLineOptions)
+                                    .build();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    return lConfiguration;
+  }
+
+  private static File createPropertiesFile(String pEntryFunction) {
+    if (pEntryFunction == null) {
+      throw new IllegalArgumentException("Parameter pEntryFunction is null!");
+    }
+    
+    File lPropertiesFile = null;
+
+    try {
+
+      lPropertiesFile = File.createTempFile("fshell.", ".properties");
+      lPropertiesFile.deleteOnExit();
+
+      PrintWriter lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile));
+      // we do not use a fixed error location (error label) therefore
+      // we do not want to remove parts of the CFA
+      lWriter.println("cfa.removeIrrelevantForErrorLocations = false");
+
+      //lWriter.println("log.consoleLevel = ALL");
+
+      lWriter.println("analysis.traversal.order = topsort");
+      lWriter.println("analysis.entryFunction = " + pEntryFunction);
+
+      // we want to use CEGAR algorithm
+      lWriter.println("analysis.useRefinement = true");
+      lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner.class.getCanonicalName());
+
+      lWriter.println("cpa.predicate.addBranchingInformation = false");
+      lWriter.println("cpa.predicate.useNondetFlags = true");
+      lWriter.println("cpa.predicate.initAllVars = false");
+      //lWriter.println("cpa.predicate.noAutoInitPrefix = __BLAST_NONDET");
+      lWriter.println("cpa.predicate.blk.useCache = false");
+      //lWriter.println("cpa.predicate.mathsat.lvalsAsUIFs = true");
+      // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
+      // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
+      //lWriter.println("cpa.predicate.mathsat.useDtc = true");
+
+      lWriter.println("cpa.interval.merge = JOIN");
+      
+      lWriter.close();
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    return lPropertiesFile;
+  }
+}
+
