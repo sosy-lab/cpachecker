@@ -420,57 +420,6 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     return lRefiner.getCounterexampleTraceInfo();
   }
   
-  private static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
-    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-    
-    lCurrentStates.add(pAutomaton.getInitialState());
-    
-    boolean lHasPredicates = false;
-    
-    for (CFAEdge lCFAEdge : pCFAPath) {
-      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-        // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
-          return ThreeValuedAnswer.ACCEPT;
-        }
-        
-        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
-          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-          
-          if (lLabel.hasGuards()) {
-            lHasPredicates = true;
-          }
-          else {
-            if (lLabel.contains(lCFAEdge)) {
-              lNextStates.add(lOutgoingEdge.getTarget());
-            }
-          }
-        }
-      }
-      
-      lCurrentStates.clear();
-      
-      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
-      lCurrentStates = lNextStates;
-      lNextStates = lTmp;
-    }
-    
-    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-      // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
-        return ThreeValuedAnswer.ACCEPT;
-      }
-    }
-    
-    if (lHasPredicates) {
-      return ThreeValuedAnswer.UNKNOWN;
-    }
-    else {
-      return ThreeValuedAnswer.REJECT;
-    }
-  }
-  
   private void removeCoveredGoals(Deque<Goal> pGoals, FShell3Result.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
     // a) determine cfa path
     CFAEdge[] lCFAPath;
@@ -487,7 +436,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     // check whether remaining goals are subsumed by current counter example
     for (Goal lOpenGoal : pGoals) {
       // is goal subsumed by structural path?
-      ThreeValuedAnswer lAcceptanceAnswer = accepts(lOpenGoal.getAutomaton(), lCFAPath);
+      ThreeValuedAnswer lAcceptanceAnswer = FShell3.accepts(lOpenGoal.getAutomaton(), lCFAPath);
       
       if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
         // test case satisfies goal 

@@ -294,57 +294,6 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     return lAlternatingRefiner;
   }
   
-  private static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
-    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-    
-    lCurrentStates.add(pAutomaton.getInitialState());
-    
-    boolean lHasPredicates = false;
-    
-    for (CFAEdge lCFAEdge : pCFAPath) {
-      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-        // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
-          return ThreeValuedAnswer.ACCEPT;
-        }
-        
-        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
-          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-          
-          if (lLabel.hasGuards()) {
-            lHasPredicates = true;
-          }
-          else {
-            if (lLabel.contains(lCFAEdge)) {
-              lNextStates.add(lOutgoingEdge.getTarget());
-            }
-          }
-        }
-      }
-      
-      lCurrentStates.clear();
-      
-      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
-      lCurrentStates = lNextStates;
-      lNextStates = lTmp;
-    }
-    
-    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-      // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
-        return ThreeValuedAnswer.ACCEPT;
-      }
-    }
-    
-    if (lHasPredicates) {
-      return ThreeValuedAnswer.UNKNOWN;
-    }
-    else {
-      return ThreeValuedAnswer.REJECT;
-    }
-  }
-  
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
@@ -469,8 +418,6 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
     
-    int lRemovedByInfeasibilityPropagation = 0;
-    
     while (lGoalIterator.hasNext()) {
       lIndex++;
       
@@ -492,7 +439,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
             throw new RuntimeException();
           }
           
-          ThreeValuedAnswer lCoverageAnswer = accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()); 
+          ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue()); 
           
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             lIsCovered = true;
@@ -591,8 +538,6 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     for (TestCase lTestCase : lResultFactory.getTestCases()) {
       System.out.println(lTestCase);
     }
-  
-    System.out.println("Removed by infeasibility propagation: " + lRemovedByInfeasibilityPropagation);
   
     System.out.println("Size of infeasibility cache: " + mInfeasibleGoals.size());
     

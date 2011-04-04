@@ -7,18 +7,23 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 
 import com.google.common.base.Joiner;
 
@@ -38,21 +43,6 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private final IncrementalFQLTestGenerator pIncrementalTestGenerator;
   private final IncrementalAndAlternatingFQLTestGenerator pIncrementalAndAlternatingTestGenerator;
   private final StandardFQLCoverageAnalyser mCoverageAnalyser;
-  
-  public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
-    CFACreator lCFACreator = new CFACreator(Dialect.GNUC, pConfiguration, pLogManager);
-    
-    // parse code file
-    try {
-      lCFACreator.parseFileAndCreateCFA(pSourceFileName);
-    } catch (Exception e) {
-      e.printStackTrace();
-      
-      throw new RuntimeException(e);
-    }
-    
-    return lCFACreator.getFunctions();
-  }
   
   public FShell3(String pSourceFileName, String pEntryFunction) {
     pNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -84,6 +74,72 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   @Override
   public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
     mCoverageAnalyser.checkCoverage(pFQLSpecification, pTestSuite, pPedantic);
+  }
+  
+  public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+    CFACreator lCFACreator = new CFACreator(Dialect.GNUC, pConfiguration, pLogManager);
+    
+    // parse code file
+    try {
+      lCFACreator.parseFileAndCreateCFA(pSourceFileName);
+    } catch (Exception e) {
+      e.printStackTrace();
+      
+      throw new RuntimeException(e);
+    }
+    
+    return lCFACreator.getFunctions();
+  }
+  
+  public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
+    
+    lCurrentStates.add(pAutomaton.getInitialState());
+    
+    boolean lHasPredicates = false;
+    
+    for (CFAEdge lCFAEdge : pCFAPath) {
+      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+        // Automaton accepts as soon as it sees a final state (implicit self-loop)
+        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+          return ThreeValuedAnswer.ACCEPT;
+        }
+        
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
+          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+          
+          if (lLabel.hasGuards()) {
+            lHasPredicates = true;
+          }
+          else {
+            if (lLabel.contains(lCFAEdge)) {
+              lNextStates.add(lOutgoingEdge.getTarget());
+            }
+          }
+        }
+      }
+      
+      lCurrentStates.clear();
+      
+      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
+      lCurrentStates = lNextStates;
+      lNextStates = lTmp;
+    }
+    
+    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+      // Automaton accepts as soon as it sees a final state (implicit self-loop)
+      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+        return ThreeValuedAnswer.ACCEPT;
+      }
+    }
+    
+    if (lHasPredicates) {
+      return ThreeValuedAnswer.UNKNOWN;
+    }
+    else {
+      return ThreeValuedAnswer.REJECT;
+    }
   }
   
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
