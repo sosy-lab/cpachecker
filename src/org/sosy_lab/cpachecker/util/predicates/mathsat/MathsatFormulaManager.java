@@ -235,7 +235,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeNumber(int i) {
-    return encapsulate(msat_make_number(msatEnv, Integer.valueOf(i).toString()));
+    return makeNumber(Integer.toString(i));
   }
   
   @Override
@@ -396,7 +396,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeString(int i) {
-    long n = msat_make_number(msatEnv, Integer.valueOf(i).toString());
+    long n = msat_make_number(msatEnv, Integer.toString(i));
     
     return encapsulate(msat_make_uif(msatEnv,
         stringLitUfDecl, new long[]{n}));
@@ -409,7 +409,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeVariable(String var, int idx) {
-    return encapsulate(buildMsatVariable(makeName(var, idx), msatVarType));
+    return makeVariable(makeName(var, idx));
   }
   
   @Override
