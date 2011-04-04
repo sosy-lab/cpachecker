@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as ET
 import os.path
+import glob
 
 from datetime import date
 
@@ -58,21 +59,43 @@ def getListOfTests(file):
     tableGenFile = ET.ElementTree().parse(file)
     listOfTests = []
     for test in tableGenFile.findall('test'):
-        resultFile = test.get('filename')
-        if os.path.exists(resultFile) and os.path.isfile(resultFile):
-            columns = test.findall('column')
-            resultElem = ET.ElementTree().parse(resultFile)
-            if columns: # not empty
-                columnTitles = [column.get("title") for column in columns]
-            else:
-                columnTitles = [column.get("title") for column in 
-                                resultElem.find('sourcefile').findall('column')]
 
-            listOfTests.append((resultElem, columnTitles))
-        else:
-            print 'File {0} is not found.'.format(repr(resultFile))
-            exit()
+        for resultFile in getFileList(test.get('filename')): # expand wildcards
+            if os.path.exists(resultFile) and os.path.isfile(resultFile):
+                columns = test.findall('column')
+                resultElem = ET.ElementTree().parse(resultFile)
+                if columns: # not empty
+                    columnTitles = [column.get("title") for column in columns]
+                else:
+                    columnTitles = [column.get("title") for column in 
+                                    resultElem.find('sourcefile').findall('column')]
+    
+                listOfTests.append((resultElem, columnTitles))
+            else:
+                print 'File {0} is not found.'.format(repr(resultFile))
+                exit()
+
     return listOfTests
+
+
+def getFileList(shortFile):
+    """
+    The function getFileList expands a short filename to a sorted list 
+    of filenames. The short filename can contain variables and wildcards.
+    """
+
+    # expand tilde and variables
+    expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+    # expand wildcards
+    fileList = glob.glob(expandedFile)
+
+    # sort alphabetical, 
+    # if list is emtpy, sorting returns None, so better do not sort
+    if len(fileList) != 0:
+        fileList.sort()
+
+    return fileList
 
 
 def getTableHead(listOfTests):
