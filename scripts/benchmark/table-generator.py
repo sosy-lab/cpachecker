@@ -147,12 +147,11 @@ def getToolRow(listOfTests, testWidths):
 
     for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
         newTool = (testResult.get('tool'), testResult.get('version'))
-        if newTool == tool:
-            toolWidth += numberOfColumns
-        else:
+        if newTool != tool:
             toolRow += '<td colspan="{0}">{1} {2}</td>'.format(toolWidth, *tool)
             toolWidth = 0
             tool = newTool
+        toolWidth += numberOfColumns
     toolRow += '<td colspan="{0}">{1} {2}</td></tr>'.format(toolWidth, *tool)
 
     return toolRow
@@ -169,13 +168,12 @@ def getLimitRow(listOfTests, testWidths):
 
     for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
         newLimit = (testResult.get('timelimit'), testResult.get('memlimit'))
-        if newLimit == limit:
-            limitWidth += numberOfColumns
-        else:
+        if newLimit != limit:
             limitRow += '<td colspan="{0}">timelimit: {1}, memlimit: {2}</td>'\
                             .format(limitWidth, *limit)
             limitWidth = 0
             limit = newLimit
+        limitWidth += numberOfColumns
     limitRow += '<td colspan="{0}">timelimit: {1}, memlimit: {2}</td></tr>'\
                     .format(limitWidth, *limit)
 
@@ -198,13 +196,12 @@ def getSystemRow(listOfTests, testWidths):
         cpuTag = systemTag.find('cpu')
         newSystem = (systemTag.find('os').get('name'), cpuTag.get('model'), cpuTag.get('cores'),
                     cpuTag.get('frequency'), systemTag.find('ram').get('size'))
-        if newSystem == system:
-            systemWidth += numberOfColumns
-        else:
+        if newSystem != system:
             systemLine += '<td colspan="{0}">os: {1}<br>cpu: {2}<br>cores: {3}, \
             frequency: {4}, ram: {5}</td>'.format(systemWidth, *system)
             systemWidth = 0
             system = newSystem
+        systemWidth += numberOfColumns
     systemLine += '<td colspan="{0}">os: {1}<br>cpu: {2}<br>cores: {3}, \
             frequency: {4}, ram: {5}</td></tr>'.format(systemWidth, *system)
 
