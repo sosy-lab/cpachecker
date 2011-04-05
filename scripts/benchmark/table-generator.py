@@ -236,7 +236,8 @@ def getTestRow(listOfTests, testWidths):
     create testRow, each cell spans over all columns of this test
     '''
 
-    testNames = [testResult.get('name', ' ') for (testResult, _) in listOfTests]
+    testNames = [testResult.get('name', testResult.get('benchmarkname'))
+                                for (testResult, _) in listOfTests]
     tests = ['<td colspan="{0}">{1}</td>'.format(width, testName)
              for (testName, width) in zip(testNames, testWidths) if width]
     return '<tr><td>test</td>' + ''.join(tests) + '</tr>'
