@@ -24,8 +24,9 @@ CSS = '''
     thead { text-align:center}
     tbody { text-align:right}
     td { border:1px solid black}
-    td:first-child { text-align:left}
+    td:first-child { text-align:left; white-space:nowrap}
     tbody td:first-child { font-family: monospace; }
+    #options { font-size:x-small}
     #columnTitles td { border-bottom:3px solid black}
     .correctStatus { text-align:center; color:green}
     .wrongStatus { text-align:center; color:red; font-weight: bold; }
@@ -109,9 +110,10 @@ def getTableHead(listOfTests):
     systemRow = getSystemRow(listOfTests, testWidths)
     dateRow = getDateRow(listOfTests, testWidths)
     testRow = getTestRow(listOfTests, testWidths)
+    testOptions = getOptionsRow(listOfTests, testWidths)
 
     return ('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, columnRow]) + '\n</thead>'
+            limitRow, systemRow, dateRow, testRow, testOptions, columnRow]) + '\n</thead>'
 
 
 def getColumnsRowAndTestWidths(listOfTests):
@@ -241,6 +243,17 @@ def getTestRow(listOfTests, testWidths):
     tests = ['<td colspan="{0}">{1}</td>'.format(width, testName)
              for (testName, width) in zip(testNames, testWidths) if width]
     return '<tr><td>test</td>' + ''.join(tests) + '</tr>'
+
+
+def getOptionsRow(listOfTests, testWidths):
+    '''
+    create optionsRow, each cell spans over the columns of a test
+    '''
+
+    testOptions = [testResult.get('options', ' ') for (testResult, _) in listOfTests]
+    options = ['<td colspan="{0}">{1}</td>'.format(width, testOption)
+             for (testOption, width) in zip(testOptions, testWidths) if width]
+    return '<tr id="options"><td>options</td>' + ''.join(options) + '</tr>'
 
 
 def getTableBody(listOfTests):
