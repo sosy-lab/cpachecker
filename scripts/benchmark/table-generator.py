@@ -26,7 +26,7 @@ CSS = '''
     td { border:1px solid black}
     td:first-child { text-align:left; white-space:nowrap}
     tbody td:first-child { font-family: monospace; }
-    #options { font-size:x-small}
+    #options td:not(:first-child) { font-size: x-small; font-family: monospace; }
     #columnTitles td { border-bottom:3px solid black}
     .correctStatus { text-align:center; color:green}
     .wrongStatus { text-align:center; color:red; font-weight: bold; }
