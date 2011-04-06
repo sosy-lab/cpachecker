@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -53,8 +51,7 @@ public class FeatureVarsElement implements AbstractQueryableElement, Cloneable {
   public Region getVariableRegion(String pVarName) {
     Region ret = regionMap.get(pVarName);
     if (ret == null) {
-      FeatureVarsCPA.logger.log(Level.INFO, "FeatureVars tracks: " + pVarName);
-      //System.out.println("FeatureVars tracks: " + pVarName);
+      //FeatureVarsCPA.logger.log(Level.INFO, "FeatureVars tracks: " + pVarName);
       ret = manager.createPredicate();
       regionMap.put(pVarName, ret);      
     }
@@ -99,7 +96,7 @@ public class FeatureVarsElement implements AbstractQueryableElement, Cloneable {
         ifFalse = "!" + predName + " & " + regionToString(triple.getThird());
       }
       if (ifTrue != "" && ifFalse != "") {
-        return "(" + ifTrue + ") | (" + ifFalse + ")";
+        return "((" + ifTrue + ") | (" + ifFalse + "))";
       } else if (ifTrue == "") {
         return ifFalse;
       } else if (ifFalse == "") {
