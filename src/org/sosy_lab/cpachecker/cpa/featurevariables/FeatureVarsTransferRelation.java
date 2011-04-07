@@ -35,11 +35,14 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -62,7 +65,8 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * This Transfer Relation tracks the variables defined by the precision operator.
    * It assumes that all such variables are boolean (only the case ==0 and the case !=0 are tracked).
    * Only assume edges (conditions of if-statements) and only the operators && and || are considered.
-   * All other operators (e.g. =, ==, !=, &, |, ...) are ignored.
+   * Statement edges can be handled if the tracked variables are assigned only once and if they are assigned constant values (e.g. ____SELECTED_FEATURE_Verify = 1;)
+   * All other operators (e.g. ==, !=, &, |, ...) are ignored.
    * Only global variables (we don't make a difference between a variable that is defined globally and 
    * a local variable with the same name)
    */
@@ -81,6 +85,8 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
+      StatementEdge st = (StatementEdge) cfaEdge;
+      successor = handleStatementEdge(fvElement, st.getExpression(), st, precision);
       break;
     }
     case ReturnStatementEdge: {
@@ -121,6 +127,42 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       return Collections.emptySet();
     } else {
       return Collections.singleton(successor);
+    }
+  }
+
+  private AbstractElement handleStatementEdge(FeatureVarsElement element,
+      IASTExpression pExpr, StatementEdge cfaEdge,
+      FeatureVarsPrecision pPrecision) {
+    //String functionName = cfaEdge.getPredecessor().getFunctionName();
+    IASTNode op = pExpr.getChildren()[0];
+    FeatureVarsElement result = element;
+    if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
+        || op instanceof IASTArraySubscriptExpression) {
+      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+      if (pPrecision.isOnWhitelist(varName)) {
+        IASTNode assignment = pExpr.getChildren()[1];
+        if (assignment instanceof IASTIntegerLiteralExpression) {
+          String value = assignment.getRawSignature();
+          /*
+           * This will only work with the first assignment to the variable!
+           * If the variable gets a second assignment we would have to delete the current value from the bdd first.
+           * I do not know how to do this yet.
+           */
+          
+          if (value.trim().equals("0")) {
+            Region operand = FeatureVarsElement.manager.makeNot(element.getVariableRegion(varName));
+            result = new FeatureVarsElement(FeatureVarsElement.manager.makeAnd(element.getRegion(), operand));
+          } else {
+            Region operand = element.getVariableRegion(varName);
+            result = new FeatureVarsElement(FeatureVarsElement.manager.makeAnd(element.getRegion(), operand));
+          }
+        }
+      }
+    }
+    if (FeatureVarsElement.manager.isFalse(result.getRegion())) {
+      return null; // assumption is not fulfilled / not possible
+    } else {
+      return result;
     }
   }
 

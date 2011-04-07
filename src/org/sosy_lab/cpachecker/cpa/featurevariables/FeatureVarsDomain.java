@@ -46,7 +46,14 @@ public class FeatureVarsDomain implements AbstractDomain {
     if (element1 instanceof FeatureVarsElement && element2 instanceof FeatureVarsElement){
       FeatureVarsElement fv1 = (FeatureVarsElement)element1;
       FeatureVarsElement fv2 = (FeatureVarsElement)element2;
-      return new FeatureVarsElement(FeatureVarsElement.manager.makeOr(fv1.getRegion(), fv2.getRegion()));
+      // TODO: check if this implementation is efficient
+      if (FeatureVarsElement.manager.equalRegions(fv1.getRegion(), fv2.getRegion())) 
+        return fv2;
+      else 
+        return new FeatureVarsElement(FeatureVarsElement.manager.makeOr(fv1.getRegion(), fv2.getRegion()));
+      
+      
+      
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
     }
