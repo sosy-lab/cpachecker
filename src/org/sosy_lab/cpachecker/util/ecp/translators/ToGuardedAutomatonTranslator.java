@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.util.ecp.translators;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.ecp.ECPAtom;
 import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
@@ -542,6 +544,80 @@ public class ToGuardedAutomatonTranslator {
           lNewAutomaton.addToFinalStates(lStateMap.get(lFinalState));
         }
       }
+    }
+    
+    return lNewAutomaton;
+  }
+  
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> reduceEdgeSets(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<GuardedEdgeLabel>();
+    
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>();
+    
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
+    
+    for (NondeterministicFiniteAutomaton.State lState : pAutomaton.getStates()) {
+      if (!lState.equals(pAutomaton.getInitialState())) {
+        lStateMap.put(lState, lNewAutomaton.createState());
+      }
+    }
+    
+    // this implementation is a very simple heuristic ... TODO generalize
+    for (NondeterministicFiniteAutomaton.State lState : pAutomaton.getStates()) {
+      
+      boolean lMatch = false;
+      
+      if (!pAutomaton.isFinalState(lState) && !pAutomaton.getInitialState().equals(lState)) {
+        if (pAutomaton.getOutgoingEdges(lState).size() == 1) {
+          NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge = pAutomaton.getOutgoingEdges(lState).iterator().next();
+          
+          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+          
+          ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
+          
+          if (lEdgeSet.size() == 1) {
+            CFAEdge lOutgoingCFAEdge = lEdgeSet.iterator().next();
+            
+            if (pAutomaton.getIncomingEdges(lState).size() == 1) {
+              NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lIncomingEdge = pAutomaton.getIncomingEdges(lState).iterator().next();
+              
+              ECPEdgeSet lIncomingEdgeSet = lIncomingEdge.getLabel().getEdgeSet();
+              
+              CFANode lPredecessor = lOutgoingCFAEdge.getPredecessor();
+              
+              ArrayList<CFAEdge> lIncomingCFAEdges = new ArrayList<CFAEdge>(lPredecessor.getNumEnteringEdges());
+              
+              for (int lIndex = 0; lIndex < lPredecessor.getNumEnteringEdges(); lIndex++) {
+                CFAEdge lIncomingCFAEdge = lPredecessor.getEnteringEdge(lIndex);
+                
+                if (lIncomingEdgeSet.contains(lIncomingCFAEdge)) {
+                  lIncomingCFAEdges.add(lIncomingCFAEdge);
+                }
+              }
+              
+              ECPEdgeSet lNewEdgeSet = new ECPEdgeSet(lIncomingCFAEdges);
+              
+              GuardedEdgeLabel lNewLabel = new GuardedEdgeLabel(lNewEdgeSet, lIncomingEdge.getLabel().getGuards());
+              
+              lNewAutomaton.createEdge(lStateMap.get(lIncomingEdge.getSource()), lStateMap.get(lIncomingEdge.getTarget()), lNewLabel);
+              
+              lMatch = true;
+            }
+          }
+        }
+      }
+      
+      if (!lMatch) {
+        // add incoming automaton edges
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lIncomingEdge : pAutomaton.getIncomingEdges(lState)) {
+          lNewAutomaton.createEdge(lStateMap.get(lIncomingEdge.getSource()), lStateMap.get(lIncomingEdge.getTarget()), lIncomingEdge.getLabel());
+        }
+      }
+    }
+    
+    // set final states
+    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+      lNewAutomaton.addToFinalStates(lStateMap.get(lFinalState));
     }
     
     return lNewAutomaton;
