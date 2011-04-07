@@ -344,7 +344,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
                                     expression.getExpressionType(),
                                     expression,
                                     zero,
-                                    truthValue ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
+                                    BinaryOperator.NOT_EQUALS);
       }
 
       // handle the binary expression
