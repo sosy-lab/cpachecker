@@ -13,6 +13,8 @@ STATE USEFIRST Init :
   || MATCH {__assert_fail($?)}
 
   -> PRINT "Product violating in line $line: " PRINT EVAL(FeatureVars,"VALUES") ERROR;
+  
+  MATCH EXIT -> PRINT "Valid Product: " PRINT EVAL(FeatureVars,"VALUES") GOTO Init;
 
 
 END AUTOMATON

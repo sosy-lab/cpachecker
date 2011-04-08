@@ -1,3 +1,4 @@
+
 int featureModelValid() {
   if (! __SELECTED_FEATURE_Verify)
 	  if (__SELECTED_FEATURE_Forward)
@@ -9,24 +10,8 @@ int featureModelValid() {
 }
 
 int main() {
-	int tmp = featureModelValid();
+	int tmp;
+	tmp = featureModelValid();
 	if (! tmp)
 		error: fail();
-/*
-	int tmp = 0;
-	  if (! __SELECTED_FEATURE_Verify)
-		  if (__SELECTED_FEATURE_Forward)
-			  if (! __SELECTED_FEATURE_Sign)
-				  tmp = 1;
-			   else tmp = 1;
-		   else tmp = 1;
-	   else tmp = 1;
-
-	  if (0) {}
-
-	  if (__SELECTED_FEATURE_Sign) {
-		  error: fail();
-	  }
-*/
-
 }
