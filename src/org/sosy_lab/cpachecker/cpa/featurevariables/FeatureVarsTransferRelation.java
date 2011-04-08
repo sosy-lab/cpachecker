@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -86,7 +87,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
       StatementEdge st = (StatementEdge) cfaEdge;
-      successor = handleStatementEdge(fvElement, st.getExpression(), st, precision);
+      successor = handleStatementEdge(fvElement, st.getStatement(), st, precision);
       break;
     }
     case ReturnStatementEdge: {
@@ -131,16 +132,16 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   }
 
   private AbstractElement handleStatementEdge(FeatureVarsElement element,
-      IASTExpression pExpr, StatementEdge cfaEdge,
+      IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
     //String functionName = cfaEdge.getPredecessor().getFunctionName();
-    IASTNode op = pExpr.getChildren()[0];
+    IASTNode op = pIastStatement.getChildren()[0];
     FeatureVarsElement result = element;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
       String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
       if (pPrecision.isOnWhitelist(varName)) {
-        IASTNode assignment = pExpr.getChildren()[1];
+        IASTNode assignment = pIastStatement.getChildren()[1];
         if (assignment instanceof IASTIntegerLiteralExpression) {
           String value = assignment.getRawSignature();
           /*
