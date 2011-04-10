@@ -252,6 +252,8 @@ int DiskPerfSendToNextDriver(int DeviceObject , int Irp )
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
 #line 199
@@ -291,6 +293,8 @@ int DiskPerfDispatchPower(int DeviceObject , int Irp )
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
 #line 224
@@ -524,6 +528,7 @@ int DiskPerfDeviceControl(int DeviceObject , int Irp )
   Irp__AssociatedIrp__SystemBuffer = __BLAST_NONDET;
   deviceExtension__Processors = __BLAST_NONDET;
   deviceExtension__QueueDepth = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
 
   {
 #line 390
@@ -625,6 +630,8 @@ int DiskPerfShutdownFlush(int DeviceObject , int Irp )
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
   {

@@ -120,6 +120,7 @@ int KbFilter_PnP(int DeviceObject , int Irp )
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
   irpStack__MinorFunction = __BLAST_NONDET;
   event = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
 
   {
 #line 107
@@ -896,6 +897,7 @@ int KbFilter_DispatchPassThrough(int DeviceObject , int Irp )
 
   // initialization added by ah
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
 
   {
 #line 691
@@ -938,6 +940,8 @@ int KbFilter_Power(int DeviceObject , int Irp )
   irpStack__MinorFunction = __BLAST_NONDET;
   powerType = __BLAST_NONDET;
   powerState__DeviceState = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
 #line 718
