@@ -685,13 +685,22 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
                 // by removing the children, lARTElement gets added to the
                 // worklist automatically
                 
-                LinkedList<ARTElement> lAbstractElements3 = new LinkedList<ARTElement>();
-                lAbstractElements3.addAll(lARTElement.getChildren());
-                  
                 // TODO remove only nonisomorphic parts (children)?
-                for (ARTElement lChildElement : lAbstractElements3) {
+                while (!lARTElement.getChildren().isEmpty()) {
+                  ARTElement lChildElement = lARTElement.getChildren().iterator().next();
+                  
                   lARTReachedSet.removeSubtree(lChildElement);
                 }
+                
+                /*LinkedList<ARTElement> lAbstractElements3 = new LinkedList<ARTElement>();
+                lAbstractElements3.addAll(lARTElement.getChildren());
+                
+                for (ARTElement lChildElement : lAbstractElements3) {
+                  // check whether element is already destroyed, this can happen because of DAG-like ART structure
+                  if (!lChildElement.isDestroyed()) {
+                    lARTReachedSet.removeSubtree(lChildElement);
+                  }
+                }*/
               }
             }
           }
@@ -739,18 +748,33 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
                 // by removing the children, lARTElement gets added to the
                 // worklist automatically
                 
-                LinkedList<ARTElement> lAbstractElements3 = new LinkedList<ARTElement>();
-                lAbstractElements3.addAll(lARTElement.getChildren());
-                  
                 // TODO remove only nonisomorphic parts (children)?
-                for (ARTElement lChildElement : lAbstractElements3) {
+                while (!lARTElement.getChildren().isEmpty()) {
+                  ARTElement lChildElement = lARTElement.getChildren().iterator().next();
+                  
                   lARTReachedSet.removeSubtree(lChildElement);
                 }
+                
+                /*LinkedList<ARTElement> lAbstractElements3 = new LinkedList<ARTElement>();
+                lAbstractElements3.addAll(lARTElement.getChildren());
+                
+                for (ARTElement lChildElement : lAbstractElements3) {
+                  // check whether element is already destroyed, this can happen because of DAG-like ART structure
+                  if (!lChildElement.isDestroyed()) {
+                    lARTReachedSet.removeSubtree(lChildElement);
+                  }
+                }*/
               }              
             }
           }
         }
       }
+      
+      
+      
+      /*for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
+        //if (!pReachedSet.contains(lWaitlistElement);
+      }*/
        
       /*System.out.println("NEW WAITLIST *****************************************");
         
