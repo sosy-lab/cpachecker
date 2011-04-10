@@ -44,12 +44,16 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private final IncrementalAndAlternatingFQLTestGenerator mIncrementalAndAlternatingTestGenerator;
   private final StandardFQLCoverageAnalyser mCoverageAnalyser;
   
+  private final IncrementalARTReusingFQLTestGenerator mIncrementalARTReusingTestGenerator;
+  
   public FShell3(String pSourceFileName, String pEntryFunction) {
     mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
     
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
+    
+    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
   }
   
   public FShell3Result run(String pFQLSpecification) {
@@ -66,7 +70,13 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
         return mIncrementalAndAlternatingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
       }
       else {
-        return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        // TODO make configurable
+        if (!pAlternating) {
+          return mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        }
+        else {
+          return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        }
       }
     }
   }
