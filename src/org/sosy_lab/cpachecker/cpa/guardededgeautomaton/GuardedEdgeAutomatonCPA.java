@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
@@ -32,6 +31,10 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
     NondeterministicFiniteAutomaton.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);
     mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal);
+  }
+  
+  public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
+    return mTransferRelation.getAutomaton();
   }
   
   @Override
@@ -65,7 +68,7 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public GuardedEdgeAutomatonTransferRelation getTransferRelation() {
     return mTransferRelation;
   }
   
