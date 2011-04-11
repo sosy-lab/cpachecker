@@ -336,11 +336,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       
       lTimeReach.proceed();
       
-      boolean lReachableViaIntervalAnalysis = reach_intervalCPA(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      boolean lReachableViaGraphSearch = reachGraphSearch(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
       CounterexampleTraceInfo lCounterexampleTraceInfo = null;
 
-      if (lReachableViaIntervalAnalysis) {
+      if (lReachableViaGraphSearch) {
         lCounterexampleTraceInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
         
         // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
@@ -614,19 +614,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lStatistics.add(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
 
-    if (pReachedSet.isEmpty()) {
-      AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
-      Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
-      
-      pReachedSet.add(lInitialElement, lInitialPrecision);
-    }
-    else {
-      if (pPreviousAutomaton == null) {
-        throw new RuntimeException();
-      }
-      
-      modifyART(pReachedSet, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
-    }
+    modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
     
     try {
       lAlgorithm.run(pReachedSet);
@@ -637,6 +625,22 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTimeInReach.pause();
     
     return lRefiner.getCounterexampleTraceInfo();
+  }
+  
+  private void modifyReachedSet(ReachedSet pReachedSet, CFAFunctionDefinitionNode pEntryNode, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+    if (pReachedSet.isEmpty()) {
+      AbstractElement lInitialElement = pARTCPA.getInitialElement(pEntryNode);
+      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode);
+      
+      pReachedSet.add(lInitialElement, lInitialPrecision);
+    }
+    else {
+      if (pPreviousAutomaton == null) {
+        throw new RuntimeException();
+      }
+      
+      modifyART(pReachedSet, pARTCPA, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
+    }
   }
   
   private void modifyART(ReachedSet pReachedSet, ARTReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
@@ -857,7 +861,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return lPathElement.toArray();
   }
   
-  private boolean reach_intervalCPA(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private boolean reachGraphSearch(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
     
@@ -902,25 +906,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
-
-    
-    /*if (pReachedSet == null) {
-      AbstractElement lInitialElement = lCPA.getInitialElement(pEntryNode);
-      Precision lInitialPrecision = lCPA.getInitialPrecision(pEntryNode);
-      
-      pReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.DFS);
-      pReachedSet.add(lInitialElement, lInitialPrecision);  
-    }
-    else {
-      // modify reached set
-      
-      if (pPreviousAutomaton == null) {
-        throw new RuntimeException();
-      }
-      
-      
-    }*/
-    
     
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntryNode);
