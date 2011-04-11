@@ -253,8 +253,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     int lNumberOfCFAInfeasibleGoals = 0;
     
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
-    ReachedSet lPredicateReachedSet = null;
-
+    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    
     while (lGoalIterator.hasNext()) {
       lIndex++;
       
@@ -341,11 +341,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       CounterexampleTraceInfo lCounterexampleTraceInfo = null;
 
       if (lReachableViaIntervalAnalysis) {
-        
-        if (lPredicateReachedSet == null) {
-          lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
-        }
-        
         lCounterexampleTraceInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
         
         // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
