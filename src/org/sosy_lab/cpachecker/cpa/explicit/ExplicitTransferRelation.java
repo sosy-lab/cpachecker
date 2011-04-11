@@ -993,7 +993,11 @@ public class ExplicitTransferRelation implements TransferRelation {
         
         // get initial value
         IASTInitializer init = declarationEdge.getInitializer();
-        if (init != null) {
+        //TODO: this init.getRawSignature is a temporary bugfix. There should be a better way to handle this case.
+        //original line:
+        //if (init != null) {
+        if (init != null && !init.getRawSignature().equals("NULL")) {
+          
           if (init instanceof IASTInitializerExpression) {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
