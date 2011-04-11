@@ -630,160 +630,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         throw new RuntimeException();
       }
       
-      /*System.out.println("PREVIOUS AUTOMATON:");
-      System.out.println(pPreviousAutomaton);
-      
-      System.out.println("CURRENT AUTOMATON:");
-      System.out.println(pAutomatonCPA.getAutomaton());
-      */
-      ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet, lARTCPA);
-        
-      //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
-        
-      //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
-      
-      Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pAutomatonCPA.getAutomaton());
-        
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : lFrontier.getFirst()) {
-        GuardedEdgeLabel lLabel = lEdge.getLabel();
-        
-        ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
-        
-        for (CFAEdge lCFAEdge : lEdgeSet) {
-          CFANode lCFANode = lCFAEdge.getPredecessor();
-            
-          Set<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
-           
-          LinkedList<AbstractElement> lAbstractElements2 = new LinkedList<AbstractElement>();
-          lAbstractElements2.addAll(lAbstractElements);
-            
-          for (AbstractElement lAbstractElement : lAbstractElements2) {
-            if (!pReachedSet.contains(lAbstractElement)) {
-              // lAbstractElement was removed in an earlier step
-              continue;
-            }
-            
-            ARTElement lARTElement = (ARTElement)lAbstractElement;
-              
-            if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
-              continue;
-            }
-              
-            // what's the semantics of getWrappedElement*s*()?
-            CompositeElement lCompositeElement = (CompositeElement)lARTElement.getWrappedElement();
-              
-            ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(lProductAutomatonIndex);
-              
-            GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
-              
-            if (lStateElement.getAutomatonState() == lEdge.getSource()) {
-              if (lARTElement.getChildren().isEmpty()) {
-                // re-add element to worklist
-                pReachedSet.reAddToWaitlist(lARTElement);
-              }
-              else {
-                // by removing the children, lARTElement gets added to the
-                // worklist automatically
-                
-                // TODO remove only nonisomorphic parts (children)?
-                while (!lARTElement.getChildren().isEmpty()) {
-                  ARTElement lChildElement = lARTElement.getChildren().iterator().next();
-                  
-                  lARTReachedSet.removeSubtree(lChildElement);
-                }
-                
-                /*LinkedList<ARTElement> lAbstractElements3 = new LinkedList<ARTElement>();
-                lAbstractElements3.addAll(lARTElement.getChildren());
-                
-                for (ARTElement lChildElement : lAbstractElements3) {
-                  // check whether element is already destroyed, this can happen because of DAG-like ART structure
-                  if (!lChildElement.isDestroyed()) {
-                    lARTReachedSet.removeSubtree(lChildElement);
-                  }
-                }*/
-              }
-            }
-          }
-        }
-      }
-        
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : lFrontier.getSecond()) {
-        GuardedEdgeLabel lLabel = lEdge.getLabel();
-        
-        ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
-        
-        for (CFAEdge lCFAEdge : lEdgeSet) {
-          CFANode lCFANode = lCFAEdge.getPredecessor();
-          
-          Set<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
-          
-          LinkedList<AbstractElement> lAbstractElements2 = new LinkedList<AbstractElement>();
-          lAbstractElements2.addAll(lAbstractElements);
-          
-          for (AbstractElement lAbstractElement : lAbstractElements2) {
-            if (!pReachedSet.contains(lAbstractElement)) {
-              // lAbstractElement was removed in an earlier step
-              continue;
-            }
-            
-            ARTElement lARTElement = (ARTElement)lAbstractElement;
-            
-            if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
-              continue;
-            }
-              
-            // what's the semantics of getWrappedElement*s*()?
-            CompositeElement lCompositeElement = (CompositeElement)lARTElement.getWrappedElement();
-              
-            ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(lProductAutomatonIndex);
-              
-            GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
-            
-            if (lStateElement.getAutomatonState() == lEdge.getSource()) {
-              if (lARTElement.getChildren().isEmpty()) {
-                // re-add element to worklist
-                pReachedSet.reAddToWaitlist(lARTElement);
-              }
-              else {
-                // by removing the children, lARTElement gets added to the
-                // worklist automatically
-                
-                // TODO remove only nonisomorphic parts (children)?
-                while (!lARTElement.getChildren().isEmpty()) {
-                  ARTElement lChildElement = lARTElement.getChildren().iterator().next();
-                  
-                  lARTReachedSet.removeSubtree(lChildElement);
-                }
-                
-                /*LinkedList<ARTElement> lAbstractElements3 = new LinkedList<ARTElement>();
-                lAbstractElements3.addAll(lARTElement.getChildren());
-                
-                for (ARTElement lChildElement : lAbstractElements3) {
-                  // check whether element is already destroyed, this can happen because of DAG-like ART structure
-                  if (!lChildElement.isDestroyed()) {
-                    lARTReachedSet.removeSubtree(lChildElement);
-                  }
-                }*/
-              }              
-            }
-          }
-        }
-      }
-      
-      
-      
-      /*for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
-        //if (!pReachedSet.contains(lWaitlistElement);
-      }*/
-       
-      /*System.out.println("NEW WAITLIST *****************************************");
-        
-      for (AbstractElement lElement : pReachedSet.getWaitlist()) {
-        System.out.println(lElement);
-      }
-        
-      ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art02.dot"), lARTCPA, pReachedSet, lPathEdges);
-      */
+      modifyART(pReachedSet, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
     }
     
     try {
@@ -795,6 +642,73 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTimeInReach.pause();
     
     return lRefiner.getCounterexampleTraceInfo();
+  }
+  
+  private void modifyART(ReachedSet pReachedSet, ARTReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
+    //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
+    //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
+    
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pFrontierEdges) {
+      GuardedEdgeLabel lLabel = lEdge.getLabel();
+      
+      ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
+      
+      for (CFAEdge lCFAEdge : lEdgeSet) {
+        CFANode lCFANode = lCFAEdge.getPredecessor();
+          
+        Set<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
+        
+        LinkedList<AbstractElement> lAbstractElements2 = new LinkedList<AbstractElement>();
+        lAbstractElements2.addAll(lAbstractElements);
+        
+        for (AbstractElement lAbstractElement : lAbstractElements2) {
+          if (!pReachedSet.contains(lAbstractElement)) {
+            // lAbstractElement was removed in an earlier step
+            continue;
+          }
+          
+          ARTElement lARTElement = (ARTElement)lAbstractElement;
+            
+          if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
+            continue;
+          }
+            
+          // what's the semantics of getWrappedElement*s*()?
+          CompositeElement lCompositeElement = (CompositeElement)lARTElement.getWrappedElement();
+            
+          ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(pProductAutomatonIndex);
+            
+          GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
+            
+          if (lStateElement.getAutomatonState() == lEdge.getSource()) {
+            if (lARTElement.getChildren().isEmpty()) {
+              // re-add element to worklist
+              pReachedSet.reAddToWaitlist(lARTElement);
+            }
+            else {
+              // by removing the children, lARTElement gets added to the
+              // worklist automatically
+              
+              // TODO remove only nonisomorphic parts (children)?
+              while (!lARTElement.getChildren().isEmpty()) {
+                ARTElement lChildElement = lARTElement.getChildren().iterator().next();
+                
+                pARTReachedSet.removeSubtree(lChildElement);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  private void modifyART(ReachedSet pReachedSet, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+    ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet, pARTCPA);
+    
+    Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
+    
+    modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getFirst());
+    modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getSecond());
   }
   
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
