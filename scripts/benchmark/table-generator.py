@@ -26,7 +26,8 @@ CSS = '''
     td { border:1px solid black}
     td:first-child { text-align:left; white-space:nowrap}
     tbody td:first-child { font-family: monospace; }
-    #options td:not(:first-child) { font-size: x-small; font-family: monospace; }
+    #options td:not(:first-child) {  text-align:left; font-size: x-small; 
+                                     font-family: monospace; }
     #columnTitles td { border-bottom:3px solid black}
     .correctStatus { text-align:center; color:green}
     .wrongStatus { text-align:center; color:red; font-weight: bold; }
@@ -251,7 +252,7 @@ def getOptionsRow(listOfTests, testWidths):
     '''
 
     testOptions = [testResult.get('options', ' ') for (testResult, _) in listOfTests]
-    options = ['<td colspan="{0}">{1}</td>'.format(width, testOption)
+    options = ['<td colspan="{0}">{1}</td>'.format(width, testOption.replace(' -','<br>-'))
              for (testOption, width) in zip(testOptions, testWidths) if width]
     return '<tr id="options"><td>options</td>' + ''.join(options) + '</tr>'
 
