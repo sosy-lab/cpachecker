@@ -993,11 +993,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         
         // get initial value
         IASTInitializer init = declarationEdge.getInitializer();
-        //TODO: this init.getRawSignature is a temporary bugfix. There should be a better way to handle this case.
-        //original line:
-        //if (init != null) {
-        if (init != null && !init.getRawSignature().equals("NULL")) {
-          
+        if (init != null) {
           if (init instanceof IASTInitializerExpression) {
             IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
@@ -1360,7 +1356,13 @@ public class ExplicitTransferRelation implements TransferRelation {
 //          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
 //        }
     
+    // TODO don't parse raw signature, but rely on lexp.getValue()
+
     String num = lexp.getRawSignature();
+    if (num.equals("NULL")) {
+      return 0L;
+    }
+    
     Long retVal = null;
     if (num.startsWith("0x")) {
       // this should be in hex format
