@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -973,9 +974,13 @@ public class ExplicitTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge, ExplicitPrecision precision) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
-    if ((declarationEdge.getName() != null)
-        && (declarationEdge.getStorageClass() != StorageClass.TYPEDEF)) {
-
+    if ((declarationEdge.getName() == null)
+        || (declarationEdge.getStorageClass() == StorageClass.TYPEDEF)
+        || (declarationEdge.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)) {
+      // nothing interesting to see here, please move along
+      return newElement;
+    }
+        
         // get the variable name in the declarator
         String varName = declarationEdge.getName().toString();
         String functionName = declarationEdge.getPredecessor().getFunctionName();
@@ -1011,7 +1016,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         } else {
           newElement.forget(scopedVarName);
         }
-    }
+
     return newElement;
   }
 
