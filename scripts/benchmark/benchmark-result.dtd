@@ -18,15 +18,14 @@
                  value CDATA #IMPLIED>
 
 <!ELEMENT test (sourcefile+, time)>
-<!ATTLIST test name CDATA #REQUIRED
+<!ATTLIST test name CDATA #IMPLIED
                options CDATA #REQUIRED>
 
-<!ELEMENT sourcefile (time, column*)>
+<!ELEMENT sourcefile (column*)>
 
-<!ATTLIST sourcefile name CDATA #REQUIRED
-                     status CDATA #REQUIRED>
-<!ATTLIST time cpuTime CDATA #REQUIRED
-               wallTime CDATA #REQUIRED>
+<!ATTLIST sourcefile name CDATA #REQUIRED>
+<!ATTLIST time cputime CDATA #REQUIRED
+               walltime CDATA #REQUIRED>
 
 
 <!-- not used: -->
