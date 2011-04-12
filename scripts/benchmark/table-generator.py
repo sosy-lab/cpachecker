@@ -10,6 +10,9 @@ from datetime import date
 OUTPUT_PATH = "test/results/"
 
 
+CSV_SEPARATOR = '\t'
+
+
 DOCTYPE = '''
 <!DOCTYPE HTML>
 '''
@@ -102,19 +105,21 @@ def getFileList(shortFile):
 
 def getTableHead(listOfTests):
     '''
-    get tablehead (tools, limits, testnames, systeminfo)
+    get tablehead (tools, limits, testnames, systeminfo, columntitles for html,
+    testnames and columntitles for csv)
     '''
 
-    (columnRow, testWidths) = getColumnsRowAndTestWidths(listOfTests)
+    (columnRow, testWidths, titleLine) = getColumnsRowAndTestWidths(listOfTests)
     toolRow = getToolRow(listOfTests, testWidths)
     limitRow = getLimitRow(listOfTests, testWidths)
     systemRow = getSystemRow(listOfTests, testWidths)
     dateRow = getDateRow(listOfTests, testWidths)
-    testRow = getTestRow(listOfTests, testWidths)
+    (testRow, testLine) = getTestRow(listOfTests, testWidths)
     testOptions = getOptionsRow(listOfTests, testWidths)
 
-    return ('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, testOptions, columnRow]) + '\n</thead>'
+    return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
+            limitRow, systemRow, dateRow, testRow, testOptions, columnRow]) + '\n</thead>',
+            testLine + '\n' + titleLine + '\n')
 
 
 def getColumnsRowAndTestWidths(listOfTests):
@@ -122,7 +127,7 @@ def getColumnsRowAndTestWidths(listOfTests):
     get columnsRow and testWidths, for all columns that should be shown
     '''
 
-    columnsTitles = [' ']
+    columnsTitles = []
     testWidths = []
     for testResult, columns in listOfTests:
         numberOfColumns = 0
@@ -136,8 +141,9 @@ def getColumnsRowAndTestWidths(listOfTests):
 
         testWidths.append(numberOfColumns)
     
-    return ('<tr id="columnTitles"><td>' + '</td><td>'.join(columnsTitles) + '</td></tr>',
-            testWidths)
+    return ('<tr id="columnTitles"><td>' + '</td><td>'.join([' '] + columnsTitles) + '</td></tr>',
+            testWidths,
+            CSV_SEPARATOR.join(['filename'] + columnsTitles))
 
 
 def getToolRow(listOfTests, testWidths):
@@ -243,7 +249,11 @@ def getTestRow(listOfTests, testWidths):
                                 for (testResult, _) in listOfTests]
     tests = ['<td colspan="{0}">{1}</td>'.format(width, testName)
              for (testName, width) in zip(testNames, testWidths) if width]
-    return '<tr><td>test</td>' + ''.join(tests) + '</tr>'
+    testLine = CSV_SEPARATOR.join([CSV_SEPARATOR.join([testName]*width)
+             for (testName, width) in zip(testNames, testWidths) if width])
+
+    return ('<tr><td>test</td>' + ''.join(tests) + '</tr>',
+            testLine)
 
 
 def getOptionsRow(listOfTests, testWidths):
@@ -266,15 +276,24 @@ def getTableBody(listOfTests):
     # get list of lists (test X file) and convert to list of lists (file X test)
     listOfFiles = zip(*[[fileTag for fileTag in test[0].findall('sourcefile')] 
                         for test in listOfTests])
-    rows = []
+    rowsForHTML = []
+    rowsForCSV = []
     for file in listOfFiles:
-        columnValues = []
+        columnValuesForHTML = []
+        columnValuesForCSV = []
         for testResult, test in zip(file, listOfTests):
-            columnValues += getValuesOfFileXTest(testResult, test[1])
-        rows.append(HTML_SHIFT 
-                    + '<tr><td>{0}</td>'.format(file[0].get("name")) \
-                    + ''.join(columnValues) + '</tr>\n')
-    return '<tbody>\n' + "".join(rows) + '</tbody>'
+            (valuesForHTML, valuesForCSV) = getValuesOfFileXTest(testResult, test[1])
+            columnValuesForHTML += valuesForHTML
+            columnValuesForCSV += valuesForCSV
+
+        fileName = file[0].get("name")
+        rowsForHTML.append(HTML_SHIFT 
+                    + '<tr><td>{0}</td>'.format(fileName) \
+                    + ''.join(columnValuesForHTML) + '</tr>\n')
+        rowsForCSV.append(CSV_SEPARATOR.join([fileName] + columnValuesForCSV))
+
+    return ('<tbody>\n' + "".join(rowsForHTML) + '</tbody>',
+            '\n'.join(rowsForCSV))
 
 
 def getValuesOfFileXTest(currentFile, listOfColumns):
@@ -283,29 +302,34 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
     Only columns, that should be part of the table, are collected.
     '''
 
-    valuesOfLine = []
+    valuesForHTML = []
+    valuesForCSV = []
     for columnTitle in listOfColumns: # for all columns that should be shown
         for column in currentFile.findall('column'):
             if columnTitle == column.get('title'):
 
+                value = column.get('value')
+
+                valuesForCSV.append(value)
+
                 if columnTitle == 'status':
                     # different colors for correct and incorrect results
                     fileName = currentFile.get('name')
-                    status = column.get('value').lower()
+                    status = value.lower()
                     isSafeFile = fileName.lower().find('bug') == -1
                     if (isSafeFile and status == 'safe') or (
                         not isSafeFile and status == 'unsafe'):
-                        valuesOfLine.append('<td class="correctStatus">{0}</td>'.format(status))
+                        valuesForHTML.append('<td class="correctStatus">{0}</td>'.format(status))
                     else:
-                        valuesOfLine.append('<td class="wrongStatus">{0}</td>'.format(status))
-
+                        valuesForHTML.append('<td class="wrongStatus">{0}</td>'.format(status))
                 else:
-                    valuesOfLine.append('<td>{0}</td>'.format(column.get('value')))
+                    valuesForHTML.append('<td>{0}</td>'.format(value))
                 break
-    return valuesOfLine
+
+    return (valuesForHTML, valuesForCSV)
 
 
-def createHTML(file):
+def createTable(file):
     '''
     parse inputfile, create html-code and write it to file
     '''
@@ -314,10 +338,13 @@ def createHTML(file):
 
     listOfTests = getListOfTests(file)
 
+    (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
+    (tableBodyHTML, tableBodyCSV) = getTableBody(listOfTests)
+    
     tableCode = '<table>\n' \
-                + getTableHead(listOfTests).replace('\n','\n' + HTML_SHIFT) \
+                + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + getTableBody(listOfTests).replace('\n','\n' + HTML_SHIFT) \
+                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n</table>\n\n'
 
     htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n' \
@@ -326,6 +353,12 @@ def createHTML(file):
     HTMLFile = open(OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html", "w")
     HTMLFile.write(htmlCode)
     HTMLFile.close()
+
+    CSVCode = tableHeadCSV + tableBodyCSV
+
+    CSVFile = open(OUTPUT_PATH + os.path.basename(file)[:-3] + "table.csv", "w")
+    CSVFile.write(CSVCode)
+    CSVFile.close()
 
     print 'done'
 
@@ -353,7 +386,7 @@ def main(args=None):
             print 'File {0} does not exist.'.format(repr(file))
             exit()
         else:
-            createHTML(file)
+            createTable(file)
 
 
 if __name__ == '__main__':
