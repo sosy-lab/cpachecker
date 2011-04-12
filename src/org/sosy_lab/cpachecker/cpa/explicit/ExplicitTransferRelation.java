@@ -1142,8 +1142,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       switch (binaryOperator) {
       case DIVIDE:
       case MODULO:
-      case LESS_EQUAL:
-      case GREATER_EQUAL:
       case BINARY_AND:
       case BINARY_OR:
         // TODO check which cases can be handled (I think all)
@@ -1175,12 +1173,16 @@ public class ExplicitTransferRelation implements TransferRelation {
           return lVal * rVal;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", null, pE);
+          throw new AssertionError();
         }
       }
       
       case EQUALS:
-      case NOT_EQUALS: {
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
+      case LESS_THAN:
+      case LESS_EQUAL: {
 
         Long lVal = lVarInBinaryExp.accept(this);
         if (lVal == null) {
@@ -1192,15 +1194,37 @@ public class ExplicitTransferRelation implements TransferRelation {
           return null;
         }
 
-        // assign 1 if expression holds, 0 otherwise
-        long result = (lVal.equals(rVal) ? 1 : 0);
+        long l = lVal;
+        long r = rVal;
         
-        if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-          // negate
-          result = 1 - result;
+        boolean result;
+        switch (binaryOperator) {
+        case EQUALS:
+          result = (l == r);
+          break;
+        case NOT_EQUALS:
+          result = (l != r);
+          break;
+        case GREATER_THAN:
+          result = (l > r);
+          break;
+        case GREATER_EQUAL:
+          result = (l >= r);
+          break;
+        case LESS_THAN:
+          result = (l < r);
+          break;
+        case LESS_EQUAL:
+          result = (l <= r);
+          break;
+          
+        default:
+          throw new AssertionError();
         }
-        return result;
-      }
+        
+        // return 1 if expression holds, 0 otherwise
+        return (result ? 1L : 0L);
+      }       
         
       default:
         return null;
