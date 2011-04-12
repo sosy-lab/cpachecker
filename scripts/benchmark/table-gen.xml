@@ -10,7 +10,7 @@
     <column title="cputime"/>
   </test>
 
-  <test filename="test/results/benchmark-example-cpachecker.results.test.locks-lbe.2011-04-04.xml">
+  <test filename="test/results/benchmark-example-cpachecker.results.test.locks-lbe.2011*.xml">
     <!-- all columns of the testfile will be part of the table -->
   </test>
 
