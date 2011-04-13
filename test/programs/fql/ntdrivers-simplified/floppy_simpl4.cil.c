@@ -231,6 +231,8 @@ int FloppyPnp(int DeviceObject , int Irp )
   disketteExtension__ArcName__Length = __BLAST_NONDET;
   doneEvent = __BLAST_NONDET;
   irpSp__MinorFunction = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
+  IoGetConfigurationInformation__FloppyCount = __BLAST_NONDET;
 
   {
 #line 199
@@ -1795,7 +1797,8 @@ int FloppyDeviceControl(int DeviceObject , int Irp )
   formatExParameters__SectorsPerTrack = __BLAST_NONDET;
   highestDriveMediaType = __BLAST_NONDET;
   lowestDriveMediaType = __BLAST_NONDET;
-  
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
 #line 1234
