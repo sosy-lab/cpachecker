@@ -2709,7 +2709,6 @@ int IofCallDriver(int DeviceObject , int Irp )
   unsigned long __cil_tmp8 ;
 
   int tmp001;
-  int __BLAST_NONDET;
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
@@ -2921,7 +2920,6 @@ int PoCallDriver(int DeviceObject , int Irp )
   long __cil_tmp8 ;
 
   int tmp001;
-  int __BLAST_NONDET;
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
