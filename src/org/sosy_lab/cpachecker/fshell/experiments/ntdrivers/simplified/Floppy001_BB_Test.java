@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
-public class Floppy001Test extends ExperimentalSeries {
+public class Floppy001_BB_Test extends ExperimentalSeries {
 
   @Test
   public void test001() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE, 
                                         "test/programs/fql/ntdrivers-simplified/floppy_simpl3_BUG.cil.c", 
                                         "main", 
                                         true);

@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
-public class DiskperfTest extends ExperimentalSeries {
+public class Floppy004_BB2_Test extends ExperimentalSeries {
 
   @Test
   public void test001() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
-                                        "test/programs/fql/ntdrivers-simplified/diskperf_simpl1.cil.c", 
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE, 
+                                        "test/programs/fql/ntdrivers-simplified/floppy_simpl4.cil.c", 
                                         "main", 
                                         true);
     
