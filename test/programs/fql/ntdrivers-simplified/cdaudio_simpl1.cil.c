@@ -2477,7 +2477,6 @@ int main(void)
   int __cil_tmp9 ;
 
   int tmp001;
-  int __BLAST_NONDET;
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
