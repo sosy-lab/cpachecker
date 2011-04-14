@@ -46,6 +46,7 @@ public class Defaults {
         return new IASTFloatLiteralExpression("0.0", fileLoc, type);
         
       case UNSPECIFIED:
+      case BOOL:
       case INT:
         return new IASTIntegerLiteralExpression("0", fileLoc, type, BigInteger.ZERO);
       default:

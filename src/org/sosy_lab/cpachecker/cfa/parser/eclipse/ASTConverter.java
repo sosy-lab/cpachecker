@@ -929,6 +929,9 @@ class ASTConverter {
     
     BasicType type;
     switch (dd.getType()) {
+    case org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier.t_Bool:
+      type = BasicType.BOOL;
+      break;
     case org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier.t_char:
       type = BasicType.CHAR;
       break;
@@ -948,7 +951,7 @@ class ASTConverter {
       type = BasicType.VOID;
       break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown basic type", d); 
+      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType(), d); 
     }
     
     return new IASTSimpleDeclSpecifier(dd.isConst(), dd.isVolatile(), type,
@@ -1110,32 +1113,7 @@ class ASTConverter {
   }
 
   private IASTSimpleDeclSpecifier convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
-
     try {
-      
-      BasicType type;
-      switch (t.getType()) {
-      case org.eclipse.cdt.core.dom.ast.IBasicType.t_char:
-        type = BasicType.CHAR;
-        break;
-      case org.eclipse.cdt.core.dom.ast.IBasicType.t_double:
-        type = BasicType.DOUBLE;
-        break;
-      case org.eclipse.cdt.core.dom.ast.IBasicType.t_float:
-        type = BasicType.FLOAT;
-        break;
-      case org.eclipse.cdt.core.dom.ast.IBasicType.t_int:
-        type = BasicType.INT;
-        break;
-      case org.eclipse.cdt.core.dom.ast.IBasicType.t_unspecified:
-        type = BasicType.UNSPECIFIED;
-        break;
-      case org.eclipse.cdt.core.dom.ast.IBasicType.t_void:
-        type = BasicType.VOID;
-        break;
-      default:
-        throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType()); 
-      }
       
       // The IBasicType has to be an ICBasicType or
       // an IBasicType of type "void" (then it is an ICPPBasicType)
@@ -1143,6 +1121,33 @@ class ASTConverter {
         final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
           (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
 
+        BasicType type;
+        switch (t.getType()) {
+        case org.eclipse.cdt.core.dom.ast.c.ICBasicType.t_Bool:
+          type = BasicType.BOOL;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_char:
+          type = BasicType.CHAR;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_double:
+          type = BasicType.DOUBLE;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_float:
+          type = BasicType.FLOAT;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_int:
+          type = BasicType.INT;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_unspecified:
+          type = BasicType.UNSPECIFIED;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_void:
+          type = BasicType.VOID;
+          break;
+        default:
+          throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType()); 
+        }
+        
         // TODO why is there no isConst() and isVolatile() here?
         return new IASTSimpleDeclSpecifier(false, false, type, c.isLong(), c.isShort(), c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
 
@@ -1150,7 +1155,7 @@ class ASTConverter {
           
         // the three values isComplex, isImaginary, isLongLong are initialized
         // with FALSE, because we do not know about them
-        return new IASTSimpleDeclSpecifier(false, false, type, t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), false, false, false);
+        return new IASTSimpleDeclSpecifier(false, false, BasicType.VOID, t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), false, false, false);
 
       } else {
         throw new CFAGenerationRuntimeException("Unknown type " + t.toString());

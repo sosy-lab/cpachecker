@@ -27,6 +27,7 @@ public enum BasicType {
 
   UNSPECIFIED,
   VOID,
+  BOOL,
   CHAR,
   INT,
   FLOAT,
