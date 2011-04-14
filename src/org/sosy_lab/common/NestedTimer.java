@@ -118,6 +118,9 @@ public class NestedTimer {
   }
   
   private long getCurrentOuterIntervalTime() {
+    if (!isRunning()) {
+      return 0;
+    }
     return getCurrentTotalIntervalTime() - innerTimer.getSumTime();
   }
 
@@ -147,7 +150,11 @@ public class NestedTimer {
   }
 
   public final long getInnerSumTime() {
-    return innerSumTime + innerTimer.getSumTime();
+    long result = innerSumTime;
+    if (isRunning()) {
+      result += innerTimer.getSumTime();
+    }
+    return result;
   }
   
   public final long getTotalSumTime() {
