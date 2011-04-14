@@ -90,6 +90,8 @@ int ssl3_accept(int initial_state )
   s__s3__tmp__new_cipher = __BLAST_NONDET;
   num1 = __BLAST_NONDET;
 
+  s__in_handshake = __BLAST_NONDET;
+
 
   {
 #line 60
