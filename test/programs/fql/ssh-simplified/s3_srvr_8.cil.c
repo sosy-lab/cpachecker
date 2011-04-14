@@ -92,6 +92,8 @@ int ssl3_accept(int initial_state )
 
   s__in_handshake = __BLAST_NONDET;
 
+  s__ctx__stats__sess_accept_good = __BLAST_NONDET;
+
   {
 #line 60
   s__state = initial_state;
