@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -54,6 +55,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -169,6 +171,7 @@ class MainCPAStatistics implements Statistics {
         }
 
         Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));
+        Iterable<AbstractElement> allTargetElements = AbstractElements.filterTargetElements(reached);
         
         out.println("\nCPAchecker general statistics");
         out.println("-----------------------------");
@@ -178,6 +181,7 @@ class MainCPAStatistics implements Statistics {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
           out.println("  Number of partitions:       " + p.getNumberOfPartitions());
         }
+        out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
         out.println("Time for CFA construction:    " + cfaCreationTime);
         if (cfaCreator != null) {
           out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
