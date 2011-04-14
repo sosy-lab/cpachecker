@@ -210,7 +210,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     
     if (lTask.hasPassingClause()) {
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lTask.getPassingClause(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     }
     
     // TODO
@@ -255,7 +255,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
       
       //System.out.println(lGoal.getAutomaton());
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
       
       lTimeReach.proceed();
       

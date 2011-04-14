@@ -26,9 +26,7 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   
   private final HashSet<ProgressElement> mSuccessors;
   
-  private final Collection<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates; 
-  
-  public ProgressTransferRelation(GuardedEdgeAutomatonDomain pDomain, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
+  public ProgressTransferRelation(GuardedEdgeAutomatonDomain pDomain, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mAutomaton = pAutomaton;
     
     // create cache
@@ -50,8 +48,6 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
     }
     
     mSuccessors = new HashSet<ProgressElement>();
-    
-    mReachedAutomatonStates = pReachedAutomatonStates;
   }
   
   protected NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
@@ -68,10 +64,6 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
     }
     
     GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
-    
-    if (mReachedAutomatonStates != null) {
-      mReachedAutomatonStates.add(lCurrentElement.getAutomatonState());
-    }
     
     mSuccessors.clear();
     

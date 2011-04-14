@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -27,10 +25,10 @@ public class ProgressCPA implements ConfigurableProgramAnalysis {
   private final ProgressPrecisionAdjustment mPrecisionAdjustment;
   private final ProgressPrecision mInitialPrecision;
   
-  public ProgressCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
+  public ProgressCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain);
-    mTransferRelation = new ProgressTransferRelation(mDomain, pAutomaton, pReachedAutomatonStates);
+    mTransferRelation = new ProgressTransferRelation(mDomain, pAutomaton);
     
     NondeterministicFiniteAutomaton.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);

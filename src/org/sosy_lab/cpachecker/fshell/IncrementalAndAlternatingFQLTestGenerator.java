@@ -394,7 +394,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     
     if (lPassingClause != null) {
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     }
     
     // set up utility variables
@@ -449,7 +449,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
             break;
           }
           else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -486,11 +486,8 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
         }
       }
       
-      // TODO remove
-      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-      
-      GuardedEdgeAutomatonCPA lInterpreter_AutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
-      ProgressCPA lSymbolic_AutomatonCPA = new ProgressCPA(lGoal.getAutomaton(), mReachedAutomatonStates);
+      GuardedEdgeAutomatonCPA lInterpreter_AutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
+      ProgressCPA lSymbolic_AutomatonCPA = new ProgressCPA(lGoal.getAutomaton());
       
       /**
        * REACHABILITY ANALYSIS

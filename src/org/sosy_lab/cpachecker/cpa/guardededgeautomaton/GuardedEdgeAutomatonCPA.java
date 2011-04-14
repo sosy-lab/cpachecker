@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -23,10 +21,10 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   private final StopSepOperator mStopOperator;
   private final GuardedEdgeAutomatonTransferRelation mTransferRelation;
   
-  public GuardedEdgeAutomatonCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
+  public GuardedEdgeAutomatonCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain);
-    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton, pReachedAutomatonStates);
+    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton);
     
     NondeterministicFiniteAutomaton.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);

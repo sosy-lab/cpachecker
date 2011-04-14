@@ -22,9 +22,7 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
   
   private final HashSet<GuardedEdgeAutomatonStateElement> mSuccessors;
   
-  private final Collection<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates; 
-  
-  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
+  public GuardedEdgeAutomatonTransferRelation(GuardedEdgeAutomatonDomain pDomain, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mAutomaton = pAutomaton;
     
     // create cache
@@ -46,8 +44,6 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     }
     
     mSuccessors = new HashSet<GuardedEdgeAutomatonStateElement>();
-    
-    mReachedAutomatonStates = pReachedAutomatonStates;
   }
   
   protected NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
@@ -64,10 +60,6 @@ public class GuardedEdgeAutomatonTransferRelation implements TransferRelation {
     }
     
     GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
-    
-    if (mReachedAutomatonStates != null) {
-      mReachedAutomatonStates.add(lCurrentElement.getAutomatonState());
-    }
     
     mSuccessors.clear();
     
