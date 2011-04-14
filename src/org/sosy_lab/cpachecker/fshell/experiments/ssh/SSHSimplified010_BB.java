@@ -30,13 +30,13 @@ import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
-public class SSHSimplified017 extends ExperimentalSeries {
+public class SSHSimplified010_BB extends ExperimentalSeries {
   
   @Test
-  public void ssh_017() throws Exception {
-    String lCFile = "s3_srvr_7.cil.c";
+  public void ssh_010() throws Exception {
+    String lCFile = "s3_srvr_1_BUG.cil.c";
     
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
