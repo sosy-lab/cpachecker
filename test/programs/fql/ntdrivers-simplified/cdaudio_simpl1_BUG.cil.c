@@ -496,6 +496,10 @@ int CdAudioSendToNextDriver(int DeviceObject , int Irp )
   int Irp__Tail__Overlay__CurrentStackLocation ;
   int deviceExtension__TargetDeviceObject ;
   int tmp ;
+  int __BLAST_NONDET;
+
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
 #line 378
@@ -2417,6 +2421,10 @@ int CdAudioPower(int DeviceObject , int Irp )
   int Irp__Tail__Overlay__CurrentStackLocation ;
   int deviceExtension__TargetDeviceObject ;
   int tmp ;
+  int __BLAST_NONDET;
+
+  Irp__CurrentLocation = __BLAST_NONDET;
+  Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
 
   {
 #line 1441
