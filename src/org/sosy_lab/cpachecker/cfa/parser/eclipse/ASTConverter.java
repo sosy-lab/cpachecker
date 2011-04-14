@@ -674,6 +674,11 @@ class ASTConverter {
       name = declarator.getThird();
 
       initializer = declarator.getSecond();
+      
+      if (storageClass == StorageClass.EXTERN && initializer != null) {
+        throw new CFAGenerationRuntimeException("Extern declarations cannot have initializers", d);
+      }
+      
       if (initializer == null && scope.isGlobalScope()) {
         // global variables are initialized to zero by default in C
         IASTExpression init = Defaults.forType(type, fileLoc); 

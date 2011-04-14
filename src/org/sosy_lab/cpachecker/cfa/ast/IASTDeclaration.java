@@ -53,6 +53,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
     initializer = pInitializer;
     
     checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
+    checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
   }
 
   public boolean isGlobal() {
