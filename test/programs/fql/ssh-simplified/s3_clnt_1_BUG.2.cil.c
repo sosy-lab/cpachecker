@@ -87,6 +87,9 @@ int ssl3_connect(int initial_state )
   s__s3__tmp__next_state___0 = __BLAST_NONDET;
   s__s3__flags = __BLAST_NONDET;
   num1 = __BLAST_NONDET;
+  s__ctx__stats__sess_connect = __BLAST_NONDET;
+  s__ctx__stats__sess_hit = __BLAST_NONDET;
+  s__ctx__stats__sess_connect_good = __BLAST_NONDET;
 
   {
   	s__state = initial_state;

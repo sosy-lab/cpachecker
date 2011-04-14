@@ -68,6 +68,9 @@ int ssl3_connect(int initial_state )
   int __BLAST_NONDET;
 
   s__ctx__stats__sess_connect_renegotiate = __BLAST_NONDET;
+  s__ctx__stats__sess_connect = __BLAST_NONDET;
+  s__ctx__stats__sess_hit = __BLAST_NONDET;
+  s__ctx__stats__sess_connect_good = __BLAST_NONDET;
 
   {
 #line 60
