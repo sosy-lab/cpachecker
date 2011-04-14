@@ -69,7 +69,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("Time for final sat check:           " + satCheck);
+      if (satCheck.getNumberOfIntervals() > 0) {
+        out.println("Time for final sat check:           " + satCheck);
+      }
       if (assertionsCheck.getNumberOfIntervals() > 0) {
         out.println("Time for bounding assertions check: " + assertionsCheck);
       }
@@ -83,6 +85,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   
   @Option
   private boolean boundingAssertions = true;
+  
+  @Option
+  private boolean checkTargetStates = true;
   
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
@@ -111,22 +116,29 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
     
     FormulaManager fmgr = cpa.getFormulaManager();
-    Formula program = fmgr.makeFalse();
     List<AbstractElement> targetElements = Lists.newArrayList(AbstractElements.filterTargetElements(pReachedSet));
-
     logger.log(Level.FINER, "Found", targetElements.size(), "potential target elements");
-    for (PredicateAbstractElement e : transform(targetElements, EXTRACT_PREDICATE_ELEMENT)) {
-      assert e != null : "PredicateCPA exists but did not produce elements!";
-      program = fmgr.makeOr(program, e.getPathFormula().getFormula());
-    }
-    
-    logger.log(Level.INFO, "Starting satisfiability check...");
-    
+
     TheoremProver prover = cpa.getTheoremProver();
     prover.init();
-    stats.satCheck.start();
-    boolean safe = prover.isUnsat(program);
-    stats.satCheck.stop();
+
+    boolean safe = true;
+    if (checkTargetStates) {
+      Formula program = fmgr.makeFalse();
+      for (PredicateAbstractElement e : transform(targetElements, EXTRACT_PREDICATE_ELEMENT)) {
+        assert e != null : "PredicateCPA exists but did not produce elements!";
+        program = fmgr.makeOr(program, e.getPathFormula().getFormula());
+      }
+      
+      logger.log(Level.INFO, "Starting satisfiability check...");
+      stats.satCheck.start();
+      safe = prover.isUnsat(program);
+      stats.satCheck.stop();
+
+    } else {
+      safe = targetElements.isEmpty();
+    }
+    
     logger.log(Level.FINER, "Program is safe?:", safe);
     
     if (safe) {
@@ -136,19 +148,19 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     // check loop unwinding assertions, but don't bother if we are unsound anyway
     // or we have found a bug
     if (sound && safe && boundingAssertions) {
-      program = fmgr.makeFalse();
+      Formula assertions = fmgr.makeFalse();
       
       // create formula for unwinding assertions
       for (AbstractElement e : pReachedSet) {
         AssumptionStorageElement asmpt = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
         if (asmpt.isStop()) {
           PredicateAbstractElement pred = AbstractElements.extractElementByType(e, PredicateAbstractElement.class);
-          program = fmgr.makeOr(program, pred.getPathFormula().getFormula());
+          assertions = fmgr.makeOr(assertions, pred.getPathFormula().getFormula());
         }
       }
       
       stats.assertionsCheck.start();
-      sound = prover.isUnsat(program);
+      sound = prover.isUnsat(assertions);
       stats.assertionsCheck.stop();
 
     } else {

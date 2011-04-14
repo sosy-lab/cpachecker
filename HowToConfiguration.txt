@@ -202,6 +202,11 @@ assumptions.file = assumptions.txt
 # of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
 
+# Check reachability of target states after analysis (classical BMC).
+# The alternative is to check the reachability as soon as the target states
+# are discovered, which is done if cpa.predicate.targetStateSatCheck=true.
+bmc.checkTargetStates = true
+
 # When CBMC considers an error path infeasible, continue analysis
 # (this is unsound and leads to the analysis result being either UNSAFE or UNKNOWN)
 cbmc.continueAfterInfeasibleError = true
