@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
@@ -456,37 +457,34 @@ public class CtoFormulaConverter {
   
         // if there is an initializer associated to this variable,
         // take it into account
-        IASTInitializer init = edge.getInitializer();
+        IASTInitializer initializer = edge.getInitializer();
+        IASTExpression init = null;
+        
+        if (initializer == null) {
+          if (initAllVars) {
+            // auto-initialize variables to zero
+            logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
+            init = Defaults.forType(spec, null);
+          }
+          
+        } else if (initializer instanceof IASTInitializerExpression) {
+          init = ((IASTInitializerExpression)initializer).getExpression();
+        
+        } else {
+          log(Level.WARNING, "Ignoring unsupported initializer", init);
+        }
+        
         if (init != null) {
           // initializer value present
-          if (!(init instanceof IASTInitializerExpression)) {
-            log(Level.WARNING, "Ingoring unsupported initializer", init);
-          
-          } else if (isNondetVariable(varNameWithoutFunction)) {
+
+          if (isNondetVariable(varNameWithoutFunction)) {
             log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", edge);
-          
+            
           } else {
-            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
-            Formula minit = buildTerm(exp, function, ssa);
+            Formula minit = buildTerm(init, function, ssa);
             Formula mvar = fmgr.makeVariable(var, idx);
             Formula t = fmgr.makeAssignment(mvar, minit);
             result = fmgr.makeAnd(result, t);
-          }
-  
-        } else if (edge.getStorageClass() == StorageClass.EXTERN) {
-          log(Level.WARNING, "Ignoring initializer of extern declaration", edge);
-  
-        } else if (initAllVars) {
-          // auto-initialize variables to zero
-
-          if (isNondetVariable(varNameWithoutFunction)) {
-            logger.log(Level.ALL, "NOT AUTO-INITIALIZING VAR:", var);
-          } else {
-            Formula mvar = fmgr.makeVariable(var, idx);
-            Formula z = fmgr.makeNumber(0);
-            Formula t = fmgr.makeAssignment(mvar, z);
-            result = fmgr.makeAnd(result, t);
-            logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
           }
         }
       }
