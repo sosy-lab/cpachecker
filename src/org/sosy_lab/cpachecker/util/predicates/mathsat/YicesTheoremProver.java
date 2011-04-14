@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 
 public class YicesTheoremProver implements TheoremProver {
 
@@ -282,8 +283,8 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public AllSatResult allSat(Formula f, Collection<Formula> important,
-            AbstractionManager amgr) {
-        MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr);
+            AbstractionManager amgr, Timer timer) {
+        MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
         
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);

@@ -183,8 +183,8 @@ class PredicateCPAStatistics implements Statistics {
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);        
       out.println("Time for prec operator:             " + prec.totalPrecTime);
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ")");
-      out.println("    Solving time:                    " + toTime(as.abstractionSolveTime) + " (Max: " + toTime(as.abstractionMaxSolveTime) + ")");
-      out.println("    Time for BDD construction:       " + toTime(as.abstractionBddTime)   + " (Max: " + toTime(as.abstractionMaxBddTime) + ")");
+      out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
+      out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
       out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
       out.println("Time for coverage check:             " + domain.coverageCheckTimer);
       if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
@@ -204,10 +204,6 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  ART update:                        " + refiner.artUpdate);
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
-    }
-
-    private String toTime(long timeMillis) {
-      return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }
     
     private String toPercent(double val, double full) {
