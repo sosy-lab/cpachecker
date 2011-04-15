@@ -471,7 +471,7 @@ public class CtoFormulaConverter {
           init = ((IASTInitializerExpression)initializer).getExpression();
         
         } else {
-          log(Level.WARNING, "Ignoring unsupported initializer", init);
+          log(Level.WARNING, "Ignoring unsupported initializer", initializer);
         }
         
         if (init != null) {
