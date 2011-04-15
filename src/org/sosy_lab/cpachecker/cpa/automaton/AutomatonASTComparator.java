@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTName;
@@ -121,6 +122,9 @@ public class AutomatonASTComparator {
 
       } else if (pCode instanceof IASTLiteralExpression && ! IASTLiteralExpressionsAreEqual((IASTLiteralExpression)pCode, (IASTLiteralExpression)pPattern)) {
         return false;
+        
+      } else if (handleFunctionCallExpression(pCode, pPattern, pArgs)) {
+        return true;
 
       } else if (pCode.getChildren().length != pPattern.getChildren().length) {
         return false;
@@ -166,6 +170,49 @@ public class AutomatonASTComparator {
     } else {
       return false;
     }
+  }
+  
+  private static boolean handleFunctionCallExpression(IASTNode pSource, IASTNode pPattern,
+                                                      AutomatonExpressionArguments pArgs) {
+    if (!(pSource instanceof IASTFunctionCallExpression)
+        || !(pPattern instanceof IASTFunctionCallExpression)) {
+      return false;
+    }
+    
+    // types match
+    
+    IASTFunctionCallExpression source = (IASTFunctionCallExpression)pSource;
+    IASTFunctionCallExpression pattern = (IASTFunctionCallExpression)pPattern;
+    
+    if (!compareASTs(source.getFunctionNameExpression(), pattern.getFunctionNameExpression(), pArgs)) {
+      return false;
+    }
+    
+    // names do match
+    
+    if ((pattern.getParameterExpressions().size() == 1)
+        && isJoker(pattern.getParameterExpressions().get(0))) {
+      
+      // pattern is something like foo($?), this should match all calls of foo(),
+      // regardless of the number of parameters
+      return true;
+    }
+    
+    if (source.getParameterExpressions().size() != pattern.getParameterExpressions().size()) {
+      return false;
+    }
+    
+    // number of parameters does match
+    
+    for (int i = 0; i < source.getParameterExpressions().size(); i++) {
+      if (!compareASTs(source.getParameterExpressions().get(i), pattern.getParameterExpressions().get(i), pArgs)) {
+        return false;
+      }
+    }
+    
+    // all parameters match
+    
+    return true;
   }
 
   private static boolean isJoker(IASTNode pNode) {
