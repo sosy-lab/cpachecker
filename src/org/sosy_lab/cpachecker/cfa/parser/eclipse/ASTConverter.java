@@ -679,7 +679,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Extern declarations cannot have initializers", d);
       }
       
-      if (initializer == null && scope.isGlobalScope()) {
+      if (initializer == null && scope.isGlobalScope() && storageClass != StorageClass.EXTERN) {
         // global variables are initialized to zero by default in C
         IASTExpression init = Defaults.forType(type, fileLoc); 
         // may still be null, because we currently don't handle initializers for complex types
