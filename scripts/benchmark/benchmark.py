@@ -18,6 +18,9 @@ import xml.etree.ElementTree as ET
 
 OUTPUT_PATH = "./test/results/"
 
+CSV_SEPARATOR = "\t"
+
+
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
@@ -222,6 +225,15 @@ class OutputHandler:
                               numberOfCores, maxFrequency, memory)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory)
+        
+        # write columntitles of tests in CSV-files, this overwrites existing files
+        self.CSVFiles = dict()
+        CSVLine = CSV_SEPARATOR.join(
+                      ["sourcefile", "status", "cputime", "walltime"] \
+                    + [column.title for column in self.benchmark.columns])
+        for test in benchmark.tests:
+            CSVFileName = self.getCSVFileName(test)
+            self.CSVFiles[CSVFileName] = FileWriter(CSVFileName, CSVLine + "\n")
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
@@ -501,6 +513,12 @@ class OutputHandler:
                     cpuTimeDelta, wallTimeDelta, self.benchmark.columns, False)
         self.TXTFile.append(resultline + "\n")
 
+        # write columnvalues of the test into CSVFile
+        CSVLine = CSV_SEPARATOR.join(
+                  [sourcefile, status, cpuTimeDelta, wallTimeDelta] \
+                + [column.value for column in self.benchmark.columns])
+        self.CSVFiles[self.getCSVFileName(self.test)].append(CSVLine + "\n")
+
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
         """
@@ -541,8 +559,6 @@ class OutputHandler:
         FileWriter(XMLFileName, XMLtoString(self.benchmarkResults))
 
         # convert XML-file into specific formats
-        import xml2csv
-        xml2csv.convert(XMLFileName, OUTPUT_PATH)
         import splitXMLtoTests
         splitXMLtoTests.split(XMLFileName, OUTPUT_PATH)
         
@@ -593,6 +609,19 @@ class OutputHandler:
             """
     
             return "%.{0}f".format(numberOfDigits) % number
+
+
+    def getCSVFileName(self, test):
+        '''
+        This function returns the name of the CSVfile of a test.
+        '''
+
+        if test.name is None:
+            return OUTPUT_PATH + self.benchmark.name \
+                        + ".results." + str(date.today()) + ".csv" 
+        else:
+            return OUTPUT_PATH + self.benchmark.name + "." + test.name \
+                        + ".results." + str(date.today()) + ".csv"
 
 
 def XMLtoString(elem):
