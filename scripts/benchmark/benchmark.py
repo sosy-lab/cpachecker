@@ -240,13 +240,13 @@ class OutputHandler:
                          cpuModel, numberOfCores, maxFrequency, memory):
 
         # store benchmarkInfo in XML
-        self.benchmarkResults = ET.Element("benchmark",
-                    {"name": self.benchmark.name, "date": str(date.today()),
+        self.XMLHeader = ET.Element("test",
+                    {"benchmarkname": self.benchmark.name, "date": str(date.today()),
                      "tool": self.benchmark.tool, "version": version})
         if memlimit is not None:
-            self.benchmarkResults.set("memlimit", memlimit)
+            self.XMLHeader.set("memlimit", memlimit)
         if timelimit is not None:
-            self.benchmarkResults.set("timelimit", timelimit)
+            self.XMLHeader.set("timelimit", timelimit)
 
         # store systemInfo in XML          
         osElem = ET.Element("os", {"name": opSystem})
@@ -258,7 +258,7 @@ class OutputHandler:
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
-        self.benchmarkResults.append(systemInfo)
+        self.XMLHeader.append(systemInfo)
 
         # store columnTitles in XML
         columntitlesElem = ET.Element("columns")
@@ -268,7 +268,7 @@ class OutputHandler:
         for column in self.benchmark.columns:
             columnElem = ET.Element("column", {"title": column.title})
             columntitlesElem.append(columnElem)
-        self.benchmarkResults.append(columntitlesElem)
+        self.XMLHeader.append(columntitlesElem)
 
 
     def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
@@ -413,12 +413,12 @@ class OutputHandler:
         for sourcefile in self.test.sourcefiles:
             self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
 
-        # store testname and options in XML
-        options = " ".join(self.test.options)
-        self.testElem = ET.Element("test", {"options": options})
+        # store testname and options in XML, 
+        # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
+        self.testElem = self.XMLHeader.copy()
+        self.testElem.set("options", " ".join(self.test.options))
         if self.test.name is not None:
             self.testElem.set("name", self.test.name)
-        self.benchmarkResults.append(self.testElem)
 
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
@@ -534,6 +534,9 @@ class OutputHandler:
         timesElem = ET.Element("time", {"cputime": cpuTimeTest, "walltime": wallTimeTest})
         self.testElem.append(timesElem)
 
+        # write XML-file
+        FileWriter(self.getXMLFileName(self.test), XMLtoString(self.testElem))
+
         # write endline into TXTFile
         numberOfFiles = len(self.test.sourcefiles)
         numberOfTest = self.benchmark.tests.index(self.test) + 1
@@ -547,21 +550,6 @@ class OutputHandler:
                              wallTimeTest, [], False)
 
         self.TXTFile.append(self.test.simpleLine + endline + "\n")
-
-
-    def outputAfterBenchmark(self):
-        """
-        The method outputAfterBenchmark() converts and writes all files.
-        """
-
-        # write XML-file
-        XMLFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".xml"
-        FileWriter(XMLFileName, XMLtoString(self.benchmarkResults))
-
-        # convert XML-file into specific formats
-        import splitXMLtoTests
-        splitXMLtoTests.split(XMLFileName, OUTPUT_PATH)
-        
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
@@ -622,6 +610,19 @@ class OutputHandler:
         else:
             return OUTPUT_PATH + self.benchmark.name + "." + test.name \
                         + ".results." + str(date.today()) + ".csv"
+
+
+    def getXMLFileName(self, test):
+        '''
+        This function returns the name of the XMLfile of a test.
+        '''
+
+        if test.name is None:
+            return OUTPUT_PATH + self.benchmark.name \
+                        + ".results." + str(date.today()) + ".xml" 
+        else:
+            return OUTPUT_PATH + self.benchmark.name + "." + test.name \
+                        + ".results." + str(date.today()) + ".xml"
 
 
 def XMLtoString(elem):
@@ -901,7 +902,6 @@ def runBenchmark(benchmarkFile):
 
         outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
-    outputHandler.outputAfterBenchmark()
 
 def main(argv=None):
 
