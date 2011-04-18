@@ -415,13 +415,26 @@ class OutputHandler:
 
         # store testname and options in XML, 
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        self.testElem = self.XMLHeader.copy()
+        self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
         self.testElem.set("options", " ".join(self.test.options))
         if self.test.name is not None:
             self.testElem.set("name", self.test.name)
 
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
+
+
+    def getCopyOfXMLElem(self, elem):
+        '''
+        This method returns a shallow copy of a XML-Element.
+        This method is for compatibility with Python 2.6 or earlier..
+        In Python 2.7 you can use  'copyElem = elem.copy()'  instead.
+        '''
+
+        copyElem = ET.Element(elem.tag, elem.attrib)
+        for child in elem.getchildren():
+            copyElem.append(child)
+        return copyElem
 
 
     def writeTestInfoToLog(self):
