@@ -245,6 +245,10 @@ public class CFA {
           && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
     
+    public ImmutableSortedSet<CFANode> getLoopNodes() {
+      return nodes;
+    }
+    
     public ImmutableSet<CFANode> getLoopHeads() {
       return loopHeads;
     }
