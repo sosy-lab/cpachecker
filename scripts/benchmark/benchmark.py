@@ -242,7 +242,7 @@ class OutputHandler:
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
                     {"benchmarkname": self.benchmark.name, "date": str(date.today()),
-                     "tool": self.benchmark.tool, "version": version})
+                     "tool": self.getToolnameForPrinting(), "version": version})
         if memlimit is not None:
             self.XMLHeader.set("memlimit", memlimit)
         if timelimit is not None:
@@ -283,7 +283,7 @@ class OutputHandler:
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
                 + "date:".ljust(columnWidth) + str(date.today()) + "\n"\
-                + "tool:".ljust(columnWidth) + self.benchmark.tool\
+                + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
                 + " " + version + "\n"
     
         if memlimit is not None:
@@ -305,6 +305,15 @@ class OutputHandler:
         self.TXTFile = FileWriter(TXTFileName, header + systemInfo)
 
 
+    def getToolnameForPrinting(self):
+        if self.benchmark.tool.lower() == "cpachecker":
+            return "CPAchecker"
+        elif self.benchmark.tool.lower() == "cbmc":
+            return "CBMC"
+        else:
+            return self.benchmark.tool
+
+
     def getVersion(self, tool):
         """
         This function return a String representing the version of the tool.
@@ -324,7 +333,7 @@ class OutputHandler:
                         output.strip('\n').split('\n')))
             version = ""
             if 'Revision' in svnInfo:
-                version = "Revision: " + svnInfo['Revision']
+                version = "r" + svnInfo['Revision']
 
         elif (tool == "cbmc"):
             defaultExe = None
@@ -467,7 +476,7 @@ class OutputHandler:
 
         options = " ".join(self.test.options)
         logging.debug("I'm running '{0} {1} {2}'.".format(
-            self.benchmark.tool, options, sourcefile))
+            self.getToolnameForPrinting(), options, sourcefile))
 
         # output in terminal
         sys.stdout.write(sourcefile.ljust(self.maxLengthOfFileName + 4))
