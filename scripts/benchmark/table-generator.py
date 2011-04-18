@@ -338,6 +338,11 @@ def createTable(file):
 
     listOfTests = getListOfTests(file)
 
+    if len(listOfTests) == 0:
+        print '\nError! No file with testresults found.\n' \
+            + 'Please check the filenames in your XML-file.'
+        exit()
+
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableBodyCSV) = getTableBody(listOfTests)
     
