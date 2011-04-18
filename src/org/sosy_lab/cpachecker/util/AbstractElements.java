@@ -90,18 +90,31 @@ public final class AbstractElements {
     return e == null ? null : e.getLocationNode();
   }
   
+  public static final Function<AbstractElement, CFANode> EXTRACT_LOCATION = new Function<AbstractElement, CFANode>() {
+    @Override
+    public CFANode apply(AbstractElement pArg0) {
+      return extractLocation(pArg0);
+    }
+  }; 
+  
   public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractElement> pElements) {
     if (pElements instanceof LocationMappedReachedSet) {
       return ((LocationMappedReachedSet)pElements).getLocations();
     }
     
-    return filter(transform(pElements,
-      new Function<AbstractElement, CFANode>() {
-        @Override
-        public CFANode apply(AbstractElement pArg0) {
-          return extractLocation(pArg0);
-        }
-      }), Predicates.notNull());
+    return filter(transform(pElements, EXTRACT_LOCATION),
+                  Predicates.notNull());
+  }
+  
+  public static Iterable<AbstractElement> filterLocation(Iterable<AbstractElement> pElements, CFANode pLoc) {
+    if (pElements instanceof LocationMappedReachedSet) {
+      // only do this for LocationMappedReachedSet, not for all ReachedSet,
+      // because this method is imprecise for the rest
+      return ((LocationMappedReachedSet)pElements).getReached(pLoc);
+    }
+    
+    return filter(pElements, Predicates.compose(Predicates.equalTo(pLoc),
+                                                EXTRACT_LOCATION));
   }
   
   public static boolean isTargetElement(AbstractElement e) {
