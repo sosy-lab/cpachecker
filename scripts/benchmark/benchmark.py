@@ -206,7 +206,7 @@ class OutputHandler:
         # if the folder exists, it will be used.
         # if there are files in the folder (with the same name than the testfiles), 
         # they will be OVERWRITTEN without a message!
-        self.logFolder = OUTPUT_PATH + self.benchmark.name + ".logfiles." + str(date.today()) + "/"
+        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + str(date.today()) + ".logfiles/"
         if not os.path.isdir(self.logFolder):
             os.mkdir(self.logFolder)
 
@@ -232,7 +232,7 @@ class OutputHandler:
                       ["sourcefile", "status", "cputime", "walltime"] \
                     + [column.title for column in self.benchmark.columns])
         for test in benchmark.tests:
-            CSVFileName = self.getCSVFileName(test)
+            CSVFileName = self.getFileName(test.name, "csv")
             self.CSVFiles[CSVFileName] = FileWriter(CSVFileName, CSVLine + "\n")
 
 
@@ -301,8 +301,7 @@ class OutputHandler:
                 + simpleLine
     
         # write to file    
-        TXTFileName = OUTPUT_PATH + self.benchmark.name + ".results." + str(date.today()) + ".txt"
-        self.TXTFile = FileWriter(TXTFileName, header + systemInfo)
+        self.TXTFile = FileWriter(self.getFileName(None, "txt"), header + systemInfo)
 
 
     def getToolnameForPrinting(self):
@@ -539,7 +538,7 @@ class OutputHandler:
         CSVLine = CSV_SEPARATOR.join(
                   [sourcefile, status, cpuTimeDelta, wallTimeDelta] \
                 + [column.value for column in self.benchmark.columns])
-        self.CSVFiles[self.getCSVFileName(self.test)].append(CSVLine + "\n")
+        self.CSVFiles[self.getFileName(self.test.name, "csv")].append(CSVLine + "\n")
 
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
@@ -557,7 +556,7 @@ class OutputHandler:
         self.testElem.append(timesElem)
 
         # write XML-file
-        FileWriter(self.getXMLFileName(self.test), XMLtoString(self.testElem))
+        FileWriter(self.getFileName(self.test.name, "xml"), XMLtoString(self.testElem))
 
         # write endline into TXTFile
         numberOfFiles = len(self.test.sourcefiles)
@@ -621,30 +620,19 @@ class OutputHandler:
             return "%.{0}f".format(numberOfDigits) % number
 
 
-    def getCSVFileName(self, test):
+    def getFileName(self, testname, fileExtension):
         '''
-        This function returns the name of the CSVfile of a test.
-        '''
-
-        if test.name is None:
-            return OUTPUT_PATH + self.benchmark.name \
-                        + ".results." + str(date.today()) + ".csv" 
-        else:
-            return OUTPUT_PATH + self.benchmark.name + "." + test.name \
-                        + ".results." + str(date.today()) + ".csv"
-
-
-    def getXMLFileName(self, test):
-        '''
-        This function returns the name of the XMLfile of a test.
+        This function returns the name of the file of a test 
+        with an extension ("txt", "xml", "csv").
         '''
 
-        if test.name is None:
-            return OUTPUT_PATH + self.benchmark.name \
-                        + ".results." + str(date.today()) + ".xml" 
-        else:
-            return OUTPUT_PATH + self.benchmark.name + "." + test.name \
-                        + ".results." + str(date.today()) + ".xml"
+        fileName = OUTPUT_PATH + self.benchmark.name + "." \
+                    + str(date.today()) + ".results."
+
+        if testname is not None:
+            fileName += testname + "."
+
+        return fileName + fileExtension
 
 
 def XMLtoString(elem):
