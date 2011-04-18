@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -82,12 +82,12 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     return this.parametricDominatorCPA.getInitialElement(node);
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return this.parametricDominatorCPA.getInitialPrecision(pNode);
   }
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -40,7 +40,7 @@ public class CallstackCPA extends AbstractCPA {
   }
   
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFANode pNode) {
     return new CallstackElement(null, pNode.getFunctionName(), pNode);
   }
 }

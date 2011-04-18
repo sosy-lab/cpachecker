@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -77,13 +77,13 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+	public AbstractElement getInitialElement(CFANode node) {
     elementFactory.initialize(node);
 	  return elementFactory.getElement(node);
 	}
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 }

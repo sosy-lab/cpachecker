@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -161,7 +161,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialElement(org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode)
    */
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node)
+  public AbstractElement getInitialElement(CFANode node)
   {
     return new IntervalAnalysisElement();
   }
@@ -170,7 +170,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialPrecision(org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode)
    */
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode)
+  public Precision getInitialPrecision(CFANode pNode)
   {
     return SingletonPrecision.getInstance();
   }

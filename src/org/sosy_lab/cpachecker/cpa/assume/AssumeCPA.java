@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.assume;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -39,12 +39,12 @@ public class AssumeCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AssumeElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AssumeElement getInitialElement(CFANode pNode) {
     return UnconstrainedAssumeElement.getInstance();
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

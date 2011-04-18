@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -112,7 +112,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
 
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+  public AbstractElement getInitialElement (CFANode node)
   {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<DefUseDefinition>();
     if (node instanceof FunctionDefinitionNode)
@@ -130,7 +130,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 }

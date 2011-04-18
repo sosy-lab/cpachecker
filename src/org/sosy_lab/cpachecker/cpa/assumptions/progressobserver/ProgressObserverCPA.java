@@ -27,7 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -138,7 +138,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public ProgressObserverElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public ProgressObserverElement getInitialElement(CFANode node) {
     List<StopHeuristicsData> data = new ArrayList<StopHeuristicsData>(enabledHeuristics.size());
     for (StopHeuristics<? extends StopHeuristicsData> h : enabledHeuristics) {
       data.add(h.getInitialData(node));
@@ -147,7 +147,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

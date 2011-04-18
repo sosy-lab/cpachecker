@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -72,7 +72,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MustMayAnalysisElement getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
+      CFANode pNode) {
     AbstractElement lInitialMustElement = mMustCPA.getInitialElement(pNode);
     AbstractElement lInitialMayElement = mMayCPA.getInitialElement(pNode);
 
@@ -80,7 +80,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public MustMayAnalysisPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public MustMayAnalysisPrecision getInitialPrecision(CFANode pNode) {
     Precision lInitialMustPrecision = mMustCPA.getInitialPrecision(pNode);
     Precision lInitialMayPrecision = mMayCPA.getInitialPrecision(pNode);
 

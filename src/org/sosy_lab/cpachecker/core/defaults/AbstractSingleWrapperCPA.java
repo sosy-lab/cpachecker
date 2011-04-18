@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Preconditions;
 
@@ -74,7 +74,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return wrappedCpa.getInitialPrecision(pNode);
   }
 

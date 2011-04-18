@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -236,12 +236,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     return topElement;
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return initialPrecision;
   }
 

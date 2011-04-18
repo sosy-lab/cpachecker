@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
@@ -93,14 +93,15 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    PointerElement element = new PointerElement();
-    ((PointerTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
-    return element;
+  public AbstractElement getInitialElement(CFANode pNode) {
+    if (pNode instanceof FunctionDefinitionNode) {
+      ((PointerTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
+    }
+    return new PointerElement();
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

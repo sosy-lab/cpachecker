@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -76,7 +76,7 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
 
     AbstractElement dominatedInitialElement = dominatedInitialElement_tmp;
@@ -88,7 +88,7 @@ public class DominatorCPA {
     return initialElement;
   }
 
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return null;
   }
 }

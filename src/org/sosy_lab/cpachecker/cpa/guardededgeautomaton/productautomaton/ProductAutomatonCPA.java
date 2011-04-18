@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -52,7 +52,7 @@ public class ProductAutomatonCPA extends CompositeCPA {
   }
   
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement (CFANode node) {
     CompositeElement lInitialElement = (CompositeElement)super.getInitialElement(node);
     
     return ProductAutomatonElement.createElement(lInitialElement.getElements());

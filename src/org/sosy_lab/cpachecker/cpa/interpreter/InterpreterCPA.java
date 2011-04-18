@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -103,13 +103,13 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+  public AbstractElement getInitialElement (CFANode node)
   {
     return new InterpreterElement(mInitialValuesForNondeterministicAssignments);
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 
