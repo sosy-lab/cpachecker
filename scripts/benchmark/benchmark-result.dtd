@@ -1,10 +1,12 @@
-<!ELEMENT benchmark (systeminfo, columns, test+)>
-<!ATTLIST benchmark name CDATA #REQUIRED
-                    date CDATA #REQUIRED
-                    tool CDATA #REQUIRED
-                    version CDATA #REQUIRED
-                    memlimit CDATA #IMPLIED
-                    timelimit CDATA #IMPLIED>
+<!ELEMENT test (systeminfo, columns, sourcefile+, time)>
+<!ATTLIST test name CDATA #IMPLIED
+	       benchmarkname CDATA #REQUIRED
+               date CDATA #REQUIRED
+               tool CDATA #REQUIRED
+               version CDATA #REQUIRED
+               options CDATA #REQUIRED
+               memlimit CDATA #IMPLIED
+	       timelimit CDATA #IMPLIED>
 
 <!ELEMENT systeminfo (os, cpu, ram)>
 <!ATTLIST os name CDATA #REQUIRED>
@@ -17,13 +19,9 @@
 <!ATTLIST column title CDATA #REQUIRED
                  value CDATA #IMPLIED>
 
-<!ELEMENT test (sourcefile+, time)>
-<!ATTLIST test name CDATA #IMPLIED
-               options CDATA #REQUIRED>
-
 <!ELEMENT sourcefile (column*)>
-
 <!ATTLIST sourcefile name CDATA #REQUIRED>
+
 <!ATTLIST time cputime CDATA #REQUIRED
                walltime CDATA #REQUIRED>
 

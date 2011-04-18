@@ -4,13 +4,13 @@
 
 <!-- a list of testfiles, created by "splitXMLtoTests.py" or automatically by benchmark.py -->
 
-  <test filename="test/results/benchmark-example-cpachecker.results.test.2011*.xml">
+  <test filename="test/results/benchmark-example-cpachecker.2011-??-??.results.xml">
     <!-- some columns of the testfile will be part of the table -->
     <column title="status"/>
     <column title="cputime"/>
   </test>
 
-  <test filename="test/results/benchmark-example-cpachecker.results.test.locks-lbe.2011*.xml">
+  <test filename="test/results/benchmark-example-cpachecker.2011-??-??.results.locks-lbe.xml">
     <!-- all columns of the testfile will be part of the table -->
   </test>
 
