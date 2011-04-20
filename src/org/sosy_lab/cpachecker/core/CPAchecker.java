@@ -48,13 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -66,10 +61,6 @@ import com.google.common.collect.Iterables;
 
 public class CPAchecker {
 
-  private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED
-  }
-  
   public static interface CPAcheckerMXBean {
     public int getReachedSetSize();
     
@@ -105,18 +96,6 @@ public class CPAchecker {
 
     // algorithm options
 
-    @Option(name="analysis.traversal.order")
-    Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
-
-    @Option(name="analysis.traversal.useCallstack")
-    boolean useCallstack = false;
-
-    @Option(name="analysis.traversal.useTopsort")
-    boolean useTopSort = false;
-
-    @Option(name="analysis.reachedSet")
-    ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
-    
     @Option(name="analysis.useAssumptionCollector")
     boolean useAssumptionCollector = false;
 
@@ -136,7 +115,8 @@ public class CPAchecker {
   private final LogManager logger;
   private final Configuration config;
   private final CPAcheckerOptions options;
-
+  private final ReachedSetFactory reachedSetFactory;
+  
   private static volatile boolean requireStopAsap = false;
 
   /**
@@ -162,6 +142,7 @@ public class CPAchecker {
 
     options = new CPAcheckerOptions();
     config.inject(options);
+    reachedSetFactory = new ReachedSetFactory(pConfiguration);
   }
 
   public CPAcheckerResult run(String filename) {
@@ -309,7 +290,7 @@ public class CPAchecker {
     }
     
     if (options.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, config, logger);
+      algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
     }
 
     if (options.useCBMC) {
@@ -335,27 +316,7 @@ public class CPAchecker {
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
     
-    WaitlistFactory waitlistFactory = options.traversalMethod;
-    if (options.useTopSort) {
-      waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
-    }
-    if (options.useCallstack) {
-      waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
-    }
-    
-    ReachedSet reached;
-    switch (options.reachedSet) {
-    case PARTITIONED:
-      reached = new PartitionedReachedSet(waitlistFactory);
-      break;
-    case LOCATIONMAPPED:
-      reached = new LocationMappedReachedSet(waitlistFactory);
-      break;
-    case NORMAL:
-    default:
-      reached = new ReachedSet(waitlistFactory);
-    }
-
+    ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
     return reached;
   }
