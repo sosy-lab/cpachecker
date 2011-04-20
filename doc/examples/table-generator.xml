@@ -4,13 +4,13 @@
 
 <!-- a list of testfiles, a file is created automatically by benchmark.py for each test-->
 
-  <test filename="test/results/benchmark-example-cpachecker.2011-??-??.results.xml">
+  <test filename="test/results/benchmark-cpachecker.2011-??-??.results.xml">
     <!-- columns "status" and "cputime" of the testfile will be part of the table -->
     <column title="status"/>
     <column title="cputime"/>
   </test>
 
-  <test filename="test/results/benchmark-example-cpachecker.2011-??-??.results.locks-lbe.xml">
+  <test filename="test/results/benchmark-cpachecker.2011-??-??.results.locks-lbe.xml">
     <!-- all columns of the testfile will be part of the table -->
   </test>
 
