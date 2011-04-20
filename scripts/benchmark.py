@@ -309,8 +309,10 @@ class OutputHandler:
             return "CPAchecker"
         elif self.benchmark.tool.lower() == "cbmc":
             return "CBMC"
+        elif self.benchmark.tool.lower() == "satabs":
+            return "SatAbs"
         else:
-            return self.benchmark.tool
+            return str(self.benchmark.tool)
 
 
     def getVersion(self, tool):
