@@ -320,21 +320,24 @@ class OutputHandler:
         This function return a String representing the version of the tool.
         """
 
+        version = ''
         if (tool == "cpachecker"):
 
             # get info about the local svn-directory of CPAchecker
             exe = findExecutable("cpachecker", "scripts/cpa.sh")
-            cpaFolder = subprocess.Popen(['which', exe],
+            try:
+                cpaFolder = subprocess.Popen(['which', exe],
                                   stdout=subprocess.PIPE).communicate()[0].strip('\n')
-            output = subprocess.Popen(['svn', 'info', cpaFolder],
+                output = subprocess.Popen(['svn', 'info', cpaFolder],
                                   stdout=subprocess.PIPE).communicate()[0]
 
-            # parse output and get revision
-            svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                        output.strip('\n').split('\n')))
-            version = ""
-            if 'Revision' in svnInfo:
-                version = "r" + svnInfo['Revision']
+                # parse output and get revision
+                svnInfo = dict(map(lambda str: tuple(str.split(': ')),
+                                   output.strip('\n').split('\n')))
+                if 'Revision' in svnInfo:
+                    version = 'r' + svnInfo['Revision']
+            except OSError:
+                pass
 
         elif (tool == "cbmc"):
             defaultExe = None
@@ -366,36 +369,41 @@ class OutputHandler:
         opSystem = sysname + " " + kernel + " " + machine
 
         # get info about CPU
-        cpuInfoFile = open('/proc/cpuinfo', "r")
-        cpuInfo = dict(map(lambda str: tuple(str.split(':')),
+        cpuInfo = dict()
+        maxFrequency = 'unknown'
+        cpuInfoFilename = '/proc/cpuinfo'
+        if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
+            cpuInfoFile = open(cpuInfoFilename, "r")
+            cpuInfo = dict(map(lambda str: tuple(str.split(':')),
                             cpuInfoFile.read()
                             .replace('\n\n', '\n').replace('\t', '')
                             .strip('\n').split('\n')))
-        cpuInfoFile.close()
-
-        if 'model name' in cpuInfo:
-            cpuModel = cpuInfo['model name'].strip()
-        if 'cpu cores' in cpuInfo:
-            numberOfCores = cpuInfo['cpu cores'].strip()
+            cpuInfoFile.close()
+        cpuModel = cpuInfo.get('model name', 'unknown').strip()
+        numberOfCores = cpuInfo.get('cpu cores', 'unknown').strip()
+        if 'cpu MHz' in cpuInfo:
+            maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
 
         # modern cpus may not work with full speed the whole day
-        # read list of frequencies from file and take first number
-        frequencyInfoFile = open('/sys/devices/system/cpu/cpu0/cpufreq/'\
-                              + 'scaling_available_frequencies', "r")
-        maxFrequency = frequencyInfoFile.read().strip('\n').split()[0]
-        frequencyInfoFile.close()
-        maxFrequency = str(int(maxFrequency) / 1000) + ' MHz'
+        # read the number from cpufreq and overwrite maxFrequency from above 
+        freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
+        if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
+            frequencyInfoFile = open(freqInfoFilename, "r")
+            maxFrequency = frequencyInfoFile.read().strip('\n')
+            frequencyInfoFile.close()
+            maxFrequency = str(int(maxFrequency) / 1000) + ' MHz'
 
         # get info about memory
-        memInfoFile = open('/proc/meminfo', "r")
-        memInfo = dict(map(lambda str: tuple(str.split(': ')),
+        memInfo = dict()
+        memInfoFilename = '/proc/meminfo'
+        if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
+            memInfoFile = open(memInfoFilename, "r")
+            memInfo = dict(map(lambda str: tuple(str.split(': ')),
                             memInfoFile.read()
                             .replace('\t', '')
                             .strip('\n').split('\n')))
-        memInfoFile.close()
-
-        if 'MemTotal' in memInfo:
-            memTotal = memInfo['MemTotal'].strip()
+            memInfoFile.close()
+        memTotal = memInfo.get('MemTotal', 'unknown').strip()
 
         return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal)
 
