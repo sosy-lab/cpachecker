@@ -2,10 +2,10 @@
 
 <table>
 
-<!-- a list of testfiles, created by "splitXMLtoTests.py" or automatically by benchmark.py -->
+<!-- a list of testfiles, a file is created automatically by benchmark.py for each test-->
 
   <test filename="test/results/benchmark-example-cpachecker.2011-??-??.results.xml">
-    <!-- some columns of the testfile will be part of the table -->
+    <!-- columns "status" and "cputime" of the testfile will be part of the table -->
     <column title="status"/>
     <column title="cputime"/>
   </test>
