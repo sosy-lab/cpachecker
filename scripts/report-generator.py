@@ -122,7 +122,7 @@ def main():
     cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
     cpaoutdir = options.outdir or os.path.join(cpacheckerdir, 'test', 'output')
     reportdir = options.reportdir or cpaoutdir
-    tplfilepath = os.path.join(scriptdir, 'report_template.html')
+    tplfilepath = os.path.join(scriptdir, 'report-template.html')
     outfilepath = os.path.join(reportdir, 'index.html')
     artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
