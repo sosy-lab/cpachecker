@@ -99,6 +99,8 @@ def getFileList(shortFile):
     # if list is emtpy, sorting returns None, so better do not sort
     if len(fileList) != 0:
         fileList.sort()
+    else:
+        print '\nWarning: no file matches "{0}".'.format(shortFile)
 
     return fileList
 
