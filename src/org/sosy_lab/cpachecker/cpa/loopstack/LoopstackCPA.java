@@ -66,7 +66,7 @@ public class LoopstackCPA extends AbstractCPA {
     
     if (loop != null) {
       // if loop is present, push one element on the stack for it
-      e = new LoopstackElement(e, loop, 1, false);
+      e = new LoopstackElement(e, loop, 0, false);
     }
     return e;
   }
