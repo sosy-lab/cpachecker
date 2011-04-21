@@ -714,9 +714,20 @@ def run(args, rlimits):
                          + "containing the tool to be benchmarked is included "
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
-    
+
+    # if rlimit does not work, a seperate Timer is started to kill the subprocess, 
+    # Timer has 10 seconds 'overhead'
+    from threading import Timer
+    if (0 in rlimits): # 0 is key of timelimit
+        timelimit = rlimits[0][0]
+        t = Timer(timelimit + 10, subprocess.Popen.kill, [p])
+        t.start()
+
     output = p.stdout.read()
     returncode = p.wait()
+    
+    if (0 in rlimits) and t.isAlive():
+        t.cancel()
 
     wallTimeAfter = time.time()
     wallTimeDelta = wallTimeAfter - wallTimeBefore
