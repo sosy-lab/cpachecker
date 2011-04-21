@@ -92,6 +92,39 @@ public abstract class TestCase {
     return false;
   }
   
+  public String toCFunction() {
+    StringBuilder lCFunctionBuilder = new StringBuilder();
+    
+    lCFunctionBuilder.append("#include <stdio.h>\n");
+    lCFunctionBuilder.append("#include <stdlib.h>\n");
+    lCFunctionBuilder.append("\n");
+    
+    lCFunctionBuilder.append("int input()\n");
+    lCFunctionBuilder.append("{\n");
+    lCFunctionBuilder.append("  static int index = 0;\n");
+    
+    lCFunctionBuilder.append("  int testcase[] = {");
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      if (lIndex > 0) {
+        lCFunctionBuilder.append(",");
+      }
+      lCFunctionBuilder.append(mInputs[lIndex]);
+    }
+    
+    lCFunctionBuilder.append("};\n");
+
+    lCFunctionBuilder.append("  if (index == " + mInputs.length + ")\n");
+    lCFunctionBuilder.append("  {\n");
+    lCFunctionBuilder.append("    fprintf(stderr, \"[ERROR] test case too short!\\n\");\n");
+    lCFunctionBuilder.append("    exit(-1);\n");
+    lCFunctionBuilder.append("  }\n");
+    lCFunctionBuilder.append("  return testcase[index++];\n");
+    lCFunctionBuilder.append("}\n");
+    
+    return lCFunctionBuilder.toString();
+  }
+  
   @Override
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
