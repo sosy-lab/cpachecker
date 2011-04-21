@@ -28,10 +28,12 @@ import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 import static org.sosy_lab.cpachecker.util.AbstractElements.filterLocation;
+import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
 
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -53,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -84,20 +87,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer satCheck = new Timer();
     private final Timer assertionsCheck = new Timer();
+    
     private final Timer inductionPreparation = new Timer();
     private final Timer inductionCheck = new Timer();
+    private int inductionCutPoints = 0;
     
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       if (satCheck.getNumberOfIntervals() > 0) {
-        out.println("Time for final sat check:           " + satCheck);
+        out.println("Time for final sat check:            " + satCheck);
       }
       if (assertionsCheck.getNumberOfIntervals() > 0) {
-        out.println("Time for bounding assertions check: " + assertionsCheck);
+        out.println("Time for bounding assertions check:  " + assertionsCheck);
       }
       if (inductionCheck.getNumberOfIntervals() > 0) {
-        out.println("Time for induction formula creation:" + inductionPreparation);
-        out.println("Time for induction check:           " + inductionCheck);
+        out.println("Number of cut points for induction:  " + inductionCutPoints);
+        out.println("Time for induction formula creation: " + inductionPreparation);
+        out.println("Time for induction check:            " + inductionCheck);
       }
     }
 
@@ -135,7 +141,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException {
+  public boolean run(final ReachedSet pReachedSet) throws CPAException {
     final boolean soundInner = algorithm.run(pReachedSet);
     
     if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
@@ -266,10 +272,28 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // and we'll create several (A & B) and C formulas, one for each cut point.
       
       // filter function call edges from the outgoing edges
-      List<CFAEdge> outgoingEdges = ImmutableList.copyOf(
+      Iterable<CFAEdge> outgoingEdges = 
           Iterables.filter(loop.getOutgoingEdges(),
-                           Predicates.not(instanceOf(FunctionCallEdge.class))));
+                           Predicates.not(instanceOf(FunctionCallEdge.class)));
 
+//      outgoingEdges = Iterables.filter(outgoingEdges, new Predicate<CFAEdge>() {
+//        @Override
+//        public boolean apply(CFAEdge outgoingEdge) {
+//          CFANode exitLocation = outgoingEdge.getSuccessor();
+//          Iterable<AbstractElement> exitStates = filterLocation(pReachedSet, exitLocation);
+//          ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
+//          
+//          // the states reachable from the exit edge
+//          Set<ARTElement> outOfLoopStates = lastExitState.getSubtree();
+//          
+//          // 
+//          return Iterables.any(outOfLoopStates, AbstractElements.IS_TARGET_ELEMENT);
+//        }
+//      });
+      
+      // copy because we iterate two times and filter is not that cheap here
+      outgoingEdges = ImmutableList.copyOf(outgoingEdges);
+      
       // Create initial reached set
       ConfigurableProgramAnalysis cpa = getCPA();
       ReachedSet reached = reachedSetFactory.create();
@@ -303,6 +327,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Formula inductions = fmgr.makeTrue();
       
       for (CFAEdge outgoingEdge : outgoingEdges) {
+        logger.log(Level.INFO, "Considering exit edge", outgoingEdge);
+        // filter out exit edges that do not lead to a target state, we don't care about them
+        {
+          CFANode exitLocation = outgoingEdge.getSuccessor();
+          Iterable<AbstractElement> exitStates = filterLocation(reached, exitLocation);
+          ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
+          
+          // the states reachable from the exit edge
+          Set<ARTElement> outOfLoopStates = lastExitState.getSubtree();
+          if (Iterables.isEmpty(filterTargetElements(outOfLoopStates))) {
+            // no target state reachable
+            continue;
+          }
+        }
+        stats.inductionCutPoints++;
+        
         CFANode cutPoint = outgoingEdge.getPredecessor();
         Iterable<AbstractElement> cutPointStates = filterLocation(reached, cutPoint);
         AbstractElement lastcutPointState = Iterables.getLast(cutPointStates);
