@@ -720,7 +720,7 @@ def run(args, rlimits):
     from threading import Timer
     if (0 in rlimits): # 0 is key of timelimit
         timelimit = rlimits[0][0]
-        t = Timer(timelimit + 10, subprocess.Popen.kill, [p])
+        t = Timer(timelimit + 10, subprocess.Popen.terminate, [p])
         t.start()
 
     output = p.stdout.read()
