@@ -49,6 +49,10 @@ public class NondetToInput {
   }
   
   public static void gcov(String pSourceFileName, String pTestSuiteFileName) throws IOException, InterruptedException {
+    gcov(pSourceFileName, TestCase.fromFile(pTestSuiteFileName));
+  }
+  
+  public static void gcov(String pSourceFileName, Collection<TestCase> pTestSuite) throws IOException, InterruptedException {
     File lTmpSourceFile = File.createTempFile("source", ".c");
     lTmpSourceFile.deleteOnExit();
     
@@ -107,9 +111,7 @@ public class NondetToInput {
       
     // TODO implement checks
     
-    Collection<TestCase> lTestSuite = TestCase.fromFile(pTestSuiteFileName);
-    
-    for (TestCase lTestCase : lTestSuite) {
+    for (TestCase lTestCase : pTestSuite) {
       lTestCase.toInputFile(lTmpInputFile);
        
       lBuilder.command(lTmpExecutable.getAbsolutePath());
@@ -146,7 +148,7 @@ public class NondetToInput {
     lTmpGCnoFile.delete();
   }
   
-  public static boolean printOutput(Process pProcess) throws IOException {
+  private static boolean printOutput(Process pProcess) throws IOException {
     boolean lErrorOccured = false;
     
     BufferedReader lReader = new BufferedReader(new InputStreamReader(pProcess.getInputStream()));
