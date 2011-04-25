@@ -2,8 +2,10 @@ package org.sosy_lab.cpachecker.fshell.testcases;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -90,6 +92,24 @@ public abstract class TestCase {
     }
     
     return false;
+  }
+  
+  public String toInputString() {
+    StringBuilder lBuilder = new StringBuilder();
+    
+    for (int lValue : mInputs) {
+      lBuilder.append(lValue + "\n");
+    }
+    
+    return lBuilder.toString();
+  }
+  
+  public void toInputFile(File pFile) throws FileNotFoundException {
+    PrintWriter lWriter = new PrintWriter(pFile);
+    
+    lWriter.print(toInputString());
+    
+    lWriter.close();
   }
   
   public String toCFunction() {
