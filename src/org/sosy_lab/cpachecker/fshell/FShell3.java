@@ -19,8 +19,10 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
+import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
@@ -54,6 +56,10 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
     
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
+  }
+  
+  public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
   
   public FShell3Result run(String pFQLSpecification) {

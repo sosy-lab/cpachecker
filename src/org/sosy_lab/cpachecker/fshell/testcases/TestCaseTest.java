@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Collection;
 
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class TestCaseTest {
 
@@ -63,6 +65,11 @@ public class TestCaseTest {
   @Test
   public void testGcov3() throws IOException, InterruptedException {
     NondetToInput.gcov("test/programs/fql/ntdrivers-simplified/diskperf_simpl1.cil.c", "test/programs/fql/ntdrivers-simplified/diskperf_simpl1.bb.001.tst");
+  }
+  
+  @Test
+  public void testCombination() throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    NondetToInput.fshell2("test/programs/fql/locks/test_locks_15.c", "main", "COVER @BASICBLOCKENTRY", 3);
   }
 
 }

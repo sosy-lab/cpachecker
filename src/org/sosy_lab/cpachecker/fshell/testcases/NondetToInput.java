@@ -10,6 +10,11 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fshell.FShell3;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
+
 public class NondetToInput {
 
   public static void replace(String pSourceFile, String pDestinationFile) throws IOException {
@@ -166,6 +171,80 @@ public class NondetToInput {
     }
     
     return lErrorOccured;
+  }
+  
+  
+  public static void fshell2(String pSourceFile, String pEntryFunction, String pFQLQuery, int pLoopBound) throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    /* a) prepare source file for FShell 2 test generation 
+     *    (e.g., replace __BLAST_NONDET by input()) 
+     */
+    File lTmpSourceFile = File.createTempFile("source", ".c");
+    lTmpSourceFile.deleteOnExit();
+    
+    NondetToInput.replace(pSourceFile, lTmpSourceFile.getAbsolutePath());
+    
+    
+    /* b) create a query file for FShell 2 */
+    File lTmpQueryFile = File.createTempFile("query", ".fql");
+    lTmpQueryFile.deleteOnExit();
+    
+    PrintWriter lWriter = new PrintWriter(lTmpQueryFile);
+    lWriter.println("ADD SOURCECODE '" + lTmpSourceFile.getAbsolutePath() + "'");
+    lWriter.println(pFQLQuery);
+    lWriter.println("QUIT");
+    
+    lWriter.close();
+    
+    
+    /* c) run FShell 2 */
+    File lTmpOutputFile = File.createTempFile("testsuite", ".tst");
+    lTmpOutputFile.deleteOnExit();
+    
+    LinkedList<String> lCommand = new LinkedList<String>();
+    lCommand.add("/home/andreas/fshell2-1.2/fshell");
+    lCommand.add("--query-file");
+    lCommand.add(lTmpQueryFile.getAbsolutePath());
+    lCommand.add("--outfile");
+    lCommand.add(lTmpOutputFile.getAbsolutePath());
+    lCommand.add("--unwind");
+    lCommand.add("" + pLoopBound);
+    lCommand.add("--no-unwinding-assertions");
+    lCommand.add("--function");
+    lCommand.add(pEntryFunction);
+    
+    ProcessBuilder lBuilder = new ProcessBuilder();
+    lBuilder.command(lCommand);
+    lBuilder.redirectErrorStream();
+    
+    Process lProcess = lBuilder.start();
+    
+    BufferedReader lReader = new BufferedReader(new InputStreamReader(lProcess.getInputStream()));
+    
+    String lLine;
+    while ((lLine = lReader.readLine()) != null) {
+      System.out.println(lLine);
+    }
+    
+    lProcess.waitFor();
+    
+    
+    /* d) translate FShell 2 test suite to FShell 3 test suite */
+    File lTmpTestSuite = File.createTempFile("testsuite", ".tst");
+    lTmpTestSuite.deleteOnExit();
+    
+    FShell2ToFShell3.translateTestsuite(lTmpOutputFile.getAbsolutePath(), lTmpTestSuite.getAbsolutePath());
+    
+    
+    /* e) seed FShell 3 run with test suite */
+    Collection<TestCase> lTestSuite = TestCase.fromFile(lTmpTestSuite.getAbsolutePath());
+    
+    System.out.println(lTestSuite);
+    
+    FShell3 lFShell3 = new FShell3(pSourceFile, pEntryFunction);
+    lFShell3.seed(lTestSuite);
+    FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
+    
+    System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
   }
   
 }
