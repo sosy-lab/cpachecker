@@ -669,7 +669,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
   
-  //private void modifyART(ReachedSet pReachedSet, ARTReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges, boolean pVerbose) {
   private void modifyART(ReachedSet pReachedSet, ARTReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
     //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
     //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
@@ -707,7 +706,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
             
           if (lStateElement.getAutomatonState() == lEdge.getSource()) {
-            //if (lARTElement.getChildren().isEmpty() || pVerbose) {
             if (lARTElement.getChildren().isEmpty()) {
               // re-add element to worklist
               pReachedSet.reAddToWaitlist(lARTElement);
@@ -716,26 +714,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
               // by removing the children, lARTElement gets added to the
               // worklist automatically
               
-              /*LinkedList<ARTElement> lChildren = new LinkedList<ARTElement>();
-              lChildren.addAll(lARTElement.getChildren());
-              
-              for (ARTElement lChildElement : lChildren) {
-                // check whether lChildElement has been removed already (part of a subtree of another child)
-                if (lARTElement.getChildren().contains(lChildElement)) {
-                  CompositeElement lChildCompositeElement = (CompositeElement)lChildElement.getWrappedElement();
-                  
-                  ProductAutomatonElement lChildProductAutomatonElement = (ProductAutomatonElement)lChildCompositeElement.get(pProductAutomatonIndex);
-                  
-                  GuardedEdgeAutomatonStateElement lChildStateElement = (GuardedEdgeAutomatonStateElement)lChildProductAutomatonElement.get(0);
-                  
-                  // only remove child if its state corresponds to a frontier edge
-                  if (lChildStateElement.getAutomatonState() == lEdge.getTarget()) {
-                    pARTReachedSet.removeSubtree(lChildElement);
-                  }
-                }
-              }*/
-              
-              // TODO remove only nonisomorphic parts (children)?
               while (!lARTElement.getChildren().isEmpty()) {
                 ARTElement lChildElement = lARTElement.getChildren().iterator().next();
                 
@@ -753,9 +731,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
     
-    //modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getFirst(), false);
     modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getFirst());
-    //modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getSecond(), true);
     modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getSecond());
   }
   
@@ -988,14 +964,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
     
     ARTElement lLastARTElement = (ARTElement)pReachedSet.getLastElement();
-    /*
-    if (lLastARTElement == null) {
-      mTimeInReach.pause();
-      
-      // TODO is that correct?
-      return false;
-    }
-    */
+    
     CompositeElement lLastElement = (CompositeElement)lLastARTElement.getWrappedElement();
     ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lLastElement.get(lProductAutomatonIndex);
     
