@@ -17,6 +17,16 @@ import org.sosy_lab.cpachecker.fshell.FShell3Result;
 
 public class NondetToInput {
 
+  public static void main(String[] args) throws IOException {
+    if (args.length != 2) {
+      System.out.println("Usage: java org.sosy_lab.cpachecker.fshell.testcases.NondetToInput <source-file> <destination-file>");
+      
+      return;
+    }
+    
+    NondetToInput.replace(args[0], args[1]);
+  }
+  
   public static void replace(String pSourceFile, String pDestinationFile) throws IOException {
     BufferedReader lReader = new BufferedReader(new FileReader(pSourceFile));
     PrintWriter lWriter = new PrintWriter(pDestinationFile);
@@ -25,10 +35,16 @@ public class NondetToInput {
     lWriter.println("int input(void);");
     lWriter.println();
     
-    Pattern lDeclarationPattern = Pattern.compile("\\s*int\\s*__BLAST_NONDET\\s*;\\s*");
+    Pattern lDeclarationPattern = Pattern.compile("\\s*int\\s*__BLAST_NONDET\\s*;\\s*([/][/])?.*");
     
-    Pattern lAssignmentPattern = Pattern.compile(".*=\\s*__BLAST_NONDET\\s*;\\s*");
+    Pattern lDeclarationPattern2 = Pattern.compile("\\s*[{]\\s*int\\s*__BLAST_NONDET\\s*;\\s*([/][/])?.*");
     
+    Pattern lAssignmentPattern = Pattern.compile(".*=\\s*__BLAST_NONDET\\s*;\\s*([/][/])?.*");
+    
+    Pattern lAssignmentPattern2 = Pattern.compile(".*=\\s*[(]\\s*[l][o][n][g]\\s*[)]\\s*__BLAST_NONDET\\s*;\\s*([/][/])?.*");
+    
+    Pattern lAssignmentPattern3 = Pattern.compile(".*=\\s*[(]\\s*[u][n][s][i][g][n][e][d]\\s+[l][o][n][g]\\s*[)]\\s*__BLAST_NONDET\\s*;\\s*([/][/])?.*");
+
     Pattern lLinePattern = Pattern.compile("#line .*");
     
     String lLine;
@@ -37,11 +53,26 @@ public class NondetToInput {
       if (lDeclarationPattern.matcher(lLine).matches() || lLinePattern.matcher(lLine).matches()) {
         // if pLine matches int __BLAST_NONDET; remove this line
       }
+      else if (lDeclarationPattern2.matcher(lLine).matches()) {
+        lWriter.println("{");
+      }
       else if (lAssignmentPattern.matcher(lLine).matches()) {
         // if pLine matches ... = __BLAST_NONDET; replace it with ... = input();
         String[] lParts = lLine.split("=");
         
         lWriter.println(lParts[0] + "= input();");
+      }
+      else if (lAssignmentPattern2.matcher(lLine).matches()) {
+        // if pLine matches ... = (long) __BLAST_NONDET; replace it with ... = (long) input();
+        String[] lParts = lLine.split("=");
+        
+        lWriter.println(lParts[0] + "= (long)input();");
+      }
+      else if (lAssignmentPattern3.matcher(lLine).matches()) {
+        // if pLine matches ... = (unsigned long) __BLAST_NONDET; replace it with ... = (unsigned long) input();
+        String[] lParts = lLine.split("=");
+        
+        lWriter.println(lParts[0] + "= (unsigned long)input();");
       }
       else {
         // else write pLine to lWriter
@@ -242,7 +273,8 @@ public class NondetToInput {
     
     FShell3 lFShell3 = new FShell3(pSourceFile, pEntryFunction);
     lFShell3.seed(lTestSuite);
-    FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
+    //FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
+    FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
     
     System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
   }
