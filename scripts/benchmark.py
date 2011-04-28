@@ -311,6 +311,8 @@ class OutputHandler:
             return "CBMC"
         elif self.benchmark.tool.lower() == "satabs":
             return "SatAbs"
+        elif self.benchmark.tool.lower() == "blast":
+            return "BLAST"
         else:
             return str(self.benchmark.tool)
 
@@ -351,9 +353,15 @@ class OutputHandler:
                               stdout=subprocess.PIPE).communicate()[0].strip()                
 
         elif (tool == "satabs"):
-            exe = findExecutable(tool, None)
+            exe = findExecutable("satabs", None)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
+
+        elif (tool == "blast"):
+            exe = findExecutable("pblast.opt", None)
+            version = subprocess.Popen([exe],
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.STDOUT).communicate()[0][6:9]
 
         return version
 
@@ -803,6 +811,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
         status = "FAILURE"
     return (status, cpuTimeDelta, wallTimeDelta, output)
 
+
 def run_cpachecker(options, sourcefile, columns, rlimits):
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
@@ -891,10 +900,29 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
+def run_blast(options, sourcefile, columns, rlimits):
+    exe = findExecutable("pblast.opt", None)
+    args = [exe] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+
+    status = "UNKNOWN"
+    for line in output.splitlines():
+        if line.startswith('Error found! The system is unsafe :-('):
+            status = 'UNSAFE'
+        elif line.startswith('No error found.  The system is safe :-)'):
+            status = 'SAFE'
+        elif (returncode == 2) and line.startswith('Fatal error: out of memory.'):
+            status = 'OUT OF MEMORY'
+        elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
+            status = 'TIMEOUT'
+
+    return (status, cpuTimeDelta, wallTimeDelta, output)
+
+
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker"]
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast"]
     run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:
