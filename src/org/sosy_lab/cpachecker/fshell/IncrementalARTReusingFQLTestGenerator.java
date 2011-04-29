@@ -97,8 +97,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private final GuardedEdgeLabel mInverseAlphaLabel;
   private final Map<TestCase, CFAEdge[]> mGeneratedTestCases;
   
-  private final Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>> mInfeasibleGoals;
-  
   public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     FQLSpecification lIdStarFQLSpecification;
     try {
@@ -210,8 +208,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // we can collect test cases accross several run invocations and use them for coverage analysis
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
-    
-    mInfeasibleGoals = new HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, Collection<NondeterministicFiniteAutomaton.State>>();
   }
   
   @Override
@@ -385,8 +381,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
         }
         
-        //mInfeasibleGoals.put(lGoal.getAutomaton(), mReachedAutomatonStates);
-        
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         
         lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
@@ -461,8 +455,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     for (TestCase lTestCase : lResultFactory.getTestCases()) {
       System.out.println(lTestCase);
     }
-
-    System.out.println("Size of infeasibility cache: " + mInfeasibleGoals.size());
     
     return lResult;
   }
