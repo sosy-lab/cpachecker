@@ -180,6 +180,16 @@ public abstract class TestCase {
     return lTestSuite;
   }
   
+  public static void toFile(Collection<TestCase> pTestSuite, File pTestSuiteFile) throws FileNotFoundException {
+    PrintWriter lWriter = new PrintWriter(pTestSuiteFile);
+    
+    for (TestCase lTestCase : pTestSuite) {
+      lWriter.println(lTestCase.toString());
+    }
+    
+    lWriter.close();
+  }
+  
   public static TestCase fromString(String pTestCase) {
     boolean lIsPrecise;
     
