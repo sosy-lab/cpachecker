@@ -12,8 +12,8 @@ int input();
 #elif __CREST__
 extern void __CrestInt(int *x )  __attribute__((__crest_skip__)) ;
 #  define MAKE_INT_INPUT(x)  __CrestInt(&x)
-#  define MAKE_LONG_INPUT(x)  __CrestInt(& (int)x)
-#  define MAKE_ULONG_INPUT(x)  __CrestInt(& (int)x)
+#  define MAKE_LONG_INPUT(x)  __CrestInt(&x)
+#  define MAKE_ULONG_INPUT(x)  __CrestInt(&x)
 #elif __KLEE__
 #  define MAKE_INT_INPUT(x)  klee_make_symbolic(&x, sizeof(int), "input");
 #  define MAKE_LONG_INPUT(x)  klee_make_symbolic(&x, sizeof(long), "input");
@@ -27,11 +27,11 @@ extern void __CrestInt(int *x )  __attribute__((__crest_skip__)) ;
 EOF
   perl -n -e '
     chomp;
-    if (/^(\s*)(\S+)\s*=\s*__BLAST_NONDET(;.*)$/) {
+    if (/^(\s*)(\w\S*)\s*=\s*__BLAST_NONDET(;.*)$/) {
       print "$1MAKE_INT_INPUT($2)$3\n";
-    } elsif (/^(\s*)(\S+)\s*=\s*\(long\s*\)\s*__BLAST_NONDET(;.*)$/) {
+    } elsif (/^(\s*)(\w\S*)\s*=\s*\(long\s*\)\s*__BLAST_NONDET(;.*)$/) {
       print "$1MAKE_LONG_INPUT($2)$3\n";
-    } elsif (/^(\s*)(\S+)\s*=\s*\(unsigned\s+long\s*\)\s*__BLAST_NONDET(;.*)$/) {
+    } elsif (/^(\s*)(\w\S*)\s*=\s*\(unsigned\s+long\s*\)\s*__BLAST_NONDET(;.*)$/) {
       print "$1MAKE_ULONG_INPUT($2)$3\n";
     } else {
       print "$_\n";
