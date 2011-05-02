@@ -83,7 +83,7 @@ int ssl3_connect(int initial_state )
   {
   s__state = initial_state;
   blastFlag = 0;
-  tmp = __BLAST_NONDET;
+  tmp = (unsigned long ) __BLAST_NONDET;
   cb = 0;
   ret = -1;
   skip = 0;

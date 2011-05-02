@@ -1781,7 +1781,7 @@ int FloppyDeviceControl(int DeviceObject , int Irp )
   __cil_tmp88 = __BLAST_NONDET;
   __cil_tmp89 = __BLAST_NONDET;
   __cil_tmp90 = __BLAST_NONDET;
-  __cil_tmp91 = __BLAST_NONDET;
+  __cil_tmp91 = (long ) __BLAST_NONDET;
   irpSp__Parameters__DeviceIoControl__IoControlCode___1 = __BLAST_NONDET;
   irpSp__Parameters__DeviceIoControl__InputBufferLength = __BLAST_NONDET;
   sizeof__FORMAT_PARAMETERS = __BLAST_NONDET;

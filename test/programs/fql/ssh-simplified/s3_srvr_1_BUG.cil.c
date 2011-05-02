@@ -64,7 +64,7 @@ int ssl3_accept(int initial_state )
   int __cil_tmp60 ;
   unsigned long __cil_tmp61 ;
 
-  tmp = __BLAST_NONDET; 
+  tmp = (unsigned long ) __BLAST_NONDET; 
   s__info_callback = __BLAST_NONDET;
   s__ctx__info_callback = __BLAST_NONDET;
   tmp___1 = __BLAST_NONDET;
@@ -74,7 +74,7 @@ int ssl3_accept(int initial_state )
   tmp___5 = __BLAST_NONDET;
   tmp___6 = __BLAST_NONDET;
   tmp___7 = __BLAST_NONDET;
-  tmp___8 = __BLAST_NONDET;
+  tmp___8 = (long ) __BLAST_NONDET;
   tmp___9 = __BLAST_NONDET;
   tmp___10 = __BLAST_NONDET;
   s__cert = __BLAST_NONDET;
