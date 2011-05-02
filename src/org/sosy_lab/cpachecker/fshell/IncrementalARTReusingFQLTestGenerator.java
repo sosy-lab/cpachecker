@@ -337,7 +337,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
   }
   
-  private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+  private FQLSpecification getFQLSpecification(String pFQLSpecification) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -346,26 +346,37 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
     
-    System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
-    System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
-    
-    ElementaryCoveragePattern lPassingClause = null;
-    
-    if (lFQLSpecification.hasPassingClause()) {
-      lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lFQLSpecification.getPathPattern());
+    return lFQLSpecification;
+  }
+  
+  private GuardedEdgeAutomatonCPA getPassingCPA(FQLSpecification pFQLSpecification) {
+    if (pFQLSpecification.hasPassingClause()) {
+      System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+      System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+      
+      ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
+      
+      System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+      System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+      
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton1 = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
+      
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton2 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lAutomaton1);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton3 = ToGuardedAutomatonTranslator.removeDeadEnds(lAutomaton2);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton4 = ToGuardedAutomatonTranslator.reduceEdgeSets(lAutomaton3);
+      
+      return new GuardedEdgeAutomatonCPA(lAutomaton4);
     }
-    
-    System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
-    System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
-    
-    FShell3Result.Factory lResultFactory = FShell3Result.factory();
-    
-    GuardedEdgeAutomatonCPA lPassingCPA = null;
-    
-    if (lPassingClause != null) {
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
+    else {
+      return null;
     }
+  }
+  
+  private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+    
+    FQLSpecification lFQLSpecification = getFQLSpecification(pFQLSpecification);
+    
+    GuardedEdgeAutomatonCPA lPassingCPA = getPassingCPA(lFQLSpecification);
     
     // set up utility variables
     int lFeasibleTestGoalsTimeSlot = 0;
@@ -380,8 +391,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
     
-    //int lNumberOfTestGoals = -1;
-    
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
@@ -393,6 +402,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGraphGoalAutomaton = null;
+    
+    FShell3Result.Factory lResultFactory = FShell3Result.factory();
     
     int lIndex = 0;
     
