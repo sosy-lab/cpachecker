@@ -361,15 +361,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton1 = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton2 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lAutomaton1);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton3 = ToGuardedAutomatonTranslator.removeDeadEnds(lAutomaton2);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton4 = ToGuardedAutomatonTranslator.reduceEdgeSets(lAutomaton3);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton2 = optimizeAutomaton(lAutomaton1);
       
-      return new GuardedEdgeAutomatonCPA(lAutomaton4);
+      return new GuardedEdgeAutomatonCPA(lAutomaton2);
     }
     else {
       return null;
     }
+  }
+  
+  private NondeterministicFiniteAutomaton<GuardedEdgeLabel> optimizeAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton1);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
+    
+    return lGoalAutomaton3;
   }
   
   private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
@@ -426,10 +432,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = lGoal.getAutomaton();
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lGoalAutomaton);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton2);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton4);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = optimizeAutomaton(lGoal.getAutomaton());
       
       lTimeAccu.proceed();
       
@@ -443,7 +446,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             throw new RuntimeException();
           }
           
-          ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoalAutomaton3, lGeneratedTestCase.getValue()); 
+          ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoalAutomaton, lGeneratedTestCase.getValue()); 
           
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             lIsCovered = true;
@@ -453,7 +456,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             break;
           }
           else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3);
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -492,7 +495,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
       }
       
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3);
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
       
       lTimeReach.proceed();
       
