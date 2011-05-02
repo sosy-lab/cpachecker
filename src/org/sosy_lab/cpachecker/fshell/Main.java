@@ -67,8 +67,39 @@ public class Main {
       lEntryFunction = pArguments[2];
     }
     
-    // TODO implement nicer mechanism for disabling cilly preprocessing
-    if (pArguments.length <= 3) {  
+    boolean lCilPreprocessing = true;
+    int lMinIndex = 0;
+    int lMaxIndex = Integer.MAX_VALUE;
+    String lFeasibilityInformationInputFile = null;
+    String lFeasibilityInformationOutputFile = null;
+    String lTestSuiteOutputFile = null;
+
+    for (int lIndex = 3; lIndex < pArguments.length; lIndex++) {
+      String lOption = pArguments[lIndex].trim();
+      
+      if (lOption.equals("--withoutCilPreprocessing")) {
+        lCilPreprocessing = false;
+      }
+      else if (lOption.startsWith("--min=")) {
+        String lTmp = lOption.substring("--min=".length());
+        lMinIndex = Integer.valueOf(lTmp);
+      }
+      else if (lOption.startsWith("--max=")) {
+        String lTmp = lOption.substring("--max=".length());
+        lMaxIndex = Integer.valueOf(lTmp);
+      }
+      else if (lOption.startsWith("--in=")) {
+        lFeasibilityInformationInputFile = lOption.substring("--in=".length());
+      }
+      else if (lOption.startsWith("--out=")) {
+        lFeasibilityInformationOutputFile = lOption.substring("--out=".length());
+      }
+      else if (lOption.startsWith("--tout=")) {
+        lTestSuiteOutputFile = lOption.substring("--tout=".length());
+      }
+    }
+    
+    if (lCilPreprocessing) {
       // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
       Configuration lConfig = Configuration.defaultConfiguration();
       LogManager lLogger = new LogManager(lConfig);
@@ -84,11 +115,25 @@ public class Main {
       }
     }
     
-    FShell3 lFlleSh = new FShell3(lSourceFileName, lEntryFunction);
+    FShell3 lFShell = new FShell3(lSourceFileName, lEntryFunction);
     
-    FShell3Result lResult = lFlleSh.run(lFQLSpecificationString);
+    lFShell.setGoalIndices(lMinIndex, lMaxIndex);
     
-    System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
+    if (lFeasibilityInformationInputFile != null) {
+      lFShell.setFeasibilityInformationInputFile(lFeasibilityInformationInputFile);
+    }
+    
+    if (lFeasibilityInformationOutputFile != null) {
+      lFShell.setFeasibilityInformationOutputFile(lFeasibilityInformationOutputFile);
+    }
+    
+    if (lTestSuiteOutputFile != null) {
+      lFShell.setTestSuiteOutputFile(lTestSuiteOutputFile);
+    }
+    
+    FShell3Result lResult = lFShell.run(lFQLSpecificationString);
+    
+    System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feasible: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeasible: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
     
     return lResult;
   }
@@ -102,7 +147,7 @@ public class Main {
     String[] lResult;
     
     if (pDisablePreprocessing) {
-      lArguments.add("disablecilpreprocessing");
+      lArguments.add("--withoutCilPreprocessing");
       
       lResult = new String[4];
     }

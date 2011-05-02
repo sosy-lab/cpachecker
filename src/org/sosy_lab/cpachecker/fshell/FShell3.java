@@ -48,6 +48,12 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   
   private final IncrementalARTReusingFQLTestGenerator mIncrementalARTReusingTestGenerator;
   
+  private String mFeasibilityInformationOutputFile = null;
+  private String mFeasibilityInformationInputFile = null;
+  private String mTestSuiteOutputFile = null;
+  private int mMinIndex = 0;
+  private int mMaxIndex = Integer.MAX_VALUE;
+  
   public FShell3(String pSourceFileName, String pEntryFunction) {
     mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -56,6 +62,31 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
     
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
+  }
+  
+  public void setFeasibilityInformationOutputFile(String pFile) {
+    mFeasibilityInformationOutputFile = pFile;
+  }
+  
+  public void setFeasibilityInformationInputFile(String pFile) {
+    mFeasibilityInformationInputFile = pFile;
+  }
+  
+  public void setTestSuiteOutputFile(String pFile) {
+    mTestSuiteOutputFile = pFile;
+  }
+  
+  public void setGoalIndices(int pMinIndex, int pMaxIndex) {
+    setMinIndex(pMinIndex);
+    setMaxIndex(pMaxIndex);
+  }
+  
+  public void setMinIndex(int pIndex) {
+    mMinIndex = pIndex;
+  }
+  
+  public void setMaxIndex(int pIndex) {
+    mMaxIndex = pIndex;
   }
   
   public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
@@ -78,7 +109,33 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       else {
         // TODO make configurable
         if (!pAlternating) {
-          return mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+          
+          mIncrementalARTReusingTestGenerator.setGoalIndices(mMinIndex, mMaxIndex);
+          
+          if (mFeasibilityInformationInputFile != null) {
+            try {
+              mIncrementalARTReusingTestGenerator.load(mFeasibilityInformationInputFile);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+          
+          FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating); 
+          
+          if (mFeasibilityInformationOutputFile != null) {
+            try {
+              if (mTestSuiteOutputFile != null) {
+                mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile, mTestSuiteOutputFile);
+              }
+              else {
+                mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile);  
+              }
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          }
+          
+          return lResult;
         }
         else {
           return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);

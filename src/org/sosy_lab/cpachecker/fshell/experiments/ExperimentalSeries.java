@@ -37,19 +37,29 @@ public abstract class ExperimentalSeries {
     mExperiment = null;
   }
   
-  public FShell3Result execute(String[] lArguments) throws IOException, InvalidConfigurationException {
-    Preconditions.checkNotNull(lArguments);
-    Preconditions.checkArgument(lArguments.length == 3 || lArguments.length == 4);
+  public FShell3Result execute(String[] pArguments) throws IOException, InvalidConfigurationException {
+    Preconditions.checkNotNull(pArguments);
+    //Preconditions.checkArgument(pArguments.length == 3 || pArguments.length == 4);
     
     TimeAccumulator lTime = new TimeAccumulator();
     
     lTime.proceed();
     
-    FShell3Result lResult = Main.run(lArguments);
+    FShell3Result lResult = Main.run(pArguments);
     
     lTime.pause();
     
-    mExperiment.addExperiment(lArguments[0], lArguments[1], lArguments[2], (lArguments.length == 4), lResult, lTime.getSeconds());
+    boolean lCilPreprocessing = false;
+    
+    for (int lIndex = 3; lIndex < pArguments.length; lIndex++) {
+      String lOption = pArguments[lIndex].trim();
+      
+      if (lOption.equals("--withoutCilPreprocessing")) {
+        lCilPreprocessing = true;
+      }
+    }
+    
+    mExperiment.addExperiment(pArguments[0], pArguments[1], pArguments[2], lCilPreprocessing, lResult, lTime.getSeconds());
     
     return lResult;
   }
