@@ -9,11 +9,11 @@ if [ ! -f $SRC ] ; then
   exit 1
 fi
 
-export PATH=/home/scratch/mictau/fshell.git/benchmarks/code/joplift/crest-0.1.1/bin:$PATH
-export PATH=/home/scratch/mictau/klee/klee/Release/bin/:$PATH
-export PATH=/home/scratch/mictau/klee/llvm-gcc4.2-2.7-x86_64-linux/bin/:$PATH
-export LD_LIBRARY_PATH=/home/scratch/mictau/fshell.git/benchmarks/code/joplift/crest-0.1.1/yices-1.0.29/lib/:$LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=/home/scratch/mictau/klee/klee/Release/lib/:$LD_LIBRARY_PATH
+export PATH=/nobackup/exp-holzera-tautschn/crest-0.1.1/bin:$PATH
+export PATH=/nobackup/exp-holzera-tautschn/klee/klee/Release/bin/:$PATH
+export PATH=/nobackup/exp-holzera-tautschn/klee/llvm-gcc4.2-2.7-x86_64-linux/bin/:$PATH
+export LD_LIBRARY_PATH=/nobackup/exp-holzera-tautschn/crest-0.1.1/yices-1.0.29/lib/:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/nobackup/exp-holzera-tautschn/klee/klee/Release/lib/:$LD_LIBRARY_PATH
 
 mkdir tmp-testing
 bn=`basename $SRC`
