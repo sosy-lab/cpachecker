@@ -34,24 +34,31 @@ import java.util.List;
 /** This class collects all @Options of CPAchecker. */
 public class OptionCollector {
 
-  /** THe main-method collects all classes of CPAchecker and 
+  /** The main-method collects all classes of CPAchecker and 
    * then it searches for all @Options.
    * @param args not used */
   public static void main(String[] args) {
+    final LinkedList<String> list = new LinkedList<String>();
 
     try {
       for (Class<?> c : getClasses()) {
-        collectOptions(c);
+        collectOptions(c, list);
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
+
+    String[] sortedList = list.toArray(new String[0]);
+    java.util.Arrays.sort(sortedList);
+    for (String s : sortedList) {
+      System.out.println(s);
+    }
   }
 
   /** This method collects all @Options of a class. 
-   * @param c class where to take the @Options from */
-  private static void collectOptions(Class<?> c) {
-
+   * @param c class where to take the @Options from 
+   * @param list list with collected options */
+  private static void collectOptions(Class<?> c, List<String> list) {
     for (final java.lang.reflect.Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
@@ -77,8 +84,7 @@ public class OptionCollector {
         optionInfo.append("  fieldname: " + field.getName() + "\n");
         optionInfo.append("  type:      " + field.getType() + "\n");
 
-        // TODO: store in file
-        System.out.println(optionInfo);
+        list.add(optionInfo.toString());
       }
     }
   }
