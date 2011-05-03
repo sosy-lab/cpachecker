@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
+import static org.sosy_lab.cpachecker.util.AbstractElements.IS_TARGET_ELEMENT;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 import static org.sosy_lab.cpachecker.util.AbstractElements.filterLocation;
 import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
@@ -72,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -229,9 +229,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       stats.inductionPreparation.start();
       
       Loop loop = Iterables.getOnlyElement(loops.values());
+
+      // function edges do not count as incoming/outgoing edges
       Iterable<CFAEdge> incomingEdges = Iterables.filter(loop.getIncomingEdges(),
                                                          Predicates.not(instanceOf(FunctionReturnEdge.class)));
-
+      Iterable<CFAEdge> outgoingEdges = Iterables.filter(loop.getOutgoingEdges(),
+                                                         Predicates.not(instanceOf(FunctionCallEdge.class)));
+      
       if (Iterables.size(incomingEdges) > 1) {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
         return sound;
@@ -288,28 +292,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // set, so that A will contain the assumptions from all continuation edges,
       // and we'll create several (A & B) and C formulas, one for each cut point.
       
-      // filter function call edges from the outgoing edges
-      Iterable<CFAEdge> outgoingEdges = 
-          Iterables.filter(loop.getOutgoingEdges(),
-                           Predicates.not(instanceOf(FunctionCallEdge.class)));
-
-//      outgoingEdges = Iterables.filter(outgoingEdges, new Predicate<CFAEdge>() {
-//        @Override
-//        public boolean apply(CFAEdge outgoingEdge) {
-//          CFANode exitLocation = outgoingEdge.getSuccessor();
-//          Iterable<AbstractElement> exitStates = filterLocation(pReachedSet, exitLocation);
-//          ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
-//          
-//          // the states reachable from the exit edge
-//          Set<ARTElement> outOfLoopStates = lastExitState.getSubtree();
-//          
-//          // 
-//          return Iterables.any(outOfLoopStates, AbstractElements.IS_TARGET_ELEMENT);
-//        }
-//      });
-      
-      // copy because we iterate two times and filter is not that cheap here
-      outgoingEdges = ImmutableList.copyOf(outgoingEdges);
       
       // Create initial reached set
       ConfigurableProgramAnalysis cpa = getCPA();
@@ -331,14 +313,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       });
       
       assert !Iterables.isEmpty(loopStates);
-      // TODO check no target states in loop
+      if (Iterables.any(loopStates, IS_TARGET_ELEMENT)) {
+        logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
+        return sound;
+      }
 
       // Create formulas
       PathFormulaManager pmgr = predCpa.getPathFormulaManager();
       Formula inductions = fmgr.makeTrue();
       
       for (CFAEdge outgoingEdge : outgoingEdges) {
-        logger.log(Level.INFO, "Considering exit edge", outgoingEdge);
         // filter out exit edges that do not lead to a target state, we don't care about them
         {
           CFANode exitLocation = outgoingEdge.getSuccessor();
@@ -353,7 +337,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
         }
         stats.inductionCutPoints++;
-        
+        logger.log(Level.INFO, "Considering exit edge", outgoingEdge);
+
         CFANode cutPoint = outgoingEdge.getPredecessor();
         Iterable<AbstractElement> cutPointStates = filterLocation(reached, cutPoint);
         AbstractElement lastcutPointState = Iterables.getLast(cutPointStates);
