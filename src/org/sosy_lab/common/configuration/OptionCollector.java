@@ -101,14 +101,12 @@ public class OptionCollector {
     final ClassLoader classLoader =
         Thread.currentThread().getContextClassLoader();
     assert classLoader != null;
-    final String packageName = "org.sosy_lab.cpachecker";
-    final String path = packageName.replace(".", "/");
-    final Enumeration<URL> resources = classLoader.getResources(path);
+    final Enumeration<URL> resources = classLoader.getResources("");
     final List<Class<?>> classes = new LinkedList<Class<?>>();
 
     while (resources.hasMoreElements()) {
       final File file = new File(resources.nextElement().getFile());
-      collectClasses(file, packageName, classes);
+      collectClasses(file, "", classes);
     }
 
     return classes;
@@ -128,7 +126,12 @@ public class OptionCollector {
         final String fileName = file.getName();
         if (file.isDirectory()) {
           assert !fileName.contains(".");
-          collectClasses(file, packageName + "." + fileName, classes);
+
+          if (packageName.isEmpty()) {
+            collectClasses(file, fileName, classes);
+          } else {
+            collectClasses(file, packageName + "." + fileName, classes);
+          }
 
         } else if (fileName.endsWith(".class")
 
