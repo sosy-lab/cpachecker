@@ -51,19 +51,34 @@ public class OptionCollector {
   /** This method collects all @Options of a class. 
    * @param c class where to take the @Options from */
   private static void collectOptions(Class<?> c) {
-    for (final java.lang.reflect.Field field : c.getDeclaredFields()) {
-      if (field.isAnnotationPresent(Option.class)) {
-        final Option a = field.getAnnotation(Option.class);
 
-        //TODO: store in file
-        if ("".equals(a.name())) {
-          System.out.println("\n< no name >");
-        } else {
-          System.out.println("\n" + a.name());
+    for (final java.lang.reflect.Field field : c.getDeclaredFields()) {
+
+      if (field.isAnnotationPresent(Option.class)) {
+        StringBuilder optionInfo = new StringBuilder("");
+
+        // get prefix from Options-annotation of class
+        if (c.isAnnotationPresent(Options.class)) {
+          final Options classOption = c.getAnnotation(Options.class);
+          if (!"".equals(classOption.prefix())) {
+            optionInfo.append(classOption.prefix() + ".");
+          }
         }
-        System.out.println("  field:     " + field);
-        System.out.println("  fieldname: " + field.getName());
-        System.out.println("  type:      " + field.getType());
+
+        // get info about option
+        final Option option = field.getAnnotation(Option.class);
+        if ("".equals(option.name())) {
+          optionInfo.append(field.getName() + "\n");
+        } else {
+          optionInfo.append(option.name() + "\n");
+        }
+
+        optionInfo.append("  field:     " + field + "\n");
+        optionInfo.append("  fieldname: " + field.getName() + "\n");
+        optionInfo.append("  type:      " + field.getType() + "\n");
+
+        // TODO: store in file
+        System.out.println(optionInfo);
       }
     }
   }
