@@ -45,8 +45,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -229,6 +229,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       stats.inductionPreparation.start();
       
       Loop loop = Iterables.getOnlyElement(loops.values());
+      Iterable<CFAEdge> incomingEdges = Iterables.filter(loop.getIncomingEdges(),
+                                                         Predicates.not(instanceOf(FunctionReturnEdge.class)));
+
+      if (Iterables.size(incomingEdges) > 1) {
+        logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
+        return sound;
+      }
+      
+      if (loop.getLoopHeads().size() > 1) {
+        logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads");
+        return sound;
+      }
+      
+      CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+      
+      // check that the loop head is unambigious
+      assert loopHead.equals(Iterables.getOnlyElement(incomingEdges).getSuccessor());
       
       // Proving program safety with induction consists of two parts:
       // 1) Prove all paths safe that go only one iteration through the loop.
@@ -297,17 +314,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // Create initial reached set
       ConfigurableProgramAnalysis cpa = getCPA();
       ReachedSet reached = reachedSetFactory.create();
-
-      for (CFAEdge outgoingEdge : outgoingEdges) {
-        assert outgoingEdge instanceof AssumeEdge;
-        
-        CFANode cutPoint = outgoingEdge.getPredecessor();
-        reached.add(cpa.getInitialElement(cutPoint), cpa.getInitialPrecision(cutPoint));
-      }
+      reached.add(cpa.getInitialElement(loopHead), cpa.getInitialPrecision(loopHead));
 
       // Run algorithm in order to create formula (A & B)
 
-      logger.log(Level.INFO, "Running algorithm starting on", reached.size(), "states to prepare for induction check");
+      logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
       algorithm.run(reached);
 
       // live view of reached set with only the elements in the loop
