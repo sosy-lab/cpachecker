@@ -121,6 +121,33 @@ public class SSAMap {
   public static SSAMap emptySSAMap() {
     return EMPTY_SSA_MAP;
   }
+  
+  public static SSAMap emptyWithDefault(final int defaultValue) {
+    return new SSAMap(ImmutableMultiset.<String>of(),
+                      ImmutableMultiset.<Pair<String, FormulaList>>of()) {
+
+      @Override
+      public int getIndex(String pVariable) {
+        int result = super.getIndex(pVariable);
+        
+        return (result < 0) ? defaultValue : result;
+      }
+      
+      @Override
+      public int getIndex(String pName, FormulaList pArgs) {
+        int result = super.getIndex(pName, pArgs);
+        
+        return (result < 0) ? defaultValue : result;
+      }
+      
+      @Override
+      protected int getIndex(Pair<String, FormulaList> pKey) {
+        int result = super.getIndex(pKey);
+
+        return (result < 0) ? defaultValue : result;
+      }
+    };
+  }
 
   /**
    * Returns an unmodifiable SSAMap that contains all indices from two SSAMaps.
