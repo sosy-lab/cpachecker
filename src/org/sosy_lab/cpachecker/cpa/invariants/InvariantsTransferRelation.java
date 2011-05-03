@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -74,13 +76,16 @@ enum InvariantsTransferRelation implements TransferRelation {
     switch (edge.getEdgeType()) {
     case AssumeEdge:
     case BlankEdge:
-    case FunctionCallEdge:
     case FunctionReturnEdge:
     case ReturnStatementEdge:
       break;
 
     case DeclarationEdge:
       element = handleDeclaration(element, (DeclarationEdge)edge);
+      break;
+
+    case FunctionCallEdge:
+      element = handleFunctionCall(element, (FunctionCallEdge)edge);
       break;
 
     case StatementEdge:
@@ -115,6 +120,29 @@ enum InvariantsTransferRelation implements TransferRelation {
     }
     
     return element.copyAndSet(varName, value);
+  }
+  
+  private InvariantsElement handleFunctionCall(InvariantsElement element, FunctionCallEdge edge) throws UnrecognizedCCodeException {
+    
+    InvariantsElement newElement = element;
+    List<String> formalParams = edge.getSuccessor().getFunctionParameterNames();
+    List<IASTExpression> actualParams = edge.getArguments();
+    
+    for (Pair<String, IASTExpression> param : Pair.zipList(formalParams, actualParams)) {
+      IASTExpression actualParam = param.getSecond();
+      
+      SimpleInterval value = actualParam.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
+      
+      if (actualParam instanceof IASTIdExpression) {
+        String var = getVarName((IASTIdExpression)actualParam, edge);
+        value = element.get(var);
+      }
+      
+      String formalParam = scope(param.getFirst(), edge.getSuccessor().getFunctionName());
+      newElement = newElement.copyAndSet(formalParam, value);
+    }
+    
+    return newElement;
   }
   
   private InvariantsElement handleStatement(InvariantsElement element, StatementEdge edge) throws UnrecognizedCCodeException {
@@ -157,6 +185,11 @@ enum InvariantsTransferRelation implements TransferRelation {
               }
             }
           }
+          
+        } else if (rightHandSide instanceof IASTIdExpression) {
+          // special case "a = b"
+          String var = getVarName((IASTIdExpression)rightHandSide, edge);
+          rightHandValue = element.get(var);
         }
         
         element = element.copyAndSet(varName, rightHandValue);
@@ -182,10 +215,14 @@ enum InvariantsTransferRelation implements TransferRelation {
       if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
         
       } else {
-        varName = edge.getSuccessor().getFunctionName() + "::" + varName;
+        varName = scope(varName, edge.getPredecessor().getFunctionName());
       }
     }
     return varName;
+  }
+  
+  private static String scope(String var, String function) {
+    return function + "::" + var;
   }
   
   private static class SimpleRightHandSideValueVisitor extends DefaultExpressionVisitor<SimpleInterval, UnrecognizedCCodeException>
