@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -57,6 +58,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsElement;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -64,6 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -89,6 +94,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer assertionsCheck = new Timer();
     
     private final Timer inductionPreparation = new Timer();
+    private final Timer invariantGeneration = new Timer();
     private final Timer inductionCheck = new Timer();
     private int inductionCutPoints = 0;
     
@@ -103,6 +109,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (inductionCheck.getNumberOfIntervals() > 0) {
         out.println("Number of cut points for induction:  " + inductionCutPoints);
         out.println("Time for induction formula creation: " + inductionPreparation);
+        out.println("  Time for invariant generation:     " + invariantGeneration);
         out.println("Time for induction check:            " + inductionCheck);
       }
     }
@@ -127,12 +134,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final PredicateCPA predCpa;
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
+  private final CFANode initialLocation;
   
-  public BMCAlgorithm(Algorithm algorithm, Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException, CPAException {
+  public BMCAlgorithm(Algorithm algorithm, Configuration config, LogManager logger,
+                      ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation)
+                      throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
     reachedSetFactory = pReachedSetFactory;
+    initialLocation = pInitialLocation;
     
     predCpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
@@ -320,6 +331,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return sound;
       }
 
+      // get global invariants
+      logger.log(Level.INFO, "Finding invariants");
+      Formula invariants = findInvariantsAt(loopHead, fmgr);
+      invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
+      logger.log(Level.ALL, "Invariant:", invariants);
+      
       // Create formulas
       PathFormulaManager pmgr = predCpa.getPathFormulaManager();
       Formula inductions = fmgr.makeTrue();
@@ -347,7 +364,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         
         // Create (A & B)
         PathFormula pathFormulaAB = extractElementByType(lastcutPointState, PredicateAbstractElement.class).getPathFormula();
-        Formula formulaAB = pathFormulaAB.getFormula();
+        Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
         assert (!prover.isUnsat(formulaAB));
 
         // Create C
@@ -381,6 +398,42 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
+  private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr) throws CPAException {
+    stats.invariantGeneration.start();
+    try {
+      
+      ConfigurableProgramAnalysis invariantCPAs;
+      try {
+        Configuration config = Configuration
+                               .builder()
+                               .setOption("CompositeCPA.cpas", LocationCPA.class.getCanonicalName() + ", " + InvariantsCPA.class.getCanonicalName())
+                               .build();
+        invariantCPAs = new CPABuilder(config, logger).buildCPAs();
+      } catch (InvalidConfigurationException e) {
+        throw new AssertionError(e);
+      }
+      
+      ReachedSet reached = reachedSetFactory.create();
+      reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
+      
+      Algorithm invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
+      
+      invariantAlgorithm.run(reached);
+      
+      // reached.getReached(loc) may return a super-set of the set we're interested in, filter it
+      Iterable<AbstractElement> locStates = AbstractElements.filterLocation(reached.getReached(loc), loc);
+      
+      AbstractElement locState = Iterables.getOnlyElement(locStates);
+      
+      InvariantsElement intervalElement = extractElementByType(locState, InvariantsElement.class);
+
+      return intervalElement.getFormulaApproximation(fmgr);
+    
+    } finally {
+      stats.invariantGeneration.start();
+    }
+  }
+  
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return algorithm.getCPA();
