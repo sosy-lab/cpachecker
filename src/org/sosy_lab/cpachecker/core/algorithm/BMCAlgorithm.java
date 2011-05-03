@@ -28,7 +28,6 @@ import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.IS_TARGET_ELEMENT;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
-import static org.sosy_lab.cpachecker.util.AbstractElements.filterLocation;
 import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
 
 import java.io.PrintStream;
@@ -76,6 +75,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -303,6 +303,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
       algorithm.run(reached);
 
+      Multimap<CFANode, AbstractElement> reachedPerLocation = Multimaps.index(reached, AbstractElements.EXTRACT_LOCATION);
+
       // live view of reached set with only the elements in the loop
       Iterable<AbstractElement> loopStates = Iterables.filter(reached, new Predicate<AbstractElement>() {
         @Override
@@ -326,7 +328,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         // filter out exit edges that do not lead to a target state, we don't care about them
         {
           CFANode exitLocation = outgoingEdge.getSuccessor();
-          Iterable<AbstractElement> exitStates = filterLocation(reached, exitLocation);
+          Iterable<AbstractElement> exitStates = reachedPerLocation.get(exitLocation);
           ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
           
           // the states reachable from the exit edge
@@ -337,15 +339,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
         }
         stats.inductionCutPoints++;
-        logger.log(Level.INFO, "Considering exit edge", outgoingEdge);
+        logger.log(Level.FINEST, "Considering exit edge", outgoingEdge);
 
         CFANode cutPoint = outgoingEdge.getPredecessor();
-        Iterable<AbstractElement> cutPointStates = filterLocation(reached, cutPoint);
+        Iterable<AbstractElement> cutPointStates = reachedPerLocation.get(cutPoint);
         AbstractElement lastcutPointState = Iterables.getLast(cutPointStates);
         
         // Create (A & B)
         PathFormula pathFormulaAB = extractElementByType(lastcutPointState, PredicateAbstractElement.class).getPathFormula();
         Formula formulaAB = pathFormulaAB.getFormula();
+        assert (!prover.isUnsat(formulaAB));
 
         // Create C
         PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
