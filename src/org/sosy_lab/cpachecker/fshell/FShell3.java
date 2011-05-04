@@ -151,7 +151,6 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
             if (mFeasibilityInformationOutputFile != null) {
               try {
                 if (mTestSuiteOutputFile != null) {
-                  // TODO make append configurable
                   lTestSuite = new LoggingTestSuite(lTestSuite, mTestSuiteOutputFile, mDoAppendingLogging);
                   
                   lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
