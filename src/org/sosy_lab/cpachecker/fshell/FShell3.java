@@ -127,8 +127,6 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
               lTestSuite = TestSuite.load(lFeasibilityInformation.getTestsuiteFilename());
               
               mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
-              
-              //mIncrementalARTReusingTestGenerator.load(mFeasibilityInformationInputFile);
             } catch (Exception e) {
               throw new RuntimeException(e);
             }
@@ -153,15 +151,13 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
               if (mTestSuiteOutputFile != null) {
                 lTestSuite.write(mTestSuiteOutputFile);
                 lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
-                //mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile, mTestSuiteOutputFile);
               }
               else {
                 File lCWD = new java.io.File( "." );
                 File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
                 
                 lTestSuite.write(lTestSuiteFile);
-                lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());
-                //mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile);  
+                lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
               }
               
               lFeasibilityInformation.write(mFeasibilityInformationOutputFile);
