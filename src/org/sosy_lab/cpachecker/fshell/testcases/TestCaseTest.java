@@ -7,6 +7,7 @@ import java.util.Collection;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fshell.Main;
 
 public class TestCaseTest {
 
@@ -70,6 +71,21 @@ public class TestCaseTest {
   @Test
   public void testCombination() throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     NondetToInput.fshell2("test/programs/fql/locks/test_locks_15.c", "main", "COVER @BASICBLOCKENTRY", 3);
+  }
+  
+  @Test
+  public void testlocks15BB2() throws Exception {
+    String[] lArguments = new String[6];
+
+    lArguments[0] = Main.BASIC_BLOCK_2_COVERAGE;
+    lArguments[1] = "test/programs/fql/locks/test_locks_15.c";
+    lArguments[2] = "main";
+    lArguments[3] = "--withoutCilPreprocessing";
+    lArguments[4] = "--out=feasibility.fs3";
+    lArguments[5] = "--tout=testsuite.tst";
+    
+    Main.run(lArguments);
+    
   }
 
 }

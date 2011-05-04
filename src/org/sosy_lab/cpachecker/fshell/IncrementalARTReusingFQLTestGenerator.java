@@ -1,13 +1,7 @@
 package org.sosy_lab.cpachecker.fshell;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -65,6 +59,7 @@ import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.IncrementalCoverageSp
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
+import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
@@ -105,119 +100,24 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private int mMinIndex = 0;
   private int mMaxIndex = Integer.MAX_VALUE;
   
-  enum FeasibilityInformation {
-    FEASIBLE,
-    INFEASIBLE,
-    IMPRECISE,
-    UNKNOWN
-  }
-  
-  private final Map<Integer, FeasibilityInformation> mFeasibilityInformation;
+  private FeasibilityInformation mFeasibilityInformation;
+  private TestSuite mTestSuite;
   
   public void setGoalIndices(int pMinIndex, int pMaxIndex) {
     mMinIndex = pMinIndex;
     mMaxIndex = pMaxIndex;
   }
   
-  public void write() throws IOException {
-    File lCWD = new java.io.File( "." );
-    File lFeasibilityFile = File.createTempFile("feasibility", ".fs3", lCWD);
-    
-    write(lFeasibilityFile);
+  public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
+    mFeasibilityInformation = pFeasibilityInformation;
   }
   
-  public void write(String pFeasibilityFile) throws IOException {
-    write(new File(pFeasibilityFile));
+  public void setTestSuite(TestSuite pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    mTestSuite = pTestSuite;
+    seed(pTestSuite);
   }
   
-  public void write(String pFeasibilityFile, String pTestSuiteOutputFile) throws IOException {
-    write(new File(pFeasibilityFile), pTestSuiteOutputFile);
-  }
-  
-  public void write(File pFeasibilityFile) throws IOException {
-    File lCWD = new java.io.File( "." );
-    File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
-    
-    write(pFeasibilityFile, lTestSuiteFile.getCanonicalPath());
-  }
-  
-  public void write(File pFeasibilityFile, String pTestSuiteFile) throws FileNotFoundException {
-    TestCase.toFile(mGeneratedTestCases.keySet(), new File(pTestSuiteFile));
-    
-    PrintWriter lWriter = new PrintWriter(pFeasibilityFile);
-    
-    lWriter.println(pTestSuiteFile);
-    
-    /*
-     * We don't write information where UNKNOWN is the information we have.
-     */
-    for (Map.Entry<Integer, FeasibilityInformation> lEntry : mFeasibilityInformation.entrySet()) {
-      switch (lEntry.getValue()) {
-      case FEASIBLE:
-        lWriter.println(lEntry.getKey() + " f");
-        break;
-      case INFEASIBLE:
-        lWriter.println(lEntry.getKey() + " if");
-        break;
-      case IMPRECISE:
-        lWriter.println(lEntry.getKey() + " ip");
-        break;
-      }
-    }
-    
-    lWriter.close();
-  }
-  
-  public void load(String pFile) throws IOException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    load(new File(pFile));
-  }
-  
-  public void load(File pFile) throws IOException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    BufferedReader lReader = new BufferedReader(new FileReader(pFile));
-    String lLine;
-    
-    boolean lIsFirstLine = true;
-    
-    while ((lLine = lReader.readLine()) != null) {
-      lLine = lLine.trim();
-      
-      if (lLine.equals("")) {
-        continue;
-      }
-      
-      if (lIsFirstLine) {
-        lIsFirstLine = false;
-        
-        Collection<TestCase> lTestSuite = TestCase.fromFile(lLine);
-        
-        seed(lTestSuite);
-      }
-      else {
-        String[] lParts = lLine.split(" ");
-        
-        if (lParts.length != 2) {
-          throw new RuntimeException();
-        }
-        
-        Integer lGoalIndex = Integer.valueOf(lParts[0]);
-        
-        if (lParts[1].toLowerCase().equals("f")) {
-          mFeasibilityInformation.put(lGoalIndex, FeasibilityInformation.FEASIBLE);
-        }
-        else if (lParts[1].toLowerCase().equals("if")) {
-          mFeasibilityInformation.put(lGoalIndex, FeasibilityInformation.INFEASIBLE);
-        }
-        else if (lParts[1].toLowerCase().equals("ip")) {
-          mFeasibilityInformation.put(lGoalIndex, FeasibilityInformation.IMPRECISE);
-        }
-        else {
-          throw new RuntimeException();
-        }
-      }
-    }
-  }
-  
-  public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public void seed(Iterable<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     FQLSpecification lIdStarFQLSpecification;
     try {
       lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
@@ -329,7 +229,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
     
-    mFeasibilityInformation = new HashMap<Integer, FeasibilityInformation>();
+    //mFeasibilityInformation = new HashMap<Integer, FeasibilityInformation>();
   }
   
   @Override
@@ -425,8 +325,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         continue;
       }
       
-      if (mFeasibilityInformation.containsKey(lIndex)) {
-        System.out.println("Stored information: " + mFeasibilityInformation.get(lIndex));
+      if (mFeasibilityInformation.isKnown(lIndex)) {
+      //if (mFeasibilityInformation.containsKey(lIndex)) {
+        //System.out.println("Stored information: " + mFeasibilityInformation.get(lIndex));
+        System.out.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
         continue;
       }
       
@@ -486,7 +388,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       if (lIsCovered) {
         System.out.println("Goal #" + lIndex + " is covered by an existing test case!");
         
-        mFeasibilityInformation.put(lIndex, FeasibilityInformation.FEASIBLE);
+        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
         
         if (!pCheckReachWhenCovered) {
           lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
@@ -528,7 +430,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
         }
         
-        mFeasibilityInformation.put(lIndex, FeasibilityInformation.INFEASIBLE);
+        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
         
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
         
@@ -538,6 +440,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         lTimeCover.proceed();
         
         TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
+        
+        mTestSuite.add(lTestCase);
         
         if (lTestCase.isPrecise()) {
           CFAEdge[] lCFAPath = null;
@@ -567,22 +471,22 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             // we only add precise test cases for coverage analysis
             mGeneratedTestCases.put(lTestCase, lCFAPath);
             
-            mFeasibilityInformation.put(lIndex, FeasibilityInformation.FEASIBLE);
+            mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
           }
           else {
             System.err.println("Goal #" + lIndex + " lead to an imprecise execution!");
             
             lResultFactory.addImpreciseTestCase(lTestCase);
             
-            mFeasibilityInformation.put(lIndex, FeasibilityInformation.IMPRECISE);
+            mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
           }
         }
         else {
           System.out.println("Goal #" + lIndex + " is imprecise!");
           
-          lResultFactory.addImpreciseTestCase(lTestCase);
+          lResultFactory.addImpreciseTestCase(lTestCase);          
           
-          mFeasibilityInformation.put(lIndex, FeasibilityInformation.IMPRECISE);
+          mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
         }
         
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
@@ -617,7 +521,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       System.out.println(lTestCase);
     }
 
-    int lFeasibleGoals = 0;
+    /*int lFeasibleGoals = 0;
     int lInfeasibleGoals = 0;
     int lImpreciseGoals = 0;
     
@@ -637,6 +541,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     System.out.println("INTERN:");
     System.out.println("#Goals: " + pNumberOfTestGoals + ", #Feasible: " + lFeasibleGoals + ", #Infeasible: " + lInfeasibleGoals + ", #Imprecise: " + lImpreciseGoals);
+    */
   }
   
   private Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineLocalDifference(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton, NondeterministicFiniteAutomaton.State pPreviousState, NondeterministicFiniteAutomaton.State pCurrentState) {

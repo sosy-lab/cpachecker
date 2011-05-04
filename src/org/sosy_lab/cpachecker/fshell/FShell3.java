@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
+import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 
@@ -112,12 +113,37 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           
           mIncrementalARTReusingTestGenerator.setGoalIndices(mMinIndex, mMaxIndex);
           
+          FeasibilityInformation lFeasibilityInformation;
+          TestSuite lTestSuite;
+          
           if (mFeasibilityInformationInputFile != null) {
             try {
-              mIncrementalARTReusingTestGenerator.load(mFeasibilityInformationInputFile);
+              lFeasibilityInformation = FeasibilityInformation.load(mFeasibilityInformationInputFile);
+              
+              if (!lFeasibilityInformation.hasTestsuiteFilename()) {
+                throw new RuntimeException();
+              }
+              
+              lTestSuite = TestSuite.load(lFeasibilityInformation.getTestsuiteFilename());
+              
+              mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
+              
+              //mIncrementalARTReusingTestGenerator.load(mFeasibilityInformationInputFile);
             } catch (Exception e) {
               throw new RuntimeException(e);
             }
+          }
+          else {
+            lFeasibilityInformation = new FeasibilityInformation();
+            lTestSuite = new TestSuite();
+          }
+          
+          mIncrementalARTReusingTestGenerator.setFeasibilityInformation(lFeasibilityInformation);
+          try {
+            mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
+          }
+          catch (Exception e) {
+            throw new RuntimeException(e);
           }
           
           FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating); 
@@ -125,11 +151,20 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           if (mFeasibilityInformationOutputFile != null) {
             try {
               if (mTestSuiteOutputFile != null) {
-                mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile, mTestSuiteOutputFile);
+                lTestSuite.write(mTestSuiteOutputFile);
+                lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
+                //mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile, mTestSuiteOutputFile);
               }
               else {
-                mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile);  
+                File lCWD = new java.io.File( "." );
+                File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
+                
+                lTestSuite.write(lTestSuiteFile);
+                lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());
+                //mIncrementalARTReusingTestGenerator.write(mFeasibilityInformationOutputFile);  
               }
+              
+              lFeasibilityInformation.write(mFeasibilityInformationOutputFile);
             } catch (IOException e) {
               throw new RuntimeException(e);
             }
