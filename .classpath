@@ -26,5 +26,6 @@
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.osgi_3.5.2.R35x_v20100126.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
 	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/sigar.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

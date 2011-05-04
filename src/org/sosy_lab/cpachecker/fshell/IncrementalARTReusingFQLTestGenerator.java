@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.hyperic.sigar.Mem;
+import org.hyperic.sigar.Sigar;
+import org.hyperic.sigar.SigarException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.TimeAccumulator;
@@ -100,12 +103,23 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private int mMinIndex = 0;
   private int mMaxIndex = Integer.MAX_VALUE;
   
+  private boolean mDoRestart = false;
+  private long mRestartBound = 100000000; // 100 MB
+  
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
   
   public void setGoalIndices(int pMinIndex, int pMaxIndex) {
     mMinIndex = pMinIndex;
     mMaxIndex = pMaxIndex;
+  }
+  
+  public void doRestart() {
+    mDoRestart = true;
+  }
+  
+  public void setRestartBound(long pRestartBound) {
+    mRestartBound = pRestartBound;
   }
   
   public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
@@ -313,7 +327,27 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     int lIndex = 0;
     
+    boolean pHadProgress = false;
+    
     while (lGoalIterator.hasNext()) {
+      if (mDoRestart) {
+        try {
+          Sigar lSigar = new Sigar();
+          
+          Mem lMemory = lSigar.getMem();
+          
+          if (pHadProgress && lMemory.getFree() < mRestartBound) {
+            System.out.println("SHUTDOWN TEST GENERATION");
+            
+            lResultFactory.setUnfinished();
+            
+            break;
+          }
+        } catch (SigarException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      
       lIndex++;
       
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
@@ -331,6 +365,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         System.out.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
         continue;
       }
+      
+      pHadProgress = true;
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       

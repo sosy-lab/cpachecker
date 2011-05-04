@@ -49,7 +49,16 @@ public class Main {
   public static final String BASIC_BLOCK_NODES_3_COVERAGE = BASIC_BLOCK_NODES_2_COVERAGE + ".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   
   public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
-    run(pArguments);
+    FShell3Result lResult = run(pArguments);
+    
+    if (lResult.hasFinished()) {
+      // signal that test generation has finished
+      System.exit(0);
+    }
+    else {
+      // signal that test generation has not finished
+      System.exit(-1);
+    }
   }
   
   public static FShell3Result run(String[] pArguments) throws IOException, InvalidConfigurationException {

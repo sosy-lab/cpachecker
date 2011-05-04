@@ -57,6 +57,8 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private int mMaxIndex = Integer.MAX_VALUE;
   private boolean mDoLogging = false;
   private boolean mDoAppendingLogging = false;
+  private boolean mDoRestart = false;
+  private long mRestartBound = 100000000; // 100 MB
   
   public FShell3(String pSourceFileName, String pEntryFunction) {
     mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -66,6 +68,14 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
     
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
+  }
+  
+  public void doRestart() {
+    mDoRestart = true;
+  }
+  
+  public void setRestartBound(long pRestartBound) {
+    mRestartBound = pRestartBound;
   }
   
   public void setFeasibilityInformationOutputFile(String pFile) {
@@ -176,6 +186,11 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           }
           catch (Exception e) {
             throw new RuntimeException(e);
+          }
+          
+          if (mDoRestart) {
+            mIncrementalARTReusingTestGenerator.doRestart();
+            mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
           }
           
           FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating); 
