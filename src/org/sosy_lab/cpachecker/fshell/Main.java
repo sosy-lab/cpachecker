@@ -73,6 +73,8 @@ public class Main {
     String lFeasibilityInformationInputFile = null;
     String lFeasibilityInformationOutputFile = null;
     String lTestSuiteOutputFile = null;
+    boolean lDoLogging = false;
+    boolean lDoAppendingLogging = false;
 
     for (int lIndex = 3; lIndex < pArguments.length; lIndex++) {
       String lOption = pArguments[lIndex].trim();
@@ -96,6 +98,12 @@ public class Main {
       }
       else if (lOption.startsWith("--tout=")) {
         lTestSuiteOutputFile = lOption.substring("--tout=".length());
+      }
+      else if (lOption.equals("--logging")) {
+        lDoLogging = true;
+      }
+      else if (lOption.equals("--append")) {
+        lDoAppendingLogging = true;
       }
     }
     
@@ -129,6 +137,14 @@ public class Main {
     
     if (lTestSuiteOutputFile != null) {
       lFShell.setTestSuiteOutputFile(lTestSuiteOutputFile);
+    }
+    
+    if (lDoLogging) {
+      lFShell.doLogging();
+    }
+    
+    if (lDoAppendingLogging) {
+      lFShell.doAppendingLogging();
     }
     
     FShell3Result lResult = lFShell.run(lFQLSpecificationString);

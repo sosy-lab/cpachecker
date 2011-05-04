@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
+import org.sosy_lab.cpachecker.fshell.testcases.LoggingTestSuite;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
 import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
@@ -54,6 +55,8 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private String mTestSuiteOutputFile = null;
   private int mMinIndex = 0;
   private int mMaxIndex = Integer.MAX_VALUE;
+  private boolean mDoLogging = false;
+  private boolean mDoAppendingLogging = false;
   
   public FShell3(String pSourceFileName, String pEntryFunction) {
     mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -88,6 +91,14 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   
   public void setMaxIndex(int pIndex) {
     mMaxIndex = pIndex;
+  }
+
+  public void doLogging() {
+    mDoLogging = true;
+  }
+  
+  public void doAppendingLogging() {
+    mDoAppendingLogging = true;
   }
   
   public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
@@ -136,6 +147,30 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
             lTestSuite = new TestSuite();
           }
           
+          if (mDoLogging) {
+            if (mFeasibilityInformationOutputFile != null) {
+              try {
+                if (mTestSuiteOutputFile != null) {
+                  // TODO make append configurable
+                  lTestSuite = new LoggingTestSuite(lTestSuite, mTestSuiteOutputFile, mDoAppendingLogging);
+                  
+                  lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
+                }
+                else {
+                  File lCWD = new java.io.File( "." );
+                  File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
+                  lTestSuite = new LoggingTestSuite(lTestSuite, lTestSuiteFile.getCanonicalPath(), mDoAppendingLogging);
+                  
+                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+                }
+                
+                lFeasibilityInformation = new LoggingFeasibilityInformation(lFeasibilityInformation, mFeasibilityInformationOutputFile, mDoAppendingLogging);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          }
+          
           mIncrementalARTReusingTestGenerator.setFeasibilityInformation(lFeasibilityInformation);
           try {
             mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
@@ -146,23 +181,28 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           
           FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating); 
           
-          if (mFeasibilityInformationOutputFile != null) {
-            try {
-              if (mTestSuiteOutputFile != null) {
-                lTestSuite.write(mTestSuiteOutputFile);
-                lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
-              }
-              else {
-                File lCWD = new java.io.File( "." );
-                File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
+          if (mDoLogging) {
+            ((LoggingTestSuite)lTestSuite).close();
+            ((LoggingFeasibilityInformation)lFeasibilityInformation).close();
+          }
+          else {
+            if (mFeasibilityInformationOutputFile != null) {
+              try {
+                if (mTestSuiteOutputFile != null) {
+                  lTestSuite.write(mTestSuiteOutputFile);
+                  lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
+                }
+                else {
+                  File lCWD = new java.io.File( "." );
+                  File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
+                  lTestSuite.write(lTestSuiteFile);
+                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+                }
                 
-                lTestSuite.write(lTestSuiteFile);
-                lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+                lFeasibilityInformation.write(mFeasibilityInformationOutputFile);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
               }
-              
-              lFeasibilityInformation.write(mFeasibilityInformationOutputFile);
-            } catch (IOException e) {
-              throw new RuntimeException(e);
             }
           }
           

@@ -75,14 +75,17 @@ public class TestCaseTest {
   
   @Test
   public void testlocks15BB2() throws Exception {
-    String[] lArguments = new String[6];
+    String[] lArguments = new String[9];
 
     lArguments[0] = Main.BASIC_BLOCK_2_COVERAGE;
     lArguments[1] = "test/programs/fql/locks/test_locks_15.c";
     lArguments[2] = "main";
     lArguments[3] = "--withoutCilPreprocessing";
-    lArguments[4] = "--out=feasibility.fs3";
-    lArguments[5] = "--tout=testsuite.tst";
+    lArguments[4] = "--out=feasibility2.fs3";
+    lArguments[5] = "--tout=testsuite2.tst";
+    lArguments[6] = "--in=feasibility2.fs3";
+    lArguments[7] = "--logging";
+    lArguments[8] = "--append";
     
     Main.run(lArguments);
     
