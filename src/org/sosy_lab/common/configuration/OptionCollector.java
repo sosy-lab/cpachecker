@@ -25,6 +25,7 @@ package org.sosy_lab.common.configuration;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.Enumeration;
@@ -59,7 +60,7 @@ public class OptionCollector {
    * @param c class where to take the @Options from 
    * @param list list with collected options */
   private static void collectOptions(Class<?> c, List<String> list) {
-    for (final java.lang.reflect.Field field : c.getDeclaredFields()) {
+    for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
         StringBuilder optionInfo = new StringBuilder("");
@@ -67,22 +68,49 @@ public class OptionCollector {
         // get prefix from Options-annotation of class
         if (c.isAnnotationPresent(Options.class)) {
           final Options classOption = c.getAnnotation(Options.class);
-          if (!"".equals(classOption.prefix())) {
+          if (!classOption.prefix().isEmpty()) {
             optionInfo.append(classOption.prefix() + ".");
           }
         }
 
         // get info about option
         final Option option = field.getAnnotation(Option.class);
-        if ("".equals(option.name())) {
+        if (option.name().isEmpty()) {
           optionInfo.append(field.getName() + "\n");
         } else {
           optionInfo.append(option.name() + "\n");
         }
 
-        optionInfo.append("  field:     " + field + "\n");
-        optionInfo.append("  fieldname: " + field.getName() + "\n");
-        optionInfo.append("  type:      " + field.getType() + "\n");
+        optionInfo.append("  field:    " + field.getName() + "\n");
+        optionInfo.append("  class:    "
+            + field.getDeclaringClass().toString().substring(6) + "\n");
+        optionInfo.append("  type:     " + field.getType().getSimpleName()
+            + "\n");
+
+        if (field.getType() == int.class || field.getType() == long.class) {
+          optionInfo.append("  max:      " + option.max() + "\n");
+          optionInfo.append("  min:      " + option.min() + "\n");
+
+        } else if (field.getType().isEnum()) {
+          try {
+            final Field[] enums =
+                Class.forName(field.getType().toString().substring(6))
+                    .getFields();
+            final String[] enumTitles = new String[enums.length];
+            for (int i = 0; i < enums.length; i++) {
+              enumTitles[i] = enums[i].getName();
+            }
+            optionInfo.append("  allowed values (enum): "
+                + java.util.Arrays.toString(enumTitles) + "\n");
+          } catch (ClassNotFoundException e) {
+            // ignore, exception should not happen      
+          }
+        }
+
+        if (option.values().length != 0) {
+          optionInfo.append("  allowed values: "
+              + java.util.Arrays.toString(option.values()) + "\n");
+        }
 
         list.add(optionInfo.toString());
       }
