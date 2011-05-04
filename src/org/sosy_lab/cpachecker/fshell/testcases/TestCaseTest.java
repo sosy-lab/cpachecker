@@ -88,7 +88,20 @@ public class TestCaseTest {
     lArguments[8] = "--append";
     
     Main.run(lArguments);
+  }
+  
+  @Test
+  public void restart() throws Exception {
+    String[] lArguments = new String[6];
+
+    lArguments[0] = Main.BASIC_BLOCK_2_COVERAGE;
+    lArguments[1] = "test/programs/fql/locks/test_locks_15.c";
+    lArguments[2] = "main";
+    lArguments[3] = "--withoutCilPreprocessing";
+    lArguments[4] = "--restart";
+    lArguments[5] = "--restart-bound=3000000000";
     
+    Main.run(lArguments);
   }
 
 }

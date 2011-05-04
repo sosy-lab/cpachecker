@@ -84,6 +84,8 @@ public class Main {
     String lTestSuiteOutputFile = null;
     boolean lDoLogging = false;
     boolean lDoAppendingLogging = false;
+    boolean lDoRestart = false;
+    long lRestartBound = 100000000; // 100 MB
 
     for (int lIndex = 3; lIndex < pArguments.length; lIndex++) {
       String lOption = pArguments[lIndex].trim();
@@ -113,6 +115,13 @@ public class Main {
       }
       else if (lOption.equals("--append")) {
         lDoAppendingLogging = true;
+      }
+      else if (lOption.equals("--restart")) {
+        lDoRestart = true;
+      }
+      else if (lOption.startsWith("--restart-bound=")) {
+        String lTmp = lOption.substring("--restart-bound=".length());
+        lRestartBound = Long.valueOf(lTmp);
       }
     }
     
@@ -150,10 +159,15 @@ public class Main {
     
     if (lDoLogging) {
       lFShell.doLogging();
+      
+      if (lDoAppendingLogging) {
+        lFShell.doAppendingLogging();
+      }
     }
     
-    if (lDoAppendingLogging) {
-      lFShell.doAppendingLogging();
+    if (lDoRestart) {
+      lFShell.doRestart();
+      lFShell.setRestartBound(lRestartBound);
     }
     
     FShell3Result lResult = lFShell.run(lFQLSpecificationString);
