@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -51,32 +50,35 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Counterexample checker that creates a C program for the counterexample
  * and calls CBMC on it.
  */
-@Options(prefix="cbmc")
+@Options()
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final LogManager logger;
-  
+
   private final Timer cbmcTime = new Timer();
 
-  @Option(name="dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
+  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
+  private String mainFunctionName = "main";
+
+  @Option(name="cbmc.dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
-  
+
   @Option
   private int timelimit = 0; // milliseconds
-  
+
   public CBMCChecker(Map<String, CFAFunctionDefinitionNode> cfa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.cfa = cfa;
     this.logger = logger;
     config.inject(this);
   }
-  
+
   @Override
   public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
       Set<ARTElement> pErrorPathElements) throws CPAException {
-    
+
     String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
-    
+
     // write program to disk
     File cFile = CBMCFile;
     try {
@@ -95,15 +97,15 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     cbmcTime.start();
     CBMCExecutor cbmc;
     try {
-      cbmc = new CBMCExecutor(logger, cFile);
+      cbmc = new CBMCExecutor(logger, cFile, mainFunctionName);
       cbmc.join(timelimit);
-    
+
     } catch (IOException e) {
       throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
 
     } catch (TimeoutException e) {
       throw new CPAException("CBMC took too long to verify the counterexample");
-      
+
     } finally {
       cbmcTime.stop();
       logger.log(Level.FINER, "CBMC finished.");
