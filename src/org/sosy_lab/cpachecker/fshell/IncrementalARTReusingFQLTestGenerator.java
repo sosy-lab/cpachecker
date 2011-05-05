@@ -381,7 +381,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           TestCase lTestCase = lGeneratedTestCase.getKey();
           
           if (!lTestCase.isPrecise()) {
-            throw new RuntimeException();
+            //throw new RuntimeException();
+            continue; // don't use imprecise test cases for coverage
           }
           
           ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoalAutomaton, lGeneratedTestCase.getValue()); 
