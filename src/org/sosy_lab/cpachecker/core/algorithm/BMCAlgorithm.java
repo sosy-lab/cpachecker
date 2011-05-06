@@ -335,7 +335,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Finding invariants");
       Formula invariants = findInvariantsAt(loopHead, fmgr);
       invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
-      logger.log(Level.ALL, "Invariant:", invariants);
       
       // Create formulas
       PathFormulaManager pmgr = predCpa.getPathFormulaManager();
@@ -390,6 +389,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       stats.inductionCheck.start();
       sound = prover.isUnsat(inductions);
       stats.inductionCheck.stop();
+      
+      if (!sound && logger.wouldBeLogged(Level.ALL)) {
+        logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
+      }
      
       logger.log(Level.FINER, "Soundness after induction check:", sound);
     }
@@ -426,6 +429,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       AbstractElement locState = Iterables.getOnlyElement(locStates);
       
       InvariantsElement intervalElement = extractElementByType(locState, InvariantsElement.class);
+      logger.log(Level.ALL, "Invariant:", intervalElement);
 
       return intervalElement.getFormulaApproximation(fmgr);
     
