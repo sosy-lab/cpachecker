@@ -4,38 +4,40 @@
 
 <benchmark tool="cpachecker" timelimit="10" memlimit="2048">
 
+  <!-- recommended option "output.disable", as the CPAchecker output files 
+  are normally not interesting for benchmarks. -->
+  <option name="-setprop">output.disable=true</option>
+
+  <!-- Set the java heap size. -->
+  <option name="-heap">1000m</option>
+
+
   <test name="locks-lbe">
     <sourcefiles>
-      <include>test/programs/locks/*.c</include>
+
+      <!-- This option overrides the global option "-heap".
+      It is only valid for this sourcefiles-tag. -->
+      <option name="-heap">500m</option>
+
+      <include>test/programs/locks/*7.c</include>
+      <include>test/programs/locks/*8.c</include>
     </sourcefiles>
-    
-    <options>
-      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
-      <option name="-setprop">output.disable=true</option>
-      
-      <!-- Set the java heap size. -->
-      <option name="-heap">1000m</option>
-      
-      <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
-    </options>
-    
+
+    <sourcefiles>
+      <option name="-debug"></option>
+      <include>test/programs/locks/*1?.c</include>
+    </sourcefiles>
+
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>    
   </test>
+
 
   <test>
     <sourcefiles>
       <include>test/programs/locks/*.c</include>
     </sourcefiles>
-    
-    <options>
-      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
-      <option name="-setprop">output.disable=true</option>
-      
-      <!-- Set the java heap size. -->
-      <option name="-heap">1000m</option>
-      
-      <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
-    </options>
-    
+
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
   </test>
 
   <!-- Example columns from CPAchecker output -->
@@ -43,4 +45,5 @@
     <column title="total">time for CPAchecker</column>
     <column title="reached">reached set</column>
   </columns>
+
 </benchmark>

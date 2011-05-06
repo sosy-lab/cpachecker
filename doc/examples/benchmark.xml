@@ -34,17 +34,15 @@
       This is the list of command-line options passed to the model checker.
       The "name" attribute is mandatory, the content of the tag isn't.
      -->
-    <options>
       <option name="--32"/>
       <option name="--error-label">ERROR</option>
       <option name="--xml-ui"/>
-    </options>
   </test>
   
   <!-- Optional further tests -->
   <test>
     <sourcefiles><!-- ... --></sourcefiles>
-    <options><!-- ... --></options>
+    <option name="..."><!-- ... --></option>
   </test>
     
   <!--
