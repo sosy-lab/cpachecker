@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static com.google.common.base.Objects.firstNonNull;
-
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -118,7 +116,7 @@ enum InvariantsTransferRelation implements TransferRelation {
         IASTExpression operand1 = binExp.getOperand1();
         if (operand1 instanceof IASTIdExpression) {
           String var = getVarName((IASTIdExpression)operand1, edge);
-          SimpleInterval varValue = firstNonNull(element.get(var), SimpleInterval.infinite()); 
+          SimpleInterval varValue = element.get(var); 
             
           SimpleInterval value = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
           
@@ -209,7 +207,7 @@ enum InvariantsTransferRelation implements TransferRelation {
               if (varName.equals(rightHandVar)) {
                 // now we are sure it's really "a = a + ..."
                 
-                rightHandValue = firstNonNull(element.get(varName), SimpleInterval.infinite());
+                rightHandValue = element.get(varName);
                 SimpleInterval incrementValue = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE); 
                 
                 if (incrementValue.containsPositive()) {

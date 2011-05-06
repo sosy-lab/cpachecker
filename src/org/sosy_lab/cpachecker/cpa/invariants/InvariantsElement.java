@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 public class InvariantsElement implements AbstractElement, FormulaReportingElement {
 
@@ -51,7 +51,7 @@ public class InvariantsElement implements AbstractElement, FormulaReportingEleme
   }
   
   public SimpleInterval get(String var) {
-    return vars.get(var);
+    return firstNonNull(vars.get(var), SimpleInterval.infinite());
   }
   
   public Map<String, SimpleInterval> getIntervals() {
@@ -59,8 +59,22 @@ public class InvariantsElement implements AbstractElement, FormulaReportingEleme
   }
   
   InvariantsElement copyAndSet(String var, SimpleInterval value) {
-    if (value.equals(this.get(var))) {
+    SimpleInterval oldValue = vars.get(var);
+    
+    if (value.equals(oldValue)) {
       return this;
+    }
+    
+    if (!value.hasLowerBound() && !value.hasLowerBound()) {
+      // new value is (-INF, INF)
+      
+      if (oldValue != null) {
+        InvariantsElement result = new InvariantsElement(vars);
+        result.vars.remove(var);
+        return result;
+      } else {
+        return this;
+      }
     }
     
     InvariantsElement result = new InvariantsElement(vars);
@@ -108,6 +122,6 @@ public class InvariantsElement implements AbstractElement, FormulaReportingEleme
   
   @Override
   public String toString() {
-    return Joiner.on(", ").withKeyValueSeparator("=").join(Maps.filterValues(vars, SimpleInterval.HAS_BOUNDS));
+    return Joiner.on(", ").withKeyValueSeparator("=").join(vars);
   }
 }
