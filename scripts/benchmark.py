@@ -471,13 +471,14 @@ class OutputHandler:
         """
 
         numberOfTest = self.benchmark.tests.index(self.test) + 1
+        testOptions = mergeOptions(self.benchmark.options, self.test.options)
         if self.test.name is None:
             testInfo = ""
         else:
             testInfo = self.test.name + "\n" 
         testInfo += "test {0} of {1} with options: {2}\n\n".format(
                 numberOfTest, len(self.benchmark.tests),
-                " ".join(toSimpleList(self.test.options)))
+                " ".join(toSimpleList(testOptions)))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
