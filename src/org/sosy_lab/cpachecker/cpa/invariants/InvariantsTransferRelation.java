@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
@@ -74,12 +75,15 @@ enum InvariantsTransferRelation implements TransferRelation {
     InvariantsElement element = (InvariantsElement)pElement;
     
     switch (edge.getEdgeType()) {
-    case AssumeEdge:
     case BlankEdge:
     case FunctionReturnEdge:
     case ReturnStatementEdge:
       break;
 
+    case AssumeEdge:
+      element = handleAssume(element, (AssumeEdge)edge);
+      break;
+      
     case DeclarationEdge:
       element = handleDeclaration(element, (DeclarationEdge)edge);
       break;
@@ -96,7 +100,39 @@ enum InvariantsTransferRelation implements TransferRelation {
       throw new UnrecognizedCFAEdgeException(edge);
     }
     
-    return Collections.singleton(element);
+    if (element == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton(element);
+    }
+  }
+  
+  private InvariantsElement handleAssume(InvariantsElement element, AssumeEdge edge) throws UnrecognizedCCodeException {
+
+    // handle special case "a == i" where i is an integer literal
+    IASTExpression exp = edge.getExpression();
+    if (exp instanceof IASTBinaryExpression) {
+      IASTBinaryExpression binExp = (IASTBinaryExpression)exp;
+      
+      if (binExp.getOperator() == BinaryOperator.EQUALS) {
+        IASTExpression operand1 = binExp.getOperand1();
+        if (operand1 instanceof IASTIdExpression) {
+          String var = getVarName((IASTIdExpression)operand1, edge);
+          SimpleInterval varValue = firstNonNull(element.get(var), SimpleInterval.infinite()); 
+            
+          SimpleInterval value = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
+          
+          if (!varValue.intersectsWith(value)) {
+            // not a possible edge
+            return null;
+          } else {
+            element = element.copyAndSet(var, value);
+          }
+        }
+      }
+    }
+    
+    return element;
   }
   
   private InvariantsElement handleDeclaration(InvariantsElement element, DeclarationEdge edge) throws UnrecognizedCCodeException {

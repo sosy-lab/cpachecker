@@ -183,6 +183,50 @@ class SimpleInterval {
         && (this.upperBound == null || this.upperBound.compareTo(other.upperBound) >= 0);
   }
   
+  public boolean intersectsWith(SimpleInterval other) {
+    if (this == other) {
+      return true;
+    }
+    
+    if (this.lowerBound == null) {
+      if (this.upperBound == null || other.lowerBound == null)  {
+        return true;
+      } else {
+        // this is (-INF, a]; other is [b, ?)
+        // result is true if a >= b
+        return this.upperBound.compareTo(other.lowerBound) >= 0;
+      }
+
+    } else if (this.upperBound == null) {
+      if (other.upperBound == null) {
+        return true;
+      } else {
+        // this is [a, INF); other is (?, b]
+        // result is true if a <= b
+        return this.lowerBound.compareTo(other.upperBound) <= 0;
+      }
+      
+    } else {
+      if (other.lowerBound == null && other.upperBound == null) {
+        // this is [a, b]; other is (-INF, INF)
+        return true;
+      } else if (other.lowerBound == null) {
+        // this is [a, b]; other is (-INF, c]
+        // result is true if a <= c
+        return this.lowerBound.compareTo(other.upperBound) <= 0;
+      } else if (other.upperBound == null) {
+        // this is [a, b]; other is [c, INF)
+        // result is true if b >= c
+        return this.upperBound.compareTo(other.lowerBound) >= 0;
+      } else {
+        // this is [a, b]; other is [c, d]
+        // result is true if a <= d or b >= c
+        return this.lowerBound.compareTo(other.upperBound) <= 0
+            || this.upperBound.compareTo(other.lowerBound) >= 0;
+      }
+    }
+  }
+  
   static Predicate<SimpleInterval> HAS_BOUNDS = new Predicate<SimpleInterval>() {
     @Override
     public boolean apply(SimpleInterval pArg0) {
