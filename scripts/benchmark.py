@@ -72,6 +72,9 @@ class Benchmark:
         # get columns
         self.columns = self.loadColumns(root.find("columns"))
 
+        # get global options
+        self.options = getOptions(root)
+
 
     def loadColumns(self, columnsTag):
         """
@@ -135,15 +138,13 @@ class Test:
                     while file in currentSourcefiles:
                         currentSourcefiles.remove(file)
 
-            # collect all sourcefiles from all sourcefilesTags
-            self.sourcefiles += currentSourcefiles
+            # collect all sourcefiles from all sourcefilesTags 
+            # and store file-specific options with filename
+            fileOptions = getOptions(sourcefilesTag)
+            self.sourcefiles += [(file, fileOptions) for file in currentSourcefiles]
 
-        # get all options
-        self.options = []
-        for option in testTag.find("options").findall("option"):
-            self.options.append(option.get("name"))
-            if option.text is not None:
-                self.options.append(option.text)
+        # get all test-specific options from testTag
+        self.options = getOptions(testTag)
 
 
     def getFileList(self, shortFile):
@@ -436,13 +437,14 @@ class OutputHandler:
 
         # length of the first column in terminal
         self.maxLengthOfFileName = 20
-        for sourcefile in self.test.sourcefiles:
+        for (sourcefile, _) in self.test.sourcefiles:
             self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
 
         # store testname and options in XML, 
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
-        self.testElem.set("options", " ".join(self.test.options))
+        testOptions = mergeOptions(self.benchmark.options, self.test.options)
+        self.testElem.set("options", " ".join(toSimpleList(testOptions)))
         if self.test.name is not None:
             self.testElem.set("name", self.test.name)
 
@@ -474,7 +476,8 @@ class OutputHandler:
         else:
             testInfo = self.test.name + "\n" 
         testInfo += "test {0} of {1} with options: {2}\n\n".format(
-                numberOfTest, len(self.benchmark.tests), " ".join(self.test.options))
+                numberOfTest, len(self.benchmark.tests),
+                " ".join(toSimpleList(self.test.options)))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
@@ -485,13 +488,13 @@ class OutputHandler:
         self.TXTFile.append("\n\n" + testInfo + titleLine + "\n" + self.test.simpleLine)
 
 
-    def outputBeforeRun(self, sourcefile):
+    def outputBeforeRun(self, sourcefile, currentOptions):
         """
         The method outputBeforeRun() prints the name of a file to terminal.
         @param sourcefile: the name of a sourcefile
         """
 
-        options = " ".join(self.test.options)
+        options = " ".join(currentOptions)
         logging.debug("I'm running '{0} {1} {2}'.".format(
             self.getToolnameForPrinting(), options, sourcefile))
 
@@ -500,7 +503,8 @@ class OutputHandler:
         sys.stdout.flush()
 
 
-    def outputAfterRun(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, output):
+    def outputAfterRun(self, sourcefile, fileOptions, status,
+                       cpuTimeDelta, wallTimeDelta, output):
         """
         The method outputAfterRun() prints filename, result, time and status 
         of a test to terminal and stores all data in XML 
@@ -537,6 +541,8 @@ class OutputHandler:
 
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile})
+        if len(fileOptions) != 0:
+            fileElem.set("options", " ".join(toSimpleList(fileOptions)))
         fileElem.append(ET.Element("column", {"title": "status", "value": status}))
         fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
         fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
@@ -653,6 +659,52 @@ class OutputHandler:
         return fileName + fileExtension
 
 
+def getOptions(optionsTag):
+    '''
+    This function searches for options in a tag 
+    and returns a dictionary with the names and values.
+    '''
+    return dict([(option.get("name"), option.text) 
+               for option in optionsTag.findall("option")])
+
+
+def mergeOptions(benchmarkOptions, testOptions, fileOptions=dict()):
+    '''
+    This function merges dicts of options.
+    If a option is part of several dicts, the last value is taken.
+    '''
+
+    currentOptions = dict()
+
+    # copy global options
+    for opt in benchmarkOptions:
+        currentOptions[opt] = benchmarkOptions[opt]
+
+    # insert testOptions, override existing options
+    for opt in testOptions:
+        currentOptions[opt] = testOptions[opt]
+
+    # insert fileOptions, override existing options
+    for opt in fileOptions:
+        currentOptions[opt] = fileOptions[opt]
+
+    return currentOptions
+
+
+def toSimpleList(dict):
+    '''
+    This function converts a dictionary to a list. 
+    Each pair of key and value is divided into 2 listelements.
+    All "None"-values are removed.
+    '''
+    simpleList = []
+    for key in dict:
+        simpleList.append(key)
+        if dict[key] is not None:
+            simpleList.append(dict[key])
+    return simpleList
+
+
 def XMLtoString(elem):
         """
         Return a pretty-printed XML string for the Element.
@@ -728,14 +780,15 @@ def run(args, rlimits):
     from threading import Timer
     if (0 in rlimits): # 0 is key of timelimit
         timelimit = rlimits[0][0]
-        t = Timer(timelimit + 10, subprocess.Popen.terminate, [p])
-        t.start()
+        global timer # "global" for KeyboardInterrupt from user
+        timer = Timer(timelimit + 10, subprocess.Popen.terminate, [p])
+        timer.start()
 
     output = p.stdout.read()
     returncode = p.wait()
     
-    if (0 in rlimits) and t.isAlive():
-        t.cancel()
+    if (0 in rlimits) and timer.isAlive():
+        timer.cancel()
 
     wallTimeAfter = time.time()
     wallTimeDelta = wallTimeAfter - wallTimeBefore
@@ -941,16 +994,18 @@ def runBenchmark(benchmarkFile):
 
         outputHandler.outputBeforeTest(test)
 
-        for sourcefile in test.sourcefiles:
+        for (sourcefile, fileOptions) in test.sourcefiles:
 
-            outputHandler.outputBeforeRun(sourcefile)
+            currentOptions = toSimpleList(mergeOptions(
+                                benchmark.options, test.options, fileOptions))
+            outputHandler.outputBeforeRun(sourcefile, currentOptions)
 
             # run test
             (status, cpuTimeDelta, wallTimeDelta, output) = \
-                run_func(test.options, sourcefile, benchmark.columns, benchmark.rlimits)
+                run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
 
-            outputHandler.outputAfterRun(sourcefile, status, cpuTimeDelta,
-                                         wallTimeDelta, output)
+            outputHandler.outputAfterRun(sourcefile, fileOptions, status,
+                                         cpuTimeDelta, wallTimeDelta, output)
 
         # get times after test
         wallTimeAfter = time.time()
@@ -1005,6 +1060,7 @@ if __name__ == "__main__":
     except LookupError as e:
         print e
     except KeyboardInterrupt:
+        timer.cancel() # Timer, that kills a subprocess after timelimit
         interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
 
