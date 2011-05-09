@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -34,12 +36,19 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
  */
 public class InvariantsCPA extends AbstractCPA {
 
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(InvariantsCPA.class);
+  @Options(prefix="cpa.invariants")
+  public static class InvariantsOptions {
+    
+    @Option(values={"JOIN", "SEP"}, toUppercase=true)
+    private String merge = "JOIN";
   }
   
-  public InvariantsCPA() {
-    super("join", "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(InvariantsCPA.class).withOptions(InvariantsOptions.class);
+  }
+  
+  public InvariantsCPA(InvariantsOptions options) {
+    super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
   }
   
   @Override

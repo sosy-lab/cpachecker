@@ -271,6 +271,9 @@ cpa.explicit.merge = sep
 # ExplicitCPA (0 means infinitely)
 cpa.explicit.threshold = 0
 
+# which merge operator to use for InvariantCPA (join or sep)
+cpa.invariants.merge = join
+
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled,
 # because otherwise it would be unsound
