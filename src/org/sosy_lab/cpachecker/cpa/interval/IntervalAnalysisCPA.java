@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -47,17 +47,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
 {
-  private static class IntervalAnalysisCPAFactory extends AbstractCPAFactory
-  {
-    /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.core.interfaces.CPAFactory#createInstance()
-     */
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException
-    {
-      return new IntervalAnalysisCPA(getConfiguration());
-    }
-  }
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -66,7 +55,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
    */
   public static CPAFactory factory()
   {
-    return new IntervalAnalysisCPAFactory();
+    return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
   }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})

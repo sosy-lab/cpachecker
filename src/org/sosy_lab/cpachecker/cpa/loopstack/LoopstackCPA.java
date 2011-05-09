@@ -42,8 +42,7 @@ public class LoopstackCPA extends AbstractCPA {
   }
   
   public LoopstackCPA(Configuration config) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", new LoopstackTransferRelation());
-    config.inject(getTransferRelation());
+    super("sep", "sep", new LoopstackTransferRelation(config));
   }
   
   @Override

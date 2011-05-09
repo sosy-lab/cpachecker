@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -36,16 +36,8 @@ import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
-  private static class SimpleMustMayAnalysisCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new SimpleMustMayAnalysisCPA(getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new SimpleMustMayAnalysisCPAFactory();
+    return AutomaticCPAFactory.forType(SimpleMustMayAnalysisCPA.class);
   }
 
   private final MustMayAnalysisCPA mMustMayAnalysisCPA;
