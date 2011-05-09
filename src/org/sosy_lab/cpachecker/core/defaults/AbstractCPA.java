@@ -51,14 +51,14 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
 
-    if (mergeType.equals("join")) {
+    if (mergeType.equalsIgnoreCase("join")) {
       mergeOperator = new MergeJoinOperator(abstractDomain);
     } else {
-      assert mergeType.equals("sep");
+      assert mergeType.equalsIgnoreCase("sep");
       mergeOperator = MergeSepOperator.getInstance();
     }
 
-    assert stopType.equals("sep");
+    assert stopType.equalsIgnoreCase("sep");
     stopOperator = new StopSepOperator(abstractDomain);
 
     this.transferRelation = transfer;
