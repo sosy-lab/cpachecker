@@ -423,15 +423,17 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       
       invariantAlgorithm.run(reached);
       
-      // reached.getReached(loc) may return a super-set of the set we're interested in, filter it
-      Iterable<AbstractElement> locStates = AbstractElements.filterLocation(reached.getReached(loc), loc);
+      Formula invariant = fmgr.makeFalse();
       
-      AbstractElement locState = Iterables.getOnlyElement(locStates);
+      for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
       
-      InvariantsElement intervalElement = extractElementByType(locState, InvariantsElement.class);
-      logger.log(Level.ALL, "Invariant:", intervalElement);
+        InvariantsElement intervalElement = extractElementByType(locState, InvariantsElement.class);
+        logger.log(Level.ALL, "Invariant:", intervalElement);
 
-      return intervalElement.getFormulaApproximation(fmgr);
+        invariant = fmgr.makeOr(invariant, intervalElement.getFormulaApproximation(fmgr));
+      }
+      return invariant;
+
     
     } finally {
       stats.invariantGeneration.start();
