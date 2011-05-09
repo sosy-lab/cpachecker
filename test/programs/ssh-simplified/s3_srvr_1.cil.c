@@ -717,7 +717,7 @@ int ssl3_accept(int initial_state )
                                                                             } else {
 #line 544
                                                                               if (blastFlag == 5) {
-                                                                                ERR();
+                                                                                goto ERROR;
                                                                               }
                                                                             }
 #line 550
@@ -840,17 +840,12 @@ int ssl3_accept(int initial_state )
   }
 #line 661
   return (ret);
-  //ERROR: 
+  ERROR: 
 #line 663
-  //return (-1);
+  return (-1);
 }
 }
 
-void ERR(){
-   ERROR:
-   printf("error");
-   return (-1);
-}
 #line 666 "s3_srvr_1.cil.c"
 int main(void) 
 { int s ;
