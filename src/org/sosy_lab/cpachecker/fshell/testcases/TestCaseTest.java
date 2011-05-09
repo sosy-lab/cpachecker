@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.MultiprocessFShell3;
 
 public class TestCaseTest {
 
@@ -102,6 +103,18 @@ public class TestCaseTest {
     lArguments[5] = "--restart-bound=3000000000";
     
     Main.run(lArguments);
+  }
+  
+  @Test
+  public void multiprocess() throws Exception {
+    String[] lArguments = new String[6];
+
+    lArguments[0] = Main.BASIC_BLOCK_2_COVERAGE;
+    lArguments[1] = "test/programs/fql/locks/test_locks_15.c";
+    lArguments[2] = "main";
+    lArguments[3] = "2";
+    
+    MultiprocessFShell3.main(lArguments);
   }
 
 }

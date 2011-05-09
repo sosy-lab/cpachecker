@@ -38,15 +38,16 @@ public class RestartingFShell3 {
         "lib/eclipse/org.hamcrest.core_1.1.0.v20090501071000.jar:" +
         "lib/json_simple-1.1.jar");
     lCommand.add(Main.class.getName());
-    /*lCommand.add(Main.BASIC_BLOCK_2_COVERAGE);
-    lCommand.add("test/programs/fql/ssh-simplified/s3_clnt_1_BUG.2.cil.c");
-    lCommand.add("main");*/
     lCommand.add(lCoverageSpecification);
     lCommand.add(lCSourceFilename);
     lCommand.add(lEntryFunction);
     lCommand.add("--withoutCilPreprocessing");
     lCommand.add("--restart");
     lCommand.add("--restart-bound=100000000");
+    
+    for (int lIndex = 3; lIndex < args.length; lIndex++) {
+      lCommand.add(args[lIndex]);
+    }
     
     
     File lFeasibilityFile = File.createTempFile("feasibility", ".fs3");
