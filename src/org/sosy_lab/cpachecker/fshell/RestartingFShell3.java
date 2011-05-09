@@ -15,7 +15,7 @@ public class RestartingFShell3 {
     
     LinkedList<String> lCommand = new LinkedList<String>();
     lCommand.add("java");
-    lCommand.add("-Djava.library.path=lib/native/x86-linux");
+    lCommand.add("-Djava.library.path=" + System.getProperty("java.library.path"));
     lCommand.add("-cp");
     lCommand.add(".:bin:" +
         "lib/sigar.jar:" +
