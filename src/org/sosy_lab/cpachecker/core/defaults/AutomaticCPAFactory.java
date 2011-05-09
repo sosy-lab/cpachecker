@@ -92,7 +92,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     Object actualParameters[] = new Object[formalParameters.length];
     for (int i = 0; i < formalParameters.length; i++) {
       Class<?> formalParam = formalParameters[i];
-      Object actualParam = injects.get(formalParam);
+      Object actualParam = get(formalParam);
 
       boolean optional = false;
       for (Annotation a : parameterAnnotations[i]) {
@@ -149,10 +149,14 @@ public class AutomaticCPAFactory implements CPAFactory {
     Preconditions.checkState(!injects.containsKey(cls),
         "Cannot store two objects of class " + cls.getSimpleName());
 
-    injects.put(cls, obj);
+    injects.putInstance(cls, obj);
     return this;
   }
 
+  public <T> T get(Class<T> cls) {
+    return injects.getInstance(cls);
+  }
+  
   @Override
   public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren)
       throws UnsupportedOperationException {
