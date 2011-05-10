@@ -215,6 +215,9 @@ cbmc.continueAfterInfeasibleError = true
 # A temporary file is used if this is unspecified.
 cbmc.dumpCBMCfile = 
 
+# maximum time limit for CBMC (0 is infinite)
+cbmc.timelimit =
+
 # Which refinement algorithm to use? (give class name, required for CEGAR)
 # If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be omitted.
 cegar.refiner =

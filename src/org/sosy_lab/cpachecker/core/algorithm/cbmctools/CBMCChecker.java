@@ -64,7 +64,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   @Option(name="cbmc.dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
   private File CBMCFile;
 
-  @Option
+  @Option(name="cbmc.timelimit")
   private int timelimit = 0; // milliseconds
 
   public CBMCChecker(Map<String, CFAFunctionDefinitionNode> cfa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
