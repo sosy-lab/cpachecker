@@ -65,7 +65,9 @@ def errorpath2list(errpathfile):
 def call_dot(path, filename, out=None):
     (basefilename, ext) = os.path.splitext(filename)
     out = (out or basefilename) + '.svg'
-    os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (path, out, filename))
+    code = os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (path, out, filename))
+    if code != 0:
+        print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (out, code)
 
 def main():
 
