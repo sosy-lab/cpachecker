@@ -2,6 +2,7 @@
 from __future__ import with_statement #for python 2.5
 import os
 import re
+import sys
 import time
 import shutil
 import optparse
@@ -40,27 +41,6 @@ class Template(object):
                 self.outfile.write(line[match.end():])
             else:
                 self.outfile.write(line)
-          
-TRANSITION_REGEX = re.compile("Line ([0-9]+): \(N([0-9]+) -\{(.*?)\}-> N([0-9]+)\)\r?\n?")
-
-def errorpath2list(errpathfile):
-    print 'Converting errorpath to JSON'
-    jsonpath = []
-    if os.path.isfile(errpathfile):
-        for transition in open(errpathfile):
-            match = TRANSITION_REGEX.match(transition)
-            if not match:
-                print 'Warning: line did not match pattern: ' + transition
-            else:
-                jsonpath.append(
-                    dict(
-                        line=int(match.group(1)),
-                        source=int(match.group(2)),
-                        target=int(match.group(4)),
-                        desc=match.group(3),
-                    )
-                )    
-    return jsonpath
 
 def call_dot(infile, outpath):
     (basefilename, ext) = os.path.splitext(os.path.basename(infile))
@@ -68,6 +48,8 @@ def call_dot(infile, outpath):
     code = os.system('dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (outfile, infile))
     if code != 0:
         print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (outfile, code)
+        print 'Report generation failed'
+        sys.exit(1)
 
 def main():
 
@@ -136,14 +118,6 @@ def main():
     conffile = options.conffile or os.path.join(cpacheckerdir, 'test', 'config', 'symbpredabsCPA.properties')
     cilfile = args[0]
     time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
-    
-    #if there is an ART.dot create an SVG in the report dir
-    if os.path.isfile(artfilepath):
-        print 'Generating SVG for ART'
-        call_dot(artfilepath, reportdir)
-    
-    inf = open(tplfilepath, 'r')
-    outf = open(outfilepath, 'w')
 
     def filecontents(filepath, encode=False, fallback=None):
         def inner():
@@ -161,9 +135,6 @@ def main():
                 else:
                     return fp.read()
         return inner
-
-    def gen_errorpath():
-        return json.dumps(errorpath2list(errorpath), indent=4)
 
     def gen_functionlist():
         funclist = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
@@ -191,13 +162,20 @@ def main():
                     )
                 buff.append('</table>')
                 return ''.join(buff)
-            
+
+    #if there is an ART.dot create an SVG in the report dir
+    if os.path.isfile(artfilepath):
+        print 'Generating SVG for ART'
+        call_dot(artfilepath, reportdir)
+
+    inf = open(tplfilepath, 'r')
+    outf = open(outfilepath, 'w')
+
     t = Template(inf, outf)
     t.render(
         logfile=filecontents(logfile, encode=True),
         statistics=gen_stats(),
         conffile=filecontents(conffile, encode=True),
-        #errorpath=gen_errorpath,
         errorpath=filecontents(errorpath, fallback='[]'),
         functionlist=gen_functionlist,
         combinednodes=filecontents(combinednodes),
@@ -213,4 +191,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
