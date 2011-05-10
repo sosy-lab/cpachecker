@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.common.configuration;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
@@ -35,10 +38,10 @@ import java.util.List;
 /** This class collects all @Options of CPAchecker. */
 public class OptionCollector {
 
-  /** The main-method collects all classes of CPAchecker and 
+  /** The main-method collects all classes of CPAchecker and
    * then it searches for all @Options.
    * @param args not used */
-  public static void main(String[] args) {
+  public static void main(final String[] args) {
     final LinkedList<String> list = new LinkedList<String>();
 
     try {
@@ -56,10 +59,10 @@ public class OptionCollector {
     }
   }
 
-  /** This method collects all @Options of a class. 
-   * @param c class where to take the @Options from 
+  /** This method collects all @Options of a class.
+   * @param c class where to take the @Options from
    * @param list list with collected options */
-  private static void collectOptions(Class<?> c, List<String> list) {
+  private static void collectOptions(final Class<?> c, final List<String> list) {
     for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
@@ -84,44 +87,136 @@ public class OptionCollector {
         optionInfo.append("  field:    " + field.getName() + "\n");
         optionInfo.append("  class:    "
             + field.getDeclaringClass().toString().substring(6) + "\n");
-        optionInfo.append("  type:     " + field.getType().getSimpleName()
-            + "\n");
 
-        if (field.getType() == int.class || field.getType() == long.class) {
-          optionInfo.append("  max:      " + option.max() + "\n");
-          optionInfo.append("  min:      " + option.min() + "\n");
+        final String simpleType = field.getType().getSimpleName();
+        optionInfo.append("  type:     " + simpleType + "\n");
 
-        } else if (field.getType().isEnum()) {
-          try {
-            final Field[] enums =
-                Class.forName(field.getType().toString().substring(6))
-                    .getFields();
-            final String[] enumTitles = new String[enums.length];
-            for (int i = 0; i < enums.length; i++) {
-              enumTitles[i] = enums[i].getName();
-            }
-            optionInfo.append("  allowed values (enum): "
-                + java.util.Arrays.toString(enumTitles) + "\n");
-          } catch (ClassNotFoundException e) {
-            // ignore, exception should not happen      
-          }
+        if (simpleType.equals("boolean") || simpleType.equals("String")) {
+          optionInfo.append(getDefaultValue(field));
         }
-
-        if (option.values().length != 0) {
-          optionInfo.append("  allowed values: "
-              + java.util.Arrays.toString(option.values()) + "\n");
-        }
+        optionInfo.append(getAllowedValues(field.getType(), option));
 
         list.add(optionInfo.toString());
       }
     }
   }
 
+  /** This function searches for the default field values of an Options
+   * in the sourcefile of the actual field/class and returns it
+   * or an emtpy String, if the value not found.
+   * 
+   * This part only works, if you have the source code of CPAchecker.
+   * 
+   * @param field where to get the default value */
+  private static String getDefaultValue(final Field field) {
+    String defaultValueLine = "";
+    String filename = "";
+    try {
+
+      // get filename of java-file
+      String cpacheckerPath = new File("").getCanonicalPath();
+      filename =
+          field.getDeclaringClass().toString().substring(6).replace(".", "/");
+
+      // encapsulated classes have a "$" in filename
+      if (filename.contains("$")) {
+        filename = filename.substring(0, filename.indexOf("$"));
+      }
+
+      // get content of file, filename is in '/src/' and ends with '.java'
+      final BufferedReader reader =
+          new BufferedReader(new InputStreamReader(new FileInputStream(
+              new File(cpacheckerPath + "/src/" + filename + ".java"))));
+      final StringBuilder contentOfFile = new StringBuilder();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        contentOfFile.append(line);
+      }
+      final String content = contentOfFile.toString();
+
+      // get declaration of field from file
+      // example fieldString: 'private boolean shouldCheck'
+      final String fieldString =
+          Modifier.toString(field.getModifiers()) + " "
+              + field.getType().getSimpleName() + " " + field.getName();
+
+      // search for fieldString and get the whole content after it (=rest),
+      // in 'rest' search for ';' and return all before it (=defaultValue)
+      if (content.contains(fieldString)) {
+        final String rest = content.substring(content.indexOf(fieldString));
+        String defaultValue =
+            rest.substring(fieldString.length(), rest.indexOf(";")).trim();
+
+        // remove unnecessary parts of field
+        if (defaultValue.startsWith("=")) {
+          defaultValue = defaultValue.substring(1);
+
+          // remove comments
+          while (defaultValue.contains("/*")) {
+            defaultValue =
+                defaultValue.substring(0, defaultValue.indexOf("/*"))
+                    + defaultValue.substring(defaultValue.indexOf("*/") + 2);
+          }
+          if (defaultValue.contains("//")) {
+            defaultValue =
+                defaultValue.substring(0, defaultValue.indexOf("//"));
+          }
+
+          // create output
+          if (!defaultValue.isEmpty()) {
+            defaultValueLine = "  default value: " + defaultValue.trim() + "\n";
+          }
+        }
+      }
+    } catch (IOException e) {
+      // if file not found or not readable, do nothing,
+      // default values are only additional information
+    }
+    return defaultValueLine;
+  }
+
+  /** This function return the allowed values or interval for a field.
+   * @param type the type of the field
+   * @param option the option-annotation of the field */
+  private static String getAllowedValues(final Class<?> type,
+      final Option option) {
+    String allowedValues = "";
+
+    // if the type is int, long or enum,
+    // the allowed values can be extracted from option or the enum-class
+    if (type == int.class || type == long.class) {
+      allowedValues =
+          "  interval: [" + option.min() + ", " + option.max() + "]\n";
+
+    } else if (type.isEnum()) {
+      try {
+        final Field[] enums =
+            Class.forName(type.toString().substring(6)).getFields();
+        final String[] enumTitles = new String[enums.length];
+        for (int i = 0; i < enums.length; i++) {
+          enumTitles[i] = enums[i].getName();
+        }
+        allowedValues =
+            "  enum:     " + java.util.Arrays.toString(enumTitles) + "\n";
+      } catch (ClassNotFoundException e) {
+        // ignore, exception should not happen
+      }
+    }
+
+    // sometimes the allowed values are part of the option-annotation
+    if (option.values().length != 0) {
+      allowedValues +=
+          "  allowed values: " + java.util.Arrays.toString(option.values())
+              + "\n";
+    }
+
+    return allowedValues;
+  }
+
   /**
-   * Scans all classes accessible from the context class loader which 
+   * Scans all classes accessible from the context class loader which
    * belong to the given package and subpackages.
    *
-   * @param packageName The base package
    * @return The classes
    * @throws IOException
    */
