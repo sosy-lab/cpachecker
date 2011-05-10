@@ -62,12 +62,12 @@ def errorpath2list(errpathfile):
                 )    
     return jsonpath
 
-def call_dot(path, filename, out=None):
-    (basefilename, ext) = os.path.splitext(filename)
-    out = (out or basefilename) + '.svg'
-    code = os.system('cd %s;dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (path, out, filename))
+def call_dot(infile, outpath):
+    (basefilename, ext) = os.path.splitext(os.path.basename(infile))
+    outfile = os.path.join(outpath, basefilename + '.svg')
+    code = os.system('dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (outfile, infile))
     if code != 0:
-        print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (out, code)
+        print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (outfile, code)
 
 def main():
 
@@ -119,7 +119,7 @@ def main():
     if len(args) != 1:
          parser.error('Incorrect number of arguments, you need to specify the source code file')
     
-    print 'generating report'
+    print 'Generating report'
     scriptdir = os.path.dirname(__file__)
     cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
     cpaoutdir = options.outdir or os.path.join(cpacheckerdir, 'test', 'output')
@@ -139,9 +139,8 @@ def main():
     
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
-        artfile = os.path.basename(artfilepath)
-        artpath = os.path.dirname(artfilepath) or './'
-        call_dot(artpath, artfile, os.path.join(reportdir, 'ART'))
+        print 'Generating SVG for ART'
+        call_dot(artfilepath, reportdir)
     
     inf = open(tplfilepath, 'r')
     outf = open(outfilepath, 'w')
@@ -155,7 +154,7 @@ def main():
                     raise Exception('File not found: ' + filepath)
                 else:
                     return '<h2>Not found:' + filepath + '</h2>'
-            print ' Reading: ' + filepath
+            print 'Reading: ' + filepath
             with open(filepath, 'r') as fp:
                 if encode:
                     return fp.read().replace('<','&lt;').replace('>', '&gt;')
@@ -167,11 +166,10 @@ def main():
         return json.dumps(errorpath2list(errorpath), indent=4)
 
     def gen_functionlist():
-        print 'Generating the list of functions'
-        funclist = [x[5:-4] for x in os.listdir(reportdir) if x.startswith('cfa__') and x.endswith('.dot')]
+        funclist = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
         print 'Generating SVGs for CFA'
         for func in funclist:
-            call_dot(reportdir, 'cfa__' + func + '.dot')
+            call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
         return json.dumps(funclist, indent=4)
 
 
@@ -211,6 +209,7 @@ def main():
   
     inf.close()
     outf.close()
+    print 'Report generated in %s' % (outfilepath)
 
 if __name__ == '__main__':
     main()
