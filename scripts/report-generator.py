@@ -134,18 +134,14 @@ def main():
     logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
     statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
     conffile = options.conffile or os.path.join(cpacheckerdir, 'test', 'config', 'symbpredabsCPA.properties')
-    cilinput = args[0]
+    cilfile = args[0]
     time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
-    cilfile = os.path.join(reportdir, 'a.cil.c')
-    
     
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
         artfile = os.path.basename(artfilepath)
         artpath = os.path.dirname(artfilepath) or './'
         call_dot(artpath, artfile, os.path.join(reportdir, 'ART'))
-    
-    shutil.copy(cilinput, cilfile)
     
     inf = open(tplfilepath, 'r')
     outf = open(outfilepath, 'w')
