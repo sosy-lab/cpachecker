@@ -184,11 +184,14 @@ public class OptionCollector {
 
     // if the type is int, long or enum,
     // the allowed values can be extracted from option or the enum-class
+    /*
     if (type == int.class || type == long.class) {
       allowedValues =
           "  interval: [" + option.min() + ", " + option.max() + "]\n";
 
-    } else if (type.isEnum()) {
+    } else 
+    */
+    if (type.isEnum()) {
       try {
         final Field[] enums =
             Class.forName(type.toString().substring(6)).getFields();
@@ -208,6 +211,16 @@ public class OptionCollector {
       allowedValues +=
           "  allowed values: " + java.util.Arrays.toString(option.values())
               + "\n";
+    }
+
+    // sometimes the allowed values must match a regexp
+    if (!option.regexp().isEmpty()) {
+      allowedValues += "  regexp:   " + option.regexp() + "\n";
+    }
+    
+    // sometimes the allowed values must be uppercase
+    if (option.toUppercase()) {
+      allowedValues += "  uppercase: true\n";
     }
 
     return allowedValues;
