@@ -279,15 +279,13 @@ public class PropertiesTableEditor extends EditorPart {
 	    delButton = new ToolItem (bar, SWT.PUSH);
 	    delButton.setText("Remove Line");
 	    delButton.addSelectionListener(new SelectionAdapter() {
-	    	@SuppressWarnings("unchecked")
 			@Override
 	    	public void widgetSelected(SelectionEvent e) {
 	    		if (propertiesTableViewer.getSelection() instanceof IStructuredSelection) {
 	    			IStructuredSelection selection = (IStructuredSelection) propertiesTableViewer.getSelection();
-	    			List selectedElements = selection.toList();
-	    			for (Object obj : selectedElements) {
-	    				if (obj instanceof Property) {
-	    					PropertiesTableEditor.this.data.remove(obj);
+	    			for (Object selectedElement : selection.toList()) {
+	    				if (selectedElement instanceof Property) {
+	    					PropertiesTableEditor.this.data.remove(selectedElement);
 	    				}
 	    			}
 	    			PropertiesTableEditor.this.refresh();

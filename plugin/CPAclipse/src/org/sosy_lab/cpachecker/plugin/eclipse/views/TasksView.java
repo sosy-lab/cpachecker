@@ -192,7 +192,6 @@ public class TasksView extends ViewPart implements IShellProvider {
 		myTreeViewer.getTree().setMenu(menu);
 	}
 	
-	@SuppressWarnings("unchecked")
 	void handleMenuAboutToShow(IMenuManager manager) {
 		
 		
@@ -216,8 +215,7 @@ public class TasksView extends ViewPart implements IShellProvider {
 			return;
 		}
 		List<Task> selectedTasks = new ArrayList<Task>();
-		List lst = selection.toList();
-		for (Object element : lst) {
+		for (Object element : selection.toList()) {
 			boolean exitLoop = false;
 			if (element instanceof Node) {
 				NodeType type = ((Node)element).getType();
