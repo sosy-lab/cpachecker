@@ -14,6 +14,14 @@ public class TestSuite implements Iterable<TestCase> {
     mTestSuite = new HashSet<TestCase>();
   }
   
+  public void add(TestSuite lTestSuite) {
+    if (lTestSuite != this) {
+      for (TestCase lTestCase : lTestSuite) {
+        add(lTestCase);
+      }
+    }
+  }
+  
   public boolean add(TestCase pTestCase) {
     return mTestSuite.add(pTestCase);
   }
