@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -45,10 +46,10 @@ class SimpleInterval {
   private final BigInteger upperBound; // null means positive infinity
   
   private SimpleInterval(BigInteger pLowerBound, BigInteger pUpperBound) {
-    assert (pLowerBound == null)
-        || (pUpperBound == null)
-        || (pLowerBound.compareTo(pUpperBound) <= 0)
-        : "lower endpoint greater than upper end point";
+    checkArgument((pLowerBound == null)
+               || (pUpperBound == null)
+               || (pLowerBound.compareTo(pUpperBound) <= 0)
+               , "lower endpoint greater than upper end point");
     
     lowerBound = pLowerBound;
     upperBound = pUpperBound;
@@ -250,6 +251,10 @@ class SimpleInterval {
   
   public static SimpleInterval lessOrEqual(BigInteger i) {
     return new SimpleInterval(null, checkNotNull(i));
+  }
+
+  public static SimpleInterval of(BigInteger lowerBound, BigInteger upperBound) {
+    return new SimpleInterval(checkNotNull(lowerBound), checkNotNull(upperBound));
   }
   
   /**
