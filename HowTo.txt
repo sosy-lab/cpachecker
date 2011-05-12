@@ -84,15 +84,17 @@ Building and running CPAchecker from within Eclipse:
 
 Using CPAchecker as an Eclipse plugin for your C projects
 ---------------------------------------------------------
-1. Add the URL http://www.sosy-lab.org/~dbeyer/eclipse-download/ as an update site to Eclipse.
-2. Install CPAclipse plugin.
+1. You need Eclipse 3.5 with CDT 6 or Eclipse 3.6 with CDT 7.
+2. Add the URL http://www.sosy-lab.org/~dbeyer/eclipse-download/ as an update site to Eclipse.
+3. Install CPAclipse plugin.
 
 Using CPAchecker as an Eclipse plugin for your C projects (for CPAchecker developers)
 -------------------------------------------------------------------------------------
-1. You need Eclipse 3.5 with CDT 6 and the Eclipse Plugin Development Environment
-   (other Eclipse versions are currently not supported).
-   From CDT 6 you need the package "Eclipse C/C++ Development Tools SDK"
+1. You need Eclipse 3.5 with CDT 6 or Eclipse 3.6 with CDT 7.
+   You also need the Eclipse Plugin Development Environment.
+   If you have CDT 6, you need the package "Eclipse C/C++ Development Tools SDK"
    (Eclipse update site: http://download.eclipse.org/tools/cdt/releases/galileo).
+   If you have CDT 7, you need the package "Eclipse C/C++ Development Tools".
    Also install an SVN plugin, e.g. SubClipse (see above).
 2. Create an Eclipse project for CPAchecker as described above.
 3. Create an Eclipse project for CPAclipse from the SVN repository
@@ -109,20 +111,14 @@ Troubleshooting:
 
 
 Examples of working installation:
-db 2008-11-28:
-0. x86 32bit
-1. Java 1.6.0_10
-2. Eclipse 3.4.1 (Ganymede)
-3. CDT 4.0.3
-
-pwendler 2009-08-25:
-0. x86 32bit Linux
-1. Sun Java 1.6.0_14
-2. Eclipse 3.5.0 (Galileo)
-4. CDT 6.0.0
-
-pwendler 2010-10-01
+pwendler 2011-05-12
 0. x64 Linux
-1. OpenJDK 1.6.0_18
-2. Eclipse 3.6.0 (Helios)
-4. no CDT
+1. OpenJDK 1.6.0_20
+2. Eclipse 3.5 (Galileo)
+4. CDT 6.0
+
+pwendler 2011-05-12
+0. x64 Linux
+1. OpenJDK 1.6.0_20
+2. Eclipse 3.6 (Helios)
+4. CDT 7.0
