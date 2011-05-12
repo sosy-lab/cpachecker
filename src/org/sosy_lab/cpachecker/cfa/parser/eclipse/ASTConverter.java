@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
+@SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
   
   private Scope scope;
@@ -1173,17 +1174,29 @@ class ASTConverter {
   
   private IASTPointerTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
     try {
-      return new IASTPointerTypeSpecifier(t.isConst(), t.isVolatile(), convert(t.getType()));
+      return new IASTPointerTypeSpecifier(t.isConst(), t.isVolatile(), convert(getType(t)));
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
       throw new CFAGenerationRuntimeException(e.getMessage());
     }
   }
   
+  private org.eclipse.cdt.core.dom.ast.IType getType(org.eclipse.cdt.core.dom.ast.IPointerType t) throws org.eclipse.cdt.core.dom.ast.DOMException {
+    // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
+    // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
+    return t.getType();
+  }
+  
   private ITypedef convert(org.eclipse.cdt.core.dom.ast.ITypedef t) {
     try {
-      return new ITypedef(t.getName(), convert(t.getType()));
+      return new ITypedef(t.getName(), convert(getType(t)));
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
       throw new CFAGenerationRuntimeException(e.getMessage());
     }
+  }
+ 
+  private org.eclipse.cdt.core.dom.ast.IType getType(org.eclipse.cdt.core.dom.ast.ITypedef t) throws org.eclipse.cdt.core.dom.ast.DOMException {
+    // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
+    // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
+    return t.getType();
   }
 }
