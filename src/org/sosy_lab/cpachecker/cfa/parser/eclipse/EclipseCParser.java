@@ -114,6 +114,12 @@ public class EclipseCParser implements CParser {
     return new ASTConverter(new Scope()).convert(statements[0]);
   }
 
+  
+  private static final int PARSER_OPTIONS =
+            ILanguage.OPTION_IS_SOURCE_UNIT     // our code files are always source files, not header files
+          | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
+          ;
+  
   private IASTTranslationUnit parse(CodeReader codeReader) throws ParserException {
     parseTimer.start();
     try {
@@ -121,6 +127,7 @@ public class EclipseCParser implements CParser {
                                             StubScannerInfo.instance,
                                             StubCodeReaderFactory.instance,
                                             null,
+                                            PARSER_OPTIONS,
                                             parserLog);
     } catch (CFAGenerationRuntimeException e) {
       // thrown by StubCodeReaderFactory
@@ -228,7 +235,7 @@ public class EclipseCParser implements CParser {
 
     @Override
     public String[] getIncludePaths() {
-      return null;
+      return new String[0];
     }
   }
 }
