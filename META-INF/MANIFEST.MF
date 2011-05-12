@@ -21,4 +21,4 @@ Export-Package: org.sosy_lab.common,
  org.sosy_lab.common.configuration,
  org.sosy_lab.cpachecker.core
 Require-Bundle: org.eclipse.core.runtime;resolution:=optional,
- org.eclipse.cdt.core;bundle-version="[5.1.0,5.2.0)";resolution:=optional
+ org.eclipse.cdt.core;bundle-version="[5.1.0,5.3.0)";resolution:=optional

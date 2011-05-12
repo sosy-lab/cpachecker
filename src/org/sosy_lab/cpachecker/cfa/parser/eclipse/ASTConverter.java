@@ -1003,8 +1003,10 @@ class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerExpression)i);
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)i);
+    } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer)i);
     } else {
-      throw new CFAGenerationRuntimeException("unknown initializer", i);
+      throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
   }
   
@@ -1018,6 +1020,18 @@ class ASTConverter {
       initializerList.add(convert(i));
     }
     return new IASTInitializerList(iList.getRawSignature(), convert(iList.getFileLocation()), initializerList);
+  }
+  
+  private IASTInitializer convert(org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer i) {
+    org.eclipse.cdt.core.dom.ast.IASTInitializerClause ic = i.getInitializerClause();
+    if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTExpression) {
+      org.eclipse.cdt.core.dom.ast.IASTExpression e = (org.eclipse.cdt.core.dom.ast.IASTExpression)ic;
+      return new IASTInitializerExpression(ic.getRawSignature(), convert(ic.getFileLocation()), convertExpressionWithoutSideEffects(e));
+    } else if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)ic);
+    } else {
+      throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
+    }
   }
   
   private List<IASTParameterDeclaration> convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration[] ps) {

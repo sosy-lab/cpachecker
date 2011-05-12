@@ -29,6 +29,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -107,9 +108,25 @@ public interface CParser {
    */
   public static class Factory {
     
+    private static boolean IS_CDT_7 = isCDT7();
+    
     public static CParser getParser(LogManager logger, Dialect dialect) {
-      return new EclipseCDT6Parser(logger, dialect);
+      if (IS_CDT_7) {
+        return new EclipseCDT7Parser(logger, dialect);
+      } else {
+        return new EclipseCDT6Parser(logger, dialect);
+      }
     }
     
+    private static boolean isCDT7() {
+      // check whether there is the IncludeFileContentProvider class
+      // if it is, we have at least CDT 7
+      try {
+        Class.forName("org.eclipse.cdt.core.parser.IncludeFileContentProvider");
+        return true;
+      } catch (ClassNotFoundException _) {
+        return false;
+      }
+    }
   }
 }
