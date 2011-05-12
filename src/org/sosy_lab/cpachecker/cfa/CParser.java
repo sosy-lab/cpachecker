@@ -28,7 +28,7 @@ import java.io.IOException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCParser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -108,7 +108,7 @@ public interface CParser {
   public static class Factory {
     
     public static CParser getParser(LogManager logger, Dialect dialect) {
-      return new EclipseCParser(logger, dialect);
+      return new EclipseCDT6Parser(logger, dialect);
     }
     
   }
