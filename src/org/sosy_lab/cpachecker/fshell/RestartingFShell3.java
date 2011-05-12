@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
 
+import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
+
 public class RestartingFShell3 {
 
   public static void main(String[] args) throws IOException, InterruptedException {
@@ -26,26 +28,44 @@ public class RestartingFShell3 {
     lCommand.add("--restart");
     lCommand.add("--restart-bound=100000000");
     
-    for (int lIndex = 3; lIndex < args.length; lIndex++) {
-      lCommand.add(args[lIndex]);
-    }
+    File lTmpTestsuiteFile = File.createTempFile("testsuite", ".tst");
+    lTmpTestsuiteFile.deleteOnExit();
     
-    
-    File lFeasibilityFile = File.createTempFile("feasibility", ".fs3");
-    lFeasibilityFile.deleteOnExit();
-    
-    File lTestsuiteFile = File.createTempFile("testsuite", ".tst");
-    lTestsuiteFile.deleteOnExit();
+    File lTmpFeasibilityFile = File.createTempFile("feasibility", ".fs3");
+    lTmpFeasibilityFile.deleteOnExit();
     
     FeasibilityInformation lFeasibilityInformation = new FeasibilityInformation();
-    lFeasibilityInformation.setTestsuiteFilename(lTestsuiteFile.getCanonicalPath());
-    lFeasibilityInformation.write(lFeasibilityFile);
+    lFeasibilityInformation.setTestsuiteFilename(lTmpTestsuiteFile.getCanonicalPath());
+    lFeasibilityInformation.write(lTmpFeasibilityFile);
     
-    lCommand.add("--in=" + lFeasibilityFile.getCanonicalPath());
-    lCommand.add("--out=" + lFeasibilityFile.getCanonicalPath());
-    lCommand.add("--tout=" + lTestsuiteFile.getCanonicalPath());
+    lCommand.add("--in=" + lTmpFeasibilityFile.getCanonicalPath());
+    lCommand.add("--out=" + lTmpFeasibilityFile.getCanonicalPath());
+    lCommand.add("--tout=" + lTmpTestsuiteFile.getCanonicalPath());
     lCommand.add("--logging");
     lCommand.add("--append");
+    
+    
+    for (int lIndex = 3; lIndex < args.length; lIndex++) {
+      String lArgument = args[lIndex];
+      
+      if (lArgument.startsWith("--in=")) {
+        String lFeasibilityFile = lArgument.substring("--in=".length());
+        
+        FeasibilityInformation lFeasibilityInformation2 = FeasibilityInformation.load(lFeasibilityFile);
+        
+        String lTestSuiteFilename = lFeasibilityInformation2.getTestsuiteFilename();
+        
+        TestSuite lTestSuite = TestSuite.load(lTestSuiteFilename);
+        lTestSuite.write(lTmpTestsuiteFile);
+
+        // overwrite temporary feasibility information
+        lFeasibilityInformation2.write(lTmpFeasibilityFile);
+      }
+      else {
+        lCommand.add(args[lIndex]);
+      }
+    }
+    
     
     int lReturnValue;
     
