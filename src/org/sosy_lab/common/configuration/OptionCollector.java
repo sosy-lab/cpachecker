@@ -35,11 +35,12 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 
-/** This class collects all @Options of CPAchecker. */
+/** This class collects all {@link Option}s of CPAchecker. */
 public class OptionCollector {
 
   /** The main-method collects all classes of CPAchecker and
-   * then it searches for all @Options.
+   * then it searches for all {@link Option}s.
+   *
    * @param args not used */
   public static void main(final String[] args) {
     final LinkedList<String> list = new LinkedList<String>();
@@ -59,31 +60,18 @@ public class OptionCollector {
     }
   }
 
-  /** This method collects all @Options of a class.
-   * @param c class where to take the @Options from
-   * @param list list with collected options */
+  /** This method collects every {@link Option} of a class.
+   *
+   * @param c class where to take the Option from
+   * @param list list with collected Options */
   private static void collectOptions(final Class<?> c, final List<String> list) {
     for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
-        StringBuilder optionInfo = new StringBuilder("");
-
-        // get prefix from Options-annotation of class
-        if (c.isAnnotationPresent(Options.class)) {
-          final Options classOption = c.getAnnotation(Options.class);
-          if (!classOption.prefix().isEmpty()) {
-            optionInfo.append(classOption.prefix() + ".");
-          }
-        }
 
         // get info about option
-        final Option option = field.getAnnotation(Option.class);
-        if (option.name().isEmpty()) {
-          optionInfo.append(field.getName() + "\n");
-        } else {
-          optionInfo.append(option.name() + "\n");
-        }
-
+        final StringBuilder optionInfo =
+            new StringBuilder(getOptionName(c, field));
         optionInfo.append("  field:    " + field.getName() + "\n");
         optionInfo.append("  class:    "
             + field.getDeclaringClass().toString().substring(6) + "\n");
@@ -94,28 +82,70 @@ public class OptionCollector {
         if (simpleType.equals("boolean") || simpleType.equals("String")) {
           optionInfo.append(getDefaultValue(field));
         }
-        optionInfo.append(getAllowedValues(field.getType(), option));
+
+        optionInfo.append(getAllowedValues(field));
 
         list.add(optionInfo.toString());
       }
     }
   }
 
-  /** This function searches for the default field values of an Options
+  /** This function return the name of an {@link Option}. 
+   * If no optionname is defined, the name of the field is returned.
+   * If a prefix is defined, it is added in front of the name. 
+   *
+   * @param c class with the field
+   * @param field field with the option */
+  private static String getOptionName(final Class<?> c, final Field field) {
+    String optionName = "";
+
+    // get prefix from Options-annotation of class
+    if (c.isAnnotationPresent(Options.class)) {
+      final Options classOption = c.getAnnotation(Options.class);
+      if (!classOption.prefix().isEmpty()) {
+        optionName += classOption.prefix() + ".";
+      }
+    }
+
+    // get info about option
+    final Option option = field.getAnnotation(Option.class);
+    if (option.name().isEmpty()) {
+      optionName += field.getName() + "\n";
+    } else {
+      optionName += option.name() + "\n";
+    }
+    return optionName;
+  }
+
+  /** This function searches for the default field values of an {@link Option}
    * in the sourcefile of the actual field/class and returns it
    * or an emtpy String, if the value not found.
-   * 
+   *
    * This part only works, if you have the source code of CPAchecker.
-   * 
+   *
    * @param field where to get the default value */
   private static String getDefaultValue(final Field field) {
-    String defaultValueLine = "";
-    String filename = "";
-    try {
+    final String content = getContentOfFile(field);
 
+    // get declaration of field from file
+    // example fieldString: 'private boolean shouldCheck'
+    final String fieldString =
+        Modifier.toString(field.getModifiers()) + " "
+            + field.getType().getSimpleName() + " " + field.getName();
+
+    return getDefaultValueFromContent(content, fieldString);
+
+  }
+
+  /** This function returns the content of a sourcefile as String.
+   *
+   * @param field the field, the sourcefile belongs to */
+  private static String getContentOfFile(final Field field) {
+    final StringBuilder contentOfFile = new StringBuilder();
+    try {
       // get filename of java-file
       String cpacheckerPath = new File("").getCanonicalPath();
-      filename =
+      String filename =
           field.getDeclaringClass().toString().substring(6).replace(".", "/");
 
       // encapsulated classes have a "$" in filename
@@ -127,60 +157,63 @@ public class OptionCollector {
       final BufferedReader reader =
           new BufferedReader(new InputStreamReader(new FileInputStream(
               new File(cpacheckerPath + "/src/" + filename + ".java"))));
-      final StringBuilder contentOfFile = new StringBuilder();
       String line;
       while ((line = reader.readLine()) != null) {
         contentOfFile.append(line);
-      }
-      final String content = contentOfFile.toString();
-
-      // get declaration of field from file
-      // example fieldString: 'private boolean shouldCheck'
-      final String fieldString =
-          Modifier.toString(field.getModifiers()) + " "
-              + field.getType().getSimpleName() + " " + field.getName();
-
-      // search for fieldString and get the whole content after it (=rest),
-      // in 'rest' search for ';' and return all before it (=defaultValue)
-      if (content.contains(fieldString)) {
-        final String rest = content.substring(content.indexOf(fieldString));
-        String defaultValue =
-            rest.substring(fieldString.length(), rest.indexOf(";")).trim();
-
-        // remove unnecessary parts of field
-        if (defaultValue.startsWith("=")) {
-          defaultValue = defaultValue.substring(1);
-
-          // remove comments
-          while (defaultValue.contains("/*")) {
-            defaultValue =
-                defaultValue.substring(0, defaultValue.indexOf("/*"))
-                    + defaultValue.substring(defaultValue.indexOf("*/") + 2);
-          }
-          if (defaultValue.contains("//")) {
-            defaultValue =
-                defaultValue.substring(0, defaultValue.indexOf("//"));
-          }
-
-          // create output
-          if (!defaultValue.isEmpty()) {
-            defaultValueLine = "  default value: " + defaultValue.trim() + "\n";
-          }
-        }
       }
     } catch (IOException e) {
       // if file not found or not readable, do nothing,
       // default values are only additional information
     }
+    return contentOfFile.toString();
+  }
+
+  /** This function searches for fieldstring in content and 
+   * returns the value of the field.
+   *
+   * @param content sourccode where to search
+   * @param fieldString name of the field, which value is returned */
+  private static String getDefaultValueFromContent(final String content,
+      final String fieldString) {
+    // search for fieldString and get the whole content after it (=rest),
+    // in 'rest' search for ';' and return all before it (=defaultValue)
+    String defaultValueLine = "";
+    if (content.contains(fieldString)) {
+      final String rest = content.substring(content.indexOf(fieldString));
+      String defaultValue =
+          rest.substring(fieldString.length(), rest.indexOf(";")).trim();
+
+      // remove unnecessary parts of field
+      if (defaultValue.startsWith("=")) {
+        defaultValue = defaultValue.substring(1);
+
+        // remove comments
+        while (defaultValue.contains("/*")) {
+          defaultValue =
+              defaultValue.substring(0, defaultValue.indexOf("/*"))
+                  + defaultValue.substring(defaultValue.indexOf("*/") + 2);
+        }
+        if (defaultValue.contains("//")) {
+          defaultValue = defaultValue.substring(0, defaultValue.indexOf("//"));
+        }
+
+        // create output
+        if (!defaultValue.isEmpty()) {
+          defaultValueLine = "  default value: " + defaultValue.trim() + "\n";
+        }
+      }
+    }
     return defaultValueLine;
   }
 
   /** This function return the allowed values or interval for a field.
+   *
    * @param type the type of the field
-   * @param option the option-annotation of the field */
-  private static String getAllowedValues(final Class<?> type,
-      final Option option) {
+   * @param option the {@link Option}-annotation of the field */
+  private static String getAllowedValues(final Field field) {
     String allowedValues = "";
+
+    final Class<?> type = field.getType();
 
     // if the type is int, long or enum,
     // the allowed values can be extracted from option or the enum-class
@@ -207,6 +240,7 @@ public class OptionCollector {
     }
 
     // sometimes the allowed values are part of the option-annotation
+    final Option option = field.getAnnotation(Option.class);
     if (option.values().length != 0) {
       allowedValues +=
           "  allowed values: " + java.util.Arrays.toString(option.values())
@@ -217,7 +251,7 @@ public class OptionCollector {
     if (!option.regexp().isEmpty()) {
       allowedValues += "  regexp:   " + option.regexp() + "\n";
     }
-    
+
     // sometimes the allowed values must be uppercase
     if (option.toUppercase()) {
       allowedValues += "  uppercase: true\n";
@@ -227,10 +261,10 @@ public class OptionCollector {
   }
 
   /**
-   * Scans all classes accessible from the context class loader which
+   * Collects all classes accessible from the context class loader which
    * belong to the given package and subpackages.
    *
-   * @return The classes
+   * @return list of classes
    * @throws IOException
    */
   private static List<Class<?>> getClasses() throws IOException {
@@ -251,9 +285,9 @@ public class OptionCollector {
   /**
    * Recursive method used to find all classes in a given directory and subdirs.
    *
-   * @param directory   The base directory
-   * @param packageName The package name for classes found inside the base directory
-   * @param classes     List where the classes are added.
+   * @param directory the base directory
+   * @param packageName the package name for classes found inside the base directory
+   * @param classes list where the classes are added.
    */
   private static void collectClasses(final File directory,
       final String packageName, final List<Class<?>> classes) {
