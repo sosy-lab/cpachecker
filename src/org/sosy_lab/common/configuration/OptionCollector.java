@@ -79,10 +79,7 @@ public class OptionCollector {
         final String simpleType = field.getType().getSimpleName();
         optionInfo.append("  type:     " + simpleType + "\n");
 
-        if (simpleType.equals("boolean") || simpleType.equals("String")) {
-          optionInfo.append(getDefaultValue(field));
-        }
-
+        optionInfo.append(getDefaultValue(field));
         optionInfo.append(getAllowedValues(field));
 
         list.add(optionInfo.toString());
@@ -215,15 +212,8 @@ public class OptionCollector {
 
     final Class<?> type = field.getType();
 
-    // if the type is int, long or enum,
-    // the allowed values can be extracted from option or the enum-class
-    /*
-    if (type == int.class || type == long.class) {
-      allowedValues =
-          "  interval: [" + option.min() + ", " + option.max() + "]\n";
-
-    } else 
-    */
+    // if the type is enum,
+    // the allowed values can be extracted the enum-class
     if (type.isEnum()) {
       try {
         final Field[] enums =
