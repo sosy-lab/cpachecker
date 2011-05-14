@@ -47,6 +47,14 @@ public class Main {
   public static final String BASIC_BLOCK_NODES_COVERAGE = "COVER \"EDGES(ID)*\".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   public static final String BASIC_BLOCK_NODES_2_COVERAGE = BASIC_BLOCK_NODES_COVERAGE + ".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
   public static final String BASIC_BLOCK_NODES_3_COVERAGE = BASIC_BLOCK_NODES_2_COVERAGE + ".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_1_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 1).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_2_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 2).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_3_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 3).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_4_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 4).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_5_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 5).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_6_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 6).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_7_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 7).\"EDGES(ID)*\"";
+  public static final String BOUNDED_PATH_8_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 8).\"EDGES(ID)*\"";
   
   public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
     FShell3Result lResult = run(pArguments);
