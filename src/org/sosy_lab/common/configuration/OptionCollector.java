@@ -40,6 +40,7 @@ import org.sosy_lab.common.Files;
 /** This class collects all {@link Option}s of CPAchecker. */
 public class OptionCollector {
 
+  private final static String OUTPUT_FILE_NAME = "CollectedOptions.txt";
   private final static int CHARS_PER_LINE = 70; // for description
 
   /** The main-method collects all classes of CPAchecker and
@@ -70,7 +71,11 @@ public class OptionCollector {
 
     }
 
-    System.out.println(content);
+    try {
+      Files.writeFile(new File(OUTPUT_FILE_NAME), content);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   /** This method collects every {@link Option} of a class.
