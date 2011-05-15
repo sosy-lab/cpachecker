@@ -41,18 +41,27 @@ import org.sosy_lab.common.Files;
 public class OptionCollector {
 
   private final static String OUTPUT_FILE_NAME = "CollectedOptions.txt";
-  private final static int CHARS_PER_LINE = 70; // for description
+  private final static int    CHARS_PER_LINE   = 70;                    // for description
 
   /** The main-method collects all classes of CPAchecker and
    * then it searches for all {@link Option}s.
    *
-   * @param args not used */
+   * @param args use '-v' for verbose output */
   public static void main(final String[] args) {
+
+    // parse args
+    boolean verbose = false;
+    for (String arg : args) {
+      if ("-v".equals(arg) || "-verbose".equals(arg)) {
+        verbose = true;
+      }
+    }
+
     final TreeMap<String, String[]> map = new TreeMap<String, String[]>();
 
     try {
       for (Class<?> c : getClasses()) {
-        collectOptions(c, map);
+        collectOptions(c, map, verbose);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -81,27 +90,40 @@ public class OptionCollector {
   /** This method collects every {@link Option} of a class.
    *
    * @param c class where to take the Option from
-   * @param map map with collected Options */
+   * @param map map with collected Options 
+   * @param verbose short or long output? */
   private static void collectOptions(final Class<?> c,
-      final TreeMap<String, String[]> map) {
+      final TreeMap<String, String[]> map, final boolean verbose) {
     for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
 
         getOptionsDescription(c, map);
+
         // get info about option
         final String optionName = getOptionName(c, field);
+        final String defaultValue = getDefaultValue(field);
         final StringBuilder optionInfo = new StringBuilder();
         optionInfo.append(optionName);
-        optionInfo.append("  field:    " + field.getName() + "\n");
-        optionInfo.append("  class:    "
-            + field.getDeclaringClass().toString().substring(6) + "\n");
 
-        final String simpleType = field.getType().getSimpleName();
-        optionInfo.append("  type:     " + simpleType + "\n");
+        if (verbose) {
+          optionInfo.append("\n  field:    " + field.getName() + "\n");
+          optionInfo.append("  class:    "
+              + field.getDeclaringClass().toString().substring(6) + "\n");
 
-        optionInfo.append(getDefaultValue(field));
-        optionInfo.append(getAllowedValues(field));
+          final String simpleType = field.getType().getSimpleName();
+          optionInfo.append("  type:     " + simpleType + "\n");
+
+          if (!defaultValue.isEmpty()) {
+            optionInfo.append("  default value: " + defaultValue + "\n");
+          }
+        } else {
+          if (!defaultValue.isEmpty()) {
+            optionInfo.append(" = " + defaultValue);
+          }
+          optionInfo.append("\n");
+        }
+        optionInfo.append(getAllowedValues(field, verbose));
 
         map.put(optionName, new String[] { getOptionDescription(field),
             optionInfo.toString() });
@@ -198,9 +220,9 @@ public class OptionCollector {
     // get info about option
     final Option option = field.getAnnotation(Option.class);
     if (option.name().isEmpty()) {
-      optionName += field.getName() + "\n";
+      optionName += field.getName();
     } else {
-      optionName += option.name() + "\n";
+      optionName += option.name();
     }
     return optionName;
   }
@@ -265,10 +287,10 @@ public class OptionCollector {
       final String fieldString) {
     // search for fieldString and get the whole content after it (=rest),
     // in 'rest' search for ';' and return all before it (=defaultValue)
-    String defaultValueLine = "";
+    String defaultValue = "";
     if (content.contains(fieldString)) {
       final String rest = content.substring(content.indexOf(fieldString));
-      String defaultValue =
+      defaultValue =
           rest.substring(fieldString.length(), rest.indexOf(";")).trim();
 
       // remove unnecessary parts of field
@@ -289,21 +311,17 @@ public class OptionCollector {
         if (defaultValue.startsWith("new File(")) {
           defaultValue = defaultValue.substring(9, defaultValue.length() - 1);
         }
-
-        // create output
-        if (!defaultValue.isEmpty()) {
-          defaultValueLine = "  default value: " + defaultValue.trim() + "\n";
-        }
       }
     }
-    return defaultValueLine;
+    return defaultValue.trim();
   }
 
   /** This function return the allowed values or interval for a field.
    *
    * @param type the type of the field
-   * @param option the {@link Option}-annotation of the field */
-  private static String getAllowedValues(final Field field) {
+   * @param option the {@link Option}-annotation of the field 
+   * @param verbose short or long output? */
+  private static String getAllowedValues(final Field field, final boolean verbose) {
     String allowedValues = "";
 
     final Class<?> type = field.getType();
@@ -334,12 +352,12 @@ public class OptionCollector {
     }
 
     // sometimes the allowed values must match a regexp
-    if (!option.regexp().isEmpty()) {
+    if (verbose && !option.regexp().isEmpty()) {
       allowedValues += "  regexp:   " + option.regexp() + "\n";
     }
 
     // sometimes the allowed values must be uppercase
-    if (option.toUppercase()) {
+    if (verbose && option.toUppercase()) {
       allowedValues += "  uppercase: true\n";
     }
 
