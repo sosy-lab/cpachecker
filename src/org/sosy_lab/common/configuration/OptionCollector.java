@@ -33,29 +33,29 @@ import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.TreeMap;
 
 /** This class collects all {@link Option}s of CPAchecker. */
 public class OptionCollector {
+
+  private final static int CHARS_PER_LINE = 70; // for description
 
   /** The main-method collects all classes of CPAchecker and
    * then it searches for all {@link Option}s.
    *
    * @param args not used */
   public static void main(final String[] args) {
-    final LinkedList<String> list = new LinkedList<String>();
+    final TreeMap<String, String> map = new TreeMap<String, String>();
 
     try {
       for (Class<?> c : getClasses()) {
-        collectOptions(c, list);
+        collectOptions(c, map);
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
 
-    String[] sortedList = list.toArray(new String[0]);
-    java.util.Arrays.sort(sortedList);
-    for (String s : sortedList) {
+    for (String s : map.values()) {
       System.out.println(s);
     }
   }
@@ -63,15 +63,18 @@ public class OptionCollector {
   /** This method collects every {@link Option} of a class.
    *
    * @param c class where to take the Option from
-   * @param list list with collected Options */
-  private static void collectOptions(final Class<?> c, final List<String> list) {
+   * @param pMap list with collected Options */
+  private static void collectOptions(final Class<?> c,
+      final TreeMap<String, String> map) {
     for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
 
         // get info about option
-        final StringBuilder optionInfo =
-            new StringBuilder(getOptionName(c, field));
+        final String optionName = getOptionName(c, field);
+        final StringBuilder optionInfo = new StringBuilder();
+        optionInfo.append(getOptionDescription(field));
+        optionInfo.append(optionName);
         optionInfo.append("  field:    " + field.getName() + "\n");
         optionInfo.append("  class:    "
             + field.getDeclaringClass().toString().substring(6) + "\n");
@@ -82,9 +85,58 @@ public class OptionCollector {
         optionInfo.append(getDefaultValue(field));
         optionInfo.append(getAllowedValues(field));
 
-        list.add(optionInfo.toString());
+        map.put(optionName, optionInfo.toString());
       }
     }
+  }
+
+  /** This function return the formatted description of an {@link Option}. 
+   * It splits lines, if they are too long.
+   *
+   * @param field field with the option */
+  private static String getOptionDescription(final Field field) {
+    final Option option = field.getAnnotation(Option.class);
+    String description = option.description();
+
+    // split description into lines
+    final String[] lines = description.split("\n");
+
+    // split lines into more lines, if they are too long
+    final LinkedList<String> splittedLines = new LinkedList<String>();
+    for (String line : lines) {
+      while (line.length() > CHARS_PER_LINE) {
+
+        int spaceIndex = line.lastIndexOf(" ", CHARS_PER_LINE);
+        if (spaceIndex == -1) {
+          spaceIndex = line.indexOf(" ");
+        }
+        if (spaceIndex == -1) {
+          spaceIndex = line.length() - 1;
+        }
+
+        final String start = line.substring(0, spaceIndex);
+        if (!start.isEmpty()) {
+          splittedLines.add(start);
+        }
+        line = line.substring(spaceIndex + 1);
+      }
+      splittedLines.add(line);
+    }
+
+    // remove last element, if empty (useful if previous line is too long)
+    if (splittedLines.getLast().isEmpty()) {
+      splittedLines.removeLast();
+    }
+
+    // add "# " before each line
+    String formattedLines = "";
+    if (!description.isEmpty()) {
+      for (String line : splittedLines) {
+        formattedLines += "# " + line + "\n";
+      }
+    }
+
+    return formattedLines;
   }
 
   /** This function return the name of an {@link Option}. 
@@ -257,12 +309,12 @@ public class OptionCollector {
    * @return list of classes
    * @throws IOException
    */
-  private static List<Class<?>> getClasses() throws IOException {
+  private static LinkedList<Class<?>> getClasses() throws IOException {
     final ClassLoader classLoader =
         Thread.currentThread().getContextClassLoader();
     assert classLoader != null;
     final Enumeration<URL> resources = classLoader.getResources("");
-    final List<Class<?>> classes = new LinkedList<Class<?>>();
+    final LinkedList<Class<?>> classes = new LinkedList<Class<?>>();
 
     while (resources.hasMoreElements()) {
       final File file = new File(resources.nextElement().getFile());
@@ -280,7 +332,7 @@ public class OptionCollector {
    * @param classes list where the classes are added.
    */
   private static void collectClasses(final File directory,
-      final String packageName, final List<Class<?>> classes) {
+      final String packageName, final LinkedList<Class<?>> classes) {
     if (directory.exists()) {
       for (final File file : directory.listFiles()) {
         final String fileName = file.getName();

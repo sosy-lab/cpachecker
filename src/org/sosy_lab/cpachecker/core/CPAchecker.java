@@ -91,24 +91,32 @@ public class CPAchecker {
   @Options
   private static class CPAcheckerOptions {
 
-    @Option(name="parser.dialect")
+    @Option(name="parser.dialect", description="C dialect for parser")
     Dialect parserDialect = Dialect.GNUC;
 
     // algorithm options
 
-    @Option(name="analysis.useAssumptionCollector")
+    @Option(name="analysis.useAssumptionCollector", 
+        description="use assumption collecting algorithm")
     boolean useAssumptionCollector = false;
 
-    @Option(name="analysis.useRefinement")
+    @Option(name = "analysis.useRefinement", 
+        description = "use CEGAR algorithm for lazy counter-example guided analysis"
+        + "\nYou need to specify a refiner with the cegar.refiner option."
+        + "\nCurrently all refiner require the use of the ARTCPA.")
     boolean useRefinement = false;
 
-    @Option(name="analysis.useCBMC")
+    @Option(name="analysis.useCBMC",
+        description="use CBMC to double-check counter-examples")
     boolean useCBMC = false;
 
-    @Option(name="analysis.useBMC")
+    @Option(name="analysis.useBMC",
+        description="use a BMC like algorithm that checks for satisfiability "
+          + "after the analysis has finished, works only with PredicateCPA")
     boolean useBMC = false;
 
-    @Option(name="analysis.stopAfterError")
+    @Option(name="analysis.stopAfterError",
+        description="stop after the first error has been found")
     boolean stopAfterError = true;
   }
 
