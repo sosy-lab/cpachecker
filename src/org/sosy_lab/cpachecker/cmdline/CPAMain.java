@@ -66,10 +66,11 @@ public class CPAMain {
   @Options(prefix="statistics")
   private static class ShutdownHook extends Thread {
 
-    @Option(name="export")
+    @Option(name="export", description="write some statistics to disk")
     private boolean exportStatistics = true;
     
-    @Option(name="file", type=Option.Type.OUTPUT_FILE)
+    @Option(name="file", type=Option.Type.OUTPUT_FILE,
+        description="write some statistics to disk")
     private File exportStatisticsFile = new File("Statistics.txt");
     
     private final LogManager logManager;

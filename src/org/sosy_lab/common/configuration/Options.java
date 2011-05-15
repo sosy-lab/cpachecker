@@ -41,4 +41,8 @@ public @interface Options {
    */
   public String prefix() default "";
 
+  /**
+   * An optional text, that describes the current options.
+   */
+  public String description() default "";
 }

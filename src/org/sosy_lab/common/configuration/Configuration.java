@@ -283,13 +283,15 @@ public class Configuration {
     return newConfig;
   }
     
-  @Option(name="output.path")
+  @Option(name="output.path", description="directory to put all output files in")
   private String outputDirectory = "test/output/";
   
-  @Option(name="output.disable")
+  @Option(name="output.disable", description="disable all default output files"
+    + "\n(any explicitly given file will still be written)")
   private boolean disableOutput = false;
   
-  @Option
+  @Option (description="base directory for all input & output files"
+    + "\n(except for the configuration file itself)")
   private String rootDirectory = ".";
 
   private static final long serialVersionUID = -5910186668866464153L;

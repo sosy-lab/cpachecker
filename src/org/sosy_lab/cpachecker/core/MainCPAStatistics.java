@@ -94,13 +94,16 @@ class MainCPAStatistics implements Statistics {
     
   }
 
-    @Option(name="reachedSet.export")
+    @Option(name="reachedSet.export", 
+        description="print reached set to text file")
     private boolean exportReachedSet = true;
 
-    @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE)
+    @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE,
+        description="print reached set to text file")
     private File outputFile = new File("reached.txt");
     
-    @Option(name="statistics.memory")
+    @Option(name="statistics.memory",
+      description="track memory usage of JVM during runtime")
     private volatile boolean monitorMemoryUsage = true;
 
     private final LogManager logger;

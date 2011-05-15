@@ -35,6 +35,8 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.TreeMap;
 
+import org.sosy_lab.common.Files;
+
 /** This class collects all {@link Option}s of CPAchecker. */
 public class OptionCollector {
 
@@ -45,7 +47,7 @@ public class OptionCollector {
    *
    * @param args not used */
   public static void main(final String[] args) {
-    final TreeMap<String, String> map = new TreeMap<String, String>();
+    final TreeMap<String, String[]> map = new TreeMap<String, String[]>();
 
     try {
       for (Class<?> c : getClasses()) {
@@ -55,25 +57,36 @@ public class OptionCollector {
       e.printStackTrace();
     }
 
-    for (String s : map.values()) {
-      System.out.println(s);
+    final StringBuilder content = new StringBuilder();
+    String description = "";
+    for (String[] descriptionAndInfo : map.values()) {
+      if (descriptionAndInfo[0].isEmpty()
+          || !description.equals(descriptionAndInfo[0])) {
+        content.append("\n");
+        content.append(descriptionAndInfo[0]);
+        description = descriptionAndInfo[0];
+      }
+      content.append(descriptionAndInfo[1]);
+
     }
+
+    System.out.println(content);
   }
 
   /** This method collects every {@link Option} of a class.
    *
    * @param c class where to take the Option from
-   * @param pMap list with collected Options */
+   * @param map map with collected Options */
   private static void collectOptions(final Class<?> c,
-      final TreeMap<String, String> map) {
+      final TreeMap<String, String[]> map) {
     for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
 
+        getOptionsDescription(c, map);
         // get info about option
         final String optionName = getOptionName(c, field);
         final StringBuilder optionInfo = new StringBuilder();
-        optionInfo.append(getOptionDescription(field));
         optionInfo.append(optionName);
         optionInfo.append("  field:    " + field.getName() + "\n");
         optionInfo.append("  class:    "
@@ -85,21 +98,42 @@ public class OptionCollector {
         optionInfo.append(getDefaultValue(field));
         optionInfo.append(getAllowedValues(field));
 
-        map.put(optionName, optionInfo.toString());
+        map.put(optionName, new String[] { getOptionDescription(field),
+            optionInfo.toString() });
       }
     }
   }
 
   /** This function return the formatted description of an {@link Option}. 
-   * It splits lines, if they are too long.
    *
    * @param field field with the option */
   private static String getOptionDescription(final Field field) {
     final Option option = field.getAnnotation(Option.class);
-    String description = option.description();
+    return formatText(option.description());
+  }
+
+  /** This function adds the formatted description of {@link Options} 
+   * to the map, if a prefix is defined.
+   * 
+   * @param c class with options 
+   * @param map where the formatted options-description is added */
+  private static void getOptionsDescription(final Class<?> c,
+      final TreeMap<String, String[]> map) {
+    if (c.isAnnotationPresent(Options.class)) {
+      final Options classOption = c.getAnnotation(Options.class);
+      if (!classOption.prefix().isEmpty()
+          && !classOption.description().isEmpty()) {
+        map.put(classOption.prefix(),
+            new String[] { formatText(classOption.description()), "" });
+      }
+    }
+  }
+
+  /** This function formats text and splits lines, if they are too long. */
+  private static String formatText(final String text) {
 
     // split description into lines
-    final String[] lines = description.split("\n");
+    final String[] lines = text.split("\n");
 
     // split lines into more lines, if they are too long
     final LinkedList<String> splittedLines = new LinkedList<String>();
@@ -130,7 +164,7 @@ public class OptionCollector {
 
     // add "# " before each line
     String formattedLines = "";
-    if (!description.isEmpty()) {
+    if (!text.isEmpty()) {
       for (String line : splittedLines) {
         formattedLines += "# " + line + "\n";
       }
@@ -234,7 +268,7 @@ public class OptionCollector {
 
       // remove unnecessary parts of field
       if (defaultValue.startsWith("=")) {
-        defaultValue = defaultValue.substring(1);
+        defaultValue = defaultValue.substring(1).trim();
 
         // remove comments
         while (defaultValue.contains("/*")) {
@@ -244,6 +278,11 @@ public class OptionCollector {
         }
         if (defaultValue.contains("//")) {
           defaultValue = defaultValue.substring(0, defaultValue.indexOf("//"));
+        }
+
+        // remove brckets from file: new File("example.txt") --> "example.txt"
+        if (defaultValue.startsWith("new File(")) {
+          defaultValue = defaultValue.substring(9, defaultValue.length() - 1);
         }
 
         // create output

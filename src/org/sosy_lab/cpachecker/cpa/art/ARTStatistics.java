@@ -52,25 +52,31 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 @Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
 
-  @Option(name="export")
+  @Option(name="export", description="export final ART as .dot file")
   private boolean exportART = true;
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE,
+      description="export final ART as .dot file")
   private File artFile = new File("ART.dot");
 
-  @Option(name="errorPath.export")
+  @Option(name="errorPath.export",
+      description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
-  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE,
+      description="export error path to file, if one is found")
   private File errorPathFile = new File("ErrorPath.txt");
 
-  @Option(name="errorPath.core", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.core", type=Option.Type.OUTPUT_FILE,
+      description="export error path to file, if one is found")
   private File errorPathCoreFile = new File("ErrorPathCore.txt");
   
-  @Option(name="errorPath.source", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.source", type=Option.Type.OUTPUT_FILE,
+      description="export error path to file, if one is found")
   private File errorPathSourceFile = new File("ErrorPath.c");
 
-  @Option(name="errorPath.json", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.json", type=Option.Type.OUTPUT_FILE,
+      description="export error path to file, if one is found")
   private File errorPathJson = new File("ErrorPath.json");
 
   private final ARTCPA cpa;
