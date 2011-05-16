@@ -311,8 +311,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     System.out.println("Determining the number of test goals ...");
     
-    //int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
-    int lNumberOfTestGoals = -1;
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    //int lNumberOfTestGoals = -1;
     
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
