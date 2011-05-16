@@ -25,9 +25,18 @@ package org.sosy_lab.cpachecker.cpa.featurevariables;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 public class FeatureVarsDomain implements AbstractDomain {
 
+  private final FeatureVarsManager fmgr;
+  private final RegionManager rmgr;
+  
+  public FeatureVarsDomain(FeatureVarsManager manager) {
+    this.fmgr = manager;
+    this.rmgr = manager.getRegionManager();
+  }
+  
   @Override
   public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
       // returns true if element1 < element2 on lattice
@@ -35,7 +44,7 @@ public class FeatureVarsDomain implements AbstractDomain {
     if (newElement instanceof FeatureVarsElement && reachedElement instanceof FeatureVarsElement){
       FeatureVarsElement fvn = (FeatureVarsElement)newElement;
       FeatureVarsElement fvr = (FeatureVarsElement)reachedElement;
-      return FeatureVarsElement.manager.entails(fvn.getRegion(), fvr.getRegion());
+      return rmgr.entails(fvn.getRegion(), fvr.getRegion());
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
     }
@@ -47,13 +56,11 @@ public class FeatureVarsDomain implements AbstractDomain {
       FeatureVarsElement fv1 = (FeatureVarsElement)element1;
       FeatureVarsElement fv2 = (FeatureVarsElement)element2;
       // TODO: check if this implementation is efficient
-      if (FeatureVarsElement.manager.equalRegions(fv1.getRegion(), fv2.getRegion())) 
+      if (rmgr.equalRegions(fv1.getRegion(), fv2.getRegion())) 
         return fv2;
       else 
-        return new FeatureVarsElement(FeatureVarsElement.manager.makeOr(fv1.getRegion(), fv2.getRegion()));
-      
-      
-      
+        return new FeatureVarsElement(rmgr.makeOr(fv1.getRegion(), fv2.getRegion()), fmgr);
+
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
     }
