@@ -1,7 +1,24 @@
 Libraries contained in this project:
 ------------------------------------
 NOTE: If you add a library to CPAchecker, be sure to update MANIFEST.MF
-and build.properties with the Eclipse PDE wizard!
+with the Eclipse PDE wizard!
+
+- build-only/JFLex.jar: JFlex Scanner Generator for Java
+  http://www.jflex.de/
+  GNU GPL: GPL.txt
+  Used for generating automaton and FQL scanners.
+  The generated code is not under GPL,
+  and we do not use JFlex during runtime.
+
+- build-only/junit.jar: JUnit
+  http://junit.sourceforge.net/
+  Common Public License 1.0: http://junit.sourceforge.net/cpl-v10.html
+  Used for unit tests.
+
+- build-only/org.hamcrest.*: Hamcrest
+  http://code.google.com/p/hamcrest/
+  BSD license
+  Needed by JUnit
 
 - cbmc: CBMC
   http://www.cprover.org/cbmc/
@@ -18,10 +35,10 @@ and build.properties with the Eclipse PDE wizard!
   Apache License 2.0: ../License_Apache-2.0.txt
   SMT solver for predicate analysis.
 
-- eclipse/junit.jar: JUnit
-  http://junit.sourceforge.net/
-  Common Public License 1.0: http://junit.sourceforge.net/cpl-v10.html
-  Used for unit tests.
+- eclipse/icu4j-*.jar: International Components for Unicode
+  http://site.icu-project.org/
+  ICU License - ICU 1.8.1 and later: license-libicu4j.html
+  Needed by Eclipse CDT parser for error messages.
 
 - eclipse/org.eclipse.*: Eclipse and Eclipse CDT
   http://www.eclipse.org/ and http://www.eclipse.org/cdt/
@@ -33,11 +50,6 @@ and build.properties with the Eclipse PDE wizard!
   Apache License 2.0: ../License_Apache-2.0.txt
   Contains a lot of helpful data structures.
 
-- icu4j-*.jar: International Components for Unicode
-  http://site.icu-project.org/
-  ICU License - ICU 1.8.1 and later: license-libicu4j.html
-  Needed by Eclipse CDT parser for error messages.
-
 - javabdd-*.jar: JavaBDD
   http://javabdd.sourceforge.net/
   GNU LGPL: LGPL.txt
@@ -47,13 +59,6 @@ and build.properties with the Eclipse PDE wizard!
   http://www2.cs.tum.edu/projects/cup/
   CUP Parser Generator License: license-cup.txt
   Used for generating automaton and FQL parsers.
-
-- JFLex.jar: JFlex Scanner Generator for Java
-  http://www.jflex.de/
-  GNU GPL: GPL.txt
-  Used for generating automaton and FQL scanners.
-  The generated code is not under GPL,
-  and we do not use JFlex during runtime.
 
 - jgrapht-*.jar: JGraphT
   http://www.jgrapht.org/
