@@ -309,7 +309,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
     
-    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    System.out.println("Determining the number of test goals ...");
+    
+    //int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+    int lNumberOfTestGoals = -1;
     
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
     
@@ -354,9 +357,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
-      if (mMinIndex > lIndex || mMaxIndex < lIndex) {
+      if (mMinIndex > lIndex) {
         System.out.println("Skipped.");
         continue;
+      }
+      
+      if (mMaxIndex < lIndex) {
+        // we do not have to enumerate unnecessary test goals
+        System.out.println("Stop test goal enumeration.");
+        break;
       }
       
       if (mFeasibilityInformation.isKnown(lIndex)) {
