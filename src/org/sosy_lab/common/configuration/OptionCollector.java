@@ -23,25 +23,24 @@
  */
 package org.sosy_lab.common.configuration;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.LinkedList;
+import java.util.List;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Pair;
 
 /** This class collects all {@link Option}s of CPAchecker. */
 public class OptionCollector {
 
-  private final static String OUTPUT_FILE_NAME = "CollectedOptions.txt";
-  private final static int    CHARS_PER_LINE   = 75;                    // for description
+  private final static int CHARS_PER_LINE = 75; // for description
 
   /** The main-method collects all classes of CPAchecker and
    * then it searches for all {@link Option}s.
@@ -57,34 +56,35 @@ public class OptionCollector {
       }
     }
 
-    final TreeMap<String, String[]> map = new TreeMap<String, String[]>();
+    System.out.println(getCollectedOptions(verbose));
+  }
 
-    try {
-      for (Class<?> c : getClasses()) {
-        collectOptions(c, map, verbose);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
+  /** This function collect options from all classes
+   * and return a formatted String. 
+   * 
+   * @param verbose short or long output? */
+  public static String getCollectedOptions(final boolean verbose) {
+    // TreeMap for alphabetical order of keys
+    final SortedMap<String, Pair<String, String>> map =
+        new TreeMap<String, Pair<String, String>>();
+
+    for (Class<?> c : getClasses()) {
+      collectOptions(c, map, verbose);
     }
 
     final StringBuilder content = new StringBuilder();
     String description = "";
-    for (String[] descriptionAndInfo : map.values()) {
-      if (descriptionAndInfo[0].isEmpty()
-          || !description.equals(descriptionAndInfo[0])) {
+    for (Pair<String, String> descriptionAndInfo : map.values()) {
+      if (descriptionAndInfo.getFirst().isEmpty()
+          || !description.equals(descriptionAndInfo.getFirst())) {
         content.append("\n");
-        content.append(descriptionAndInfo[0]);
-        description = descriptionAndInfo[0];
+        content.append(descriptionAndInfo.getFirst());
+        description = descriptionAndInfo.getFirst();
       }
-      content.append(descriptionAndInfo[1]);
-
+      content.append(descriptionAndInfo.getSecond());
     }
 
-    try {
-      Files.writeFile(new File(OUTPUT_FILE_NAME), content);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    return content.toString();
   }
 
   /** This method collects every {@link Option} of a class.
@@ -93,7 +93,7 @@ public class OptionCollector {
    * @param map map with collected Options 
    * @param verbose short or long output? */
   private static void collectOptions(final Class<?> c,
-      final TreeMap<String, String[]> map, final boolean verbose) {
+      final SortedMap<String, Pair<String, String>> map, final boolean verbose) {
     for (final Field field : c.getDeclaredFields()) {
 
       if (field.isAnnotationPresent(Option.class)) {
@@ -127,23 +127,23 @@ public class OptionCollector {
 
         // check if a option was found before, some options are used twice
         if (map.containsKey(optionName)) {
-          String[] oldValues = map.get(optionName);
+          Pair<String, String> oldValues = map.get(optionName);
 
           String description = getOptionDescription(field);
-          if (!description.equals(oldValues[0])) {
-            description += oldValues[0];
+          if (!description.equals(oldValues.getFirst())) {
+            description += oldValues.getFirst();
           }
 
           String commonOptionInfo = optionInfo.toString();
-          if (!commonOptionInfo.equals(oldValues[1])) {
-            commonOptionInfo += oldValues[1];
+          if (!commonOptionInfo.equals(oldValues.getSecond())) {
+            commonOptionInfo += oldValues.getSecond();
           }
 
-          map.put(optionName, new String[] { description, commonOptionInfo });
+          map.put(optionName, Pair.of(description, commonOptionInfo));
 
         } else {
-          map.put(optionName, new String[] { getOptionDescription(field),
-              optionInfo.toString() });
+          map.put(optionName,
+              Pair.of(getOptionDescription(field), optionInfo.toString()));
         }
       }
     }
@@ -163,13 +163,13 @@ public class OptionCollector {
    * @param c class with options 
    * @param map where the formatted options-description is added */
   private static void getOptionsDescription(final Class<?> c,
-      final TreeMap<String, String[]> map) {
+      final SortedMap<String, Pair<String, String>> map) {
     if (c.isAnnotationPresent(Options.class)) {
       final Options classOption = c.getAnnotation(Options.class);
       if (!classOption.prefix().isEmpty()
           && !classOption.description().isEmpty()) {
         map.put(classOption.prefix(),
-            new String[] { formatText(classOption.description()), "" });
+            Pair.of(formatText(classOption.description()), ""));
       }
     }
   }
@@ -181,7 +181,7 @@ public class OptionCollector {
     final String[] lines = text.split("\n");
 
     // split lines into more lines, if they are too long
-    final LinkedList<String> splittedLines = new LinkedList<String>();
+    final List<String> splittedLines = new ArrayList<String>();
     for (String line : lines) {
       while (line.length() > CHARS_PER_LINE) {
 
@@ -203,8 +203,8 @@ public class OptionCollector {
     }
 
     // remove last element, if empty (useful if previous line is too long)
-    if (splittedLines.getLast().isEmpty()) {
-      splittedLines.removeLast();
+    if (splittedLines.get(splittedLines.size() - 1).isEmpty()) {
+      splittedLines.remove(splittedLines.size() - 1);
     }
 
     // add "# " before each line
@@ -269,31 +269,35 @@ public class OptionCollector {
    *
    * @param field the field, the sourcefile belongs to */
   private static String getContentOfFile(final Field field) {
-    final StringBuilder contentOfFile = new StringBuilder();
+
+    // get path to CPAchecker
+    String cpacheckerPath = "";
     try {
-      // get filename of java-file
-      String cpacheckerPath = new File("").getCanonicalPath();
-      String filename =
-          field.getDeclaringClass().toString().substring(6).replace(".", "/");
-
-      // encapsulated classes have a "$" in filename
-      if (filename.contains("$")) {
-        filename = filename.substring(0, filename.indexOf("$"));
-      }
-
-      // get content of file, filename is in '/src/' and ends with '.java'
-      final BufferedReader reader =
-          new BufferedReader(new InputStreamReader(new FileInputStream(
-              new File(cpacheckerPath + "/src/" + filename + ".java"))));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        contentOfFile.append(line);
-      }
+      cpacheckerPath = new File("").getCanonicalPath();
     } catch (IOException e) {
-      // if file not found or not readable, do nothing,
-      // default values are only additional information
+      System.err.println("Could not read canonical path.");
+      return "";
     }
-    return contentOfFile.toString();
+
+    // get name of javafile
+    String filename =
+        field.getDeclaringClass().toString().substring(6).replace(".", "/");
+
+    // encapsulated classes have a "$" in filename
+    if (filename.contains("$")) {
+      filename = filename.substring(0, filename.indexOf("$"));
+    }
+
+    // get name of source file
+    filename = cpacheckerPath + "/src/" + filename + ".java";
+
+    try {
+      return com.google.common.io.Files.toString(new File(filename),
+          Charset.defaultCharset());
+    } catch (IOException e) {
+      System.err.println("Could not read file '" + filename + "'.");
+      return "";
+    }
   }
 
   /** This function searches for fieldstring in content and 
@@ -388,15 +392,20 @@ public class OptionCollector {
    * belong to the given package and subpackages.
    *
    * @return list of classes
-   * @throws IOException
    */
-  private static LinkedList<Class<?>> getClasses() throws IOException {
+  private static List<Class<?>> getClasses() {
     final ClassLoader classLoader =
         Thread.currentThread().getContextClassLoader();
     assert classLoader != null;
-    final Enumeration<URL> resources = classLoader.getResources("");
-    final LinkedList<Class<?>> classes = new LinkedList<Class<?>>();
 
+    Enumeration<URL> resources = null;
+    try {
+      resources = classLoader.getResources("");
+    } catch (IOException e) {
+      System.err.println("Could not get recources of classloader.");
+    }
+
+    final List<Class<?>> classes = new ArrayList<Class<?>>();
     while (resources.hasMoreElements()) {
       final File file = new File(resources.nextElement().getFile());
       collectClasses(file, "", classes);
@@ -413,7 +422,7 @@ public class OptionCollector {
    * @param classes list where the classes are added.
    */
   private static void collectClasses(final File directory,
-      final String packageName, final LinkedList<Class<?>> classes) {
+      final String packageName, final List<Class<?>> classes) {
     if (directory.exists()) {
       for (final File file : directory.listFiles()) {
         final String fileName = file.getName();
