@@ -110,9 +110,8 @@ public class OptionCollector {
           optionInfo.append("\n  field:    " + field.getName() + "\n");
           optionInfo.append("  class:    "
               + field.getDeclaringClass().toString().substring(6) + "\n");
-
-          final String simpleType = field.getType().getSimpleName();
-          optionInfo.append("  type:     " + simpleType + "\n");
+          optionInfo.append("  type:     " + field.getType().getSimpleName()
+              + "\n");
 
           if (!defaultValue.isEmpty()) {
             optionInfo.append("  default value: " + defaultValue + "\n");
@@ -257,12 +256,31 @@ public class OptionCollector {
 
     // get declaration of field from file
     // example fieldString: 'private boolean shouldCheck'
-    final String fieldString =
+    String fieldString =
         Modifier.toString(field.getModifiers()) + " "
             + field.getType().getSimpleName() + " " + field.getName();
 
-    return getDefaultValueFromContent(content, fieldString);
+    String defaultValue = getDefaultValueFromContent(content, fieldString);
 
+    // enums can be written with the whole classname, example: 
+    // 'Waitlist.TraversalMethod traversalMethod = ...;'
+    // then fieldString is different.
+    if (field.getType().isEnum()) {
+      if (defaultValue.isEmpty()) {
+        String type = field.getType().toString();
+        type = type.substring(type.lastIndexOf(".") + 1).replace("$", ".");
+        fieldString =
+            Modifier.toString(field.getModifiers()) + " " + type + " "
+                + field.getName();
+        defaultValue = getDefaultValueFromContent(content, fieldString);
+      }
+      if (defaultValue.contains(".")) {
+        defaultValue =
+            defaultValue.substring(defaultValue.lastIndexOf(".") + 1);
+      }
+    }
+
+    return defaultValue;
   }
 
   /** This function returns the content of a sourcefile as String.

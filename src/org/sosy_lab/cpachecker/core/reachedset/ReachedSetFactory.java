@@ -56,12 +56,12 @@ public class ReachedSetFactory {
   boolean useTopSort = false;
 
   @Option(name = "reachedSet", 
-      description = "# which reached set implementation to use?"
+      description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
       + "\nLOCATIONMAPPED: a different set per location "
       + "(faster, elements with different locations cannot be merged)"
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
-  ReachedSetType           reachedSet = ReachedSetType.PARTITIONED;
+  ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
     
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
