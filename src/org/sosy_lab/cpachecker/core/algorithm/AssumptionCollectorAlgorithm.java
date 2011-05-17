@@ -112,10 +112,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
   
-  @Option(name="export")
+  @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE, 
+      description="write collected assumptions to file")
   private File assumptionsFile = new File("assumptions.txt");
   
   @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE)

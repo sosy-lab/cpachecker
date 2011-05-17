@@ -58,13 +58,17 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
+  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+      description="entry function")
   private String mainFunctionName = "main";
 
-  @Option(name="cbmc.dumpCBMCfile", type=Option.Type.OUTPUT_FILE)
+  @Option(name = "cbmc.dumpCBMCfile", type = Option.Type.OUTPUT_FILE,
+      description = "file name where to put the path program that is generated "
+      + "as input for CBMC. A temporary file is used if this is unspecified.")
   private File CBMCFile;
 
-  @Option(name="cbmc.timelimit")
+  @Option(name="cbmc.timelimit",
+      description="maximum time limit for CBMC (0 is infinite)")
   private int timelimit = 0; // milliseconds
 
   public CBMCChecker(Map<String, CFAFunctionDefinitionNode> cfa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {

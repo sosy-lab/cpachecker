@@ -120,10 +120,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
   
-  @Option
+  @Option(description = "If BMC did not find a bug, check whether "
+      + "the bounding did actually remove parts of the state space "
+      + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
   
-  @Option
+  @Option(description="Check reachability of target states after analysis "
+      + "(classical BMC). The alternative is to check the reachability "
+      + "as soon as the target states are discovered, which is done if "
+      + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
   
   @Option

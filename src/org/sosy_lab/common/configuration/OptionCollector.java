@@ -41,7 +41,7 @@ import org.sosy_lab.common.Files;
 public class OptionCollector {
 
   private final static String OUTPUT_FILE_NAME = "CollectedOptions.txt";
-  private final static int    CHARS_PER_LINE   = 70;                    // for description
+  private final static int    CHARS_PER_LINE   = 75;                    // for description
 
   /** The main-method collects all classes of CPAchecker and
    * then it searches for all {@link Option}s.
@@ -125,8 +125,26 @@ public class OptionCollector {
         }
         optionInfo.append(getAllowedValues(field, verbose));
 
-        map.put(optionName, new String[] { getOptionDescription(field),
-            optionInfo.toString() });
+        // check if a option was found before, some options are used twice
+        if (map.containsKey(optionName)) {
+          String[] oldValues = map.get(optionName);
+
+          String description = getOptionDescription(field);
+          if (!description.equals(oldValues[0])) {
+            description += oldValues[0];
+          }
+
+          String commonOptionInfo = optionInfo.toString();
+          if (!commonOptionInfo.equals(oldValues[1])) {
+            commonOptionInfo += oldValues[1];
+          }
+
+          map.put(optionName, new String[] { description, commonOptionInfo });
+
+        } else {
+          map.put(optionName, new String[] { getOptionDescription(field),
+              optionInfo.toString() });
+        }
       }
     }
   }
@@ -321,7 +339,8 @@ public class OptionCollector {
    * @param type the type of the field
    * @param option the {@link Option}-annotation of the field 
    * @param verbose short or long output? */
-  private static String getAllowedValues(final Field field, final boolean verbose) {
+  private static String getAllowedValues(final Field field,
+      final boolean verbose) {
     String allowedValues = "";
 
     final Class<?> type = field.getType();

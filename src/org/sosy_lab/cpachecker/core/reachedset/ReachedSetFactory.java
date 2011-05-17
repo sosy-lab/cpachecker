@@ -39,17 +39,29 @@ public class ReachedSetFactory {
     NORMAL, LOCATIONMAPPED, PARTITIONED
   }
     
-  @Option(name="traversal.order")
+  @Option(name="traversal.order",
+      description="which strategy to adopt for visiting states?")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
-  @Option(name="traversal.useCallstack")
+  @Option(name = "traversal.useCallstack",
+      description = "handle states with a deeper callstack first?"
+      + "\nThis needs the CallstackCPA to have any effect.")
   boolean useCallstack = false;
 
-  @Option(name="traversal.useTopsort")
+  @Option(name = "traversal.useTopsort", 
+      description = "Use an implementation of topsort strategy that allows to select "
+      + "a secondary strategy that is used if there are two elements with the same topsort id. "
+      + "The secondary strategy is selected with 'analysis.traversal.order'. "
+      + "The secondary strategy may not be TOPSORT.")
   boolean useTopSort = false;
 
-  @Option(name="reachedSet")
-  ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
+  @Option(name = "reachedSet", 
+      description = "# which reached set implementation to use?"
+      + "\nNORMAL: just a simple set"
+      + "\nLOCATIONMAPPED: a different set per location "
+      + "(faster, elements with different locations cannot be merged)"
+      + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
+  ReachedSetType           reachedSet = ReachedSetType.PARTITIONED;
     
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);

@@ -65,25 +65,31 @@ import com.google.common.collect.SortedSetMultimap;
 @Options
 public class CFACreator {
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
+  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+      description="entry function")
   private String mainFunctionName = "main";
 
-  @Option(name="analysis.interprocedural")
+  @Option(name="analysis.interprocedural",
+      description="run interprocedural analysis")
   private boolean interprocedural = true;
 
-  @Option(name="analysis.useGlobalVars")
+  @Option(name="analysis.useGlobalVars",
+      description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(name="cfa.removeIrrelevantForErrorLocations")
+  @Option(name="cfa.removeIrrelevantForErrorLocations",
+      description="remove paths from CFA that cannot lead to a error location")
   private boolean removeIrrelevantForErrorLocations = false;
 
-  @Option(name="cfa.export")
+  @Option(name="cfa.export",
+      description="export CFA as .dot file")
   private boolean exportCfa = true;
 
   @Option(name="cfa.exportPerFunction")
   private boolean exportCfaPerFunction = true;  
   
-  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,
+      description="export CFA as .dot file")
   private File exportCfaFile = new File("cfa.dot");
 
   private final LogManager logger;

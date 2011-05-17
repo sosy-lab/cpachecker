@@ -126,10 +126,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker";
 
-  @Option(required=true)
+  @Option(required = true, description = "Which refinement algorithm to use? "
+      + "(give class name, required for CEGAR) If the package name starts with "
+      + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   private String refiner = "";
 
-  @Option
+  @Option(description = "completely restart analysis on refinement "
+      + "by removing everything from the reached set")
   private boolean restartOnRefinement = false;
 
   private final LogManager logger;
