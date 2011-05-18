@@ -818,7 +818,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     switch (binaryOperator)
     {
-      case DIVIDE:
       case MODULO:
       case LESS_EQUAL:
       case GREATER_EQUAL:
@@ -831,6 +830,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       case PLUS:
       case MINUS:
       case MULTIPLY:
+      case DIVIDE:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
 
         Interval interval1 = null;
         Interval interval2 = null;
@@ -863,12 +865,30 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
               interval = interval1.times(interval2);
               break;
 
+            case DIVIDE:
+              interval = interval1.divde(interval2);
+              break;
+
+            case SHIFT_LEFT:
+              interval = interval1.shiftLeft(interval2);
+              break;
+
+            case SHIFT_RIGHT:
+              interval = interval1.shiftRight(interval2);
+              break;
+
             default:
               throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
 
           newElement.addInterval(assignedVar, interval, this.threshold);
         }
+
+        break;
+
+      default:
+        System.out.println("unknown operator " + binaryOperator.toString());
+
     }
 
     return newElement;
