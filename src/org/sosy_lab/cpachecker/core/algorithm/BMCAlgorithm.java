@@ -28,6 +28,7 @@ import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.IS_TARGET_ELEMENT;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
 
 import java.io.PrintStream;
@@ -139,16 +140,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final PredicateCPA predCpa;
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
-  private final CFANode initialLocation;
   
   public BMCAlgorithm(Algorithm algorithm, Configuration config, LogManager logger,
-                      ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation)
+                      ReachedSetFactory pReachedSetFactory)
                       throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
     reachedSetFactory = pReachedSetFactory;
-    initialLocation = pInitialLocation;
     
     predCpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
@@ -338,7 +337,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // get global invariants
       logger.log(Level.INFO, "Finding invariants");
-      Formula invariants = findInvariantsAt(loopHead, fmgr);
+      CFANode initialLocation = extractLocation(reached.getFirstElement());
+      Formula invariants = findInvariantsAt(loopHead, fmgr, initialLocation);
       invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
       
       // Create formulas
@@ -406,7 +406,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr) throws CPAException {
+  private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr, CFANode initialLocation) throws CPAException {
     stats.invariantGeneration.start();
     try {
       
