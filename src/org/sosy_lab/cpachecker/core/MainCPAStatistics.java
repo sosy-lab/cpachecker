@@ -111,8 +111,7 @@ class MainCPAStatistics implements Statistics {
     private final MemoryStatistics memStats;
     
     final Timer programTime = new Timer();
-    final Timer cfaCreationTime = new Timer();
-    final Timer cpaCreationTime = new Timer();
+    final Timer creationTime = new Timer();
     final Timer analysisTime = new Timer();
 
     private CFACreator cfaCreator;
@@ -185,9 +184,10 @@ class MainCPAStatistics implements Statistics {
           out.println("  Number of partitions:       " + p.getNumberOfPartitions());
         }
         out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
-        out.println("Time for CFA construction:    " + cfaCreationTime);
+        out.println("Time for analysis setup:      " + creationTime);
         if (cfaCreator != null) {
           out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
+          out.println("Time for CFA construction:    " + cfaCreator.totalTime);
           out.println("  Time for parsing C file:    " + cfaCreator.parsingTime);
           out.println("  Time for AST to CFA:        " + cfaCreator.conversionTime);
           out.println("  Time for CFA sanity checks: " + cfaCreator.checkTime);
@@ -199,7 +199,6 @@ class MainCPAStatistics implements Statistics {
             out.println("  Time for export:            " + cfaCreator.exportTime);
           }
         }
-        out.println("Time for CPA instantiaton:    " + cpaCreationTime);
         out.println("Time for Analysis:            " + analysisTime);
         out.println("Total time for CPAchecker:    " + programTime);
         

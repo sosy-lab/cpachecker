@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -164,24 +163,12 @@ public class CPAchecker {
     try {
       stats = new MainCPAStatistics(config, logger);
 
-      // create CFA
-      stats.cfaCreationTime.start();
+      // create parser, cpa, algorithm
+      stats.creationTime.start();
+      
       CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
       stats.setCFACreator(cfaCreator);
-      
-      cfaCreator.parseFileAndCreateCFA(filename);
-      
-      Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
-      stats.cfaCreationTime.stop();
-      
-      if (cfas.isEmpty()) {
-        // empty program, do nothing
-        return new CPAcheckerResult(Result.UNKNOWN, null, null);
-      }
 
-      CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
-
-      stats.cpaCreationTime.start();
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
       Algorithm algorithm = createAlgorithm(cpa, stats);
@@ -191,17 +178,30 @@ public class CPAchecker {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
             Joiner.on("\n ").join(unusedProperties), "\n");
       }
+      
+      stats.creationTime.stop();
 
-      if (!requireStopAsap) {
-        reached = createInitialReachedSet(cpa, mainFunction);
+      stopIfNecessary();
 
-        // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+      // create CFA
+      cfaCreator.parseFileAndCreateCFA(filename);
+            
+      if (cfaCreator.getFunctions().isEmpty()) {
+        // empty program, do nothing
+        return new CPAcheckerResult(Result.UNKNOWN, null, null);
+      }
 
-        stats.cpaCreationTime.stop();
+      reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
+      
+      stopIfNecessary();
+
+      // register management interface for CPAchecker
+      CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+      try {
         
         result = runAlgorithm(algorithm, reached, stats);
         
+      } finally {
         // unregister management interface for CPAchecker
         mxbean.unregister();
       }
