@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -38,7 +37,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -53,7 +51,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options()
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
-  private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final LogManager logger;
 
   private final Timer cbmcTime = new Timer();
@@ -71,8 +68,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       description="maximum time limit for CBMC (0 is infinite)")
   private int timelimit = 0; // milliseconds
 
-  public CBMCChecker(Map<String, CFAFunctionDefinitionNode> cfa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
-    this.cfa = cfa;
+  public CBMCChecker(Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
     config.inject(this);
   }
@@ -81,7 +77,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
       Set<ARTElement> pErrorPathElements) throws CPAException {
 
-    String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
+    String pathProgram = AbstractPathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
 
     // write program to disk
     File cFile = CBMCFile;

@@ -27,6 +27,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import static com.google.common.collect.Iterables.concat;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -56,9 +58,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.util.CFA;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 /**
@@ -66,21 +70,25 @@ import com.google.common.collect.Lists;
  *
  */
 public class AbstractPathToCTranslator {
-
+ 
   private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
   private final List<String> mFunctionDecls = new ArrayList<String>();
   private int mFunctionIndex = 0;
 
   private AbstractPathToCTranslator() { }
   
-  public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
+  public static String translatePaths(ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
     AbstractPathToCTranslator translator = new AbstractPathToCTranslator();
     
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
-    for (CFAFunctionDefinitionNode node : pCfas.values()) {
+    // TODO: this set of function declarations could perhaps be cached
+    
+    Set<CFANode> allCFANodes = CFA.transitiveSuccessors(extractLocation(artRoot), true);
+    
+    for (CFAFunctionDefinitionNode node : Iterables.filter(allCFANodes, CFAFunctionDefinitionNode.class)) {
       // this adds the function declaration to mFunctionDecls
       translator.startFunction(node, false);
     }

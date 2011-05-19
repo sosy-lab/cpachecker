@@ -184,7 +184,7 @@ public class CPAchecker {
       stats.cpaCreationTime.start();
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
-      Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
+      Algorithm algorithm = createAlgorithm(cpa, stats);
 
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
@@ -287,7 +287,7 @@ public class CPAchecker {
     return cpa;
   }
 
-  private Algorithm createAlgorithm(final Map<String, CFAFunctionDefinitionNode> cfas,
+  private Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, final MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
@@ -303,7 +303,7 @@ public class CPAchecker {
     }
 
     if (options.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(cfas, algorithm, config, logger);
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
     }
     
     if (options.useAssumptionCollector) {
