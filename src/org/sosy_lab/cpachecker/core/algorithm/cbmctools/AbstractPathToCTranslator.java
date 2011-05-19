@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
@@ -68,39 +67,36 @@ import com.google.common.collect.Lists;
  */
 public class AbstractPathToCTranslator {
 
-  private static final List<String> mGlobalDefinitionsList = new ArrayList<String>();
-  private static final List<String> mFunctionDecls = new ArrayList<String>();
-  private static int mFunctionIndex = 0;
+  private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
+  private final List<String> mFunctionDecls = new ArrayList<String>();
+  private int mFunctionIndex = 0;
 
+  private AbstractPathToCTranslator() { }
+  
   public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, ARTElement artRoot, Collection<ARTElement> elementsOnErrorPath) {
-    // TODO convert to non-static fields
-    Preconditions.checkState(mFunctionIndex == 0);
-
+    AbstractPathToCTranslator translator = new AbstractPathToCTranslator();
+    
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
     for (CFAFunctionDefinitionNode node : pCfas.values()) {
       // this adds the function declaration to mFunctionDecls
-      startFunction(node, false);
+      translator.startFunction(node, false);
     }
 
-    List<StringBuffer> lTranslation = translatePath(artRoot, elementsOnErrorPath);
+    List<StringBuffer> lTranslation = translator.translatePath(artRoot, elementsOnErrorPath);
 
-    String ret = Joiner.on('\n').join(concat(mGlobalDefinitionsList, mFunctionDecls, lTranslation));
+    String ret = Joiner.on('\n').join(concat(translator.mGlobalDefinitionsList, translator.mFunctionDecls, lTranslation));
 
     // replace nondet keyword with cbmc nondet keyword
     ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
     ret = ret.replaceAll("__BLAST_NONDET", "nondet_int()");
-    
-    // cleanup
-    mGlobalDefinitionsList.clear();
-    mFunctionDecls.clear();
-    mFunctionIndex = 0;
+
     return ret;
   }
 
-  private static List<StringBuffer> translatePath(final ARTElement firstElement,
+  private List<StringBuffer> translatePath(final ARTElement firstElement,
       Collection<ARTElement> pElementsOnPath) {
 
     //  ARTElement parentElement;
@@ -342,7 +338,7 @@ public class AbstractPathToCTranslator {
 
   }
 
-  private static String processSimpleEdge(CFAEdge pCFAEdge){
+  private String processSimpleEdge(CFAEdge pCFAEdge){
 
     switch (pCFAEdge.getEdgeType()) {
     case BlankEdge: {
@@ -415,7 +411,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return "";
   }
 
-  private static String processFunctionCall(CFAEdge pCFAEdge){
+  private String processFunctionCall(CFAEdge pCFAEdge){
 
     FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)pCFAEdge;
 
@@ -442,7 +438,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
   }
 
-  private static String startFunction(CFANode pNode, boolean pAddIndex) {
+  private String startFunction(CFANode pNode, boolean pAddIndex) {
     assert(pNode != null);
     assert(pNode instanceof FunctionDefinitionNode);
 
@@ -466,7 +462,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return lFunctionHeader + " {\n";
   }
 
-  private static Stack<Stack<CBMCStackElement>> cloneStack(
+  private Stack<Stack<CBMCStackElement>> cloneStack(
       Stack<Stack<CBMCStackElement>> pStack) {
     Stack<Stack<CBMCStackElement>>  ret = new Stack<Stack<CBMCStackElement>>();
     Iterator<Stack<CBMCStackElement>> it = pStack.iterator();
