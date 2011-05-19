@@ -42,6 +42,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -269,6 +270,14 @@ public class CPAMain {
         } else {
           throw new InvalidCmdlineArgumentException("-setprop argument missing!");
         }
+      } else if ("-printOptions".equals(arg)){
+        boolean verbose = false;
+        if (argsIt.hasNext()) {
+          final String nextArg = argsIt.next();
+          verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
+        }
+        System.out.println(OptionCollector.getCollectedOptions(verbose));
+        System.exit(0);
       } else if (arg.equals("-help")) {
         System.out.println("OPTIONS:");
         System.out.println(" -config");
@@ -282,6 +291,7 @@ public class CPAMain {
         System.out.println(" -cbmc");
         System.out.println(" -nolog");
         System.out.println(" -setprop");
+        System.out.println(" -printOptions [-v|-verbose]");
         System.out.println(" -help");
         System.exit(0);
       } else {
