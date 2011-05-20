@@ -72,7 +72,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     config.inject(this);
     
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
-      throw new CPAException("Need ART CPA for counterexample check");
+      throw new InvalidConfigurationException("ART CPA needed for counterexample check");
     }
     
     if (checkerName.equals("CBMC")) {

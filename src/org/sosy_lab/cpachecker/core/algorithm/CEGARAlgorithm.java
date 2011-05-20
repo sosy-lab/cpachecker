@@ -139,14 +139,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException {
+  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
     Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
     
     try {
       return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
     
     } catch (ClassInstantiationException e) {
-      throw new CPAException("Invalid refiner specified (" + e.getMessage() + ")!");
+      throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!");
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();

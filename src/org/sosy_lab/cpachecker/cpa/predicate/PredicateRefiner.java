@@ -97,7 +97,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     PredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
-      throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
     predicateCpa.getConfiguration().inject(this);
