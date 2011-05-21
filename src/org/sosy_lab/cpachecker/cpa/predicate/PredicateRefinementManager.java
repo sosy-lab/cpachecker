@@ -168,7 +168,7 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
+      ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
     
     refStats.cexAnalysisTimer.start();
 
@@ -429,7 +429,12 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
+      try {
+        return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new ForceStopCPAException();
+      }
     }
     
     assert executor != null;
@@ -468,10 +473,13 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
       
       } catch (ExecutionException e) {
         Throwable t = e.getCause();
+        if (t instanceof InterruptedException) {
+          throw new ForceStopCPAException();
+        }
         Throwables.propagateIfPossible(t, CPAException.class);
         
         logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
-        throw new ForceStopCPAException();
+        throw new AssertionError(t);
       }
     }
   }
@@ -490,7 +498,7 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
   }
 
   private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
-        List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) {
+        List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
     Boolean tmpSpurious = null;
 
     if (useZigZag) {
@@ -718,7 +726,7 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
     }
 
     @Override
-    public CounterexampleTraceInfo call() throws CPAException {
+    public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
       return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, currentItpProver);
     }
   }
