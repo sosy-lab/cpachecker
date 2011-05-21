@@ -425,7 +425,7 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
    * @throws CPAException
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException {
+      final ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
@@ -443,13 +443,15 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
     int noOfTries = 0;
     
     while (true) {
-      TransferCallable<?> tc;
+      final InterpolatingTheoremProver<?> currentItpProver =
+        (noOfTries == 0) ? firstItpProver : secondItpProver;
       
-      if (noOfTries == 0) {
-        tc = new TransferCallable<T1>(pAbstractTrace, firstItpProver);
-      } else {
-        tc = new TransferCallable<T2>(pAbstractTrace, secondItpProver);
-      }
+      Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
+        @Override
+        public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
+          return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, currentItpProver);
+        }
+      };
 
       Future<CounterexampleTraceInfo> future = executor.submit(tc);
 
@@ -712,22 +714,5 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
       }
     }
     return preds;
-  }
-
-  private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
-
-    private final ArrayList<PredicateAbstractElement> abstractTrace;
-    private final InterpolatingTheoremProver<T> currentItpProver;
-
-    public TransferCallable(ArrayList<PredicateAbstractElement> pAbstractTrace,
-        InterpolatingTheoremProver<T> pItpProver) {
-      abstractTrace = pAbstractTrace;
-      currentItpProver = pItpProver;
-    }
-
-    @Override
-    public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-      return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, currentItpProver);
-    }
   }
 }
