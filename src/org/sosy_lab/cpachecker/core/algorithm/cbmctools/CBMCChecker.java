@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -96,15 +97,19 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     logger.log(Level.FINE, "Starting CBMC verification.");
     cbmcTime.start();
     CBMCExecutor cbmc;
+    int exitCode;
     try {
       cbmc = new CBMCExecutor(logger, cFile, mainFunctionName);
-      cbmc.join(timelimit);
+      exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
       throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
 
     } catch (TimeoutException e) {
       throw new CPAException("CBMC took too long to verify the counterexample");
+
+    } catch (InterruptedException e) {
+      throw new ForceStopCPAException();
 
     } finally {
       cbmcTime.stop();
@@ -113,7 +118,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (cbmc.getResult() == null) {
       // exit code and stderr are already logged with level WARNING
-      throw new CPAException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
+      throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
     }
     return cbmc.getResult();
   }

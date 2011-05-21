@@ -259,10 +259,14 @@ public class Cilly {
     String lExecString = mCillyAsmExePath + lOptionsString.toString() + " " + pSourceFile.getAbsolutePath();
 
     ProcessExecutor<IOException> lCillyProcess = new ProcessExecutor<IOException>(logger, IOException.class, lExecString.split(" "));
-    lCillyProcess.join();
-    int lExitValue = lCillyProcess.getExitCode();
-    if (lExitValue != 0) {
-      throw new RuntimeException("Cilly processing failed!");
+    try {
+      int lExitValue = lCillyProcess.join();
+      if (lExitValue != 0) {
+        throw new RuntimeException("Cilly processing failed!");
+      }
+    } catch (InterruptedException e) {
+      // TODO propagate
+      Thread.currentThread().interrupt();
     }
   }
 }
