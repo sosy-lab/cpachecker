@@ -106,6 +106,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private boolean mDoRestart = false;
   private long mRestartBound = 100000000; // 100 MB
   
+  private boolean mUseAutomatonOptimization = true;
+  private boolean mUseGraphCPA = true;
+  private boolean mReuseART = true;
+  
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
   
@@ -285,11 +289,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
   
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> optimizeAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton1);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
+    if (mUseAutomatonOptimization) {
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton1);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
+      
+      return lGoalAutomaton3;
+    }
     
-    return lGoalAutomaton3;
+    return pAutomaton;
   }
   
   private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
@@ -450,11 +458,16 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       boolean lReachableViaGraphSearch = false;
       
       if (!lAutomatonCPA.getAutomaton().getFinalStates().isEmpty()) {
-        lReachableViaGraphSearch = reachGraphSearch(lPreviousGraphGoalAutomaton, lGraphReachedSet, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        if (mUseGraphCPA) {
+          lReachableViaGraphSearch = reachGraphSearch(lPreviousGraphGoalAutomaton, lGraphReachedSet, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
-        lPreviousGraphGoalAutomaton = lAutomatonCPA.getAutomaton();
+          lPreviousGraphGoalAutomaton = lAutomatonCPA.getAutomaton();
+        }
+        else {
+          lReachableViaGraphSearch = true;
+        }
       }
-      
+            
       CounterexampleTraceInfo lCounterexampleTraceInfo = null;
 
       if (lReachableViaGraphSearch) {
@@ -763,7 +776,17 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lStatistics.add(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
 
-    modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+    if (mReuseART) {
+      modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+    }
+    else {
+      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+      
+      AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
+      Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
+      
+      pReachedSet.add(lInitialElement, lInitialPrecision);
+    }
     
     try {
       lAlgorithm.run(pReachedSet);
@@ -1062,10 +1085,18 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
+    if (mReuseART) {
+      modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+    }
+    else {
+      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
+      
+      AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
+      Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
+      
+      pReachedSet.add(lInitialElement, lInitialPrecision);
+    }
     
-    modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
-    
-
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
     
     
@@ -1087,7 +1118,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
     
     ARTElement lLastARTElement = (ARTElement)pReachedSet.getLastElement();
-    
+        
     CompositeElement lLastElement = (CompositeElement)lLastARTElement.getWrappedElement();
     ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lLastElement.get(lProductAutomatonIndex);
     
