@@ -174,7 +174,7 @@ public class OptionCollector {
   }
 
   /** This function formats text and splits lines, if they are too long. */
-  private static String formatText(final String text) {
+  public static String formatText(final String text) {
 
     // split description into lines
     final String[] lines = text.split("\n");
@@ -244,7 +244,7 @@ public class OptionCollector {
     return optionName;
   }
 
-  /** This function searches for the default field values of an {@link Option}
+  /** This function searches for the default field value of an {@link Option}
    * in the sourcefile of the actual field/class and returns it
    * or an emtpy String, if the value not found.
    *

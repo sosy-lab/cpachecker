@@ -293,6 +293,10 @@ public class Configuration {
   @Option (description="base directory for all input & output files"
     + "\n(except for the configuration file itself)")
   private String rootDirectory = ".";
+  
+  @Option (name="log.usedOptions.export",
+      description="all used options are printed")
+  private boolean exportUsedOptions = false;
 
   private static final long serialVersionUID = -5910186668866464153L;
 
@@ -476,6 +480,10 @@ public class Configuration {
     final Object value = convertValue(
         name, valueStr, defaultValue, type, genericType, option.type());
 
+    if (exportUsedOptions) {
+      printOptionInfos(field, option, name, valueStr, defaultValue);
+    }
+
     // options which were not specified need not to be set
     // but do set OUTPUT_FILE options for disableOutput to work
     if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
@@ -490,6 +498,28 @@ public class Configuration {
     } catch (IllegalAccessException e) {
       assert false : "Accessibility setting failed silently above.";
     }
+  }
+
+  private void printOptionInfos(final Field field, final Option option,
+      final String name, final String valueStr, final Object defaultValue) {
+    
+    // create optionInfo for file
+    final StringBuilder optionInfo =
+        new StringBuilder(OptionCollector.formatText(option.description()));
+    optionInfo.append(name + "\n");
+    if (field.getType().isArray()) {
+      optionInfo.append("    default value:  "
+          + java.util.Arrays.deepToString((Object[]) defaultValue) + "\n");
+    } else if (field.getType().equals(String.class)) {
+      optionInfo.append("    default value:  '" + defaultValue + "'\n");
+    } else {
+      optionInfo.append("    default value:  " + defaultValue + "\n");
+    }
+    if (valueStr != null) {
+      optionInfo.append("--> used value:     " + valueStr + "\n");
+    }
+
+    System.out.println(optionInfo.toString());
   }
 
   /** This method sets a new value to a method with an {@link Options}-annotation. 
