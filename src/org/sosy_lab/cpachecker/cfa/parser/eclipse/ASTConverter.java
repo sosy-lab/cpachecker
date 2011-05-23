@@ -574,6 +574,10 @@ class ASTConverter {
     } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTReturnStatement) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTReturnStatement) s);
 
+    } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTProblemStatement) {
+      org.eclipse.cdt.core.dom.ast.IASTProblemStatement p = (org.eclipse.cdt.core.dom.ast.IASTProblemStatement)s;
+      throw new CFAGenerationRuntimeException(p.getProblem().getMessage(), p);
+      
     } else {
       throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s);
     }
