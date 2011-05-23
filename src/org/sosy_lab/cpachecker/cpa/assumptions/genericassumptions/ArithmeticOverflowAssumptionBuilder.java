@@ -212,7 +212,7 @@ implements GenericAssumptionBuilder
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
           IASTName name = paramdecl.getName();
-          IType type = name.getType();
+          IType type = paramdecl.getDeclSpecifier();
           IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }
