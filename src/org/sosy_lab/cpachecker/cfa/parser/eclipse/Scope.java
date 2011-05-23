@@ -84,7 +84,7 @@ class Scope {
   }
   
   public void registerDeclaration(IASTSimpleDeclaration declaration) {
-    String name = declaration.getName().getRawSignature();
+    String name = declaration.getName();
     
     if (declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier) {
       // function

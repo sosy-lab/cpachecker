@@ -142,7 +142,7 @@ enum InvariantsTransferRelation implements TransferRelation {
       return element;
     }
     
-    String varName = edge.getName().getRawSignature();
+    String varName = edge.getName();
     if (!edge.isGlobal()) {
       varName = edge.getSuccessor().getFunctionName() + "::" + varName;
     }
@@ -238,7 +238,7 @@ enum InvariantsTransferRelation implements TransferRelation {
   }
   
   private static String getVarName(IASTIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
-    String varName = var.getName().getRawSignature();
+    String varName = var.getName();
     if (var.getDeclaration() != null) {
       IASTSimpleDeclaration decl = var.getDeclaration();
      

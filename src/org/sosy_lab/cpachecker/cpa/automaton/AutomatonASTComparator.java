@@ -164,7 +164,7 @@ class AutomatonASTComparator {
     
     @Override
     public ASTMatcher visit(IASTIdExpression exp) {
-      String name = exp.getRawSignature();
+      String name = exp.getName();
       
       if (name.equals(JOKER_EXPR)) {
         return JokerMatcher.INSTANCE;
@@ -553,7 +553,7 @@ class AutomatonASTComparator {
     
     @Override
     protected String getFieldValueFrom(IASTFieldReference pSource) {
-      return pSource.getFieldName().getRawSignature();
+      return pSource.getFieldName();
     }
   }
   
@@ -565,7 +565,7 @@ class AutomatonASTComparator {
     
     @Override
     protected String getFieldValueFrom(IASTIdExpression pSource) {
-      return pSource.getRawSignature();
+      return pSource.getName();
     }
   }
   

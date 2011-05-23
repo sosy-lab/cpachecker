@@ -45,7 +45,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
       IASTFileLocation pFileLocation,
       boolean pIsGlobal,
       StorageClass pStorageClass,
-      IType pSpecifier, IASTName pName,
+      IType pSpecifier, String pName,
       IASTInitializer pInitializer) {
     super(pRawSignature, pFileLocation, pSpecifier, pName);
     isGlobal = pIsGlobal;

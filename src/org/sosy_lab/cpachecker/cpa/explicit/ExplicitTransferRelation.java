@@ -1273,7 +1273,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         return ((IASTEnumerator)idExp.getDeclaration()).getValue();
       }
       
-      String varName = getvarName(idExp.getRawSignature(), functionName);
+      String varName = getvarName(idExp.getName(), functionName);
       if (element.contains(varName)) {
         return element.getValueFor(varName);
       } else {

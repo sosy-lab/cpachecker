@@ -25,19 +25,26 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public class IASTIdExpression extends IASTExpression {
 
-  private final IASTName name;
+  private final String name;
   private final IASTSimpleDeclaration declaration;
 
   public IASTIdExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
-      final IASTName pName, final IASTSimpleDeclaration pDeclaration) {
+      final String pName, final IASTSimpleDeclaration pDeclaration) {
     super(pRawSignature, pFileLocation, pType);
     name = pName;
     declaration = pDeclaration;
   }
 
-  public IASTName getName() {
+  public String getName() {
     return name;
+  }
+  
+  @Deprecated
+  @Override
+  public String getRawSignature() {
+    // TODO Auto-generated method stub
+    return super.getRawSignature();
   }
   
   /**

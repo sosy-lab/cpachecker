@@ -31,10 +31,10 @@ import com.google.common.collect.ImmutableList;
 public final class IASTEnumerationSpecifier extends IType {
 
   private final List<IASTEnumerator> enumerators;
-  private final IASTName             name;
+  private final String               name;
 
   public IASTEnumerationSpecifier(final boolean pConst, final boolean pVolatile,
-      final List<IASTEnumerator> pEnumerators, final IASTName pName) {
+      final List<IASTEnumerator> pEnumerators, final String pName) {
     super(pConst, pVolatile);
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;
@@ -44,7 +44,7 @@ public final class IASTEnumerationSpecifier extends IType {
     return enumerators.toArray(new IASTEnumerator[enumerators.size()]);
   }
 
-  public IASTName getName() {
+  public String getName() {
     return name;
   }
 
@@ -55,7 +55,7 @@ public final class IASTEnumerationSpecifier extends IType {
     private final long           value;
 
     public IASTEnumerator(final String pRawSignature,
-        final IASTFileLocation pFileLocation, final IASTName pName,
+        final IASTFileLocation pFileLocation, final String pName,
         final long pValue) {
       super(pRawSignature, pFileLocation, INT_TYPE, pName);
       

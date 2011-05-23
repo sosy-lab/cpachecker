@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTNamedTypeSpecifier extends IType {
 
-  private final IASTName name;
+  private final String name;
 
   public IASTNamedTypeSpecifier(final boolean pConst, final boolean pVolatile,
-      final IASTName pName) {
+      final String pName) {
     super(pConst, pVolatile);
     name = pName;
   }
 
-  public IASTName getName() {
+  public String getName() {
     return name;
   }
 }

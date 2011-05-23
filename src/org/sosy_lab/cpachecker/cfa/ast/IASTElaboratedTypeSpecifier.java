@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public final class IASTElaboratedTypeSpecifier extends IType {
 
   private final int      kind;
-  private final IASTName name;
+  private final String   name;
 
   public IASTElaboratedTypeSpecifier(boolean pConst, final boolean pVolatile,
-      final int pKind, final IASTName pName) {
+      final int pKind, final String pName) {
     super(pConst, pVolatile);
     kind = pKind;
     name = pName;
@@ -39,7 +39,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
     return kind;
   }
 
-  public IASTName getName() {
+  public String getName() {
     return name;
   }
 

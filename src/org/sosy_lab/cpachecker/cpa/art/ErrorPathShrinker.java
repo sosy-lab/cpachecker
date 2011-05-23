@@ -626,7 +626,7 @@ public final class ErrorPathShrinker {
 
       /* If the declared variable is important, the edge is important. */
       if (declarationEdge.getName() != null) {
-        final String varName = declarationEdge.getName().getRawSignature();
+        final String varName = declarationEdge.getName();
         if (importantVars.contains(varName)) {
           addCurrentCFAEdgePairToShortPath();
 

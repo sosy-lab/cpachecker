@@ -309,7 +309,7 @@ public class OctTransferRelation implements TransferRelation{
       
       if(arg instanceof IASTIdExpression){
         IASTIdExpression idExp = (IASTIdExpression) arg;
-        String nameOfArg = idExp.getRawSignature();
+        String nameOfArg = idExp.getName();
         String actualParamName = getvarName(nameOfArg, callerFunctionName);
 
         assignVariable(octagonElement, formalParamName, actualParamName, 1);

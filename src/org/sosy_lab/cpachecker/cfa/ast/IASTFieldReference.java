@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTFieldReference extends IASTExpression {
 
-  private final IASTName       name;
+  private final String         name;
   private final IASTExpression owner;
   private final boolean        isPointerDereference;
 
   public IASTFieldReference(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
-      final IASTName pName, final IASTExpression pOwner,
+      final String pName, final IASTExpression pOwner,
       final boolean pIsPointerDereference) {
     super(pRawSignature, pFileLocation, pType);
     name = pName;
@@ -39,7 +39,7 @@ public final class IASTFieldReference extends IASTExpression {
     isPointerDereference = pIsPointerDereference;
   }
 
-  public IASTName getFieldName() {
+  public String getFieldName() {
     return name;
   }
 

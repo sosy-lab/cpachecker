@@ -429,7 +429,7 @@ public class CtoFormulaConverter {
       // ignore type prototypes here
       if (edge.getName() != null) {
         
-        String varNameWithoutFunction = edge.getName().getRawSignature();
+        String varNameWithoutFunction = edge.getName();
         String var;
         if (isGlobal) {
           globalVars.add(varNameWithoutFunction);
@@ -737,7 +737,7 @@ public class CtoFormulaConverter {
       }
 
       IASTSimpleDeclaration decl = idExp.getDeclaration();
-      String var = idExp.getName().getRawSignature();
+      String var = idExp.getName();
       
       // some checks to determine whether our set of global variables
       // and the AST concord
@@ -845,7 +845,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
-      String field = fexp.getFieldName().getRawSignature();
+      String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
       Formula term = toNumericFormula(owner.accept(this));
 
@@ -905,7 +905,7 @@ public class CtoFormulaConverter {
       List<IASTExpression> pexps = fexp.getParameterExpressions();
       String func;
       if (fn instanceof IASTIdExpression) {
-        func = ((IASTIdExpression)fn).getName().getRawSignature();
+        func = ((IASTIdExpression)fn).getName();
         if (nondetFunctions.contains(func)) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it  
@@ -991,7 +991,7 @@ public class CtoFormulaConverter {
     if (exp instanceof IASTIdExpression) {
       IASTIdExpression idExp = (IASTIdExpression)exp;
       IASTSimpleDeclaration decl = idExp.getDeclaration();
-      String var = idExp.getName().getRawSignature();
+      String var = idExp.getName();
 
       // some checks to determine whether our set of global variables
       // and the AST concord
@@ -1050,7 +1050,7 @@ public class CtoFormulaConverter {
       
     } else if (exp instanceof IASTFieldReference) {
       IASTFieldReference fexp = (IASTFieldReference)exp;
-      String field = fexp.getFieldName().getRawSignature();
+      String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
       Formula term = buildTerm(owner, function, ssa);
 

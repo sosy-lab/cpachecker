@@ -103,7 +103,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
         assert ((IASTDeclaration)decl).isGlobal();
       }
 
-      String var = decl.getName().getRawSignature();
+      String var = decl.getName();
       if (isGlobal) {
         super.addToGlobalVars(var);
       }
