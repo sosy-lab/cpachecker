@@ -23,27 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTName extends IASTNode {
-
-  private final IType type;
+public final class IASTName {
+  
+  private String rawSignature;
   
   public IASTName(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType) {
-    super(pRawSignature, pFileLocation);
-    type = pType;
-  }
-
-  /**
-   * Return the type of the thing this name references.
-   * Not fully implemented.
-   * May return null if the parser did not find a binding.
-   */
-  public IType getType() {
-    return type;
+    rawSignature = pRawSignature;
   }
 
   @Override
   public String toString() {
     return getRawSignature();
+  }
+
+  public String getRawSignature() {
+    return rawSignature;
   }
 }
