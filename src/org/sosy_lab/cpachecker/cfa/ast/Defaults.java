@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class Defaults {
@@ -43,7 +44,7 @@ public class Defaults {
         
       case DOUBLE:
       case FLOAT:
-        return new IASTFloatLiteralExpression("0.0", fileLoc, type);
+        return new IASTFloatLiteralExpression("0.0", fileLoc, type, BigDecimal.ZERO);
         
       case UNSPECIFIED:
       case BOOL:

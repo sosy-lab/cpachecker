@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static java.lang.Character.isDigit;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -375,7 +376,21 @@ class ASTConverter {
       return new IASTIntegerLiteralExpression(e.getRawSignature(), fileLoc, type, parseIntegerLiteral(e.getRawSignature(), e));
     
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_float_constant:
-      return new IASTFloatLiteralExpression(e.getRawSignature(), fileLoc, type);
+      BigDecimal value;
+      try {
+        value = new BigDecimal(e.getRawSignature());
+      } catch (NumberFormatException nfe1) {
+        try {
+          // this might be a hex floating point literal
+          // BigDecimal doesn't support this, but Double does
+          // TODO handle hex floating point literals that are too large for Double
+          value = BigDecimal.valueOf(Double.parseDouble(e.getRawSignature()));
+        } catch (NumberFormatException nfe2) {
+          throw new CFAGenerationRuntimeException("illegal floating point literal", e);
+        }
+      }
+      
+      return new IASTFloatLiteralExpression(e.getRawSignature(), fileLoc, type, value);
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_string_literal:
       return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type);

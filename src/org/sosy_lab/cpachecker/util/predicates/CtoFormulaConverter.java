@@ -774,9 +774,7 @@ public class CtoFormulaConverter {
       
     @Override
     public Formula visit(IASTFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
-      // parse with valueOf and convert to String again, because Mathsat
-      // does not accept all possible C float constants (but Java hopefully does)
-      return fmgr.makeNumber(Double.valueOf(fExp.getRawSignature()).toString());
+      return fmgr.makeNumber(fExp.getValue().toString());
     }
 
     @Override
