@@ -31,11 +31,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -136,16 +137,21 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   private AbstractElement handleStatementEdge(FeatureVarsElement element,
       IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
-    //String functionName = cfaEdge.getPredecessor().getFunctionName();
-    IASTNode op = pIastStatement.getChildren()[0];
+    
+    if (!(pIastStatement instanceof IASTAssignment)) {
+      return element;
+    }
+    IASTAssignment assignment = (IASTAssignment)pIastStatement;
+    
+    IASTExpression lhs = assignment.getLeftHandSide();
     FeatureVarsElement result = element;
-    if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
-        || op instanceof IASTArraySubscriptExpression) {
-      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+    if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
+        || lhs instanceof IASTArraySubscriptExpression) {
+      String varName = lhs.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
       if (pPrecision.isOnWhitelist(varName)) {
-        IASTNode assignment = pIastStatement.getChildren()[1];
-        if (assignment instanceof IASTIntegerLiteralExpression) {
-          String value = assignment.getRawSignature();
+        IASTRightHandSide rhs = assignment.getRightHandSide();
+        if (rhs instanceof IASTIntegerLiteralExpression) {
+          String value = rhs.getRawSignature();
           /*
            * This will only work with the first assignment to the variable!
            * If the variable gets a second assignment we would have to delete the current value from the bdd first.
