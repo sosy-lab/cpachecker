@@ -41,9 +41,4 @@ public class IASTInitializerList extends IASTInitializer {
   public List<IASTInitializer> getInitializers() {
     return initializerList;
   }
-
-  @Override
-  public IASTNode[] getChildren() {
-    return initializerList.toArray(new IASTInitializer[initializerList.size()]);
-  }
 }

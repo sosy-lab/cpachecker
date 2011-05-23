@@ -36,11 +36,6 @@ public class IASTExpressionStatement extends IASTStatement {
   public IASTExpression getExpression() {
     return expression;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {expression};
-  }
   
   @Override
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {

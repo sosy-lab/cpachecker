@@ -46,10 +46,4 @@ public final class IASTName extends IASTNode {
   public String toString() {
     return getRawSignature();
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    // there are no children of this class
-    return new IASTNode[0];
-  }
 }

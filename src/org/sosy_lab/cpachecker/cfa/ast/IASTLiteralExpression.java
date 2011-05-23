@@ -36,12 +36,6 @@ public abstract class IASTLiteralExpression extends IASTExpression {
   public int getKind() {
     return kind;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    // there are no children of this class
-    return new IASTNode[0];
-  }
   
   public static final int lk_integer_constant = 0;
   public static final int lk_float_constant = 1;

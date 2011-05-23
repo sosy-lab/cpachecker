@@ -67,10 +67,4 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   public IASTInitializer getInitializer() {
     return initializer;
   }
-  
-  @Override
-  public IASTNode[] getChildren() {
-    return new IASTNode[] {getName(), getInitializer()};
-  }
-
 }

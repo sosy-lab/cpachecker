@@ -49,12 +49,7 @@ public final class IASTFieldReference extends IASTExpression {
 
   public boolean isPointerDereference() {
     return isPointerDereference;
-  }
-  
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {name, owner};
-  }  
+  } 
   
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {

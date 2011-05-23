@@ -55,9 +55,4 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
   public IASTName getName() {
     return name;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {name};
-  }
 }

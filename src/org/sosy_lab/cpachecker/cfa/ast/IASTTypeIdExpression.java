@@ -43,11 +43,6 @@ public final class IASTTypeIdExpression extends IASTExpression {
   public IASTTypeId getTypeId() {
     return type;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {type};
-  }
   
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {

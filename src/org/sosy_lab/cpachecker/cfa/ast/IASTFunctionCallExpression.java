@@ -65,17 +65,6 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   }
   
   @Override
-  public IASTNode[] getChildren() {
-    IASTNode[] result = new IASTNode[parameters.size()+1];
-    result[0] = functionName;
-    int i = 1;
-    for (IASTExpression param : parameters) {
-      result[i++] = param;
-    }
-    return result;
-  }
-  
-  @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }

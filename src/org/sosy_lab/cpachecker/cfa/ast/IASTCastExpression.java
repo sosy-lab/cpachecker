@@ -39,11 +39,6 @@ public final class IASTCastExpression extends IASTExpression {
   public IASTExpression getOperand() {
     return operand;
   }
-  
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {operand, type};
-  }
 
   public IASTTypeId getTypeId() {
     return type;
