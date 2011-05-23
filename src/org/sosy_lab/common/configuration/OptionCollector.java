@@ -418,7 +418,7 @@ public class OptionCollector {
 
     Enumeration<URL> resources = null;
     try {
-      resources = classLoader.getResources("");
+      resources = classLoader.getResources(".");
     } catch (IOException e) {
       System.err.println("Could not get recources of classloader.");
     }
@@ -444,14 +444,12 @@ public class OptionCollector {
     if (directory.exists()) {
       for (final File file : directory.listFiles()) {
         final String fileName = file.getName();
-        if (file.isDirectory()) {
-          assert !fileName.contains(".");
+        if (file.isDirectory() && !fileName.startsWith(".")) {
+          assert !fileName.contains(".") : fileName;
 
-          if (packageName.isEmpty()) {
-            collectClasses(file, fileName, classes);
-          } else {
-            collectClasses(file, packageName + "." + fileName, classes);
-          }
+          String newPackage = packageName.isEmpty() ? fileName
+                                                    : (packageName + "." + fileName);
+          collectClasses(file, newPackage, classes);
 
         } else if (fileName.endsWith(".class")
 
