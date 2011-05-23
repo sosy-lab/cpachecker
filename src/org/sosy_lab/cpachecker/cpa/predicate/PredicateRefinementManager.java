@@ -51,7 +51,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -423,18 +422,14 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
    * @throws CPAException
+   * @throws InterruptedException 
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException {
+      final ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException, InterruptedException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      try {
-        return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new ForceStopCPAException();
-      }
+      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
     }
     
     assert executor != null;
@@ -470,15 +465,10 @@ class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
           logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
           throw new RefinementFailedException(Reason.TIMEOUT, null);
         }
-      } catch (InterruptedException e) {
-        throw new ForceStopCPAException();
       
       } catch (ExecutionException e) {
         Throwable t = e.getCause();
-        if (t instanceof InterruptedException) {
-          throw new ForceStopCPAException();
-        }
-        Throwables.propagateIfPossible(t, CPAException.class);
+        Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
         
         logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
         throw new AssertionError(t);

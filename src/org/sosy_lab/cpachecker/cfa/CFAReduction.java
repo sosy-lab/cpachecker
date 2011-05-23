@@ -76,7 +76,7 @@ public class CFAReduction {
   }
 
   
-  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
+  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) throws InterruptedException {
     Set<CFANode> allNodes = CFA.allNodes(cfa, true);
 
     Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
@@ -116,7 +116,7 @@ public class CFAReduction {
     pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
   }
 
-  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) {      
+  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) throws InterruptedException {      
     try {
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -76,7 +75,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   @Override
   public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
-      Set<ARTElement> pErrorPathElements) throws CPAException {
+      Set<ARTElement> pErrorPathElements) throws CPAException, InterruptedException {
 
     String pathProgram = AbstractPathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
 
@@ -107,9 +106,6 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     } catch (TimeoutException e) {
       throw new CPAException("CBMC took too long to verify the counterexample");
-
-    } catch (InterruptedException e) {
-      throw new ForceStopCPAException();
 
     } finally {
       cbmcTime.stop();

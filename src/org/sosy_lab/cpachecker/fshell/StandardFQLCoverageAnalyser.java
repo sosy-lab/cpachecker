@@ -315,6 +315,9 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     // TODO sanity check by assertion
@@ -390,6 +393,9 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     

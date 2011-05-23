@@ -79,7 +79,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   };
 
   @Override
-  public final boolean performRefinement(ReachedSet pReached) throws CPAException {
+  public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ART based refinement");
 
     assert checkART(pReached);
@@ -132,9 +132,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pReached
    * @param pPath
    * @return whether the refinement was successful
+   * @throws InterruptedException 
    */
   protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
-            throws CPAException;
+            throws CPAException, InterruptedException;
 
   /**
    * This method is intended to be overwritten if the implementation is able to

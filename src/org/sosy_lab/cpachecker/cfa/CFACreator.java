@@ -157,9 +157,10 @@ public class CFACreator {
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found. 
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   * @throws InterruptedException 
    */
   public void parseFileAndCreateCFA(String filename)
-          throws InvalidConfigurationException, IOException, ParserException {
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     totalTime.start();
     try {

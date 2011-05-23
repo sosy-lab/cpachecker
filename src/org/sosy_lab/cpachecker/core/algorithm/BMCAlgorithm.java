@@ -156,7 +156,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet pReachedSet) throws CPAException {
+  public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     final boolean soundInner = algorithm.run(pReachedSet);
     
     if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
@@ -406,7 +406,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr, CFANode initialLocation) throws CPAException {
+  private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr, CFANode initialLocation) throws CPAException, InterruptedException {
     stats.invariantGeneration.start();
     try {
       

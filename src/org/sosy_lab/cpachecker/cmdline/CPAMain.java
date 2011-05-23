@@ -98,7 +98,7 @@ public class CPAMain {
     public void run() {
       if (mainThread.isAlive()) {
         // probably the user pressed Ctrl+C
-        CPAchecker.requireStopAsap();
+        mainThread.interrupt();
         logManager.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
         try {
           mainThread.join(2000);
@@ -287,8 +287,9 @@ public class CPAMain {
 
       } else if ("-printUsedOptions".equals(arg)) {
         properties.put("log.usedOptions.export", "true");
-        // stop before analysis, then all options should be known
-        CPAchecker.requireStopAsap();
+        // interrupt thread before CPAchecker is run
+        // this will stop CPAchecker before the actual analysis (hack)
+        Thread.currentThread().interrupt();
 
       } else if (arg.equals("-help")) {
         System.out.println("OPTIONS:");

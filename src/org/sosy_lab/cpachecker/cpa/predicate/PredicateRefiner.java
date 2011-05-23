@@ -107,7 +107,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 

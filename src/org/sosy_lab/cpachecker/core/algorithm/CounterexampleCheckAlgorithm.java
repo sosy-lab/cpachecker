@@ -85,7 +85,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException {
+  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
     
     while (reached.hasWaitingElement()) {

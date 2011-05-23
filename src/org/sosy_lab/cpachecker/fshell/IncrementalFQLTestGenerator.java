@@ -518,6 +518,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     mTimeInReach.pause();
@@ -569,6 +572,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     
@@ -645,6 +651,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     
@@ -742,6 +751,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lBasicAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     

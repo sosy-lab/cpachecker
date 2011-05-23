@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -67,11 +66,14 @@ public class CPAchecker {
   }
   
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
+    
     private final ReachedSet reached;
+    private final Thread cpacheckerThread;
     
     public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
+      cpacheckerThread = Thread.currentThread();
       register();
     }
 
@@ -82,7 +84,7 @@ public class CPAchecker {
     
     @Override
     public void stop() {
-      CPAchecker.requireStopAsap();
+      cpacheckerThread.interrupt();
     }
     
   }
@@ -124,23 +126,14 @@ public class CPAchecker {
   private final CPAcheckerOptions options;
   private final ReachedSetFactory reachedSetFactory;
   
-  private static volatile boolean requireStopAsap = false;
-
   /**
    * This method will throw an exception if the user has requested CPAchecker to
    * stop immediately. This exception should not be caught by the caller.
    */
-  public static void stopIfNecessary() throws ForceStopCPAException {
-    if (requireStopAsap) {
-      throw new ForceStopCPAException();
+  public static void stopIfNecessary() throws InterruptedException {
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
     }
-  }
-
-  /**
-   * This will request all running CPAchecker instances to stop as soon as possible.
-   */
-  public static void requireStopAsap() {
-    requireStopAsap = true;
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
@@ -229,9 +222,11 @@ public class CPAchecker {
         logger.logException(Level.SEVERE, e, null);
       }
 
-    } catch (ForceStopCPAException e) {
-      // CPA must exit because it was asked to
-      logger.log(Level.FINE, "ForceStopCPAException caught at top level: CPAchecker has stopped forcefully, but cleanly");
+    } catch (InterruptedException e) {
+      // CPAchecker must exit because it was asked to
+      // we return normally instead of propagating the exception
+      // so we can return the partial result we have so far
+
     } catch (CPAException e) {
       logger.logException(Level.SEVERE, e, null);
     }
@@ -241,7 +236,7 @@ public class CPAchecker {
 
   private Result runAlgorithm(final Algorithm algorithm,
           final ReachedSet reached,
-          final MainCPAStatistics stats) throws CPAException {
+          final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();

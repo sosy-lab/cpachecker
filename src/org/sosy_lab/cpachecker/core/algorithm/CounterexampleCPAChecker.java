@@ -64,7 +64,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @Override
   public boolean checkCounterexample(ARTElement pRootElement,
       ARTElement pErrorElement, Set<ARTElement> pErrorPathElements)
-      throws CPAException {
+      throws CPAException, InterruptedException {
     
     String automaton =
         produceGuidingAutomaton(pRootElement, pErrorPathElements);

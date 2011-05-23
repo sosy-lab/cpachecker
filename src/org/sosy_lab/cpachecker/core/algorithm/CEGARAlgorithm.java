@@ -187,7 +187,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException {
+  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
     
     stats.totalTimer.start();

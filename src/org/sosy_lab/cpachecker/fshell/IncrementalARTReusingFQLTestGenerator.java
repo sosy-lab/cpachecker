@@ -792,6 +792,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lAlgorithm.run(pReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     mTimeInReach.pause();
@@ -926,6 +929,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     // TODO sanity check by assertion
@@ -1001,6 +1007,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     
@@ -1114,6 +1123,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     try {
       lBasicAlgorithm.run(pReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     

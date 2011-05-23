@@ -413,6 +413,9 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     mTimeInReach.pause();
@@ -510,6 +513,9 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     

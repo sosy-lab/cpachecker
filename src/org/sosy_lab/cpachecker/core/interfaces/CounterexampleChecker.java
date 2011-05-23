@@ -44,9 +44,10 @@ public interface CounterexampleChecker {
    * @param errorPathElements All elements that belong to the counterexample paths.
    * @return True if the counterexample is feasible.
    * @throws CPAException If something goes wrong.
+   * @throws InterruptedException If the thread was interrupted.
    */
   boolean checkCounterexample(ARTElement rootElement, ARTElement errorElement,
             Set<ARTElement> errorPathElements)
-            throws CPAException;
+            throws CPAException, InterruptedException;
   
 }

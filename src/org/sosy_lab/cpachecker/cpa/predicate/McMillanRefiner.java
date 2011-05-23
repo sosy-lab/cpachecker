@@ -66,7 +66,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
