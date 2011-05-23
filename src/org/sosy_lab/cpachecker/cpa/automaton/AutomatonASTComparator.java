@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
@@ -587,7 +588,7 @@ class AutomatonASTComparator {
   
   private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, IASTTypeId> {
     
-    private final int operator;
+    private final TypeIdOperator operator;
     
     public TypeIdExpressionMatcher(IASTTypeIdExpression pPattern) {
       super(IASTTypeIdExpression.class, pPattern);
@@ -596,7 +597,7 @@ class AutomatonASTComparator {
     
     @Override
     protected boolean matches2(IASTTypeIdExpression pSource, AutomatonExpressionArguments pArg) {
-      return operator == pSource.getOperator() 
+      return equal(operator, pSource.getOperator()) 
           && super.matches2(pSource, pArg);
     }
     

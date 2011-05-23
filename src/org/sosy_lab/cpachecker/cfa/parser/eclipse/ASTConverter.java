@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
@@ -563,7 +564,22 @@ class ASTConverter {
   }
 
   private IASTTypeIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression e) {
-    return new IASTTypeIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), e.getOperator(), convert(e.getTypeId()));
+    return new IASTTypeIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convertTypeIdOperator(e), convert(e.getTypeId()));
+  }
+  
+  private TypeIdOperator convertTypeIdOperator(org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression e) {
+    switch (e.getOperator()) {
+    case org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression.op_alignof:
+      return TypeIdOperator.ALIGNOF;
+    case org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression.op_sizeof:
+      return TypeIdOperator.SIZEOF;
+    case org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression.op_typeid:
+      return TypeIdOperator.TYPEID;
+    case org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression.op_typeof:
+      return TypeIdOperator.TYPEOF;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown type id operator", e);
+    }
   }
 
   public IASTNode convert(final org.eclipse.cdt.core.dom.ast.IASTStatement s) {

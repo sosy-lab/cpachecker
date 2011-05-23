@@ -25,18 +25,18 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTTypeIdExpression extends IASTExpression {
 
-  private final int        operator;
+  private final TypeIdOperator operator;
   private final IASTTypeId type;
 
   public IASTTypeIdExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
-      final int pOperator, final IASTTypeId pTypeId) {
+      final TypeIdOperator pOperator, final IASTTypeId pTypeId) {
     super(pRawSignature, pFileLocation, pType);
     operator = pOperator;
     type = pTypeId;
   }
 
-  public int getOperator() {
+  public TypeIdOperator getOperator() {
     return operator;
   }
 
@@ -54,8 +54,18 @@ public final class IASTTypeIdExpression extends IASTExpression {
     return v.visit(this);
   }
   
-  public static final int op_sizeof = 0;
-  public static final int op_typeid = 1;
-  public static final int op_alignof = 2;
-  public static final int op_typeof = 3;
+  public enum TypeIdOperator {
+    SIZEOF,
+    TYPEID,
+    ALIGNOF,
+    TYPEOF,
+    ;
+    
+    /**
+     * Returns the string representation of this operator
+     */
+    public String getOperator() {
+      return toString().toLowerCase();
+    }
+  }
 }
