@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -194,8 +195,8 @@ class AutomatonInternalTests {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
     try {
       IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST(src);
-      IASTNode patternAST = AutomatonASTComparator.generatePatternAST(pattern);
-      System.out.print(AutomatonASTComparator.compareASTs(sourceAST, patternAST, args));
+      ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern);
+      System.out.print(patternAST.matches(sourceAST, args));
     } catch (InvalidAutomatonException e) {
       System.out.println(e.getMessage());
     }

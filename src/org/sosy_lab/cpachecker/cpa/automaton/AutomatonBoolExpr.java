@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -103,8 +104,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    */
   static class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
 
-    private final IASTNode patternAST;
-
+    private final ASTMatcher patternAST;
+    
     public MatchCFAEdgeASTComparison(String pPattern) throws InvalidAutomatonException {
       this.patternAST = AutomatonASTComparator.generatePatternAST(pPattern);
     }
@@ -112,11 +113,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       IASTNode ast = pArgs.getCfaEdge().getRawAST();
-      //AutomatonASTComparator.printAST(ast);
-      //AutomatonASTComparator.printAST(patternAST);
       if (ast != null) {
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-        if(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs)) {
+        if(patternAST.matches(ast, pArgs)) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
@@ -127,7 +126,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return "MATCH {" + patternAST.getRawSignature() + "}";
+      return "MATCH {" + patternAST + "}";
     }
   }
 
