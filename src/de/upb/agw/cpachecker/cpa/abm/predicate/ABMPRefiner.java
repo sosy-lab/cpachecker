@@ -13,7 +13,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
@@ -59,7 +58,6 @@ import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
 @Options(prefix="cpa.predicate.fcc")
 public class ABMPRefiner extends PredicateRefiner {
   ABMPredicateCPA predicateCpa;
-  private LogManager logger;
   private FormulaManager fmgr;
   private PredicateRefinementManager<Integer, Integer> pmgr;
   
@@ -78,7 +76,6 @@ public class ABMPRefiner extends PredicateRefiner {
     }
     predicateCpa.getFCCPStats().addRefiner(this);
     this.predicateCpa = predicateCpa;
-    this.logger = predicateCpa.getLogger();
     this.fmgr = predicateCpa.getFormulaManager();
     this.pmgr = predicateCpa.getPredicateManager();
   }

@@ -9,13 +9,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -120,7 +118,6 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
   private PredicateReducer predicateReducer;    
   private RelevantPredicatesComputer relevantPredicateReducer;
   
-  private LogManager logger;
   private FormulaManager fmgr;
   private PredicateRefinementManager<Integer, Integer> pmgr;
   private ConfigurableProgramAnalysis innerCpa;
@@ -144,7 +141,6 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
     
     pCpa.getConfiguration().inject(this, ABMPTransferRelation.class);
     
-    this.logger = pCpa.getLogger();    
     this.fmgr = pCpa.getFormulaManager();
     this.pmgr = pCpa.getPredicateManager();
     this.relevantPredicateReducer = pCpa.getRelevantPredicatesComputer();
@@ -303,8 +299,8 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
   
   private ReachedSet computeInitialReachedSet(PredicateAbstractElement reducedInitialElement, PredicatePrecision initialPredicatePrecision, CFANode node, CFAEdge edge) throws CPATransferException {
     //get a fresh AbstractElement and a fresh precision
-    AbstractElement initialElement = innerCpa.getInitialElement((CFAFunctionDefinitionNode)csmgr.getMainSubtree().getCallNode());
-    Precision initialPrecision = innerCpa.getInitialPrecision((CFAFunctionDefinitionNode)csmgr.getMainSubtree().getCallNode());
+    AbstractElement initialElement = innerCpa.getInitialElement(csmgr.getMainSubtree().getCallNode());
+    Precision initialPrecision = innerCpa.getInitialPrecision(csmgr.getMainSubtree().getCallNode());
     
     assert initialElement instanceof ARTElement && initialPrecision instanceof CompositePrecision : "Adjustable block memorizing only works with composite ART analysis (should be configured with at least ABMLocationCPA, CallstackCPA, and ABMPredicateCPA).";
     ARTElement artElement = (ARTElement)initialElement;

@@ -1,11 +1,7 @@
 package de.upb.agw.cpachecker.cpa.abm.util;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -23,7 +19,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import de.upb.agw.cpachecker.cpa.abm.predicate.TargetPredicateAbstractElement;
-import de.upb.agw.cpachecker.cpa.abm.util.impl.OccurrenceComputer;
 
 /**
  * Helper class that provides methods to reduce and expand <code>PredicateAbstactElement</code>s to/from a set of relevant predicates.
