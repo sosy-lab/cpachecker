@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
@@ -60,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
@@ -205,14 +205,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     pReached.removeSubtree(pFirst, pSecond);    
   }
 
-  protected final PredicatePrecision receivePredicatePrecision(Precision precision) {
-    PredicatePrecision result = null;
-    if (precision instanceof PredicatePrecision) {
-      result = (PredicatePrecision)precision;
-    } else if (precision instanceof WrapperPrecision) {
-      result = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-    }
-    return result;
+  protected static final PredicatePrecision receivePredicatePrecision(Precision precision) {
+    return Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
   }
 
   /**
