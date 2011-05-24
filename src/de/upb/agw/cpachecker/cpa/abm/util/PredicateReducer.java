@@ -134,7 +134,7 @@ public class PredicateReducer {
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
       //there still should be at least _some_ index for each variable of the abstraction formula.
-      SSAMapBuilder builder = new SSAMapBuilder(pathFormula.getSsa());
+      SSAMapBuilder builder = pathFormula.getSsa().builder();
       for (String var : rootElement.getPathFormula().getSsa().allVariables()) {
         //if we do not have the index in the reduced map..
         if (pathFormula.getSsa().getIndex(var) == -1) {
