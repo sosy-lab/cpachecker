@@ -55,7 +55,7 @@ public class DominatorTransferRelation implements TransferRelation {
 
 	@Override
 	public Collection<DominatorElement> getAbstractSuccessors(
-	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
 	  assert element instanceof DominatorElement;
 

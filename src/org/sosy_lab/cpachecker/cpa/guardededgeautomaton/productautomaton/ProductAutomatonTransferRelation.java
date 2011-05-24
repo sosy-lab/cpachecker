@@ -35,7 +35,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
   @Override
   public Collection<CompositeElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     CompositeElement lCompositeElement = (CompositeElement)pElement;
     CompositePrecision lCompositePrecision = (CompositePrecision)pPrecision;
     

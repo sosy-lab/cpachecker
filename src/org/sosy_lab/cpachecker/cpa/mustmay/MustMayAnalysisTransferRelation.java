@@ -49,7 +49,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
 
   @Override
   // TODO: public <T extends AbstractElement> Collection<AbstractElement> getAbstractSuccessors(T pCurrentElement, Precision pPrecision, CFAEdge pCfaEdge)
-  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pCurrentElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pCurrentElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
 
     assert(pCurrentElement != null);
     assert(pCurrentElement instanceof MustMayAnalysisElement);

@@ -45,7 +45,7 @@ public class ARTTransferRelation implements TransferRelation {
   @Override
   public Collection<ARTElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     ARTElement element = (ARTElement)pElement;
 
     AbstractElement wrappedElement = element.getWrappedElement();
