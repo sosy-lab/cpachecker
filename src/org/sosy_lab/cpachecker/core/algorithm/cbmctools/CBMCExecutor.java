@@ -44,12 +44,14 @@ class CBMCExecutor extends ProcessExecutor<RuntimeException> {
 
   private Boolean result = null;
 
-  public CBMCExecutor(LogManager logger, File file) throws IOException {
-    super(logger, RuntimeException.class, getCmdline(file));
+  public CBMCExecutor(LogManager logger, File file, String mainFunctionName) throws IOException {
+    super(logger, RuntimeException.class, getCmdline(file, mainFunctionName));
   }
 
-  private static String[] getCmdline(File file) {
+  private static String[] getCmdline(File file, String mainFunctionName) {
     Preconditions.checkArgument(file.canRead());
+
+    CBMC_ARGS[2] = mainFunctionName + "_0";
 
     String[] result = Arrays.copyOf(CBMC_ARGS, CBMC_ARGS.length + 1);
     result[result.length-1] = file.getAbsolutePath();
@@ -71,7 +73,7 @@ class CBMCExecutor extends ProcessExecutor<RuntimeException> {
       super.handleExitCode(pCode);
     }
   }
-  
+
   @Override
   protected void handleErrorOutput(String pLine) throws RuntimeException {
     if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses."))) {
@@ -79,7 +81,7 @@ class CBMCExecutor extends ProcessExecutor<RuntimeException> {
       super.handleErrorOutput(pLine);
     }
   }
-  
+
   public Boolean getResult() {
     checkState(isFinished());
     return result;

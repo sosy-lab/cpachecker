@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -53,13 +53,14 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   @Option(name="variableWhitelist")
   private String variableWhitelist = "";
   
-  private FeatureVarsPrecision precision;
+  private final FeatureVarsElement initialElement;
+  private final FeatureVarsPrecision initialPrecision;
   
-  private AbstractDomain abstractDomain;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private TransferRelation transferRelation;
-  private PrecisionAdjustment precisionAdjustment;
+  private final AbstractDomain abstractDomain;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final TransferRelation transferRelation;
+  private final PrecisionAdjustment precisionAdjustment;
   
   public static LogManager logger;
 
@@ -67,57 +68,46 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     FeatureVarsCPA.logger = logger;
     
-    precision = new FeatureVarsPrecision(variableWhitelist);
-
-    FeatureVarsDomain fvDomain = new FeatureVarsDomain ();
-    //MergeOperator fvMergeOp = MergeSepOperator.getInstance();
+    FeatureVarsManager manager = new FeatureVarsManager();
     
-    StopSepOperator fvStopOp = new StopSepOperator(fvDomain);
+    initialElement = new FeatureVarsElement(manager.getRegionManager().makeTrue(), manager);
+    initialPrecision = new FeatureVarsPrecision(variableWhitelist);
 
-    TransferRelation fvRelation = new FeatureVarsTransferRelation(config);
-
-    this.abstractDomain = fvDomain;
-    MergeJoinOperator fvMergeOp = new MergeJoinOperator(this.abstractDomain);
-    this.mergeOperator = fvMergeOp;
-    this.stopOperator = fvStopOp;
-    this.transferRelation = fvRelation;
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    abstractDomain = new FeatureVarsDomain(manager);
+    mergeOperator = new MergeJoinOperator(abstractDomain);
+    stopOperator =  new StopSepOperator(abstractDomain);
+    transferRelation = new FeatureVarsTransferRelation(manager);
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
-  {
-    return new FeatureVarsElement(FeatureVarsElement.manager.makeTrue());
+  public AbstractElement getInitialElement(CFANode node) {
+    return initialElement;
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    //return SingletonPrecision.getInstance();
-    return precision;
+  public Precision getInitialPrecision(CFANode pNode) {
+    return initialPrecision;
   }
 
   @Override

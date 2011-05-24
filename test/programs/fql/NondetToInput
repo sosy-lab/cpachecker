@@ -1,0 +1,1 @@
+java -cp ../../../bin org.sosy_lab.cpachecker.fshell.testcases.NondetToInput $1 $2

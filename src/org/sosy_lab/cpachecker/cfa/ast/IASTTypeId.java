@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTTypeId extends IASTNode {
 
-  private final IType specifier;
-  private final IASTName          name;
+  private final IType  specifier;
+  private final String name;
 
   public IASTTypeId(final String pRawSignature,
       final IASTFileLocation pFileLocation,
       final IType pSpecifier,
-      final IASTName pName) {
+      final String pName) {
     super(pRawSignature, pFileLocation);
     specifier = pSpecifier;
     name = pName;
@@ -41,12 +41,7 @@ public final class IASTTypeId extends IASTNode {
     return specifier;
   }
   
-  public IASTName getName() {
+  public String getName() {
     return name;
-  }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {name};
   }
 }

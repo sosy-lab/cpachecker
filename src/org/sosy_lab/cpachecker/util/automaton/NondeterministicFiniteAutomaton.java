@@ -196,6 +196,10 @@ public class NondeterministicFiniteAutomaton<T> {
     mFinalStates.add(pFinalStates);
   }
   
+  public boolean isFinalState(State pState) {
+    return mFinalStates.contains(pState);
+  }
+  
   public Iterable<State> getStates() {
     return mStateIterable;
   }

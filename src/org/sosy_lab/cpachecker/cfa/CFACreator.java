@@ -65,30 +65,36 @@ import com.google.common.collect.SortedSetMultimap;
 @Options
 public class CFACreator {
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
+  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+      description="entry function")
   private String mainFunctionName = "main";
 
-  @Option(name="analysis.interprocedural")
+  @Option(name="analysis.interprocedural",
+      description="run interprocedural analysis")
   private boolean interprocedural = true;
 
-  @Option(name="analysis.useGlobalVars")
+  @Option(name="analysis.useGlobalVars",
+      description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(name="cfa.removeIrrelevantForErrorLocations")
+  @Option(name="cfa.removeIrrelevantForErrorLocations",
+      description="remove paths from CFA that cannot lead to a error location")
   private boolean removeIrrelevantForErrorLocations = false;
 
-  @Option(name="cfa.export")
+  @Option(name="cfa.export",
+      description="export CFA as .dot file")
   private boolean exportCfa = true;
 
   @Option(name="cfa.exportPerFunction")
   private boolean exportCfaPerFunction = true;  
   
-  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,
+      description="export CFA as .dot file")
   private File exportCfaFile = new File("cfa.dot");
 
   private final LogManager logger;
-  private final Configuration config;
   private final CParser parser;
+  private final CFAReduction cfaReduction;
   
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
@@ -96,6 +102,7 @@ public class CFACreator {
   public static ImmutableMultimap<String, Loop> loops = null;
 
   public final Timer parserInstantiationTime = new Timer();
+  public final Timer totalTime = new Timer();
   public final Timer parsingTime;
   public final Timer conversionTime;
   public final Timer checkTime = new Timer();
@@ -107,13 +114,19 @@ public class CFACreator {
           throws InvalidConfigurationException {
     config.inject(this);
     
-    this.config = config;
     this.logger = logger;
     
     parserInstantiationTime.start();
     parser = CParser.Factory.getParser(logger, dialect);
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
+    
+    if (removeIrrelevantForErrorLocations) {
+      cfaReduction = new CFAReduction(config, logger);
+    } else {
+      cfaReduction = null;
+    }
+    
     parserInstantiationTime.stop();
   }
 
@@ -144,138 +157,145 @@ public class CFACreator {
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found. 
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   * @throws InterruptedException 
    */
   public void parseFileAndCreateCFA(String filename)
-          throws InvalidConfigurationException, IOException, ParserException {
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    logger.log(Level.FINE, "Starting parsing of file");
-    CFA c = parser.parseFile(filename);
-    logger.log(Level.FINE, "Parser Finished");
-    
-    final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
-    final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
-    final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
-    
-    if (mainFunction == null) {
-      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
-    }
-
-    checkTime.start();
-    assert cfas.keySet().equals(cfaNodes.keySet());
-
-    // check the CFA of each function
-    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-      assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
-    }
-    checkTime.stop();
-    
-    processingTime.start();
-    
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-    
-    // get loop information
+    totalTime.start();
     try {
-      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-      for (String functionName : cfaNodes.keySet()) {
-        SortedSet<CFANode> nodes = cfaNodes.get(functionName);
-        loops.putAll(functionName, findLoops(nodes));
-      }
-      CFACreator.loops = loops.build();
-    } catch (ParserException e) {
-      // don't abort here, because if the analysis doesn't need the loop information, we can continue
-      logger.log(Level.WARNING, e.getMessage());
-    }
-  
-    // Insert call and return edges and build the supergraph
-    if (interprocedural) {
-      logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
-  
-      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
-      Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
-  
-      // remove all functions which are never reached from cfas
-      cfas.keySet().retainAll(calledFunctions);
-    }
-  
-    if (useGlobalVars){
-      // add global variables at the beginning of main
-      insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
-    }
     
-    processingTime.stop();
-
-    // remove irrelevant locations
-    if (removeIrrelevantForErrorLocations) {
-      pruningTime.start();
-      CFAReduction coi =  new CFAReduction(config, logger);
-      coi.removeIrrelevantForErrorLocations(mainFunction);
-      pruningTime.stop();
-  
-      if (mainFunction.getNumLeavingEdges() == 0) {
-        logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
-              + ", analysis not necessary. "
-              + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
-        
-        this.functions = ImmutableMap.of();
-        this.mainFunction = null;
-        return;
-      }
-    }
-  
-    // check the super CFA starting at the main function
-    checkTime.start();
-    assert CFACheck.check(mainFunction, null);
-    checkTime.stop();
- 
-    if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-      exportTime.start();
-   
-      // execute asynchronously, this may take several seconds for large programs on slow disks
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          // running the following in parallel is thread-safe
-          // because we don't modify the CFA from this point on
-          
-          // write CFA to file
-          if (exportCfa) {
-            try {
-              Files.writeFile(exportCfaFile,
-                  DOTBuilder.generateDOT(cfas.values(), mainFunction));
-            } catch (IOException e) {
-              logger.log(Level.WARNING,
-                "Could not write CFA to dot file, check configuration option cfa.file! (",
-                e.getMessage() + ")");
-              // continue with analysis
-            }
-          }
-          
-          // write the CFA to files (one file per function + some metainfo)
-          if (exportCfaPerFunction) {
-            try {
-              File outdir = exportCfaFile.getParentFile();        
-              DOTBuilder2.writeReport(mainFunction, outdir);
-            } catch (IOException e) {        
-              logger.log(Level.WARNING,
-                "Could not write CFA to dot and json files, check configuration option cfa.file! (",
-                e.getMessage() + ")");
-              // continue with analysis
-            }
-          }
-        }
-      }).start();
+      logger.log(Level.FINE, "Starting parsing of file");
+      CFA c = parser.parseFile(filename);
+      logger.log(Level.FINE, "Parser Finished");
       
-      exportTime.stop();
-    }
-
-    logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
+      final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
+      final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
+      final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
+      
+      if (mainFunction == null) {
+        throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
+      }
+  
+      checkTime.start();
+      assert cfas.keySet().equals(cfaNodes.keySet());
+  
+      // check the CFA of each function
+      for (CFAFunctionDefinitionNode cfa : cfas.values()) {
+        assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
+      }
+      checkTime.stop();
+      
+      processingTime.start();
+      
+      // annotate CFA nodes with topological information for later use
+      for(CFAFunctionDefinitionNode cfa : cfas.values()){
+        CFATopologicalSort topSort = new CFATopologicalSort();
+        topSort.topologicalSort(cfa);
+      }
+      
+      // get loop information
+      try {
+        ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
+        for (String functionName : cfaNodes.keySet()) {
+          SortedSet<CFANode> nodes = cfaNodes.get(functionName);
+          loops.putAll(functionName, findLoops(nodes));
+        }
+        CFACreator.loops = loops.build();
+      } catch (ParserException e) {
+        // don't abort here, because if the analysis doesn't need the loop information, we can continue
+        logger.log(Level.WARNING, e.getMessage());
+      }
     
-    this.functions = ImmutableMap.copyOf(cfas);
-    this.mainFunction = mainFunction;
+      // Insert call and return edges and build the supergraph
+      if (interprocedural) {
+        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
+    
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
+        Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
+    
+        // remove all functions which are never reached from cfas
+        cfas.keySet().retainAll(calledFunctions);
+      }
+    
+      if (useGlobalVars){
+        // add global variables at the beginning of main
+        insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
+      }
+      
+      processingTime.stop();
+  
+      // remove irrelevant locations
+      if (cfaReduction != null) {
+        pruningTime.start();
+        cfaReduction.removeIrrelevantForErrorLocations(mainFunction);
+        pruningTime.stop();
+    
+        if (mainFunction.getNumLeavingEdges() == 0) {
+          logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
+                + ", analysis not necessary. "
+                + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
+          
+          this.functions = ImmutableMap.of();
+          this.mainFunction = null;
+          return;
+        }
+      }
+    
+      // check the super CFA starting at the main function
+      checkTime.start();
+      assert CFACheck.check(mainFunction, null);
+      checkTime.stop();
+   
+      if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
+        exportTime.start();
+     
+        // execute asynchronously, this may take several seconds for large programs on slow disks
+        new Thread(new Runnable() {
+          @Override
+          public void run() {
+            // running the following in parallel is thread-safe
+            // because we don't modify the CFA from this point on
+            
+            // write CFA to file
+            if (exportCfa) {
+              try {
+                Files.writeFile(exportCfaFile,
+                    DOTBuilder.generateDOT(cfas.values(), mainFunction));
+              } catch (IOException e) {
+                logger.log(Level.WARNING,
+                  "Could not write CFA to dot file, check configuration option cfa.file! (",
+                  e.getMessage() + ")");
+                // continue with analysis
+              }
+            }
+            
+            // write the CFA to files (one file per function + some metainfo)
+            if (exportCfaPerFunction) {
+              try {
+                File outdir = exportCfaFile.getParentFile();        
+                DOTBuilder2.writeReport(mainFunction, outdir);
+              } catch (IOException e) {        
+                logger.log(Level.WARNING,
+                  "Could not write CFA to dot and json files, check configuration option cfa.file! (",
+                  e.getMessage() + ")");
+                // continue with analysis
+              }
+            }
+          }
+        }).start();
+        
+        exportTime.stop();
+      }
+  
+      logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
+      
+      this.functions = ImmutableMap.copyOf(cfas);
+      this.mainFunction = mainFunction;
+    
+    } finally {
+      totalTime.stop();
+    }
   }
 
 

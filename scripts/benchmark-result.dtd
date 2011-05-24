@@ -1,0 +1,34 @@
+<!ELEMENT test (systeminfo, columns, sourcefile+, time)>
+<!ATTLIST test name CDATA #IMPLIED
+	       benchmarkname CDATA #REQUIRED
+               date CDATA #REQUIRED
+               tool CDATA #REQUIRED
+               version CDATA #REQUIRED
+               options CDATA #REQUIRED
+               memlimit CDATA #IMPLIED
+	       timelimit CDATA #IMPLIED>
+
+<!ELEMENT systeminfo (os, cpu, ram)>
+<!ATTLIST os name CDATA #REQUIRED>
+<!ATTLIST cpu cores CDATA #REQUIRED
+              frequency CDATA #REQUIRED
+              model CDATA #REQUIRED>
+<!ATTLIST ram size CDATA #REQUIRED>
+
+<!ELEMENT columns (column*)>
+<!ATTLIST column title CDATA #REQUIRED
+                 value CDATA #IMPLIED>
+
+<!ELEMENT sourcefile (column*)>
+<!ATTLIST sourcefile name CDATA #REQUIRED>
+
+<!ATTLIST time cputime CDATA #REQUIRED
+               walltime CDATA #REQUIRED>
+
+
+<!-- not used: -->
+<!ELEMENT os (#PCDATA)>
+<!ELEMENT cpu (#PCDATA)>
+<!ELEMENT ram (#PCDATA)>
+<!ELEMENT column (#PCDATA)>
+<!ELEMENT time (#PCDATA)>

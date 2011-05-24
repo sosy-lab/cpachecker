@@ -116,6 +116,7 @@ int KbFilter_PnP(int DeviceObject , int Irp )
   DeviceObject__DeviceExtension = __BLAST_NONDET;
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
   irpStack__MinorFunction = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
 
   {
 #line 101

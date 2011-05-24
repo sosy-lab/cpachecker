@@ -110,7 +110,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException {
+  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();

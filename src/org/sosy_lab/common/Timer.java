@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.common;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * This Class represents a timer like a chronograph. It can be started and
  * stopped several times. It can return the sum, the average, the maximum and
@@ -49,6 +51,20 @@ public class Timer {
   /** The number of intervals. */
   private int  numberOfIntervals = 0;
 
+  /**
+   * Create a fresh timer in the not-running state.
+   */
+  public Timer() {
+  }
+  
+  /**
+   * Create a timer in the running state, with a given start time.
+   */
+  Timer(long startTime) {
+    checkState(startTime > 0);
+    this.startTime = startTime;
+  }
+  
   /** Start the timer. If it was running before, the timer is stopped and then
    * started again. */
   public void start() {
@@ -67,8 +83,10 @@ public class Timer {
    *
    * @return time of stopped interval */
   public long stop() {
-    long endTime = System.currentTimeMillis();
-
+    return stop(System.currentTimeMillis());
+  }
+  
+  final long stop(long endTime) {
     if (isRunning()) {
       long intervallTime = endTime - startTime;
       sumTime += intervallTime;

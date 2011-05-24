@@ -23,11 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.math.BigDecimal;
+
 public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
 
+  // use a BigDecimal here because C code might have floating point types with bigger precision than double
+  private final BigDecimal value;
+  
   public IASTFloatLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType) {
+      IASTFileLocation pFileLocation, IType pType, BigDecimal pValue) {
     super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_float_constant);
+    value = pValue;
+  }
+  
+  public BigDecimal getValue() {
+    return value;
   }
   
   @Override

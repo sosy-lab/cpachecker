@@ -1,8 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton;
 
-import java.util.Collection;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -13,7 +11,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
@@ -24,14 +21,18 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   private final StopSepOperator mStopOperator;
   private final GuardedEdgeAutomatonTransferRelation mTransferRelation;
   
-  public GuardedEdgeAutomatonCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Collection<NondeterministicFiniteAutomaton.State> pReachedAutomatonStates) {
+  public GuardedEdgeAutomatonCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain);
-    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton, pReachedAutomatonStates);
+    mTransferRelation = new GuardedEdgeAutomatonTransferRelation(mDomain, pAutomaton);
     
     NondeterministicFiniteAutomaton.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);
     mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal);
+  }
+  
+  public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
+    return mTransferRelation.getAutomaton();
   }
   
   @Override
@@ -40,12 +41,12 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFANode pNode) {
     return mInitialElement;
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 
@@ -65,7 +66,7 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public GuardedEdgeAutomatonTransferRelation getTransferRelation() {
     return mTransferRelation;
   }
   

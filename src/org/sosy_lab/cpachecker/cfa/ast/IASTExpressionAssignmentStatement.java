@@ -53,11 +53,6 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
   public IASTStatement asStatement() {
     return this;
   }
-
-  @Override
-  public IASTNode[] getChildren() {
-    return new IASTNode[] {leftHandSide, rightHandSide};
-  }
   
   @Override
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {

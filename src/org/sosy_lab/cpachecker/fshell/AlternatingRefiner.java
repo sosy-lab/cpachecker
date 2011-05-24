@@ -122,7 +122,7 @@ public class AlternatingRefiner implements Refiner {
   }
   
   @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException {
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     
     if (mPredicateRefiner.performRefinement(pReached)) {
       // symbolic path is infeasible, we continue symbolic 

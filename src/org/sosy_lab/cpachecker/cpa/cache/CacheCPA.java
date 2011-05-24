@@ -3,7 +3,7 @@ package org.sosy_lab.cpachecker.cpa.cache;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -22,16 +22,16 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   private final ConfigurableProgramAnalysis mCachedCPA;
-  private final Map<CFAFunctionDefinitionNode, AbstractElement> mInitialElementsCache;
-  private final Map<CFAFunctionDefinitionNode, Precision> mInitialPrecisionsCache;
+  private final Map<CFANode, AbstractElement> mInitialElementsCache;
+  private final Map<CFANode, Precision> mInitialPrecisionsCache;
   private final CacheTransferRelation mCacheTransferRelation;
   private final CachePrecisionAdjustment mCachePrecisionAdjustment;
   private final CacheMergeOperator mCacheMergeOperator;
   
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;
-    mInitialElementsCache = new HashMap<CFAFunctionDefinitionNode, AbstractElement>();
-    mInitialPrecisionsCache = new HashMap<CFAFunctionDefinitionNode, Precision>();
+    mInitialElementsCache = new HashMap<CFANode, AbstractElement>();
+    mInitialPrecisionsCache = new HashMap<CFANode, Precision>();
     mCacheTransferRelation = new CacheTransferRelation(mCachedCPA.getTransferRelation());
     mCachePrecisionAdjustment = new CachePrecisionAdjustment(mCachedCPA.getPrecisionAdjustment());
     mCacheMergeOperator = new CacheMergeOperator(mCachedCPA.getMergeOperator());
@@ -63,7 +63,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFANode pNode) {
     AbstractElement lInitialElement = mInitialElementsCache.get(pNode);
     
     if (lInitialElement == null) {
@@ -75,7 +75,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     Precision lInitialPrecision = mInitialPrecisionsCache.get(pNode);
     
     if (lInitialPrecision == null) {

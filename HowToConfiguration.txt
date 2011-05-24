@@ -202,6 +202,11 @@ assumptions.file = assumptions.txt
 # of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
 
+# Check reachability of target states after analysis (classical BMC).
+# The alternative is to check the reachability as soon as the target states
+# are discovered, which is done if cpa.predicate.targetStateSatCheck=true.
+bmc.checkTargetStates = true
+
 # When CBMC considers an error path infeasible, continue analysis
 # (this is unsound and leads to the analysis result being either UNSAFE or UNKNOWN)
 cbmc.continueAfterInfeasibleError = true
@@ -209,6 +214,9 @@ cbmc.continueAfterInfeasibleError = true
 # file name where to put the path program that is generated as input for CBMC
 # A temporary file is used if this is unspecified.
 cbmc.dumpCBMCfile = 
+
+# maximum time limit for CBMC (0 is infinite)
+cbmc.timelimit =
 
 # Which refinement algorithm to use? (give class name, required for CEGAR)
 # If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be omitted.
@@ -265,6 +273,9 @@ cpa.explicit.merge = sep
 # threshold for amount of different values that are tracked for one variable in
 # ExplicitCPA (0 means infinitely)
 cpa.explicit.threshold = 0
+
+# which merge operator to use for InvariantCPA (join or sep)
+cpa.invariants.merge = join
 
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled,

@@ -4,10 +4,19 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -59,7 +68,7 @@ public class ReferencedVariablesCollector {
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge)edge;
       boolean isGlobal = declarationEdge.isGlobal();      
-      String varName = declarationEdge.getName().getRawSignature();
+      String varName = declarationEdge.getName();
       if(isGlobal) {
         globalVars.add(varName);
       }
@@ -91,28 +100,81 @@ public class ReferencedVariablesCollector {
     }
   }
 
-  private void collectVars(String pCurrentFunction, IASTNode pNode, ReferencedVariable lhsVar, Set<ReferencedVariable> pCollectedVars) {    
-    if(pNode instanceof IASTIdExpression) {
-      IASTIdExpression idExpression = (IASTIdExpression)pNode;
-      putVariable(pCurrentFunction, new String(idExpression.getName().getRawSignature()), lhsVar, pCollectedVars);
-    }
-    else {
-      if(pNode != null && pNode.getChildren() != null) {
-        for(IASTNode node : pNode.getChildren()) {
-          collectVars(pCurrentFunction, node, lhsVar, pCollectedVars);
-        }
-      }
-    }    
+  private void collectVars(String pCurrentFunction, IASTRightHandSide pNode, ReferencedVariable lhsVar, Set<ReferencedVariable> pCollectedVars) {    
+    pNode.accept(new CollectVariablesVisitor(pCurrentFunction, lhsVar, pCollectedVars)); 
   }  
   
-  private void putVariable(String function, String var, ReferencedVariable lhsVar, Set<ReferencedVariable> pCollectedVars) {
-    if(lhsVar == null) {
-      pCollectedVars.add(scoped(new ReferencedVariable(var, true, false, null), function));
+  private class CollectVariablesVisitor extends DefaultExpressionVisitor<Void, RuntimeException>
+                                               implements RightHandSideVisitor<Void, RuntimeException> {
+    
+    private final String currentFunction;
+    private final ReferencedVariable lhsVar;
+    private final Set<ReferencedVariable> collectedVars;
+    
+    public CollectVariablesVisitor(String pCurrentFunction,
+        ReferencedVariable pLhsVar, Set<ReferencedVariable> pCollectedVars) {
+      currentFunction = pCurrentFunction;
+      lhsVar = pLhsVar;
+      collectedVars = pCollectedVars;
     }
-    else {
-      pCollectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), function));
+
+    @Override
+    public Void visit(IASTIdExpression pE) {
+      String var = pE.getName();
+      if(lhsVar == null) {
+        collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
+      }
+      else {
+        collectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
+      }
+      return null;
     }
     
+    @Override
+    public Void visit(IASTArraySubscriptExpression pE) {
+      pE.getArrayExpression().accept(this);
+      pE.getSubscriptExpression().accept(this);
+      return null;
+    }
+    
+    @Override
+    public Void visit(IASTBinaryExpression pE) {
+      pE.getOperand1().accept(this);
+      pE.getOperand2().accept(this);
+      return null;
+    }
+    
+    @Override
+    public Void visit(IASTCastExpression pE) {
+      pE.getOperand().accept(this);
+      return null;
+    }
+    
+    @Override
+    public Void visit(IASTFieldReference pE) {
+      pE.getFieldOwner().accept(this);
+      return null;
+    }
+    
+    @Override
+    public Void visit(IASTFunctionCallExpression pE) {
+      pE.getFunctionNameExpression().accept(this);
+      for (IASTExpression param : pE.getParameterExpressions()) {
+        param.accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public Void visit(IASTUnaryExpression pE) {
+      pE.getOperand().accept(this);
+      return null;
+    }
+    
+    @Override
+    protected Void visitDefault(IASTExpression pExp) {
+      return null;
+    }
   }
   
   private ReferencedVariable scoped(ReferencedVariable var, String function) {

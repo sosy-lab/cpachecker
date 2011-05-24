@@ -94,6 +94,13 @@ int ssl3_connect(int initial_state )
 
   num1 = __BLAST_NONDET;
 
+  s__ctx__stats__sess_connect = __BLAST_NONDET;
+  s__ctx__stats__sess_hit = __BLAST_NONDET;
+  s__ctx__stats__sess_connect_good = __BLAST_NONDET;
+
+  s__in_handshake = __BLAST_NONDET;
+
+  s__ctx__stats__sess_connect_renegotiate = __BLAST_NONDET;
 
   {
 #line 60
@@ -101,7 +108,7 @@ int ssl3_connect(int initial_state )
 #line 61
   blastFlag = 0;
 #line 62
-  tmp = __BLAST_NONDET;
+  tmp = (unsigned long ) __BLAST_NONDET;
 	s__info_callback = __BLAST_NONDET;
 	s__ctx__info_callback = __BLAST_NONDET;
 	s__version = __BLAST_NONDET;

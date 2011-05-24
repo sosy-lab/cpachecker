@@ -19,7 +19,7 @@ scripts/cpa.sh -config test/config/symbpredabsCPA.properties path/to/my.cil.c
 
 2) after CPAChecker has completed, generate the report:
 
-python scripts/build_report.py path/to/my.cil.c
+python scripts/report-generator.py path/to/my.cil.c
 
 3) open test/output/index.html in Firefox.
 

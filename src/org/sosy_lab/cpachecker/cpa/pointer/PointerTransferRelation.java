@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
@@ -148,7 +147,7 @@ public class PointerTransferRelation implements TransferRelation {
   private static class MissingInformation {
     private Pointer         typeInformationPointer = null;
     private CFAEdge         typeInformationEdge    = null;
-    private IASTName        typeInformationName    = null;
+    private String          typeInformationName    = null;
 
     private Pointer         actionLeftPointer      = null;
     private Pointer         actionRightPointer     = null;
@@ -340,7 +339,7 @@ public class PointerTransferRelation implements TransferRelation {
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
       StorageClass storageClass,
-      IASTName name,
+      String name,
       IType specifier) throws CPATransferException {
 
     if (storageClass == StorageClass.TYPEDEF) {
@@ -1527,7 +1526,7 @@ public class PointerTransferRelation implements TransferRelation {
         functionName = null;
       }
 
-      String varName = missing.typeInformationName.getRawSignature();
+      String varName = missing.typeInformationName;
       Type type = typesElement.getVariableType(functionName, varName);
 
       setSizeOfTarget(missing.typeInformationPointer, type);

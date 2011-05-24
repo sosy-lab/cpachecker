@@ -226,7 +226,7 @@ class CFABuilder extends ASTVisitor
       assert currentCFANodes == null;
       
       org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition fdef = astCreator.convert((IASTFunctionDefinition)declaration);
-      String nameOfFunction = fdef.getName().getRawSignature();
+      String nameOfFunction = fdef.getName();
       assert !nameOfFunction.isEmpty();
       
       if (cfas.containsKey(nameOfFunction)) {
@@ -241,7 +241,7 @@ class CFABuilder extends ASTVisitor
       
       for (org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration param : parameters) {
         scope.registerDeclaration(param); // declare parameter as local variable
-        parameterNames.add(param.getName().getRawSignature());
+        parameterNames.add(param.getName());
       }
       
       currentCFANodes = cfaNodes.get(nameOfFunction); 

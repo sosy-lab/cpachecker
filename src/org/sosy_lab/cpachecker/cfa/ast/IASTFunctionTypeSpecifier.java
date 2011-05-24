@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 public class IASTFunctionTypeSpecifier extends IType {
 
   private final IType              returnType;
-  private       IASTName                       name = null;
+  private       String                         name = null;
   private final List<IASTParameterDeclaration> parameters;
   private final boolean                        takesVarArgs;
   
@@ -52,11 +52,11 @@ public class IASTFunctionTypeSpecifier extends IType {
     return returnType;
   }
   
-  public IASTName getName() {
+  public String getName() {
     return name;
   }
   
-  public void setName(IASTName pName) {
+  public void setName(String pName) {
     checkState(name == null);
     name = pName;
   }

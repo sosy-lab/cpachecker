@@ -34,8 +34,6 @@ public abstract class IASTNode {
     fileLocation = pFileLocation;
   }
 
-  public abstract IASTNode[] getChildren();
-
   public IASTFileLocation getFileLocation() {
     return fileLocation;
   }

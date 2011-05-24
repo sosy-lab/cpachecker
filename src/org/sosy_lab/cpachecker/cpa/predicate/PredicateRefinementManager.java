@@ -51,7 +51,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -168,7 +167,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException {
+      ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
     
     refStats.cexAnalysisTimer.start();
 
@@ -423,9 +422,10 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
    * @throws CPAException
+   * @throws InterruptedException 
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException {
+      final ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException, InterruptedException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
@@ -438,13 +438,15 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     int noOfTries = 0;
     
     while (true) {
-      TransferCallable<?> tc;
+      final InterpolatingTheoremProver<?> currentItpProver =
+        (noOfTries == 0) ? firstItpProver : secondItpProver;
       
-      if (noOfTries == 0) {
-        tc = new TransferCallable<T1>(pAbstractTrace, firstItpProver);
-      } else {
-        tc = new TransferCallable<T2>(pAbstractTrace, secondItpProver);
-      }
+      Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
+        @Override
+        public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
+          return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, currentItpProver);
+        }
+      };
 
       Future<CounterexampleTraceInfo> future = executor.submit(tc);
 
@@ -463,15 +465,13 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
           logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
           throw new RefinementFailedException(Reason.TIMEOUT, null);
         }
-      } catch (InterruptedException e) {
-        throw new ForceStopCPAException();
       
       } catch (ExecutionException e) {
         Throwable t = e.getCause();
-        Throwables.propagateIfPossible(t, CPAException.class);
+        Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
         
         logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
-        throw new ForceStopCPAException();
+        throw new AssertionError(t);
       }
     }
   }
@@ -490,7 +490,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
   }
 
   private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
-        List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) {
+        List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
     Boolean tmpSpurious = null;
 
     if (useZigZag) {
@@ -704,22 +704,5 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       }
     }
     return preds;
-  }
-
-  private class TransferCallable<T> implements Callable<CounterexampleTraceInfo> {
-
-    private final ArrayList<PredicateAbstractElement> abstractTrace;
-    private final InterpolatingTheoremProver<T> currentItpProver;
-
-    public TransferCallable(ArrayList<PredicateAbstractElement> pAbstractTrace,
-        InterpolatingTheoremProver<T> pItpProver) {
-      abstractTrace = pAbstractTrace;
-      currentItpProver = pItpProver;
-    }
-
-    @Override
-    public CounterexampleTraceInfo call() throws CPAException {
-      return buildCounterexampleTraceWithSpecifiedItp(abstractTrace, currentItpProver);
-    }
   }
 }

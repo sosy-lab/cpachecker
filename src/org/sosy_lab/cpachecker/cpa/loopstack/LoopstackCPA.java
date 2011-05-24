@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
 
 public class LoopstackCPA extends AbstractCPA {
   
@@ -39,12 +42,31 @@ public class LoopstackCPA extends AbstractCPA {
   }
   
   public LoopstackCPA(Configuration config) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", new LoopstackTransferRelation());
-    config.inject(getTransferRelation());
+    super("sep", "sep", new LoopstackTransferRelation(config));
   }
   
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new LoopstackElement();
+  public AbstractElement getInitialElement(CFANode pNode) {
+    if (pNode instanceof CFAFunctionDefinitionNode) {
+      // shortcut for the common case, a function start node can never be in a loop
+      // (loops don't span across functions)
+      return new LoopstackElement();
+    }
+      
+    Loop loop = null;
+    for (Loop l : CFACreator.loops.get(pNode.getFunctionName())) {
+      if (l.getLoopNodes().contains(pNode)) {
+        assert loop == null : "Cannot create initial nodes for locations in nested loops";
+      }
+      loop = l;
+    }
+    
+    LoopstackElement e = new LoopstackElement(); // the bottom element of the stack
+    
+    if (loop != null) {
+      // if loop is present, push one element on the stack for it
+      e = new LoopstackElement(e, loop, 0, false);
+    }
+    return e;
   }
 }

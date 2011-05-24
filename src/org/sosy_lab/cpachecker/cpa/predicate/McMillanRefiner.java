@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -51,12 +52,12 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
   private final LogManager logger;
   
-  public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
+  public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pCpa);
 
     PredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
-      throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
     regionManager = predicateCpa.getRegionManager();
@@ -65,7 +66,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 

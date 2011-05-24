@@ -33,11 +33,6 @@ public class IASTReturnStatement extends IASTNode {
     expression = pExpression;
   }
 
-  @Override
-  public IASTNode[] getChildren() {
-    return new IASTNode[] { expression };
-  }
-
   public IASTExpression getReturnValue() {
     return expression;
   }

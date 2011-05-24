@@ -42,6 +42,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -66,10 +67,11 @@ public class CPAMain {
   @Options(prefix="statistics")
   private static class ShutdownHook extends Thread {
 
-    @Option(name="export")
+    @Option(name="export", description="write some statistics to disk")
     private boolean exportStatistics = true;
     
-    @Option(name="file", type=Option.Type.OUTPUT_FILE)
+    @Option(name="file", type=Option.Type.OUTPUT_FILE,
+        description="write some statistics to disk")
     private File exportStatisticsFile = new File("Statistics.txt");
     
     private final LogManager logManager;
@@ -96,7 +98,7 @@ public class CPAMain {
     public void run() {
       if (mainThread.isAlive()) {
         // probably the user pressed Ctrl+C
-        CPAchecker.requireStopAsap();
+        mainThread.interrupt();
         logManager.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
         try {
           mainThread.join(2000);
@@ -151,24 +153,7 @@ public class CPAMain {
       System.exit(1);
     }
 
-    // get code file name
-    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
-    if (names.length != 1) {
-      logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
-      System.exit(1);
-    }
-
-    File cFile = new File(names[0]);
-    if (!cFile.isAbsolute()) {
-      cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
-    }
-    
-    try {
-      Files.checkReadableFile(cFile);
-    } catch (FileNotFoundException e) {
-      logManager.log(Level.SEVERE, e.getMessage());
-      System.exit(1);
-    }
+    final String cFilePath = getCodeFilePath(cpaConfig, logManager);
 
     // create everything
     CPAchecker cpachecker = null;
@@ -187,13 +172,35 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFile.getPath());
+    CPAcheckerResult result = cpachecker.run(cFilePath);
 
     shutdownHook.setResult(result);
 
     // statistics are displayed by shutdown hook
   }
 
+  static String getCodeFilePath(final Configuration cpaConfig, final LogManager logManager){
+    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
+    if (names.length != 1) {
+      logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
+      System.exit(1);
+    }
+
+    File cFile = new File(names[0]);
+    if (!cFile.isAbsolute()) {
+      cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
+    }
+    
+    try {
+      Files.checkReadableFile(cFile);
+    } catch (FileNotFoundException e) {
+      logManager.log(Level.SEVERE, e.getMessage());
+      System.exit(1);
+    }
+    
+    return cFile.getPath();
+  }
+  
   static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
     if (args == null || args.length < 1) {
@@ -268,6 +275,22 @@ public class CPAMain {
         } else {
           throw new InvalidCmdlineArgumentException("-setprop argument missing!");
         }
+
+      } else if ("-printOptions".equals(arg)) {
+        boolean verbose = false;
+        if (argsIt.hasNext()) {
+          final String nextArg = argsIt.next();
+          verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
+        }
+        System.out.println(OptionCollector.getCollectedOptions(verbose));
+        System.exit(0);
+
+      } else if ("-printUsedOptions".equals(arg)) {
+        properties.put("log.usedOptions.export", "true");
+        // interrupt thread before CPAchecker is run
+        // this will stop CPAchecker before the actual analysis (hack)
+        Thread.currentThread().interrupt();
+
       } else if (arg.equals("-help")) {
         System.out.println("OPTIONS:");
         System.out.println(" -config");
@@ -281,6 +304,8 @@ public class CPAMain {
         System.out.println(" -cbmc");
         System.out.println(" -nolog");
         System.out.println(" -setprop");
+        System.out.println(" -printOptions [-v|-verbose]");
+        System.out.println(" -printUsedOptions");
         System.out.println(" -help");
         System.exit(0);
       } else {

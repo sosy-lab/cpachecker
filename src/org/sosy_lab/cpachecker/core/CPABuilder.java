@@ -60,7 +60,9 @@ public class CPABuilder {
   @Option(name=CPA_OPTION_NAME)
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
-  @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE)
+  @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE,
+      description="file with a specification that should be checked"
+        + "\n(see test/config/automata/ for examples)")
   private File specificationFile = null;
   
   private final Configuration config;

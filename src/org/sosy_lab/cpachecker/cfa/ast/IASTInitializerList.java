@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
 public class IASTInitializerList extends IASTInitializer {
 
   private final List<IASTInitializer> initializerList;
@@ -33,15 +35,10 @@ public class IASTInitializerList extends IASTInitializer {
       final IASTFileLocation pFileLocation,
       final List<IASTInitializer> pInitializerList) {
     super(pRawSignature, pFileLocation);
-    initializerList = pInitializerList;
+    initializerList = ImmutableList.copyOf(pInitializerList);
   }
 
-  public IASTInitializer[] getInitializers() {
-    return initializerList.toArray(new IASTInitializer[initializerList.size()]);
-  }
-
-  @Override
-  public IASTNode[] getChildren() {
-    return getInitializers();
+  public List<IASTInitializer> getInitializers() {
+    return initializerList;
   }
 }

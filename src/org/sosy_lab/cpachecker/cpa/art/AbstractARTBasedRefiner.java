@@ -38,6 +38,7 @@ import com.google.common.collect.Collections2;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -51,9 +52,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   private final ARTCPA mArtCpa;
   private final LogManager logger;
 
-  protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
+  protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     if (!(pCpa instanceof ARTCPA)) {
-      throw new CPAException("ARTCPA needed for refinement");
+      throw new InvalidConfigurationException("ART CPA needed for refinement");
     }
     mArtCpa = (ARTCPA)pCpa;
     this.logger = mArtCpa.getLogger();
@@ -78,7 +79,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   };
 
   @Override
-  public final boolean performRefinement(ReachedSet pReached) throws CPAException {
+  public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ART based refinement");
 
     assert checkART(pReached);
@@ -131,9 +132,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pReached
    * @param pPath
    * @return whether the refinement was successful
+   * @throws InterruptedException 
    */
   protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
-            throws CPAException;
+            throws CPAException, InterruptedException;
 
   /**
    * This method is intended to be overwritten if the implementation is able to
@@ -158,8 +160,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pReached ReachedSet
    * @see org.sosy_lab.cpachecker.cpa.art.ARTUtils
    * @return
+   * @throws InterruptedException 
    */  
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) {
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException {
     return ARTUtils.getOnePathTo(pLastElement);    
   }
 

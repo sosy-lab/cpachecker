@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -36,16 +36,8 @@ import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
-  private static class SimpleMustMayAnalysisCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new SimpleMustMayAnalysisCPA(getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new SimpleMustMayAnalysisCPAFactory();
+    return AutomaticCPAFactory.forType(SimpleMustMayAnalysisCPA.class);
   }
 
   private final MustMayAnalysisCPA mMustMayAnalysisCPA;
@@ -60,7 +52,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MustMayAnalysisElement getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
+      CFANode pNode) {
     return mMustMayAnalysisCPA.getInitialElement(pNode);
   }
 
@@ -70,7 +62,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public MustMayAnalysisPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public MustMayAnalysisPrecision getInitialPrecision(CFANode pNode) {
     return mMustMayAnalysisCPA.getInitialPrecision(pNode);
   }
 

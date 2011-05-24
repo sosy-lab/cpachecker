@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -36,11 +35,11 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -49,14 +48,14 @@ public class AutomatonTest {
   
   // Specification Tests
   @Test
-  public void CyclicInclusionTest() {
+  public void CyclicInclusionTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
       );
-    try {
+
       File tmpSpc = new File("test/config/automata/tmpSpecification.spc");
       String content = "#include test/config/automata/UninitializedVariablesTestAutomaton.txt \n" +
       "#include test/config/automata/tmpSpecification.spc \n";
@@ -65,21 +64,16 @@ public class AutomatonTest {
       Assert.assertTrue(results.isSafe());
       Assert.assertTrue(results.logContains("File \"test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
       Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    } catch (IOException e) {
-      Assert.fail("could not generate tmpSpecification.spc");
-    }
   }
   @Test
-  public void IncludeSpecificationTest() {
+  public void IncludeSpecificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
         "specification",     "test/config/automata/defaultSpecificationForTesting.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
       Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
@@ -90,129 +84,104 @@ public class AutomatonTest {
       Assert.assertTrue(results.logContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
       Assert.assertTrue(results.logContains("Found a Memory Leak"));
       Assert.assertTrue(results.logContains("Found an UNSAFE_DEREFERENCE"));
-      
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
-  public void SpecificationAndNoCompositeTest() {
+  public void SpecificationAndNoCompositeTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "cpa", "cpa.location.LocationCPA",
         "log.consoleLevel", "INFO",
         "specification", "test/config/automata/LockingAutomatonAll.txt");
-    try {
+
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertTrue(results.logContains("Option specification gave specification automata, but no CompositeCPA was used"));
       Assert.assertTrue(results.getCheckerResult().getResult().equals(CPAcheckerResult.Result.UNKNOWN));
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
-  public void modificationTestWithSpecification() {
+  public void modificationTestWithSpecification() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold",       "10");
-    try {
+
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertTrue(results.logContains("MODIFIED"));
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   
   //Automaton Tests
   @Test
-  public void MatchEndOfProgramTest() {
+  public void MatchEndOfProgramTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA",
         "specification",     "test/config/automata/PrintLastStatementAutomaton.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "TRUE"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/loop1.c");
       Assert.assertTrue(results.logContains("Last statement is \"return (0);\""));
       Assert.assertTrue(results.logContains("Last statement is \"return (-1);\""));
       Assert.assertTrue(results.isSafe());      
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
-  public void failIfNoAutomatonGiven() {
+  public void failIfNoAutomatonGiven() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ControlAutomatonCPA",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold",       "10");
-    try {
+
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertTrue(results.getCheckerResult().getResult().equals(CPAcheckerResult.Result.UNKNOWN));
       Assert.assertTrue(results.logContains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!"));
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   
   @Test
-  public void modificationTest() {
+  public void modificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ControlAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold",       "10");
-    try {
+
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertTrue(results.logContains("MODIFIED"));
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   
   @Test
-  public void modification_in_Observer_throws_Test() {
+  public void modification_in_Observer_throws_Test() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "SEVERE",
         "cpa.explicit.threshold",       "10"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       // check for stack trace
       Assert.assertTrue(results.logContains("Invalid configuration: The Transition MATCH "));
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   
   @Test
-  public void setuidTest() {
+  public void setuidTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/simple_setuid.txt",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
       );
-    try {
+
       
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
       Assert.assertTrue(results.logContains("Systemcall in line 10 with userid 2"));
       Assert.assertTrue(results.logContains("going to ErrorState on edge \"system(40);\""));
       Assert.assertTrue(results.isUnsafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
-  public void uninitVarsTest() {
+  public void uninitVarsTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
         "cpa.automaton.inputFile",     "test/config/automata/UninitializedVariablesTestAutomaton.txt",
@@ -220,16 +189,13 @@ public class AutomatonTest {
         "cpa.automaton.dotExportFile", OUTPUT_FILE,
         "analysis.stopAfterError",        "FALSE"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
       Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
-  public void pointerAnalyisTest() {
+  public void pointerAnalyisTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.pointer.PointerCPA",
         "cpa.automaton.inputFile",     "test/config/automata/PointerAnalysisTestAutomaton.txt",
@@ -237,120 +203,98 @@ public class AutomatonTest {
         "cpa.automaton.dotExportFile", OUTPUT_FILE,
         "analysis.stopAfterError",        "FALSE"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
       Assert.assertTrue(results.logContains("Found a DOUBLE_FREE"));
       Assert.assertTrue(results.logContains("Found an INVALID_FREE"));
       Assert.assertTrue(results.logContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
       Assert.assertTrue(results.logContains("Found a Memory Leak"));
       Assert.assertTrue(results.logContains("Found an UNSAFE_DEREFERENCE"));
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
-  public void pointerAnalyisSkeletonTest() {
+  public void pointerAnalyisSkeletonTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.pointer.PointerCPA",
         "cpa.automaton.inputFile",     "test/config/automata/PointerAnalysisTestSkeletonAutomaton.txt",
         "log.consoleLevel",               "INFO"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
       Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"free(a);\""));
       Assert.assertTrue(results.isUnsafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
 
   @Test
-  public void locking_correct() {
+  public void locking_correct() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/LockingAutomatonAll.txt",
         "log.consoleLevel",               "INFO",
         "cpa.automaton.dotExportFile", OUTPUT_FILE
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/locking_correct.c");
       Assert.assertTrue(results.isSafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
 
   @Test
-  public void locking_incorrect() {
+  public void locking_incorrect() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/LockingAutomatonAll.txt",
         "log.consoleLevel",               "INFO"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/locking_incorrect.c");
       Assert.assertTrue(results.isUnsafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
 
   @Test
-  public void explicitAnalysis_observing() {
+  public void explicitAnalysis_observing() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.explicit.ExplicitCPA",
         "cpa.automaton.inputFile",     "test/config/automata/ExcplicitAnalysisObservingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold" , "2000"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
       Assert.assertTrue(results.logContains("st==3 after Edge st = 3;"));
       Assert.assertTrue(results.logContains("st==1 after Edge st = 1;"));
       Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));
       Assert.assertTrue(results.logContains("st==4 after Edge st = 4;"));
       Assert.assertTrue(results.isSafe());
-
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
 
   @Test
-  public void functionIdentifying() {
+  public void functionIdentifying() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/FunctionIdentifyingAutomaton.txt",
         "log.consoleLevel",               "FINER"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/functionCall.c");
       Assert.assertTrue(results.logContains("i'm in Main after Edge int y;"));
       Assert.assertTrue(results.logContains("i'm in f after Edge y = f()"));
       Assert.assertTrue(results.logContains("i'm in f after Edge int x;"));
       Assert.assertTrue(results.logContains("i'm in Main after Edge Return Edge to"));
       Assert.assertTrue(results.logContains("i'm in Main after Edge Label: ERROR"));
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
 
   @Test
-  public void transitionVariableReplacement() {
+  public void transitionVariableReplacement() throws Exception {
     Map<String, AutomatonVariable> pAutomatonVariables = null;
     List<AbstractElement> pAbstractElements = null;
     CFAEdge pCfaEdge = null;
 
     LogManager pLogger;
-    try {
+
       pLogger = new LogManager(Configuration.builder()
                                             .setOption("log.level", "OFF")
                                             .setOption("log.consoleLevel", "WARNING")
                                             .build());
-    } catch (InvalidConfigurationException e1) {
-      Assert.fail("Test setup failed");
-      return;
-    }
+
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(pAutomatonVariables, pAbstractElements, pCfaEdge, pLogger);
     args.putTransitionVariable(1, "hi");
     args.putTransitionVariable(2, "hello");
@@ -381,11 +325,11 @@ public class AutomatonTest {
   @Test
   public void testJokerReplacementInAST() throws InvalidAutomatonException {
     // tests the replacement of Joker expressions in the AST comparison
-    IASTNode patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
-    IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(g(var2, egal));");
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);");
+    IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);");
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
 
-    boolean result = AutomatonASTComparator.compareASTs(sourceAST, patternAST, args);
+    boolean result = patternAST.matches(sourceAST, args);
     Assert.assertTrue(result);
     Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
     Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));
@@ -393,7 +337,7 @@ public class AutomatonTest {
   }
 
   @Test
-  public void interacting_Automata() {
+  public void interacting_Automata() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.explicit.ExplicitCPA",
         "automatonA.cpa.automaton.inputFile",     "test/config/automata/InteractionAutomatonA.txt",
@@ -401,14 +345,11 @@ public class AutomatonTest {
         "log.consoleLevel", "INFO",
         "cpa.explicit.threshold" , "2000"
       );
-    try {
+
       TestResults results = run(prop, "test/programs/simple/loop1.c");
       Assert.assertTrue(results.logContains("A: Matched i in line 9 x=2"));
       Assert.assertTrue(results.logContains("B: A increased to 2 And i followed "));
       Assert.assertTrue(results.isSafe());
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    }
   }
   @Test
   public void AST_Comparison() throws InvalidAutomatonException {
@@ -419,10 +360,9 @@ public class AutomatonTest {
     Assert.assertTrue(testAST("x  = 5;", "$?=$?;"));
   
     Assert.assertFalse(testAST("a = 5;", "b    = 5;"));
-  
-    Assert.assertTrue(testAST("init(a);", "init($?);"));
-    Assert.assertFalse(testAST("init();", "init($?);"));
-  
+
+    Assert.assertFalse(testAST("init();", "init($1);"));
+    
     Assert.assertTrue(testAST("init(a, b);", "init($?, b);"));
     Assert.assertFalse(testAST("init(a, b);", "init($?, c);"));
   
@@ -430,7 +370,7 @@ public class AutomatonTest {
     Assert.assertTrue(testAST("x = 5", "x=$?;"));
   
   
-    Assert.assertFalse(testAST("f();", "f($?);"));
+    Assert.assertTrue(testAST("f();", "f($?);"));
     Assert.assertTrue(testAST("f(x);", "f($?);"));
     Assert.assertTrue(testAST("f(x, y);", "f($?);"));
   
@@ -443,20 +383,20 @@ public class AutomatonTest {
      * AST has one node that is missing in the the sub-AST of the CFA
      * 
      */
-    Assert.assertTrue(testAST("int y;", "int $?;"));
-    Assert.assertTrue(testAST("int y;", "int y;"));
+//    Assert.assertTrue(testAST("int y;", "int $?;"));
+//    Assert.assertTrue(testAST("int y;", "int y;"));
     
   }
   private boolean testAST(String src, String pattern) throws InvalidAutomatonException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
     IASTNode sourceAST;
     sourceAST = AutomatonASTComparator.generateSourceAST(src);
-    IASTNode patternAST = AutomatonASTComparator.generatePatternAST(pattern);
-    return AutomatonASTComparator.compareASTs(sourceAST, patternAST, args);
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern);
+    return patternAST.matches(sourceAST, args);
   }
 
 
-  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
+  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder().setOptions(pProperties).build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);

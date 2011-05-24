@@ -98,7 +98,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     PredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
-      throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
     predicateCpa.getConfiguration().inject(this);
@@ -108,7 +108,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 

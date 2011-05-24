@@ -45,13 +45,9 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   private final boolean stop;
   
   public LoopstackElement(LoopstackElement previousElement, Loop loop, int iteration, boolean stop) {
-    this.previousElement = previousElement;
+    this.previousElement = checkNotNull(previousElement);
     this.loop = checkNotNull(loop);
-    if (previousElement == null) {
-      depth = 1;
-    } else {
-      depth = previousElement.getDepth() + 1;
-    }
+    this.depth = previousElement.getDepth() + 1;
     checkArgument(iteration >= 0);
     this.iteration = iteration;
     this.stop = stop;

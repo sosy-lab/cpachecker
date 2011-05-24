@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -59,7 +61,9 @@ public class LoopstackTransferRelation implements TransferRelation {
   
   private final Multimap<CFANode, Loop> loopHeads;
   
-  public LoopstackTransferRelation() throws CPAException {
+  public LoopstackTransferRelation(Configuration config) throws CPAException, InvalidConfigurationException {
+    config.inject(this);
+    
     if (loops == null) {
       throw new CPAException("LoopstackCPA does not work without loop information!");
     }

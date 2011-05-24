@@ -98,6 +98,10 @@ void m_run(void)
   int rsp_status___0 ;
   int rsp_d___0 ;
 
+  int __BLAST_NONDET;
+
+  rsp_type = __BLAST_NONDET;
+
   {
   if ((int )m_run_pc == 0) {
     goto L_MASTER_RUN_ENTRY;

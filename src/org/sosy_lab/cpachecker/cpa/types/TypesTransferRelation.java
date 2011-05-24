@@ -139,7 +139,7 @@ public class TypesTransferRelation implements TransferRelation {
       Type type = getType(element, declarationEdge, specifier);
 
       if (declarationEdge.getName() != null) {
-        String thisName = declarationEdge.getName().getRawSignature();
+        String thisName = declarationEdge.getName();
 
         if (declarationEdge.getStorageClass() == StorageClass.TYPEDEF) {
           element.addTypedef(thisName, type);
@@ -224,7 +224,7 @@ public class TypesTransferRelation implements TransferRelation {
     } else if (declSpecifier instanceof IASTCompositeTypeSpecifier) {
       // struct & union
       IASTCompositeTypeSpecifier compositeSpecifier = (IASTCompositeTypeSpecifier)declSpecifier;
-      String name = compositeSpecifier.getName().getRawSignature();
+      String name = compositeSpecifier.getName();
       CompositeType compType;
 
       switch (compositeSpecifier.getKey()) {
@@ -258,7 +258,7 @@ public class TypesTransferRelation implements TransferRelation {
         Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
 
         if (subDeclaration.getName() != null) {
-          String thisSubName = subDeclaration.getName().getRawSignature();
+          String thisSubName = subDeclaration.getName();
           
           // anonymous struct fields may occur, ignore them
           // TODO they should be added so that the struct has the correct size
@@ -275,7 +275,7 @@ public class TypesTransferRelation implements TransferRelation {
     } else if (declSpecifier instanceof IASTElaboratedTypeSpecifier) {
       // type reference like "struct a"
       IASTElaboratedTypeSpecifier elaboratedTypeSpecifier = (IASTElaboratedTypeSpecifier)declSpecifier;
-      String name = elaboratedTypeSpecifier.getName().getRawSignature();
+      String name = elaboratedTypeSpecifier.getName();
 
       switch (elaboratedTypeSpecifier.getKind()) {
       case IASTElaboratedTypeSpecifier.k_enum:
@@ -317,7 +317,7 @@ public class TypesTransferRelation implements TransferRelation {
     } else if (declSpecifier instanceof IASTEnumerationSpecifier) {
       // enum
       IASTEnumerationSpecifier enumSpecifier = (IASTEnumerationSpecifier)declSpecifier;
-      String name = enumSpecifier.getName().getRawSignature();
+      String name = enumSpecifier.getName();
       EnumType enumType;
 
       if (element.getTypedefs().containsKey(name)) {
@@ -333,7 +333,7 @@ public class TypesTransferRelation implements TransferRelation {
       }
 
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
-        enumType.addEnumerator(enumerator.getName().getRawSignature(), enumerator.getValue());
+        enumType.addEnumerator(enumerator.getName(), enumerator.getValue());
       }
 
       type = enumType;
@@ -342,15 +342,15 @@ public class TypesTransferRelation implements TransferRelation {
       // type reference to type declared with typedef
       IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
 
-      type = element.getTypedef(namedTypeSpecifier.getName().getRawSignature());
+      type = element.getTypedef(namedTypeSpecifier.getName());
 
       //if it is not found in the typedefs, it may be a typedef'd function
       if (type == null) {
-        type = element.getFunction(namedTypeSpecifier.getName().getRawSignature());
+        type = element.getFunction(namedTypeSpecifier.getName());
        }
 
       if (type == null) {
-        throw new UnrecognizedCCodeException("Undefined type " + namedTypeSpecifier.getName().getRawSignature(), cfaEdge);
+        throw new UnrecognizedCCodeException("Undefined type " + namedTypeSpecifier.getName(), cfaEdge);
        }
 
     } else if (declSpecifier instanceof IASTArrayTypeSpecifier) {
@@ -402,7 +402,7 @@ public class TypesTransferRelation implements TransferRelation {
     
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());
 
-    FunctionType function = new FunctionType(funcDeclSpecifier.getName().getRawSignature(), returnType, funcDeclSpecifier.takesVarArgs());
+    FunctionType function = new FunctionType(funcDeclSpecifier.getName(), returnType, funcDeclSpecifier.takesVarArgs());
 
     for (IASTSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
 
@@ -410,7 +410,7 @@ public class TypesTransferRelation implements TransferRelation {
 
       String parameterName = null;
       if (parameter.getName() != null) {
-        parameterName = parameter.getName().getRawSignature();
+        parameterName = parameter.getName();
       }
 
       function.addParameter(parameterName, parameterType);

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -33,7 +32,6 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
@@ -42,7 +40,7 @@ import com.google.common.collect.ImmutableMap;
 public class ExplicitTest {
   // Specification Tests
   @Test
-  public void ignoreVariablesTest1() {
+  public void ignoreVariablesTest1() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
@@ -50,7 +48,7 @@ public class ExplicitTest {
         "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
         "cpa.explicit.threshold", "200000"
       );
-    try {
+
       File tmpFile = new File("test/config/automata/tmpSpecification.spc");
       Files.writeFile(tmpFile , "ASSERT ! CHECK(ExplicitAnalysis, \"contains(__SELECTED_FEATURE_base)\") ;");
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
@@ -58,14 +56,9 @@ public class ExplicitTest {
       //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isSafe());
       tmpFile.deleteOnExit();
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    } catch (IOException e) {
-      Assert.fail("could not generate tmpSpecification.spc");
-    }
   }
   @Test
-  public void ignoreVariablesTest2() {
+  public void ignoreVariablesTest2() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
@@ -73,7 +66,7 @@ public class ExplicitTest {
         "cpa.explicit.variableBlacklist", "somethingElse",
         "cpa.explicit.threshold", "200000"
       );
-    try {
+
       File tmpFile = new File("test/config/automata/tmpSpecification.spc");
       Files.writeFile(tmpFile , "ASSERT ! CHECK(ExplicitAnalysis, \"contains(__SELECTED_FEATURE_base)\") ;");
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
@@ -82,13 +75,8 @@ public class ExplicitTest {
       Assert.assertTrue(results.isUnsafe());
       Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"int __SELECTED_FEATURE_base;\""));
       tmpFile.deleteOnExit();
-    } catch (InvalidConfigurationException e) {
-      Assert.fail("InvalidConfiguration");
-    } catch (IOException e) {
-      Assert.fail("could not generate tmpSpecification.spc");
-    }
   }
-  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
+  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder().setOptions(pProperties).build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
@@ -97,7 +85,7 @@ public class ExplicitTest {
     return new TestResults(stringLogHandler.getLog(), results);
   }
   @SuppressWarnings("unused")
-  private TestResults run(File configFile, Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException, IOException {
+  private TestResults run(File configFile, Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder()
       .loadFromFile(configFile.getAbsolutePath())
       .setOptions(pProperties).build();

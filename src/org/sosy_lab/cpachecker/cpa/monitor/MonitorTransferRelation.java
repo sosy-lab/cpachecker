@@ -86,7 +86,7 @@ public class MonitorTransferRelation implements TransferRelation {
   @Override
   public Collection<MonitorElement> getAbstractSuccessors(
       AbstractElement pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     final MonitorElement element = (MonitorElement)pElement;
 
     if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
@@ -98,7 +98,7 @@ public class MonitorTransferRelation implements TransferRelation {
 
     TransferCallable tc = new TransferCallable() {
       @Override
-      public Collection<? extends AbstractElement> call() throws CPATransferException {
+      public Collection<? extends AbstractElement> call() throws CPATransferException, InterruptedException {
         assert !(element.getWrappedElement() instanceof MonitorElement) : element;
         return transferRelation.getAbstractSuccessors(element.getWrappedElement(), pPrecision, pCfaEdge);
       }
@@ -168,7 +168,7 @@ public class MonitorTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       final List<AbstractElement> otherElements, final CFAEdge cfaEdge,
-      final Precision precision) throws CPATransferException {
+      final Precision precision) throws CPATransferException, InterruptedException {
     final MonitorElement element = (MonitorElement)pElement;
 
     if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
@@ -180,7 +180,7 @@ public class MonitorTransferRelation implements TransferRelation {
 
     TransferCallable sc = new TransferCallable() {
       @Override
-      public Collection<? extends AbstractElement> call() throws CPATransferException {
+      public Collection<? extends AbstractElement> call() throws CPATransferException, InterruptedException {
         return transferRelation.strengthen(element.getWrappedElement(), otherElements, cfaEdge, precision);
       }
     };
@@ -258,6 +258,6 @@ public class MonitorTransferRelation implements TransferRelation {
 
   private static interface TransferCallable extends Callable<Collection<? extends AbstractElement>> {
     @Override
-    public Collection<? extends AbstractElement> call() throws CPATransferException;
+    public Collection<? extends AbstractElement> call() throws CPATransferException, InterruptedException;
   }
 }

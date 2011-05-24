@@ -2,8 +2,10 @@ package org.sosy_lab.cpachecker.fshell.testcases;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -92,6 +94,57 @@ public abstract class TestCase {
     return false;
   }
   
+  public String toInputString() {
+    StringBuilder lBuilder = new StringBuilder();
+    
+    for (int lValue : mInputs) {
+      lBuilder.append(lValue + "\n");
+    }
+    
+    return lBuilder.toString();
+  }
+  
+  public void toInputFile(File pFile) throws FileNotFoundException {
+    PrintWriter lWriter = new PrintWriter(pFile);
+    
+    lWriter.print(toInputString());
+    
+    lWriter.close();
+  }
+  
+  public String toCFunction() {
+    StringBuilder lCFunctionBuilder = new StringBuilder();
+    
+    lCFunctionBuilder.append("#include <stdio.h>\n");
+    lCFunctionBuilder.append("#include <stdlib.h>\n");
+    lCFunctionBuilder.append("\n");
+    
+    lCFunctionBuilder.append("int input()\n");
+    lCFunctionBuilder.append("{\n");
+    lCFunctionBuilder.append("  static int index = 0;\n");
+    
+    lCFunctionBuilder.append("  int testcase[] = {");
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      if (lIndex > 0) {
+        lCFunctionBuilder.append(",");
+      }
+      lCFunctionBuilder.append(mInputs[lIndex]);
+    }
+    
+    lCFunctionBuilder.append("};\n");
+
+    lCFunctionBuilder.append("  if (index == " + mInputs.length + ")\n");
+    lCFunctionBuilder.append("  {\n");
+    lCFunctionBuilder.append("    fprintf(stderr, \"[ERROR] test case too short!\\n\");\n");
+    lCFunctionBuilder.append("    exit(-1);\n");
+    lCFunctionBuilder.append("  }\n");
+    lCFunctionBuilder.append("  return testcase[index++];\n");
+    lCFunctionBuilder.append("}\n");
+    
+    return lCFunctionBuilder.toString();
+  }
+  
   @Override
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
@@ -125,6 +178,16 @@ public abstract class TestCase {
     }
     
     return lTestSuite;
+  }
+  
+  public static void toFile(Collection<TestCase> pTestSuite, File pTestSuiteFile) throws FileNotFoundException {
+    PrintWriter lWriter = new PrintWriter(pTestSuiteFile);
+    
+    for (TestCase lTestCase : pTestSuite) {
+      lWriter.println(lTestCase.toString());
+    }
+    
+    lWriter.close();
   }
   
   public static TestCase fromString(String pTestCase) {

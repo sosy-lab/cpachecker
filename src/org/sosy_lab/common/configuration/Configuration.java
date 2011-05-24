@@ -283,14 +283,20 @@ public class Configuration {
     return newConfig;
   }
     
-  @Option(name="output.path")
+  @Option(name="output.path", description="directory to put all output files in")
   private String outputDirectory = "test/output/";
   
-  @Option(name="output.disable")
+  @Option(name="output.disable", description="disable all default output files"
+    + "\n(any explicitly given file will still be written)")
   private boolean disableOutput = false;
   
-  @Option
+  @Option (description="base directory for all input & output files"
+    + "\n(except for the configuration file itself)")
   private String rootDirectory = ".";
+  
+  @Option (name="log.usedOptions.export",
+      description="all used options are printed")
+  private boolean exportUsedOptions = false;
 
   private static final long serialVersionUID = -5910186668866464153L;
 
@@ -420,143 +426,194 @@ public class Configuration {
     Preconditions.checkNotNull(cls);
     Preconditions.checkArgument(cls.isAssignableFrom(obj.getClass()));
 
-    Options options = cls.getAnnotation(Options.class);
+    final Options options = cls.getAnnotation(Options.class);
     Preconditions.checkNotNull(options, "Class must have @Options annotation.");
 
+    // handle fields of the class, override all final & private modifiers
+    final Field[] fields = cls.getDeclaredFields();
+    Field.setAccessible(fields, true);
+
+    for (final Field field : fields) {
+      // ignore all non-option fields
+      if (field.isAnnotationPresent(Option.class)) {
+        setOptionValueForField(obj, field, options);
+      }
+    }
+
+    // handle methods of the class, override all final & private modifiers
+    final Method[] methods = cls.getDeclaredMethods();
+    Method.setAccessible(methods, true);
+
+    for (final Method method : methods) {
+      // ignore all non-option methods
+      if (method.isAnnotationPresent(Option.class)) {
+        setOptionValueForMethod(obj, method, options);
+      }
+    }
+  }
+
+  /** This method sets a new value to a field with an {@link Options}-annotation. 
+   * It takes the name and the new value of an option,
+   * checks it for allowed values and injects it into the object.
+   * 
+   * @param obj the object to be injected
+   * @param field the field of the value to be injected
+   * @param options options-annotation of the class of the object */
+  private void setOptionValueForField(final Object obj, final Field field,
+      final Options options) throws InvalidConfigurationException {
+    final Option option = field.getAnnotation(Option.class);
+    final String name = getOptionName(options, field, option);
+    final Class<?> type = field.getType();
+    final Type genericType = field.getGenericType();
+    final String valueStr = getOptionValue(name, option, type.isEnum());
+
+    // try to read default value
+    Object defaultValue = null;
+    try {
+      defaultValue = field.get(obj);
+    } catch (IllegalArgumentException e) {
+      assert false : "Type checks above were not successful apparently.";
+    } catch (IllegalAccessException e) {
+      assert false : "Accessibility setting failed silently above.";
+    }
+
+    final Object value = convertValue(
+        name, valueStr, defaultValue, type, genericType, option.type());
+
+    if (exportUsedOptions) {
+      printOptionInfos(field, option, name, valueStr, defaultValue);
+    }
+
+    // options which were not specified need not to be set
+    // but do set OUTPUT_FILE options for disableOutput to work
+    if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
+
+    checkRange(option, name, value);
+    
+    // set value to field
+    try {
+      field.set(obj, value);
+    } catch (IllegalArgumentException e) {
+      assert false : "Type checks above were not successful apparently.";
+    } catch (IllegalAccessException e) {
+      assert false : "Accessibility setting failed silently above.";
+    }
+  }
+
+  private void printOptionInfos(final Field field, final Option option,
+      final String name, final String valueStr, final Object defaultValue) {
+    
+    // create optionInfo for file
+    final StringBuilder optionInfo =
+        new StringBuilder(OptionCollector.formatText(option.description()));
+    optionInfo.append(name + "\n");
+    if (field.getType().isArray()) {
+      optionInfo.append("    default value:  "
+          + java.util.Arrays.deepToString((Object[]) defaultValue) + "\n");
+    } else if (field.getType().equals(String.class)) {
+      optionInfo.append("    default value:  '" + defaultValue + "'\n");
+    } else {
+      optionInfo.append("    default value:  " + defaultValue + "\n");
+    }
+    if (valueStr != null) {
+      optionInfo.append("--> used value:     " + valueStr + "\n");
+    }
+
+    System.out.println(optionInfo.toString());
+  }
+
+  /** This method sets a new value to a method with an {@link Options}-annotation. 
+   * It takes the name and the new value of an option,
+   * checks it for allowed values and injects it into the object.
+   * 
+   * @param obj the object to be injected
+   * @param method the method of the value to be injected
+   * @param options options-annotation of the class of the object */
+  private void setOptionValueForMethod(final Object obj, final Method method,
+      final Options options) throws InvalidConfigurationException{
+    final Option option = method.getAnnotation(Option.class);
+
+    final Class<?>[] parameters = method.getParameterTypes();
+    if (parameters.length != 1) {
+      throw new IllegalArgumentException(
+          "Method with @Option must have exactly one parameter!");
+    }
+
+    final String name = getOptionName(options, method, option);
+    final Class<?> type = parameters[0];
+    final Type genericType = method.getGenericParameterTypes()[0];
+    final String valueStr = getOptionValue(name, option, type.isEnum());
+    final Object value = convertValue(name, valueStr, null, type, genericType, option.type());
+    
+    // options which were not specified need not to be set
+    // but do set OUTPUT_FILE options for disableOutput to work
+    if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
+
+    checkRange(option, name, value);
+    
+    // set value to field
+    try {
+      method.invoke(obj, value);
+    } catch (IllegalArgumentException e) {
+      assert false : "Type checks above were not successful apparently.";
+    } catch (IllegalAccessException e) {
+      assert false : "Accessibility setting failed silently above.";
+    } catch (InvocationTargetException e) {
+      // ITEs always have a wrapped exception which is the real one thrown by
+      // the invoked method. We want to handle this exception.
+      final Throwable t = e.getCause();
+      try {
+        Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
+      } catch (IllegalArgumentException iae) {
+        throw new InvalidConfigurationException("Invalid value in configuration file: \""
+            + name + " = " + valueStr + '\"'
+            + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""));
+      }
+
+      // We can't handle it correctly, but we can't throw it either.
+      final InvalidConfigurationException newException = new InvalidConfigurationException(
+          "Unexpected checked exception in method "
+          + method.toGenericString()
+          + ", which was invoked by Configuration.inject()");
+      newException.initCause(t);
+      throw newException;
+    }
+  }
+
+  /** This function return the name of an {@link Option}. 
+   * If no optionname is defined, the name of the field is returned.
+   * If a prefix is defined, it is added in front of the name. 
+   *
+   * @param options the options-annotation of the class, that contains the field
+   * @param field field with option-annotation
+   * @param option the option-annotation */
+  private String getOptionName(final Options options, final Member field, final Option option) {
     String prefix = options.prefix();
     if (!prefix.isEmpty()) {
       prefix += ".";
     }
-
-    // handle fields of the class
-    Field[] fields = cls.getDeclaredFields();
-    Field.setAccessible(fields, true); // override all final & private modifiers
-
-    for (Field field : fields) {
-      Option option = field.getAnnotation(Option.class);
-      if (option == null) {
-        // ignore all non-option fields
-        continue;
-      }
-
-      String name = getOptionName(prefix, field, option);
-      Class<?> type = field.getType();
-      Type genericType = field.getGenericType();
-
-      String valueStr = getOptionValue(name, option, type.isEnum());
-      
-      // try to read default value
-      Object defaultValue = null;
-      try {
-        defaultValue = field.get(obj);
-
-      } catch (IllegalArgumentException e) {
-        assert false : "Type checks above were not successful apparently.";
-      } catch (IllegalAccessException e) {
-        assert false : "Accessibility setting failed silently above.";
-      }
-      
-      Object value = convertValue(name, valueStr, defaultValue, type, genericType, option.type());
-      
-      // options which were not specified need not to be set
-      // but do set OUTPUT_FILE options for disableOutput to work
-      if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) {
-        continue;
-      }
-      
-      checkRange(option, name, value);
-      
-      // set value to field
-      try {
-        field.set(obj, value);
-
-      } catch (IllegalArgumentException e) {
-        assert false : "Type checks above were not successful apparently.";
-      } catch (IllegalAccessException e) {
-        assert false : "Accessibility setting failed silently above.";
-      }
-    }
-
-    // handle methods of the class
-    Method[] methods = cls.getDeclaredMethods();
-    Method.setAccessible(methods, true); // override all final & private modifiers
-
-    for (Method method : methods) {
-      Option option = method.getAnnotation(Option.class);
-      if (option == null) {
-        // ignore all non-option fields
-        continue;
-      }
-
-      Class<?>[] parameters = method.getParameterTypes();
-      if (parameters.length != 1) {
-        throw new IllegalArgumentException("Method with @Option must have exactly one parameter!");
-      }
-
-      String name = getOptionName(prefix, method, option);
-      Class<?> type = parameters[0];
-      Type genericType = method.getGenericParameterTypes()[0];
-
-      String valueStr = getOptionValue(name, option, type.isEnum());
-
-      Object value = convertValue(name, valueStr, null, type, genericType, option.type());
-      
-      // options which were not specified need not to be set
-      // but do set OUTPUT_FILE options for disableOutput to work
-      if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) {
-        continue;
-      }
-
-      checkRange(option, name, value);
-      
-      // set value to field
-      try {
-        method.invoke(obj, value);
-
-      } catch (IllegalArgumentException e) {
-        assert false : "Type checks above were not successful apparently.";
-      } catch (IllegalAccessException e) {
-        assert false : "Accessibility setting failed silently above.";
-      } catch (InvocationTargetException e) {
-        // ITEs always have a wrapped exception which is the real one thrown by
-        // the invoked method. We want to handle this exception.
-        Throwable t = e.getCause();
-        try {
-          Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
-        
-        } catch (IllegalArgumentException iae) {
-          throw new InvalidConfigurationException("Invalid value in configuration file: \""
-              + name + " = " + valueStr + '\"'
-              + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""));
-        }
-        
-        // We can't handle it correctly, but we can't throw it either.
-        InvalidConfigurationException newException = new InvalidConfigurationException(
-            "Unexpected checked exception in method "
-            + method.toGenericString()
-            + ", which was invoked by Configuration.inject()");
-        newException.initCause(t);
-        throw newException;
-      }
-    }
-  }
-
-  private String getOptionName(String prefix, Member field, Option option) {
-    // get name for configuration option
     String name = option.name();
     if (name.isEmpty()) {
       name = field.getName();
     }
-    name = prefix + name;
-    return name;
+    return prefix + name;
   }
 
-  private String getOptionValue(String name, Option option, boolean alwaysUppercase) throws InvalidConfigurationException {
+  /** This function takes the new value of an {@link Option}
+   * in the property, checks it (allowed values, regexp) and returns it.
+   *
+   * @param name name of the value
+   * @param option the option-annotation of the field of the value
+   * @param alwaysUppercase how to write the value */
+  private String getOptionValue(final String name, final Option option,
+      final boolean alwaysUppercase) throws InvalidConfigurationException {
+
     // get value in String representation
     String valueStr = getProperty(name);
     if (valueStr == null || valueStr.isEmpty()) {
       if (option.required()) {
-        throw new InvalidConfigurationException("Required configuration option " + name  + " is missing!");
+        throw new InvalidConfigurationException(
+          "Required configuration option " + name  + " is missing!");
       }
       return null;
     }
@@ -568,51 +625,53 @@ public class Configuration {
     }
 
     // check if it is included in the allowed values list
-    String[] allowedValues = option.values();
-    if (allowedValues.length > 0) {
-      boolean invalid = true;
-      for (String allowedValue : allowedValues) {
-        if (valueStr.equals(allowedValue)) {
-          invalid = false;
-          break;
-        }
-      }
-      if (invalid) {
-        throw new InvalidConfigurationException("Invalid value in configuration file: \""
-            + name + " = " + valueStr + '\"'
-            + " (not listed as allowed value)");
-      }
+    final String[] allowedValues = option.values();
+    if (allowedValues.length > 0
+        && !java.util.Arrays.asList(allowedValues).contains(valueStr)) {
+      throw new InvalidConfigurationException(
+        "Invalid value in configuration file: \"" + name + " = " + valueStr
+            + '\"' + " (not listed as allowed value)");
     }
 
     // check if it matches the specification regexp
-    String regexp = option.regexp();
-    if (!regexp.isEmpty()) {
-      if (!valueStr.matches(regexp)) {
-        throw new InvalidConfigurationException("Invalid value in configuration file: \""
-            + name + " = " + valueStr + '\"'
-            + " (does not match RegExp \"" + regexp + "\")");
-      }
+    final String regexp = option.regexp();
+    if (!regexp.isEmpty() && !valueStr.matches(regexp)) {
+      throw new InvalidConfigurationException(
+        "Invalid value in configuration file: \"" + name + " = " + valueStr
+            + '\"' + " (does not match RegExp \"" + regexp + "\")");
     }
 
     return valueStr;
   }
 
-  private Object convertValue(String name, String valueStr, Object defaultValue, Class<?> type, Type genericType, Option.Type typeInfo)
-                     throws UnsupportedOperationException, InvalidConfigurationException {
+  /** This function takes a value (String) and a type and 
+   * returns an Object of this type with the value as content.
+   * 
+   * @param optionName name of option, only for error handling
+   * @param valueStr new value of the option
+   * @param defaultValue old value of the option
+   * @param type type of the object
+   * @param genericType type of the object
+   * @param typeInfo info about the type of the file (outputfile, inputfile) */
+  private Object convertValue(final String optionName, final String valueStr,
+      final Object defaultValue, final Class<?> type, final Type genericType,
+      final Option.Type typeInfo)
+      throws UnsupportedOperationException, InvalidConfigurationException {
     // convert value to correct type
-    Object result;
+    final Object result;
 
     if (type.equals(File.class)) {
       if (typeInfo == Option.Type.NOT_APPLICABLE) {
-        throw new UnsupportedOperationException("Type File and type=NOT_APPLICABLE do not match for option " + name);
+        throw new UnsupportedOperationException(
+            "Type File and type=NOT_APPLICABLE do not match for option " + optionName);
       }
       
-      result = handleFileOption(name, valueStr, defaultValue, typeInfo);
+      result = handleFileOption(optionName, valueStr, (File) defaultValue, typeInfo);
       
     } else {
       if (typeInfo != Option.Type.NOT_APPLICABLE) {
         throw new UnsupportedOperationException("Type " + type.getSimpleName()
-            + " and type=" + typeInfo + " do not match for option " + name);
+            + " and type=" + typeInfo + " do not match for option " + optionName);
       }
       
       if (valueStr == null) {
@@ -620,40 +679,45 @@ public class Configuration {
       
       } else if (type.isArray()) {
         if (!type.equals(String[].class)) {
-          throw new UnsupportedOperationException("Currently only arrays of type String are supported for configuration options");
+          throw new UnsupportedOperationException(
+              "Currently only arrays of type String are supported for configuration options");
         }
         result = Iterables.toArray(ARRAY_SPLITTER.split(valueStr), String.class);
   
       } else if (type.isPrimitive()) {
-        Class<?> wrapperType = Primitives.wrap(type); // get wrapper type in order to use valueOf method
-  
-        result = valueOf(wrapperType, name, valueStr);
+        // get wrapper type in order to use valueOf method
+        final Class<?> wrapperType = Primitives.wrap(type); 
+        result = valueOf(wrapperType, optionName, valueStr);
   
       } else if (type.isEnum()) {
         // all enums have valueOf method
-        result = valueOf(type, name, valueStr);
+        result = valueOf(type, optionName, valueStr);
   
       } else if (type.equals(String.class)) {
         result = valueStr;
         
       } else if (type.equals(Files.class)) {
-        result = handleFileOption(name, valueStr, defaultValue, typeInfo);
+        result = handleFileOption(optionName, valueStr, (File) defaultValue, typeInfo);
         
       } else if (COLLECTIONS.containsKey(type)) {
-        result = handleCollectionOption(name, valueStr, type, genericType);
+        result = handleCollectionOption(optionName, valueStr, type, genericType);
         
       } else {
-        throw new UnsupportedOperationException("Unimplemented type for option: " + type.getSimpleName());
+        throw new UnsupportedOperationException(
+            "Unimplemented type for option: " + type.getSimpleName());
       }
     }
     return result;
   }
 
-  private Object valueOf(Class<?> type, String name, String value) throws InvalidConfigurationException {
-    return invokeMethod(type, "valueOf", String.class, value, name);
+  private Object valueOf(final Class<?> type, final String optionName, final String value)
+      throws InvalidConfigurationException {
+    return invokeMethod(type, "valueOf", String.class, value, optionName);
   }
 
-  private <T> Object invokeMethod(Class<?> type, String method, Class<T> paramType, T value, String name) throws InvalidConfigurationException {
+  private <T> Object invokeMethod(final Class<?> type, final String method,
+      final Class<T> paramType, final T value, final String optionName)
+          throws InvalidConfigurationException {
     try {
       Method m = type.getMethod(method, paramType);
       if (!m.isAccessible()) {
@@ -662,24 +726,35 @@ public class Configuration {
       return m.invoke(null, value);
 
     } catch (NoSuchMethodException e) {
-      throw new AssertionError("Class " + type.getSimpleName() + " without " + method + "(" + paramType.getSimpleName() + ") method!");
+      throw new AssertionError("Class " + type.getSimpleName() + " without "
+          + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (SecurityException e) {
-      throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
+      throw new AssertionError("Class " + type.getSimpleName() + " without accessible "
+          + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (IllegalAccessException e) {
-      throw new AssertionError("Class " + type.getSimpleName() + " without accessible " + method + "(" + paramType.getSimpleName() + ") method!");
+      throw new AssertionError("Class " + type.getSimpleName() + " without accessible "
+          + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (InvocationTargetException e) {
-      throw new InvalidConfigurationException("Could not parse \"" + name + " = " + value
-          + "\" (" + e.getTargetException().getMessage() + ")");
+      throw new InvalidConfigurationException("Could not parse \"" + optionName +
+          " = " + value + "\" (" + e.getTargetException().getMessage() + ")");
     }
   }
 
-  private File handleFileOption(String name, String valueStr, Object defaultValue, Option.Type typeInfo)
-                  throws UnsupportedOperationException, InvalidConfigurationException {
+  /** This function returns a file. It sets the path of the file to 
+   * the given outputDirectory in the given rootDirectory. 
+   * 
+   * @param optionName name of option only for error handling
+   * @param valueStr new value
+   * @param defaultValue default filename 
+   * @param typeInfo info about the type of the file (outputfile, inputfile) */
+  private File handleFileOption(final String optionName, final String valueStr,
+      final File defaultValue, final Option.Type typeInfo)
+          throws UnsupportedOperationException, InvalidConfigurationException {
     File file;
     if (valueStr != null) {
       file = new File(valueStr);
     } else if (defaultValue != null) {
-      file = (File) defaultValue;
+      file = defaultValue;
     } else {
       return null;
     }
@@ -702,7 +777,7 @@ public class Configuration {
       try {
         Files.checkReadableFile(file);
       } catch (FileNotFoundException e) {
-        throw new InvalidConfigurationException("Option " + name
+        throw new InvalidConfigurationException("Option " + optionName
             + " specifies an invalid input file: " + e.getMessage());
       }
     }
@@ -710,7 +785,7 @@ public class Configuration {
     return file;
   }
   
-  private Object handleCollectionOption(String name, String valueStr,
+  private Object handleCollectionOption(String optionName, String valueStr,
       Class<?> type, Type genericType) throws UnsupportedOperationException,
       InvalidConfigurationException {
     
@@ -733,7 +808,7 @@ public class Configuration {
     Iterable<String> values = ARRAY_SPLITTER.split(valueStr);
 
     // invoke ImmutableSet.copyOf(Object[]) etc.
-    return invokeMethod(implementationClass, "copyOf", Iterable.class, values, name);
+    return invokeMethod(implementationClass, "copyOf", Iterable.class, values, optionName);
   }
   
   private static Class<?> extractUpperBoundFromType(Type type) {

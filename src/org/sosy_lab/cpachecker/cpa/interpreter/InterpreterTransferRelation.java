@@ -342,7 +342,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       String formalParamName = getvarName(nameOfParam, calledFunctionName);
       if(arg instanceof IASTIdExpression){
         IASTIdExpression idExp = (IASTIdExpression) arg;
-        String nameOfArg = idExp.getRawSignature();
+        String nameOfArg = idExp.getName();
         String actualParamName = getvarName(nameOfArg, callerFunctionName);
 
         if(element.contains(actualParamName)){

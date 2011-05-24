@@ -5,7 +5,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import de.upb.agw.cpachecker.cpa.abm.util.CFANodeCollector;
@@ -24,8 +23,8 @@ public abstract class CachedSubtreeHeuristic {
    * @return CachedSubtreeManager
    * @see de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager
    */
-  public final CachedSubtreeManager buildMananger(CFAFunctionDefinitionNode mainFunction) {
-    Set<CFANode> mainFunctionBody = CFANodeCollector.exploreSubgraph(mainFunction, mainFunction.getExitNode());
+  public final CachedSubtreeManager buildMananger(CFANode mainFunction) {
+    Set<CFANode> mainFunctionBody = CFANodeCollector.exploreSubgraph(mainFunction, null);
     CachedSubtreeManagerBuilder builder = new CachedSubtreeManagerBuilder(mainFunctionBody);
     
     //traverse CFG

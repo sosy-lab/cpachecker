@@ -1,10 +1,14 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="600" memlimit="2000">
+<benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <test>
     <sourcefiles>
-      <includesfile>test/test-sets/symbpredabsCPA.set</includesfile>
-      <exclude>test/programs/ntdrivers/parport*</exclude>
+      <includesfile>test/test-sets/locks.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers.set</includesfile>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+      <includesfile>test/test-sets/ssh.set</includesfile>
+      <includesfile>test/test-sets/systemc.set</includesfile>
     </sourcefiles>
     <options>
       <option name="-setprop">output.disable=true</option>

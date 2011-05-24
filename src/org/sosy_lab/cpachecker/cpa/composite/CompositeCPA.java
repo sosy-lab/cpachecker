@@ -29,7 +29,7 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -171,7 +171,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return precisionAdjustment;
   }
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement (CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
@@ -183,7 +183,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
+  public Precision getInitialPrecision (CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();

@@ -45,7 +45,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
       IASTFileLocation pFileLocation,
       boolean pIsGlobal,
       StorageClass pStorageClass,
-      IType pSpecifier, IASTName pName,
+      IType pSpecifier, String pName,
       IASTInitializer pInitializer) {
     super(pRawSignature, pFileLocation, pSpecifier, pName);
     isGlobal = pIsGlobal;
@@ -53,6 +53,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
     initializer = pInitializer;
     
     checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
+    checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
   }
 
   public boolean isGlobal() {
@@ -66,10 +67,4 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   public IASTInitializer getInitializer() {
     return initializer;
   }
-  
-  @Override
-  public IASTNode[] getChildren() {
-    return new IASTNode[] {getName(), getInitializer()};
-  }
-
 }

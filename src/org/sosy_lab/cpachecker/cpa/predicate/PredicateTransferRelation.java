@@ -109,7 +109,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
-      Precision pPrecision, CFAEdge edge) throws CPATransferException {
+      Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
 
     postTimer.start();
     

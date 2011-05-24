@@ -100,7 +100,7 @@ public class ABMPRefiner extends PredicateRefiner {
   }
     
  @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
    //logger.log(Level.FINER, "Performing refinement for path " + pPath);
    if(pPath == null) {
      //TODO:  this can be implemented less drastic -> only remove calls on counterexample
@@ -242,7 +242,7 @@ public class ABMPRefiner extends PredicateRefiner {
   }
   
   @Override
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) {
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException {
     computeSubtreeTimer.start();
     ARTElement subgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
     computeSubtreeTimer.stop();
@@ -279,7 +279,7 @@ public class ABMPRefiner extends PredicateRefiner {
   
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
   //subtree is represented using children and parents of ARTElements
-  protected ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet) {
+  protected ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet) throws InterruptedException {
     //start by creating ARTElements for each node needed in the tree 
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();

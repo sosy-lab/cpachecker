@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingletonCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -42,17 +42,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
 
   INSTANCE;
-  
-  private static class AlwaysTopCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return INSTANCE;
-    }
-  }
 
   public static CPAFactory factory() {
-    return new AlwaysTopCPAFactory();
+    return SingletonCPAFactory.forInstance(INSTANCE);
   }
 
   @Override
@@ -61,12 +53,12 @@ public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFANode pNode) {
     return AlwaysTopElement.INSTANCE;
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return AlwaysTopPrecision.INSTANCE;
   }
 

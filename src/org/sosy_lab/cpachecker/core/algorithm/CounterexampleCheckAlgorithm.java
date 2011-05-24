@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -35,7 +34,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -68,17 +66,17 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   @Option
   private boolean continueAfterInfeasibleError = true;
   
-  public CounterexampleCheckAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CounterexampleCheckAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
     
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
-      throw new CPAException("Need ART CPA for counterexample check");
+      throw new InvalidConfigurationException("ART CPA needed for counterexample check");
     }
     
     if (checkerName.equals("CBMC")) {
-      checker = new CBMCChecker(cfa, config, logger);
+      checker = new CBMCChecker(config, logger);
     } else if (checkerName.equals("EXPLICIT")) {
       checker = new CounterexampleCPAChecker(config, logger);
     } else {
@@ -87,7 +85,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException {
+  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
     
     while (reached.hasWaitingElement()) {

@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.common;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import com.google.common.base.Function;
@@ -122,5 +128,63 @@ public class Pair<A, B> {
           return Pair.<T, T2>of(pArg0.getKey(), pArg0.getValue());
         }
       };
+    }
+    
+    public static <A, B> List<Pair<A, B>> zipList(Collection<? extends A> a, Collection<? extends B> b) {
+      List<Pair<A, B>> result = new ArrayList<Pair<A, B>>(a.size());
+      
+      Iterator<? extends A> iteratorA = a.iterator();
+      Iterator<? extends B> iteratorB = b.iterator();
+      while (iteratorA.hasNext()) {
+        checkArgument(iteratorB.hasNext(), "Second list is shorter");
+        
+        result.add(Pair.<A, B>of(iteratorA.next(), iteratorB.next()));
+      }
+      checkArgument(!iteratorB.hasNext(), "Second list is longer");
+
+      return result;
+    }
+    
+    public static <A, B> Iterable<Pair<A, B>> zipWithPadding(final Iterable<? extends A> a, final Iterable<? extends B> b) {
+      return new Iterable<Pair<A, B>>() {
+        @Override
+        public Iterator<Pair<A, B>> iterator() {
+          return new ZipIterator<A, B>(a.iterator(), b.iterator());
+        }
+      };
+    }
+
+    private static class ZipIterator<A, B> implements Iterator<Pair<A, B>> {
+      
+      private final Iterator<? extends A> a;
+      private final Iterator<? extends B> b;
+      
+      public ZipIterator(Iterator<? extends A> pA, Iterator<? extends B> pB) {
+        a = pA;
+        b = pB;
+      }
+
+      @Override
+      public boolean hasNext() {
+        return a.hasNext() || b.hasNext();
+      }
+      
+      @Override
+      public Pair<A, B> next() {
+        A nextA = null;
+        if (a.hasNext()) {
+          nextA = a.next();
+        }
+        B nextB = null;
+        if (b.hasNext()) {
+          nextB = b.next();
+        }
+        return Pair.of(nextA, nextB);
+      }
+      
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
     }
 }

@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.fshell.testcases;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -13,7 +14,54 @@ import java.util.Set;
 public class FShell2ToFShell3 {
   
   private final static String USAGE_STRING = "Usage: java [--out=output-file] org.sosy_lab.cpachecker.fshell.testcases.FShell2ToFShell3 <FShell2 result files>";
-
+  
+  public static void translateTestsuite(String pSourceFile, String pTargetFile) throws NumberFormatException, FileNotFoundException, IOException {
+    translateTestsuite(new PrintStream(new FileOutputStream(pTargetFile)), pSourceFile);
+  }
+  
+  public static void translateTestsuite(PrintStream pOutputStream, String pFile) throws NumberFormatException, IOException {
+    BufferedReader lReader = new BufferedReader(new FileReader(pFile));
+      
+    String lLine = null;
+      
+    boolean lNextInput = false;
+      
+    Set<TestCase> lTestCases = new LinkedHashSet<TestCase>();
+      
+    List<Integer> lValues = new LinkedList<Integer>();
+      
+    while ((lLine = lReader.readLine()) != null) {
+      lLine = lLine.trim();
+        
+      if (lLine.equals("")) {
+        if (lNextInput) {
+          lNextInput = false;
+          TestCase lTestCase = new PreciseInputsTestCase(lValues);
+          lValues.clear();
+          lTestCases.add(lTestCase);
+        }
+          
+        continue;
+      }
+        
+      if (lNextInput) {
+        if (lLine.startsWith("input()=")) {
+          String lValue = lLine.substring("input()=".length());
+          lValues.add(Integer.valueOf(lValue));
+        }
+      }
+      else {
+        if (lLine.equals("IN:")) {
+          lNextInput = true;
+        }
+      }
+    }
+      
+    for (TestCase lTestCase : lTestCases) {
+      pOutputStream.println(lTestCase);
+    }
+  }
+  
   public static void main(String[] args) throws IOException {
     if (args.length > 0) {
       PrintStream lOutputStream;
@@ -40,7 +88,9 @@ public class FShell2ToFShell3 {
       for (int lIndex = lStartIndex; lIndex < args.length; lIndex++) {
         String lFileName = args[lIndex];
         
-        BufferedReader lReader = new BufferedReader(new FileReader(lFileName));
+        translateTestsuite(lOutputStream, lFileName);
+        
+        /*BufferedReader lReader = new BufferedReader(new FileReader(lFileName));
         
         String lLine = null;
         
@@ -79,7 +129,7 @@ public class FShell2ToFShell3 {
         
         for (TestCase lTestCase : lTestCases) {
           lOutputStream.println(lTestCase);
-        }
+        }*/
       }
     }
     else {

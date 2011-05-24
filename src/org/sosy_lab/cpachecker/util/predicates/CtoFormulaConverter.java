@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
@@ -428,7 +429,7 @@ public class CtoFormulaConverter {
       // ignore type prototypes here
       if (edge.getName() != null) {
         
-        String varNameWithoutFunction = edge.getName().getRawSignature();
+        String varNameWithoutFunction = edge.getName();
         String var;
         if (isGlobal) {
           globalVars.add(varNameWithoutFunction);
@@ -456,37 +457,34 @@ public class CtoFormulaConverter {
   
         // if there is an initializer associated to this variable,
         // take it into account
-        IASTInitializer init = edge.getInitializer();
+        IASTInitializer initializer = edge.getInitializer();
+        IASTExpression init = null;
+        
+        if (initializer == null) {
+          if (initAllVars) {
+            // auto-initialize variables to zero
+            logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
+            init = Defaults.forType(spec, null);
+          }
+          
+        } else if (initializer instanceof IASTInitializerExpression) {
+          init = ((IASTInitializerExpression)initializer).getExpression();
+        
+        } else {
+          log(Level.WARNING, "Ignoring unsupported initializer", initializer);
+        }
+        
         if (init != null) {
           // initializer value present
-          if (!(init instanceof IASTInitializerExpression)) {
-            log(Level.WARNING, "Ingoring unsupported initializer", init);
-          
-          } else if (isNondetVariable(varNameWithoutFunction)) {
+
+          if (isNondetVariable(varNameWithoutFunction)) {
             log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", edge);
-          
+            
           } else {
-            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
-            Formula minit = buildTerm(exp, function, ssa);
+            Formula minit = buildTerm(init, function, ssa);
             Formula mvar = fmgr.makeVariable(var, idx);
             Formula t = fmgr.makeAssignment(mvar, minit);
             result = fmgr.makeAnd(result, t);
-          }
-  
-        } else if (edge.getStorageClass() == StorageClass.EXTERN) {
-          log(Level.WARNING, "Ignoring initializer of extern declaration", edge);
-  
-        } else if (initAllVars) {
-          // auto-initialize variables to zero
-
-          if (isNondetVariable(varNameWithoutFunction)) {
-            logger.log(Level.ALL, "NOT AUTO-INITIALIZING VAR:", var);
-          } else {
-            Formula mvar = fmgr.makeVariable(var, idx);
-            Formula z = fmgr.makeNumber(0);
-            Formula t = fmgr.makeAssignment(mvar, z);
-            result = fmgr.makeAnd(result, t);
-            logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
           }
         }
       }
@@ -739,7 +737,7 @@ public class CtoFormulaConverter {
       }
 
       IASTSimpleDeclaration decl = idExp.getDeclaration();
-      String var = idExp.getName().getRawSignature();
+      String var = idExp.getName();
       
       // some checks to determine whether our set of global variables
       // and the AST concord
@@ -776,9 +774,7 @@ public class CtoFormulaConverter {
       
     @Override
     public Formula visit(IASTFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
-      // parse with valueOf and convert to String again, because Mathsat
-      // does not accept all possible C float constants (but Java hopefully does)
-      return fmgr.makeNumber(Double.valueOf(fExp.getRawSignature()).toString());
+      return fmgr.makeNumber(fExp.getValue().toString());
     }
 
     @Override
@@ -849,7 +845,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
-      String field = fexp.getFieldName().getRawSignature();
+      String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
       Formula term = toNumericFormula(owner.accept(this));
 
@@ -909,7 +905,7 @@ public class CtoFormulaConverter {
       List<IASTExpression> pexps = fexp.getParameterExpressions();
       String func;
       if (fn instanceof IASTIdExpression) {
-        func = ((IASTIdExpression)fn).getName().getRawSignature();
+        func = ((IASTIdExpression)fn).getName();
         if (nondetFunctions.contains(func)) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it  
@@ -995,7 +991,7 @@ public class CtoFormulaConverter {
     if (exp instanceof IASTIdExpression) {
       IASTIdExpression idExp = (IASTIdExpression)exp;
       IASTSimpleDeclaration decl = idExp.getDeclaration();
-      String var = idExp.getName().getRawSignature();
+      String var = idExp.getName();
 
       // some checks to determine whether our set of global variables
       // and the AST concord
@@ -1054,7 +1050,7 @@ public class CtoFormulaConverter {
       
     } else if (exp instanceof IASTFieldReference) {
       IASTFieldReference fexp = (IASTFieldReference)exp;
-      String field = fexp.getFieldName().getRawSignature();
+      String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
       Formula term = buildTerm(owner, function, ssa);
 

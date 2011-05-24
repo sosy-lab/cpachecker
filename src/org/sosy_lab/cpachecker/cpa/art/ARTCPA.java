@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -120,7 +120,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
     return new ARTElement(getWrappedCpa().getInitialElement(pNode), null);
   }

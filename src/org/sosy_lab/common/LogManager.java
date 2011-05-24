@@ -60,22 +60,41 @@ import org.sosy_lab.common.configuration.Options;
  * The main advantage of this class is that the arguments to the log methods
  * are only converted to strings, if the message is really logged.
  */
-@Options(prefix="log")
+@Options(prefix = "log", 
+    description = "Possible log levels in descending order "
+    + "\n(lower levels include higher ones):"
+    + "\nOFF:      no logs published"
+    + "\nSEVERE:   error messages"
+    + "\nWARNING:  warnings"
+    + "\nINFO:     messages"
+    + "\nFINE:     logs on main application level"
+    + "\nFINER:    logs on central CPA algorithm level"
+    + "\nFINEST:   logs published by specific CPAs"
+    + "\nALL:      debugging information"
+    + "\nCare must be taken with levels of FINER or lower, as output files may "
+    + "become quite large and memory usage might become an issue.")
 public class LogManager {
 
-  @Option(name="level", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
+  @Option(name="level", toUppercase=true, 
+      description="log level of file output",
+      values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String logLevelStr = "OFF";
 
-  @Option(name="consoleLevel", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
+  @Option(name="consoleLevel", toUppercase=true, 
+      description="log level of console output",
+      values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String consoleLevelStr = "INFO";
 
-  @Option(name="fileExclude", toUppercase=true)
+  @Option(name="fileExclude", toUppercase=true,
+      description="single levels to be excluded from being logged")
   private String[] excludeLevelsFileStr = {};
 
-  @Option(name="consoleExclude", toUppercase=true)
+  @Option(name="consoleExclude", toUppercase=true,
+      description="single levels to be excluded from being logged")
   private String[] excludeLevelsConsoleStr = {};
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE, 
+      description="name of the log file")
   private File outputFile = new File("CPALog.txt");
 
   @Option

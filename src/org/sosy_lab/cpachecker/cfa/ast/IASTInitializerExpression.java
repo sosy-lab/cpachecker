@@ -36,9 +36,4 @@ public final class IASTInitializerExpression extends IASTInitializer {
   public IASTExpression getExpression() {
     return expression;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {expression};
-  }
 }

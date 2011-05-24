@@ -237,6 +237,8 @@ int FloppyPnp(int DeviceObject , int Irp )
   disketteExtension__ArcName__Length = __BLAST_NONDET;
   doneEvent = __BLAST_NONDET;
   irpSp__MinorFunction = __BLAST_NONDET;
+  Irp__CurrentLocation = __BLAST_NONDET;
+  IoGetConfigurationInformation__FloppyCount = __BLAST_NONDET;
 
   {
 #line 197

@@ -44,6 +44,8 @@ public class Interval
     this.low  = low.longValue();
 
     this.high = high.longValue();
+
+    isSane();
   }
 
   /**
@@ -57,6 +59,16 @@ public class Interval
     this.low  = low;
 
     this.high = high;
+
+    isSane();
+  }
+
+  private boolean isSane()
+  {
+    if(low > high)
+      throw new IllegalStateException("low cannot be larger than high");
+
+    return true;
   }
 
   /**
@@ -69,6 +81,8 @@ public class Interval
     this.low  = value;
 
     this.high = value;
+
+    isSane();
   }
 
   /**
@@ -383,7 +397,7 @@ public class Interval
   }
 
   /**
-   * This method adds an interval from this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method adds an interval from this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param interval the interval to add
    * @return a new interval with the respective bounds
@@ -393,26 +407,11 @@ public class Interval
     if(isEmpty() || interval.isEmpty())
       return createEmptyInterval();
 
-    Interval result = new Interval(low + interval.low, high + interval.high);
-
-    // handle underflow and overflow
-    if((Long.signum(low) + Long.signum(interval.low) == -2) && Long.signum(result.low) == +1)
-      result.low = Long.MIN_VALUE;
-
-    else if((Long.signum(low) + Long.signum(interval.low) == 2) && Long.signum(result.low) == -1)
-      result.low = Long.MAX_VALUE;
-
-    if((Long.signum(high) + Long.signum(interval.high) == -2) && Long.signum(result.high) == +1)
-      result.high = Long.MIN_VALUE;
-
-    else if((Long.signum(high) + Long.signum(interval.high) == 2) && Long.signum(result.high) == -1)
-      result.high = Long.MAX_VALUE;
-
-    return result;
+    return new Interval(scalarPlus(low, interval.low), scalarPlus(high, interval.high));
   }
 
   /**
-   * This method adds a constant offset to this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method adds a constant offset to this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param offset the constant offset to add
    * @return a new interval with the respective bounds
@@ -423,7 +422,7 @@ public class Interval
   }
 
   /**
-   * This method subtracts an interval from this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method subtracts an interval from this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param interval the interval to subtract
    * @return a new interval with the respective bounds
@@ -434,7 +433,7 @@ public class Interval
   }
 
   /**
-   * This method subtracts a constant offset to this interval, underflow and overflow are being handled by setting the respective bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method subtracts a constant offset to this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param offset the constant offset to subtract
    * @return a new interval with the respective bounds
@@ -445,21 +444,75 @@ public class Interval
   }
 
   /**
-   * This method multiplies this interval with another interval.
+   * This method multiplies this interval with another interval. In case of an overflow Long.MAX_VALUE and Long.MIN_VALUE are used instead.
    *
    * @param other interval to multiply this interval with
-   * @return new interval that represents the multiplication of the two intervals
+   * @return new interval that represents the result of the multiplication of the two intervals
    */
   public Interval times(Interval other)
   {
     Long[] values = {
-                      low.longValue() * other.low.longValue(),
-                      low.longValue() * other.high.longValue(),
-                      high.longValue() * other.low.longValue(),
-                      high.longValue() * other.high.longValue()
+                      scalarTimes(low.longValue(), other.low.longValue()),
+                      scalarTimes(low.longValue(), other.high.longValue()),
+                      scalarTimes(high.longValue(), other.low.longValue()),
+                      scalarTimes(high.longValue(), other.high.longValue())
                     };
 
     return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+  }
+
+  /**
+   * This method divides this interval by another interval. If the other interval contains "0" an unbound interval is returned.
+   *
+   * @param other interval to divide this interval by
+   * @return new interval that represents the result of the division of the two intervals
+   */
+  public Interval divde(Interval other)
+  {
+    // other interval contains "0", return unbound interval
+    if(other.contains(FALSE))
+      return createUnboundInterval();
+
+    else
+    {
+      Long[] values = {
+                        low.longValue() / other.low.longValue(),
+                        low.longValue() / other.high.longValue(),
+                        high.longValue() / other.low.longValue(),
+                        high.longValue() / other.high.longValue()
+                      };
+      return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+    }
+  }
+
+  /**
+  * This method performs an arithmetical left shift of the interval bounds.
+  *
+  * @param Interval offset to perform an arithmetical left shift on the interval bounds. If the offset maybe less than zero an unbound interval is returned.
+  * @return new interval that represents the result of the arithmetical left shift
+  */
+  public Interval shiftLeft(Interval offset)
+  {
+    if(offset.mayBeLessThan(FALSE))
+      return createUnboundInterval();
+
+    else
+      return new Interval(low << offset.low, high << offset.high);
+  }
+
+ /**
+ * This method performs an arithmetical right shift of the interval bounds. If the offset maybe less than zero an unbound interval is returned.
+ *
+ * @param Interval offset to perform an arithmetical right shift on the interval bounds
+ * @return new interval that represents the result of the arithmetical right shift
+ */
+  public Interval shiftRight(Interval offset)
+  {
+    if(offset.mayBeLessThan(FALSE))
+      return createUnboundInterval();
+
+    else
+      return new Interval(low >> offset.high, high >> offset.low);
   }
 
   /**
@@ -541,5 +594,46 @@ public class Interval
   public static Interval createFalseInterval()
   {
     return new Interval(0, 0);
+  }
+
+  /**
+   * This method adds two scalar values and returns their sum, or on overflow Long.MAX_VALUE or Long.MIN_VALUE, respectively.
+   *
+   * @param x the first scalar operand
+   * @param y the second scalar operand
+   * @return the sum of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
+   */
+  private static Long scalarPlus(Long x, Long y)
+  {
+    Long result = x + y;
+
+    // both operands are positive but the result is negative
+    if((Long.signum(x) + Long.signum(y) == 2) && Long.signum(result) == -1)
+      result = Long.MAX_VALUE;
+
+    // both operands are negative but the result is positive
+    else  if((Long.signum(x) + Long.signum(y) == -2) && Long.signum(result) == +1)
+      result = Long.MIN_VALUE;
+
+    return result;
+  }
+
+  /**
+   * This method multiplies two scalar values and returns their product, or on overflow Long.MAX_VALUE or Long.MIN_VALUE, respectively.
+   *
+   * @param x the first scalar operand
+   * @param y the second scalar operand
+   * @return the product of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
+   */
+  private static Long scalarTimes(Long x, Long y)
+  {
+    Long bound = (Long.signum(x) == Long.signum(y)) ? Long.MAX_VALUE : Long.MIN_VALUE;
+
+    // if overflow occurs, return the respective bound
+    if (x != 0 && (y > 0 && y > bound / x || y < 0 && y < bound / x))
+      return bound;
+
+    else
+      return x * y;
   }
 }

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
@@ -211,8 +210,8 @@ implements GenericAssumptionBuilder
         List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
-          IASTName name = paramdecl.getName();
-          IType type = name.getType();
+          String name = paramdecl.getName();
+          IType type = paramdecl.getDeclSpecifier();
           IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }

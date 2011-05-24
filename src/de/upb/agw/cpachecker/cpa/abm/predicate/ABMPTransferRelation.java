@@ -162,7 +162,7 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
   
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
-      Precision pPrecision, CFAEdge edge) throws CPATransferException {    
+      Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {    
 
     CFANode currentNode = edge.getPredecessor();
 
@@ -225,7 +225,7 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
     }
   }
   
-  private Collection<AbstractElement> performComposititeAnalysis(PredicateAbstractElement initialPredicateElement, PredicatePrecision initialPredicatePrecision, CFANode node, CFAEdge edge) {
+  private Collection<AbstractElement> performComposititeAnalysis(PredicateAbstractElement initialPredicateElement, PredicatePrecision initialPredicatePrecision, CFANode node, CFAEdge edge) throws InterruptedException {
     try {
       //logger.log(Level.FINER, "Performing recursive compositite analysis for node " + node + " in state " + initialPredicateElement);
       PredicateAbstractElement reducedInitialElement = predicateReducer.getVariableReducedElement(initialPredicateElement, currentCachedSubtree);
@@ -350,7 +350,7 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
     return reached;
   }
   
-  private void recomputeART(PredicateAbstractElement pRoot, PredicatePrecision pRootPrecision, CFANode pRootNode, CachedSubtree rootSubtree) {
+  private void recomputeART(PredicateAbstractElement pRoot, PredicatePrecision pRootPrecision, CFANode pRootNode, CachedSubtree rootSubtree) throws InterruptedException {
     //logger.log(Level.FINER, "Recomputing: " + pRoot + " at " + pRootNode);
     
     recomputeARTTimer.start();
@@ -486,7 +486,7 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
     return predicateReducer;
   }
   
-  protected ARTElement computeCounterexampleSubgraph(ARTElement root, ARTElement target, PredicatePrecision rootPrecision, ABMPRefiner caller) {
+  protected ARTElement computeCounterexampleSubgraph(ARTElement root, ARTElement target, PredicatePrecision rootPrecision, ABMPRefiner caller) throws InterruptedException {
     PredicateAbstractElement rootPredicateElement = AbstractElements.extractElementByType(root, PredicateAbstractElement.class);
     CFANode rootNode = root.retrieveLocationElement().getLocationNode();
     CachedSubtree rootSubtree = csmgr.getCachedSubtreeForCallNode(rootNode);

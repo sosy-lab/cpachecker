@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -38,16 +38,8 @@ import org.sosy_lab.cpachecker.cpa.location.InverseLocationCPA;
 
 public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 
-  private static class PostDominatorCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new PostDominatorCPA();
-    }
-  }
-
   public static CPAFactory factory() {
-    return new PostDominatorCPAFactory();
+    return AutomaticCPAFactory.forType(PostDominatorCPA.class);
   }
 
 	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
@@ -82,12 +74,12 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     return this.parametricDominatorCPA.getInitialElement(node);
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return this.parametricDominatorCPA.getInitialPrecision(pNode);
   }
 }

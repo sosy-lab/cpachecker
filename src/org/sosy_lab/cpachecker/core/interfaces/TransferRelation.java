@@ -46,7 +46,7 @@ public interface TransferRelation {
    * @return list of all successors of the current state (may be empty)
    */
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
-    throws CPATransferException;
+    throws CPATransferException, InterruptedException;
 
   /**
    * Updates an abstract element with information from the abstract elements of
@@ -61,5 +61,7 @@ public interface TransferRelation {
   public Collection<? extends AbstractElement> strengthen (AbstractElement element,
                                      List<AbstractElement> otherElements,
                                      CFAEdge cfaEdge,
-                                     Precision precision) throws CPATransferException;
+                                     Precision precision)
+                                     throws CPATransferException,
+                                            InterruptedException;
 }

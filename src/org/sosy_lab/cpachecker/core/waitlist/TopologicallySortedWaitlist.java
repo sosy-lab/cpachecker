@@ -36,6 +36,12 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
   }
 
   @Override
+  public void add(AbstractElement pElement) {
+    assert AbstractElements.extractLocation(pElement) != null;
+    super.add(pElement);
+  }
+  
+  @Override
   protected Integer getSortKey(AbstractElement pElement) {
     return AbstractElements.extractLocation(pElement).getTopologicalSortId();
   }

@@ -19,9 +19,13 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
+import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
+import org.sosy_lab.cpachecker.fshell.testcases.LoggingTestSuite;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
+import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 
@@ -44,12 +48,71 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private final IncrementalAndAlternatingFQLTestGenerator mIncrementalAndAlternatingTestGenerator;
   private final StandardFQLCoverageAnalyser mCoverageAnalyser;
   
+  private final IncrementalARTReusingFQLTestGenerator mIncrementalARTReusingTestGenerator;
+  
+  private String mFeasibilityInformationOutputFile = null;
+  private String mFeasibilityInformationInputFile = null;
+  private String mTestSuiteOutputFile = null;
+  private int mMinIndex = 0;
+  private int mMaxIndex = Integer.MAX_VALUE;
+  private boolean mDoLogging = false;
+  private boolean mDoAppendingLogging = false;
+  private boolean mDoRestart = false;
+  private long mRestartBound = 100000000; // 100 MB
+  
   public FShell3(String pSourceFileName, String pEntryFunction) {
     mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
     
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
+    
+    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
+  }
+  
+  public void doRestart() {
+    mDoRestart = true;
+  }
+  
+  public void setRestartBound(long pRestartBound) {
+    mRestartBound = pRestartBound;
+  }
+  
+  public void setFeasibilityInformationOutputFile(String pFile) {
+    mFeasibilityInformationOutputFile = pFile;
+  }
+  
+  public void setFeasibilityInformationInputFile(String pFile) {
+    mFeasibilityInformationInputFile = pFile;
+  }
+  
+  public void setTestSuiteOutputFile(String pFile) {
+    mTestSuiteOutputFile = pFile;
+  }
+  
+  public void setGoalIndices(int pMinIndex, int pMaxIndex) {
+    setMinIndex(pMinIndex);
+    setMaxIndex(pMaxIndex);
+  }
+  
+  public void setMinIndex(int pIndex) {
+    mMinIndex = pIndex;
+  }
+  
+  public void setMaxIndex(int pIndex) {
+    mMaxIndex = pIndex;
+  }
+
+  public void doLogging() {
+    mDoLogging = true;
+  }
+  
+  public void doAppendingLogging() {
+    mDoAppendingLogging = true;
+  }
+  
+  public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
   
   public FShell3Result run(String pFQLSpecification) {
@@ -66,7 +129,102 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
         return mIncrementalAndAlternatingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
       }
       else {
-        return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        // TODO make configurable
+        if (!pAlternating) {
+          
+          mIncrementalARTReusingTestGenerator.setGoalIndices(mMinIndex, mMaxIndex);
+          
+          FeasibilityInformation lFeasibilityInformation;
+          TestSuite lTestSuite;
+          
+          if (mFeasibilityInformationInputFile != null) {
+            try {
+              lFeasibilityInformation = FeasibilityInformation.load(mFeasibilityInformationInputFile);
+              
+              if (!lFeasibilityInformation.hasTestsuiteFilename()) {
+                throw new RuntimeException();
+              }
+              
+              lTestSuite = TestSuite.load(lFeasibilityInformation.getTestsuiteFilename());
+              
+              mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+          else {
+            lFeasibilityInformation = new FeasibilityInformation();
+            lTestSuite = new TestSuite();
+          }
+          
+          if (mDoLogging) {
+            if (mFeasibilityInformationOutputFile != null) {
+              try {
+                if (mTestSuiteOutputFile != null) {
+                  lTestSuite = new LoggingTestSuite(lTestSuite, mTestSuiteOutputFile, mDoAppendingLogging);
+                  
+                  lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
+                }
+                else {
+                  File lCWD = new java.io.File( "." );
+                  File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
+                  lTestSuite = new LoggingTestSuite(lTestSuite, lTestSuiteFile.getCanonicalPath(), mDoAppendingLogging);
+                  
+                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+                }
+                
+                lFeasibilityInformation = new LoggingFeasibilityInformation(lFeasibilityInformation, mFeasibilityInformationOutputFile, mDoAppendingLogging);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          }
+          
+          mIncrementalARTReusingTestGenerator.setFeasibilityInformation(lFeasibilityInformation);
+          try {
+            mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
+          }
+          catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+          
+          if (mDoRestart) {
+            mIncrementalARTReusingTestGenerator.doRestart();
+            mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
+          }
+          
+          FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating); 
+          
+          if (mDoLogging) {
+            ((LoggingTestSuite)lTestSuite).close();
+            ((LoggingFeasibilityInformation)lFeasibilityInformation).close();
+          }
+          else {
+            if (mFeasibilityInformationOutputFile != null) {
+              try {
+                if (mTestSuiteOutputFile != null) {
+                  lTestSuite.write(mTestSuiteOutputFile);
+                  lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
+                }
+                else {
+                  File lCWD = new java.io.File( "." );
+                  File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
+                  lTestSuite.write(lTestSuiteFile);
+                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+                }
+                
+                lFeasibilityInformation.write(mFeasibilityInformationOutputFile);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          }
+          
+          return lResult;
+        }
+        else {
+          return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+        }
       }
     }
   }

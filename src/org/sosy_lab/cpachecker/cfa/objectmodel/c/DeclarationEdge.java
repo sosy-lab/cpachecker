@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTName;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
@@ -57,7 +56,7 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return declaration.getDeclSpecifier();
   }
 
-  public IASTName getName() {
+  public String getName() {
     return declaration.getName();
   }
   

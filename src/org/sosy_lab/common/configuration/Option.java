@@ -108,6 +108,11 @@ public @interface Option {
   public long max() default Long.MAX_VALUE;
   
   /**
+   * An optional text, that describes the current option.
+   */
+  public String description() default "";
+  
+  /**
    * If the type of the option needs further specification, this field provides
    * it. See {@link Type} for possible values. The type of the option and the
    * value of this field have to match.

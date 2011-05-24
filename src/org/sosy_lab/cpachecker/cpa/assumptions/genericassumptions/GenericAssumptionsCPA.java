@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,12 +69,12 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFANode pNode) {
     return topElement;
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

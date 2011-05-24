@@ -74,6 +74,10 @@ public class IncrementalCoverageSpecificationTranslator {
   
   private class PathIterator implements Iterator<ElementaryCoveragePattern> {
 
+    /*
+     * A single path iterator enumerates all paths starting at the given 
+     * initial node.
+     */
     private class SinglePathIterator implements Iterator<ElementaryCoveragePattern> {
       
       
@@ -210,7 +214,8 @@ public class IncrementalCoverageSpecificationTranslator {
       mBound = pBound;
       
       mInitialNodes = mTargetGraph.initialNodes().iterator();
-            
+      
+      /* for each initial node, we will generate a SinglePathIterator object */
       if (mInitialNodes.hasNext()) {
         Node lCurrentInitialNode = mInitialNodes.next();
         

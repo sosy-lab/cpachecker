@@ -66,7 +66,7 @@ public class CompositeTransferRelation implements TransferRelation{
 
   @Override
   public Collection<CompositeElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
-        throws CPATransferException {
+        throws CPATransferException, InterruptedException {
     CompositeElement compositeElement = (CompositeElement) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeElement> results;
@@ -90,7 +90,7 @@ public class CompositeTransferRelation implements TransferRelation{
   }
 
   private void getAbstractSuccessorForEdge(CompositeElement compositeElement, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeElement> compositeSuccessors) throws CPATransferException {
+      Collection<CompositeElement> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
 

@@ -35,6 +35,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,11 +71,8 @@ class PredicateAbstractionManager {
     public int numSymbolicAbstractions = 0;
     public int numSatCheckAbstractions = 0;
     public int numCallsAbstractionCached = 0;
-    public long abstractionSolveTime = 0;
-    public long abstractionMaxSolveTime = 0;
-    
-    public long abstractionBddTime = 0;
-    public long abstractionMaxBddTime = 0;
+    public final NestedTimer abstractionTime = new NestedTimer(); // outer: solve time, inner: bdd time
+
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
     public Timer extractTimer = new Timer();
@@ -206,9 +204,7 @@ class PredicateAbstractionManager {
       Collection<AbstractionPredicate> predicates) {
     final RegionManager rmgr = amgr.getRegionManager();  
 
-    Timer solveTimer = new Timer();
-    Timer totBddTimer = new Timer();
-    solveTimer.start();
+    stats.abstractionTime.startOuter();
 
     thmProver.init();
     try {
@@ -240,7 +236,7 @@ class PredicateAbstractionManager {
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
               
-            totBddTimer.start();
+            stats.abstractionTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
             if (predVal == -1) { // pred is false
               v = rmgr.makeNot(v);
@@ -250,7 +246,7 @@ class PredicateAbstractionManager {
             } else {
               assert predVal == 0 : "predicate value is neither false, true, nor unknown";
             }
-            totBddTimer.stop();
+            stats.abstractionTime.getInnerTimer().stop();
             
           } else {            
             logger.log(Level.ALL, "DEBUG_1",
@@ -267,10 +263,10 @@ class PredicateAbstractionManager {
             boolean isTrue = thmProver.isUnsat(predFalse);
 
             if (isTrue) {
-              totBddTimer.start();
+              stats.abstractionTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
               absbdd = rmgr.makeAnd(absbdd, v);
-              totBddTimer.stop();
+              stats.abstractionTime.getInnerTimer().stop();
 
               predVal = 1;
             } else {
@@ -278,11 +274,11 @@ class PredicateAbstractionManager {
               boolean isFalse = thmProver.isUnsat(predTrue);
 
               if (isFalse) {
-                totBddTimer.start();
+                stats.abstractionTime.getInnerTimer().start();
                 Region v = p.getAbstractVariable();
                 v = rmgr.makeNot(v);
                 absbdd = rmgr.makeAnd(absbdd, v);
-                totBddTimer.stop();
+                stats.abstractionTime.getInnerTimer().stop();
 
                 predVal = -1;
               }
@@ -302,20 +298,8 @@ class PredicateAbstractionManager {
 
     } finally {
       thmProver.reset();
-      
-      solveTimer.stop();
 
-      // update statistics
-      
-      long solveTime = solveTimer.getSumTime() - totBddTimer.getSumTime();
-      
-      stats.abstractionMaxBddTime =
-        Math.max(totBddTimer.getSumTime(), stats.abstractionMaxBddTime);
-      stats.abstractionBddTime += totBddTimer.getSumTime();
-      
-      stats.abstractionSolveTime += solveTime;
-      stats.abstractionMaxSolveTime =
-        Math.max(solveTime, stats.abstractionMaxSolveTime);
+      stats.abstractionTime.stopOuter();
     }
   }
 
@@ -373,10 +357,9 @@ class PredicateAbstractionManager {
 
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    final Timer solveTimer = new Timer();
-    solveTimer.start();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr);
-    solveTimer.stop();
+    stats.abstractionTime.startOuter();
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
+    long solveTime = stats.abstractionTime.stopOuter();
     
     // update statistics
     int numModels = allSatResult.getCount();
@@ -385,17 +368,6 @@ class PredicateAbstractionManager {
       stats.allSatCount += numModels;
     }
     
-    long bddTime   = allSatResult.getTotalTime();
-    long solveTime = solveTimer.getSumTime() - bddTime;
-
-    stats.abstractionSolveTime += solveTime;
-    stats.abstractionBddTime   += bddTime;
-
-    stats.abstractionMaxBddTime =
-      Math.max(bddTime, stats.abstractionMaxBddTime);
-    stats.abstractionMaxSolveTime =
-      Math.max(solveTime, stats.abstractionMaxSolveTime);
-
     // TODO dump hard abst
     if (solveTime > 10000 && dumpHardAbstractions) {
       // we want to dump "hard" problems...

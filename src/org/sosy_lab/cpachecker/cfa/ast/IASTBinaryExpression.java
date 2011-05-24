@@ -50,11 +50,6 @@ public class IASTBinaryExpression extends IASTExpression {
   public BinaryOperator getOperator() {
     return operator;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {operand1, operand2};
-  }
   
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {

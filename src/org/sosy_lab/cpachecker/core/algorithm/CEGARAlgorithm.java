@@ -126,24 +126,27 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker";
 
-  @Option(required=true)
+  @Option(required = true, description = "Which refinement algorithm to use? "
+      + "(give class name, required for CEGAR) If the package name starts with "
+      + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   private String refiner = "";
 
-  @Option
+  @Option(description = "completely restart analysis on refinement "
+      + "by removing everything from the reached set")
   private boolean restartOnRefinement = false;
 
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException {
+  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
     Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
     
     try {
       return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
     
     } catch (ClassInstantiationException e) {
-      throw new CPAException("Invalid refiner specified (" + e.getMessage() + ")!");
+      throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!");
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
@@ -184,7 +187,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException {
+  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
     
     stats.totalTimer.start();

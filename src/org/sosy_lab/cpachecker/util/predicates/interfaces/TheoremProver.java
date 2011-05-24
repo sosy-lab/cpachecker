@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
 public interface TheoremProver {
@@ -37,7 +38,7 @@ public interface TheoremProver {
   void reset();
 
   AllSatResult allSat(Formula f, Collection<Formula> important,
-                      AbstractionManager mgr);
+                      AbstractionManager mgr, Timer timer);
     
   interface AllSatResult {
       
@@ -51,10 +52,5 @@ public interface TheoremProver {
      * {@link Integer#MAX_VALUE} if this number is infinite.
      */
     public int getCount();
-    
-    /**
-     * The time spent for creating the abstract formula.
-     */
-    public long getTotalTime();
   }
 }

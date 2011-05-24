@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!-- Example file that demonstrates the use of BLAST. -->
+
+<benchmark tool="blast" timelimit="1800" memlimit="2048">
+
+  <test name="blast-dfs-predH7">
+    <sourcefiles>
+      <include>test/programs/simple/*.cil.c</include>
+    </sourcefiles>
+    
+      <option name="-craig">2</option>
+      <option name="-dfs"></option>
+      <option name="-predH">7</option>
+      <option name="-nosimplemem"></option>
+      <option name="-alias">""</option>
+    
+  </test>
+
+</benchmark>

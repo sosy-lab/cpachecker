@@ -31,10 +31,10 @@ public final class IASTCompositeTypeSpecifier extends IType {
 
   private final int                   key;
   private final List<IASTCompositeTypeMemberDeclaration> members;
-  private final IASTName              name;
+  private final String                name;
 
   public IASTCompositeTypeSpecifier(final boolean pConst, final boolean pVolatile,
-      final int pKey, final List<IASTCompositeTypeMemberDeclaration> pMembers, final IASTName pName) {
+      final int pKey, final List<IASTCompositeTypeMemberDeclaration> pMembers, final String pName) {
     super(pConst, pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
@@ -49,7 +49,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
     return members;
   }
 
-  public IASTName getName() {
+  public String getName() {
     return name;
   }
 

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -160,7 +159,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     if (pFQLSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     }
     
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
@@ -187,7 +186,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     }
     ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-    GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+    GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     
     while (lGoalIterator.hasNext()) {
       lIndex++;
@@ -197,7 +196,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
       
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton(), new HashSet<NondeterministicFiniteAutomaton.State>());
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
       
       boolean lIsCovered = false;
       
@@ -316,6 +315,9 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     // TODO sanity check by assertion
@@ -391,6 +393,9 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     

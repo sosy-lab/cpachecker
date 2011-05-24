@@ -35,7 +35,7 @@ public class CacheTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     /*if (pCfaEdge.getPredecessor().getNodeNumber() == 1) {
       System.out.println("##########################");
@@ -111,7 +111,7 @@ public class CacheTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement pElement, List<AbstractElement> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     
     // TODO implement caching
     

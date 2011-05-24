@@ -221,7 +221,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     
     if (lPassingClause != null) {
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton, null);
+      lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     }
     
     // set up utility variables
@@ -260,7 +260,8 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
       
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = lGoal.getAutomaton();
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lGoalAutomaton);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton2);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton2);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton4);
       
       boolean lIsCovered = false;
       
@@ -282,7 +283,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
             break;
           }
           else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3, new HashSet<NondeterministicFiniteAutomaton.State>());
+            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3);
             
             try {
               if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -319,10 +320,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
         }
       }
       
-      // TODO remove
-      HashSet<NondeterministicFiniteAutomaton.State> mReachedAutomatonStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-      
-      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3, mReachedAutomatonStates);
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton3);
       
       lTimeReach.proceed();
       
@@ -520,6 +518,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
       throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
     }
     
     mTimeInReach.pause();
@@ -571,6 +572,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     
@@ -647,6 +651,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     
@@ -744,6 +751,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     try {
       lBasicAlgorithm.run(lReachedSet);
     } catch (CPAException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
     

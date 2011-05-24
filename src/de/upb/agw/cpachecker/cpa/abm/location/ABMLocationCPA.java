@@ -1,6 +1,5 @@
 package de.upb.agw.cpachecker.cpa.abm.location;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -35,7 +34,7 @@ public class ABMLocationCPA extends LocationCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     elementFactory.initialize(node);    
     return elementFactory.getElement(node);
   }

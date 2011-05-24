@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static mathsat.api.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager.*;
 
@@ -96,7 +97,9 @@ public class MathsatTheoremProver implements TheoremProver {
   
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> important, 
-                             AbstractionManager amgr) {
+                             AbstractionManager amgr, Timer timer) {
+    checkNotNull(amgr);
+    checkNotNull(timer);
     long formula = getTerm(f);
     
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -106,7 +109,7 @@ public class MathsatTheoremProver implements TheoremProver {
     for (Formula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
     
@@ -134,27 +137,24 @@ public class MathsatTheoremProver implements TheoremProver {
     private final AbstractionManager amgr;
     private final RegionManager rmgr;
     
-    private final Timer totalTime = new Timer();
+    private final Timer totalTime;
+
     private int count = 0;
 
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(AbstractionManager fmgr) {
+    public MathsatAllSatCallback(AbstractionManager fmgr, Timer timer) {
       this.amgr = fmgr;
       this.rmgr = fmgr.getRegionManager();
       this.formula = rmgr.makeFalse();
+      this.totalTime = timer;
     }
 
     public void setInfiniteNumberOfModels() {
       count = Integer.MAX_VALUE;
       cubes.clear();
       formula = rmgr.makeTrue();
-    }
-    
-    @Override
-    public long getTotalTime() {
-      return totalTime.getSumTime();
     }
 
     @Override

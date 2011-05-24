@@ -72,10 +72,18 @@ int ssl3_connect(int initial_state )
   s__in_handshake = __BLAST_NONDET;
   s__ctx__stats__sess_connect_renegotiate = __BLAST_NONDET;
 
+  s__ctx__stats__sess_connect = __BLAST_NONDET;
+  s__ctx__stats__sess_hit = __BLAST_NONDET;
+  s__ctx__stats__sess_connect_good = __BLAST_NONDET;
+
+  s__in_handshake = __BLAST_NONDET;
+
+  s__ctx__stats__sess_connect_renegotiate = __BLAST_NONDET;
+
   {
   s__state = initial_state;
   blastFlag = 0;
-  tmp = __BLAST_NONDET;
+  tmp = (unsigned long ) __BLAST_NONDET;
   cb = 0;
   ret = -1;
   skip = 0;

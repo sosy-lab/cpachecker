@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
@@ -112,10 +111,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
   
-  @Option(name="export")
+  @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file", type=Option.Type.OUTPUT_FILE, 
+      description="write collected assumptions to file")
   private File assumptionsFile = new File("assumptions.txt");
   
   @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE)
@@ -150,7 +150,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException {
+  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
     
     boolean restartCPA = false;
@@ -195,9 +195,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorElement.removeFromART();
 
         restartCPA = true;
-      } catch (ForceStopCPAException e) {
-        throw e; // re-throw e, otherwise analysis wouldn't get stopped
-        
+
       } catch (CPAException e) {
         // TODO is it really wise to swallow exceptions here?
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());

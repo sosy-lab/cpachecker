@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 
-import java.util.List;
-
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.action.IAction;
@@ -34,7 +32,6 @@ public class NewTaskAction implements IObjectActionDelegate {
 	/**
 	 * @see IActionDelegate#run(IAction)
 	 */
-	@SuppressWarnings("unchecked") // List is without generics
 	public void run(IAction action) {
 		if (!(selection instanceof IStructuredSelection)) {
 			return;
@@ -43,9 +40,7 @@ public class NewTaskAction implements IObjectActionDelegate {
 		ITranslationUnit selectedSource = null;
 		IFile selectedConfig = null;
 		IFile selectedSpecification = null;
-		List selectedElements = structured.toList();
-		//assert selectedElements.size() == 2;
-		for (Object element : selectedElements) {
+		for (Object element : structured.toList()) {
 			if (element instanceof ITranslationUnit) {
 				selectedSource = (ITranslationUnit)element;
 			} else if (element instanceof IFile) {
@@ -76,16 +71,13 @@ public class NewTaskAction implements IObjectActionDelegate {
 	/**
 	 * @see IActionDelegate#selectionChanged(IAction, ISelection)
 	 */
-	@SuppressWarnings("unchecked")
 	public void selectionChanged(IAction action, ISelection selection) {
 		this.selection = selection;
 		IStructuredSelection structured = (IStructuredSelection) selection;
 		ITranslationUnit selectedSource = null;
 		IFile selectedConfig = null;
 		IFile selectedSpecification = null;
-		List selectedElements = structured.toList();
-		//assert selectedElements.size() == 2;
-		for (Object element : selectedElements) {
+		for (Object element : structured.toList()) {
 			if (element instanceof ITranslationUnit) {
 				selectedSource = (ITranslationUnit)element;
 			} else if (element instanceof IFile) {

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -973,9 +974,13 @@ public class ExplicitTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge, ExplicitPrecision precision) throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = element.clone();
-    if ((declarationEdge.getName() != null)
-        && (declarationEdge.getStorageClass() != StorageClass.TYPEDEF)) {
-
+    if ((declarationEdge.getName() == null)
+        || (declarationEdge.getStorageClass() == StorageClass.TYPEDEF)
+        || (declarationEdge.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)) {
+      // nothing interesting to see here, please move along
+      return newElement;
+    }
+        
         // get the variable name in the declarator
         String varName = declarationEdge.getName().toString();
         String functionName = declarationEdge.getPredecessor().getFunctionName();
@@ -1011,7 +1016,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         } else {
           newElement.forget(scopedVarName);
         }
-    }
+
     return newElement;
   }
 
@@ -1142,8 +1147,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       switch (binaryOperator) {
       case DIVIDE:
       case MODULO:
-      case LESS_EQUAL:
-      case GREATER_EQUAL:
       case BINARY_AND:
       case BINARY_OR:
         // TODO check which cases can be handled (I think all)
@@ -1175,12 +1178,16 @@ public class ExplicitTransferRelation implements TransferRelation {
           return lVal * rVal;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", null, pE);
+          throw new AssertionError();
         }
       }
       
       case EQUALS:
-      case NOT_EQUALS: {
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
+      case LESS_THAN:
+      case LESS_EQUAL: {
 
         Long lVal = lVarInBinaryExp.accept(this);
         if (lVal == null) {
@@ -1192,15 +1199,37 @@ public class ExplicitTransferRelation implements TransferRelation {
           return null;
         }
 
-        // assign 1 if expression holds, 0 otherwise
-        long result = (lVal.equals(rVal) ? 1 : 0);
+        long l = lVal;
+        long r = rVal;
         
-        if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-          // negate
-          result = 1 - result;
+        boolean result;
+        switch (binaryOperator) {
+        case EQUALS:
+          result = (l == r);
+          break;
+        case NOT_EQUALS:
+          result = (l != r);
+          break;
+        case GREATER_THAN:
+          result = (l > r);
+          break;
+        case GREATER_EQUAL:
+          result = (l >= r);
+          break;
+        case LESS_THAN:
+          result = (l < r);
+          break;
+        case LESS_EQUAL:
+          result = (l <= r);
+          break;
+          
+        default:
+          throw new AssertionError();
         }
-        return result;
-      }
+        
+        // return 1 if expression holds, 0 otherwise
+        return (result ? 1L : 0L);
+      }       
         
       default:
         return null;
@@ -1244,7 +1273,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         return ((IASTEnumerator)idExp.getDeclaration()).getValue();
       }
       
-      String varName = getvarName(idExp.getRawSignature(), functionName);
+      String varName = getvarName(idExp.getName(), functionName);
       if (element.contains(varName)) {
         return element.getValueFor(varName);
       } else {
@@ -1356,7 +1385,13 @@ public class ExplicitTransferRelation implements TransferRelation {
 //          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
 //        }
     
+    // TODO don't parse raw signature, but rely on lexp.getValue()
+
     String num = lexp.getRawSignature();
+    if (num.equals("NULL")) {
+      return 0L;
+    }
+    
     Long retVal = null;
     if (num.startsWith("0x")) {
       // this should be in hex format

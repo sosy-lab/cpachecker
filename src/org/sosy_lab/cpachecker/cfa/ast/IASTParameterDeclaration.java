@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
 
   public IASTParameterDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pSpecifier, IASTName pName) {
+      IASTFileLocation pFileLocation, IType pSpecifier, String pName) {
     super(pRawSignature, pFileLocation, pSpecifier, checkNotNull(pName));
   }
 

@@ -135,7 +135,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws InterruptedException {
     Preconditions.checkState(interpolants.isEmpty(), "Cannot call isUnsat after it returned true once!");
 
     CSIsatExecutor csisat;

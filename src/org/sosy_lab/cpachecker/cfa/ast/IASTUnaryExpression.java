@@ -43,11 +43,6 @@ public class IASTUnaryExpression extends IASTExpression {
   public UnaryOperator getOperator() {
     return operator;
   }
-
-  @Override
-  public IASTNode[] getChildren(){
-    return new IASTNode[] {operand};
-  }
   
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
