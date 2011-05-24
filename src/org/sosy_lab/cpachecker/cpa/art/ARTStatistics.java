@@ -104,7 +104,7 @@ public class ARTStatistics implements Statistics {
       targetPath = cpa.getTargetPath();
       if (targetPath != null) {
         // target path has to be the path to the current target element
-        assert targetPath.getLast().getFirst() == lastElement;
+       // assert targetPath.getLast().getFirst() == lastElement;
       } else {
         // otherwise create one
         targetPath = ARTUtils.getOnePathTo(lastElement);

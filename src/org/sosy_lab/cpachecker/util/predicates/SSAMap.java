@@ -59,7 +59,7 @@ public class SSAMap {
     private Multiset<String> varsBuilder = null;
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
         
-    protected SSAMapBuilder(SSAMap ssa) {
+    public SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
     }
     

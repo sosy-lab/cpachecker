@@ -74,6 +74,11 @@ public abstract class ProductAutomatonElement extends CompositeElement {
       return false;
     }
     
+    @Override
+    public int hashCode() {
+      return mPredicates.hashCode();
+    }
+    
   }
   
   public ProductAutomatonElement(List<AbstractElement> pElements) {

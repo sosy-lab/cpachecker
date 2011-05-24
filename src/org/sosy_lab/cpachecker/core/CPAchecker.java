@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -63,6 +65,8 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+
+import de.upb.agw.cpachecker.cpa.abm.predicate.ABMPredicateCPA;
 
 public class CPAchecker {
 
@@ -196,6 +200,8 @@ public class CPAchecker {
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
+      
+      injectAlgorithmToCpa(cpa, algorithm);
 
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
@@ -358,5 +364,23 @@ public class CPAchecker {
 
     reached.add(initialElement, initialPrecision);
     return reached;
+  }
+  
+  /**
+   * TODO: remove this, if possible
+   * @param pCpa
+   * @param pAlgorithm
+   */
+  private void injectAlgorithmToCpa(ConfigurableProgramAnalysis pCpa, Algorithm pAlgorithm) {
+    if(!(pCpa instanceof ARTCPA))
+      return;
+    ARTCPA cpa = (ARTCPA)pCpa;
+    if(!(cpa.getWrappedCpa() instanceof CompositeCPA))
+      return;
+    CompositeCPA compCpa = (CompositeCPA)cpa.getWrappedCpa();
+    ABMPredicateCPA funCpa = compCpa.retrieveWrappedCpa(ABMPredicateCPA.class);
+    if(funCpa == null)
+      return;
+    funCpa.setAlgorithm(pAlgorithm);
   }
 }

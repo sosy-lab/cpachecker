@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!-- Example file that demonstrates the use of CPAchecker. -->
+
+<benchmark tool="cpachecker">
+
+  <test name="ssh-abe">
+    <sourcefiles>
+      <include>test/programs/ssh-simplified/*.cil.c</include>
+    </sourcefiles>
+    
+    <options>
+      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
+      <option name="-setprop">output.disable=true</option>
+      
+      <!-- Set the java heap size. -->
+      <option name="-heap">1000m</option>
+      
+      <option name="-config">test/config/abmCompareConfig.properties</option>
+    </options>
+    
+  </test>
+
+  <test name="ssh-abm">
+    <sourcefiles>
+      <include>test/programs/ssh-simplified/*.cil.c</include>
+    </sourcefiles>
+    
+    <options>
+      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
+      <option name="-setprop">output.disable=true</option>
+      
+      <!-- Set the java heap size. -->
+      <option name="-heap">1000m</option>
+      
+      <option name="-config">test/config/symbpredabsCPA-abm.properties</option>
+    </options>
+    
+  </test>
+
+  <test name="ssh-abm-nc">
+    <sourcefiles>
+      <include>test/programs/ssh-simplified/*.cil.c</include>
+    </sourcefiles>
+    
+    <options>
+      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
+      <option name="-setprop">output.disable=true</option>
+      
+      <!-- Set the java heap size. -->
+      <option name="-heap">1000m</option>
+      
+      <option name="-config">test/config/abmCompareNoCaching.properties</option>
+    </options>
+    
+  </test>
+
+  <test name="ssh-abm-delay">
+    <sourcefiles>
+      <include>test/programs/ssh-simplified/*.cil.c</include>
+    </sourcefiles>
+    
+    <options>
+      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
+      <option name="-setprop">output.disable=true</option>
+      
+      <!-- Set the java heap size. -->
+      <option name="-heap">1000m</option>
+      
+      <option name="-config">test/config/abmCompareDelay.properties</option>
+    </options>
+    
+  </test>
+
+  <test name="ssh-abm-delay-nc">
+    <sourcefiles>
+      <include>test/programs/ssh-simplified/*.cil.c</include>
+    </sourcefiles>
+    
+    <options>
+      <!-- Recommended option, as the CPAchecker output files are normally not interesting for benchmarks. -->
+      <option name="-setprop">output.disable=true</option>
+      
+      <!-- Set the java heap size. -->
+      <option name="-heap">1000m</option>
+      
+      <option name="-config">test/config/abmCompareDelayNoCaching.properties</option>
+    </options>
+    
+  </test>
+
+  <!-- Example columns from CPAchecker output -->
+  <columns>
+    <column title="total time">time for CPAchecker</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="mc time">time for CPA algorithm</column>
+    <column title="cache hits">full cache hits</column>
+    <column title="partial cache hits">partial cache hits</column>
+    <column title="cache misses">cache misses</column>
+  </columns>
+</benchmark>

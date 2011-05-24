@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFacto
 
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
-  private final LocationElementFactory elementFactory = new LocationElementFactory();
+  protected final LocationElementFactory elementFactory = new LocationElementFactory();
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
 	private final TransferRelation transferRelation = new LocationTransferRelation(elementFactory);
 	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);

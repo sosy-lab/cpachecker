@@ -117,5 +117,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
     return delegate.makeAnd(pPathFormula, pOtherFormula);
+  } 
+
+  @Override
+  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
+    return delegate.makeNewPathFormula(pOldFormula, pM);
   }
 }

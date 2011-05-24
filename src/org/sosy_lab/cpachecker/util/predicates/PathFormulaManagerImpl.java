@@ -57,6 +57,11 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0,
         oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
+  
+  @Override
+  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
+    return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength(), oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
+  }
 
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {

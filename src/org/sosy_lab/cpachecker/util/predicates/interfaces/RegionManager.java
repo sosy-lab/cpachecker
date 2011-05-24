@@ -86,6 +86,14 @@ public interface RegionManager {
    * @return (f1 | f2)
    */
   public Region makeOr(Region f1, Region f2);
+  
+  /**
+   * Creates a region representing an existential quantification of the two argument
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return (\exists f2: f1)
+   */
+  public Region makeExists(Region f1, Region f2);
 
   /**
    * Creates a new variable and returns the predicate representing it.

@@ -85,8 +85,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
-    Path path = ARTUtils.getOnePathTo((ARTElement)lastElement);
-    assert pReached.getFirstElement() == path.getFirst().getFirst();
+    Path path = computePath((ARTElement)lastElement, pReached);
+    //assert pReached.getFirstElement() == path.getFirst().getFirst();
 
     if (logger.wouldBeLogged(Level.ALL)) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -149,6 +149,18 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    */
   protected Path getTargetPath(Path pPath) {
     return pPath;
+  }
+  
+  /**
+   * This method may be overwritten if the standard behavior of <code>ARTUtils.getOnePathTo()</code> is not 
+   * appropriate in the implementations context.
+   * @param pLastElement Last ARTElement of the given reached set
+   * @param pReached ReachedSet
+   * @see org.sosy_lab.cpachecker.cpa.art.ARTUtils
+   * @return
+   */  
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) {
+    return ARTUtils.getOnePathTo(pLastElement);    
   }
 
   private static boolean checkART(ReachedSet pReached) {

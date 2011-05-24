@@ -77,6 +77,7 @@ class PredicateAbstractionManager {
     public long abstractionMaxBddTime = 0;
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
+    public Timer extractTimer = new Timer();
   }
   
   final Stats stats;
@@ -499,6 +500,20 @@ class PredicateAbstractionManager {
 
   // delegate methods
   
+  public Formula toConcrete(Region pRegion) {
+    return amgr.toConcrete(pRegion);
+  }
+  
+  public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
+    stats.extractTimer.start();
+    try {
+      return amgr.extractPredicates(pRegion);
+    }
+    finally {
+      stats.extractTimer.stop();
+    }
+  }
+  
   public AbstractionPredicate makeFalsePredicate() {
     return amgr.makeFalsePredicate();
   }
@@ -506,5 +521,9 @@ class PredicateAbstractionManager {
   public AbstractionFormula makeTrueAbstractionFormula(
       Formula pPreviousBlockFormula) {
     return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
+  }
+  
+  public PathFormulaManager getPathFormulaManager() {
+    return pmgr;
   }
 }

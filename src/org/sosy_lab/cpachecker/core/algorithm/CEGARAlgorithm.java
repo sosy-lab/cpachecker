@@ -251,11 +251,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       stats.gcTimer.stop();
     }
   }
+  
+  public Algorithm getInnerAlgorithm() {
+    return algorithm;
+  }
 
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return algorithm.getCPA();
-  }
+  } 
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {

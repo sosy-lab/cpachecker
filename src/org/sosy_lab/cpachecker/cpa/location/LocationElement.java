@@ -40,7 +40,7 @@ import com.google.common.base.Preconditions;
 public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
   
-  static class LocationElementFactory {
+  public static class LocationElementFactory {
     private LocationElement[] elements = null;
 
     public void initialize(CFANode initialNode) {

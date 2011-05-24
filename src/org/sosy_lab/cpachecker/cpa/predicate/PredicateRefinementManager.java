@@ -77,7 +77,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
 @Options(prefix="cpa.predicate.refinement")
-class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
+public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
 
   static class Stats {
     public final Timer cexAnalysisTimer = new Timer();

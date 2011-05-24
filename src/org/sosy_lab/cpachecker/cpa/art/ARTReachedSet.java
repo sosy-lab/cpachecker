@@ -27,6 +27,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -53,6 +54,10 @@ public class ARTReachedSet {
   public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
     mReached = pReached;
     mCpa = pCpa;
+  }
+  
+  public ReachedSet getWrappedReachSet() {
+    return mReached;
   }
 
   public ARTElement getFirstElement() {
@@ -149,7 +154,7 @@ public class ARTReachedSet {
    * @return the elements to re-add to the waitlist
    */
   private static Set<ARTElement> removeSet(Set<ARTElement> elements) {
-    Set<ARTElement> toWaitlist = new HashSet<ARTElement>();
+    Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
     for (ARTElement ae : elements) {
 
       for (ARTElement parent : ae.getParents()) {

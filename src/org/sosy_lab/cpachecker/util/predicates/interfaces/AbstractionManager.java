@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
@@ -30,5 +32,7 @@ public interface AbstractionManager {
   AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula);
 
   RegionManager getRegionManager();
+
+  Collection<AbstractionPredicate> extractPredicates(Region pAf);
 
 }
