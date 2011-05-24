@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
@@ -141,7 +142,7 @@ public class ABMPRefiner extends PredicateRefiner {
     Set<ARTElement> relevantCallNodes = getRelevantDefinitionNodes(path);
     
     ARTElement lastCallNode = null;
-    Stack<Triple<ReachedSet, PredicatePrecision, CFANode>> currentReachSetStack = new Stack<Triple<ReachedSet, PredicatePrecision, CFANode>>();    
+    Stack<Triple<UnmodifiableReachedSet, PredicatePrecision, CFANode>> currentReachSetStack = new Stack<Triple<UnmodifiableReachedSet, PredicatePrecision, CFANode>>();    
     currentReachSetStack.add(null);
     //iterate from root to element and remove all subtrees for subgraph calls
     for(ARTElement currentElement : Iterables.transform(Iterables.skip(path, 1), Pair.<ARTElement>getProjectionToFirst())) {
@@ -157,7 +158,7 @@ public class ABMPRefiner extends PredicateRefiner {
       
         if(relevantCall) {
           lastCallNode = currentElement;               
-          currentReachSetStack.push(new Triple<ReachedSet, PredicatePrecision, CFANode>(predicateCpa.getTransferRelation().getReachedSet(currentElement, currentPredicatePrecision), currentPredicatePrecision, node));
+          currentReachSetStack.push(new Triple<UnmodifiableReachedSet, PredicatePrecision, CFANode>(predicateCpa.getTransferRelation().getReachedSet(currentElement, currentPredicatePrecision), currentPredicatePrecision, node));
           if(relevantCall && currentElement.equals(element)) {
             //lastelement is a relevant call, redo the cached subtree removal once again
             currentPredicatePrecision = removeCachedSubtree(currentReachSetStack, currentElement, reachSet, newPrecision, lastCallNode);
@@ -169,10 +170,10 @@ public class ABMPRefiner extends PredicateRefiner {
     removeSubtreeTimer.stop();  
   }
   
-  private PredicatePrecision removeCachedSubtree(Stack<Triple<ReachedSet, PredicatePrecision, CFANode>> currentReachSetStack, ARTElement currentElement, ARTReachedSet reachSet, PredicatePrecision newPrecision, ARTElement lastCallNode) {
+  private PredicatePrecision removeCachedSubtree(Stack<Triple<UnmodifiableReachedSet, PredicatePrecision, CFANode>> currentReachSetStack, ARTElement currentElement, ARTReachedSet reachSet, PredicatePrecision newPrecision, ARTElement lastCallNode) {
     PredicatePrecision currentPredicatePrecision = getPrecision(currentReachSetStack.peek(), currentElement); 
     if(currentPredicatePrecision == null) {
-      currentPredicatePrecision = receivePredicatePrecision(getPrecision(reachSet.getWrappedReachSet(), currentElement));
+      currentPredicatePrecision = receivePredicatePrecision(getPrecision(reachSet.asReachedSet(), currentElement));
     }
     
     //we need to remove the subtree in the cached ART, in which the currentElement is found
@@ -195,14 +196,14 @@ public class ABMPRefiner extends PredicateRefiner {
     return currentPredicatePrecision;
   }  
   
-  private PredicatePrecision getPrecision(Triple<ReachedSet, PredicatePrecision, CFANode> root, ARTElement target) {
+  private PredicatePrecision getPrecision(Triple<UnmodifiableReachedSet, PredicatePrecision, CFANode> root, ARTElement target) {
     if(root == null) {
       return null;
     }
     return getPrecision(root.getFirst(), target);
   }
   
-  private PredicatePrecision getPrecision(ReachedSet reached, ARTElement target) {
+  private PredicatePrecision getPrecision(UnmodifiableReachedSet reached, ARTElement target) {
     if(reached == null) {
       return null;
     }

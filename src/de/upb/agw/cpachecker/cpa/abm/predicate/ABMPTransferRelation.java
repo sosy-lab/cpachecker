@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -453,7 +454,7 @@ public class ABMPTransferRelation extends PredicateTransferRelation{
     }
   }
   
-  public Precision getPrecision(ReachedSet reached, ARTElement target) {    
+  public Precision getPrecision(UnmodifiableReachedSet reached, ARTElement target) {    
     ARTElement ele = ARTElementSearcher.searchForARTElement(reached, target, predicateReducer, csmgr);
     return reached.getPrecision(ele);
   }

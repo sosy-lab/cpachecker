@@ -3,7 +3,7 @@ package de.upb.agw.cpachecker.cpa.abm.util;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
@@ -21,17 +21,17 @@ public class ARTElementSearcher {
   public static Timer searchForARTElementTimer = new Timer();
 
   public static ARTElement searchForARTElement(ARTReachedSet reached, ARTElement target, PredicateReducer reducer, CachedSubtreeManager manager) {
-    return searchForARTElement(reached.getWrappedReachSet(), target, reducer, manager);
+    return searchForARTElement(reached.asReachedSet(), target, reducer, manager);
   }
   
-  public static ARTElement searchForARTElement(ReachedSet reached, ARTElement target, PredicateReducer reducer, CachedSubtreeManager manager) {
+  public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, ARTElement target, PredicateReducer reducer, CachedSubtreeManager manager) {
     PredicateAbstractElement targetPredicateElement = AbstractElements.extractElementByType(target, PredicateAbstractElement.class);
     CFANode targetNode = target.retrieveLocationElement().getLocationNode();
     CallstackElement targetCallstack = AbstractElements.extractElementByType(target, CallstackElement.class);
     return searchForARTElement(reached, targetPredicateElement, targetNode, targetCallstack, reducer, manager);
   }
   
-  public static ARTElement searchForARTElement(ReachedSet reached, PredicateAbstractElement targetPredicateElement, CFANode targetNode, CallstackElement targetCallstack, PredicateReducer reducer, CachedSubtreeManager manager) {
+  public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, PredicateAbstractElement targetPredicateElement, CFANode targetNode, CallstackElement targetCallstack, PredicateReducer reducer, CachedSubtreeManager manager) {
     searchForARTElementTimer.start();
     try {
       if(targetPredicateElement instanceof TargetPredicateAbstractElement) {

@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -39,6 +40,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -56,8 +59,8 @@ public class ARTReachedSet {
     mCpa = pCpa;
   }
   
-  public ReachedSet getWrappedReachSet() {
-    return mReached;
+  public UnmodifiableReachedSet asReachedSet() {
+    return new UnmodifiableReachedSetWrapper(mReached);
   }
 
   public ARTElement getFirstElement() {
