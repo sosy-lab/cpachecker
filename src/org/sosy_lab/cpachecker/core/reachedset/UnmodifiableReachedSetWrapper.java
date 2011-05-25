@@ -109,4 +109,8 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
     return delegate.size();
   }
 
+  @Override
+  public String toString() {
+    return delegate.toString();
+  }
 }
