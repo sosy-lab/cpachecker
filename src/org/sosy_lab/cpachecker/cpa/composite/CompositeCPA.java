@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -30,25 +31,26 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM
 {
   
   @Options(prefix="cpa.composite")
@@ -128,6 +130,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Reducer reducer;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
@@ -144,6 +147,21 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
+    
+    List<Reducer> wrappedReducers = new ArrayList<Reducer>();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
+        wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());
+      } else {
+        wrappedReducers.clear();
+        break;
+      }
+    }
+    if (!wrappedReducers.isEmpty()) {
+      reducer = new CompositeReducer(wrappedReducers);
+    } else {
+      reducer = null;
+    }
   }
 
   @Override
@@ -170,6 +188,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
+  
+  @Override
+  public Reducer getReducer() {
+    return reducer;
+  }
+  
   @Override
   public AbstractElement getInitialElement (CFANode node) {
     Preconditions.checkNotNull(node);
