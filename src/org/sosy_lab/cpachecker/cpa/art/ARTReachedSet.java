@@ -34,11 +34,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -116,12 +116,7 @@ public class ARTReachedSet {
   private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
     Precision lOldPrecision = getPrecision(pARTElement);
     
-    if (lOldPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision)lOldPrecision).replaceWrappedPrecision(pNewPrecision);
-    }
-    else {
-      return pNewPrecision;
-    }
+    return Precisions.replaceByType(lOldPrecision, pNewPrecision);
   }
 
   private Set<ARTElement> removeSubtree0(ARTElement e) {
