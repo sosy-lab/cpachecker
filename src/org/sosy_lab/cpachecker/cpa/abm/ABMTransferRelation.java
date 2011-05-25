@@ -175,14 +175,15 @@ public class ABMTransferRelation implements TransferRelation {
       // -> return these states as successor
       // -> cache the result
       
-      logger.log(Level.INFO, "Starting recursive analysis of depth", ++depth, "at edge", edge);
-      logger.log(Level.ALL, pElement);
+      logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth, "at edge", edge);
+      logger.log(Level.ALL, "Starting element:", pElement);
 
       CachedSubtree outerSubtree = currentCachedSubtree;
       currentCachedSubtree = csmgr.getCachedSubtreeForCallNode(currentNode);
       Collection<AbstractElement> reducedResult = performCompositeAnalysis(pElement, pPrecision, currentNode, edge);
       
-      logger.log(Level.ALL, "Recursive analysis of depth", depth--, "finished with result\n", reducedResult);
+      logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
+      logger.log(Level.ALL, "Resulting elements:", reducedResult);
 
       List<AbstractElement> expandedResult = new ArrayList<AbstractElement>(reducedResult.size());
       for (AbstractElement reducedElement : reducedResult) {
@@ -191,7 +192,7 @@ public class ABMTransferRelation implements TransferRelation {
         expandedResult.add(expandedElement);
       }
       
-      logger.log(Level.ALL, "Expanded result\n", expandedResult);
+      logger.log(Level.ALL, "Expanded results:", expandedResult);
       
       currentCachedSubtree = outerSubtree;
 
