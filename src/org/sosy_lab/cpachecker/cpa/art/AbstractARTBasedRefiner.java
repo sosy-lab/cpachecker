@@ -40,6 +40,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -53,10 +54,14 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   private final LogManager logger;
 
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    if (!(pCpa instanceof ARTCPA)) {
+    if (pCpa instanceof AbstractSingleWrapperCPA) {
+      mArtCpa = ((AbstractSingleWrapperCPA) pCpa).retrieveWrappedCpa(ARTCPA.class);
+    } else {
       throw new InvalidConfigurationException("ART CPA needed for refinement");
     }
-    mArtCpa = (ARTCPA)pCpa;
+    if (mArtCpa == null) {
+      throw new InvalidConfigurationException("ART CPA needed for refinement");
+    }
     this.logger = mArtCpa.getLogger();
   }
 
