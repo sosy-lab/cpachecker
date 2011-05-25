@@ -53,4 +53,13 @@ public class Precisions {
 
     return null;
   }
+
+  public static Precision replaceByType(Precision pOldPrecision, Precision pNewPrecision) {
+    if (pOldPrecision instanceof WrapperPrecision) {
+      return ((WrapperPrecision)pOldPrecision).replaceWrappedPrecision(pNewPrecision);
+    }
+    else {
+      return pNewPrecision;
+    }
+  }
 }
