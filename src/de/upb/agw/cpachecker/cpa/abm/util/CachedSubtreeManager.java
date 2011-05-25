@@ -9,21 +9,25 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
  * @author dwonisch
  *
  */
 public class CachedSubtreeManager {
-  private CachedSubtree mainCachedSubtree; 
-  private Map<CFANode, CachedSubtree> callNodeToSubtree;
-  private Map<CFANode, CachedSubtree> nodeToSubtree;
-  private Set<CFANode> returnNodes;
+  private final CachedSubtree mainCachedSubtree; 
+  private final Map<CFANode, CachedSubtree> callNodeToSubtree;
+  private final Map<CFANode, CachedSubtree> nodeToSubtree;
+  private final Set<CFANode> returnNodes;
   
   public CachedSubtreeManager(Collection<CachedSubtree> subtrees) {
-    callNodeToSubtree = new HashMap<CFANode, CachedSubtree>();
-    nodeToSubtree = new HashMap<CFANode, CachedSubtree>(); 
-    returnNodes = new HashSet<CFANode>();
+    CachedSubtree mainCachedSubtree = null;
+    Map<CFANode, CachedSubtree> callNodeToSubtree = new HashMap<CFANode, CachedSubtree>();
+    Map<CFANode, CachedSubtree> nodeToSubtree = new HashMap<CFANode, CachedSubtree>(); 
+    Set<CFANode> returnNodes = new HashSet<CFANode>();
     
     for(CachedSubtree subtree : subtrees) {
       for(CFANode callNode : subtree.getCallNodes()) {
@@ -39,6 +43,13 @@ public class CachedSubtreeManager {
       
       returnNodes.addAll(subtree.getReturnNodes());      
     }
+    
+    assert mainCachedSubtree != null;
+    this.mainCachedSubtree = mainCachedSubtree;
+    
+    this.callNodeToSubtree = ImmutableMap.copyOf(callNodeToSubtree);
+    this.nodeToSubtree = ImmutableMap.copyOf(nodeToSubtree);
+    this.returnNodes = ImmutableSet.copyOf(returnNodes);
   }
   
   /**

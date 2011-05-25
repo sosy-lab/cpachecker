@@ -5,26 +5,29 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Represents a block as described in the ABM paper.
  * @author dwonisch
  *
  */
 public class CachedSubtree {
-  private Set<ReferencedVariable> referencedVariables;
-  private Set<CFANode> callNodes;
-  private Set<CFANode> returnNodes;
-  private Set<CFANode> uniqueNodes;
-  private Set<CFANode> nodes;  
+  
+  private final ImmutableSet<ReferencedVariable> referencedVariables;
+  private final ImmutableSet<CFANode> callNodes;
+  private final ImmutableSet<CFANode> returnNodes;
+  private final ImmutableSet<CFANode> uniqueNodes;
+  private final ImmutableSet<CFANode> nodes;  
   
   public CachedSubtree(Set<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes, Set<CFANode> pUniqueNodeSet, Set<CFANode> allNodes) {
-    super();
-    referencedVariables = pReferencedVariables;
-    callNodes = pCallNodes;
-    returnNodes = pReturnNodes;
-    uniqueNodes = pUniqueNodeSet;
-    nodes = allNodes;
+
+    referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
+    callNodes = ImmutableSet.copyOf(pCallNodes);
+    returnNodes = ImmutableSet.copyOf(pReturnNodes);
+    uniqueNodes = ImmutableSet.copyOf(pUniqueNodeSet);
+    nodes = ImmutableSet.copyOf(allNodes);
   }
 
   public Set<CFANode> getCallNodes() {
@@ -37,11 +40,11 @@ public class CachedSubtree {
   } 
   
   public Set<ReferencedVariable> getReferencedVariables() {
-    return Collections.unmodifiableSet(referencedVariables);
+    return referencedVariables;
   }
 
   public Set<CFANode> getNodes() {
-    return Collections.unmodifiableSet(nodes);
+    return nodes;
   }
 
   public boolean isReturnNode(CFANode pNode) {
@@ -49,11 +52,11 @@ public class CachedSubtree {
   }
 
   public Set<CFANode> getReturnNodes() {
-    return Collections.unmodifiableSet(returnNodes);
+    return returnNodes;
   }
   
   public Set<CFANode> getUniqueNodes() {
-    return Collections.unmodifiableSet(uniqueNodes);
+    return uniqueNodes;
   }
 
   public boolean isCallNode(CFANode pNode) {
