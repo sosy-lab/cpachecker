@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
-import de.upb.agw.cpachecker.cpa.abm.predicate.TargetPredicateAbstractElement;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
 import de.upb.agw.cpachecker.cpa.abm.util.PrecisionUtils;
@@ -84,13 +83,8 @@ public class PredicateReducer implements Reducer {
             new AbstractionFormula(newRegion, newFormula, predicateElement
                 .getAbstractionFormula().getBlockFormula());
 
-      if (predicateElement instanceof TargetPredicateAbstractElement) {
-        return new TargetPredicateAbstractElement(pathFormula,
+      return new PredicateAbstractElement.AbstractionElement(pathFormula,
             newAbstractionFormula);
-      } else {
-        return new PredicateAbstractElement.AbstractionElement(pathFormula,
-            newAbstractionFormula);
-      }
     } finally {
       reduceTimer.stop();
     }
@@ -158,13 +152,9 @@ public class PredicateReducer implements Reducer {
 
       AbstractionFormula newAbstractionFormula =
           new AbstractionFormula(expandedRegion, newFormula, blockFormula);
-      if (reducedElement instanceof TargetPredicateAbstractElement) {
-        return new TargetPredicateAbstractElement(pathFormula,
-            newAbstractionFormula);
-      } else {
-        return new PredicateAbstractElement.AbstractionElement(pathFormula,
-            newAbstractionFormula);
-      }
+      
+      return new PredicateAbstractElement.AbstractionElement(pathFormula,
+          newAbstractionFormula);
     } finally {
       expandTimer.stop();
     }
