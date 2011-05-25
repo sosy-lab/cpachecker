@@ -150,7 +150,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class);
+      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
       
       logger.logException(Level.FINE, t, "Unexpected exception during refiner instantiation!");
       throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during refiner instantiation (" + t.getMessage() + ")!");
