@@ -9,10 +9,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.OccurrenceComputer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 
-import de.upb.agw.cpachecker.cpa.abm.util.RelevantPredicatesComputer;
-import de.upb.agw.cpachecker.cpa.abm.util.impl.AuxiliaryComputer;
-import de.upb.agw.cpachecker.cpa.abm.util.impl.OccurrenceComputer;
 
 /**
  * Implements an ABM-based predicate CPA.

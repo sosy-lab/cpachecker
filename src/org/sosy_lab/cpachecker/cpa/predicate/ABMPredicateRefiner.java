@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.collect.Iterables;
 
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
-import de.upb.agw.cpachecker.cpa.abm.util.RelevantPredicatesComputer;
 
 /**
  * Implements predicate refinements when using ABM.

@@ -1,5 +1,6 @@
-package de.upb.agw.cpachecker.cpa.abm.util.impl;
+package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,23 +11,21 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
 import de.upb.agw.cpachecker.cpa.abm.util.ReferencedVariable;
-import de.upb.agw.cpachecker.cpa.abm.util.RelevantPredicatesComputer;
 
 /**
- * Computes set of irrelevant predicates of a block by identifying the variables that do not occur in the block. 
+ * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block. 
  * @author dwonisch
  *
  */
-
-public class OccurrenceComputer implements RelevantPredicatesComputer {
+public class AuxiliaryComputer implements RelevantPredicatesComputer {
   private Map<Pair<CachedSubtree, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> removedCache;
   private Map<Pair<CachedSubtree, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> relevantCache;
-  private Map<Pair<CachedSubtree, AbstractionPredicate>, Boolean> relevantPredicates;
+  private Map<Pair<Collection<String>, AbstractionPredicate>, Boolean> relevantPredicates;
   
-  public OccurrenceComputer() {    
+  public AuxiliaryComputer() {    
     this.removedCache = new HashMap<Pair<CachedSubtree,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
     this.relevantCache = new HashMap<Pair<CachedSubtree,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
-    this.relevantPredicates = new HashMap<Pair<CachedSubtree,AbstractionPredicate>, Boolean>();
+    this.relevantPredicates = new HashMap<Pair<Collection<String>,AbstractionPredicate>, Boolean>();
   }
   
   @Override
@@ -49,16 +48,66 @@ public class OccurrenceComputer implements RelevantPredicatesComputer {
   
   private Collection<AbstractionPredicate> computeRelevantPredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates) {
     Collection<AbstractionPredicate> relevantPredicates = new HashSet<AbstractionPredicate>(predicates.size());
+    
+    Collection<String> relevantVariables = computeRelevantVariables(context, predicates);
+    
     for(AbstractionPredicate predicate : predicates) {
-      if(isRelevant(context, predicate)) {
+      if(isRelevant(relevantVariables, predicate)) {
         relevantPredicates.add(predicate);
       }
     }
     return relevantPredicates;
   }
   
-  private boolean isRelevant(CachedSubtree context, AbstractionPredicate predicate) {
-    Pair<CachedSubtree, AbstractionPredicate> pair = Pair.of(context, predicate);
+  private Collection<String> computeRelevantVariables(CachedSubtree pContext, Collection<AbstractionPredicate> pPredicates) {
+    Collection<String> relevantVars = new HashSet<String>();
+    Collection<ReferencedVariable> unknownVars = new ArrayList<ReferencedVariable>();
+    
+    for(ReferencedVariable var : pContext.getReferencedVariables()) {
+      if(var.occursInCondition()) {
+        relevantVars.add(var.getName());        
+      }
+      else if(var.occursOnLhs()) {
+        if(occursInPredicate(var, pPredicates)) {
+          relevantVars.add(var.getName());
+        }
+      }
+      else {
+        unknownVars.add(var);
+      }
+    }
+    
+    boolean changed = true;
+    while(changed) {
+      changed = false;
+      Collection<ReferencedVariable> yetUnknownVars = new ArrayList<ReferencedVariable>();
+      
+      for(ReferencedVariable var : unknownVars) {
+        if(relevantVars.contains(var.getLhsVariable().getName())) {
+          relevantVars.add(var.getName());
+          changed = true;
+        }
+        else {
+          yetUnknownVars.add(var);
+        }
+      }      
+      unknownVars = yetUnknownVars;
+    }   
+    
+    return relevantVars;
+  }
+
+  private boolean occursInPredicate(ReferencedVariable pVar, Collection<AbstractionPredicate> pPredicates) {
+    for(AbstractionPredicate predicate : pPredicates) {
+      if(predicate.getSymbolicAtom().toString().contains(pVar.getName())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isRelevant(Collection<String> relevantVariables, AbstractionPredicate predicate) {
+    Pair<Collection<String>, AbstractionPredicate> pair = Pair.of(relevantVariables, predicate);
     if(relevantPredicates.containsKey(pair)) {
       return relevantPredicates.get(pair);
     }
@@ -69,8 +118,8 @@ public class OccurrenceComputer implements RelevantPredicatesComputer {
       return true;
     }
     else {
-      for(ReferencedVariable var : context.getReferencedVariables()) {
-        if(predicateString.contains(var.getName())) {
+      for(String var : relevantVariables) {
+        if(predicateString.contains(var)) {
           //var occurs in the predicate, so better trace it
           //TODO: contains is a quite rough approximation; for example "foo <= 5" also contains "f", although the variable f does in fact not occur in the predicate.
           relevantPredicates.put(pair, true);

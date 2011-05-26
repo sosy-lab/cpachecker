@@ -9,6 +9,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
-import de.upb.agw.cpachecker.cpa.abm.util.RelevantPredicatesComputer;
 
 public class PredicateReducer implements Reducer {
 
