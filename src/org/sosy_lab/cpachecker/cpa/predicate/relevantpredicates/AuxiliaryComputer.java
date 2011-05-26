@@ -7,10 +7,10 @@ import java.util.HashSet;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import de.upb.agw.cpachecker.cpa.abm.util.Block;
-import de.upb.agw.cpachecker.cpa.abm.util.ReferencedVariable;
 
 /**
  * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block. 

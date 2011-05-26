@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
@@ -21,8 +23,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
-import de.upb.agw.cpachecker.cpa.abm.util.Block;
-import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class PredicateReducer implements Reducer {
 

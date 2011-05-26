@@ -1,4 +1,4 @@
-package de.upb.agw.cpachecker.cpa.abm.util;
+package org.sosy_lab.cpachecker.cfa.blocks;
 
 import java.util.Collections;
 import java.util.Set;

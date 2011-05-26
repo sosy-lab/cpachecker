@@ -1,15 +1,14 @@
-package de.upb.agw.cpachecker.cpa.abm.heuristics;
+package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.CFA;
 
-import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
-import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioningBuilder;
 
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
@@ -21,7 +20,7 @@ public abstract class PartitioningHeuristic {
    * Creates a <code>BlockPartitioning</code> using the represented heuristic.  
    * @param mainFunction CFANode at which the main-function is defined
    * @return BlockPartitioning
-   * @see de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning
+   * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
   public final BlockPartitioning buildPartitioning(CFANode mainFunction) {
     Set<CFANode> mainFunctionBody = CFA.exploreSubgraph(mainFunction, null);

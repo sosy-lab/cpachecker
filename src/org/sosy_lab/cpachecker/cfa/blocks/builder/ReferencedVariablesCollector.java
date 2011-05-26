@@ -1,4 +1,4 @@
-package de.upb.agw.cpachecker.cpa.abm.sa;
+package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -16,13 +16,13 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
-import de.upb.agw.cpachecker.cpa.abm.util.ReferencedVariable;
 
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.

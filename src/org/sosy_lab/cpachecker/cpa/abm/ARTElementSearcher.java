@@ -3,14 +3,14 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import static org.sosy_lab.cpachecker.util.AbstractElements.filterLocation;
 
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
-import de.upb.agw.cpachecker.cpa.abm.util.Block;
-import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 /**
  * Helper class to search for <code>ARTElement</code>s in a <code>ReachedSet</code> that have the same abstraction as the given <code>ARTElement</code> after reduction to the relevant predicates.

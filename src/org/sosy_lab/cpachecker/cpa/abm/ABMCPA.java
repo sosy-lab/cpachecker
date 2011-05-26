@@ -9,6 +9,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.DelayedFunctionAndLoopPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -26,10 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 
-import de.upb.agw.cpachecker.cpa.abm.heuristics.PartitioningHeuristic;
-import de.upb.agw.cpachecker.cpa.abm.heuristics.DelayedFunctionAndLoopPartitioning;
-import de.upb.agw.cpachecker.cpa.abm.heuristics.FunctionAndLoopPartitioning;
-import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 @Options(prefix="cpa.abm")
 public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {

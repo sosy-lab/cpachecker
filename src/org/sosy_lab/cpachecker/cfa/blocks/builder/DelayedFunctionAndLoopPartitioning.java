@@ -1,4 +1,4 @@
-package de.upb.agw.cpachecker.cpa.abm.heuristics;
+package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import java.util.Set;
 import java.util.logging.Level;
@@ -11,7 +11,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.CFA;
 
-import de.upb.agw.cpachecker.cpa.abm.sa.LoopDetector;
 
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body. 

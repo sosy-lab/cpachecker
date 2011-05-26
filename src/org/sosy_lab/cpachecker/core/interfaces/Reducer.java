@@ -1,9 +1,9 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import de.upb.agw.cpachecker.cpa.abm.util.Block;
-import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public interface Reducer {
 

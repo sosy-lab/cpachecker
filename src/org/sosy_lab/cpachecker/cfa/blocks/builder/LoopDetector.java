@@ -1,4 +1,4 @@
-package de.upb.agw.cpachecker.cpa.abm.sa;
+package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
