@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.util.CFA;
 
 import de.upb.agw.cpachecker.cpa.abm.sa.ReferencedVariablesCollector;
 
@@ -45,7 +46,7 @@ public class CachedSubtreeManagerBuilder {
           if(functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
             //compute it only the fly
-            functionBody = CFANodeCollector.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
+            functionBody = CFA.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
             functionVars = collectReferencedVariables(functionBody);
             //and save it
             cachedSubtreeNodesMap.put(calledFun, functionBody);

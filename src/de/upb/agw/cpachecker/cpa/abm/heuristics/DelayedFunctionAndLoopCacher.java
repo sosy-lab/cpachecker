@@ -9,9 +9,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.CFA;
 
 import de.upb.agw.cpachecker.cpa.abm.sa.LoopDetector;
-import de.upb.agw.cpachecker.cpa.abm.util.CFANodeCollector;
 
 /**
  * <code>CachedSubtreeHeuristic</code> that creates blocks for each loop- and function-body. 
@@ -57,7 +57,7 @@ public class DelayedFunctionAndLoopCacher extends CachedSubtreeHeuristic {
   protected Set<CFANode> getCachedSubtree(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return removeInitialDeclarations(functionNode, CFANodeCollector.exploreSubgraph(functionNode, functionNode.getExitNode()));
+      return removeInitialDeclarations(functionNode, CFA.exploreSubgraph(functionNode, functionNode.getExitNode()));
     }
     if(pNode.isLoopStart()) {
       LoopDetector detector = new LoopDetector();
@@ -136,12 +136,12 @@ public class DelayedFunctionAndLoopCacher extends CachedSubtreeHeuristic {
       logger.log(Level.WARNING, "Found no loop end for loop " + loopName + " (loop is not considered for memorizing)");      
       return false;
     }
-    pLoopBody.addAll(CFANodeCollector.exploreSubgraph(pLoopHeader, breakNode));
+    pLoopBody.addAll(CFA.exploreSubgraph(pLoopHeader, breakNode));
     return true;
   }
   
   private CFANode findNodeByEdgeLabel(CFANode startNode, String label) {
-    Set<CFANode> nodes = CFANodeCollector.exploreSubgraph(startNode, null);
+    Set<CFANode> nodes = CFA.exploreSubgraph(startNode, null);
     for(CFANode node : nodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
