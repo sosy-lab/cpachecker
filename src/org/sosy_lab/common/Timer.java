@@ -67,7 +67,7 @@ public class Timer {
   
   /** Start the timer. If it was running before, the timer is stopped and then
    * started again. */
-  public void start() {
+  public final void start() {
     if (isRunning()) {
       this.stop();
     }
@@ -82,7 +82,7 @@ public class Timer {
    * Return 0 if timer was not running.
    *
    * @return time of stopped interval */
-  public long stop() {
+  public final long stop() {
     return stop(System.currentTimeMillis());
   }
   
