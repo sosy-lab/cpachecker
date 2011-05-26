@@ -8,7 +8,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -67,23 +66,18 @@ public class CompositeReducer implements Reducer {
   }
 
   @Override
-  public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
+  public Object getHashCodeForElement(AbstractElement pElementKey,
       Precision pPrecisionKey, Block pContext,
       BlockPartitioning pPartitioning) {
     
     List<AbstractElement> elements = ((CompositeElement)pElementKey).getWrappedElements();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
     
-    HashList result = new HashList();
+    List<Object> result = new ArrayList<Object>(elements.size());
     int i = 0;
     for (Pair<AbstractElement, Precision> p : Pair.zipList(elements, precisions)) {
       result.add(wrappedReducers.get(i++).getHashCodeForElement(p.getFirst(), p.getSecond(), pContext, pPartitioning));
     }
     return result;
-  }
-
-  private static class HashList extends ArrayList<AbstractElementHash> implements AbstractElementHash {
-
-    private static final long serialVersionUID = -3483151116945910318L;
   }
 }

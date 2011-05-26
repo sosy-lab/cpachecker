@@ -4,7 +4,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -32,7 +31,7 @@ public class AutomatonReducer implements Reducer {
   }
 
   @Override
-  public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
+  public Object getHashCodeForElement(AbstractElement pElementKey,
       Precision pPrecisionKey, Block pContext,
       BlockPartitioning pPartitioning) {
     // TODO Auto-generated method stub

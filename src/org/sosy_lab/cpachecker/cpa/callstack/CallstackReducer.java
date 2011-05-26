@@ -4,7 +4,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -80,7 +79,7 @@ public class CallstackReducer implements Reducer {
   }
 
   @Override
-  public AbstractElementHash getHashCodeForElement(
+  public Object getHashCodeForElement(
       AbstractElement pPredicateKey, Precision pPrecisionKey,
       Block pContext, BlockPartitioning pPartitioning) {
     

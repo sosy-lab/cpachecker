@@ -13,5 +13,5 @@ public interface Reducer {
   
   boolean isEqual(AbstractElement reducedTargetElement, AbstractElement candidateElement);
 
-  AbstractElementHash getHashCodeForElement(AbstractElement elementKey, Precision precisionKey, Block context, BlockPartitioning partitioning);
+  Object getHashCodeForElement(AbstractElement elementKey, Precision precisionKey, Block context, BlockPartitioning partitioning);
 }

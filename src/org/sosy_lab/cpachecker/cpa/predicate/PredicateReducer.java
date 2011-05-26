@@ -8,7 +8,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
@@ -171,7 +170,7 @@ public class PredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
+  public Object getHashCodeForElement(AbstractElement pElementKey,
       Precision pPrecisionKey, Block pContext, BlockPartitioning pPartitioning) {
     
     PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
@@ -180,7 +179,7 @@ public class PredicateReducer implements Reducer {
     return new PredicateElementHash(element, precision, pContext, pPartitioning);
   }
 
-  private class PredicateElementHash implements AbstractElementHash {
+  private class PredicateElementHash {
     private final Block context;
     private final Region region;
     private final PredicatePrecision precision;

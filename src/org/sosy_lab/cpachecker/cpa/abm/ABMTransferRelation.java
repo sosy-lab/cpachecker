@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -61,12 +60,12 @@ public class ABMTransferRelation implements TransferRelation {
   @Option
   public static boolean NO_CACHING = false; 
    
-  private class ABMAbstractElementHash implements AbstractElementHash {
+  private class AbstractElementHash {
     
-    private final AbstractElementHash wrappedHash;
+    private final Object wrappedHash;
     private final Block context;
     
-    public ABMAbstractElementHash(AbstractElementHash pWrappedHash,
+    public AbstractElementHash(Object pWrappedHash,
         Block pContext) {
       wrappedHash = checkNotNull(pWrappedHash);
       context = checkNotNull(pContext);
@@ -74,10 +73,10 @@ public class ABMTransferRelation implements TransferRelation {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof ABMAbstractElementHash)) {
+      if (!(pObj instanceof AbstractElementHash)) {
         return false;
       }
-      ABMAbstractElementHash other = (ABMAbstractElementHash)pObj;
+      AbstractElementHash other = (AbstractElementHash)pObj;
       equalsTimer.start();
       try {
         return context.equals(other.context)
@@ -100,12 +99,12 @@ public class ABMTransferRelation implements TransferRelation {
   
   private class Cache<V> {
     
-    private final Map<ABMAbstractElementHash, V> cache = new HashMap<ABMAbstractElementHash, V>();
+    private final Map<AbstractElementHash, V> cache = new HashMap<AbstractElementHash, V>();
 
-    private ABMAbstractElementHash getHashCode(AbstractElement predicateKey,
+    private AbstractElementHash getHashCode(AbstractElement predicateKey,
         Precision precisionKey, Block context) {
       
-      return new ABMAbstractElementHash(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey, context, partitioning), context);
+      return new AbstractElementHash(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey, context, partitioning), context);
     }
     
     private V put(AbstractElement predicateKey, Precision precisionKey, Block context, V item) {
