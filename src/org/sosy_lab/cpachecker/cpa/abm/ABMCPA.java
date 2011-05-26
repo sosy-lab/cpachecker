@@ -2,6 +2,8 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -19,6 +21,8 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 
@@ -28,7 +32,7 @@ import de.upb.agw.cpachecker.cpa.abm.heuristics.FunctionAndLoopCacher;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
 
 @Options(prefix="cpa.abm")
-public class ABMCPA extends AbstractSingleWrapperCPA {
+public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ABMCPA.class);
@@ -39,6 +43,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
   private final LogManager logger;
   private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
+  private final Statistics stats;
   
   @Option
   private boolean delayDeclarations = false;
@@ -60,6 +65,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
     transfer = new ABMTransferRelation(config, logger, this);
     
     ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getPrecisionAdjustment().setTransferRelation(transfer);
+    stats = new ABMCPAStatistics(this);
   }
   
   @Override
@@ -117,5 +123,11 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
   public CachedSubtreeManager getCachedSubtreeManager() {
     checkState(manager != null);
     return manager;
+  }
+  
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+    super.collectStatistics(pStatsCollection);
   }
 }

@@ -18,7 +18,7 @@ import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
  *
  */
 public class ARTElementSearcher {
-  public static Timer searchForARTElementTimer = new Timer();
+  final static Timer searchForARTElementTimer = new Timer();
   
   public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, ARTElement targetElement, Reducer reducer, CachedSubtreeManager manager) {
     CFANode targetNode = targetElement.retrieveLocationElement().getLocationNode();

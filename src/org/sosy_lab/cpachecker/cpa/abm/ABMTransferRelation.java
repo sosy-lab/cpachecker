@@ -149,12 +149,11 @@ public class ABMTransferRelation implements TransferRelation {
   int partialCacheHits = 0;
   int fullCacheHits = 0;
   int maxRecursiveDepth = 0;
-  Timer hashingTimer = new Timer();
-  Timer equalsTimer = new Timer();
-  Timer recomputeARTTimer = new Timer();
-  Timer returnElementsSearchTimer = new Timer();
-  Timer removeCachedSubtreeTimer = new Timer();
-  Timer removeSubtreeTimer = new Timer();
+  final Timer hashingTimer = new Timer();
+  final Timer equalsTimer = new Timer();
+  final Timer recomputeARTTimer = new Timer();
+  final Timer removeCachedSubtreeTimer = new Timer();
+  final Timer removeSubtreeTimer = new Timer();
   
   public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -292,12 +291,10 @@ public class ABMTransferRelation implements TransferRelation {
         return result;        
       }
       
-      returnElementsSearchTimer.start();
       ArrayList<AbstractElement> returningNodes = new ArrayList<AbstractElement>();
       for(CFANode returnNode : currentCachedSubtree.getReturnNodes()) {
         Iterables.addAll(returningNodes, AbstractElements.filterLocation(reached, returnNode));
       }
-      returnElementsSearchTimer.stop();
       subgraphReturnCache.put(reducedInitialElement, initialPrecision, currentCachedSubtree, returningNodes);
       
       return returningNodes;
