@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 
-public class PredicateReducer implements Reducer {
+public class ABMPredicateReducer implements Reducer {
 
   public static Timer reduceTimer = new Timer();
   public static Timer expandTimer = new Timer();
@@ -32,7 +32,7 @@ public class PredicateReducer implements Reducer {
   private final PredicateRefinementManager<?, ?> pmgr;
   private final RelevantPredicatesComputer relevantComputer;
   
-  public PredicateReducer(ABMPredicateCPA cpa) {
+  public ABMPredicateReducer(ABMPredicateCPA cpa) {
     this.rmgr = cpa.getRegionManager();
     this.fmgr = cpa.getFormulaManager();
     this.pmgr = cpa.getPredicateManager();

@@ -27,7 +27,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
   
   private final RelevantPredicatesComputer relevantPredicatesComputer;
-  private final PredicateReducer reducer;
+  private final ABMPredicateReducer reducer;
   private final ABMPredicateTransferRelation transfer;
   private final ABMPredicatePrecisionAdjustment prec;
 
@@ -45,7 +45,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       relevantPredicatesComputer = new OccurrenceComputer(); 
     }
     
-    reducer = new PredicateReducer(this);
+    reducer = new ABMPredicateReducer(this);
     transfer = new ABMPredicateTransferRelation(this);
     prec = new ABMPredicatePrecisionAdjustment(this);
   }
