@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -48,7 +49,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
 	private final TransferRelation transferRelation = new LocationTransferRelation(elementFactory);
 	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
-	private final Reducer reducer = new LocationReducer();
 
 	public static CPAFactory factory() {
 	  return new LocationCPAFactory(false);
@@ -81,7 +81,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return NoOpReducer.getInstance();
   }
 
   @Override

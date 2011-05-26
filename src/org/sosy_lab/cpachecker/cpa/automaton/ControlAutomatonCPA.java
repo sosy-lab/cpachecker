@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -88,7 +89,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
-  private final Reducer reducer = new AutomatonReducer();
 
   protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
@@ -164,7 +164,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return NoOpReducer.getInstance();
   }
   
   public AutomatonState getBottomState() {
