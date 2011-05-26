@@ -49,18 +49,16 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CountedTimer;
-
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
 
-    private Timer totalTimer         = new CountedTimer();
-    private Timer chooseTimer        = new CountedTimer();
-    private Timer precisionTimer     = new CountedTimer();
-    private Timer transferTimer      = new CountedTimer();
-    private Timer mergeTimer         = new CountedTimer();
-    private Timer stopTimer          = new CountedTimer();
+    private Timer totalTimer         = new Timer();
+    private Timer chooseTimer        = new Timer();
+    private Timer precisionTimer     = new Timer();
+    private Timer transferTimer      = new Timer();
+    private Timer mergeTimer         = new Timer();
+    private Timer stopTimer          = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
