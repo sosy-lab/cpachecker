@@ -101,9 +101,7 @@ public class CachedSubtreeManagerBuilder {
   public void addCachedSubtree(Set<CFANode> nodes) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
     Set<CFANode> callNodes = collectCallNodes(nodes);
-    assert callNodes.size() == 1;
     Set<CFANode> returnNodes = collectReturnNodes(nodes);    
-    assert returnNodes.size() == 1;
     Set<CFANode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
