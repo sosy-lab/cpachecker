@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -21,7 +22,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
-import de.upb.agw.cpachecker.cpa.abm.util.PrecisionUtils;
 import de.upb.agw.cpachecker.cpa.abm.util.RelevantPredicatesComputer;
 
 public class PredicateReducer implements Reducer {
@@ -202,12 +202,64 @@ public class PredicateReducer implements Reducer {
       if(!region.equals(hOther.region)) {
         return false;
       }        
-      return PrecisionUtils.relevantComparePrecisions(precision, context, hOther.precision, hOther.context, relevantComputer, csmgr);
+      assert context.equals(hOther.context);
+      return relevantComparePrecisions(hOther.precision);
     }
+    
+    private boolean relevantComparePrecisions(PredicatePrecision otherPrecision) {
+      
+      Set<CFANode> functionNodes = context.getNodes();   
+      
+      Collection<AbstractionPredicate> globalPreds1 = relevantComputer.getRelevantPredicates(context, precision.getGlobalPredicates());
+      Collection<AbstractionPredicate> globalPreds2 = relevantComputer.getRelevantPredicates(context, otherPrecision.getGlobalPredicates());
+      if(!globalPreds1.equals(globalPreds2)) {
+        return false;
+      }
+      
+      for(CFANode node : functionNodes) {
+        if(precision.getPredicateMap().keySet().contains(node) || otherPrecision.getPredicateMap().keySet().contains(node)) {
+          Collection<AbstractionPredicate> set1 = precision.getPredicates(node);
+          Collection<AbstractionPredicate> set2 = otherPrecision.getPredicates(node);
+          if(csmgr.isCallNode(node) || csmgr.isReturnNode(node)) {
+            set1 = relevantComputer.getRelevantPredicates(context, precision.getPredicates(node));
+            set2 = relevantComputer.getRelevantPredicates(context, otherPrecision.getPredicates(node)); 
+          } 
+          
+          if(!set1.equals(set2)) {
+            return false;
+          }
+        }          
+      }
+      return true;
+     }
     
     @Override
     public int hashCode() {
-      return region.hashCode() * 17 + PrecisionUtils.relevantComputeHashCode(precision, context, relevantComputer, csmgr);
+      return region.hashCode() * 17 + relevantComputeHashCode();
+    }
+    
+    private int relevantComputeHashCode() {   
+      int h = 1;
+      Set<CFANode> functionNodes = context.getNodes();
+      
+      Set<AbstractionPredicate> globalPredicates = precision.getGlobalPredicates();
+      globalPredicates = (Set<AbstractionPredicate>) relevantComputer.getRelevantPredicates(context, globalPredicates);
+      h += globalPredicates.hashCode();
+      
+      for(CFANode node : precision.getPredicateMap().keySet()) {
+        if(functionNodes.contains(node)) {
+          Collection<AbstractionPredicate> set = precision.getPredicates(node);
+          if(csmgr.isCallNode(node) || csmgr.isReturnNode(node)) {
+            set = relevantComputer.getRelevantPredicates(context, set);
+          }
+          
+          for(AbstractionPredicate predicate : set) {
+            if(!globalPredicates.contains(predicate))
+              h += set.hashCode();
+          }
+        }
+      }
+      return h;
     }
     
     @Override
