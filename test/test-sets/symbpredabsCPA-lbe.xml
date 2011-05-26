@@ -10,11 +10,9 @@
       <includesfile>test/test-sets/ssh.set</includesfile>
       <includesfile>test/test-sets/systemc.set</includesfile>
     </sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
-      <option name="-heap">1200m</option>
-    </options>
+    <option name="-setprop">output.disable=true</option>
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
+    <option name="-heap">1200m</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
