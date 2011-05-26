@@ -34,8 +34,9 @@ public class AutomatonReducer implements Reducer {
   public Object getHashCodeForElement(AbstractElement pElementKey,
       Precision pPrecisionKey, Block pContext,
       BlockPartitioning pPartitioning) {
-    // TODO Auto-generated method stub
-    return null;
+
+    assert pElementKey instanceof AutomatonState;
+    return pElementKey;
   }
 
 }

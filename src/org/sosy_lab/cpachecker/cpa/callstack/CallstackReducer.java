@@ -62,6 +62,11 @@ public class CallstackReducer implements Reducer {
     CallstackElement reducedTargetElement = (CallstackElement)pReducedTargetElement;
     CallstackElement candidateElement = (CallstackElement)pCandidateElement;
     
+    return isEqual(reducedTargetElement, candidateElement);
+  }
+
+  private static boolean isEqual(CallstackElement reducedTargetElement,
+      CallstackElement candidateElement) {
     if (reducedTargetElement.getDepth() != candidateElement.getDepth()) {
       return false;
     }
@@ -80,11 +85,31 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public Object getHashCodeForElement(
-      AbstractElement pPredicateKey, Precision pPrecisionKey,
+      AbstractElement pElementKey, Precision pPrecisionKey,
       Block pContext, BlockPartitioning pPartitioning) {
     
-    // TODO Auto-generated method stub
-    return null;
+    return new CallstackElementWithEquals((CallstackElement)pElementKey);
   }
 
+  private static class CallstackElementWithEquals {
+    private final CallstackElement element;
+    
+    public CallstackElementWithEquals(CallstackElement pElement) {
+      element = pElement;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof CallstackElementWithEquals)) {
+        return false;
+      }
+
+      return isEqual(element, ((CallstackElementWithEquals)other).element);
+    }
+    
+    @Override
+    public int hashCode() {
+      return (element.getDepth() * 17 + element.getCurrentFunction().hashCode()) * 31 + element.getCallNode().hashCode();
+    }
+  }
 }

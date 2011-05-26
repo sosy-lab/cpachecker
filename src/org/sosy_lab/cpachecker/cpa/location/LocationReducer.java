@@ -40,8 +40,7 @@ public class LocationReducer implements Reducer {
   @Override
   public Object getHashCodeForElement(AbstractElement pElementKey,
       Precision pPrecisionKey, Block pContext, BlockPartitioning pPartitioning) {
-    // TODO Auto-generated method stub
-    return null;
+    return ((LocationElement)pElementKey).getLocationNode();
   }
 
 }
