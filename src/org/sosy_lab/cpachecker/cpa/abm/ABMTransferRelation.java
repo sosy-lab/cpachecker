@@ -19,7 +19,10 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
@@ -51,10 +54,11 @@ import com.google.common.collect.Iterables;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
 import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
 
+@Options(prefix="cpa.abm")
 public class ABMTransferRelation implements TransferRelation {
 
   @Option
-  public static boolean NO_CACHING = true; //for evaluation purposes 
+  public static boolean NO_CACHING = false; 
    
   private class Cache<V> {
     
@@ -112,7 +116,8 @@ public class ABMTransferRelation implements TransferRelation {
   Timer removeCachedSubtreeTimer = new Timer();
   Timer removeSubtreeTimer = new Timer();
 
-  public ABMTransferRelation(LogManager pLogger, ABMCPA abmCpa) {
+  public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa) throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
     algorithm = new CPAAlgorithm(abmCpa, logger);
     wrappedCPA = (ARTCPA)abmCpa.getWrappedCpa();

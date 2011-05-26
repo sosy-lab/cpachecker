@@ -45,7 +45,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
     config.inject(this);
 
     logger = pLogger;
-    transfer = new ABMTransferRelation(logger, this);
+    transfer = new ABMTransferRelation(config, logger, this);
     
     ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getPrecisionAdjustment().setTransferRelation(transfer);
   }
