@@ -6,12 +6,11 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
@@ -80,21 +79,15 @@ public class ReferencedVariablesCollector {
       break;
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
-      if(statementEdge.getStatement() instanceof IASTExpressionAssignmentStatement) {
-        IASTExpressionAssignmentStatement assignment = (IASTExpressionAssignmentStatement) statementEdge.getStatement();
+      if (statementEdge.getStatement() instanceof IASTAssignment) {
+        IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
         String lhsVarName = assignment.getLeftHandSide().getRawSignature();
         ReferencedVariable lhsVar = scoped(new ReferencedVariable(lhsVarName, false, true, null), currentFunction);
         pCollectedVars.add(lhsVar);
       
         collectVars(currentFunction, assignment.getRightHandSide(), lhsVar, pCollectedVars);
-      }
-      else {
-        IASTFunctionCallAssignmentStatement assignment = (IASTFunctionCallAssignmentStatement) statementEdge.getStatement();
-        String lhsVarName = assignment.getLeftHandSide().getRawSignature();
-        ReferencedVariable lhsVar = scoped(new ReferencedVariable(lhsVarName, false, true, null), currentFunction);
-        pCollectedVars.add(lhsVar);
-      
-        collectVars(currentFunction, assignment.getRightHandSide(), lhsVar, pCollectedVars);
+      } else {
+        // other statements are considered side-effect free, ignore variable occurrences in them
       }
       break;    
     }
