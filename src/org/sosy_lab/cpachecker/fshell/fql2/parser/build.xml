@@ -9,7 +9,7 @@
 
   <taskdef name="jflex"
            classname="JFlex.anttask.JFlexTask"
-  	       classpath="${lib}/JFlex.jar"
+	   classpath="${lib}/build-only/JFlex.jar"
   />
   <taskdef name="cup"
            classname="java_cup.anttask.CUPTask"

@@ -444,9 +444,9 @@ public class OptionCollector {
     if (directory.exists()) {
       for (final File file : directory.listFiles()) {
         final String fileName = file.getName();
-        if (file.isDirectory() && !fileName.startsWith(".")) {
-          assert !fileName.contains(".") : fileName;
-
+        
+        // recursive call for folders, exclude svn-folders
+        if (file.isDirectory() && !fileName.startsWith(".svn")) {
           String newPackage = packageName.isEmpty() ? fileName
                                                     : (packageName + "." + fileName);
           collectClasses(file, newPackage, classes);
@@ -459,10 +459,10 @@ public class OptionCollector {
             && !fileName.contains("OctWrapper") && !fileName.contains("Test")
             && !fileName.contains("test")) {
 
+          final String nameOfClass = packageName + '.'
+                + fileName.substring(0, fileName.length() - 6);
           try {
-            final Class<?> foundClass =
-                Class.forName(packageName + '.'
-                    + fileName.substring(0, fileName.length() - 6));
+            final Class<?> foundClass = Class.forName(nameOfClass);
 
             // collect only real classes
             if (!Modifier.isAbstract(foundClass.getModifiers())
@@ -470,9 +470,20 @@ public class OptionCollector {
               classes.add(foundClass);
             }
           } catch (ClassNotFoundException e) {
-            /* ignore, there is no class available for this file */
+            // ignore, there is no class available for this file
+          } catch (NoClassDefFoundError e) {
+            // this error is thrown, if there is more than one classpath 
+            // and one of them did not map the package-strukture,
+            // ignore it, another classpath should be correct
+
+            //System.out.println("no classDef found for: " + nameOfClass);
           }
+        } 
+        /* 
+        else { // some files are no classes, ignore them
+          System.out.println("unhandled file/folder: " + fileName);
         }
+        */
       }
     }
   }

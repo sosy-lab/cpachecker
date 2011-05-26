@@ -440,6 +440,10 @@ class OutputHandler:
         for (sourcefile, _) in self.test.sourcefiles:
             self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
 
+        # write testname to terminal
+        print "\nrunning test" + \
+            (" '" + test.name + "'" if test.name is not None else "")
+
         # store testname and options in XML, 
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
