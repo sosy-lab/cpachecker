@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayDeque;
@@ -60,13 +61,51 @@ public class ABMTransferRelation implements TransferRelation {
   @Option
   public static boolean NO_CACHING = false; 
    
+  private class ABMAbstractElementHash implements AbstractElementHash {
+    
+    private final AbstractElementHash wrappedHash;
+    private final CachedSubtree context;
+    
+    public ABMAbstractElementHash(AbstractElementHash pWrappedHash,
+        CachedSubtree pContext) {
+      wrappedHash = checkNotNull(pWrappedHash);
+      context = checkNotNull(pContext);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (!(pObj instanceof ABMAbstractElementHash)) {
+        return false;
+      }
+      ABMAbstractElementHash other = (ABMAbstractElementHash)pObj;
+      equalsTimer.start();
+      try {
+        return context.equals(other.context)
+            && wrappedHash.equals(other.wrappedHash);
+      } finally {
+        equalsTimer.stop();
+      }
+    }
+    
+    @Override
+    public int hashCode() {
+      hashingTimer.start();
+      try {
+        return wrappedHash.hashCode() * 17 + context.hashCode();
+      } finally {
+        hashingTimer.stop();
+      }
+    }
+  }
+  
   private class Cache<V> {
     
-    private final Map<Pair<AbstractElementHash, CachedSubtree>, V> cache = new HashMap<Pair<AbstractElementHash, CachedSubtree>, V>();
+    private final Map<ABMAbstractElementHash, V> cache = new HashMap<ABMAbstractElementHash, V>();
 
-    private Pair<AbstractElementHash, CachedSubtree> getHashCode(AbstractElement predicateKey,
+    private ABMAbstractElementHash getHashCode(AbstractElement predicateKey,
         Precision precisionKey, CachedSubtree context) {
-      return Pair.of(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey, context, csmgr), context);
+      
+      return new ABMAbstractElementHash(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey, context, csmgr), context);
     }
     
     private V put(AbstractElement predicateKey, Precision precisionKey, CachedSubtree context, V item) {
