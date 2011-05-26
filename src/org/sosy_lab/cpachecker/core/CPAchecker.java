@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -58,8 +56,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
-
-import de.upb.agw.cpachecker.cpa.abm.predicate.ABMPredicateCPA;
 
 public class CPAchecker {
 
@@ -170,8 +166,6 @@ public class CPAchecker {
 
       Algorithm algorithm = createAlgorithm(cpa, stats);
       
-      injectAlgorithmToCpa(cpa, algorithm);
-
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
@@ -329,23 +323,5 @@ public class CPAchecker {
     ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
     return reached;
-  }
-  
-  /**
-   * TODO: remove this, if possible
-   * @param pCpa
-   * @param pAlgorithm
-   */
-  private void injectAlgorithmToCpa(ConfigurableProgramAnalysis pCpa, Algorithm pAlgorithm) {
-    if(!(pCpa instanceof ARTCPA))
-      return;
-    ARTCPA cpa = (ARTCPA)pCpa;
-    if(!(cpa.getWrappedCpa() instanceof CompositeCPA))
-      return;
-    CompositeCPA compCpa = (CompositeCPA)cpa.getWrappedCpa();
-    ABMPredicateCPA funCpa = compCpa.retrieveWrappedCpa(ABMPredicateCPA.class);
-    if(funCpa == null)
-      return;
-    funCpa.setAlgorithm(pAlgorithm);
   }
 }
