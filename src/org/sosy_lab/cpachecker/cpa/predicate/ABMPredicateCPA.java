@@ -51,6 +51,11 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
   
   @Override
+  protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
+    return new ABMPredicateCPAStatistics(this);
+  }
+  
+  @Override
   protected Configuration getConfiguration() {
     return super.getConfiguration();
   }

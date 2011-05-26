@@ -55,10 +55,10 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   private final RelevantPredicatesComputer relevantPredicatesComputer;
   
   //Stats  
-  Timer removeSubtreeTimer = new Timer();
-  Timer computeSubtreeTimer = new Timer();
-  Timer ssaRenamingTimer = new Timer();
-  Timer computeCounterexampleTimer = new Timer();
+  final Timer computePathTimer = new Timer();
+  final Timer computeSubtreeTimer = new Timer();
+  final Timer ssaRenamingTimer = new Timer();
+  final Timer computeCounterexampleTimer = new Timer();
   
   public ABMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -130,23 +130,33 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   
   @Override
   protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException {
-    computeSubtreeTimer.start();
     assert pLastElement.isTarget();
-    ARTElement subgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
-    computeSubtreeTimer.stop();
-    if(subgraph == null) {
-      return null;
-    }
-    ssaRenamingTimer.start();
-    subgraph = computeSSARenamedSubgraph(subgraph);
-    ssaRenamingTimer.stop();
-    
-    computeCounterexampleTimer.start();
+
+    computePathTimer.start();
     try {
-      return computeCounterexample(subgraph);
-    }
-    finally {
-      computeCounterexampleTimer.stop();
+      ARTElement subgraph;
+      computeSubtreeTimer.start();
+      try {
+        subgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
+        if (subgraph == null) {
+          return null;
+        }
+      } finally {
+        computeSubtreeTimer.stop();
+      }
+      
+      ssaRenamingTimer.start();
+      subgraph = computeSSARenamedSubgraph(subgraph);
+      ssaRenamingTimer.stop();
+      
+      computeCounterexampleTimer.start();
+      try {
+        return computeCounterexample(subgraph);
+      } finally {
+        computeCounterexampleTimer.stop();
+      }
+    } finally {
+      computePathTimer.stop();
     }
   }
   

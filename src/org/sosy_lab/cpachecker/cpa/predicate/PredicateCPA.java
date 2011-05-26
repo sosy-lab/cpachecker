@@ -184,7 +184,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = new PredicateCPAStatistics(this, domain);
+    stats = createStatistics();
+  }
+  
+  protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
+    return new PredicateCPAStatistics(this);
   }
 
   @Override

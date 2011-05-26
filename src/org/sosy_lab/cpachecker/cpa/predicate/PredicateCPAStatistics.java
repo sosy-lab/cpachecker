@@ -61,9 +61,9 @@ class PredicateCPAStatistics implements Statistics {
     private final PredicateCPA cpa;
     private PredicateRefiner refiner = null;
 
-    public PredicateCPAStatistics(PredicateCPA cpa, PredicateAbstractDomain pDomain) throws InvalidConfigurationException {
+    public PredicateCPAStatistics(PredicateCPA cpa) throws InvalidConfigurationException {
       this.cpa = cpa;
-      cpa.getConfiguration().inject(this);
+      cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
     
     void addRefiner(PredicateRefiner ref) {
