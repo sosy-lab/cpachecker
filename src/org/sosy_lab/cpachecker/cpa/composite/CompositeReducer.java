@@ -10,8 +10,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class CompositeReducer implements Reducer {
 
@@ -23,7 +23,7 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, CachedSubtree pContext,
+      AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
     
     List<AbstractElement> result = new ArrayList<AbstractElement>();
@@ -36,7 +36,7 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, CachedSubtree pRootContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
 
     List<AbstractElement> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
@@ -68,8 +68,8 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, CachedSubtree pContext,
-      CachedSubtreeManager pCsmgr) {
+      Precision pPrecisionKey, Block pContext,
+      BlockPartitioning pPartitioning) {
     
     List<AbstractElement> elements = ((CompositeElement)pElementKey).getWrappedElements();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
@@ -77,7 +77,7 @@ public class CompositeReducer implements Reducer {
     HashList result = new HashList();
     int i = 0;
     for (Pair<AbstractElement, Precision> p : Pair.zipList(elements, precisions)) {
-      result.add(wrappedReducers.get(i++).getHashCodeForElement(p.getFirst(), p.getSecond(), pContext, pCsmgr));
+      result.add(wrappedReducers.get(i++).getHashCodeForElement(p.getFirst(), p.getSecond(), pContext, pPartitioning));
     }
     return result;
   }

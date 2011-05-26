@@ -34,10 +34,10 @@ public class ABMPredicatePrecisionAdjustment extends PredicatePrecisionAdjustmen
   }
   
   private Collection<AbstractionPredicate> getReducedPredicateSet(Collection<AbstractionPredicate> pPreds, CFANode node) {
-    if(!transfer.getCachedSubtreeManager().isCallNode(node) && !transfer.getCachedSubtreeManager().isReturnNode(node)) {
+    if(!transfer.getBlockPartitioning().isCallNode(node) && !transfer.getBlockPartitioning().isReturnNode(node)) {
       return pPreds;
     }
-    return relevantPredicatesComputer.getRelevantPredicates(transfer.getCurrentCachedSubtree(), pPreds);   
+    return relevantPredicatesComputer.getRelevantPredicates(transfer.getCurrentBlock(), pPreds);   
   }
   
   @Override

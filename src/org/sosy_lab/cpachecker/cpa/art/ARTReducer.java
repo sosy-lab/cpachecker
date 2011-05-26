@@ -6,8 +6,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class ARTReducer implements Reducer {
 
@@ -19,7 +19,7 @@ public class ARTReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, CachedSubtree pContext,
+      AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
     
     return new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
@@ -27,7 +27,7 @@ public class ARTReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, CachedSubtree pRootContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
 
     return new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pRootContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
@@ -42,10 +42,10 @@ public class ARTReducer implements Reducer {
 
   @Override
   public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, CachedSubtree pContext,
-      CachedSubtreeManager pCsmgr) {
+      Precision pPrecisionKey, Block pContext,
+      BlockPartitioning pPartitioning) {
     
-    return wrappedReducer.getHashCodeForElement(((ARTElement)pElementKey).getWrappedElement(), pPrecisionKey, pContext, pCsmgr);
+    return wrappedReducer.getHashCodeForElement(((ARTElement)pElementKey).getWrappedElement(), pPrecisionKey, pContext, pPartitioning);
   }
 
 }

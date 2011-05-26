@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
  * @author dwonisch
  *
  */
-public class CachedSubtree {
+public class Block {
   
   private final ImmutableSet<ReferencedVariable> referencedVariables;
   private final ImmutableSet<CFANode> callNodes;
@@ -20,7 +20,7 @@ public class CachedSubtree {
   private final ImmutableSet<CFANode> uniqueNodes;
   private final ImmutableSet<CFANode> nodes;  
   
-  public CachedSubtree(Set<ReferencedVariable> pReferencedVariables,
+  public Block(Set<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes, Set<CFANode> pUniqueNodeSet, Set<CFANode> allNodes) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
@@ -65,6 +65,6 @@ public class CachedSubtree {
   
   @Override
   public String toString() {
-    return "CachedSubtree (CallNodes: " + callNodes + ")";
+    return "Block (CallNodes: " + callNodes + ")";
   }
 }

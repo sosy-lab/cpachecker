@@ -17,24 +17,24 @@ import org.sosy_lab.cpachecker.util.CFA;
 import de.upb.agw.cpachecker.cpa.abm.sa.ReferencedVariablesCollector;
 
 /**
- * Helper class can build a <code>CachedSubtreeManager</code> from a partition of a program's CFA into blocks.
+ * Helper class can build a <code>BlockPartitioning</code> from a partition of a program's CFA into blocks.
  * @author dwonisch
  *
  */
-public class CachedSubtreeManagerBuilder {
+public class BlockPartitioningBuilder {
   private ReferencedVariablesCollector referenceCollector = null;
   
   private Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
   private Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
   private Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
   private Map<CFANode, Set<CFANode>> innerFunctionCallsMap = new HashMap<CFANode, Set<CFANode>>();
-  private Map<CFANode, Set<CFANode>> cachedSubtreeNodesMap = new HashMap<CFANode, Set<CFANode>>();
+  private Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
   
-  public CachedSubtreeManagerBuilder(Set<CFANode> mainFunctionBody) {        
+  public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {        
     referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);    
   }
   
-  public CachedSubtreeManager build() {
+  public BlockPartitioning build() {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
     boolean changed = true;   
     outer: while(changed) {
@@ -42,14 +42,14 @@ public class CachedSubtreeManagerBuilder {
       for(CFANode node : referencedVariablesMap.keySet()) {
         for(CFANode calledFun : innerFunctionCallsMap.get(node)) { 
           Set<ReferencedVariable> functionVars = referencedVariablesMap.get(calledFun);
-          Set<CFANode> functionBody = cachedSubtreeNodesMap.get(calledFun);
+          Set<CFANode> functionBody = blockNodesMap.get(calledFun);
           if(functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
             //compute it only the fly
             functionBody = CFA.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
             functionVars = collectReferencedVariables(functionBody);
             //and save it
-            cachedSubtreeNodesMap.put(calledFun, functionBody);
+            blockNodesMap.put(calledFun, functionBody);
             referencedVariablesMap.put(calledFun, functionVars); 
             innerFunctionCallsMap.put(calledFun, collectInnerFunctionCalls(functionBody));            
             changed = true;
@@ -59,17 +59,17 @@ public class CachedSubtreeManagerBuilder {
           if(referencedVariablesMap.get(node).addAll(functionVars)) {
             changed = true;
           } 
-          if(cachedSubtreeNodesMap.get(node).addAll(functionBody)) {
+          if(blockNodesMap.get(node).addAll(functionBody)) {
             changed = true;
           } 
         }
       }
     }
     
-  //copy cached subtree nodes
+    //copy block nodes
     Map<CFANode, Set<CFANode>> uniqueNodesMap = new HashMap<CFANode, Set<CFANode>>();
-    for(CFANode key : cachedSubtreeNodesMap.keySet()) {
-      uniqueNodesMap.put(key, new HashSet<CFANode>(cachedSubtreeNodesMap.get(key)));
+    for(CFANode key : blockNodesMap.keySet()) {
+      uniqueNodesMap.put(key, new HashSet<CFANode>(blockNodesMap.get(key)));
     }
     
     //fix unique nodes set by removing interleavings
@@ -87,19 +87,19 @@ public class CachedSubtreeManagerBuilder {
     }  
     
     
-    //now we can create the CachedSubtrees for the CachedSubtreeManager
-    Collection<CachedSubtree> cachedSubtrees = new ArrayList<CachedSubtree>(referencedVariablesMap.keySet().size());
+    //now we can create the Blocks   for the BlockPartitioning
+    Collection<Block> blocks = new ArrayList<Block>(referencedVariablesMap.keySet().size());
     for(CFANode key : returnNodesMap.keySet()) {
-      cachedSubtrees.add(new CachedSubtree(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), uniqueNodesMap.get(key), cachedSubtreeNodesMap.get(key)));
+      blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), uniqueNodesMap.get(key), blockNodesMap.get(key)));
     }
-    return new CachedSubtreeManager(cachedSubtrees);
+    return new BlockPartitioning(blocks);
   }
   
   /**
-   * @param nodes Nodes from which CachedSubtree should be created; if the set of nodes contains inner function calls, the called function body should NOT be included
+   * @param nodes Nodes from which Block should be created; if the set of nodes contains inner function calls, the called function body should NOT be included
    */
   
-  public void addCachedSubtree(Set<CFANode> nodes) {
+  public void addBlock(Set<CFANode> nodes) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
     Set<CFANode> callNodes = collectCallNodes(nodes);
     Set<CFANode> returnNodes = collectReturnNodes(nodes);    
@@ -117,7 +117,7 @@ public class CachedSubtreeManagerBuilder {
     callNodesMap.put(registerNode, callNodes);
     returnNodesMap.put(registerNode, returnNodes);
     innerFunctionCallsMap.put(registerNode, innerFunctionCalls);   
-    cachedSubtreeNodesMap.put(registerNode, nodes);
+    blockNodesMap.put(registerNode, nodes);
   }
  
   private Set<CFANode> collectInnerFunctionCalls(Set<CFANode> pNodes) {

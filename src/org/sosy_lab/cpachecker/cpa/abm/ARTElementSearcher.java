@@ -9,8 +9,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 /**
  * Helper class to search for <code>ARTElement</code>s in a <code>ReachedSet</code> that have the same abstraction as the given <code>ARTElement</code> after reduction to the relevant predicates.
@@ -20,7 +20,7 @@ import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
 public class ARTElementSearcher {
   final static Timer searchForARTElementTimer = new Timer();
   
-  public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, ARTElement targetElement, Reducer reducer, CachedSubtreeManager manager) {
+  public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, ARTElement targetElement, Reducer reducer, BlockPartitioning manager) {
     CFANode targetNode = targetElement.retrieveLocationElement().getLocationNode();
     searchForARTElementTimer.start();
     try {
@@ -31,7 +31,7 @@ public class ARTElementSearcher {
         return result;
       }
       CFANode callNode = ((ARTElement)reached.getFirstElement()).retrieveLocationElement().getLocationNode();
-      CachedSubtree context = manager.getCachedSubtreeForCallNode(callNode);
+      Block context = manager.getBlockForCallNode(callNode);
       AbstractElement reducedTarget = reducer.getVariableReducedElement(targetElement, context, callNode);    
             
       Iterable<AbstractElement> localReached = filterLocation(reached, targetNode);

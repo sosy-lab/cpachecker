@@ -17,23 +17,23 @@ import com.google.common.collect.ImmutableSet;
  * @author dwonisch
  *
  */
-public class CachedSubtreeManager {
-  private final CachedSubtree mainCachedSubtree; 
-  private final Map<CFANode, CachedSubtree> callNodeToSubtree;
-  private final Map<CFANode, CachedSubtree> nodeToSubtree;
+public class BlockPartitioning {
+  private final Block mainBlock; 
+  private final Map<CFANode, Block> callNodeToBlock;
+  private final Map<CFANode, Block> nodeToBlock;
   private final Set<CFANode> returnNodes;
   
-  public CachedSubtreeManager(Collection<CachedSubtree> subtrees) {
-    CachedSubtree mainCachedSubtree = null;
-    Map<CFANode, CachedSubtree> callNodeToSubtree = new HashMap<CFANode, CachedSubtree>();
-    Map<CFANode, CachedSubtree> nodeToSubtree = new HashMap<CFANode, CachedSubtree>(); 
+  public BlockPartitioning(Collection<Block> subtrees) {
+    Block mainBlock = null;
+    Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
+    Map<CFANode, Block> nodeToSubtree = new HashMap<CFANode, Block>(); 
     Set<CFANode> returnNodes = new HashSet<CFANode>();
     
-    for(CachedSubtree subtree : subtrees) {
+    for(Block subtree : subtrees) {
       for(CFANode callNode : subtree.getCallNodes()) {
         if(callNode instanceof CFAFunctionDefinitionNode && callNode.getFunctionName().equalsIgnoreCase("main")) {
-          assert mainCachedSubtree == null;
-          mainCachedSubtree = subtree;
+          assert mainBlock == null;
+          mainBlock = subtree;
         }
         callNodeToSubtree.put(callNode, subtree);
       }
@@ -44,37 +44,37 @@ public class CachedSubtreeManager {
       returnNodes.addAll(subtree.getReturnNodes());      
     }
     
-    assert mainCachedSubtree != null;
-    this.mainCachedSubtree = mainCachedSubtree;
+    assert mainBlock != null;
+    this.mainBlock = mainBlock;
     
-    this.callNodeToSubtree = ImmutableMap.copyOf(callNodeToSubtree);
-    this.nodeToSubtree = ImmutableMap.copyOf(nodeToSubtree);
+    this.callNodeToBlock = ImmutableMap.copyOf(callNodeToSubtree);
+    this.nodeToBlock = ImmutableMap.copyOf(nodeToSubtree);
     this.returnNodes = ImmutableSet.copyOf(returnNodes);
   }
   
   /**
    * @param node
-   * @return true, if there is a <code>CachedSubtree</code> such that <code>node</node> is a callnode of the subtree.
+   * @return true, if there is a <code>Block</code> such that <code>node</node> is a callnode of the subtree.
    */
   public boolean isCallNode(CFANode node) {
-    return callNodeToSubtree.containsKey(node);
+    return callNodeToBlock.containsKey(node);
   }
   
   /**
    * Requires <code>isCallNode(node)</code> to be <code>true</code>.
    * @param node call node of some cached subtree
-   * @return CachedSubtree for given call node
+   * @return Block for given call node
    */
-  public CachedSubtree getCachedSubtreeForCallNode(CFANode node) {
-    return callNodeToSubtree.get(node);
+  public Block getBlockForCallNode(CFANode node) {
+    return callNodeToBlock.get(node);
   }
   
-  public CachedSubtree getCachedSubtreeForNode(CFANode node) {
-    return nodeToSubtree.get(node);
+  public Block getBlockForNode(CFANode node) {
+    return nodeToBlock.get(node);
   }
 
-  public CachedSubtree getMainSubtree() {
-    return mainCachedSubtree;
+  public Block getMainBlock() {
+    return mainBlock;
   }
 
   public boolean isReturnNode(CFANode node) {

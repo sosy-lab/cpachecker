@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Iterables;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 /**
  * Implements predicate refinements when using ABM.
@@ -325,16 +325,16 @@ public class ABMPredicateRefiner extends PredicateRefiner {
     CFANode node = pAE.retrieveLocationElement().getLocationNode();
     CFANode outerNode = node;
     
-    CachedSubtreeManager csmgr = abmCpa.getCachedSubtreeManager();
+    BlockPartitioning partitioning = abmCpa.getBlockPartitioning();
     
-    if(csmgr.isCallNode(node) || csmgr.isReturnNode(node)) {
+    if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
       outerNode = callStackElement.getCallNode();
       if(callStackElement.getDepth() > 1) {
         outerNode = callStackElement.getPreviousElement().getCallNode();
       }    
     }
     
-    return relevantPredicatesComputer.getRelevantPredicates(abmCpa.getCachedSubtreeManager().getCachedSubtreeForNode(outerNode), preds);
+    return relevantPredicatesComputer.getRelevantPredicates(abmCpa.getBlockPartitioning().getBlockForNode(outerNode), preds);
   }  
   
   private CFAEdge getEdgeToChild(ARTElement parent, ARTElement child) {

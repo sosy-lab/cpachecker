@@ -6,14 +6,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class CallstackReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, CachedSubtree pContext, CFANode callNode) {
+      AbstractElement pExpandedElement, Block pContext, CFANode callNode) {
     
     CallstackElement element = (CallstackElement)pExpandedElement;
         
@@ -33,7 +33,7 @@ public class CallstackReducer implements Reducer {
   
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, CachedSubtree pRootContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
     
     CallstackElement rootElement = (CallstackElement)pRootElement;
@@ -82,7 +82,7 @@ public class CallstackReducer implements Reducer {
   @Override
   public AbstractElementHash getHashCodeForElement(
       AbstractElement pPredicateKey, Precision pPrecisionKey,
-      CachedSubtree pContext, CachedSubtreeManager csmgr) {
+      Block pContext, BlockPartitioning pPartitioning) {
     
     // TODO Auto-generated method stub
     return null;

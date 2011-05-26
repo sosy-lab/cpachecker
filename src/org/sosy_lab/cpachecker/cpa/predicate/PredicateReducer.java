@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class PredicateReducer implements Reducer {
 
@@ -41,7 +41,7 @@ public class PredicateReducer implements Reducer {
   
   @Override
   public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, CachedSubtree pContext,
+      AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
     
     PredicateAbstractElement predicateElement = (PredicateAbstractElement)pExpandedElement;
@@ -92,7 +92,7 @@ public class PredicateReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, CachedSubtree pRootContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
     
     PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
@@ -172,25 +172,25 @@ public class PredicateReducer implements Reducer {
 
   @Override
   public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, CachedSubtree pContext, CachedSubtreeManager pCsmgr) {
+      Precision pPrecisionKey, Block pContext, BlockPartitioning pPartitioning) {
     
     PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;
     
-    return new PredicateElementHash(element, precision, pContext, pCsmgr);
+    return new PredicateElementHash(element, precision, pContext, pPartitioning);
   }
 
   private class PredicateElementHash implements AbstractElementHash {
-    private final CachedSubtree context;
+    private final Block context;
     private final Region region;
     private final PredicatePrecision precision;
-    private final CachedSubtreeManager csmgr;
+    private final BlockPartitioning partitioning;
     
-    PredicateElementHash(PredicateAbstractElement element, PredicatePrecision precision, CachedSubtree context, CachedSubtreeManager csmgr) {      
+    PredicateElementHash(PredicateAbstractElement element, PredicatePrecision precision, Block context, BlockPartitioning partitioning) {      
       this.precision = precision;
       this.context = context;
       this.region = element.getAbstractionFormula().asRegion();
-      this.csmgr = csmgr;
+      this.partitioning = partitioning;
     }
     
     @Override
@@ -220,7 +220,7 @@ public class PredicateReducer implements Reducer {
         if(precision.getPredicateMap().keySet().contains(node) || otherPrecision.getPredicateMap().keySet().contains(node)) {
           Collection<AbstractionPredicate> set1 = precision.getPredicates(node);
           Collection<AbstractionPredicate> set2 = otherPrecision.getPredicates(node);
-          if(csmgr.isCallNode(node) || csmgr.isReturnNode(node)) {
+          if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
             set1 = relevantComputer.getRelevantPredicates(context, precision.getPredicates(node));
             set2 = relevantComputer.getRelevantPredicates(context, otherPrecision.getPredicates(node)); 
           } 
@@ -249,7 +249,7 @@ public class PredicateReducer implements Reducer {
       for(CFANode node : precision.getPredicateMap().keySet()) {
         if(functionNodes.contains(node)) {
           Collection<AbstractionPredicate> set = precision.getPredicates(node);
-          if(csmgr.isCallNode(node) || csmgr.isReturnNode(node)) {
+          if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
             set = relevantComputer.getRelevantPredicates(context, set);
           }
           

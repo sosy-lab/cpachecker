@@ -26,10 +26,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 
-import de.upb.agw.cpachecker.cpa.abm.heuristics.CachedSubtreeHeuristic;
-import de.upb.agw.cpachecker.cpa.abm.heuristics.DelayedFunctionAndLoopCacher;
-import de.upb.agw.cpachecker.cpa.abm.heuristics.FunctionAndLoopCacher;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.heuristics.PartitioningHeuristic;
+import de.upb.agw.cpachecker.cpa.abm.heuristics.DelayedFunctionAndLoopPartitioning;
+import de.upb.agw.cpachecker.cpa.abm.heuristics.FunctionAndLoopPartitioning;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 @Options(prefix="cpa.abm")
 public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
@@ -38,7 +38,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return AutomaticCPAFactory.forType(ABMCPA.class);
   }
   
-  private CachedSubtreeManager manager;
+  private BlockPartitioning manager;
 
   private final LogManager logger;
   private final TimedReducer reducer;
@@ -71,9 +71,9 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public AbstractElement getInitialElement(CFANode node) {
     if(manager == null && node.getFunctionName().equalsIgnoreCase("main")) {
-      manager = getCachedSubtreeHeuristic().buildMananger(node);
-      transfer.setCachedSubtreeManager(manager);
-      ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setCsmgr(manager);
+      manager = getPartitioningHeuristic().buildPartitioning(node);
+      transfer.setBlockPartitioning(manager);
+      ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(manager);
     }
     return getWrappedCpa().getInitialElement(node);
   }
@@ -83,11 +83,11 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return getWrappedCpa().getInitialPrecision(pNode);
   }
   
-  private CachedSubtreeHeuristic getCachedSubtreeHeuristic() {
+  private PartitioningHeuristic getPartitioningHeuristic() {
     if(delayDeclarations) {
-      return new DelayedFunctionAndLoopCacher(logger);
+      return new DelayedFunctionAndLoopPartitioning(logger);
     } else {
-      return new FunctionAndLoopCacher(logger);
+      return new FunctionAndLoopPartitioning(logger);
     }
   }
   
@@ -120,7 +120,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return reducer;
   }
   
-  public CachedSubtreeManager getCachedSubtreeManager() {
+  public BlockPartitioning getBlockPartitioning() {
     checkState(manager != null);
     return manager;
   }

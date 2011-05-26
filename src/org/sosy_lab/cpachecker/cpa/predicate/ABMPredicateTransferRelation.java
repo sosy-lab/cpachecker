@@ -6,24 +6,24 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class ABMPredicateTransferRelation extends PredicateTransferRelation {
 
-  private CachedSubtreeManager csmgr = null;
+  private BlockPartitioning partitioning = null;
   
   public ABMPredicateTransferRelation(PredicateCPA pCpa)
       throws InvalidConfigurationException {
     super(pCpa);
   }
 
-  public void setCsmgr(CachedSubtreeManager pCsmgr) {
-    checkState(csmgr == null);
-    csmgr = pCsmgr;
+  public void setPartitioning(BlockPartitioning pPartitioning) {
+    checkState(partitioning == null);
+    partitioning = pPartitioning;
   }
   
   @Override
   protected boolean isBlockEnd(CFANode pSuccLoc, PathFormula pPf) {
-    return super.isBlockEnd(pSuccLoc, pPf) || csmgr.isCallNode(pSuccLoc) || csmgr.isReturnNode(pSuccLoc);    
+    return super.isBlockEnd(pSuccLoc, pPf) || partitioning.isCallNode(pSuccLoc) || partitioning.isReturnNode(pSuccLoc);    
   }
 }

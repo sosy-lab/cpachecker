@@ -7,8 +7,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 class TimedReducer implements Reducer {
 
@@ -23,7 +23,7 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, CachedSubtree pContext,
+      AbstractElement pExpandedElement, Block pContext,
       CFANode pCallNode) {
 
     reduceTime.start();
@@ -36,7 +36,7 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, CachedSubtree pRootContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
     
     expandTime.start();
@@ -55,9 +55,9 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, CachedSubtree pContext,
-      CachedSubtreeManager pCsmgr) {
-    return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey, pContext, pCsmgr);
+      Precision pPrecisionKey, Block pContext,
+      BlockPartitioning pPartitioning) {
+    return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey, pContext, pPartitioning);
   }
 
 }

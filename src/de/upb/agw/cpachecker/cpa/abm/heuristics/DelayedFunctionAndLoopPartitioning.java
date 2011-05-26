@@ -14,15 +14,15 @@ import org.sosy_lab.cpachecker.util.CFA;
 import de.upb.agw.cpachecker.cpa.abm.sa.LoopDetector;
 
 /**
- * <code>CachedSubtreeHeuristic</code> that creates blocks for each loop- and function-body. 
- * In contrast to <code>FunctionAndLoopCacher</code> the heuristics tries to skip possible initial definitions at the blocks.
+ * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body. 
+ * In contrast to <code>FunctionAndLoopPartitioning</code> the heuristics tries to skip possible initial definitions at the blocks.
  * @author dwonisch
  *
  */
-public class DelayedFunctionAndLoopCacher extends CachedSubtreeHeuristic {
+public class DelayedFunctionAndLoopPartitioning extends PartitioningHeuristic {
   protected LogManager logger;
   
-  public DelayedFunctionAndLoopCacher(LogManager pLogger) {
+  public DelayedFunctionAndLoopPartitioning(LogManager pLogger) {
     this.logger = pLogger;
   }
 

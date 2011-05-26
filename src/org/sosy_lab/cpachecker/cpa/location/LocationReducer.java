@@ -6,14 +6,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementHash;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtreeManager;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
+import de.upb.agw.cpachecker.cpa.abm.util.BlockPartitioning;
 
 public class LocationReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, CachedSubtree pContext,
+      AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
 
 //    assert ((LocationElement)pExpandedElement).getLocationNode().equals(pLocation);
@@ -22,7 +22,7 @@ public class LocationReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, CachedSubtree pRootContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
 
     return pReducedElement;
@@ -40,7 +40,7 @@ public class LocationReducer implements Reducer {
 
   @Override
   public AbstractElementHash getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, CachedSubtree pContext, CachedSubtreeManager csmgr) {
+      Precision pPrecisionKey, Block pContext, BlockPartitioning pPartitioning) {
     // TODO Auto-generated method stub
     return null;
   }

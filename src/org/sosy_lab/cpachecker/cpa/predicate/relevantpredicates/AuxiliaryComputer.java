@@ -9,7 +9,7 @@ import java.util.Map;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
 import de.upb.agw.cpachecker.cpa.abm.util.ReferencedVariable;
 
 /**
@@ -18,19 +18,19 @@ import de.upb.agw.cpachecker.cpa.abm.util.ReferencedVariable;
  *
  */
 public class AuxiliaryComputer implements RelevantPredicatesComputer {
-  private Map<Pair<CachedSubtree, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> removedCache;
-  private Map<Pair<CachedSubtree, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> relevantCache;
+  private Map<Pair<Block, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> removedCache;
+  private Map<Pair<Block, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> relevantCache;
   private Map<Pair<Collection<String>, AbstractionPredicate>, Boolean> relevantPredicates;
   
   public AuxiliaryComputer() {    
-    this.removedCache = new HashMap<Pair<CachedSubtree,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
-    this.relevantCache = new HashMap<Pair<CachedSubtree,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
+    this.removedCache = new HashMap<Pair<Block,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
+    this.relevantCache = new HashMap<Pair<Block,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
     this.relevantPredicates = new HashMap<Pair<Collection<String>,AbstractionPredicate>, Boolean>();
   }
   
   @Override
-  public Collection<AbstractionPredicate> getIrrelevantPredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates) {
-    Pair<CachedSubtree,Collection<AbstractionPredicate>> pair = Pair.of(context, predicates);
+  public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
+    Pair<Block,Collection<AbstractionPredicate>> pair = Pair.of(context, predicates);
     if(!removedCache.containsKey(pair)) {
       removedCache.put(pair, computeRemovePredicates(context, predicates));
     } 
@@ -38,15 +38,15 @@ public class AuxiliaryComputer implements RelevantPredicatesComputer {
   }
   
   @Override
-  public Collection<AbstractionPredicate> getRelevantPredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates) {
-    Pair<CachedSubtree,Collection<AbstractionPredicate>> pair = Pair.of(context, predicates);
+  public Collection<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
+    Pair<Block,Collection<AbstractionPredicate>> pair = Pair.of(context, predicates);
     if(!relevantCache.containsKey(pair)) {
       relevantCache.put(pair, computeRelevantPredicates(context, predicates));
     } 
     return relevantCache.get(pair);
   }
   
-  private Collection<AbstractionPredicate> computeRelevantPredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates) {
+  private Collection<AbstractionPredicate> computeRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
     Collection<AbstractionPredicate> relevantPredicates = new HashSet<AbstractionPredicate>(predicates.size());
     
     Collection<String> relevantVariables = computeRelevantVariables(context, predicates);
@@ -59,7 +59,7 @@ public class AuxiliaryComputer implements RelevantPredicatesComputer {
     return relevantPredicates;
   }
   
-  private Collection<String> computeRelevantVariables(CachedSubtree pContext, Collection<AbstractionPredicate> pPredicates) {
+  private Collection<String> computeRelevantVariables(Block pContext, Collection<AbstractionPredicate> pPredicates) {
     Collection<String> relevantVars = new HashSet<String>();
     Collection<ReferencedVariable> unknownVars = new ArrayList<ReferencedVariable>();
     
@@ -131,7 +131,7 @@ public class AuxiliaryComputer implements RelevantPredicatesComputer {
     return false;    
   }
   
-  private Collection<AbstractionPredicate> computeRemovePredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates) {
+  private Collection<AbstractionPredicate> computeRemovePredicates(Block context, Collection<AbstractionPredicate> predicates) {
     Collection<AbstractionPredicate> newPredicates = getRelevantPredicates(context, predicates);
     
     Collection<AbstractionPredicate> removePredicates = new HashSet<AbstractionPredicate>();

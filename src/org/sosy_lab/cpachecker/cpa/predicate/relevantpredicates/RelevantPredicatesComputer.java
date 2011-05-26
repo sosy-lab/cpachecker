@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
+import de.upb.agw.cpachecker.cpa.abm.util.Block;
 
 /**
  * Interface for the computation of (ir-)relevant predicates of a given block.
@@ -12,6 +12,6 @@ import de.upb.agw.cpachecker.cpa.abm.util.CachedSubtree;
  *
  */
 public interface RelevantPredicatesComputer {
-  public Collection<AbstractionPredicate> getIrrelevantPredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates);
-  public Collection<AbstractionPredicate> getRelevantPredicates(CachedSubtree context, Collection<AbstractionPredicate> predicates);
+  public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates);
+  public Collection<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates);
 }
