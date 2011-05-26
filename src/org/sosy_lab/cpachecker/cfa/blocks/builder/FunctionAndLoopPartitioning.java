@@ -81,8 +81,13 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
   private boolean insertLoopBreakState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
     assert pLoopHeader.getNumLeavingEdges() == 1;
     String loopStartLabel = pLoopHeader.getLeavingEdge(0).getRawStatement();
-    //loopStartLabel is of form "Label: $loopName$continue"; e.g. "Label: while_0_continue" with loopName="while_0" 
-    String loopName = loopStartLabel.split(" ")[1].substring(0, loopStartLabel.indexOf("continue") - "continue".length() + 1);
+    //loopStartLabel is of form "Label: $loopName$continue"; e.g. "Label: while_0_continue" with loopName="while_0"
+    int i = loopStartLabel.indexOf("continue");
+    if (i < 0) {
+      logger.log(Level.WARNING, "Found no loop end for loop at node", pLoopHeader, "(loop is not considered for memorizing)");
+      return false;
+    }
+    String loopName = loopStartLabel.split(" ")[1].substring(0, i - "continue".length() + 1);
     //breakNodes name is then loopName+"break"
     String breakName = "Goto: " + loopName + "break";
     CFANode breakNode = findNodeByEdgeLabel(pLoopHeader, breakName);
