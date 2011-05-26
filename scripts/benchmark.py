@@ -233,8 +233,10 @@ class OutputHandler:
                       ["sourcefile", "status", "cputime", "walltime"] \
                     + [column.title for column in self.benchmark.columns])
         for test in benchmark.tests:
-            CSVFileName = self.getFileName(test.name, "csv")
-            self.CSVFiles[CSVFileName] = FileWriter(CSVFileName, CSVLine + "\n")
+            if options.testRunOnly is None \
+                    or options.testRunOnly == test.name:
+                CSVFileName = self.getFileName(test.name, "csv")
+                self.CSVFiles[CSVFileName] = FileWriter(CSVFileName, CSVLine + "\n")
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
@@ -454,6 +456,27 @@ class OutputHandler:
 
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
+
+
+    def outputForSkippingTest(self, test):
+        '''
+        This function writes a simple message to terminal and logfile,
+        when a test is skipped.
+        There is no message about skipping a test in the xml-file.
+        '''
+        
+        # print to terminal
+        print "\nskipping test" + \
+            (" '" + test.name + "'" if test.name is not None else "")
+
+        # write into TXTFile
+        numberOfTest = self.benchmark.tests.index(test) + 1
+        testInfo = "\n\n"
+        if test.name is not None:
+            testInfo += test.name + "\n" 
+        testInfo += "test {0} of {1}: skipped\n".format(
+                numberOfTest, len(self.benchmark.tests))
+        self.TXTFile.append(testInfo)
 
 
     def getCopyOfXMLElem(self, elem):
@@ -993,33 +1016,38 @@ def runBenchmark(benchmarkFile):
 
     for test in benchmark.tests:
 
-        # get times before test
-        ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
-        wallTimeBefore = time.time()
+        if options.testRunOnly is not None \
+                and options.testRunOnly != test.name:
+            outputHandler.outputForSkippingTest(test)
 
-        outputHandler.outputBeforeTest(test)
-
-        for (sourcefile, fileOptions) in test.sourcefiles:
-
-            currentOptions = toSimpleList(mergeOptions(
-                                benchmark.options, test.options, fileOptions))
-            outputHandler.outputBeforeRun(sourcefile, currentOptions)
-
-            # run test
-            (status, cpuTimeDelta, wallTimeDelta, output) = \
-                run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
-
-            outputHandler.outputAfterRun(sourcefile, fileOptions, status,
-                                         cpuTimeDelta, wallTimeDelta, output)
-
-        # get times after test
-        wallTimeAfter = time.time()
-        wallTimeTest = wallTimeAfter - wallTimeBefore
-        ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
-        cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
-        - (ruBefore.ru_utime + ruBefore.ru_stime)
-
-        outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
+        else:
+            # get times before test
+            ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
+            wallTimeBefore = time.time()
+    
+            outputHandler.outputBeforeTest(test)
+    
+            for (sourcefile, fileOptions) in test.sourcefiles:
+    
+                currentOptions = toSimpleList(mergeOptions(
+                                    benchmark.options, test.options, fileOptions))
+                outputHandler.outputBeforeRun(sourcefile, currentOptions)
+    
+                # run test
+                (status, cpuTimeDelta, wallTimeDelta, output) = \
+                    run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
+    
+                outputHandler.outputAfterRun(sourcefile, fileOptions, status,
+                                             cpuTimeDelta, wallTimeDelta, output)
+    
+            # get times after test
+            wallTimeAfter = time.time()
+            wallTimeTest = wallTimeAfter - wallTimeBefore
+            ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
+            cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
+            - (ruBefore.ru_utime + ruBefore.ru_stime)
+    
+            outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
 
 def main(argv=None):
@@ -1032,8 +1060,13 @@ def main(argv=None):
                       action="store_true",
                       help="enable debug output")
 
-    (options, args) = parser.parse_args(argv)
+    parser.add_option("-t", "--test", dest="testRunOnly",
+                      help="run only a special TEST from xml-file", 
+                      metavar="TEST")
 
+    global options
+    (options, args) = parser.parse_args(argv)
+    
     if len(args) < 2:
         parser.error("invalid number of arguments")
     if (options.debug):
