@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 public class ABMPredicateReducer implements Reducer {
 
-  public static Timer reduceTimer = new Timer();
-  public static Timer expandTimer = new Timer();
+  static final Timer reduceTimer = new Timer();
+  static final Timer expandTimer = new Timer();
     
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
