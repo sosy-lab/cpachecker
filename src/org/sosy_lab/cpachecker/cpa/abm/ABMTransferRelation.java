@@ -148,20 +148,21 @@ public class ABMTransferRelation implements TransferRelation {
   int cacheMisses = 0;
   int partialCacheHits = 0;
   int fullCacheHits = 0;
+  int maxRecursiveDepth = 0;
   Timer hashingTimer = new Timer();
   Timer equalsTimer = new Timer();
   Timer recomputeARTTimer = new Timer();
   Timer returnElementsSearchTimer = new Timer();
   Timer removeCachedSubtreeTimer = new Timer();
   Timer removeSubtreeTimer = new Timer();
-
+  
   public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     algorithm = new CPAAlgorithm(abmCpa, logger);
     wrappedCPA = (ARTCPA)abmCpa.getWrappedCpa();
     wrappedTransfer = wrappedCPA.getTransferRelation();
-    wrappedReducer = wrappedCPA.getReducer();
+    wrappedReducer = abmCpa.getReducer();
     assert wrappedReducer != null;
   }
   
@@ -221,6 +222,7 @@ public class ABMTransferRelation implements TransferRelation {
       
       logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth, "at edge", edge);
       logger.log(Level.ALL, "Starting element:", pElement);
+      maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
       CachedSubtree outerSubtree = currentCachedSubtree;
       currentCachedSubtree = csmgr.getCachedSubtreeForCallNode(currentNode);

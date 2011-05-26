@@ -14,9 +14,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 
@@ -35,6 +37,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
   private CachedSubtreeManager manager;
 
   private final LogManager logger;
+  private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
   
   @Option
@@ -45,6 +48,15 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
     config.inject(this);
 
     logger = pLogger;
+    
+    if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) {
+      throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
+    }
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
+    if (wrappedReducer == null) {
+      throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
+    }
+    reducer = new TimedReducer(wrappedReducer);
     transfer = new ABMTransferRelation(config, logger, this);
     
     ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getPrecisionAdjustment().setTransferRelation(transfer);
@@ -98,6 +110,10 @@ public class ABMCPA extends AbstractSingleWrapperCPA {
     return transfer;
   }
 
+  TimedReducer getReducer() {
+    return reducer;
+  }
+  
   public CachedSubtreeManager getCachedSubtreeManager() {
     checkState(manager != null);
     return manager;
