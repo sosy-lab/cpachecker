@@ -45,7 +45,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       relevantPredicatesComputer = new OccurrenceComputer(); 
     }
     
-    reducer = new PredicateReducer(getFormulaManager(), getPredicateManager(), relevantPredicatesComputer);
+    reducer = new PredicateReducer(this);
     transfer = new ABMPredicateTransferRelation(this);
     prec = new ABMPredicatePrecisionAdjustment(this);
   }

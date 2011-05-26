@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -28,14 +27,16 @@ public class PredicateReducer implements Reducer {
   public static Timer reduceTimer = new Timer();
   public static Timer expandTimer = new Timer();
     
+  private final RegionManager rmgr;
   private final FormulaManager fmgr;
   private final PredicateRefinementManager<?, ?> pmgr;
   private final RelevantPredicatesComputer relevantComputer;
   
-  public PredicateReducer(FormulaManager fmgr, PredicateRefinementManager<?, ?> pmgr, RelevantPredicatesComputer relevantComputer) {
-    this.fmgr = fmgr;
-    this.pmgr = pmgr;
-    this.relevantComputer = relevantComputer;
+  public PredicateReducer(ABMPredicateCPA cpa) {
+    this.rmgr = cpa.getRegionManager();
+    this.fmgr = cpa.getFormulaManager();
+    this.pmgr = cpa.getPredicateManager();
+    this.relevantComputer = cpa.getRelevantPredicatesComputer();
   } 
   
   @Override
@@ -63,12 +64,9 @@ public class PredicateReducer implements Reducer {
 
       //System.out.println("=> Removing the following predicates: " + removePredicates);
 
-      RegionManager bddRegionManager = BDDRegionManager.getInstance();
       Region newRegion = oldRegion;
       for (AbstractionPredicate predicate : removePredicates) {
-        newRegion =
-            bddRegionManager.makeExists(newRegion,
-                predicate.getAbstractVariable());
+        newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
       }
 
       //System.out.println("Resulting region: " + newRegion);
@@ -114,18 +112,15 @@ public class PredicateReducer implements Reducer {
       Region reducedRegion = reducedElement.getAbstractionFormula().asRegion();
       Region rootRegion = rootElement.getAbstractionFormula().asRegion();
 
-      RegionManager bddRegionManager = BDDRegionManager.getInstance();
       Region removedInformationRegion = rootRegion;
       for (AbstractionPredicate predicate : relevantRootPredicates) {
-        removedInformationRegion =
-            bddRegionManager.makeExists(removedInformationRegion,
-                predicate.getAbstractVariable());
+        removedInformationRegion = rmgr.makeExists(removedInformationRegion,
+                                                   predicate.getAbstractVariable());
       }
   
       //System.out.println("Removed information region: " + removedInformationRegion);
 
-      Region expandedRegion =
-          bddRegionManager.makeAnd(reducedRegion, removedInformationRegion);
+      Region expandedRegion = rmgr.makeAnd(reducedRegion, removedInformationRegion);
 
       PathFormula pathFormula = reducedElement.getPathFormula();
 
