@@ -42,7 +42,6 @@ public class ARTElementSearcher {
         }
       }
       
-      assert false;
       return null;
     }
     finally {
