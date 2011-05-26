@@ -112,33 +112,34 @@ public class PredicateTransferRelation implements TransferRelation {
       Precision pPrecision, CFAEdge edge) throws CPATransferException {
 
     postTimer.start();
+    try {
     
-    PredicateAbstractElement element = (PredicateAbstractElement) pElement;
-    CFANode loc = edge.getSuccessor();
-
-    // Check whether abstraction is false.
-    // Such elements might get created when precision adjustment computes an abstraction.
-    if (element.getAbstractionFormula().asFormula().isFalse()) {
-      return Collections.emptySet();
+      PredicateAbstractElement element = (PredicateAbstractElement) pElement;
+      CFANode loc = edge.getSuccessor();
+  
+      // Check whether abstraction is false.
+      // Such elements might get created when precision adjustment computes an abstraction.
+      if (element.getAbstractionFormula().asFormula().isFalse()) {
+        return Collections.emptySet();
+      }
+      
+      // calculate strongest post
+      PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
+      logger.log(Level.ALL, "New path formula is", pathFormula);
+      
+      // check whether to do abstraction
+      boolean doAbstraction = isBlockEnd(loc, pathFormula);
+      
+      if (doAbstraction) {
+        return Collections.singleton(
+            new PredicateAbstractElement.ComputeAbstractionElement(
+                pathFormula, element.getAbstractionFormula(), loc)); 
+      } else {
+        return handleNonAbstractionFormulaLocation(pathFormula, element.getAbstractionFormula());
+      }
+    } finally {
+      postTimer.stop();
     }
-    
-    // calculate strongest post
-    PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
-    logger.log(Level.ALL, "New path formula is", pathFormula);
-    
-    // check whether to do abstraction
-    boolean doAbstraction = isBlockEnd(loc, pathFormula);
-    
-    Collection<? extends AbstractElement> result;
-    if (doAbstraction) {
-      result = Collections.singleton(
-          new PredicateAbstractElement.ComputeAbstractionElement(
-              pathFormula, element.getAbstractionFormula(), loc)); 
-    } else {
-      result = handleNonAbstractionFormulaLocation(pathFormula, element.getAbstractionFormula());
-    }
-    postTimer.stop();
-    return result;
   }
 
   /**
