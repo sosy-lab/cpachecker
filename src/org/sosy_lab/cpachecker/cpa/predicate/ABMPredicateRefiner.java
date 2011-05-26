@@ -135,7 +135,7 @@ public class ABMPredicateRefiner extends PredicateRefiner {
       ARTElement subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
+        subgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null));
         if (subgraph == null) {
           return null;
         }
@@ -174,14 +174,15 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   }
   
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
-  //subtree is represented using children and parents of ARTElements
-  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet) throws InterruptedException {
+  //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
+  //in the constructed subtree that represents target
+  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException {
     //start by creating ARTElements for each node needed in the tree 
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();
     ARTElement root = null;
     
-    elementsMap.put(target, new ARTElement(target.getWrappedElement(), null));
+    elementsMap.put(target, newTreeTarget);
     openElements.push(target);    
     while(!openElements.empty()) {
       ARTElement currentElement = openElements.pop();

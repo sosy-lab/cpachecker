@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -479,7 +478,7 @@ public class ABMTransferRelation implements TransferRelation {
    * then looks for target in this reached set and constructs a tree from root to target
    * (recursively, if needed).
    */
-  public ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement target, ABMPredicateRefiner caller) throws InterruptedException {
+  public ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget, ABMPredicateRefiner caller) throws InterruptedException {
     CFANode rootNode = root.retrieveLocationElement().getLocationNode();
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
             
@@ -491,12 +490,12 @@ public class ABMTransferRelation implements TransferRelation {
       recomputeART(root, rootPrecision, rootNode, rootSubtree);
       reachSet = subgraphReachCache.get(reducedRootElement, rootPrecision, rootSubtree);
       if(reachSet == null) {
-        throw new IllegalArgumentException("Failed recomputing the reach set of " + root + " -> " + target  + " with precision " +  rootPrecision); 
+        throw new IllegalArgumentException("Failed recomputing the reach set of " + root + " -> " + newTreeTarget  + " with precision " +  rootPrecision); 
       }
     }    
     //we found the to the root and precision corresponding reach set
     //now try to find the target in the reach set    
-    AbstractElement targetARTElement = ARTElementSearcher.searchForARTElement(reachSet, target, wrappedReducer, partitioning);    
+    ARTElement targetARTElement = ARTElementSearcher.searchForARTElement(reachSet, newTreeTarget, wrappedReducer, partitioning);    
     if (targetARTElement == null) {
       logger.log(Level.WARNING, "Target element is not longer contained in reached set");
       //if the target cannot be found, this means that the recomputation of the reach set already ruled out the (spurious) counterexample
@@ -505,47 +504,7 @@ public class ABMTransferRelation implements TransferRelation {
       return null; 
     }
     //we found the target; now construct a subtree in the ART starting with targetARTElement
-    ARTElement reducedSubgraph = caller.computeCounterexampleSubgraph((ARTElement)targetARTElement, reachSet);
-    if(reducedSubgraph == null) {
-      return null;
-    }
-        
-    //subtree is in reduced state space; we need to lift it to real state space and append the lifted tree to the given target ARTElement
-    //start by lifting root
-    ARTElement expandedRoot = (ARTElement)wrappedReducer.getVariableExpandedElement(root, rootSubtree, reducedSubgraph);
-    
-    //next traverse the tree
-    Map<ARTElement, ARTElement> reducedToExpandedMap = new HashMap<ARTElement, ARTElement>();
-    Stack<ARTElement> openElements = new Stack<ARTElement>();
-        
-    reducedToExpandedMap.put(reducedSubgraph, expandedRoot);
-    openElements.push(reducedSubgraph);    
-    while(!openElements.isEmpty()) {
-      ARTElement currentElement = openElements.pop();
-      
-      for(ARTElement child : currentElement.getChildren()) {
-        if(!reducedToExpandedMap.containsKey(child)) {
-          if(child.getChildren().isEmpty() && !target.isTarget()) {
-            //no children -> should be target
-            //thus no need to expand it; expanded version is given as parameter already
-            //however, if target is a TargetPredicateElement, the error is inside the subgraph, and we
-            //shouldnt add to the parameter
-            reducedToExpandedMap.put(child, target);            
-          }
-          else {
-            //not lifted yet          
-            ARTElement expandedChild = //(ARTElement)wrappedReducer.getVariableExpandedElement(root, rootSubtree, child);
-              new ARTElement(child.getWrappedElement(), null);
-            reducedToExpandedMap.put(child, expandedChild);
-          }
-          //explore child later
-          openElements.push(child);
-        }
-        //add edge
-        reducedToExpandedMap.get(child).addParent(reducedToExpandedMap.get(currentElement));                
-      }   
-    }    
-    return expandedRoot;
+    return caller.computeCounterexampleSubgraph(targetARTElement, reachSet, newTreeTarget);
   }
   
   private void recomputeART(AbstractElement pRoot, Precision pRootPrecision, CFANode pRootNode, Block rootSubtree) throws InterruptedException {
