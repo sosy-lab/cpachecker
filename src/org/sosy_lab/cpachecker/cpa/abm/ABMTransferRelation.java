@@ -534,7 +534,8 @@ public class ABMTransferRelation implements TransferRelation {
           }
           else {
             //not lifted yet          
-            ARTElement expandedChild = (ARTElement)wrappedReducer.getVariableExpandedElement(root, rootSubtree, child);
+            ARTElement expandedChild = //(ARTElement)wrappedReducer.getVariableExpandedElement(root, rootSubtree, child);
+              new ARTElement(child.getWrappedElement(), null);
             reducedToExpandedMap.put(child, expandedChild);
           }
           //explore child later
