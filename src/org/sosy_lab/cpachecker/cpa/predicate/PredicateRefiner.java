@@ -101,7 +101,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
-    predicateCpa.getConfiguration().inject(this);
+    predicateCpa.getConfiguration().inject(this, PredicateRefiner.class);
     logger = predicateCpa.getLogger();
     formulaManager = predicateCpa.getPredicateManager();
     predicateCpa.getStats().addRefiner(this);

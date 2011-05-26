@@ -12,7 +12,6 @@ import java.util.Stack;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -45,7 +44,6 @@ import com.google.common.collect.Iterables;
  * @author dwonisch
  *
  */
-@Options(prefix="cpa.predicate.fcc")
 public class ABMPredicateRefiner extends PredicateRefiner {
   
   private final ABMCPA abmCpa;
