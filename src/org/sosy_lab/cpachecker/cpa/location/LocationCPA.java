@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -36,16 +37,18 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
-public class LocationCPA implements ConfigurableProgramAnalysis{
+public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithABM {
 
-  private final LocationElementFactory elementFactory = new LocationElementFactory();
+  protected final LocationElementFactory elementFactory = new LocationElementFactory();
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
 	private final TransferRelation transferRelation = new LocationTransferRelation(elementFactory);
 	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
+	private final Reducer reducer = new LocationReducer();
 
 	public static CPAFactory factory() {
 	  return new LocationCPAFactory(false);
@@ -74,6 +77,11 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
   @Override
   public PrecisionAdjustment getPrecisionAdjustment () {
     return StaticPrecisionAdjustment.getInstance();
+  }
+  
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 
   @Override

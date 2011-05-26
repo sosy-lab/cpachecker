@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 public interface PathFormulaManager {
 
@@ -25,4 +26,6 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
+
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 }

@@ -100,7 +100,7 @@ public class PredicateTransferRelation implements TransferRelation {
   private final PathFormulaManager pathFormulaManager;
 
   public PredicateTransferRelation(PredicateCPA pCpa) throws InvalidConfigurationException {
-    pCpa.getConfiguration().inject(this);
+    pCpa.getConfiguration().inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
@@ -109,7 +109,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
-      Precision pPrecision, CFAEdge edge) throws CPATransferException {
+      Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
 
     postTimer.start();
     try {
@@ -183,7 +183,7 @@ public class PredicateTransferRelation implements TransferRelation {
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
-  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
+  public PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     pathFormulaTimer.start();
     try {
       // compute new pathFormula with the operation on the edge
@@ -205,7 +205,7 @@ public class PredicateTransferRelation implements TransferRelation {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  private boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
+  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
     boolean result = false;
     
     if (absOnLoop) {
@@ -355,7 +355,7 @@ public class PredicateTransferRelation implements TransferRelation {
     }
   }
   
-  private PredicateAbstractElement strengthenSatCheck(PredicateAbstractElement pElement) {
+  protected PredicateAbstractElement strengthenSatCheck(PredicateAbstractElement pElement) {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
     strengthenCheckTimer.start();

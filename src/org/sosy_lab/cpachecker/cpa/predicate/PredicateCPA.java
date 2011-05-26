@@ -110,8 +110,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
-  private PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
+  protected PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this, PredicateCPA.class);
 
     this.config = config;
     this.logger = logger;
@@ -184,7 +184,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = new PredicateCPAStatistics(this, domain);
+    stats = createStatistics();
+  }
+  
+  protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
+    return new PredicateCPAStatistics(this);
   }
 
   @Override

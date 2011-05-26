@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -202,6 +204,41 @@ public class AbstractionManagerImpl implements AbstractionManager {
     assert result != null;
 
     return result;
+  }
+  
+  @Override
+  public Collection<AbstractionPredicate> extractPredicates(Region af) {
+    Collection<AbstractionPredicate> vars = new HashSet<AbstractionPredicate>();
+    
+    Deque<Region> toProcess = new ArrayDeque<Region>();
+    toProcess.push(af);
+    while (!toProcess.isEmpty()) {
+      Region n = toProcess.pop();
+      
+      if(n.equals(rmgr.makeTrue()) || n.equals(rmgr.makeFalse())) {
+        vars.add(this.makeFalsePredicate());
+        continue;
+      }
+      
+      if(absVarToPredicate.containsKey(n)) {
+        vars.add(absVarToPredicate.get(n));
+        continue;
+      }
+      
+      Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
+      Region c1 = parts.getSecond();
+      Region c2 = parts.getThird();
+     
+      if(c1 != null)
+        toProcess.push(c1);
+      if(c2 != null)
+        toProcess.push(c2);
+     
+      Region var = parts.getFirst();
+      assert(absVarToPredicate.containsKey(var));
+      vars.add(absVarToPredicate.get(var));
+    }
+    return vars;
   }
 
   @Override

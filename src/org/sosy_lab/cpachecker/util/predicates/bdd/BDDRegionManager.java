@@ -134,6 +134,14 @@ public class BDDRegionManager implements RegionManager {
     BDDRegion fElse = new BDDRegion(f.low());
 
     return new Triple<Region, Region, Region>(predicate, fThen, fElse);
+  }  
+  
+  @Override
+  public Region makeExists(Region pF1, Region pF2) {
+    BDD f1 = ((BDDRegion)pF1).getBDD();
+    BDD f2 = ((BDDRegion)pF2).getBDD();
+    
+    return new BDDRegion(f1.exist(f2));
   }
   
   @Override

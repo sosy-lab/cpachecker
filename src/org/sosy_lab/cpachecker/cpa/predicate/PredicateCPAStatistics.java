@@ -61,9 +61,9 @@ class PredicateCPAStatistics implements Statistics {
     private final PredicateCPA cpa;
     private PredicateRefiner refiner = null;
 
-    public PredicateCPAStatistics(PredicateCPA cpa, PredicateAbstractDomain pDomain) throws InvalidConfigurationException {
+    public PredicateCPAStatistics(PredicateCPA cpa) throws InvalidConfigurationException {
       this.cpa = cpa;
-      cpa.getConfiguration().inject(this);
+      cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
     
     void addRefiner(PredicateRefiner ref) {
@@ -139,6 +139,7 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Times precision was empty:       " + as.numSymbolicAbstractions + " (" + toPercent(as.numSymbolicAbstractions, as.numCallsAbstraction) + ")");
         out.println("  Times precision was {false}:     " + as.numSatCheckAbstractions + " (" + toPercent(as.numSatCheckAbstractions, as.numCallsAbstraction) + ")");
         out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
+        out.println("  Extract predicates timer: " + as.extractTimer);
       }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());
@@ -182,7 +183,7 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);        
       out.println("Time for prec operator:             " + prec.totalPrecTime);
-      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ")");
+      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
       out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
       out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
@@ -195,11 +196,11 @@ class PredicateCPAStatistics implements Statistics {
       }
       if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
         out.println("Time for refinement:                 " + refiner.totalRefinement);
-        out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ")");
+        out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisTimer.getNumberOfIntervals() + ")");
         if (bs.cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
           out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
         }
-        out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ")");
+        out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
         out.println("  Precision update:                  " + refiner.precisionUpdate);
         out.println("  ART update:                        " + refiner.artUpdate);
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);

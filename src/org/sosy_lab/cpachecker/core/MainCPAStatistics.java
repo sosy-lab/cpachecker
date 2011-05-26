@@ -145,8 +145,8 @@ class MainCPAStatistics implements Statistics {
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
         // call stop again in case CPAchecker was terminated abnormally
-        analysisTime.stop();
-        programTime.stop();
+        if (analysisTime.isRunning()) analysisTime.stop();
+        if (programTime.isRunning()) programTime.stop();
         monitorMemoryUsage = false;
 
         if (exportReachedSet && outputFile != null) {

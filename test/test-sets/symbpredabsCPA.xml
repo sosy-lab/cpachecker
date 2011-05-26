@@ -9,6 +9,7 @@
       <includesfile>test/test-sets/ssh-simplified.set</includesfile>
       <includesfile>test/test-sets/ssh.set</includesfile>
       <includesfile>test/test-sets/systemc.set</includesfile>
+      <includesfile>test/test-sets/nested.set</includesfile>
     </sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/config/symbpredabsCPA.properties</option>
@@ -19,5 +20,7 @@
     <column title="reached">reached set</column>
     <column title="abstractions">Number of abstractions</column>
     <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="cpa time">time for CPA algorithm</column>
   </columns>
 </benchmark>

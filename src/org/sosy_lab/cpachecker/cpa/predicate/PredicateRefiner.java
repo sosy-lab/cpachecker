@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
@@ -59,8 +58,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.Abstractio
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -90,7 +91,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   private final PredicateRefinementManager<?,?> formulaManager;
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
   private Path targetPath;
-  private List<CFANode> lastErrorPath = null;
+  protected List<CFANode> lastErrorPath = null;
 
   public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -100,7 +101,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
 
-    predicateCpa.getConfiguration().inject(this);
+    predicateCpa.getConfiguration().inject(this, PredicateRefiner.class);
     logger = predicateCpa.getLogger();
     formulaManager = predicateCpa.getPredicateManager();
     predicateCpa.getStats().addRefiner(this);
@@ -126,12 +127,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     }
     
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
-    PredicatePrecision oldPredicatePrecision = null;
-    if (oldPrecision instanceof PredicatePrecision) {
-      oldPredicatePrecision = (PredicatePrecision)oldPrecision;
-    } else if (oldPrecision instanceof WrapperPrecision) {
-      oldPredicatePrecision = ((WrapperPrecision)oldPrecision).retrieveWrappedPrecision(PredicatePrecision.class);
-    }
+    PredicatePrecision oldPredicatePrecision = receivePredicatePrecision(oldPrecision);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
@@ -151,7 +147,9 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       precisionUpdate.stop();
 
       artUpdate.start();
-      pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      
+      removeSubtree(pReached, pPath, refinementResult.getFirst(), refinementResult.getSecond());
+      
       artUpdate.stop();
       totalRefinement.stop();
       return true;
@@ -202,6 +200,14 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       return false;
     }
   }
+  
+  protected void removeSubtree(ARTReachedSet pReached, Path pPath, ARTElement pFirst, PredicatePrecision pSecond) {
+    pReached.removeSubtree(pFirst, pSecond);    
+  }
+
+  protected static final PredicatePrecision receivePredicatePrecision(Precision precision) {
+    return Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+  }
 
   /**
    * pPath and pArtPath need to fit together such that
@@ -228,8 +234,9 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     for (ARTElement ae : pArtPath) {
       i++;
       PredicateAbstractElement e = pPath.get(i);
-      Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
       CFANode loc = ae.retrieveLocationElement().getLocationNode();
+      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, ae);     
+      
       absLocations.add(loc);
       
       if (firstInterpolationElement == null && newpreds.size() > 0) {
@@ -294,6 +301,12 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     }
     lastErrorPath = absLocations;
     return Pair.of(root, newPrecision);
+  }
+
+  protected Collection<AbstractionPredicate> getPredicatesForARTElement(
+      CounterexampleTraceInfo pInfo, ARTElement pAE) {
+    PredicateAbstractElement pE = AbstractElements.extractElementByType(pAE, PredicateAbstractElement.class);
+    return pInfo.getPredicatesForRefinement(pE);
   }
 
   @Override

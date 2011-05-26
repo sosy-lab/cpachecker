@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -165,7 +165,7 @@ public class CPAchecker {
       ConfigurableProgramAnalysis cpa = createCPA(stats);
 
       Algorithm algorithm = createAlgorithm(cpa, stats);
-
+      
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",

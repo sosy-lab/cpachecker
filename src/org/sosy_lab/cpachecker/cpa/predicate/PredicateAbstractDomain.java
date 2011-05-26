@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.predicate")
-public final class PredicateAbstractDomain implements AbstractDomain {
+public class PredicateAbstractDomain implements AbstractDomain {
   
   @Option
   private boolean symbolicCoverageCheck = false; 
@@ -48,7 +48,7 @@ public final class PredicateAbstractDomain implements AbstractDomain {
   private final PredicateAbstractionManager mgr;
     
   public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
-    pCpa.getConfiguration().inject(this);
+    pCpa.getConfiguration().inject(this, PredicateAbstractDomain.class);
     mRegionManager = pCpa.getRegionManager();
     mgr = pCpa.getPredicateManager();
   }

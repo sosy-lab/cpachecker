@@ -47,9 +47,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -59,7 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
  * @author rhein
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithABM {
 
   @Option(name="dotExport")
   private boolean export = false;
@@ -86,6 +88,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
+  private final Reducer reducer = new AutomatonReducer();
 
   protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
@@ -159,6 +162,11 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return transferRelation ;
   }
 
+  @Override
+  public Reducer getReducer() {
+    return reducer;
+  }
+  
   public AutomatonState getBottomState() {
     return this.bottomState;
   }

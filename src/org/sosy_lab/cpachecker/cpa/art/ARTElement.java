@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -52,21 +53,21 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private static int nextArtElementId = 0;
 
-  protected ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
+  public ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
-    parents = new HashSet<ARTElement>();
+    parents = new LinkedHashSet<ARTElement>();
     if(pParentElement != null){
       addParent(pParentElement);
     }
-    children = new HashSet<ARTElement>();
+    children = new LinkedHashSet<ARTElement>();
   }
 
   public Set<ARTElement> getParents(){
     return parents;
   }
 
-  protected void addParent(ARTElement pOtherParent){
+  public void addParent(ARTElement pOtherParent){
     assert !destroyed;
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);

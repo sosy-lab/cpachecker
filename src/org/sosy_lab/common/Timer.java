@@ -68,7 +68,7 @@ public class Timer {
   /** Start the timer. If it was running before, the timer is stopped and then
    * started again. */
   public final void start() {
-    if (!isRunning()) {
+    if (isRunning()) {
       this.stop();
     }
     startTime = System.currentTimeMillis();

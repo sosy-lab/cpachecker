@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -41,14 +39,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.art")
-public class ARTCPA extends AbstractSingleWrapperCPA {
+public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARTCPA.class);
@@ -67,6 +67,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Reducer reducer;
   private final Statistics stats;
 
   private Path targetPath = null;
@@ -79,6 +80,17 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
     precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
+    if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
+      if (wrappedReducer != null) {
+        reducer = new ARTReducer(wrappedReducer);
+      } else {
+        reducer = null;
+      }
+    } else {
+      reducer = null;
+    }
+    
     if (mergeType.equals("SEP")){
       mergeOperator = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")){
@@ -119,6 +131,11 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     return precisionAdjustment;
   }
 
+  @Override
+  public Reducer getReducer() {
+    return reducer;
+  }
+  
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
