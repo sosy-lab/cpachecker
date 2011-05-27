@@ -43,7 +43,7 @@ import com.google.common.collect.Lists;
 /**
  * Implements predicate refinements when using ABM.
  * It is based on the {@link AbstractABMBasedRefiner} and delegates the work to
- * a {@link ExtendedPredicateRefiner}, which is small extension of the regular
+ * a {@link ExtendedPredicateRefiner}, which is a small extension of the regular
  * {@link PredicateRefiner}.
  * 
  * So the hierarchy is as follows:
@@ -60,11 +60,9 @@ import com.google.common.collect.Lists;
  *   
  * Here ^ means inheritance and -> means reference.
  */
-public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
+public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
   private final PredicateRefiner refiner;
-  
-  final Timer ssaRenamingTimer = new Timer();
   
   public ABMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -72,14 +70,14 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
   }
   
   @Override
-  public boolean performRefinement0(ARTReachedSet pReached, Path pPath)
+  protected final boolean performRefinement0(ARTReachedSet pReached, Path pPath)
       throws CPAException, InterruptedException {
     
     return refiner.performRefinement(pReached, pPath);
   }
   
   @Override
-  protected Path getTargetPath(Path pPath) {
+  protected final Path getTargetPath(Path pPath) {
     return refiner.getTargetPath(pPath);
   }
     
@@ -87,13 +85,15 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
    * This is a small extension of PredicateRefiner that overrides
    * {@link #transformPath(Path)} so that it respects ABM.
    */
-  private class ExtendedPredicateRefiner extends PredicateRefiner {
-    
+  final class ExtendedPredicateRefiner extends PredicateRefiner {
+
+    final Timer ssaRenamingTimer = new Timer();
+
     private final FormulaManager fmgr;
     private final PathFormulaManager pfmgr;
     private final RelevantPredicatesComputer relevantPredicatesComputer;
     
-    public ExtendedPredicateRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+    private ExtendedPredicateRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
       super(pCpa);
       
       ABMPredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(ABMPredicateCPA.class);
@@ -104,12 +104,10 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       this.fmgr = predicateCpa.getFormulaManager();
       this.pfmgr = predicateCpa.getPathFormulaManager();
       this.relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
-      
-      ((ABMPredicateCPAStatistics)predicateCpa.getStats()).addRefiner(ABMPredicateRefiner.this);
     }
 
     @Override
-    public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+    protected final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
       boolean result = super.performRefinement(pReached, pPath);
       
       if (result) {
@@ -120,7 +118,7 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     }
     
     @Override
-    protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    protected final List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ART
@@ -227,7 +225,7 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     }
     
     @Override
-    protected Collection<AbstractionPredicate> getPredicatesForARTElement(CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
+    protected final Collection<AbstractionPredicate> getPredicatesForARTElement(CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
       //TODO:
       
       Collection<AbstractionPredicate> preds = pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());

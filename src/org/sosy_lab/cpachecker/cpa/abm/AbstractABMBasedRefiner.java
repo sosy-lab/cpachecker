@@ -8,6 +8,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
@@ -46,10 +47,10 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
-  public abstract boolean performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
+  protected abstract boolean performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
 
   @Override
-  public final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
       //TODO:  this can be implemented less drastic -> only remove calls on counterexample
       restartAnalysis(pReached);
@@ -60,7 +61,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   }
  
   @Override
-  protected final Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     computePathTimer.start();

@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
@@ -65,7 +67,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     this.logger = mArtCpa.getLogger();
   }
 
-  protected ARTCPA getArtCpa() {
+  protected final ARTCPA getArtCpa() {
     return mArtCpa;
   }
 
@@ -93,7 +95,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert lastElement instanceof ARTElement;
     assert ((ARTElement)lastElement).isTarget();
 
-    Path path = computePath((ARTElement)lastElement, pReached);
+    Path path = computePath((ARTElement)lastElement, new UnmodifiableReachedSetWrapper(pReached));
     
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -171,7 +173,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException 
    */  
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
+  protected Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReached) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);    
   }
 

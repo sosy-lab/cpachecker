@@ -477,7 +477,7 @@ public class ABMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
   //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
   //in the constructed subtree that represents target
-  ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARTElement computeCounterexampleSubgraph(ARTElement target, UnmodifiableReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
     //start by creating ARTElements for each node needed in the tree 
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();

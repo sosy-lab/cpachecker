@@ -110,7 +110,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
@@ -119,7 +119,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     List<Triple<ARTElement, CFANode, PredicateAbstractElement>> path = transformPath(pPath);
     
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
-    PredicatePrecision oldPredicatePrecision = receivePredicatePrecision(oldPrecision);
+    PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
@@ -206,10 +206,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     
     assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
-  }
-
-  protected static final PredicatePrecision receivePredicatePrecision(Precision precision) {
-    return Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
   }
 
   /**

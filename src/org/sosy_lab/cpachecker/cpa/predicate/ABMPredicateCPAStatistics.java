@@ -7,18 +7,23 @@ import java.io.PrintStream;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateRefiner.ExtendedPredicateRefiner;
 
 public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
 
-  private ABMPredicateRefiner refiner = null;
+  private ExtendedPredicateRefiner refiner = null;
   
   public ABMPredicateCPAStatistics(ABMPredicateCPA pCpa) throws InvalidConfigurationException {
     super(pCpa);
   }
 
-  void addRefiner(ABMPredicateRefiner pRef) {
+  @Override
+  void addRefiner(PredicateRefiner pRef) {
     checkState(refiner == null);
-    refiner = pRef;
+    if (pRef instanceof ExtendedPredicateRefiner) {
+      refiner = (ExtendedPredicateRefiner)pRef;  
+    }
+    super.addRefiner(pRef);
   }
   
   @Override
