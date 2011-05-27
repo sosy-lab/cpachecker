@@ -325,7 +325,7 @@ public class ABMTransferRelation implements TransferRelation {
     return subgraphReachCache.get(reducedElement, precision, context);
   }
    
-  public void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {      
+  void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {      
     removeSubtreeTimer.start();
     
     Path path = trimPath(pPath, element);
@@ -477,7 +477,7 @@ public class ABMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
   //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
   //in the constructed subtree that represents target
-  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
     //start by creating ARTElements for each node needed in the tree 
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();
@@ -572,7 +572,7 @@ public class ABMTransferRelation implements TransferRelation {
     recomputeARTTimer.stop();
   }
 
-  public void clearCaches() {
+  void clearCaches() {
     subgraphReachCache.clear();
     subgraphReturnCache.clear();
   }

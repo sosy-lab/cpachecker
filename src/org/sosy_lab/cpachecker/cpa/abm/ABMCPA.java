@@ -44,7 +44,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final LogManager logger;
   private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
-  private final Statistics stats;
+  private final ABMCPAStatistics stats;
   
   @Option
   private boolean delayDeclarations = false;
@@ -130,5 +130,9 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     super.collectStatistics(pStatsCollection);
+  }
+  
+  ABMCPAStatistics getStatistics() {
+    return stats;
   }
 }

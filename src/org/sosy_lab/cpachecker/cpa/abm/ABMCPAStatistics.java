@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -14,7 +16,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 class ABMCPAStatistics implements Statistics {
 
     private final ABMCPA cpa;
-
+    private AbstractABMBasedRefiner refiner = null;
+    
     public ABMCPAStatistics(ABMCPA cpa) {
       this.cpa = cpa;
     }
@@ -22,6 +25,11 @@ class ABMCPAStatistics implements Statistics {
     @Override
     public String getName() {
       return "ABMCPA";
+    }
+    
+    public void addRefiner(AbstractABMBasedRefiner pRefiner) {
+      checkState(refiner == null);
+      refiner = pRefiner;
     }
 
     @Override
@@ -45,6 +53,11 @@ class ABMCPAStatistics implements Statistics {
 
       out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
       out.println("Time for recomputing ARTs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
+      if (refiner != null) {
+        out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
+        out.println("  Constructing flat ART:                                        " + refiner.computeSubtreeTimer);
+        out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
+      }
     }
     
     

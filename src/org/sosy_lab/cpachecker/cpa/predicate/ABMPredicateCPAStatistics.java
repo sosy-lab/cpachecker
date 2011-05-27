@@ -16,13 +16,9 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
     super(pCpa);
   }
 
-  @Override
-  void addRefiner(PredicateRefiner pRef) {
+  void addRefiner(ABMPredicateRefiner pRef) {
     checkState(refiner == null);
-    if (pRef instanceof ABMPredicateRefiner) {
-      refiner = (ABMPredicateRefiner)pRef;
-    }
-    super.addRefiner(pRef);
+    refiner = pRef;
   }
   
   @Override
@@ -30,10 +26,7 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
     super.printStatistics(out, pResult, pReached);
     
     if (refiner != null) {
-      out.println("Compute path for refinement:         " + refiner.computePathTimer);
-      out.println("  Constructing flat ART:             " + refiner.computeSubtreeTimer);
-      out.println("  SSA renaming:                      " + refiner.ssaRenamingTimer);
-      out.println("  Searching path to error location:  " + refiner.computeCounterexampleTimer);
+      out.println("SSA renaming:                        " + refiner.ssaRenamingTimer);
     }
   }
 }
