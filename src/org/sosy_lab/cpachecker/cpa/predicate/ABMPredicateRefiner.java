@@ -1,12 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -15,16 +19,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.ABMCPA;
-import org.sosy_lab.cpachecker.cpa.abm.RecursiveAnalysisFailedException;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -35,9 +36,11 @@ import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 
 /**
@@ -48,9 +51,8 @@ import com.google.common.collect.Iterables;
 public class ABMPredicateRefiner extends PredicateRefiner {
   
   private final ABMCPA abmCpa;
-  private final ABMPredicateCPA predicateCpa;
   private final FormulaManager fmgr;
-  private final PredicateRefinementManager<?, ?> pmgr;
+  private final PathFormulaManager pfmgr;
   private final RelevantPredicatesComputer relevantPredicatesComputer;
   
   //Stats  
@@ -68,27 +70,9 @@ public class ABMPredicateRefiner extends PredicateRefiner {
       throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
     
-    this.predicateCpa = predicateCpa;
     this.fmgr = predicateCpa.getFormulaManager();
-    this.pmgr = predicateCpa.getPredicateManager();
+    this.pfmgr = predicateCpa.getPathFormulaManager();
     this.relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
-  }
-  
-  private ARTElement replaceComponent(ARTElement element, PredicateAbstractElement component, ARTElement parent) {
-    return new ARTElement(replaceComponent((CompositeElement)element.getWrappedElement(), component), parent);
-  }
-  
-  private CompositeElement replaceComponent(CompositeElement element, PredicateAbstractElement component) {
-    List<AbstractElement> elements = element.getWrappedElements();
-    List<AbstractElement> newElements = new ArrayList<AbstractElement>(elements.size());
-    for(AbstractElement e : elements) {
-      if(e instanceof PredicateAbstractElement) {
-        newElements.add(component);
-      } else {
-        newElements.add(e);
-      }
-    }
-    return new CompositeElement(newElements);
   }
     
  @Override
@@ -128,7 +112,7 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   }
   
   @Override
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException, RecursiveAnalysisFailedException {
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     computePathTimer.start();
@@ -143,10 +127,6 @@ public class ABMPredicateRefiner extends PredicateRefiner {
       } finally {
         computeSubtreeTimer.stop();
       }
-      
-      ssaRenamingTimer.start();
-      subgraph = computeSSARenamedSubgraph(subgraph);
-      ssaRenamingTimer.stop();
       
       computeCounterexampleTimer.start();
       try {
@@ -174,97 +154,115 @@ public class ABMPredicateRefiner extends PredicateRefiner {
     return path;
   }
   
-  private ARTElement computeSSARenamedSubgraph(ARTElement root) {
-    Map<ARTElement, ARTElement> nodeToSSANode = new HashMap<ARTElement, ARTElement>();
-    Queue<ARTElement> openElements = new LinkedList<ARTElement>();
+  @Override
+  protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    // the elements in the path are not expanded, so they contain the path formulas
+    // with the wrong indices
+    // we need to re-create all path formulas in the flattened ART
     
-    nodeToSSANode.put(root, new ARTElement(root.getWrappedElement(), null)); //no SSA renaming for root needed
-    openElements.add(root);
-    while(!openElements.isEmpty()) {
-      ARTElement currentElement = openElements.poll();
-      assert nodeToSSANode.get(currentElement).getParents().size() == currentElement.getParents().size();
+    computePathTimer.start();
+
+    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> notRenamedPath = super.transformPath(pPath);
+    
+    ssaRenamingTimer.start();
+    try {
+      Map<ARTElement, Formula> renamedBlockFormulas = computeBlockFormulas(pPath.getFirst().getFirst());
       
-      for(ARTElement child : currentElement.getChildren()) {
-        CFAEdge edge = currentElement.getEdgeToChild(child);
-        assert edge != null; //subgraph is subgraph call expanded; no summarized function calls involved
-        
-        PredicateAbstractElement ssaRenamedPredicateElement = getSSARenamedElement(child, nodeToSSANode.get(currentElement), edge);                
-        
-        if(!nodeToSSANode.containsKey(child)) {
-          //if we see the child for the first time, we can compute the SSA renaming from scratch using edge
-          //thus, just make an ARTElement of the just computed ssaRenamedPredicateElement
-          ARTElement ssaChildElement = replaceComponent(child, ssaRenamedPredicateElement, nodeToSSANode.get(currentElement));
-          nodeToSSANode.put(child, ssaChildElement);
-          if(child.getParents().size() == 1) {
-            //otherwise, we need to merge anyway
-            openElements.add(child);
-          }
-        }
-        else {
-          //otherwise, we have to merge nodes
-          ARTElement outdatedSSAElement = nodeToSSANode.get(child);
-          PredicateAbstractElement ssaMergedPredicateElement = getSSAMergedElement(outdatedSSAElement, ssaRenamedPredicateElement);
-          ARTElement ssaChildElement = replaceComponent(child, ssaMergedPredicateElement, nodeToSSANode.get(currentElement));
-          for(ARTElement innerParent : outdatedSSAElement.getParents()) {
-            ssaChildElement.addParent(innerParent);
-          }          
-          outdatedSSAElement.removeFromART();
-          
-          nodeToSSANode.put(child, ssaChildElement);
-          if(child.getParents().size() == ssaChildElement.getParents().size()) {
-            openElements.add(child);
-          }
-        }
-      }
+      return replaceFormulasInPath(notRenamedPath, renamedBlockFormulas);
+
+    } finally {
+      ssaRenamingTimer.stop();
+      computePathTimer.stop();
     }
-    return nodeToSSANode.get(root);
-  }
-  
-  private PredicateAbstractElement getSSAMergedElement(ARTElement artElement, PredicateAbstractElement rhs) {
-    return getSSAMergedElement(AbstractElements.extractElementByType(artElement, PredicateAbstractElement.class), rhs); //reihenfolge?
-  }
-  
-  private PredicateAbstractElement getSSAMergedElement(PredicateAbstractElement elem1, PredicateAbstractElement elem2) {
-    return (PredicateAbstractElement)predicateCpa.getMergeOperator().merge(elem1, elem2, null);
   }
 
-  private PredicateAbstractElement getSSARenamedElement(ARTElement currentElement, ARTElement parentElement, CFAEdge lastEdge) {
-    PredicateAbstractElement currentPredicateElement = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
-    PredicateAbstractElement parentPredicateElement = AbstractElements.extractElementByType(parentElement, PredicateAbstractElement.class);
-    return getSSARenamedElement(currentPredicateElement, parentPredicateElement.getPathFormula(), lastEdge, parentPredicateElement.getAbstractionFormula());       
+  private Map<ARTElement, Formula> computeBlockFormulas(ARTElement pRoot) throws CPATransferException {
+    
+    Map<ARTElement, PathFormula> formulas = new HashMap<ARTElement, PathFormula>();
+    Map<ARTElement, Formula> abstractionFormulas = new HashMap<ARTElement, Formula>();
+    Deque<ARTElement> todo = new ArrayDeque<ARTElement>();
+
+    // initialize
+    assert pRoot.getParents().isEmpty();
+    formulas.put(pRoot, pfmgr.makeEmptyPathFormula());
+    todo.addAll(pRoot.getChildren());
+    
+    // iterate over all elements in the ART with BFS
+    outer: while (!todo.isEmpty()) {
+      ARTElement currentElement = todo.pollFirst();
+      if (formulas.containsKey(currentElement)) {
+        continue; // already handled
+      }
+      
+      // collect formulas for current location
+      List<PathFormula> currentFormulas = new ArrayList<PathFormula>(currentElement.getParents().size());
+      for (ARTElement parentElement : currentElement.getParents()) {
+        PathFormula parentFormula = formulas.get(parentElement);
+        if (parentFormula == null) {
+          // parent not handled yet, re-queue current element
+          todo.addLast(currentElement);
+          continue outer;
+        
+        } else {
+          CFAEdge edge = parentElement.getEdgeToChild(currentElement);
+          PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
+          currentFormulas.add(currentFormula);
+        }
+      }
+      assert currentFormulas.size() >= 1;
+      
+      PredicateAbstractElement predicateElement = extractElementByType(currentElement, PredicateAbstractElement.class);
+      if (predicateElement instanceof PredicateAbstractElement.AbstractionElement) {
+        // abstraction element
+        PathFormula currentFormula = getOnlyElement(currentFormulas);
+        abstractionFormulas.put(currentElement, currentFormula.getFormula());
+
+        // start new block with empty formula
+        assert todo.isEmpty() : "todo should be empty because of the special ART structure";
+        formulas.clear(); // free some memory
+        
+        formulas.put(currentElement, pfmgr.makeEmptyPathFormula(currentFormula));
+      
+      } else {
+        // merge the formulas
+        Iterator<PathFormula> it = currentFormulas.iterator();
+        PathFormula currentFormula = it.next();
+        while (it.hasNext()) {
+          currentFormula = pfmgr.makeOr(currentFormula, it.next());
+        }
+             
+        formulas.put(currentElement, currentFormula);
+      }
+      
+      todo.addAll(currentElement.getChildren());
+    }
+    return abstractionFormulas;
   }
   
-  private PredicateAbstractElement getSSARenamedElement(PredicateAbstractElement element, PathFormula lastPathFormula, CFAEdge lastEdge, AbstractionFormula lastAbstractionFormula) {
-    boolean isAbstractionLocation = element instanceof PredicateAbstractElement.AbstractionElement;
+  private List<Triple<ARTElement, CFANode, PredicateAbstractElement>> replaceFormulasInPath(
+      List<Triple<ARTElement, CFANode, PredicateAbstractElement>> notRenamedPath,
+      Map<ARTElement, Formula> blockFormulas) {
     
-    PathFormula pathFormula;
-    try {
-      pathFormula = predicateCpa.getTransferRelation().convertEdgeToPathFormula(lastPathFormula, lastEdge);
-    } catch (CPATransferException e) {
-      throw new RuntimeException(e);
-    } 
+    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayListWithExpectedSize(notRenamedPath.size());
     
-        
-    AbstractionFormula newAbstractionFormula;
-    if(isAbstractionLocation) {
-      Region newRegion = element.getAbstractionFormula().asRegion(); //no need to change region as it contains no SSA renaming anyway
-      Formula newFormula = fmgr.instantiate(pmgr.toConcrete(newRegion), pathFormula.getSsa());
-      Formula blockFormula = pathFormula.getFormula();
+    assert notRenamedPath.size() == blockFormulas.size();
+    
+    Region fakeRegion = new Region() { };
+    
+    for (Triple<ARTElement, CFANode, PredicateAbstractElement> abstractionPoint : notRenamedPath) {
+      ARTElement oldARTElement = abstractionPoint.getFirst();
+ 
+      Formula blockFormula = blockFormulas.get(oldARTElement);
       assert blockFormula != null;
-      pathFormula = pmgr.getPathFormulaManager().makeEmptyPathFormula(pathFormula); 
-      newAbstractionFormula = new AbstractionFormula(newRegion, newFormula, blockFormula);
+      AbstractionFormula abs = new AbstractionFormula(fakeRegion, fmgr.makeTrue(), blockFormula);
+      PredicateAbstractElement predicateElement = new PredicateAbstractElement.AbstractionElement(pfmgr.makeEmptyPathFormula(), abs);
+      
+      result.add(Triple.of(oldARTElement,
+                           abstractionPoint.getSecond(),
+                           predicateElement));
     }
-    else {
-      newAbstractionFormula = lastAbstractionFormula;
-    }
-    
-    if(isAbstractionLocation) {      
-      return new PredicateAbstractElement.AbstractionElement(pathFormula, newAbstractionFormula);
-    } else {
-      return new PredicateAbstractElement(pathFormula, newAbstractionFormula);
-    }
-       
-  } 
+    return result;
+  }
   
   @Override
   protected Collection<AbstractionPredicate> getPredicatesForARTElement(CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {

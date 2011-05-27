@@ -193,7 +193,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     }
   }
   
-  protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) {
+  protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
     List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayList();
     
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
