@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.ABMCPA;
+import org.sosy_lab.cpachecker.cpa.abm.RecursiveAnalysisFailedException;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
@@ -127,7 +128,7 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   }
   
   @Override
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException {
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException, RecursiveAnalysisFailedException {
     assert pLastElement.isTarget();
 
     computePathTimer.start();
@@ -176,7 +177,7 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
   //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
   //in the constructed subtree that represents target
-  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException {
+  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
     //start by creating ARTElements for each node needed in the tree 
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();

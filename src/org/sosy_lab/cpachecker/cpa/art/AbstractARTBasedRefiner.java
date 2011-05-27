@@ -171,7 +171,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException 
    */  
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException {
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);    
   }
 

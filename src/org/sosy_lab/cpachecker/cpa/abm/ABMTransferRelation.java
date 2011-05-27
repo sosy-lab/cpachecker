@@ -251,7 +251,7 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
 
-  private Collection<AbstractElement> performCompositeAnalysis(AbstractElement initialElement, Precision initialPrecision, CFANode node, CFAEdge edge) throws InterruptedException {
+  private Collection<AbstractElement> performCompositeAnalysis(AbstractElement initialElement, Precision initialPrecision, CFANode node, CFAEdge edge) throws InterruptedException, RecursiveAnalysisFailedException {
     try {
       AbstractElement reducedInitialElement = wrappedReducer.getVariableReducedElement(initialElement, currentBlock, node);
       
@@ -298,7 +298,7 @@ public class ABMTransferRelation implements TransferRelation {
       subgraphReturnCache.put(reducedInitialElement, initialPrecision, currentBlock, result);
       return result;        
     } catch (CPAException e) {
-      throw new RuntimeException(e);
+      throw new RecursiveAnalysisFailedException(e);
     }    
   }
   
@@ -478,8 +478,9 @@ public class ABMTransferRelation implements TransferRelation {
    * This method looks for the reached set that belongs to (root, rootPrecision),
    * then looks for target in this reached set and constructs a tree from root to target
    * (recursively, if needed).
+   * @throws RecursiveAnalysisFailedException 
    */
-  public ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget, ABMPredicateRefiner caller) throws InterruptedException {
+  public ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget, ABMPredicateRefiner caller) throws InterruptedException, RecursiveAnalysisFailedException {
     CFANode rootNode = root.retrieveLocationElement().getLocationNode();
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
             
@@ -508,7 +509,7 @@ public class ABMTransferRelation implements TransferRelation {
     return caller.computeCounterexampleSubgraph(targetARTElement, reachSet, newTreeTarget);
   }
   
-  private void recomputeART(AbstractElement pRoot, Precision pRootPrecision, CFANode pRootNode, Block rootSubtree) throws InterruptedException {
+  private void recomputeART(AbstractElement pRoot, Precision pRootPrecision, CFANode pRootNode, Block rootSubtree) throws InterruptedException, RecursiveAnalysisFailedException {
     //logger.log(Level.FINER, "Recomputing: " + pRoot + " at " + pRootNode);
     
     recomputeARTTimer.start();
