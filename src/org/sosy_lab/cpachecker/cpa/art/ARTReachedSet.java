@@ -288,4 +288,59 @@ public class ARTReachedSet {
 
     return stop;
   }
+  
+  public static class ForwardingARTReachedSet extends ARTReachedSet {
+
+    protected final ARTReachedSet delegate;
+    
+    public ForwardingARTReachedSet(ARTReachedSet pReached) {
+      super(pReached.mReached, pReached.mCpa);
+      delegate = pReached;
+    }
+    
+    @Override
+    public UnmodifiableReachedSet asReachedSet() {
+      return delegate.asReachedSet();
+    }
+    
+    @Override
+    public boolean checkForCoveredBy(ARTElement pElement) throws CPAException {
+      return delegate.checkForCoveredBy(pElement);
+    }
+    
+    @Override
+    public ARTElement getFirstElement() {
+      return delegate.getFirstElement();
+    }
+    
+    @Override
+    public ARTElement getLastElement() {
+      return delegate.getLastElement();
+    }
+    
+    @Override
+    public Precision getPrecision(ARTElement pE) {
+      return delegate.getPrecision(pE);
+    }
+    
+    @Override
+    public void removeCoverage(ARTElement pElement) {
+      delegate.removeCoverage(pElement);
+    }
+    
+    @Override
+    public void removeSubtree(ARTElement pE) {
+      delegate.removeSubtree(pE);
+    }
+    
+    @Override
+    public void removeSubtree(ARTElement pE, Precision pP) {
+      delegate.removeSubtree(pE, pP);
+    }
+    
+    @Override
+    public void replaceWithBottom(ARTElement pE) {
+      delegate.replaceWithBottom(pE);
+    }
+  }
 }

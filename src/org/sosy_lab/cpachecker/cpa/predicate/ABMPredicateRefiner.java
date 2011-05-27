@@ -85,8 +85,7 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     
   /**
    * This is a small extension of PredicateRefiner that overrides
-   * {@link #removeSubtree(ARTReachedSet, Path, ARTElement, PredicatePrecision)}
-   * and {@link #transformPath(Path)} so that they respect ABM.
+   * {@link #transformPath(Path)} so that it respects ABM.
    */
   private class ExtendedPredicateRefiner extends PredicateRefiner {
     
@@ -110,13 +109,14 @@ public class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     }
 
     @Override
-    protected void removeSubtree(ARTReachedSet pReached, Path pPath,
-        ARTElement pFirst, PredicatePrecision pSecond) {
-
-      lastErrorPath = null; // TODO why this?   
-
-      // delegate to ABMPredicateRefiner
-      ABMPredicateRefiner.this.removeSubtree(pReached, pPath, pFirst, pSecond);
+    public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+      boolean result = super.performRefinement(pReached, pPath);
+      
+      if (result) {
+        lastErrorPath = null; // TODO why this?   
+      }
+      
+      return result;
     }
     
     @Override

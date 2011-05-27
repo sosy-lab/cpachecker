@@ -140,8 +140,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
       artUpdate.start();
       
-      removeSubtree(pReached, pPath, refinementResult.getFirst(), refinementResult.getSecond());
-      
+      pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());    
+
       artUpdate.stop();
       totalRefinement.stop();
       return true;
@@ -206,10 +206,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     
     assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
-  }
-  
-  protected void removeSubtree(ARTReachedSet pReached, Path pPath, ARTElement pFirst, PredicatePrecision pSecond) {
-    pReached.removeSubtree(pFirst, pSecond);    
   }
 
   protected static final PredicatePrecision receivePredicatePrecision(Precision precision) {

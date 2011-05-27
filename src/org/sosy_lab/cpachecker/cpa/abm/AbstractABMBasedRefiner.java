@@ -24,9 +24,6 @@ import com.google.common.collect.Iterables;
  * 
  * Warning: Although the ART is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
- * 
- * It also offers a {@link #removeSubtree(ARTReachedSet, Path, ARTElement, Precision)}
- * method which should be used instead of {@link ARTReachedSet#removeSubtree(ARTElement)}.
  */
 public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
 
@@ -58,7 +55,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
       restartAnalysis(pReached);
       return true;
     } else {
-      return performRefinement0(pReached, pPath);
+      return performRefinement0(new ABMReachedSet(pReached, pPath), pPath);
     }
   }
  
@@ -94,10 +91,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     return transfer.getBlockPartitioning();
   }
   
-  /**
-   * Call this method when you normally would call {@link ARTReachedSet#removeSubtree(ARTElement, Precision)}.
-   */
-  protected final void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {
+  private void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {
     Precision oldPrecision = Precisions.extractPrecisionByType(reachSet.getPrecision(reachSet.getLastElement()), newPrecision.getClass());
 
     if (newPrecision.equals(oldPrecision)) {
@@ -135,5 +129,36 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     }
     path.add(Pair.of(currentElement, currentElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0)));
     return path;
+  }
+  
+  private class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
+
+    private final Path path;
+    
+    public ABMReachedSet(ARTReachedSet pReached, Path pPath) {
+      super(pReached);
+      this.path = pPath;
+    }
+    
+    @Override
+    public void removeSubtree(ARTElement element, Precision newPrecision) {
+ 
+      AbstractABMBasedRefiner.this.removeSubtree(delegate, path, element, newPrecision);
+    }
+    
+    @Override
+    public void removeCoverage(ARTElement pElement) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void removeSubtree(ARTElement pE) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void replaceWithBottom(ARTElement pE) {
+      throw new UnsupportedOperationException();
+    }
   }
 }
