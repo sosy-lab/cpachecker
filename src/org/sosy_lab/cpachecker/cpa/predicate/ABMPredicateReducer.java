@@ -201,28 +201,24 @@ public class ABMPredicateReducer implements Reducer {
     }
     
     private boolean relevantComparePrecisions(PredicatePrecision otherPrecision) {
-      
-      Set<CFANode> functionNodes = context.getNodes();   
-      
+
       Collection<AbstractionPredicate> globalPreds1 = relevantComputer.getRelevantPredicates(context, precision.getGlobalPredicates());
       Collection<AbstractionPredicate> globalPreds2 = relevantComputer.getRelevantPredicates(context, otherPrecision.getGlobalPredicates());
       if(!globalPreds1.equals(globalPreds2)) {
         return false;
       }
       
-      for(CFANode node : functionNodes) {
-        if(precision.getPredicateMap().keySet().contains(node) || otherPrecision.getPredicateMap().keySet().contains(node)) {
-          Collection<AbstractionPredicate> set1 = precision.getPredicates(node);
-          Collection<AbstractionPredicate> set2 = otherPrecision.getPredicates(node);
-          if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
-            set1 = relevantComputer.getRelevantPredicates(context, precision.getPredicates(node));
-            set2 = relevantComputer.getRelevantPredicates(context, otherPrecision.getPredicates(node)); 
-          } 
-          
-          if(!set1.equals(set2)) {
-            return false;
-          }
-        }          
+      for(CFANode node : context.getNodes()) {
+        Collection<AbstractionPredicate> set1 = precision.getPredicates(node);
+        Collection<AbstractionPredicate> set2 = otherPrecision.getPredicates(node);
+        if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
+          set1 = relevantComputer.getRelevantPredicates(context, set1);
+          set2 = relevantComputer.getRelevantPredicates(context, set2); 
+        } 
+        
+        if(!set1.equals(set2)) {
+          return false;
+        }
       }
       return true;
      }
