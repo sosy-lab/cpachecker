@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-class InvalidAutomatonException extends CPAException {
+class InvalidAutomatonException extends Exception {
 
   private static final long serialVersionUID = 4881083051895812266L;
 
