@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -474,13 +474,62 @@ public class ABMTransferRelation implements TransferRelation {
     return new HashSet<ARTElement>(openCallElements);
   }
   
+  //returns root of a subtree leading from the root element of the given reachedSet to the target element
+  //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
+  //in the constructed subtree that represents target
+  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
+    //start by creating ARTElements for each node needed in the tree 
+    Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
+    Stack<ARTElement> openElements = new Stack<ARTElement>();
+    ARTElement root = null;
+    
+    elementsMap.put(target, newTreeTarget);
+    openElements.push(target);    
+    while(!openElements.empty()) {
+      ARTElement currentElement = openElements.pop();
+      for(ARTElement parent : currentElement.getParents()) {
+        if(!elementsMap.containsKey(parent)) {
+          //create node for parent in the new subtree
+          elementsMap.put(parent, new ARTElement(parent.getWrappedElement(), null));
+          //and remember to explore the parent later            
+          openElements.push(parent);
+        }
+        CFAEdge edge = getEdgeToChild(parent, currentElement);
+        if(edge == null) {
+          //this is a summarized call and thus an direct edge could not be found
+          //we have the transfer function to handle this case, as our reachSet is wrong 
+          //(we have to use the cached ones)
+          ARTElement innerTree = computeCounterexampleSubgraph(parent, reachedSet.getPrecision(parent), elementsMap.get(currentElement));
+          if(innerTree == null) {
+            return null;
+          }
+          for(ARTElement child : innerTree.getChildren()) {            
+            child.addParent(elementsMap.get(parent));
+          }
+          innerTree.removeFromART();
+        }
+        else {          
+          //normal edge
+          //create an edge from parent to current
+          elementsMap.get(currentElement).addParent(elementsMap.get(parent));
+        }
+      }
+      if(currentElement.getParents().isEmpty()) {
+        root = elementsMap.get(currentElement);
+      }
+    }    
+    //TODO: assert that the subgraph is acyclic
+    assert root != null;
+    return root;
+  }
+  
   /**
    * This method looks for the reached set that belongs to (root, rootPrecision),
    * then looks for target in this reached set and constructs a tree from root to target
    * (recursively, if needed).
    * @throws RecursiveAnalysisFailedException 
    */
-  public ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget, ABMPredicateRefiner caller) throws InterruptedException, RecursiveAnalysisFailedException {
+  private ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
     CFANode rootNode = root.retrieveLocationElement().getLocationNode();
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
             
@@ -506,7 +555,7 @@ public class ABMTransferRelation implements TransferRelation {
       return null; 
     }
     //we found the target; now construct a subtree in the ART starting with targetARTElement
-    return caller.computeCounterexampleSubgraph(targetARTElement, reachSet, newTreeTarget);
+    return computeCounterexampleSubgraph(targetARTElement, reachSet, newTreeTarget);
   }
   
   private void recomputeART(AbstractElement pRoot, Precision pRootPrecision, CFANode pRootNode, Block rootSubtree) throws InterruptedException, RecursiveAnalysisFailedException {
@@ -526,6 +575,23 @@ public class ABMTransferRelation implements TransferRelation {
   public void clearCaches() {
     subgraphReachCache.clear();
     subgraphReturnCache.clear();
+  }
+  
+  private static CFAEdge getEdgeToChild(ARTElement parent, ARTElement child) {
+    CFANode currentLoc = parent.retrieveLocationElement().getLocationNode();
+    CFANode childNode = child.retrieveLocationElement().getLocationNode();
+
+    return getEdgeTo(currentLoc, childNode);
+  }
+  
+  private static CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
+    for(int i = 0; i < node1.getNumLeavingEdges(); i++) {
+      CFAEdge edge = node1.getLeavingEdge(i);
+      if(edge.getSuccessor() == node2) {
+        return edge;
+      }
+    }
+    return null;   
   }
   
   @Override

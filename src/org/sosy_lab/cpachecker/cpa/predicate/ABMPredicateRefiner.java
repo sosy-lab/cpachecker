@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Stack;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -136,7 +135,7 @@ public class ABMPredicateRefiner extends PredicateRefiner {
       ARTElement subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null));
+        subgraph = abmCpa.getTransferRelation().computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null));
         if (subgraph == null) {
           return null;
         }
@@ -165,62 +164,13 @@ public class ABMPredicateRefiner extends PredicateRefiner {
     while(currentElement.getChildren().size() > 0) {
       ARTElement child = currentElement.getChildren().iterator().next();
       
-      CFAEdge edge = getEdgeToChild(currentElement, child);
+      CFAEdge edge = currentElement.getEdgeToChild(child);
       path.add(Pair.of(currentElement, edge));
       
       currentElement = child;
     }
     path.add(Pair.of(currentElement, currentElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0)));
     return path;
-  }
-  
-  //returns root of a subtree leading from the root element of the given reachedSet to the target element
-  //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
-  //in the constructed subtree that represents target
-  public ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
-    //start by creating ARTElements for each node needed in the tree 
-    Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
-    Stack<ARTElement> openElements = new Stack<ARTElement>();
-    ARTElement root = null;
-    
-    elementsMap.put(target, newTreeTarget);
-    openElements.push(target);    
-    while(!openElements.empty()) {
-      ARTElement currentElement = openElements.pop();
-      for(ARTElement parent : currentElement.getParents()) {
-        if(!elementsMap.containsKey(parent)) {
-          //create node for parent in the new subtree
-          elementsMap.put(parent, new ARTElement(parent.getWrappedElement(), null));
-          //and remember to explore the parent later            
-          openElements.push(parent);
-        }
-        CFAEdge edge = getEdgeToChild(parent, currentElement);
-        if(edge == null) {
-          //this is a summarized call and thus an direct edge could not be found
-          //we have the transfer function to handle this case, as our reachSet is wrong 
-          //(we have to use the cached ones)
-          ARTElement innerTree = abmCpa.getTransferRelation().computeCounterexampleSubgraph(parent, reachedSet.getPrecision(parent), elementsMap.get(currentElement), this);
-          if(innerTree == null) {
-            return null;
-          }
-          for(ARTElement child : innerTree.getChildren()) {            
-            child.addParent(elementsMap.get(parent));
-          }
-          innerTree.removeFromART();
-        }
-        else {          
-          //normal edge
-          //create an edge from parent to current
-          elementsMap.get(currentElement).addParent(elementsMap.get(parent));
-        }
-      }
-      if(currentElement.getParents().isEmpty()) {
-        root = elementsMap.get(currentElement);
-      }
-    }    
-    //TODO: assert that the subgraph is acyclic
-    assert root != null;
-    return root;
   }
   
   private ARTElement computeSSARenamedSubgraph(ARTElement root) {
@@ -234,7 +184,7 @@ public class ABMPredicateRefiner extends PredicateRefiner {
       assert nodeToSSANode.get(currentElement).getParents().size() == currentElement.getParents().size();
       
       for(ARTElement child : currentElement.getChildren()) {
-        CFAEdge edge = getEdgeToChild(currentElement, child);
+        CFAEdge edge = currentElement.getEdgeToChild(child);
         assert edge != null; //subgraph is subgraph call expanded; no summarized function calls involved
         
         PredicateAbstractElement ssaRenamedPredicateElement = getSSARenamedElement(child, nodeToSSANode.get(currentElement), edge);                
@@ -335,22 +285,5 @@ public class ABMPredicateRefiner extends PredicateRefiner {
     }
     
     return relevantPredicatesComputer.getRelevantPredicates(abmCpa.getBlockPartitioning().getBlockForNode(outerNode), preds);
-  }  
-  
-  private CFAEdge getEdgeToChild(ARTElement parent, ARTElement child) {
-    CFANode currentLoc = parent.retrieveLocationElement().getLocationNode();
-    CFANode childNode = child.retrieveLocationElement().getLocationNode();
-
-    return getEdgeTo(currentLoc, childNode);
-  }
-  
-  private CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
-    for(int i = 0; i < node1.getNumLeavingEdges(); i++) {
-      CFAEdge edge = node1.getLeavingEdge(i);
-      if(edge.getSuccessor() == node2) {
-        return edge;
-      }
-    }
-    return null;   
-  }  
+  }    
 }
