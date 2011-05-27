@@ -34,12 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -139,7 +136,7 @@ public class ABMTransferRelation implements TransferRelation {
   private final CPAAlgorithm algorithm;
   private final ARTCPA wrappedCPA;
   private final TransferRelation wrappedTransfer;
-
+  private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
   
   //Stats
@@ -153,10 +150,11 @@ public class ABMTransferRelation implements TransferRelation {
   final Timer removeCachedSubtreeTimer = new Timer();
   final Timer removeSubtreeTimer = new Timer();
   
-  public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa) throws InvalidConfigurationException {
+  public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     algorithm = new CPAAlgorithm(abmCpa, logger);
+    reachedSetFactory = pReachedSetFactory;
     wrappedCPA = (ARTCPA)abmCpa.getWrappedCpa();
     wrappedTransfer = wrappedCPA.getTransferRelation();
     wrappedReducer = abmCpa.getReducer();
@@ -272,7 +270,7 @@ public class ABMTransferRelation implements TransferRelation {
       } else {
         //compute the subgraph specification from scratch
         cacheMisses++;
-        reached = computeInitialReachedSet(reducedInitialElement, initialPrecision, node, edge);
+        reached = createInitialReachedSet(reducedInitialElement, initialPrecision, node, edge);
         subgraphReachCache.put(reducedInitialElement, initialPrecision, currentBlock, reached);      
       }  
       
@@ -302,13 +300,8 @@ public class ABMTransferRelation implements TransferRelation {
     }    
   }
   
-  private ReachedSet computeInitialReachedSet(AbstractElement reducedInitialElement, Precision initialPredicatePrecision, CFANode node, CFAEdge edge) throws CPATransferException {
-    //TODO: respect configuration
-    WaitlistFactory waitlistFactory = Waitlist.TraversalMethod.BFS;
-    waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
-    //waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
-    
-    ReachedSet reached = new PartitionedReachedSet(waitlistFactory);
+  private ReachedSet createInitialReachedSet(AbstractElement reducedInitialElement, Precision initialPredicatePrecision, CFANode node, CFAEdge edge) {
+    ReachedSet reached = reachedSetFactory.create();
     reached.add(reducedInitialElement, initialPredicatePrecision);
     return reached;
   }

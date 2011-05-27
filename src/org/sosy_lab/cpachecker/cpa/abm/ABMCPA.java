@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 
 
@@ -48,7 +49,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Option
   private boolean delayDeclarations = false;
   
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     super(pCpa);
     config.inject(this);
 
@@ -62,7 +63,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
     }
     reducer = new TimedReducer(wrappedReducer);
-    transfer = new ABMTransferRelation(config, logger, this);
+    transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     
     ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getPrecisionAdjustment().setTransferRelation(transfer);
     stats = new ABMCPAStatistics(this);

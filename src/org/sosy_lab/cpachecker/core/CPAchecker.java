@@ -273,7 +273,7 @@ public class CPAchecker {
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(config, logger);
+    CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
     if (cpa instanceof StatisticsProvider) {

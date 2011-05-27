@@ -62,7 +62,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     Preconditions.checkNotNull(pLogger);
-    Preconditions.checkState(logger == null, "setConfiguration called twice on CPAFactory");
+    Preconditions.checkState(logger == null, "setLogger called twice on CPAFactory");
 
     logger = pLogger;
     return this;
@@ -80,6 +80,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   
   @Override
   public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
-    throw new UnsupportedOperationException();
+    // ignore other objects
+    return this;
   }
 }
