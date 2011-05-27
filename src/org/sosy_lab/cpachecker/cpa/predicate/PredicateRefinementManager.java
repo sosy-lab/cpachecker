@@ -167,7 +167,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      ArrayList<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
+      List<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
     
     refStats.cexAnalysisTimer.start();
 
@@ -425,7 +425,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * @throws InterruptedException 
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final ArrayList<PredicateAbstractElement> pAbstractTrace) throws CPAException, InterruptedException {
+      final List<PredicateAbstractElement> pAbstractTrace) throws CPAException, InterruptedException {
     
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {

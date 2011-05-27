@@ -10,6 +10,7 @@ import java.util.Queue;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -266,13 +267,12 @@ public class ABMPredicateRefiner extends PredicateRefiner {
   } 
   
   @Override
-  protected Collection<AbstractionPredicate> getPredicatesForARTElement(CounterexampleTraceInfo pInfo, ARTElement pAE) {
+  protected Collection<AbstractionPredicate> getPredicatesForARTElement(CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
     //TODO:
     
-    PredicateAbstractElement predicateElement = AbstractElements.extractElementByType(pAE, PredicateAbstractElement.class);
-    Collection<AbstractionPredicate> preds = pInfo.getPredicatesForRefinement(predicateElement);
-    CallstackElement callStackElement = AbstractElements.extractElementByType(pAE, CallstackElement.class);
-    CFANode node = pAE.retrieveLocationElement().getLocationNode();
+    Collection<AbstractionPredicate> preds = pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
+    CallstackElement callStackElement = AbstractElements.extractElementByType(pInterpolationPoint.getFirst(), CallstackElement.class);
+    CFANode node = pInterpolationPoint.getSecond();
     CFANode outerNode = node;
     
     BlockPartitioning partitioning = abmCpa.getBlockPartitioning();

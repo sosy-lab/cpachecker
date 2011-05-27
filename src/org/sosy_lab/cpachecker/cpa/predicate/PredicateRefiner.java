@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
-import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +41,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -63,8 +63,10 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.predicate")
@@ -114,17 +116,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    ArrayList<PredicateAbstractElement> path = new ArrayList<PredicateAbstractElement>();
-    List<ARTElement> artPath = new ArrayList<ARTElement>();
-    
-    // copy to the above lists, skipping initial element and non-abstraction elements
-    for (ARTElement ae : transform(skip(pPath, 1), Pair.<ARTElement>getProjectionToFirst())) {
-      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
-      if (pe instanceof AbstractionElement) {
-        path.add(pe);
-        artPath.add(ae);
-      }
-    }
+    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> path = transformPath(pPath);
     
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
     PredicatePrecision oldPredicatePrecision = receivePredicatePrecision(oldPrecision);
@@ -135,7 +127,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     logger.log(Level.ALL, "Abstraction trace is", path);
 
     // build the counterexample
-    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(path);
+    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(transform(path, Triple.<PredicateAbstractElement>getProjectionToThird()));
     targetPath = null;
 
     // if error is spurious refine
@@ -143,7 +135,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       precisionUpdate.start();
       Pair<ARTElement, PredicatePrecision> refinementResult =
-              performRefinement(oldPredicatePrecision, path, artPath, mCounterexampleTraceInfo);
+              performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
       precisionUpdate.stop();
 
       artUpdate.start();
@@ -201,6 +193,21 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     }
   }
   
+  protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) {
+    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayList();
+    
+    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+      if (pe instanceof AbstractionElement) {
+        CFANode loc = AbstractElements.extractLocation(ae);
+        result.add(Triple.of(ae, loc, pe));
+      }
+    }
+    
+    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    return result;
+  }
+  
   protected void removeSubtree(ARTReachedSet pReached, Path pPath, ARTElement pFirst, PredicatePrecision pSecond) {
     pReached.removeSubtree(pFirst, pSecond);    
   }
@@ -214,34 +221,26 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
    * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement) 
    */
   private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      ArrayList<PredicateAbstractElement> pPath, List<ARTElement> pArtPath,
+      List<Triple<ARTElement, CFANode, PredicateAbstractElement>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
     
-    PredicateAbstractElement firstInterpolationElement = null;
-    ARTElement firstInterpolationARTElement = null;
+    Triple<ARTElement, CFANode, PredicateAbstractElement> firstInterpolationPoint = null;
     boolean newPredicatesFound = false;
     
-    List<CFANode> absLocations = new ArrayList<CFANode>(pArtPath.size());
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
-    // iterate synchronously through pArtPath and pPath
-    int i = -1;
-    for (ARTElement ae : pArtPath) {
-      i++;
-      PredicateAbstractElement e = pPath.get(i);
-      CFANode loc = ae.retrieveLocationElement().getLocationNode();
-      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, ae);     
+    // iterate through pPath and find first point with new predicates, from there we have to cut the ART
+    for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : pPath) {
+      CFANode loc = interpolationPoint.getSecond();
+      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);     
       
-      absLocations.add(loc);
-      
-      if (firstInterpolationElement == null && newpreds.size() > 0) {
-        firstInterpolationElement = e;
-        firstInterpolationARTElement = ae;
+      if (firstInterpolationPoint == null && newpreds.size() > 0) {
+        firstInterpolationPoint = interpolationPoint;
       }
       if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(newpreds)) {
         // new predicates for this location
@@ -251,8 +250,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       pmapBuilder.putAll(loc, newpreds);
       pmapBuilder.putAll(loc, globalPredicates);
     }
-    assert firstInterpolationElement != null;
-    assert firstInterpolationElement == extractElementByType(firstInterpolationARTElement, PredicateAbstractElement.class);
+    assert firstInterpolationPoint != null;
 
     ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
     PredicatePrecision newPrecision;
@@ -264,8 +262,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
+    List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Triple.<CFANode>getProjectionToSecond()));
+
     // We have two different strategies for the refinement root: set it to
-    // the firstInterpolationElement or set it to highest location in the ART
+    // the firstInterpolationPoint or set it to highest location in the ART
     // where the same CFANode appears.
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
@@ -273,25 +273,26 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     ARTElement root = null;
     if (newPredicatesFound) {
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", firstInterpolationElement, "from ART.");
+      root = firstInterpolationPoint.getFirst();
 
-      root = firstInterpolationARTElement;
+      logger.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 1: remove everything below", root, "from ART.");
 
     } else {
       if (absLocations.equals(lastErrorPath)) {
         throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
       }
       
-      CFANode loc = firstInterpolationARTElement.retrieveLocationElement().getLocationNode();
+      CFANode loc = firstInterpolationPoint.getSecond();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", loc, "from ART.");
 
-      // find first element in path with location == loc
-      for (ARTElement e : pArtPath) {
-        if (e.retrieveLocationElement().getLocationNode().equals(loc)) {
-          root = e;
+      // find first element in path with location == loc,
+      // this is not necessary equal to firstInterpolationPoint.getFirst()
+      for (Triple<ARTElement, CFANode, PredicateAbstractElement> abstractionPoint : pPath) {
+        if (abstractionPoint.getSecond().equals(loc)) {
+          root = abstractionPoint.getFirst();
           break;
         }
       }
@@ -304,9 +305,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   }
 
   protected Collection<AbstractionPredicate> getPredicatesForARTElement(
-      CounterexampleTraceInfo pInfo, ARTElement pAE) {
-    PredicateAbstractElement pE = AbstractElements.extractElementByType(pAE, PredicateAbstractElement.class);
-    return pInfo.getPredicatesForRefinement(pE);
+      CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
+    return pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
   }
 
   @Override
