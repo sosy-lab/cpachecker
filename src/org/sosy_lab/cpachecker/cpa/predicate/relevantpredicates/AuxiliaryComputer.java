@@ -3,14 +3,10 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
-import com.google.common.collect.Maps;
 
 
 /**
@@ -18,25 +14,11 @@ import com.google.common.collect.Maps;
  * @author dwonisch
  *
  */
-public class AuxiliaryComputer implements RelevantPredicatesComputer {
-  
-  private final Map<Pair<Collection<String>, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
-  
+public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collection<String>> {
+ 
   @Override
-  public Collection<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-    Collection<AbstractionPredicate> relevantPredicates = new HashSet<AbstractionPredicate>(predicates.size());
-    
-    Collection<String> relevantVariables = computeRelevantVariables(context, predicates);
-    
-    for(AbstractionPredicate predicate : predicates) {
-      if(isRelevant(relevantVariables, predicate)) {
-        relevantPredicates.add(predicate);
-      }
-    }
-    return relevantPredicates;
-  }
-  
-  private Collection<String> computeRelevantVariables(Block pContext, Collection<AbstractionPredicate> pPredicates) {
+  protected Collection<String> precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {
+    // compute relevant variables
     Collection<String> relevantVars = new HashSet<String>();
     Collection<ReferencedVariable> unknownVars = new ArrayList<ReferencedVariable>();
     
@@ -83,39 +65,17 @@ public class AuxiliaryComputer implements RelevantPredicatesComputer {
     return false;
   }
 
-  private boolean isRelevant(Collection<String> relevantVariables, AbstractionPredicate predicate) {
-    Pair<Collection<String>, AbstractionPredicate> pair = Pair.of(relevantVariables, predicate);
-    if(relevantPredicates.containsKey(pair)) {
-      return relevantPredicates.get(pair);
-    }
-    
-    String predicateString = predicate.getSymbolicAtom().toString();
-    if(predicateString.contains("false") || predicateString.contains("retval")  || predicateString.contains("nondet")) {
-      relevantPredicates.put(pair, true);
-      return true;
-    }
-    else {
-      for(String var : relevantVariables) {
-        if(predicateString.contains(var)) {
-          //var occurs in the predicate, so better trace it
-          //TODO: contains is a quite rough approximation; for example "foo <= 5" also contains "f", although the variable f does in fact not occur in the predicate.
-          relevantPredicates.put(pair, true);
-          return true;
-        }
-      }      
-    }
-    relevantPredicates.put(pair, false);
-    return false;    
-  }
-  
   @Override
-  public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-    Collection<AbstractionPredicate> newPredicates = getRelevantPredicates(context, predicates);
-    
-    Collection<AbstractionPredicate> removePredicates = new HashSet<AbstractionPredicate>();
-    removePredicates.addAll(predicates);
-    removePredicates.removeAll(newPredicates);
-    
-    return removePredicates;
+  protected boolean isRelevant(Collection<String> relevantVariables, AbstractionPredicate predicate) {
+    String predicateString = predicate.getSymbolicAtom().toString();
+
+    for (String var : relevantVariables) {
+      if (predicateString.contains(var)) {
+        //var occurs in the predicate, so better trace it
+        //TODO: contains is a quite rough approximation; for example "foo <= 5" also contains "f", although the variable f does in fact not occur in the predicate.
+        return true;
+      }
+    }      
+    return false;    
   }
 }
