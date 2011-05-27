@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.common;
 
+import com.google.common.base.Function;
+
 
 /**
  * A generic Triple class based on Pair.java
@@ -47,9 +49,9 @@ public class Triple<A, B, C> {
       return new Triple<A, B, C>(first, second, third);
     }
     
-    public A getFirst() { return first; }
-    public B getSecond() { return second; }
-    public C getThird() { return third; }
+    public final A getFirst() { return first; }
+    public final B getSecond() { return second; }
+    public final C getThird() { return third; }
 
     @Override
     public String toString() {
@@ -77,5 +79,54 @@ public class Triple<A, B, C> {
         else if (second == null) return first.hashCode() * 11 + third.hashCode();
         else if (third == null) return first.hashCode() * 13 + second.hashCode();
         else return first.hashCode() * 17 + second.hashCode() * 5 + third.hashCode();
+    }
+    
+    
+    public static <T> Function<Triple<? extends T, ?, ?>, T> getProjectionToFirst() {
+      return Holder.<T, Void>getInstance().PROJECTION_TO_FIRST;
+    }
+    
+    public static <T> Function<Triple<?, ? extends T, ?>, T> getProjectionToSecond() {
+      return Holder.<T, Void>getInstance().PROJECTION_TO_SECOND;
+    }
+
+    public static <T> Function<Triple<?, ?, ? extends T>, T> getProjectionToThird() {
+      return Holder.<T, Void>getInstance().PROJECTION_TO_THIRD;
+    }
+    
+    /*
+     * Static holder class for several function objects because if these fields
+     * were static fields of the Triple class, they couldn't be generic.
+     */
+    private static final class Holder<T, T2> {
+      
+      private static final Holder<?, ?> INSTANCE = new Holder<Void, Void>();
+      
+      // Cast is safe because class has no mutable state
+      @SuppressWarnings("unchecked")
+      public static <T, T2> Holder<T, T2> getInstance() {
+        return (Holder<T, T2>) INSTANCE;
+      }
+      
+      private final Function<Triple<? extends T, ?, ?>, T> PROJECTION_TO_FIRST = new Function<Triple<? extends T, ?, ?>, T>() {
+        @Override
+        public T apply(Triple<? extends T, ?, ?> pArg0) {
+          return pArg0.getFirst();
+        }
+      };
+      
+      private final Function<Triple<?, ? extends T, ?>, T> PROJECTION_TO_SECOND = new Function<Triple<?, ? extends T, ?>, T>() {
+        @Override
+        public T apply(Triple<?, ? extends T, ?> pArg0) {
+          return pArg0.getSecond();
+        }
+      };
+      
+      private final Function<Triple<?, ?, ? extends T>, T> PROJECTION_TO_THIRD = new Function<Triple<?, ?, ? extends T>, T>() {
+        @Override
+        public T apply(Triple<?, ?, ? extends T> pArg0) {
+          return pArg0.getThird();
+        }
+      };
     }
 }
