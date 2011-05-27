@@ -10,12 +10,15 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.util.CFA;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
 
 
 /**
@@ -24,13 +27,14 @@ import org.sosy_lab.cpachecker.util.CFA;
  *
  */
 public class BlockPartitioningBuilder {
-  private ReferencedVariablesCollector referenceCollector = null;
   
-  private Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
-  private Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  private Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  private Map<CFANode, Set<CFANode>> innerFunctionCallsMap = new HashMap<CFANode, Set<CFANode>>();
-  private Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
+  private final ReferencedVariablesCollector referenceCollector;
+  
+  private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
+  private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
+  private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
+  private final Map<CFANode, Set<CFAFunctionDefinitionNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<CFAFunctionDefinitionNode>>();
+  private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
   
   public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {        
     referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);    
@@ -69,9 +73,9 @@ public class BlockPartitioningBuilder {
     }
     
     //copy block nodes
-    Map<CFANode, Set<CFANode>> uniqueNodesMap = new HashMap<CFANode, Set<CFANode>>();
+    SetMultimap<CFANode, CFANode> uniqueNodesMap = HashMultimap.create();
     for(CFANode key : blockNodesMap.keySet()) {
-      uniqueNodesMap.put(key, new HashSet<CFANode>(blockNodesMap.get(key)));
+      uniqueNodesMap.putAll(key, blockNodesMap.get(key));
     }
     
     //fix unique nodes set by removing interleavings
@@ -90,7 +94,7 @@ public class BlockPartitioningBuilder {
     
     
     //now we can create the Blocks   for the BlockPartitioning
-    Collection<Block> blocks = new ArrayList<Block>(referencedVariablesMap.keySet().size());
+    Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
     for(CFANode key : returnNodesMap.keySet()) {
       blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), uniqueNodesMap.get(key), blockNodesMap.get(key)));
     }
@@ -105,12 +109,12 @@ public class BlockPartitioningBuilder {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
     Set<CFANode> callNodes = collectCallNodes(nodes);
     Set<CFANode> returnNodes = collectReturnNodes(nodes);    
-    Set<CFANode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
+    Set<CFAFunctionDefinitionNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
     for(CFANode node : callNodes) {
       registerNode = node;
-      if(node instanceof FunctionDefinitionNode) {
+      if(node instanceof CFAFunctionDefinitionNode) {
         break;
       }
     }
@@ -122,13 +126,13 @@ public class BlockPartitioningBuilder {
     blockNodesMap.put(registerNode, nodes);
   }
  
-  private Set<CFANode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
-    Set<CFANode> result = new HashSet<CFANode>();
+  private Set<CFAFunctionDefinitionNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
+    Set<CFAFunctionDefinitionNode> result = new HashSet<CFAFunctionDefinitionNode>();
     for(CFANode node : pNodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFANode succ = node.getLeavingEdge(i).getSuccessor();        
-        if(node.getLeavingEdge(i) instanceof FunctionCallEdge) {
-          result.add(succ);
+        CFAEdge e = node.getLeavingEdge(i);
+        if (e instanceof FunctionCallEdge) {
+          result.add(((FunctionCallEdge)e).getSuccessor());
         }        
       }
     }    
