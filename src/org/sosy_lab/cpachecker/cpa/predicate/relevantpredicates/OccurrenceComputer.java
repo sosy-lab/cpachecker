@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -9,6 +8,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+
+import com.google.common.collect.Maps;
 
 
 /**
@@ -18,35 +19,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
  */
 
 public class OccurrenceComputer implements RelevantPredicatesComputer {
-  private Map<Pair<Block, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> removedCache;
-  private Map<Pair<Block, Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>> relevantCache;
-  private Map<Pair<Block, AbstractionPredicate>, Boolean> relevantPredicates;
-  
-  public OccurrenceComputer() {    
-    this.removedCache = new HashMap<Pair<Block,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
-    this.relevantCache = new HashMap<Pair<Block,Collection<AbstractionPredicate>>, Collection<AbstractionPredicate>>();
-    this.relevantPredicates = new HashMap<Pair<Block,AbstractionPredicate>, Boolean>();
-  }
-  
-  @Override
-  public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-    Pair<Block,Collection<AbstractionPredicate>> pair = Pair.of(context, predicates);
-    if(!removedCache.containsKey(pair)) {
-      removedCache.put(pair, computeRemovePredicates(context, predicates));
-    } 
-    return removedCache.get(pair);
-  }
+
+  private final Map<Pair<Block, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
   
   @Override
   public Collection<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-    Pair<Block,Collection<AbstractionPredicate>> pair = Pair.of(context, predicates);
-    if(!relevantCache.containsKey(pair)) {
-      relevantCache.put(pair, computeRelevantPredicates(context, predicates));
-    } 
-    return relevantCache.get(pair);
-  }
-  
-  private Collection<AbstractionPredicate> computeRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
     Collection<AbstractionPredicate> relevantPredicates = new HashSet<AbstractionPredicate>(predicates.size());
     for(AbstractionPredicate predicate : predicates) {
       if(isRelevant(context, predicate)) {
@@ -81,7 +58,8 @@ public class OccurrenceComputer implements RelevantPredicatesComputer {
     return false;    
   }
   
-  private Collection<AbstractionPredicate> computeRemovePredicates(Block context, Collection<AbstractionPredicate> predicates) {
+  @Override
+  public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
     Collection<AbstractionPredicate> newPredicates = getRelevantPredicates(context, predicates);
     
     Collection<AbstractionPredicate> removePredicates = new HashSet<AbstractionPredicate>();

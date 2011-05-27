@@ -10,6 +10,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.OccurrenceComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 
@@ -40,9 +41,9 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     config.inject(this, ABMPredicateCPA.class);
     
     if (auxiliaryPredicateComputer) {
-      relevantPredicatesComputer = new AuxiliaryComputer();
+      relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new AuxiliaryComputer());
     } else {
-      relevantPredicatesComputer = new OccurrenceComputer(); 
+      relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new OccurrenceComputer()); 
     }
     
     reducer = new ABMPredicateReducer(this);
