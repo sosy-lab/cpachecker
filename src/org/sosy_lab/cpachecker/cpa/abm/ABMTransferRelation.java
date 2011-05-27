@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractElements.isTargetElement;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -253,49 +253,50 @@ public class ABMTransferRelation implements TransferRelation {
 
   private Collection<AbstractElement> performCompositeAnalysis(AbstractElement initialElement, Precision initialPrecision, CFANode node, CFAEdge edge) throws InterruptedException {
     try {
-      //logger.log(Level.FINER, "Performing recursive compositite analysis for node " + node + " in state " + initialPredicateElement);
       AbstractElement reducedInitialElement = wrappedReducer.getVariableReducedElement(initialElement, currentBlock, node);
       
-      ReachedSet reached;
-      if(!NO_CACHING && subgraphReturnCache.containsKey(reducedInitialElement, initialPrecision, currentBlock)) {        
-        fullCacheHits++;
-        //logger.log(Level.FINEST, "Already have cached result for the element (Full Cache Hit)");
-        return subgraphReturnCache.get(reducedInitialElement, initialPrecision, currentBlock);        
-      } 
-      else if(!NO_CACHING && subgraphReachCache.containsKey(reducedInitialElement, initialPrecision, currentBlock)) {
+      ReachedSet reached = null;
+      if (!NO_CACHING) {
+        Collection<AbstractElement> result = subgraphReturnCache.get(reducedInitialElement, initialPrecision, currentBlock);
+        if (result != null) {
+          fullCacheHits++;
+          return result;
+        }
+
+        reached = subgraphReachCache.get(reducedInitialElement, initialPrecision, currentBlock);
+      }
+      
+      if (reached != null) {
         //at least we have partly computed reach set cached
         partialCacheHits++;
-        //logger.log(Level.FINEST, "Already have partial cached results for the element (Partial Cache Hit)");
-        reached = subgraphReachCache.get(reducedInitialElement, initialPrecision, currentBlock);
       } else {
         //compute the subgraph specification from scratch
         cacheMisses++;
-        //logger.log(Level.FINEST, "No cached results for the element yet (Cache Miss)");
         reached = computeInitialReachedSet(reducedInitialElement, initialPrecision, node, edge);
-      }       
+        subgraphReachCache.put(reducedInitialElement, initialPrecision, currentBlock, reached);      
+      }  
       
       algorithm.run(reached);     
-      
-      subgraphReachCache.put(reducedInitialElement, initialPrecision, currentBlock, reached);      
             
-      AbstractElement lastElement = reached.getLastElement();
+      List<AbstractElement> result;
       
       // if the element is an error element
-      if((lastElement instanceof Targetable) && ((Targetable)lastElement).isTarget()) {
+      AbstractElement lastElement = reached.getLastElement();
+      if (isTargetElement(lastElement)) {
         //found a target element inside a recursive subgraph call
         //this needs to be propagated to outer subgraph (till main is reached)
-        List<AbstractElement> result = Collections.singletonList(lastElement);
-        subgraphReturnCache.put(reducedInitialElement, initialPrecision, currentBlock, result);
-        return result;        
+        result = Collections.singletonList(lastElement);
+        
+      } else {
+        
+        result = new ArrayList<AbstractElement>();
+        for(CFANode returnNode : currentBlock.getReturnNodes()) {
+          Iterables.addAll(result, AbstractElements.filterLocation(reached, returnNode));
+        }
       }
       
-      ArrayList<AbstractElement> returningNodes = new ArrayList<AbstractElement>();
-      for(CFANode returnNode : currentBlock.getReturnNodes()) {
-        Iterables.addAll(returningNodes, AbstractElements.filterLocation(reached, returnNode));
-      }
-      subgraphReturnCache.put(reducedInitialElement, initialPrecision, currentBlock, returningNodes);
-      
-      return returningNodes;
+      subgraphReturnCache.put(reducedInitialElement, initialPrecision, currentBlock, result);
+      return result;        
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }    
