@@ -238,12 +238,19 @@ public class ABMTransferRelation implements TransferRelation {
       currentBlock = outerSubtree;
 
       return expandedResult;      
-    }
-    else if(currentBlock != null && currentBlock.isReturnNode(currentNode)) {
-      //do not perform analysis beyond return states //TODO: requires that the return state has only outgoing edges to the "outside"; checked somewhere?
-      return Collections.emptySet();
-    }
-    else {
+    
+    } else if (currentBlock != null && currentBlock.isReturnNode(currentNode)) {
+      // do not perform analysis beyond return states
+      
+      if (currentBlock.getNodes().contains(edge.getSuccessor())) {
+        // but this is an edge that stays in this block, so perform analysis anyway
+        return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
+        
+      } else {
+        return Collections.emptySet();
+      }
+      
+    } else {
       return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
     }
   }
