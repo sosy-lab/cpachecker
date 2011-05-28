@@ -64,8 +64,8 @@ public class OptionCollector {
   }
 
   /** This function collect options from all classes
-   * and return a formatted String. 
-   * 
+   * and return a formatted String.
+   *
    * @param verbose short or long output? */
   public static String getCollectedOptions(final boolean verbose) {
     cpacheckerSourcePath = getCPAcheckerSourcePath();
@@ -98,13 +98,13 @@ public class OptionCollector {
     return content.toString();
   }
 
-  /** This method tries to get CPAchecker-Source-Path. 
-   * for getting default values without instantiating the classes. */
+  /** This method tries to get CPAchecker-Source-Path. This path is used
+   * to get default values for options without instantiating the classes. */
   private static String getCPAcheckerSourcePath() {
     Enumeration<URL> resources = getClassLoaderResources();
 
     // check each resource:
-    // cut off the ending 'bin', append 'src/org/sosy_lab/cpachecker' 
+    // cut off the ending 'bin', append 'src/org/sosy_lab/cpachecker'
     // and check, if the result is a folder.
     // '/src/org/sosy_lab/cpachecker' is the default location of CPAchecker.
     while (resources.hasMoreElements()) {
@@ -136,7 +136,7 @@ public class OptionCollector {
   /** This method collects every {@link Option} of a class.
    *
    * @param c class where to take the Option from
-   * @param map map with collected Options 
+   * @param map map with collected Options
    * @param verbose short or long output? */
   private static void collectOptions(final Class<?> c,
       final SortedMap<String, Pair<String, String>> map, final boolean verbose) {
@@ -194,7 +194,7 @@ public class OptionCollector {
     }
   }
 
-  /** This function returns the formatted description of an {@link Option}. 
+  /** This function returns the formatted description of an {@link Option}.
    *
    * @param field field with the option */
   private static String getOptionDescription(final Field field) {
@@ -202,10 +202,10 @@ public class OptionCollector {
     return formatText(option.description());
   }
 
-  /** This function adds the formatted description of {@link Options} 
+  /** This function adds the formatted description of {@link Options}
    * to the map, if a prefix is defined.
-   * 
-   * @param c class with options 
+   *
+   * @param c class with options
    * @param map where the formatted options-description is added */
   private static void getOptionsDescription(final Class<?> c,
       final SortedMap<String, Pair<String, String>> map) {
@@ -263,9 +263,9 @@ public class OptionCollector {
     return formattedLines;
   }
 
-  /** This function returns the name of an {@link Option}. 
+  /** This function returns the name of an {@link Option}.
    * If no optionname is defined, the name of the field is returned.
-   * If a prefix is defined, it is added in front of the name. 
+   * If a prefix is defined, it is added in front of the name.
    *
    * @param c class with the field
    * @param field field with the option */
@@ -308,7 +308,7 @@ public class OptionCollector {
 
     String defaultValue = getDefaultValueFromContent(content, fieldString);
 
-    // enums can be written with the whole classname, example: 
+    // enums can be written with the whole classname, example:
     // 'Waitlist.TraversalMethod traversalMethod = ...;'
     // then fieldString is different.
     if (field.getType().isEnum()) {
@@ -356,10 +356,10 @@ public class OptionCollector {
     }
   }
 
-  /** This function searches for fieldstring in content and 
+  /** This function searches for fieldstring in content and
    * returns the value of the field.
    *
-   * @param content sourccode where to search
+   * @param content sourcecode where to search
    * @param fieldString name of the field, which value is returned */
   private static String getDefaultValueFromContent(final String content,
       final String fieldString) {
@@ -396,8 +396,7 @@ public class OptionCollector {
 
   /** This function return the allowed values or interval for a field.
    *
-   * @param type the type of the field
-   * @param option the {@link Option}-annotation of the field 
+   * @param field field with the {@link Option}-annotation
    * @param verbose short or long output? */
   private static String getAllowedValues(final Field field,
       final boolean verbose) {
@@ -473,7 +472,7 @@ public class OptionCollector {
     if (directory.exists()) {
       for (final File file : directory.listFiles()) {
         final String fileName = file.getName();
-        
+
         // recursive call for folders, exclude svn-folders
         if (file.isDirectory() && !fileName.startsWith(".svn")) {
           String newPackage = packageName.isEmpty() ? fileName
@@ -501,7 +500,7 @@ public class OptionCollector {
           } catch (ClassNotFoundException e) {
             // ignore, there is no class available for this file
           } catch (NoClassDefFoundError e) {
-            // this error is thrown, if there is more than one classpath 
+            // this error is thrown, if there is more than one classpath
             // and one of them did not map the package-strukture,
             // ignore it and return, another classpath should be correct
             return;
@@ -509,7 +508,7 @@ public class OptionCollector {
             //System.out.println("no classDef found for: " + nameOfClass);
           }
         }
-        /* 
+        /*
         else { // some files are no classes, ignore them
           System.out.println("unhandled file/folder: " + fileName);
         }
