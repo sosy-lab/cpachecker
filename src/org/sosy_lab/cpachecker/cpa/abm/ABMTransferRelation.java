@@ -347,10 +347,6 @@ public class ABMTransferRelation implements TransferRelation {
       
         if(relevantCall) {
           lastReachSet = new Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode>(getReachedSet(currentElement, currentPrecision), Pair.of(currentElement, currentPrecision), node);
-          if(relevantCall && currentElement.equals(element)) {
-            //lastelement is a relevant call, redo the cached subtree removal once again
-            currentPrecision = removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
-          }
         }
       }
     }    
@@ -383,7 +379,7 @@ public class ABMTransferRelation implements TransferRelation {
   }
   
   private void removeCachedSubtree(AbstractElement rootElement, Precision rootPrecision, CFANode rootNode, ARTElement removeElement, Precision newPrecision) {
-    //logger.log(Level.FINER, "Remove cached subtree for " + removeElement + " (rootNode: " + rootNode + ") issued");
+    logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
     
     removeCachedSubtreeTimer.start();
     
@@ -395,35 +391,38 @@ public class ABMTransferRelation implements TransferRelation {
       ReachedSet reachedSet = subgraphReachCache.get(reducedRootElement, rootPrecision, rootSubtree);   
       ARTElement reducedRemoveElement = ARTElementSearcher.searchForARTElement(reachedSet, removeElement, wrappedReducer, partitioning);
       
-      if(reducedRemoveElement.getParents().isEmpty()) {
-        //this is actually the root of the subgraph; so remove the whole thing
-        //logger.log(Level.FINEST, "Removing root of cached tree (i.e., remove the whole tree)");
-        subgraphReachCache.remove(reducedRootElement, rootPrecision, rootSubtree);
-        subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
-        return;
-      }
-      
       Precision newRootPrecision = Precisions.replaceByType(rootPrecision, newPrecision);
+      
+      if(reducedRemoveElement.getParents().isEmpty()) {
+        //this is actually the root of the subgraph; 
+        if(rootPrecision.equals(newRootPrecision)) {
+          //if the newPrecision is the same as before we need to enforce a recomputation of the whole ART
+          logger.log(Level.FINEST, "Removing root of cached tree (i.e., remove the whole tree)");
+          subgraphReachCache.remove(reducedRootElement, rootPrecision, rootSubtree);
+          subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
+        }
+        //(otherwise, there is no need to do anything)
+        return;
+      }      
       
       if(rootPrecision.equals(newRootPrecision)) {
         //newPrecision is same as oldPrecision; in this case just remove the subtree and force a recomputation of the ART
         //by removing it from the cache
-        //logger.log(Level.FINEST, "New precision equals old precision: Removing the subtree and the cache entry for the cached tree to force a recomputation");
+        logger.log(Level.FINEST, "New precision equals old precision: Removing the subtree and the cache entry for the cached tree to force a recomputation");
         subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
         removeSubtree(reachedSet, reducedRemoveElement, newPrecision);    
         return;
       }
       if(subgraphReachCache.containsKey(reducedRootElement, newRootPrecision, rootSubtree)) {
-        //logger.log(Level.FINEST, "Cached result for the new precision is already present. Noting to do.");
+        logger.log(Level.FINEST, "Cached result for the new precision is already present. Noting to do.");
         //we already have a cached value for the new precision
         //no recomputation necessary; do nothing
         return;
       }
-      //logger.log(Level.FINEST, "Normal case: Removing subtree, adding a new cached entry, and removing the former cached entries");
+      logger.log(Level.FINEST, "Normal case: Removing subtree, adding a new cached entry, and removing the former cached entries");
       //no special case: remove subtree, and add a new cache entry, remove old cache entries
       removeSubtree(reachedSet, reducedRemoveElement, newPrecision);
       
-      //System.out.println("REMOVE: " + reducedRootElement.getAbstractionFormula().asRegion() + " for subtree " + rootSubtree.getCallNode());
       subgraphReachCache.remove(reducedRootElement, rootPrecision, rootSubtree);
       subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
       
