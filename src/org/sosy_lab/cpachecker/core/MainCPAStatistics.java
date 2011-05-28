@@ -61,7 +61,7 @@ import com.google.common.collect.Iterables;
 @Options
 class MainCPAStatistics implements Statistics {
   
-  private class MemoryStatistics extends Thread {
+  private static class MemoryStatistics extends Thread {
     
     private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
     
@@ -71,10 +71,14 @@ class MainCPAStatistics implements Statistics {
     private long sumNonHeap = 0;
     private long count = 0;
     
+    private MemoryStatistics() {
+      super("CPAchecker memory statistics collector");
+    }
+    
     @Override
     public void run() {
       MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
-      while (monitorMemoryUsage) {
+      while (true) { // no stop condition, call Thread#interrupt() to stop it
         count++;
         long currentHeapUsed = mxBean.getHeapMemoryUsage().getUsed();
         maxHeap = Math.max(maxHeap, currentHeapUsed);
@@ -87,8 +91,7 @@ class MainCPAStatistics implements Statistics {
         try {
           sleep(MEMORY_CHECK_INTERVAL);
         } catch (InterruptedException e) {
-          this.interrupt();
-          monitorMemoryUsage = false;
+          return; // force thread exit
         }
       }
     }
@@ -105,7 +108,7 @@ class MainCPAStatistics implements Statistics {
     
     @Option(name="statistics.memory",
       description="track memory usage of JVM during runtime")
-    private volatile boolean monitorMemoryUsage = true;
+    private boolean monitorMemoryUsage = true;
 
     private final LogManager logger;
     private final Collection<Statistics> subStats;
@@ -148,7 +151,9 @@ class MainCPAStatistics implements Statistics {
         // call stop again in case CPAchecker was terminated abnormally
         if (analysisTime.isRunning()) analysisTime.stop();
         if (programTime.isRunning()) programTime.stop();
-        monitorMemoryUsage = false;
+        if (memStats != null) {
+          memStats.interrupt(); // stop memory statistics collection
+        }
 
         if (exportReachedSet && outputFile != null) {
           try {
@@ -215,13 +220,14 @@ class MainCPAStatistics implements Statistics {
         }
         out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
         out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
-        try {
-          memStats.join(); // thread should have terminated already,
-                           // but wait for it to ensure memory visibility
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        if (memStats != null && memStats.count > 0) {
+        
+        if (memStats != null) {
+          try {
+            memStats.join(); // thread should have terminated already,
+                             // but wait for it to ensure memory visibility
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
           out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
           out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
         }
