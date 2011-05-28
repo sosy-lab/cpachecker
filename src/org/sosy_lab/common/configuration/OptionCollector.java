@@ -31,6 +31,8 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -41,6 +43,8 @@ import org.sosy_lab.common.Pair;
 public class OptionCollector {
 
   private final static int CHARS_PER_LINE = 75; // for description
+  private final static HashSet<String> errorMessages = new LinkedHashSet<String>();
+  private static String cpacheckerSourcePath = "";
 
   /** The main-method collects all classes of CPAchecker and
    * then it searches for all {@link Option}s.
@@ -64,6 +68,8 @@ public class OptionCollector {
    * 
    * @param verbose short or long output? */
   public static String getCollectedOptions(final boolean verbose) {
+    cpacheckerSourcePath = getCPAcheckerSourcePath();
+
     // TreeMap for alphabetical order of keys
     final SortedMap<String, Pair<String, String>> map =
         new TreeMap<String, Pair<String, String>>();
@@ -73,6 +79,11 @@ public class OptionCollector {
     }
 
     final StringBuilder content = new StringBuilder();
+
+    for (String error : errorMessages) {
+      content.append(error).append("\n");
+    }
+
     String description = "";
     for (Pair<String, String> descriptionAndInfo : map.values()) {
       if (descriptionAndInfo.getFirst().isEmpty()
@@ -85,6 +96,41 @@ public class OptionCollector {
     }
 
     return content.toString();
+  }
+
+  /** This method tries to get CPAchecker-Source-Path. 
+   * for getting default values without instantiating the classes. */
+  private static String getCPAcheckerSourcePath() {
+    Enumeration<URL> resources = getClassLoaderResources();
+
+    // check each resource:
+    // cut off the ending 'bin', append 'src/org/sosy_lab/cpachecker' 
+    // and check, if the result is a folder.
+    // '/src/org/sosy_lab/cpachecker' is the default location of CPAchecker.
+    while (resources.hasMoreElements()) {
+      final File file = new File(resources.nextElement().getFile());
+      final String testPath =
+          file.toString().substring(0, file.toString().length() - 3);
+      if (new File(testPath + "src/org/sosy_lab/cpachecker").isDirectory()) {
+        return testPath + "src/";
+      }
+    }
+    return "";
+  }
+
+  /** This function returns the contextClassLoader-Resources. */
+  private static Enumeration<URL> getClassLoaderResources() {
+    final ClassLoader classLoader =
+        Thread.currentThread().getContextClassLoader();
+    assert classLoader != null;
+
+    Enumeration<URL> resources = null;
+    try {
+      resources = classLoader.getResources("");
+    } catch (IOException e) {
+      System.err.println("Could not get recources of classloader.");
+    }
+    return resources;
   }
 
   /** This method collects every {@link Option} of a class.
@@ -148,7 +194,7 @@ public class OptionCollector {
     }
   }
 
-  /** This function return the formatted description of an {@link Option}. 
+  /** This function returns the formatted description of an {@link Option}. 
    *
    * @param field field with the option */
   private static String getOptionDescription(final Field field) {
@@ -217,7 +263,7 @@ public class OptionCollector {
     return formattedLines;
   }
 
-  /** This function return the name of an {@link Option}. 
+  /** This function returns the name of an {@link Option}. 
    * If no optionname is defined, the name of the field is returned.
    * If a prefix is defined, it is added in front of the name. 
    *
@@ -288,16 +334,7 @@ public class OptionCollector {
    * @param field the field, the sourcefile belongs to */
   private static String getContentOfFile(final Field field) {
 
-    // get path to CPAchecker
-    String cpacheckerPath = "";
-    try {
-      cpacheckerPath = new File("").getCanonicalPath();
-    } catch (IOException e) {
-      System.err.println("Could not read canonical path.");
-      return "";
-    }
-
-    // get name of javafile
+    // get name of sourcefile, remove prefix 'class_'
     String filename =
         field.getDeclaringClass().toString().substring(6).replace(".", "/");
 
@@ -307,13 +344,14 @@ public class OptionCollector {
     }
 
     // get name of source file
-    filename = cpacheckerPath + "/src/" + filename + ".java";
+    filename = cpacheckerSourcePath + filename + ".java";
 
     try {
       return com.google.common.io.Files.toString(new File(filename),
           Charset.defaultCharset());
     } catch (IOException e) {
-      System.err.println("Could not read file '" + filename + "'.");
+      errorMessages.add("INFO: Could not read sourcefiles "
+          + "for getting the default values.");
       return "";
     }
   }
@@ -412,16 +450,7 @@ public class OptionCollector {
    * @return list of classes
    */
   private static List<Class<?>> getClasses() {
-    final ClassLoader classLoader =
-        Thread.currentThread().getContextClassLoader();
-    assert classLoader != null;
-
-    Enumeration<URL> resources = null;
-    try {
-      resources = classLoader.getResources(".");
-    } catch (IOException e) {
-      System.err.println("Could not get recources of classloader.");
-    }
+    Enumeration<URL> resources = getClassLoaderResources();
 
     final List<Class<?>> classes = new ArrayList<Class<?>>();
     while (resources.hasMoreElements()) {
@@ -474,11 +503,12 @@ public class OptionCollector {
           } catch (NoClassDefFoundError e) {
             // this error is thrown, if there is more than one classpath 
             // and one of them did not map the package-strukture,
-            // ignore it, another classpath should be correct
+            // ignore it and return, another classpath should be correct
+            return;
 
             //System.out.println("no classDef found for: " + nameOfClass);
           }
-        } 
+        }
         /* 
         else { // some files are no classes, ignore them
           System.out.println("unhandled file/folder: " + fileName);
