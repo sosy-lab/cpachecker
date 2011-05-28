@@ -347,6 +347,10 @@ public class ABMTransferRelation implements TransferRelation {
       
         if(relevantCall) {
           lastReachSet = new Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode>(getReachedSet(currentElement, currentPrecision), Pair.of(currentElement, currentPrecision), node);
+          if(relevantCall && currentElement.equals(element)) {
+            //lastelement is a relevant call, redo the cached subtree removal once again
+            currentPrecision = removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
+          }
         }
       }
     }    
