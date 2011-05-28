@@ -31,6 +31,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -204,13 +205,16 @@ class MainCPAStatistics implements Statistics {
         
         out.println("");
         List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        Set<String> gcNames = new HashSet<String>();
         long gcTime = 0;
         int gcCount = 0;
         for (GarbageCollectorMXBean gcBean : gcBeans) {
           gcTime += gcBean.getCollectionTime();
           gcCount += gcBean.getCollectionCount();
+          gcNames.add(gcBean.getName());
         }
         out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+        out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
         try {
           memStats.join(); // thread should have terminated already,
                            // but wait for it to ensure memory visibility
