@@ -411,7 +411,7 @@ public class ABMTransferRelation implements TransferRelation {
       
       if(reducedRemoveElement.getParents().isEmpty()) {
         //this is actually the root of the subgraph; 
-        if(reducedRootPrecision.equals(newReducedRootPrecision)) {
+        if(rootPrecision.equals(newRootPrecision)) {
           //if the newPrecision is the same as before we need to enforce a recomputation of the whole ART
           logger.log(Level.FINEST, "Removing root of cached tree (i.e., remove the whole tree)");
           subgraphReachCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
