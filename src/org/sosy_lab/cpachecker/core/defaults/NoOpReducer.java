@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -31,8 +30,13 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey, Block pContext, BlockPartitioning pPartitioning) {
+  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
     return pElementKey;
+  }
+
+  @Override
+  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
+    return pPrecision;
   }
 
 }

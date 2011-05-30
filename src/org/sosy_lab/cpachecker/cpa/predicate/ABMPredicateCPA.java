@@ -30,7 +30,6 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private final RelevantPredicatesComputer relevantPredicatesComputer;
   private final ABMPredicateReducer reducer;
   private final ABMPredicateTransferRelation transfer;
-  private final ABMPredicatePrecisionAdjustment prec;
 
   @Option
   private boolean auxiliaryPredicateComputer = true;
@@ -48,7 +47,6 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     
     reducer = new ABMPredicateReducer(this);
     transfer = new ABMPredicateTransferRelation(this);
-    prec = new ABMPredicatePrecisionAdjustment(this);
   }
   
   @Override
@@ -69,12 +67,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   @Override
   public Reducer getReducer() {
     return reducer;
-  }
-
-  @Override
-  public ABMPredicatePrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
-  }
+  } 
   
   public RelevantPredicatesComputer getRelevantPredicatesComputer() {
     return relevantPredicatesComputer;

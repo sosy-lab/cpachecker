@@ -65,7 +65,6 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     reducer = new TimedReducer(wrappedReducer);
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     
-    ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getPrecisionAdjustment().setTransferRelation(transfer);
     stats = new ABMCPAStatistics(this);
   }
   

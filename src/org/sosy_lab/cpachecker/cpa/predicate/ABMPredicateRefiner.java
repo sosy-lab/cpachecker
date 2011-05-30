@@ -5,7 +5,6 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,7 +14,6 @@ import java.util.Map;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -23,14 +21,9 @@ import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -91,7 +84,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
     private final FormulaManager fmgr;
     private final PathFormulaManager pfmgr;
-    private final RelevantPredicatesComputer relevantPredicatesComputer;
     
     private ExtendedPredicateRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
       super(pCpa);
@@ -103,7 +95,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       
       this.fmgr = predicateCpa.getFormulaManager();
       this.pfmgr = predicateCpa.getPathFormulaManager();
-      this.relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
     }
 
     @Override
@@ -223,26 +214,5 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       }
       return result;
     }
-    
-    @Override
-    protected final Collection<AbstractionPredicate> getPredicatesForARTElement(CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
-      //TODO:
-      
-      Collection<AbstractionPredicate> preds = pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
-      CallstackElement callStackElement = AbstractElements.extractElementByType(pInterpolationPoint.getFirst(), CallstackElement.class);
-      CFANode node = pInterpolationPoint.getSecond();
-      CFANode outerNode = node;
-      
-      BlockPartitioning partitioning = getBlockPartitioning();
-      
-      if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
-        outerNode = callStackElement.getCallNode();
-        if(callStackElement.getDepth() > 1) {
-          outerNode = callStackElement.getPreviousElement().getCallNode();
-        }    
-      }
-      
-      return relevantPredicatesComputer.getRelevantPredicates(partitioning.getBlockForNode(outerNode), preds);
-    }    
   }
 }

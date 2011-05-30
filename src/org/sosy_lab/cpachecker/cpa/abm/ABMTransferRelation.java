@@ -100,7 +100,7 @@ public class ABMTransferRelation implements TransferRelation {
     private AbstractElementHash getHashCode(AbstractElement predicateKey,
         Precision precisionKey, Block context) {
       
-      return new AbstractElementHash(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey, context, partitioning), context);
+      return new AbstractElementHash(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey), context);
     }
     
     private V put(AbstractElement predicateKey, Precision precisionKey, Block context, V item) {
@@ -259,16 +259,17 @@ public class ABMTransferRelation implements TransferRelation {
   private Collection<AbstractElement> performCompositeAnalysis(AbstractElement initialElement, Precision initialPrecision, CFANode node, CFAEdge edge) throws InterruptedException, RecursiveAnalysisFailedException {
     try {
       AbstractElement reducedInitialElement = wrappedReducer.getVariableReducedElement(initialElement, currentBlock, node);
+      Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(initialPrecision, currentBlock);
       
       ReachedSet reached = null;
       if (!NO_CACHING) {
-        Collection<AbstractElement> result = subgraphReturnCache.get(reducedInitialElement, initialPrecision, currentBlock);
+        Collection<AbstractElement> result = subgraphReturnCache.get(reducedInitialElement, reducedInitialPrecision, currentBlock);
         if (result != null) {
           fullCacheHits++;
           return result;
         }
 
-        reached = subgraphReachCache.get(reducedInitialElement, initialPrecision, currentBlock);
+        reached = subgraphReachCache.get(reducedInitialElement, reducedInitialPrecision, currentBlock);
       }
       
       if (reached != null) {
@@ -277,8 +278,8 @@ public class ABMTransferRelation implements TransferRelation {
       } else {
         //compute the subgraph specification from scratch
         cacheMisses++;
-        reached = createInitialReachedSet(reducedInitialElement, initialPrecision, node, edge);
-        subgraphReachCache.put(reducedInitialElement, initialPrecision, currentBlock, reached);      
+        reached = createInitialReachedSet(reducedInitialElement, reducedInitialPrecision, node, edge);
+        subgraphReachCache.put(reducedInitialElement, reducedInitialPrecision, currentBlock, reached);      
       }  
       
       algorithm.run(reached);     
@@ -300,7 +301,7 @@ public class ABMTransferRelation implements TransferRelation {
         }
       }
       
-      subgraphReturnCache.put(reducedInitialElement, initialPrecision, currentBlock, result);
+      subgraphReturnCache.put(reducedInitialElement, reducedInitialPrecision, currentBlock, result);
       return result;        
     } catch (CPAException e) {
       throw new RecursiveAnalysisFailedException(e);
@@ -321,8 +322,9 @@ public class ABMTransferRelation implements TransferRelation {
   private ReachedSet getReachedSet(ARTElement element, Precision precision) {
     CFANode loc = element.retrieveLocationElement().getLocationNode();
     Block context = partitioning.getBlockForCallNode(loc);
-    AbstractElement reducedElement = wrappedReducer.getVariableReducedElement(element, context, loc);    
-    return subgraphReachCache.get(reducedElement, precision, context);
+    AbstractElement reducedElement = wrappedReducer.getVariableReducedElement(element, context, loc); 
+    Precision reducedPrecision = wrappedReducer.getVariableReducedPrecision(precision, context);
+    return subgraphReachCache.get(reducedElement, reducedPrecision, context);
   }
    
   void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {      
@@ -391,33 +393,37 @@ public class ABMTransferRelation implements TransferRelation {
       Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
       
       AbstractElement reducedRootElement = wrappedReducer.getVariableReducedElement(rootElement, rootSubtree, rootNode);
+      Precision reducedRootPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, rootSubtree);
          
-      ReachedSet reachedSet = subgraphReachCache.get(reducedRootElement, rootPrecision, rootSubtree);   
+      ReachedSet reachedSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);   
       ARTElement reducedRemoveElement = ARTElementSearcher.searchForARTElement(reachedSet, removeElement, wrappedReducer, partitioning);
       
       Precision newRootPrecision = Precisions.replaceByType(rootPrecision, newPrecision);
+      Precision newReducedRootPrecision = wrappedReducer.getVariableReducedPrecision(newRootPrecision, rootSubtree);
+      Precision newReducedRemovePrecision = wrappedReducer.getVariableReducedPrecision(Precisions.replaceByType(reachedSet.getPrecision(reducedRemoveElement), newPrecision), rootSubtree);
       
       if(reducedRemoveElement.getParents().isEmpty()) {
         //this is actually the root of the subgraph; 
-        if(rootPrecision.equals(newRootPrecision)) {
+        if(reducedRootPrecision.equals(newReducedRootPrecision)) {
           //if the newPrecision is the same as before we need to enforce a recomputation of the whole ART
           logger.log(Level.FINEST, "Removing root of cached tree (i.e., remove the whole tree)");
-          subgraphReachCache.remove(reducedRootElement, rootPrecision, rootSubtree);
-          subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
+          subgraphReachCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
+          subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
         }
         //(otherwise, there is no need to do anything)
         return;
       }      
       
+      //TODO: rethink this; why not reducedRootPrecision.equals(newReducedRootPrecision)?
       if(rootPrecision.equals(newRootPrecision)) {
         //newPrecision is same as oldPrecision; in this case just remove the subtree and force a recomputation of the ART
         //by removing it from the cache
         logger.log(Level.FINEST, "New precision equals old precision: Removing the subtree and the cache entry for the cached tree to force a recomputation");
-        subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
-        removeSubtree(reachedSet, reducedRemoveElement, newPrecision);    
+        subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
+        removeSubtree(reachedSet, reducedRemoveElement, newReducedRemovePrecision);    
         return;
       }
-      if(subgraphReachCache.containsKey(reducedRootElement, newRootPrecision, rootSubtree)) {
+      if(subgraphReachCache.containsKey(reducedRootElement, newReducedRootPrecision, rootSubtree)) {
         logger.log(Level.FINEST, "Cached result for the new precision is already present. Noting to do.");
         //we already have a cached value for the new precision
         //no recomputation necessary; do nothing
@@ -425,12 +431,12 @@ public class ABMTransferRelation implements TransferRelation {
       }
       logger.log(Level.FINEST, "Normal case: Removing subtree, adding a new cached entry, and removing the former cached entries");
       //no special case: remove subtree, and add a new cache entry, remove old cache entries
-      removeSubtree(reachedSet, reducedRemoveElement, newPrecision);
+      removeSubtree(reachedSet, reducedRemoveElement, newReducedRemovePrecision);
       
-      subgraphReachCache.remove(reducedRootElement, rootPrecision, rootSubtree);
-      subgraphReturnCache.remove(reducedRootElement, rootPrecision, rootSubtree);
+      subgraphReachCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
+      subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
       
-      subgraphReachCache.put(reducedRootElement, newRootPrecision, rootSubtree, reachedSet);      
+      subgraphReachCache.put(reducedRootElement, newReducedRootPrecision, rootSubtree, reachedSet);      
     }
     finally {
       removeCachedSubtreeTimer.stop();
@@ -537,12 +543,13 @@ public class ABMTransferRelation implements TransferRelation {
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
             
     AbstractElement reducedRootElement = wrappedReducer.getVariableReducedElement(root, rootSubtree, rootNode);
-    ReachedSet reachSet = subgraphReachCache.get(reducedRootElement, rootPrecision, rootSubtree);
+    Precision reducedRootPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, rootSubtree);
+    ReachedSet reachSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
     if (reachSet == null) {
       //recompute the ART
       logger.log(Level.WARNING, "Reached set of block got removed, recompute it");
       recomputeART(root, rootPrecision, rootNode, rootSubtree);
-      reachSet = subgraphReachCache.get(reducedRootElement, rootPrecision, rootSubtree);
+      reachSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
       if(reachSet == null) {
         throw new IllegalArgumentException("Failed recomputing the reach set of " + root + " -> " + newTreeTarget  + " with precision " +  rootPrecision); 
       }

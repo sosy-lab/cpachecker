@@ -1,11 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
-import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -20,6 +19,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+
+import com.google.common.collect.ImmutableSetMultimap;
 
 
 public class ABMPredicateReducer implements Reducer {
@@ -165,96 +166,29 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, Block pContext, BlockPartitioning pPartitioning) {
+  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
     
     PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;
     
-    return new PredicateElementHash(element, precision, pContext, pPartitioning);
+    return Pair.of(element.getAbstractionFormula().asRegion(), precision);
   }
 
-  private class PredicateElementHash {
-    private final Block context;
-    private final Region region;
-    private final PredicatePrecision precision;
-    private final BlockPartitioning partitioning;
-    
-    PredicateElementHash(PredicateAbstractElement element, PredicatePrecision precision, Block context, BlockPartitioning partitioning) {      
-      this.precision = precision;
-      this.context = context;
-      this.region = element.getAbstractionFormula().asRegion();
-      this.partitioning = partitioning;
-    }
-    
-    @Override
-    public boolean equals(Object other) {
-      if(!(other instanceof PredicateElementHash)) {
-       return false; 
-      }
-      PredicateElementHash hOther = (PredicateElementHash)other;
-      if(!region.equals(hOther.region)) {
-        return false;
-      }        
-      assert context.equals(hOther.context);
-      return relevantComparePrecisions(hOther.precision);
-    }
-    
-    private boolean relevantComparePrecisions(PredicatePrecision otherPrecision) {
-
-      Collection<AbstractionPredicate> globalPreds1 = relevantComputer.getRelevantPredicates(context, precision.getGlobalPredicates());
-      Collection<AbstractionPredicate> globalPreds2 = relevantComputer.getRelevantPredicates(context, otherPrecision.getGlobalPredicates());
-      if(!globalPreds1.equals(globalPreds2)) {
-        return false;
-      }
-      
-      for(CFANode node : context.getNodes()) {
-        Collection<AbstractionPredicate> set1 = precision.getPredicates(node);
-        Collection<AbstractionPredicate> set2 = otherPrecision.getPredicates(node);
-        if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
-          set1 = relevantComputer.getRelevantPredicates(context, set1);
-          set2 = relevantComputer.getRelevantPredicates(context, set2); 
-        } 
+  @Override
+  public Precision getVariableReducedPrecision(Precision pPrecision,
+      Block pContext) {
+    PredicatePrecision precision = (PredicatePrecision)pPrecision;
         
-        if(!set1.equals(set2)) {
-          return false;
-        }
+    Collection<AbstractionPredicate> globalPredicates = relevantComputer.getRelevantPredicates(pContext, precision.getGlobalPredicates());
+        
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+    for(CFANode node : precision.getPredicateMap().keySet()) {
+      if(pContext.getNodes().contains(node)) {
+        Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(pContext, precision.getPredicates(node)); 
+        pmapBuilder.putAll(node, set);
       }
-      return true;
-     }
-    
-    @Override
-    public int hashCode() {
-      return region.hashCode() * 17 + relevantComputeHashCode();
     }
     
-    private int relevantComputeHashCode() {   
-      int h = 1;
-      Set<CFANode> functionNodes = context.getNodes();
-      
-      Set<AbstractionPredicate> globalPredicates = precision.getGlobalPredicates();
-      globalPredicates = (Set<AbstractionPredicate>) relevantComputer.getRelevantPredicates(context, globalPredicates);
-      h += globalPredicates.hashCode();
-      
-      for(CFANode node : precision.getPredicateMap().keySet()) {
-        if(functionNodes.contains(node)) {
-          Collection<AbstractionPredicate> set = precision.getPredicates(node);
-          if(partitioning.isCallNode(node) || partitioning.isReturnNode(node)) {
-            set = relevantComputer.getRelevantPredicates(context, set);
-          }
-          
-          for(AbstractionPredicate predicate : set) {
-            if(!globalPredicates.contains(predicate))
-              h += set.hashCode();
-          }
-        }
-      }
-      return h;
-    }
-    
-    @Override
-    public String toString() {
-      return region.toString();
-    }
+    return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 }

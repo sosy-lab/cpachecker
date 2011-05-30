@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -53,10 +52,15 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey,
-      Precision pPrecisionKey, Block pContext,
-      BlockPartitioning pPartitioning) {
-    return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey, pContext, pPartitioning);
+  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+    return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey);
+  }
+
+  @Override
+  public Precision getVariableReducedPrecision(Precision pPrecision,
+      Block pContext) {
+    reduceTime.start();
+    return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
   }
 
 }
