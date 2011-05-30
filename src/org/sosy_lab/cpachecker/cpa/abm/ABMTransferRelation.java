@@ -411,7 +411,7 @@ public class ABMTransferRelation implements TransferRelation {
       
       if(reducedRemoveElement.getParents().isEmpty()) {
         //this is actually the root of the subgraph; 
-        if(rootPrecision.equals(newRootPrecision)) {
+        if(reducedRootPrecision.equals(newReducedRootPrecision)) {
           //if the newPrecision is the same as before we need to enforce a recomputation of the whole ART
           logger.log(Level.FINEST, "Removing root of cached tree (i.e., remove the whole tree)");
           subgraphReachCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
@@ -419,10 +419,9 @@ public class ABMTransferRelation implements TransferRelation {
         }
         //(otherwise, there is no need to do anything)
         return;
-      }      
+      }       
       
-      //TODO: rethink this; why not reducedRootPrecision.equals(newReducedRootPrecision)?
-      if(rootPrecision.equals(newRootPrecision)) {
+      if(reducedRootPrecision.equals(newReducedRootPrecision)) {
         //newPrecision is same as oldPrecision; in this case just remove the subtree and force a recomputation of the ART
         //by removing it from the cache
         logger.log(Level.FINEST, "New precision equals old precision: Removing the subtree and the cache entry for the cached tree to force a recomputation");
@@ -552,9 +551,9 @@ public class ABMTransferRelation implements TransferRelation {
     AbstractElement reducedRootElement = wrappedReducer.getVariableReducedElement(root, rootSubtree, rootNode);
     Precision reducedRootPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, rootSubtree);
     ReachedSet reachSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
-    if (reachSet == null) {
+    if (reachSet == null || !subgraphReturnCache.containsKey(reducedRootElement, reducedRootPrecision, rootSubtree)) {
       //recompute the ART
-      logger.log(Level.WARNING, "Reached set of block got removed, recompute it");
+      logger.log(Level.WARNING, "Reached set of block got (partially) removed, recompute it");
       recomputeART(root, rootPrecision, rootNode, rootSubtree);
       reachSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
       if(reachSet == null) {
