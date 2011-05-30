@@ -12,6 +12,7 @@ class TimedReducer implements Reducer {
 
   final Timer reduceTime = new Timer();
   final Timer expandTime = new Timer();
+  final Timer reducePrecisionTime = new Timer();
   
   private final Reducer wrappedReducer;
   
@@ -59,8 +60,12 @@ class TimedReducer implements Reducer {
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
-    reduceTime.start();
-    return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
+    reducePrecisionTime.start();
+    try {
+      return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
+    } finally {
+      reducePrecisionTime.stop();
+    }
   }
 
 }
