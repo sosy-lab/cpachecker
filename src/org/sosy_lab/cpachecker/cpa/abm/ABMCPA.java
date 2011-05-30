@@ -39,7 +39,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return AutomaticCPAFactory.forType(ABMCPA.class);
   }
   
-  private BlockPartitioning manager;
+  private BlockPartitioning blockPartitioning;
 
   private final LogManager logger;
   private final TimedReducer reducer;
@@ -70,10 +70,12 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   
   @Override
   public AbstractElement getInitialElement(CFANode node) {
-    if(manager == null && node.getFunctionName().equalsIgnoreCase("main")) {
-      manager = getPartitioningHeuristic().buildPartitioning(node);
-      transfer.setBlockPartitioning(manager);
-      ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(manager);
+    if (blockPartitioning == null) {
+      blockPartitioning = getPartitioningHeuristic().buildPartitioning(node);
+      transfer.setBlockPartitioning(blockPartitioning);
+      ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(blockPartitioning);
+    } else {
+      assert blockPartitioning.getBlockForNode(node) != null : "CPA re-used for other CFA, this is currently not supported.";
     }
     return getWrappedCpa().getInitialElement(node);
   }
@@ -121,8 +123,8 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
   
   public BlockPartitioning getBlockPartitioning() {
-    checkState(manager != null);
-    return manager;
+    checkState(blockPartitioning != null);
+    return blockPartitioning;
   }
   
   @Override

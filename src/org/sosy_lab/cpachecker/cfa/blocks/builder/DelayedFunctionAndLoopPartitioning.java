@@ -33,7 +33,8 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
   }
   
   private Set<CFANode> removeInitialDeclarations(CFAFunctionDefinitionNode functionNode, Set<CFANode> functionBody) {
-    if(functionNode.getFunctionName().equalsIgnoreCase("main")) {
+    if (functionNode.getNumEnteringEdges() == 0) {
+      // this is the main function
       return functionBody;
     }
     
