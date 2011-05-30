@@ -39,7 +39,8 @@ public class InvariantsCPA extends AbstractCPA {
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
     
-    @Option(values={"JOIN", "SEP"}, toUppercase=true)
+    @Option(values={"JOIN", "SEP"}, toUppercase=true,
+        description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
   }
   

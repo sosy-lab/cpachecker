@@ -75,22 +75,25 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return AutomaticCPAFactory.forType(PredicateCPA.class);
   }
 
-  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})
+  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
+      description="which solver to use?")
   private String whichProver = "MATHSAT";
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
+  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
+      description="which interpolating solver to use for interpolant generation?")
   private String whichItpProver = "MATHSAT";
 
-  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
+  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE,
+      description="get an initial set of predicates from a file in MSAT format")
   private File predicatesFile = null;
   
-  @Option
+  @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
   
   @Option(name="interpolation.changesolverontimeout")
   private boolean changeItpSolveOTF = false;
   
-  @Option(name="blk.useCache")
+  @Option(name="blk.useCache", description="use caching where possible")
   private boolean useCache = true;
   
   private final Configuration config;

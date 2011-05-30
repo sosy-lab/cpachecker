@@ -52,10 +52,14 @@ import com.google.common.base.Preconditions;
 @Options(prefix="cpa.predicate.mathsat")
 public class MathsatFormulaManager implements FormulaManager  {
 
-  @Option
+  @Option(description="encode program variables as INTEGERs in MathSAT, instead of "
+    + "using REALs. Since interpolation is not really supported by the laz solver, "
+    + "when computing interpolants we still use the LA solver, "
+    + "but encoding variables as ints might still be a good idea: "
+    + "we can tighten strict inequalities, and split negated equalities")
   private boolean useIntegers = false;
 
-  @Option
+  @Option(description="use a combination of theories (this is incomplete)")
   private boolean useDtc = false;
   
   // the MathSAT environment in which all terms are created

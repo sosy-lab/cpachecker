@@ -58,10 +58,11 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(PointerCPA.class);
   }
 
-  @Option(name="merge", values={"sep", "join"})
+  @Option(name="merge", values={"sep", "join"},
+      description="which merge operator to use for PointerCPA?")
   private String mergeType = "sep";
 
-  @Option
+  @Option(description="print warnings during analysis when unsafe pointer operations are found")
   private boolean printWarnings = true;
 
   private final AbstractDomain abstractDomain;

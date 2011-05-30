@@ -109,21 +109,30 @@ public class CtoFormulaConverter {
   @Option
   protected boolean useNondetFlags = false;
   
-  @Option
+  @Option(description="initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
-  @Option
+  @Option(description="if initAllVars is true, we get rid of all non-determinism. "
+    + "This might not be desirable. If the following property is set to a non-empty value, "
+    + "all variables starting with this prefix will not be initialized automatically")
   private String noAutoInitPrefix = "__BLAST_NONDET";
   
-  @Option
+  @Option(description="when transforming code to formula, add predicates "
+    + "that help producing more precise error paths (not necessary for SBE)")
   private boolean addBranchingInformation = true;
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
-  @Option(name="mathsat.lvalsAsUIFs")
+  @Option(name="mathsat.lvalsAsUIFs",
+      description="use uninterpreted functions for *, & and array access")
   private boolean lvalsAsUif = false;
 
-  @Option
+  @Option(description="list of functions that should be considered as giving "
+    + "a non-deterministic return value\n Only predicate analysis honors this option. "
+    + "If you specify this option, the default values are not added automatically "
+    + "to the list, so you need to specify them explicitly if you need them. "
+    + "Mentioning a function in this list has only an effect, if it is an "
+    + "'external function', i.e., no source is given in the code for this function.")
   private Set<String> nondetFunctions = ImmutableSet.of("int_nondet", "malloc", "nondet_int", "random");
   
   // list of functions that are pure (no side-effects)

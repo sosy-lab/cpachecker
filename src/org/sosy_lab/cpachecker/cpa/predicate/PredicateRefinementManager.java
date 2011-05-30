@@ -92,37 +92,52 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
   private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+$)");
 
-  @Option
+  @Option(description="apply deletion-filter to the abstract counterexample, to get "
+    + "a minimal set of blocks, before applying interpolation-based refinement")
   private boolean getUsefulBlocks = false;
 
-  @Option(name="shortestCexTrace")
+  @Option(name="shortestCexTrace",
+      description="use incremental search in counterexample analysis, "
+        + "to find the minimal infeasible prefix")
   private boolean shortestTrace = false;
 
-  @Option
+  @Option(description="only use the atoms from the interpolants as predicates, "
+    + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option
+  @Option(description="split arithmetic equalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  @Option(name="shortestCexTraceUseSuffix")
+  @Option(name="shortestCexTraceUseSuffix",
+      description="if shortestCexTrace is used, "
+        + "start from the end with the incremental search")
   private boolean useSuffix = false;
 
-  @Option(name="shortestCexTraceZigZag")
+  @Option(name="shortestCexTraceZigZag",
+      description="if shortestCexTrace is used, "
+        + "alternatingly search from start and end of the trace")
   private boolean useZigZag = false;
 
-  @Option(name="addWellScopedPredicates")
+  @Option(name="addWellScopedPredicates",
+      description="refinement will try to build 'well-scoped' predicates, "
+        + "by cutting spurious traces as explained in Section 5.2 of the paper "
+        + "'Abstractions From Proofs'\n(this does not work with function inlining).\n"
+        + "THIS FEATURE IS CURRENTLY NOT AVAILABLE. ")
   private boolean wellScopedPredicates = false;
 
-  @Option
+  @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
 
-  @Option(name="timelimit")
+  @Option(name="timelimit",
+      description="time limit for refinement (0 is infinitely long)")
   private long itpTimeLimit = 0;
 
-  @Option(name="changesolverontimeout")
+  @Option(name="changesolverontimeout",
+      description="try again with a second solver if refinement timed out")
   private boolean changeItpSolveOTF = false;
 
-  @Option
+  @Option(description="skip refinement if input formula is larger than "
+    + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
   
   private final ExecutorService executor;

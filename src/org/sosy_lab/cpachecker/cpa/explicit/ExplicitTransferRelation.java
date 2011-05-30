@@ -93,7 +93,8 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private final Set<String> globalVars = new HashSet<String>();
 
-  @Option
+  @Option(description="threshold for amount of different values that "
+    + "are tracked for one variable in ExplicitCPA (0 means infinitely)")
   private int threshold = 0;
 
   private String missingInformationLeftVariable = null;

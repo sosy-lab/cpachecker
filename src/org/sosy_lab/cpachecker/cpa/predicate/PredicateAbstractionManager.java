@@ -86,20 +86,26 @@ class PredicateAbstractionManager {
   protected final AbstractionManager amgr;
   protected final TheoremProver thmProver;
 
-  @Option(name="abstraction.cartesian")
+  @Option(name="abstraction.cartesian",
+      description="whether to use Boolean (false) or Cartesian (true) abstraction")
   private boolean cartesianAbstraction = false;
 
-  @Option(name="abstraction.dumpHardQueries")
+  @Option(name="abstraction.dumpHardQueries",
+      description="dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
 
-  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE)
+  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE,
+      description="where to dump interpolation and abstraction problems (format string)")
   private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
   protected final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
   
-  @Option
+  @Option(description="try to add some useful static-learning-like axioms for "
+    + "bitwise operations (which are encoded as UFs): essentially, "
+    + "we simply collect all the numbers used in bitwise operations, "
+    + "and add axioms like (0 & n = 0)")
   protected boolean useBitwiseAxioms = false;
   
-  @Option
+  @Option(description="use caching where possible")
   private boolean useCache = true;
   
   private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;

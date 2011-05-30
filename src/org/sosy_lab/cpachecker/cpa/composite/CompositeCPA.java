@@ -55,7 +55,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
-    @Option(toUppercase=true, values={"PLAIN", "AGREE"})
+    @Option(toUppercase=true, values={"PLAIN", "AGREE"},
+        description="which composite merge operator to use (plain or agree)\n"
+          + "Both delegate to the component cpas, but agree only allows "
+          + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
   }
   

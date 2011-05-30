@@ -51,7 +51,8 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.loopstack")
 public class LoopstackTransferRelation implements TransferRelation {
 
-  @Option
+  @Option(description="threshold for unrolling loops of the program (0 is infinite)\n"
+  + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0; 
   
   private final Multimap<String, Loop> loops = CFACreator.loops;

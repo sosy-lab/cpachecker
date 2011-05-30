@@ -64,22 +64,30 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 @Options(prefix="cpa.predicate")
 public class PredicateTransferRelation implements TransferRelation {
 
-  @Option(name="blk.threshold")
+  @Option(name="blk.threshold",
+      description="maximum blocksize before abstraction is forced\n"
+        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
   private int absBlockSize = 0;
 
-  @Option(name="blk.functions")
+  @Option(name="blk.functions",
+      description="force abstractions on function call/return")
   private boolean absOnFunction = true;
 
-  @Option(name="blk.loops")
+  @Option(name="blk.loops",
+      description="force abstractions for each loop iteration")
   private boolean absOnLoop = true;
 
-  @Option(name="blk.requireThresholdAndLBE")
+  @Option(name="blk.requireThresholdAndLBE",
+      description="require that both the threshold and (functions or loops) "
+        + "have to be fulfilled to compute an abstraction")
   private boolean absOnlyIfBoth = false;
 
-  @Option(name="satCheck")
+  @Option(name="satCheck",
+      description="maximum blocksize before a satisfiability check is done\n"
+        + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
   private int satCheckBlockSize = 0;
   
-  @Option
+  @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
   // statistics

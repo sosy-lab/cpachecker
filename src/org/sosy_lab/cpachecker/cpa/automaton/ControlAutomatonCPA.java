@@ -64,20 +64,23 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithABM {
 
-  @Option(name="dotExport")
+  @Option(name="dotExport",
+      description="export automaton to file")
   private boolean export = false;
   
-  @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE)
+  @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE,
+      description="file for saving the automaton in DOT format")
   private File exportFile = new File("automaton.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE)
+  @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE,
+      description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   private File inputFile = null;
   
-  @Option
+  @Option(description="signal the analysis to break in case of reached error state")
   private boolean breakOnTargetState = true;
 
   private final Automaton automaton;

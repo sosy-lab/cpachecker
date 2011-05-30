@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractDomain implements AbstractDomain {
   
-  @Option
+  @Option(description="whether to include the symbolic path formula in the "
+    + "coverage checks or do only the fast abstract checks")
   private boolean symbolicCoverageCheck = false; 
   
   // statistics

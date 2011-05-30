@@ -61,11 +61,13 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option
+  @Option(description="print warnings during analysis when uninitialized variables are used")
   private String printWarnings = "true";
-  @Option(name="merge", values={"sep", "join"})
+  @Option(name="merge", values={"sep", "join"},
+      description="which merge operator to use for UninitializedVariablesCPA?")
   private String mergeType = "sep";
-  @Option(name="stop", values={"sep", "join"})
+  @Option(name="stop", values={"sep", "join"},
+      description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
 
   private final AbstractDomain abstractDomain;

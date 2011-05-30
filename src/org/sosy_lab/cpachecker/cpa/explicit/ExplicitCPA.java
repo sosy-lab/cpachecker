@@ -52,7 +52,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
   }
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+      description="which merge operator to use for ExplicitCPA")
   private String mergeType = "SEP";
 
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"})

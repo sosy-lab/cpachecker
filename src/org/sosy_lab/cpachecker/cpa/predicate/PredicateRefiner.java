@@ -72,16 +72,21 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.predicate")
 public class PredicateRefiner extends AbstractARTBasedRefiner {
 
-  @Option(name="refinement.addPredicatesGlobally")
+  @Option(name="refinement.addPredicatesGlobally",
+      description="refinement will add all discovered predicates "
+        + "to all the locations in the abstract trace")
   private boolean addPredicatesGlobally = false;
   
-  @Option(name="errorPath.export")
+  @Option(name="errorPath.export",
+      description="export one satisfying assignment for the error path")
   private boolean exportErrorPath = true;
   
-  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE,
+      description="export one satisfying assignment for the error path")
   private File exportFile = new File("ErrorPathAssignment.txt");
 
-  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
+  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE,
+      description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
 
   final Timer totalRefinement = new Timer();

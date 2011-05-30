@@ -52,7 +52,8 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     return AutomaticCPAFactory.forType(OctagonCPA.class);
   }
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+      description="which merge operator to use for OctagonCPA?")
   private String mergeType = "SEP";
   
   private final AbstractDomain abstractDomain;

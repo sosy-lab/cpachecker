@@ -52,10 +52,11 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.predicate.predmap")
 class PredicateCPAStatistics implements Statistics {
 
-    @Option
+    @Option(description="export final predicate map, if the error location is not reached")
     private boolean export = true;
 
-    @Option(type=Option.Type.OUTPUT_FILE)
+    @Option(type=Option.Type.OUTPUT_FILE,
+        description="export final predicate map, if the error location is not reached")
     private File file = new File("predmap.txt");
 
     private final PredicateCPA cpa;
