@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.CFA;
  *
  */
 public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
-  protected LogManager logger;
+  protected final LogManager logger;
   
   public FunctionAndLoopPartitioning(LogManager pLogger) {
     this.logger = pLogger;
@@ -36,7 +36,7 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
     return false;
   }
   
-  private boolean hasBlankEdgeFromLoop(CFANode pNode) {
+  private static boolean hasBlankEdgeFromLoop(CFANode pNode) {
     for(int i = 0; i < pNode.getNumEnteringEdges(); i++) {
       CFAEdge edge = pNode.getEnteringEdge(i);
       if(edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
@@ -46,7 +46,7 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
     return false;
   }
   
-  private boolean selfLoop(CFANode pNode) {
+  private static boolean selfLoop(CFANode pNode) {
     return pNode.getNumLeavingEdges() == 1 && pNode.getLeavingEdge(0).getSuccessor().equals(pNode);   
   }
 
@@ -100,7 +100,7 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
     return true;
   }
   
-  private CFANode findNodeByEdgeLabel(CFANode startNode, String label) {
+  private static CFANode findNodeByEdgeLabel(CFANode startNode, String label) {
     Set<CFANode> nodes = CFA.exploreSubgraph(startNode, null);
     for(CFANode node : nodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
