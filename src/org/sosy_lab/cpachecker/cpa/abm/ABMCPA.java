@@ -2,16 +2,18 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.DelayedFunctionAndLoopPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -30,6 +32,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Throwables;
 
 
 @Options(prefix="cpa.abm")
@@ -45,11 +50,32 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
   private final ABMCPAStatistics stats;
+  private final PartitioningHeuristic heuristic;
   
   @Option
-  private boolean delayDeclarations = false;
+  private String blockHeuristic = "FunctionAndLoopPartitioning";  
+
+  private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker.cfa.blocks.builder";
   
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
+    Class<?> argumentTypes[] = {LogManager.class};
+    
+    try {
+      return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
+    
+    } catch (ClassInstantiationException e) {
+      throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!");
+  
+    } catch (InvocationTargetException e) {
+      Throwable t = e.getCause();
+      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
+      
+      logger.logException(Level.FINE, t, "Unexpected exception during CPA instantiation!");
+      throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during CPA instantiation (" + t.getMessage() + ")!");
+    }
+  }
+  
+  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
@@ -66,12 +92,13 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     
     stats = new ABMCPAStatistics(this);
+    heuristic = getPartitioningHeuristic();
   }
   
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
+  public AbstractElement getInitialElement(CFANode node)  {
     if (blockPartitioning == null) {
-      blockPartitioning = getPartitioningHeuristic().buildPartitioning(node);
+      blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
       ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(blockPartitioning);
     } else {
@@ -85,12 +112,8 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return getWrappedCpa().getInitialPrecision(pNode);
   }
   
-  private PartitioningHeuristic getPartitioningHeuristic() {
-    if(delayDeclarations) {
-      return new DelayedFunctionAndLoopPartitioning(logger);
-    } else {
-      return new FunctionAndLoopPartitioning(logger);
-    }
+  private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
+    return createInstance(blockHeuristic, new Object[]{logger}, PartitioningHeuristic.class);
   }
   
   @Override
