@@ -28,8 +28,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -199,7 +199,7 @@ public class ABMTransferRelation implements TransferRelation {
         return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
       }
       
-      if(currentNode instanceof FunctionDefinitionNode && currentNode.getNumEnteringEdges() == 0) {
+      if (isHeadOfMainFunction(currentNode)) {
         //skip main function
         return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
       }
@@ -257,6 +257,11 @@ public class ABMTransferRelation implements TransferRelation {
     } else {
       return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
     }
+  }
+
+
+  private boolean isHeadOfMainFunction(CFANode currentNode) {
+    return currentNode instanceof CFAFunctionDefinitionNode && currentNode.getNumEnteringEdges() == 0;
   }
 
 
@@ -334,13 +339,14 @@ public class ABMTransferRelation implements TransferRelation {
   void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {      
     removeSubtreeTimer.start();
     
-    Path path = trimPath(pPath, element);
+    List<ARTElement> path = trimPath(pPath, element);
+    assert path.get(path.size()-1).equals(element);
    
     Set<ARTElement> relevantCallNodes = getRelevantDefinitionNodes(path);
     
     Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastReachSet = null;    
     //iterate from root to element and remove all subtrees for subgraph calls
-    for(ARTElement currentElement : Iterables.transform(Iterables.skip(path, 1), Pair.<ARTElement>getProjectionToFirst())) {
+    for(ARTElement currentElement : Iterables.skip(path, 1)) {
       CFANode node = currentElement.retrieveLocationElement().getLocationNode();
       
       boolean relevantCall = false;
@@ -459,30 +465,35 @@ public class ABMTransferRelation implements TransferRelation {
     artReachSet.removeSubtree(artElement, artPrecision);
   }
   
-  private Path trimPath(Path pPath, ARTElement pElement) {
-    Path result = new Path();
-    for(Pair<ARTElement, CFAEdge> e : pPath) {
-      result.add(e);
-      if(e.getFirst().equals(pElement)) {
+  private List<ARTElement> trimPath(Path pPath, ARTElement pElement) {
+    List<ARTElement> result = new ArrayList<ARTElement>();
+    
+    for (Pair<ARTElement, CFAEdge> e : pPath) {
+      result.add(e.getFirst());
+      if (e.getFirst().equals(pElement)) {
         return result;
       }
     }
     throw new IllegalArgumentException("Element " + pElement + " could not be found in path " + pPath + ".");
   }
 
-  private Set<ARTElement> getRelevantDefinitionNodes(Path path) {  
+  private Set<ARTElement> getRelevantDefinitionNodes(List<ARTElement> path) {
+    ARTElement lastElement = path.get(path.size()-1);
     Deque<ARTElement> openCallElements = new ArrayDeque<ARTElement>();
     Deque<Block> openSubtrees = new ArrayDeque<Block>();
-    for(ARTElement currentElement : Iterables.transform(Iterables.skip(path, 1), Pair.<ARTElement>getProjectionToFirst())) {
+    
+    for (ARTElement currentElement : Iterables.skip(path, 1)) {
       CFANode node = currentElement.retrieveLocationElement().getLocationNode();
-      if(partitioning.isCallNode(node)) {
-        if(!(node instanceof FunctionDefinitionNode && node.getFunctionName().equalsIgnoreCase("main"))) {
+      if (partitioning.isCallNode(node)) {
+        if (!(isHeadOfMainFunction(node))) {
           openCallElements.push(currentElement);    
           openSubtrees.push(partitioning.getBlockForCallNode(node));
         }
-      }
-      else {
-        while(openSubtrees.size() > 0 && openSubtrees.peek().isReturnNode(node) && !currentElement.equals(path.getLast().getFirst())) { 
+      
+      } else {
+        while (!openSubtrees.isEmpty()
+             && openSubtrees.peek().isReturnNode(node)
+             && !currentElement.equals(lastElement)) { 
           openCallElements.pop();
           openSubtrees.pop();      
         }
