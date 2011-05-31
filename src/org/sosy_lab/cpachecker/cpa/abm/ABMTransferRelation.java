@@ -55,7 +55,7 @@ import com.google.common.collect.Iterables;
 public class ABMTransferRelation implements TransferRelation {
 
   @Option
-  public static boolean NO_CACHING = false; 
+  private boolean NO_CACHING = false; 
    
   private class AbstractElementHash {
     
@@ -168,11 +168,8 @@ public class ABMTransferRelation implements TransferRelation {
     currentBlock = partitioning.getMainBlock();
   }
   
-  public Block getCurrentBlock() {
-    return currentBlock;
-  }
-  
   public BlockPartitioning getBlockPartitioning() {
+    assert partitioning != null;
     return partitioning;
   }
   
@@ -351,15 +348,22 @@ public class ABMTransferRelation implements TransferRelation {
        relevantCall = true;
       }
       
-      if(currentElement.equals(element) || relevantCall) {        
-        Precision currentPrecision = getPrecision(lastReachSet != null ? lastReachSet.getFirst() : reachSet.asReachedSet(), currentElement);
-        removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
+      if(currentElement.equals(element) || relevantCall) {
+        Precision currentPrecision;
+        if (lastReachSet == null) {
+          // first iteration, update main reached set
+          currentPrecision = getPrecision(reachSet.asReachedSet(), currentElement);
+          removeCachedSubtree(reachSet, currentElement, newPrecision);
+        } else {
+          currentPrecision = getPrecision(lastReachSet.getFirst(), currentElement);
+          removeCachedSubtree(lastReachSet, currentElement, newPrecision);         
+        }
       
         if(relevantCall) {
           lastReachSet = new Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode>(getReachedSet(currentElement, currentPrecision), Pair.of(currentElement, currentPrecision), node);
           if(relevantCall && currentElement.equals(element)) {
             //lastelement is a relevant call, redo the cached subtree removal once again
-            removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
+            removeCachedSubtree(lastReachSet, currentElement, newPrecision);
           }
         }
       }
@@ -368,23 +372,25 @@ public class ABMTransferRelation implements TransferRelation {
     removeSubtreeTimer.stop();  
   }
   
-  private void removeCachedSubtree(Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastReachSet, ARTElement currentElement, ARTReachedSet mainReachSet, Precision newPrecision) {
+  private void removeCachedSubtree(ARTReachedSet mainReachSet, ARTElement currentElement, Precision newPrecision) {
     //we need to remove the subtree in the cached ART, in which the currentElement is found
-    if(lastReachSet == null) {
-      //called in main function; in this case we simply remove the subtree in the global ART   
-      ARTElement reachSetARTElement = ARTElementSearcher.searchForARTElement(mainReachSet.asReachedSet(), currentElement, wrappedReducer, partitioning);
-      
-      mainReachSet.removeSubtree(reachSetARTElement, newPrecision);          
-    }
-    else {
-      //called in a subgraphs ART; in this case we need to tell the transfer function to update its cached
-      //specifications such that the subtree is removed in the subgraphs ART
-      ARTElement lastCallNode = lastReachSet.getSecond().getFirst();
-      Precision lastDefinitionNodePrecision = lastReachSet.getSecond().getSecond();
-      CFANode lastDefinitionCFANode = lastReachSet.getThird();
-      
-      removeCachedSubtree(lastCallNode, lastDefinitionNodePrecision, lastDefinitionCFANode, currentElement, newPrecision);
-    }    
+    
+    //called in main function; in this case we simply remove the subtree in the global ART   
+    ARTElement reachSetARTElement = ARTElementSearcher.searchForARTElement(mainReachSet.asReachedSet(), currentElement, wrappedReducer, partitioning);
+    
+    mainReachSet.removeSubtree(reachSetARTElement, newPrecision);          
+  }
+  
+  private void removeCachedSubtree(Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastReachSet, ARTElement currentElement, Precision newPrecision) {
+    assert lastReachSet != null; 
+
+    //called in a subgraphs ART; in this case we need to tell the transfer function to update its cached
+    //specifications such that the subtree is removed in the subgraphs ART
+    ARTElement lastCallNode = lastReachSet.getSecond().getFirst();
+    Precision lastDefinitionNodePrecision = lastReachSet.getSecond().getSecond();
+    CFANode lastDefinitionCFANode = lastReachSet.getThird();
+    
+    removeCachedSubtree(lastCallNode, lastDefinitionNodePrecision, lastDefinitionCFANode, currentElement, newPrecision);
   }
   
   private void removeCachedSubtree(AbstractElement rootElement, Precision rootPrecision, CFANode rootNode, ARTElement removeElement, Precision newPrecision) {
