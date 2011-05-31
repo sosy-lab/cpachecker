@@ -85,7 +85,8 @@ public class CFACreator {
       description="export CFA as .dot file")
   private boolean exportCfa = true;
 
-  @Option(name="cfa.exportPerFunction")
+  @Option(name="cfa.exportPerFunction",
+      description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;  
   
   @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,

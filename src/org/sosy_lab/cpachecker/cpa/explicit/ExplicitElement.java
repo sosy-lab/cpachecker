@@ -46,7 +46,8 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // used for return edges
   private final ExplicitElement previousElement;
 
-  @Option
+  @Option(description="variables whose name contains this will be seen by ExplicitCPA as having non-deterministic values")
+  // TODO this is completely broken, name doesn't match, the option is never read from file etc.
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public ExplicitElement() {

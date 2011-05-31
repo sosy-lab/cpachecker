@@ -118,7 +118,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       description="write collected assumptions to file")
   private File assumptionsFile = new File("assumptions.txt");
   
-  @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE)
+  @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE,
+          description="write collected assumptions as automaton to file")
   private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
 
   private final LogManager logger;

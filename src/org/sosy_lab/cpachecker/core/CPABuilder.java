@@ -58,7 +58,8 @@ public class CPABuilder {
   private static final String CPA_OPTION_NAME = "cpa";
   private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
 
-  @Option(name=CPA_OPTION_NAME)
+  @Option(name=CPA_OPTION_NAME,
+      description="CPA to use (see HowToConfiguration.txt for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE,

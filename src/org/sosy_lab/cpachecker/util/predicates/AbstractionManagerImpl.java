@@ -89,7 +89,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
   // and the mapping symbolic variable -> predicate
   private final Map<Formula, AbstractionPredicate> symbVarToPredicate;
 
-  @Option
+  @Option(description="use caching of region to formula conversions")
   private boolean useCache = true;
 
   private final Map<Region, Formula> toConcreteCache;

@@ -52,7 +52,8 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   
-  @Option
+  @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+  		              + "or any class that implements a PartitioningHeuristic")
   private String blockHeuristic = "FunctionAndLoopPartitioning";  
 
   private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker.cfa.blocks.builder";

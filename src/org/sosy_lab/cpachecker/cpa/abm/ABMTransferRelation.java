@@ -54,7 +54,7 @@ import com.google.common.collect.Iterables;
 @Options(prefix="cpa.abm")
 public class ABMTransferRelation implements TransferRelation {
 
-  @Option
+  @Option(description="disable caching of abstract state spaces for blocks")
   private boolean NO_CACHING = false; 
    
   private class AbstractElementHash {

@@ -90,7 +90,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
   
-  @Option(name="interpolation.changesolverontimeout")
+  @Option(name="interpolation.changesolverontimeout",
+          description="try second interpolating solver if the first takes too long")
   private boolean changeItpSolveOTF = false;
   
   @Option(name="blk.useCache", description="use caching where possible")

@@ -31,7 +31,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private final ABMPredicateReducer reducer;
   private final ABMPredicateTransferRelation transfer;
 
-  @Option
+  @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
    
   private ABMPredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {

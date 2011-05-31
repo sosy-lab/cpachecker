@@ -60,10 +60,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
   
-  @Option(name="checker", toUppercase=true, values={"CBMC", "EXPLICIT"})
+  @Option(name="checker", toUppercase=true, values={"CBMC", "EXPLICIT"},
+          description="which model checker to use for verifying counterexamples as a second check\n"
+                    + "Currently CBMC or CPAchecker with explicit analysis can be used.")
   private String checkerName = "CBMC";
   
-  @Option
+  @Option(description="continue analysis after an counterexample was found that was denied by the second check")
   private boolean continueAfterInfeasibleError = true;
   
   public CounterexampleCheckAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {

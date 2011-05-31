@@ -59,10 +59,10 @@ public class MonitorTransferRelation implements TransferRelation {
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
-  @Option(name="limit")
+  @Option(name="limit", description="time limit for a single post computation in millseconds (0 to disable)")
   private long timeLimit = 0; // given in milliseconds
 
-  @Option(name="pathcomputationlimit")
+  @Option(name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (0 to disable)")
   private long timeLimitForPath = 0;
 
   private final TransferRelation transferRelation;

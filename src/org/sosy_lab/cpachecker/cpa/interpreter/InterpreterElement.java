@@ -45,7 +45,8 @@ public class InterpreterElement implements AbstractElement {
   private int mInputIndex;
   private int[] mInputs;
   
-  @Option
+  @Option(description="variables whose name contains this will be seen by InterpreterCPA as having non-deterministic values")
+  // TODO this is completely broken, name doesn't match, the option is never read from file etc.
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public InterpreterElement() {

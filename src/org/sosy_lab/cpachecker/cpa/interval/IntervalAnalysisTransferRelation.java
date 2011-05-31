@@ -85,7 +85,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
   private final Set<String> globalVars = new HashSet<String>();
 
-  @Option
+  @Option(description="at most that many intervals will be tracked per variable")
   private int threshold = 0;
 
   public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException

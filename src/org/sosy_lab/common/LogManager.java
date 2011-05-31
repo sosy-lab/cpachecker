@@ -97,7 +97,7 @@ public class LogManager {
       description="name of the log file")
   private File outputFile = new File("CPALog.txt");
 
-  @Option
+  @Option(description="maximum size of log output strings before they will be truncated")
   private int truncateSize = 10000;
   
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");

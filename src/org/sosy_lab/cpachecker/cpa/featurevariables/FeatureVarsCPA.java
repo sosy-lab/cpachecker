@@ -50,7 +50,8 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(FeatureVarsCPA.class);
   }
   
-  @Option(name="variableWhitelist")
+  @Option(name="variableWhitelist",
+          description="whitelist regex for variables that will be tracked by FeatureVarsCPA")
   private String variableWhitelist = "";
   
   private final FeatureVarsElement initialElement;

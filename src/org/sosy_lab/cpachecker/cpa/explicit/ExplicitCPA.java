@@ -56,10 +56,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
       description="which merge operator to use for ExplicitCPA")
   private String mergeType = "SEP";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"})
+  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
+      description="which stop operator to use for ExplicitCPA")
   private String stopType = "SEP";
   
-  @Option(name="variableBlacklist")
+  @Option(name="variableBlacklist",
+      description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
   
   private ExplicitPrecision precision;

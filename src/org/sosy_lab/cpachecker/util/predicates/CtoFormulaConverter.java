@@ -106,7 +106,7 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
 
-  @Option
+  @Option(description="add special information to formulas about non-deterministic functions")
   protected boolean useNondetFlags = false;
   
   @Option(description="initialize all variables to 0 when they are declared")
@@ -115,6 +115,7 @@ public class CtoFormulaConverter {
   @Option(description="if initAllVars is true, we get rid of all non-determinism. "
     + "This might not be desirable. If the following property is set to a non-empty value, "
     + "all variables starting with this prefix will not be initialized automatically")
+  // TODO this is not only about missing initialization, it should be renamed to nondetVariables
   private String noAutoInitPrefix = "__BLAST_NONDET";
   
   @Option(description="when transforming code to formula, add predicates "
