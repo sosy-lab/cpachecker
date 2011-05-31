@@ -352,13 +352,14 @@ public class ABMTransferRelation implements TransferRelation {
       }
       
       if(currentElement.equals(element) || relevantCall) {        
-        Precision currentPrecision = removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
+        Precision currentPrecision = getPrecision(lastReachSet != null ? lastReachSet.getFirst() : reachSet.asReachedSet(), currentElement);
+        removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
       
         if(relevantCall) {
           lastReachSet = new Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode>(getReachedSet(currentElement, currentPrecision), Pair.of(currentElement, currentPrecision), node);
           if(relevantCall && currentElement.equals(element)) {
             //lastelement is a relevant call, redo the cached subtree removal once again
-            currentPrecision = removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
+            removeCachedSubtree(lastReachSet, currentElement, reachSet, newPrecision);
           }
         }
       }
@@ -367,10 +368,7 @@ public class ABMTransferRelation implements TransferRelation {
     removeSubtreeTimer.stop();  
   }
   
-  private Precision removeCachedSubtree(Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastReachSet, ARTElement currentElement, ARTReachedSet mainReachSet, Precision newPrecision) {
-    Precision currentPrecision = getPrecision(lastReachSet != null ? lastReachSet.getFirst() : mainReachSet.asReachedSet(), currentElement);
-    assert currentPrecision != null;
-    
+  private void removeCachedSubtree(Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastReachSet, ARTElement currentElement, ARTReachedSet mainReachSet, Precision newPrecision) {
     //we need to remove the subtree in the cached ART, in which the currentElement is found
     if(lastReachSet == null) {
       //called in main function; in this case we simply remove the subtree in the global ART   
@@ -386,9 +384,7 @@ public class ABMTransferRelation implements TransferRelation {
       CFANode lastDefinitionCFANode = lastReachSet.getThird();
       
       removeCachedSubtree(lastCallNode, lastDefinitionNodePrecision, lastDefinitionCFANode, currentElement, newPrecision);
-    }
-    
-    return currentPrecision;
+    }    
   }
   
   private void removeCachedSubtree(AbstractElement rootElement, Precision rootPrecision, CFANode rootNode, ARTElement removeElement, Precision newPrecision) {
