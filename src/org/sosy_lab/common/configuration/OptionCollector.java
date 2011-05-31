@@ -387,9 +387,22 @@ public class OptionCollector {
 
         // remove brckets from file: new File("example.txt") --> "example.txt"
         if (defaultValue.startsWith("new File(")) {
-          defaultValue = defaultValue.substring(9, defaultValue.length() - 1);
+          defaultValue = defaultValue.substring("new File(".length(), defaultValue.length() - 1);
+        }
+        
+        if (defaultValue.startsWith("ImmutableSet.of(")) {
+          defaultValue = "{" + defaultValue.substring(
+              "ImmutableSet.of(".length(), defaultValue.length() - 1) + "}";
         }
       }
+    } else {
+      
+      // special handling for generics
+      final String stringSetFieldString = fieldString.replace(" Set ", " Set<String> ");
+      if (content.contains(stringSetFieldString)) { 
+        return getDefaultValueFromContent(content, stringSetFieldString);
+      }
+      // TODO: other types of generics?
     }
     return defaultValue.trim();
   }
@@ -479,14 +492,7 @@ public class OptionCollector {
                                                     : (packageName + "." + fileName);
           collectClasses(file, newPackage, classes);
 
-        } else if (fileName.endsWith(".class")
-
-            // exclude some problematic files of Octagon and some testfiles
-            // TODO: are excluded files important?
-            && !fileName.contains("Octagon")
-            && !fileName.contains("OctWrapper") && !fileName.contains("Test")
-            && !fileName.contains("test")) {
-
+        } else if (fileName.endsWith(".class")) {
           final String nameOfClass = packageName + '.'
                 + fileName.substring(0, fileName.length() - 6);
           try {
@@ -498,7 +504,13 @@ public class OptionCollector {
               classes.add(foundClass);
             }
           } catch (ClassNotFoundException e) {
-            // ignore, there is no class available for this file
+            // ignore, there is no class available for this file} 
+          } catch (UnsatisfiedLinkError e) {
+            // if classpath is not set manually in Eclipse, 
+            // OctWrapper throws this error,
+            // running cpa.sh in terminal does not throw this error
+            errorMessages.add("INFO: Could not load '" + fileName
+                + "' for getting Option-annotations: " + e.getMessage());
           } catch (NoClassDefFoundError e) {
             // this error is thrown, if there is more than one classpath
             // and one of them did not map the package-strukture,
