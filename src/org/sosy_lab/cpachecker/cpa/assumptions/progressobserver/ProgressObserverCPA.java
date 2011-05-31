@@ -62,7 +62,8 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ProgressObserverCPA.class);
   }
 
-  @Option(name="heuristics", required=true)
+  @Option(name="heuristics", required=true,
+      description="which heuristics should be used to track progress?")
   private String[] heuristicsNames = {};
   
   private final ProgressObserverDomain abstractDomain;

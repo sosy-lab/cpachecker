@@ -57,7 +57,9 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   /**
    * Use join as default merge, because sep is only safe if all other cpas also use sep.
    */
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+      description="which merge operator to use for ARTCPA? "
+        + "only use sep here if all other CPAs also use sep")
   private String mergeType = "JOIN";
 
   private final LogManager logger;
