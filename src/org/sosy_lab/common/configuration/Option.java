@@ -108,9 +108,9 @@ public @interface Option {
   public long max() default Long.MAX_VALUE;
   
   /**
-   * An optional text, that describes the current option.
+   * A text that describes the current option (this will be part of the user documentation).
    */
-  public String description() default "";
+  public String description();
   
   /**
    * If the type of the option needs further specification, this field provides
