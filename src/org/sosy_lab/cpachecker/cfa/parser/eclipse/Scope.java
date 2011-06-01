@@ -42,15 +42,15 @@ import com.google.common.collect.Lists;
  * (if a name is visible in the current scope).
  */
 class Scope {
-  
+
   private final LinkedList<Map<String, IASTSimpleDeclaration>> varsStack = Lists.newLinkedList();
 
   private final Map<String, IASTSimpleDeclaration> functions = new HashMap<String, IASTSimpleDeclaration>();
-  
+
   public Scope() {
     enterFunction(); // enter global scope
   }
-  
+
   public boolean isGlobalScope() {
     return varsStack.size() == 1;
   }
@@ -58,15 +58,15 @@ class Scope {
   public void enterFunction() {
     varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
   }
-  
+
   public void leaveFunction() {
     checkState(!isGlobalScope());
     varsStack.removeLast();
   }
-  
+
   public IASTSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
-    
+
     Iterator<Map<String, IASTSimpleDeclaration>> it = varsStack.descendingIterator();
     while (it.hasNext()) {
       Map<String, IASTSimpleDeclaration> vars = it.next();
@@ -78,38 +78,39 @@ class Scope {
     }
     return null;
   }
-  
+
   public IASTSimpleDeclaration lookupFunction(String name) {
     return functions.get(checkNotNull(name));
   }
-  
+
   public void registerDeclaration(IASTSimpleDeclaration declaration) {
     String name = declaration.getName();
-    
+
     if (declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier) {
       // function
-      
+
       checkState(isGlobalScope(), "nested functions not allowed");
-      
+
       if (functions.containsKey(name)) {
         // TODO multiple function declarations are legal, as long as they are equal
         // check this and throw exception if not
 //        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
       }
-      
+
       functions.put(name, declaration);
-    
+
     } else {
       Map<String, IASTSimpleDeclaration> vars = varsStack.getLast();
-    
-      if (vars.containsKey(name)) {
+
+      // multiple declarations of the same variable are disallowed, unless when being in global scope
+      if (vars.containsKey(name) && !isGlobalScope()) {
         throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
       }
-      
+
       vars.put(name, declaration);
     }
   }
-  
+
   @Override
   public String toString() {
     return "Functions: " + Joiner.on(' ').join(functions.keySet());
