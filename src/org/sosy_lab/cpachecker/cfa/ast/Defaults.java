@@ -31,29 +31,31 @@ public class Defaults {
   private Defaults() { }
 
   private static IType INT_TYPE = new IASTSimpleDeclSpecifier(false, false, BasicType.INT, false, false, true, false, false, false, false);
-  
+
   public static IASTLiteralExpression forType(IType type, IASTFileLocation fileLoc) {
     if (type instanceof IASTPointerTypeSpecifier) {
       return new IASTIntegerLiteralExpression("NULL", fileLoc, INT_TYPE, BigInteger.ZERO);
-    
+
     } else if (type instanceof IASTSimpleDeclSpecifier) {
       BasicType basicType = ((IASTSimpleDeclSpecifier)type).getType();
       switch (basicType) {
       case CHAR:
         return new IASTCharLiteralExpression("'\\0'", fileLoc, type, '\0');
-        
+
       case DOUBLE:
       case FLOAT:
         return new IASTFloatLiteralExpression("0.0", fileLoc, type, BigDecimal.ZERO);
-        
+
       case UNSPECIFIED:
       case BOOL:
       case INT:
+      case VOID: // is this legitimate for "void"?
         return new IASTIntegerLiteralExpression("0", fileLoc, type, BigInteger.ZERO);
+
       default:
-        throw new AssertionError("Unknown basic type");  
+        throw new AssertionError("Unknown basic type '" + basicType + "'");
       }
-    
+
     } else if (type instanceof IASTEnumerationSpecifier) {
       // enum declaration: enum e { ... } var;
       return new IASTIntegerLiteralExpression("0", fileLoc, INT_TYPE, BigInteger.ZERO);
@@ -67,5 +69,5 @@ public class Defaults {
       return null;
     }
   }
-  
+
 }
