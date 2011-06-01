@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -119,6 +120,11 @@ public class CPAchecker {
     @Option(name="analysis.stopAfterError",
         description="stop after the first error has been found")
     boolean stopAfterError = true;
+    
+    @Option(name="analysis.restartAfterUnknown",
+        description="restart the algorithm using a different CPA after unknown result")
+    boolean useRestartingAlgorithm = false;
+    
   }
 
   private final LogManager logger;
@@ -303,6 +309,10 @@ public class CPAchecker {
     
     if (options.useAssumptionCollector) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
+    }
+    
+    if (options.useRestartingAlgorithm) {
+      algorithm = new RestartAlgorithm(algorithm, config, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {
