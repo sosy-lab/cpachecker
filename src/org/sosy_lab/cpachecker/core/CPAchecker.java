@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 
@@ -161,84 +162,162 @@ public class CPAchecker {
     ReachedSet reached = null;
     Result result = Result.UNKNOWN;
 
-    try {
-      stats = new MainCPAStatistics(config, logger);
+    if(options.useRestartingAlgorithm){
+      logger.log(Level.INFO, "Using Restarting Algorithm");
 
-      // create parser, cpa, algorithm
-      stats.creationTime.start();
-
-      CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
-      stats.setCFACreator(cfaCreator);
-
-      ConfigurableProgramAnalysis cpa = createCPA(stats);
-
-      Algorithm algorithm = createAlgorithm(cpa, stats);
-
-      Set<String> unusedProperties = config.getUnusedProperties();
-      if (!unusedProperties.isEmpty()) {
-        logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-            Joiner.on("\n ").join(unusedProperties), "\n");
-      }
-
-      stats.creationTime.stop();
-
-      stopIfNecessary();
-
-      // create CFA
-      cfaCreator.parseFileAndCreateCFA(filename);
-
-      if (cfaCreator.getFunctions().isEmpty()) {
-        // empty program, do nothing
-        return new CPAcheckerResult(Result.UNKNOWN, null, null);
-      }
-
-      reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
-
-      stopIfNecessary();
-
-      // register management interface for CPAchecker
-      CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
       try {
+        stats = new MainCPAStatistics(config, logger);
 
-        result = runAlgorithm(algorithm, reached, stats);
+        // create parser, cpa, algorithm
+        stats.creationTime.start();
 
-      } finally {
-        // unregister management interface for CPAchecker
-        mxbean.unregister();
-      }
+        CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
+        stats.setCFACreator(cfaCreator);
 
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Could not read file", filename,
-          (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+        // create CFA
+        cfaCreator.parseFileAndCreateCFA(filename);
 
-    } catch (ParserException e) {
-      // only log message, not whole exception because this is a C problem,
-      // not a CPAchecker problem
-      logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
-      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
-          + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+        if (cfaCreator.getFunctions().isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.UNKNOWN, null, null);
+        }
 
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+        Algorithm algorithm = createRestartAlgorithm(config, stats, cfaCreator);
 
-    } catch (UnsatisfiedLinkError e) {
-      if (e.getMessage().contains("libgmpxx.so.4")) {
-        logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
-            + "Please install libgmpxx.so.4 and try again.\n"
-            + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
-      } else {
+        Set<String> unusedProperties = config.getUnusedProperties();
+        if (!unusedProperties.isEmpty()) {
+          logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+              Joiner.on("\n ").join(unusedProperties), "\n");
+        }
+
+        stats.creationTime.stop();
+
+        stopIfNecessary();
+
+        // register management interface for CPAchecker
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+        try {
+
+          result = runAlgorithm(algorithm, reached, stats);
+
+        } finally {
+          // unregister management interface for CPAchecker
+          mxbean.unregister();
+        }
+
+      } catch (IOException e) {
+        logger.log(Level.SEVERE, "Could not read file", filename,
+            (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+
+      } catch (ParserException e) {
+        // only log message, not whole exception because this is a C problem,
+        // not a CPAchecker problem
+        logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
+        logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
+            + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+
+      } catch (UnsatisfiedLinkError e) {
+        if (e.getMessage().contains("libgmpxx.so.4")) {
+          logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
+              + "Please install libgmpxx.so.4 and try again.\n"
+              + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
+        } else {
+          logger.logException(Level.SEVERE, e, null);
+        }
+
+      } catch (InterruptedException e) {
+        // CPAchecker must exit because it was asked to
+        // we return normally instead of propagating the exception
+        // so we can return the partial result we have so far
+
+      } catch (CPAException e) {
         logger.logException(Level.SEVERE, e, null);
       }
 
-    } catch (InterruptedException e) {
-      // CPAchecker must exit because it was asked to
-      // we return normally instead of propagating the exception
-      // so we can return the partial result we have so far
-
-    } catch (CPAException e) {
-      logger.logException(Level.SEVERE, e, null);
     }
 
+    else{
+      try {
+        stats = new MainCPAStatistics(config, logger);
+
+        // create parser, cpa, algorithm
+        stats.creationTime.start();
+
+        CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
+        stats.setCFACreator(cfaCreator);
+
+        ConfigurableProgramAnalysis cpa = createCPA(stats);
+
+        Algorithm algorithm = createAlgorithm(cpa, stats);
+
+        Set<String> unusedProperties = config.getUnusedProperties();
+        if (!unusedProperties.isEmpty()) {
+          logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+              Joiner.on("\n ").join(unusedProperties), "\n");
+        }
+
+        stats.creationTime.stop();
+
+        stopIfNecessary();
+
+        // create CFA
+        cfaCreator.parseFileAndCreateCFA(filename);
+
+        if (cfaCreator.getFunctions().isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.UNKNOWN, null, null);
+        }
+
+        reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
+
+        stopIfNecessary();
+
+        // register management interface for CPAchecker
+        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+        try {
+
+          result = runAlgorithm(algorithm, reached, stats);
+
+        } finally {
+          // unregister management interface for CPAchecker
+          mxbean.unregister();
+        }
+
+      } catch (IOException e) {
+        logger.log(Level.SEVERE, "Could not read file", filename,
+            (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+
+      } catch (ParserException e) {
+        // only log message, not whole exception because this is a C problem,
+        // not a CPAchecker problem
+        logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
+        logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
+            + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+
+      } catch (UnsatisfiedLinkError e) {
+        if (e.getMessage().contains("libgmpxx.so.4")) {
+          logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
+              + "Please install libgmpxx.so.4 and try again.\n"
+              + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
+        } else {
+          logger.logException(Level.SEVERE, e, null);
+        }
+
+      } catch (InterruptedException e) {
+        // CPAchecker must exit because it was asked to
+        // we return normally instead of propagating the exception
+        // so we can return the partial result we have so far
+
+      } catch (CPAException e) {
+        logger.logException(Level.SEVERE, e, null);
+      }
+    }
     return new CPAcheckerResult(result, reached, stats);
   }
 
@@ -295,45 +374,75 @@ public class CPAchecker {
   throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm;
+    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
-    if (options.useRestartingAlgorithm) {
-      List<Algorithm> algorithms = createMultipleAlgorithms(config);
-      algorithm = new RestartAlgorithm(algorithms, config, logger);
+    if (options.useRefinement) {
+      algorithm = new CEGARAlgorithm(algorithm, config, logger);
     }
 
-    else {
-      algorithm = new CPAAlgorithm(cpa, logger);
+    if (options.useBMC) {
+      algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
+    }
 
-      if (options.useRefinement) {
-        algorithm = new CEGARAlgorithm(algorithm, config, logger);
-      }
+    if (options.useCBMC) {
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
+    }
 
-      if (options.useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
-      }
+    if (options.useAssumptionCollector) {
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
+    }
 
-      if (options.useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
-      }
-
-      if (options.useAssumptionCollector) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
-      }
-
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-      }
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
     }
     return algorithm;
   }
 
-  private List<Algorithm> createMultipleAlgorithms(Configuration config) {
-    List<Algorithm> retList = new ArrayList<Algorithm>();
+  private Algorithm createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
+    List<Algorithm> algorithmsList = new ArrayList<Algorithm>();
 
-    
-    
-    return retList;
+    String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
+
+    for(String configFileName: configFiles){
+      Algorithm algorithm = null;
+      Configuration.Builder singleConfig = Configuration.builder();
+      Preconditions.checkNotNull(configFileName);
+      try {
+        singleConfig.loadFromFile(configFileName);
+        ConfigurableProgramAnalysis cpa = createCPA(stats);
+        algorithm = createAlgorithm(cpa, stats);
+        
+        ReachedSet reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
+
+        stopIfNecessary();
+        
+      } catch (IOException e) {
+        e.printStackTrace();
+      } catch (InvalidConfigurationException e) {
+        e.printStackTrace();
+      } catch (CPAException e) {
+        e.printStackTrace();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+
+      Preconditions.checkNotNull(algorithm);
+      algorithmsList.add(algorithm);
+    }
+
+    Algorithm restartAlgorithm = null;
+
+    try {
+      restartAlgorithm = new RestartAlgorithm(algorithmsList, config, logger);
+    } catch (InvalidConfigurationException e) {
+      e.printStackTrace();
+    } catch (CPAException e) {
+      e.printStackTrace();
+    }
+
+    Preconditions.checkNotNull(restartAlgorithm);
+    return restartAlgorithm;
   }
 
   private ReachedSet createInitialReachedSet(
