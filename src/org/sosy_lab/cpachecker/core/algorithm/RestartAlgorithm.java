@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Preconditions;
+
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private final List<Algorithm> algorithms;
@@ -64,6 +66,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       currentAlgorithm = algorithms.get(idx++);
 
       // run algorithm
+      Preconditions.checkNotNull(reached);
       sound &= currentAlgorithm.run(reached);
 
       if(!sound){

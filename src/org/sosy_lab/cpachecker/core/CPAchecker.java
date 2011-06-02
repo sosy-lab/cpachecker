@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -182,7 +183,7 @@ public class CPAchecker {
           return new CPAcheckerResult(Result.UNKNOWN, null, null);
         }
 
-        Algorithm algorithm = createRestartAlgorithm(config, stats, cfaCreator);
+        Pair<Algorithm, ReachedSet> algorithmReachedPair = createRestartAlgorithm(config, stats, cfaCreator);
 
         Set<String> unusedProperties = config.getUnusedProperties();
         if (!unusedProperties.isEmpty()) {
@@ -198,7 +199,7 @@ public class CPAchecker {
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
         try {
 
-          result = runAlgorithm(algorithm, reached, stats);
+          result = runAlgorithm(algorithmReachedPair.getFirst(), algorithmReachedPair.getSecond(), stats);
 
         } finally {
           // unregister management interface for CPAchecker
@@ -369,6 +370,18 @@ public class CPAchecker {
     return cpa;
   }
 
+  private ConfigurableProgramAnalysis createCPA(Configuration pConfig, MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+    logger.log(Level.FINE, "Creating CPAs");
+
+    CPABuilder builder = new CPABuilder(pConfig, logger, reachedSetFactory);
+    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+
+    if (cpa instanceof StatisticsProvider) {
+      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+    }
+    return cpa;
+  }
+
   private Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, final MainCPAStatistics stats)
   throws InvalidConfigurationException, CPAException {
@@ -398,10 +411,12 @@ public class CPAchecker {
     return algorithm;
   }
 
-  private Algorithm createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
+  private Pair<Algorithm, ReachedSet> createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
     List<Algorithm> algorithmsList = new ArrayList<Algorithm>();
 
     String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
+
+    ReachedSet reached = null;
 
     for(String configFileName: configFiles){
       Algorithm algorithm = null;
@@ -409,10 +424,10 @@ public class CPAchecker {
       Preconditions.checkNotNull(configFileName);
       try {
         singleConfig.loadFromFile(configFileName);
-        ConfigurableProgramAnalysis cpa = createCPA(stats);
+        ConfigurableProgramAnalysis cpa = createCPA(singleConfig.build(), stats);
         algorithm = createAlgorithm(cpa, stats);
 
-        ReachedSet reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
+        reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
         stopIfNecessary();
 
@@ -442,7 +457,7 @@ public class CPAchecker {
     }
 
     Preconditions.checkNotNull(restartAlgorithm);
-    return restartAlgorithm;
+    return Pair.of(restartAlgorithm, reached);
   }
 
   private ReachedSet createInitialReachedSet(
