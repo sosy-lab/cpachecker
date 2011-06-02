@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * An AbstractElement that evaluates Properties (String-encoded) and
  * returns whether they are satisfied in concrete states represented by the AbstractElement.
- * @author rhein
  */
 public interface AbstractQueryableElement extends AbstractElement {
 

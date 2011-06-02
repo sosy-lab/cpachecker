@@ -51,8 +51,6 @@ import com.google.common.base.Joiner;
  * providing some commonly used stuff which is independent from specific libraries.
  *
  * This class inherits from CtoFormulaConverter to import the stuff there.
- *
- * @author Philipp Wendler
  */
 @Options(prefix="cpa.predicate")
 public class AbstractionManagerImpl implements AbstractionManager {

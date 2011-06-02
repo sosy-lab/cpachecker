@@ -45,8 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  *
  * To test whether an element is bottom, we use the must-stop reporting
  * (mustDumpAssumptionForAvoidance)
- *
- * @author g.theoduloz
  */
 public class ProgressObserverStop implements StopOperator {
 

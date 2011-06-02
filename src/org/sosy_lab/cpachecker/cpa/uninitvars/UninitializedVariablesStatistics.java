@@ -40,8 +40,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import com.google.common.base.Predicates;
 
 /**
- * @author Gregor Endler
- *
  * Statistics for UninitializedVariablesCPA.
  * Displays warnings about all uninitialized variables found.
  */

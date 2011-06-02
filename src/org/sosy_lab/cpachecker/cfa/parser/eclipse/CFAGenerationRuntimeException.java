@@ -27,7 +27,6 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 
 /**
  * Handles problems during CFA generation
- * @author erkan
  */
 public class CFAGenerationRuntimeException extends RuntimeException {
 

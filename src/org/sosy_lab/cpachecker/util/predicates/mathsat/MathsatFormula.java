@@ -28,8 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * A Formula represented as a MathSAT term.
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class MathsatFormula implements Formula {
 

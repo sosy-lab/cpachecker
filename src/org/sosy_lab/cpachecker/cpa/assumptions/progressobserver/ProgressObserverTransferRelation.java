@@ -42,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * Transfer relation for the analysis controller. Note that we
  * use side-effects (related to the hashtable) to improve performance.
- * @author g.theoduloz
  */
 public class ProgressObserverTransferRelation implements TransferRelation {
 

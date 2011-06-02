@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
 import java.util.HashSet;
@@ -34,10 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 
-/**
- * @author holzera
- *
- */
 public class DominatorElement implements AbstractElementWithLocation, AbstractElement {
 
 	private AbstractElement dominatedElement;

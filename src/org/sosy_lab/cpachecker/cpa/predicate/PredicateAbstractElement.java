@@ -37,8 +37,6 @@ import com.google.common.base.Predicate;
 
 /**
  * AbstractElement for Symbolic Predicate Abstraction CPA
- *
- * @author Erkan
  */
 public class PredicateAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 

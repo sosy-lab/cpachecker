@@ -30,9 +30,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 
-/**
- * @author Philipp Wendler
- */
 public class TypesElement implements AbstractElement {
 
   private final Map<String, Type> variables;

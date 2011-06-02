@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 /**
  * Interface to implement in order for an object to be able to
  * contribute invariants to the invariant construction.
- *
- * @author g.theoduloz
  */
 public interface AssumptionReportingElement {
 

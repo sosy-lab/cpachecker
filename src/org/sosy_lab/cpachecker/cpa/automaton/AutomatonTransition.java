@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * A transition in the automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
  * This determines if the transition matches on a certain {@link CFAEdge}.
- * @author rhein
  */
 class AutomatonTransition {
 

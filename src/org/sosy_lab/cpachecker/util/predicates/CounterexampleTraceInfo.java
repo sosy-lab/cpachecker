@@ -44,8 +44,6 @@ import com.google.common.collect.Multimap;
  * For spurious counterexamples, this stores a predicate map
  * with new predicates that are sufficient to rule out the trace in the
  * refined abstract model.
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;

@@ -75,8 +75,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 /**
- * @author Philipp Wendler, Gregor Endler
- *
  * Needs typesCPA to properly deal with field references.
  * If run without typesCPA, uninitialized field references may not be detected.
  */

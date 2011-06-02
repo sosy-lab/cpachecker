@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
 import java.util.ArrayList;
@@ -37,10 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-/**
- * @author holzera
- *
- */
 public class DominatorTransferRelation implements TransferRelation {
 
 	private final ConfigurableProgramAnalysis cpa;

@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import org.sosy_lab.common.Triple;
 
 /**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- *
  * An AbstractFormulaManager is an object that knows how to create/manipulate
  * AbstractFormulas
  */

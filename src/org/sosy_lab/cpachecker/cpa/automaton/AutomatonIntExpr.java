@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
- * @author rhein
  */
 interface AutomatonIntExpr extends AutomatonExpression {
 
@@ -41,7 +40,6 @@ interface AutomatonIntExpr extends AutomatonExpression {
   abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
   /** Stores a constant integer.
-   * @author rhein
    */
   static class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
@@ -56,7 +54,6 @@ interface AutomatonIntExpr extends AutomatonExpression {
 
 
   /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value.
-   * @author rhein
    */
   static class VarAccess implements AutomatonIntExpr {
 
@@ -110,7 +107,6 @@ interface AutomatonIntExpr extends AutomatonExpression {
 
   /**
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
-   * @author rhein
    */
   static class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
@@ -177,7 +173,6 @@ interface AutomatonIntExpr extends AutomatonExpression {
     }
   }
   /** Addition of {@link AutomatonIntExpr} instances.
-   * @author rhein
    */
   static class Plus implements AutomatonIntExpr {
 
@@ -204,7 +199,6 @@ interface AutomatonIntExpr extends AutomatonExpression {
   }
 
   /** Subtraction of {@link AutomatonIntExpr} instances.
-   * @author rhein
    */
   static class Minus implements AutomatonIntExpr {
 

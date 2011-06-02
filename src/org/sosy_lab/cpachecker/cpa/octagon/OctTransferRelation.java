@@ -70,8 +70,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 /**
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
- * @author Erkan
- *
  */
 public class OctTransferRelation implements TransferRelation{
 

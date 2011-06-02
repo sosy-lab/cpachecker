@@ -58,7 +58,6 @@ abstract class AutomatonAction {
 
   /**
    * Prints a string to System.out when executed.
-   * @author rhein
    */
   static class Print extends AutomatonAction {
     private List<AutomatonExpression> toPrint;
@@ -94,7 +93,6 @@ abstract class AutomatonAction {
 
 
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
-   * @author rhein
    */
   static class Assignment extends AutomatonAction {
     private String varId;
@@ -126,8 +124,6 @@ abstract class AutomatonAction {
   }
   /**
    * Modifies the state of a CPA
-   * @author rhein
-   *
    */
   static class CPAModification extends AutomatonAction {
     private final String cpaName;

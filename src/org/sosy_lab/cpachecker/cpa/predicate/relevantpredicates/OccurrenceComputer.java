@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
  * Computes set of irrelevant predicates of a block by identifying the variables that do not occur in the block.
- * @author dwonisch
- *
  */
 
 public class OccurrenceComputer extends AbstractRelevantPredicatesComputer<Block> {

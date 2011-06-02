@@ -28,7 +28,6 @@ import org.sosy_lab.common.Pair;
 /**
  * Creates a predicate as an UIF for a heuristic using the
  * type of the heuristic and the threshold for it.
- *
  */
 public class HeuristicToFormula {
 

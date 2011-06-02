@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Interface representing an unmodifiable reached set
- *
- * @author g.theoduloz
  */
 public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
 

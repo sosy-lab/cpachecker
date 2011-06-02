@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
-/**
- * @author g.theoduloz
- */
 public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   private final boolean stop;

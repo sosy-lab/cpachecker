@@ -381,7 +381,6 @@ public class AutomatonTest {
     /* in the automata this is
      * not possible at the moment, because the generated pattern
      * AST has one node that is missing in the the sub-AST of the CFA
-     *
      */
 //    Assert.assertTrue(testAST("int y;", "int $?;"));
 //    Assert.assertTrue(testAST("int y;", "int y;"));

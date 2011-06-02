@@ -39,8 +39,6 @@ import com.google.common.collect.Collections2;
 
 /**
  * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i
- *
- * @author g.theoduloz
  */
 public class AssumptionWithLocation {
 

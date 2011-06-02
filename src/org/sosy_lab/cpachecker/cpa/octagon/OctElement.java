@@ -39,8 +39,6 @@ import com.google.common.collect.HashBiMap;
  * provides a mapping from variable names to variables.
  * see {@link Variable}.
  *
- * @author erkan
- *
  */
 public class OctElement implements AbstractElement{
 

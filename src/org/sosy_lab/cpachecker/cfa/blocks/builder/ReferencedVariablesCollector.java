@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
- * @author dwonisch
- *
  */
 public class ReferencedVariablesCollector {
   Set<String> globalVars = new HashSet<String>();

@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
 import java.util.HashSet;
@@ -36,10 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * @author holzera
- *
- */
 public class DominatorDomain implements AbstractDomain {
 
 	private final ConfigurableProgramAnalysis cpa;

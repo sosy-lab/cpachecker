@@ -52,10 +52,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
 public class CPASelfCheck {
 
   private static LogManager logManager;

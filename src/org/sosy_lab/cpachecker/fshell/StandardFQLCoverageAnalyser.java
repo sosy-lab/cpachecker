@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
  * parts of the reached set?) This requires a change in the coverage check.
  * -> Handle enormous amounts of test goals.
- *
  */
 
 public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {

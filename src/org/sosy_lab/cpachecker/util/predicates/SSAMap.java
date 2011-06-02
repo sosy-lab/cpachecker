@@ -38,8 +38,6 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
 /**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- *
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable
  */

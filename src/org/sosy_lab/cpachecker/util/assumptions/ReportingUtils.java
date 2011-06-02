@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 /**
  * Static methods used as helpers to manipulate elements implementing
  * FormulaReportingElement.
- *
- * @author g.theoduloz
  */
 public class ReportingUtils {
 

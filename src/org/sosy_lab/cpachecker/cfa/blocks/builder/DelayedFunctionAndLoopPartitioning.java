@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.util.CFA;
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
  * In contrast to <code>FunctionAndLoopPartitioning</code> the heuristics tries to skip possible initial definitions at the blocks.
- * @author dwonisch
- *
  */
 public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartitioning {
 

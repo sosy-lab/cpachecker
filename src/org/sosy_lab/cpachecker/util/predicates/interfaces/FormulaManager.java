@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 
 /**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- *
  * A FormulaManager is an object that can create/manipulate
  * Formulas
  */

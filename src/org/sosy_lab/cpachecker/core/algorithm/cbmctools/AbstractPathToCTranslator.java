@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import static com.google.common.collect.Iterables.concat;
@@ -65,10 +62,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-/**
- * @author erkan
- *
- */
 public class AbstractPathToCTranslator {
 
   private final List<String> mGlobalDefinitionsList = new ArrayList<String>();

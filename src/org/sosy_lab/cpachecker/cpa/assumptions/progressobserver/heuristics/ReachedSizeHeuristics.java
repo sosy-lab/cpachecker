@@ -33,9 +33,6 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
-/**
- * @author g.theoduloz
- */
 public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
 
   private final int threshold;

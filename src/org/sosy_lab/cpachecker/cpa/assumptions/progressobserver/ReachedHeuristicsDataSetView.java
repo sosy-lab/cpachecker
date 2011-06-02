@@ -34,7 +34,6 @@ import com.google.common.collect.Collections2;
 
 /**
  * View of the reached heuristics
- * @author g.theoduloz
  */
 public class ReachedHeuristicsDataSetView {
 

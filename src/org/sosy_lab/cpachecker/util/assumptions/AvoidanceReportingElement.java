@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
  * Interface to implement in order for an object to be able to
  * make the system generate an assumption to avoid re-considering
  * this node.
- *
- * @author g.theoduloz
  */
 public interface AvoidanceReportingElement {
 

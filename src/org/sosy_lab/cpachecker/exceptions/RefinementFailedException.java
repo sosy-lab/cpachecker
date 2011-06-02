@@ -28,8 +28,6 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 /**
  * Exception raised when the refinement procedure fails, or was
  * abandoned.
- *
- * @author g.theoduloz
  */
 public class RefinementFailedException extends CPAException {
 

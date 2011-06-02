@@ -33,8 +33,6 @@ import com.google.common.base.Preconditions;
  * Abstract element for the generic assumption generator CPA;
  * encapsulate a symbolic formula that represents the
  * assumption.
- *
- * @author g.theoduloz
  */
 public class GenericAssumptionsElement implements AbstractElement, AssumptionReportingElement {
 

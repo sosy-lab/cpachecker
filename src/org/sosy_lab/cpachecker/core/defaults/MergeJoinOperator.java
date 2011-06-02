@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Standard merge-join operator
- * @author g.theoduloz
  */
 public class MergeJoinOperator implements MergeOperator {
 

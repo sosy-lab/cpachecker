@@ -131,7 +131,6 @@ public class MathsatTheoremProver implements TheoremProver {
 
   /**
    * callback used to build the predicate abstraction of a formula
-   * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
    */
   static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final AbstractionManager amgr;

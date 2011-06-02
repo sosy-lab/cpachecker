@@ -49,10 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
-/**
- * @author g.theoduloz
- *
- */
 @Options(prefix="cpa.assumptions.progressobserver")
 public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 

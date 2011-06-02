@@ -55,8 +55,6 @@ import com.google.common.collect.ImmutableSet;
  *
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 @Options(prefix="cfa.pruning")
 public class CFAReduction {

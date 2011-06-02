@@ -35,9 +35,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 
 
-/**
- * @author g.theoduloz
- */
 public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsData> {
 
   private final Function<? super CFAEdge, Integer> thresholdFunction;

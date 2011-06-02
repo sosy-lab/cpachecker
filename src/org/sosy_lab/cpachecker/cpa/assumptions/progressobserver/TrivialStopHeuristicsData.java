@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 
 /**
  * Trivial heuristics data to represent only top and bottom.
- * @author g.theoduloz
  */
 public class TrivialStopHeuristicsData implements StopHeuristicsData {
 

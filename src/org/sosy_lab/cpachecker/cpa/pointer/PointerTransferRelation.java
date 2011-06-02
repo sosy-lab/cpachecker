@@ -95,9 +95,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-/**
- * @author Philipp Wendler
- */
 public class PointerTransferRelation implements TransferRelation {
 
   /*

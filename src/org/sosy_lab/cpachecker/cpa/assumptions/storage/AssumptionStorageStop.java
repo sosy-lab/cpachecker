@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 /**
  * Stop operator for the assumption storage CPA. Stops if the stop flag is
  * true.
- *
- * @author g.theoduloz
  */
 public class AssumptionStorageStop implements StopOperator {
 

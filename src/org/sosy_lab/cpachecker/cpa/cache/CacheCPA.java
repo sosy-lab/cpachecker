@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
  * _NOT_ depend on the reached set when performing prec.
- *
  */
 public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 

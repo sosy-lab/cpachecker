@@ -31,8 +31,6 @@ import static com.google.common.base.Preconditions.checkState;
  * the number of those intervals.
  *
  * This class is not thread-safe.
- *
- * @author Karlheinz Friedberger
  */
 public class Timer {
 

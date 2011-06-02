@@ -58,8 +58,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
  * with only the important edges of the Path. The idea behind this Class is,
  * that not every action (CFAEdge) before an error occurs is important for
  * the error, only a few actions (CFAEdges) are important.
- *
- * @author Friedberger Karlheinz
  */
 public final class ErrorPathShrinker {
 

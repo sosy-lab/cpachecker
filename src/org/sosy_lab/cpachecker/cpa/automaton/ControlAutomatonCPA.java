@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
- * @author rhein
  */
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithABM {

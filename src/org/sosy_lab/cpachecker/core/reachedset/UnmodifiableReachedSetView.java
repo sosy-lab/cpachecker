@@ -40,7 +40,6 @@ import com.google.common.collect.Iterators;
 /**
  * Live view of an unmodifiable reached element set, where elements
  * and precision are transformed by mapping functions.
- * @author g.theoduloz
  */
 public class UnmodifiableReachedSetView
   implements UnmodifiableReachedSet

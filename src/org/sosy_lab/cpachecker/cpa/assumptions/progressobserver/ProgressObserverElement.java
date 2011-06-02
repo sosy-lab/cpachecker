@@ -38,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Class to represent the abstract element of the analysis controller.
- * @author g.theoduloz
  */
 public class ProgressObserverElement implements AbstractElement, AvoidanceReportingElement {
 

@@ -36,9 +36,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
-/**
- * @author g.theoduloz
- */
 public class ProgressObserverPrecisionAdjustment implements
     PrecisionAdjustment {
 

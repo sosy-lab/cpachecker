@@ -28,7 +28,6 @@ import com.google.common.base.Function;
 
 /**
  * A generic Triple class based on Pair.java
- * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
  * @param <A>
  * @param <B>

@@ -32,8 +32,6 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * Represents a block as described in the ABM paper.
- * @author dwonisch
- *
  */
 public class Block {
 

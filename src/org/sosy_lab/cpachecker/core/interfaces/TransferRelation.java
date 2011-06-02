@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Interface for transfer relations.
  * The instance of the relation is used to calculate the post operation
- * @author erkan
- *
  */
 public interface TransferRelation {
 

@@ -40,8 +40,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicat
 
 /**
  * Implements an ABM-based predicate CPA.
- * @author dwonisch
- *
  */
 @Options(prefix="cpa.predicate.abm")
 public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithABM {

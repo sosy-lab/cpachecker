@@ -44,8 +44,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * This class is the abstraction of the memory of the program (global variables,
  * local variables, heap).
- *
- * @author Philipp Wendler
  */
 public class PointerElement implements AbstractQueryableElement, Memory,
     Cloneable, Targetable {

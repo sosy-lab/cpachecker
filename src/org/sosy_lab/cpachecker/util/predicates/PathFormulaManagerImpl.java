@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  * providing some commonly used stuff which is independent from specific libraries.
  *
  * This class inherits from CtoFormulaConverter to import the stuff there.
- *
- * @author Philipp Wendler
  */
 public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
 

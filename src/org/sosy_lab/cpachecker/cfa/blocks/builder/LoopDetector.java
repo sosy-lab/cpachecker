@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 /**
  * Helper class to find the loop body using a given loopHead (loopHeads are identified by the parser).
- * @author dwonisch
- *
  */
 public class LoopDetector {
   public Set<CFANode> detectLoopBody(CFANode loopHead) {

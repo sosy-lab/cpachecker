@@ -33,8 +33,6 @@ import com.google.common.base.Preconditions;
  * other OutputStreams.
  *
  * Exceptions thrown by any of the streams will be relayed to the caller.
- *
- * @author Philipp Wendler
  */
 public class DuplicateOutputStream extends OutputStream {
 

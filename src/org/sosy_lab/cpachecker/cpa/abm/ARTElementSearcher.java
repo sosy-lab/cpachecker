@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
 /**
  * Helper class to search for <code>ARTElement</code>s in a <code>ReachedSet</code> that have the same abstraction as the given <code>ARTElement</code> after reduction to the relevant predicates.
- * @author dwonisch
- *
  */
 public class ARTElementSearcher {
   final static Timer searchForARTElementTimer = new Timer();

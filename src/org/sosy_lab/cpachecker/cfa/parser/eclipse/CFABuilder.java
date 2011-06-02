@@ -82,7 +82,6 @@ import com.google.common.collect.TreeMultimap;
 
 /**
  * Builder to traverse AST.
- * @author erkan
  * Known Limitations:
  * <p> -- K&R style function definitions not implemented
  * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *

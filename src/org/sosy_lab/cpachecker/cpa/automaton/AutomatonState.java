@@ -37,7 +37,6 @@ import com.google.common.base.Joiner;
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instaces of this class are passed to the CPAchecker as AbstractElement.
- * @author rhein
  */
 class AutomatonState implements AbstractQueryableElement, Targetable {
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -130,8 +129,6 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
    * Which State is the correct following state could not be determined so far.
    * This Class is used if during a "getAbstractSuccessor" call the abstract successor could not be determined.
    * During the subsequent "strengthen" call enough information should be available to determine a normal AutomatonState as following State.
-   * @author rhein
-   *
    */
   static class AutomatonUnknownState extends AutomatonState {
     private final AutomatonState previousState;

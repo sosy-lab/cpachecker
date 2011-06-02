@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
  * Note that once the CPA algorithm has finished running, a call
  * to dumpInvariants() is needed to process the reachable states
  * and produce the actual invariants.
- *
- * @author g.theoduloz
  */
 public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
 

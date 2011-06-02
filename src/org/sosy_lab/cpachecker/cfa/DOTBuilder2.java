@@ -49,7 +49,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- *
  * Generates one DOT file per function for the report.
  * For large programs the traditional method with one single DOT file
  * crashed graphviz with "error in init rank" (quite popular in the graphviz bugtracker).
@@ -62,8 +61,6 @@ import com.google.common.collect.Sets;
  * The successor can be found in the left column of the next row.
  *
  * reuses some code from DOTBuilder
- *
- * @author Hendrik Speidel
  */
 public final class DOTBuilder2 {
 
@@ -341,7 +338,6 @@ public final class DOTBuilder2 {
 
   /**
    * output information about CFA nodes and edges as JSON
-   *
    */
   private static class CFAJSONBuilder extends CFAVisitor {
     private final JSONObject nodes = new JSONObject();

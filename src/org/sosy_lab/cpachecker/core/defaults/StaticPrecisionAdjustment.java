@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  * This class implements the PrecisionAdjustment operator for a CPA, where the
  * precision never changes. It does not make any assumptions about the precision,
  * even not that the precision is non-null.
- *
- * @author wendler
  */
 public class StaticPrecisionAdjustment implements PrecisionAdjustment {
 

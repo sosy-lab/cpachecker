@@ -49,8 +49,6 @@ import com.google.common.io.Files;
 
 
 /**
- * @author Gregor Endler
- *
  * Class providing all logging functionality.
  *
  * The log levels used are the ones from java.util.logging.

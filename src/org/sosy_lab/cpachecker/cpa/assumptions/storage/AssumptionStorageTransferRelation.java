@@ -41,7 +41,6 @@ import com.google.common.base.Preconditions;
 
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
- * @author g.theoduloz
  */
 public class AssumptionStorageTransferRelation implements TransferRelation {
 

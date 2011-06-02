@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  * <code>XXXHeuristics(CPAConfiguration, LogManager)</code> to create
  * an instance of the heuristics with the given configuration
  * and logger.
- *
- * @author g.theoduloz
  */
 public interface StopHeuristics <D extends StopHeuristicsData> {
   /** Get the initial data */

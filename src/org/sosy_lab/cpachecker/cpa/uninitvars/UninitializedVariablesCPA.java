@@ -50,9 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-/**
- * @author Philipp Wendler
- */
 @Options(prefix="cpa.uninitvars")
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 

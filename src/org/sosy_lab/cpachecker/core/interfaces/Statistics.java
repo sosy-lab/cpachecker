@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
  * A class to hold statistics of the analysis
- * @author alb
  */
 public interface Statistics {
 

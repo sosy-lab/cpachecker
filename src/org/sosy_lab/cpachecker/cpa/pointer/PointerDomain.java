@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.cpa.pointer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-/**
- * @author Philipp Wendler
- */
 public class PointerDomain implements AbstractDomain {
 
   @Override

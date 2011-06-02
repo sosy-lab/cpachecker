@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.exceptions;
 /**
  * Signals that the check method of a AbstractElement has
  * been passed an Argument that could not be evaluated.
- * @author rhein
  */
 public class InvalidQueryException extends CPATransferException {
   private static final long serialVersionUID = 3410773868391514648L;

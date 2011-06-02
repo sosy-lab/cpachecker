@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 
 /** Represents a State in the automaton.
- * @author rhein
  */
 class AutomatonInternalState {
 

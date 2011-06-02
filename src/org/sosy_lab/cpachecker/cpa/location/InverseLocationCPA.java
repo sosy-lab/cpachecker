@@ -40,10 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
-/**
- * @author holzera
- *
- */
 public class InverseLocationCPA implements ConfigurableProgramAnalysis{
 
   private final LocationElementFactory elementFactory = new LocationElementFactory();

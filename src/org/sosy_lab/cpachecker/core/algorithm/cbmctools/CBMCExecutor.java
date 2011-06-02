@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import static com.google.common.base.Preconditions.checkState;

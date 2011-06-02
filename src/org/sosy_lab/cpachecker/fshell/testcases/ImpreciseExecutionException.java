@@ -27,9 +27,6 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 
 public class ImpreciseExecutionException extends Exception {
 
-  /**
-   *
-   */
   private static final long serialVersionUID = 1L;
   private final ImpreciseExecutionTestCase mTestCase;
   private final GuardedEdgeAutomatonCPA mCoverCPA;

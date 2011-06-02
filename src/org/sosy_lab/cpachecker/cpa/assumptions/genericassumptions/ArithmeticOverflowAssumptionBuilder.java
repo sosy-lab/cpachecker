@@ -51,8 +51,6 @@ import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 /**
  * Class to generate assumptions related to over/underflow
  * of integer arithmetic operations
- *
- * @author g.theoduloz
  */
 public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder

@@ -37,7 +37,6 @@ import com.google.common.base.Function;
 /**
  * A generic Pair class. Code borrowed from here:
  * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6229146
- * @author alb
  *
  * @param <A>
  * @param <B>

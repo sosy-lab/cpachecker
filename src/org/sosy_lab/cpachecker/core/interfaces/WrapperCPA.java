@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 /**
  * Interface for classes that are wrapping CPAs
  * (like composite CPAs)
- * @author g.theoduloz
  */
 public interface WrapperCPA {
 

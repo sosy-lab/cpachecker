@@ -50,7 +50,6 @@ public class Interval
 
   /**
    * This method acts as constructor for an empty interval.
-   *
    */
   private Interval()
   {

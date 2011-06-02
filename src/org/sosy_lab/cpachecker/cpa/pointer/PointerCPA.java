@@ -46,9 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-/**
- * @author Philipp Wendler
- */
 @Options(prefix="cpa.pointer")
 public class PointerCPA implements ConfigurableProgramAnalysis {
 

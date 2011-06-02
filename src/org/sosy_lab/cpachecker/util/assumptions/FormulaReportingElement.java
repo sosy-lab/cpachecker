@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
  * Interface to implement in order for an object (typically abstract element)
  * to be able to be over-approximated by a formula representing
  * the abstract element.
- *
- * @author g.theoduloz
  */
 public interface FormulaReportingElement {
 

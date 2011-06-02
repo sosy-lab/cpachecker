@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
  * Regions represented using BDDs
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 class BDDRegion implements Region {
 

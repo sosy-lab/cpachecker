@@ -114,7 +114,6 @@ public interface Type {
     private final boolean signed;
 
     /**
-     *
      * @param primitiveType
      * @param signed  ignored if not an integral type
      * @param constant

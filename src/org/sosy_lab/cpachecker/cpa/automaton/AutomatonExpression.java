@@ -57,7 +57,6 @@ interface AutomatonExpression {
   }
   /**
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
-   * @author rhein
    */
   static class CPAQuery implements AutomatonExpression {
     private final String cpaName;

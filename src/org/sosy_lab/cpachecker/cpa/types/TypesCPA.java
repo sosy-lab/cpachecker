@@ -31,9 +31,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
-/**
- * @author Philipp Wendler
- */
 public class TypesCPA extends AbstractCPA {
 
   public static CPAFactory factory() {

@@ -201,7 +201,6 @@ public class ToGuardedAutomatonTranslator {
   }
 
   /**
-   *
    * @param pAutomaton Automaton that contains no lambda edges.
    * @return Automaton that is only labeled with GuardedEdgeLabel objects.
    */

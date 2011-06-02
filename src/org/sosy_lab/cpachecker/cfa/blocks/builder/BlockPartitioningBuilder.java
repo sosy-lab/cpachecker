@@ -46,8 +46,6 @@ import com.google.common.collect.SetMultimap;
 
 /**
  * Helper class can build a <code>BlockPartitioning</code> from a partition of a program's CFA into blocks.
- * @author dwonisch
- *
  */
 public class BlockPartitioningBuilder {
 

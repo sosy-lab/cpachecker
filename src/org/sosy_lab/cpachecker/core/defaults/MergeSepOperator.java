@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Standard merge-sep operator
- * @author g.theoduloz
  */
 public class MergeSepOperator implements MergeOperator {
 

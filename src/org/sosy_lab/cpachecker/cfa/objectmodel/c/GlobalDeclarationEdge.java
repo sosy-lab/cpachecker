@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  * An edge to store declarations for global variables. These are different
  * from standard declarations, in that they can have also an initializer
  * for the declared variable
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 

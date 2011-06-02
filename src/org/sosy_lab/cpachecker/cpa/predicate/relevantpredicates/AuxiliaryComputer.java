@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
  * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block.
- * @author dwonisch
- *
  */
 public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collection<String>> {
 

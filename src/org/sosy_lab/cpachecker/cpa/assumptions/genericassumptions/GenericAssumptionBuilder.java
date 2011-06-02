@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 /**
  * Abstraction of a class that generates generic
  * assumption invariants from CFA edges
- * @author g.theoduloz
  */
 public interface GenericAssumptionBuilder {
 

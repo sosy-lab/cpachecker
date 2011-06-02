@@ -32,9 +32,6 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
 
-/**
- * @author g.theoduloz
- */
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
   private final int threshold;

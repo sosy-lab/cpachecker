@@ -65,8 +65,6 @@ import com.google.common.io.Files;
 
 /**
  * CPA that defines symbolic predicate abstraction.
- * @author Erkan
- *
  */
 @Options(prefix="cpa.predicate")
 public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {

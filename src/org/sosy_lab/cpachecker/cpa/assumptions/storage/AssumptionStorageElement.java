@@ -31,8 +31,6 @@ import com.google.common.base.Preconditions;
 /**
  * Abstract element for the Collector CPA. Encapsulate a
  * symbolic formula
- *
- * @author g.theoduloz
  */
 public class AssumptionStorageElement implements AbstractElement {
 

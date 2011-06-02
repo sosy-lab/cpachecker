@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Transfer relation for the generic assumption generator.
- * @author g.theoduloz
  */
 public class GenericAssumptionsTransferRelation implements TransferRelation {
 

@@ -35,9 +35,6 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-/**
- * @author Philipp Wendler
- */
 public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   private final Collection<String> globalVars;

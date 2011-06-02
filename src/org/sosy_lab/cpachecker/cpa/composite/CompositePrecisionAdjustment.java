@@ -35,10 +35,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;

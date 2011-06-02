@@ -29,9 +29,6 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-/**
- * @author rhein
- */
 public class Automaton {
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.

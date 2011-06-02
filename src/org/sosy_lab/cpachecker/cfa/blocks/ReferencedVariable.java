@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 /**
  * Represents a reference to a variable in the CFA.
- * @author dwonisch
- *
  */
 public class ReferencedVariable {
   private String ident;

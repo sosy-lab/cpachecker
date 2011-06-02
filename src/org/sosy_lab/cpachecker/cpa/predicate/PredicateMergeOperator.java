@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  * mergeSep and mergeJoin together. If the abstract element is on an
  * abstraction location we don't merge, otherwise we merge two elements
  * and update the {@link PredicateAbstractElement}'s pathFormula.
- *
- * @author Erkan
  */
 public class PredicateMergeOperator implements MergeOperator {
 

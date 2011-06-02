@@ -27,8 +27,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 /**
  * Exception thrown if a CPA cannot handle a specific CFAEdge.
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class UnrecognizedCFAEdgeException extends CPATransferException {
 

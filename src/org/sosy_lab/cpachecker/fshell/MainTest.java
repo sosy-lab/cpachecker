@@ -122,7 +122,6 @@ public class MainTest extends ExperimentalSeries {
 
     /*
      * Discussion: Creates a real valued assignment (3.5) to integer variable x!
-     *
      */
   }
 
@@ -513,7 +512,6 @@ public class MainTest extends ExperimentalSeries {
 
     /*
      * Discussion: Creates a real valued assignment (3.5) to integer variable x!
-     *
      */
   }
 

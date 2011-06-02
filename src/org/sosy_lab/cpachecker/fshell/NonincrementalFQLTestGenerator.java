@@ -93,7 +93,6 @@ import com.google.common.collect.Multimap;
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
  * parts of the reached set?) This requires a change in the coverage check.
  * -> Handle enormous amounts of test goals.
- *
  */
 
 public class NonincrementalFQLTestGenerator implements FQLTestGenerator {

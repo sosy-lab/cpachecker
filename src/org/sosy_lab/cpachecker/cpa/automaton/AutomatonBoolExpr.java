@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
- * @author rhein
  */
 interface AutomatonBoolExpr extends AutomatonExpression {
   static final ResultValue<Boolean> CONST_TRUE = new ResultValue<Boolean>(Boolean.TRUE);
@@ -63,7 +62,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.
    * (".*" in java-regex means "any characters")
-   * @author rhein
    */
   static class MatchLabelRegEx implements AutomatonBoolExpr {
 
@@ -100,7 +98,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    * This is a efficient implementation of the ASTComparison (it caches the generated ASTs for the pattern).
    * It also displays error messages if the AST contains problems/errors.
    * The AST Comparison evaluates the pattern (coming from the Automaton Definition) and the C-Statement on the CFA Edge to ASTs and compares these with a Tree comparison algorithm.
-   * @author rhein
    */
   static class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
 
@@ -183,7 +180,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    * Returns TRUE if one Element returned TRUE;
    * Returns FALSE if all Elements returned either FALSE or an InvalidQueryException.
    * Returns MAYBE if no Element is available or the Variables could not be replaced.
-   * @author rhein
    */
   public static class ALLCPAQuery implements AutomatonBoolExpr {
     private final String queryString;
@@ -227,7 +223,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   }
   /**
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
-   * @author rhein
    */
   static class CPAQuery implements AutomatonBoolExpr {
     private final String cpaName;
@@ -292,7 +287,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   }
 
   /** Constant for true.
-   * @author rhein
    */
   static AutomatonBoolExpr TRUE = new AutomatonBoolExpr() {
     @Override
@@ -307,7 +301,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   };
 
   /** Constant for false.
-   * @author rhein
    */
   static AutomatonBoolExpr FALSE = new AutomatonBoolExpr() {
     @Override
@@ -323,7 +316,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
 
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}.
-   * @author rhein
    */
   static class IntEqTest implements AutomatonBoolExpr {
 
@@ -356,7 +348,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
 
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers.
-   * @author rhein
    */
   static class IntNotEqTest implements AutomatonBoolExpr {
 
@@ -389,7 +380,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
 
   /** Computes the disjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
-   * @author rhein
    */
   static class Or implements AutomatonBoolExpr {
 
@@ -438,7 +428,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
 
   /** Computes the conjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
-   * @author rhein
    */
   static class And implements AutomatonBoolExpr {
 
@@ -489,7 +478,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /**
    * Negates the result of a {@link AutomatonBoolExpr}. If the result is MAYBE it is returned unchanged.
-   * @author rhein
    */
   static class Negation implements AutomatonBoolExpr {
 
@@ -519,7 +507,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /**
    * Boolean Equality
-   * @author rhein
    */
   static class BoolEqTest implements AutomatonBoolExpr {
 
@@ -555,7 +542,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /**
    * Boolean !=
-   * @author rhein
    */
   static class BoolNotEqTest implements AutomatonBoolExpr {
 

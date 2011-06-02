@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 
 /**
  * Data that needs to be tracked by a stopping heuristics
- * @author g.theoduloz
  */
 public interface StopHeuristicsData {
   public boolean isBottom();

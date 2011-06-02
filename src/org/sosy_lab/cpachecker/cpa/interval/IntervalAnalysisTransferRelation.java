@@ -285,7 +285,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method handles the statement edge which leads the function to the last node of its CFA (not same as a return edge).
    *
-   * @author loewe
    * @param element the analysis element
    * @param expression the expression
    * @param ReturnStatementEdge the CFA edge corresponding to this statement
@@ -301,7 +300,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method handles assumptions.
    *
-   * @author loewe
    * @param element the analysis element
    * @param expression the expression containing the assumption
    * @param cfaEdge the CFA edge corresponding to this expression
@@ -533,7 +531,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method return the negated counter part for a given operator
    *
-   * @author loewe
    * @param operator
    * @return the negated counter part of the given operator
    */
@@ -568,7 +565,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * So far, only primitive types are supported, pointers are not supported either.
    *
-   * @author loewe
    * @param element the analysis element
    * @param declarationEdge the CFA edge
    * @return the successor element
@@ -653,7 +649,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    /**
    * This method handles assignments.
    *
-   * @author loewe
    * @param element the analysis element
    * @param assignExpression the expression containing the binary expression
    * @param declarationEdge the CFA edge
@@ -689,7 +684,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method handles the assignment of a variable.
    *
-   * @author loewe
    * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param rightExp the assigning expression
@@ -738,7 +732,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * This method routes back to {@link IntervalAnalysisTransferRelation#handleAssignmentToVariable(IntervalAnalysisElement, String, IASTExpression, CFAEdge)} with the cast operation being removed.
    *
-   * @author loewe
    * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param castExp the expression containing the cast
@@ -756,7 +749,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * This method routes back to {@link IntervalAnalysisTransferRelation#handleAssignmentToVariable(IntervalAnalysisElement, String, IASTExpression, CFAEdge)} with the cast operation being removed.
    *
-   * @author loewe
    * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param unaryExp the expression to evaluate
@@ -796,7 +788,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method handles the assignment of a binary expression to a variable.
    *
-   * @author loewe
    * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param lVarInBinaryExp the expression to the left of the operator
@@ -897,7 +888,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method evaluates an expression and returns the respective interval.
    *
-   * @author loewe
    * @param element the analysis element
    * @param expression the expression containing the expression to be evaluated
    * @param functionName the name of the function currently being analyzed
@@ -972,7 +962,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * If a interval is tracked for the assigning variable, then the assigned variable will be associated with this interval, otherwise, a previously tracked interval for the assigned variable will be deleted.
    *
-   * @author loewe
    * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param op2 the expression representing the assigning variable
@@ -997,7 +986,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method handles the assignment of a literal to a variable.
    *
-   * @author loewe
    * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param op2 the expression representing the literal

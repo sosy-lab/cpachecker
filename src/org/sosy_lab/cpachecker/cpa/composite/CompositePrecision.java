@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.List;
@@ -33,10 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
 import com.google.common.collect.ImmutableList;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
 public class CompositePrecision implements WrapperPrecision {
   private final List<Precision> precisions;
 

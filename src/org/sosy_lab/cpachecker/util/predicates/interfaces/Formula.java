@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 /**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- *
  * A generic interface for manipulating symbolic representations of formulas.
  */
 public interface Formula {

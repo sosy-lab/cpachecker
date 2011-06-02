@@ -30,9 +30,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-/**
- * @author Philipp Wendler
- */
 public class UninitializedVariablesDomain implements AbstractDomain {
 
   @Override

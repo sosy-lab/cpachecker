@@ -49,7 +49,6 @@ import com.google.common.collect.ImmutableMap;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
- * @author rhein
  */
 class AutomatonTransferRelation implements TransferRelation {
 

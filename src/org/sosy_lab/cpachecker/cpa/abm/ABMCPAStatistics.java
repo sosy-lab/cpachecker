@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
  * Prints some ABM related statistics
- * @author dwonisch
- *
  */
 class ABMCPAStatistics implements Statistics {
 

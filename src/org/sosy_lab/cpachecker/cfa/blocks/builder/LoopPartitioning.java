@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.util.CFA;
 
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
- * @author dwonisch
- *
  */
 public class LoopPartitioning extends PartitioningHeuristic {
   protected final LogManager logger;

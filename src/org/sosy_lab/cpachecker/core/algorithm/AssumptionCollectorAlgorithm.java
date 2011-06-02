@@ -66,8 +66,6 @@ import com.google.common.collect.Sets;
 /**
  * Outer algorithm to collect all invariants generated during
  * the analysis, and report them to the user
- *
- * @author g.theoduloz
  */
 @Options(prefix="assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {

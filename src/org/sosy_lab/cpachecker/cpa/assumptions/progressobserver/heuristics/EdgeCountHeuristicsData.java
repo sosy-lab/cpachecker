@@ -32,9 +32,6 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 
 import com.google.common.base.Function;
 
-/**
- * @author g.theoduloz
- */
 public class EdgeCountHeuristicsData
   implements StopHeuristicsData {
 

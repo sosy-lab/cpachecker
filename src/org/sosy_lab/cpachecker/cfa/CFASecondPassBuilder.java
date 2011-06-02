@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 /**
  * This class takes several CFAs (each for a single function) and combines them
  * into one CFA by inserting the necessary function call and return edges.
- * @author erkan
  */
 public class CFASecondPassBuilder {
 

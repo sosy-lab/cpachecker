@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 /**
  * Utility class to visit all wrapped abstract elements
  * (including the wrapper elements)
- * @author g.theoduloz
  */
 public abstract class AbstractWrappedElementVisitor {
 

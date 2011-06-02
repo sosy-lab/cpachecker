@@ -238,7 +238,6 @@ public class NondeterministicFiniteAutomaton<T> {
 
   /*
    * if pLabel is null it is treated as lambda.
-   *
    */
   public Edge createEdge(State pSource, State pTarget, T pLabel) {
     Edge lEdge = new Edge(pSource, pTarget, pLabel);

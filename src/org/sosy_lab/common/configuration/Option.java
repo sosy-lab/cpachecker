@@ -93,7 +93,6 @@ public @interface Option {
    * If values is non-empty, the value of this option (prior to conversion to
    * the correct type) will be checked if it is listed in this array. If it
    * is not contained, an exception will be thrown.
-   *
    */
   public String[] values() default {};
 

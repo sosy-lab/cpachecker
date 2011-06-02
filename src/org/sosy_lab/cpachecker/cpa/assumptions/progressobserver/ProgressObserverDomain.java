@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Domain for the analysis controller
- * @author g.theoduloz
  */
 public class ProgressObserverDomain implements AbstractDomain {
 

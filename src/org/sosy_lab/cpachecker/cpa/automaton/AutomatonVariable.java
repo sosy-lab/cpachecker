@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 /** Represents a local variable of the automaton.
  * So far only integer variables are supported.
- * @author rhein
  */
 class AutomatonVariable implements Cloneable {
   private int value;

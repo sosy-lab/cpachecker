@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.util.CFA;
 
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
- * @author dwonisch
- *
  */
 public abstract class PartitioningHeuristic {
   /**
@@ -79,14 +77,12 @@ public abstract class PartitioningHeuristic {
   }
 
   /**
-   *
    * @param pNode
    * @return <code>true</code>, if for the given node a new <code>Block</code> should be created; <code>false</code> otherwise
    */
   protected abstract boolean shouldBeCached(CFANode pNode);
 
   /**
-   *
    * @param pNode CFANode that should be cached.
    * @return set of nodes that represent a <code>Block</code>.
    */

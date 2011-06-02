@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Standard stop-sep operator
- * @author g.theoduloz
  */
 public class StopSepOperator implements StopOperator {
 

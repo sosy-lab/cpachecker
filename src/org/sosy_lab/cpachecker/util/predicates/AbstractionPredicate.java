@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.base.Preconditions;
 
 /**
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- *
  * A generic representation of a predicate
  */
 public class AbstractionPredicate {

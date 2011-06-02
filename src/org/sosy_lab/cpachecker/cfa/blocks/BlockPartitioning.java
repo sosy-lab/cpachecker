@@ -37,8 +37,6 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
- * @author dwonisch
- *
  */
 public class BlockPartitioning {
   private final Block mainBlock;
