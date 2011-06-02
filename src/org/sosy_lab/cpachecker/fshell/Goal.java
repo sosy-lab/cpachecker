@@ -1,9 +1,9 @@
 package org.sosy_lab.cpachecker.fshell;
 
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class Goal {
   

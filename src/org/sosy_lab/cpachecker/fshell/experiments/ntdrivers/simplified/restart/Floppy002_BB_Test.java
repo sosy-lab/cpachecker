@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.fshell.experiments.ntdrivers.simplified.restart;
 
 import java.util.LinkedList;
 
+import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.RestartingFShell3;
-
-import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class Floppy002_BB_Test extends ExperimentalSeries {

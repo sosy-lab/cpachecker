@@ -4,8 +4,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Atom;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.Concatenation;
@@ -17,6 +15,8 @@ import org.sosy_lab.cpachecker.fshell.targetgraph.Node;
 import org.sosy_lab.cpachecker.fshell.targetgraph.Occurrences;
 import org.sosy_lab.cpachecker.fshell.targetgraph.Path;
 import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 
 public class IncrementalCoverageSpecificationTranslator {
 

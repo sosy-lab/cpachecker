@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer;
 
-import static org.sosy_lab.cpachecker.cpa.pointer.Memory.INVALID_POINTER;
-import static org.sosy_lab.cpachecker.cpa.pointer.Memory.NULL_POINTER;
-import static org.sosy_lab.cpachecker.cpa.pointer.Memory.UNKNOWN_POINTER;
-import static org.sosy_lab.cpachecker.cpa.pointer.Memory.UNINITIALIZED_POINTER;
+import static org.sosy_lab.cpachecker.cpa.pointer.Memory.*;
 
 import java.util.Collection;
 import java.util.Collections;

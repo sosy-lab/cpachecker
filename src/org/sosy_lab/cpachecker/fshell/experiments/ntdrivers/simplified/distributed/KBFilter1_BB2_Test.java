@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.fshell.experiments.ntdrivers.simplified.distribu
 
 import java.util.LinkedList;
 
+import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.MultiprocessFShell3;
-
-import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class KBFilter1_BB2_Test extends ExperimentalSeries {

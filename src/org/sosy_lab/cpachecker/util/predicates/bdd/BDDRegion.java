@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import net.sf.javabdd.BDD;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**

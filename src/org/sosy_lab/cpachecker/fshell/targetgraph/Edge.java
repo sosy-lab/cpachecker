@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.fshell.targetgraph;
 
 import org.jgrapht.Graph;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 public class Edge {

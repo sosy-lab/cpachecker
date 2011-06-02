@@ -34,7 +34,6 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedMaskSubgraph;
 import org.jgrapht.graph.MaskFunctor;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 public class TargetGraph {

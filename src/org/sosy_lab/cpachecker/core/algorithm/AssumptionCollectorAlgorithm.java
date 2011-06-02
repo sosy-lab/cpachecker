@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.io.File;
 import java.io.IOException;

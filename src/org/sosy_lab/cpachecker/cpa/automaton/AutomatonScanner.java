@@ -2,19 +2,22 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.FileReader;
 import java.io.File;
-import java_cup.runtime.*;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.logging.Level;
+
+import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.ComplexSymbolFactory.Location;
+import java_cup.runtime.Symbol;
+
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import java.io.FileNotFoundException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
 @SuppressWarnings(value = { "all" })
 
 /**

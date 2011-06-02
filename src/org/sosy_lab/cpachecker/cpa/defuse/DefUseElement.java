@@ -27,10 +27,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
-import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
 
 import com.google.common.collect.ImmutableSet;
 

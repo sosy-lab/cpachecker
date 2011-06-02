@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 

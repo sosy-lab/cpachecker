@@ -1,11 +1,11 @@
 package org.sosy_lab.cpachecker.util.ecp.translators;
 
-import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.ecp.ECPGuard;
 
 public class GuardedState {
 

@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.ECPAtom;
 import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
@@ -21,7 +22,6 @@ import org.sosy_lab.cpachecker.util.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.util.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.util.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class ToGuardedAutomatonTranslator {
   

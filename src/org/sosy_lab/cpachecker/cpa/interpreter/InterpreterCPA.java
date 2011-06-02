@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;

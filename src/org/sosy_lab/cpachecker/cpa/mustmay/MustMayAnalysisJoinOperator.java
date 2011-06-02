@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class MustMayAnalysisJoinOperator {

@@ -1,8 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractElements.isTargetElement;
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

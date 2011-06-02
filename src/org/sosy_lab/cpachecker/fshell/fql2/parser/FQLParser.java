@@ -6,46 +6,47 @@
 
 package org.sosy_lab.cpachecker.fshell.fql2.parser;
 
-import org.sosy_lab.cpachecker.fshell.fql2.ast.Nodes;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Edges;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Predicate;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.ScopePropagator;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.Concatenation;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.Quotation;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.Concatenation;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPattern;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Identity;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.File;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.ScopePropagator;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.BasicBlockEntry;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.ConditionEdge;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.DecisionEdge;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.ConditionGraph;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Line;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.FunctionCalls;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Column;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Complement;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Compose;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.ConditionEdge;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.ConditionGraph;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.DecisionEdge;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.EnclosingScopes;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Expression;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.File;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Function;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Label;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.FunctionCall;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.FunctionCalls;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.FunctionEntry;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.FunctionExit;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.EnclosingScopes;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Compose;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Expression;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.RegularExpression;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.SetMinus;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Intersection;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Union;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Complement;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Label;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Line;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Predication;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.RegularExpression;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.SetMinus;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Union;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Constant;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Term;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Variable;
-import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Constant;
-import java.io.Reader;
-import java.io.InputStream;
-import java.io.StringReader;
 
 /** CUP v0.11a beta 20060608 generated parser.
   * @version [date omitted]

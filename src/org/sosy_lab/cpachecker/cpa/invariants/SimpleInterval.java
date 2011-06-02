@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
 import java.math.BigInteger;
 

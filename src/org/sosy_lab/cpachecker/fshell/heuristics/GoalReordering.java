@@ -9,9 +9,9 @@ import java.util.PriorityQueue;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.fshell.Goal;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 import com.google.common.base.Preconditions;
 

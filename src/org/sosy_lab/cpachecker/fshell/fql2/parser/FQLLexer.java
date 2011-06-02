@@ -26,10 +26,11 @@
 
 package org.sosy_lab.cpachecker.fshell.fql2.parser;
 
-import java_cup.runtime.*;
+import static org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym.*;
+
 import java.io.IOException;
 
-import static org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym.*;
+import java_cup.runtime.Symbol;
 
 @SuppressWarnings("all")
 

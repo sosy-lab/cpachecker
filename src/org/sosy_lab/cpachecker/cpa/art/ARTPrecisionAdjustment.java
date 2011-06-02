@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.Triple;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 

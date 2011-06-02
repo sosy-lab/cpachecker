@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.HashMap;
 import java.util.Iterator;

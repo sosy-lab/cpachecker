@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Iterables.*;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

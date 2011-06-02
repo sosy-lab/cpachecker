@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 
 import com.google.common.base.Preconditions;
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
+
 import com.google.common.collect.ImmutableList;
 
 public final class IASTEnumerationSpecifier extends IType {

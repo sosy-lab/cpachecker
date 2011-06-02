@@ -26,10 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
-import static org.sosy_lab.cpachecker.util.AbstractElements.IS_TARGET_ELEMENT;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.io.PrintStream;
 import java.util.Collection;

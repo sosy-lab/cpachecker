@@ -27,15 +27,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.common.Triple;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 /**
  * @author g.theoduloz

@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 import java.util.Map.Entry;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;

@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 

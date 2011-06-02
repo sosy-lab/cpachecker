@@ -28,8 +28,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
-import org.sosy_lab.cpachecker.cpa.defuse.DefUseElement;
 
 public class DefUseDomain implements AbstractDomain
 {

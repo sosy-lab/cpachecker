@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 
 import org.sosy_lab.common.Triple;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;

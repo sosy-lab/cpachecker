@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.fshell.experiments.ntdrivers.simplified;
 
 import junit.framework.Assert;
-import org.sosy_lab.cpachecker.fshell.FShell3Result;
-import org.sosy_lab.cpachecker.fshell.Main;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.fshell.FShell3Result;
+import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class Floppy004_BB2_Test extends ExperimentalSeries {

@@ -23,14 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -45,6 +41,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
 
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 

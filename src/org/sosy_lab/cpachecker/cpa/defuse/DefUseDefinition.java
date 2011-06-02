@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.defuse;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.defuse.DefUseDefinition;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;

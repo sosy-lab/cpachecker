@@ -26,15 +26,14 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.base.Preconditions;
-
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Base class for CPAs which wrap exactly one other CPA.

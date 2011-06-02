@@ -8,14 +8,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fshell.targetgraph.Edge;
-import org.sosy_lab.cpachecker.fshell.targetgraph.Node;
-import org.sosy_lab.cpachecker.fshell.targetgraph.Path;
-import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Paths;
@@ -26,6 +18,14 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.CoverageSpe
 import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.Union;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.fshell.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fshell.targetgraph.Node;
+import org.sosy_lab.cpachecker.fshell.targetgraph.Path;
+import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraphUtil;
+import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 
 public class CoverageSpecificationTranslator {
 

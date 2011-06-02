@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class CFAFunctionExitNode extends CFANode {
 

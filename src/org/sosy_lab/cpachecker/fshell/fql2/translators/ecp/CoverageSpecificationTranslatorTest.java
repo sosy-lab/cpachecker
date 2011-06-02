@@ -35,12 +35,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fshell.FShell3;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.util.Cilly;
 import org.sosy_lab.cpachecker.util.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraphUtil;
-import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
 
 public class CoverageSpecificationTranslatorTest {
 

@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.

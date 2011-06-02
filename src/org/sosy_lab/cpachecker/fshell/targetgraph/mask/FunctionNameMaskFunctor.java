@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.fshell.targetgraph.mask;
 
 import org.jgrapht.graph.MaskFunctor;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fshell.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fshell.targetgraph.Node;

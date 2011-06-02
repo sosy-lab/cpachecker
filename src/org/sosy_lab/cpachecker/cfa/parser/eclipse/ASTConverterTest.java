@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;

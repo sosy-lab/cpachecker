@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;

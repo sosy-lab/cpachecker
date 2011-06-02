@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.Collection;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.collect.ImmutableList;
 
 public class CompositeStopOperator implements StopOperator{
 

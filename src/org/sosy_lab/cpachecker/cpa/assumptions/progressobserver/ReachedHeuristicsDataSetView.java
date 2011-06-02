@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 import java.util.Collection;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 
 /**
  * View of the reached heuristics
