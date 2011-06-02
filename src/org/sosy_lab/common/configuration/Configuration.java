@@ -365,6 +365,7 @@ public class Configuration {
   /**
    * @see Properties#getProperty(String, String)
    */
+  @Deprecated
   public String getProperty(String key, String defaultValue) {
     String result = getProperty(key);
     if (result == null) {

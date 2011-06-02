@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
@@ -33,13 +36,16 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
+@Options(prefix="cpa.assumptions.progressobserver.heuristics")
 public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
 
-  private final int threshold;
+  @Option(description = "threshold for heuristics of progressobserver")
+  private final int threshold = -1;
 
   public ReachedSizeHeuristics(Configuration config, LogManager logger)
+      throws InvalidConfigurationException
   {
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
+    config.inject(this);
   }
 
   @Override

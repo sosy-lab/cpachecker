@@ -28,6 +28,9 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
@@ -44,10 +47,13 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
  * (tested in Ubuntu 10.10)
  * Check that information before using this heuristic.
  */
+@Options(prefix="cpa.assumptions.progressobserver.heuristics")
 public class MemoryOutHeuristics
 implements StopHeuristics<TrivialStopHeuristicsData>
 {
-  private final int threshold;
+  @Option(description = "threshold for heuristics of progressobserver")
+  private final int threshold = -1;
+
   private final LogManager logger;
   private int freq = 50000; //TODO read from file
   private int noOfIterations = 0;
@@ -55,8 +61,9 @@ implements StopHeuristics<TrivialStopHeuristicsData>
   // find the index of column VIRT in "top -b -n 1" command
   private final int idxOfVirt;
 
-  public MemoryOutHeuristics(Configuration config, LogManager pLogger) {
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
+  public MemoryOutHeuristics(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
     idxOfVirt = findIndexOfVIRTColumn();
   }

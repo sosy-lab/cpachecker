@@ -25,19 +25,24 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
-
+@Options(prefix="cpa.assumptions.progressobserver.heuristics")
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
-  private final int threshold;
+  @Option(description = "threshold for heuristics of progressobserver")
+  private final int threshold = -1;
 
-  public TimeOutHeuristics(Configuration config, LogManager pLogger) {
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
+  public TimeOutHeuristics(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
+    config.inject(this);
   }
 
   @Override

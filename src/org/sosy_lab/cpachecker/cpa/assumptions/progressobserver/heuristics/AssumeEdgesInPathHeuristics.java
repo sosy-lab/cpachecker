@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
@@ -36,12 +39,15 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
  * If the given threshold is exceed, it returns bottom and the assumption
  * collector algorithm is notified.
  */
+@Options(prefix="cpa.assumptions.progressobserver.heuristics")
 public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesInPathHeuristicsData>{
 
-  private final int threshold;
+  @Option(description = "threshold for heuristics of progressobserver")
+  private final int threshold = -1;
 
-  public AssumeEdgesInPathHeuristics(Configuration config, LogManager logger){
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
+  public AssumeEdgesInPathHeuristics(Configuration config, LogManager logger)
+      throws InvalidConfigurationException{
+    config.inject(this);
   }
 
   @Override

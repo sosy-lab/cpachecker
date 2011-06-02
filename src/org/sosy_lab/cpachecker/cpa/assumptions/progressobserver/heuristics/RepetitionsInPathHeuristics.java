@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
@@ -34,16 +37,21 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 
-
+@Options(prefix="cpa.assumptions.progressobserver.heuristics")
 public class RepetitionsInPathHeuristics
   implements StopHeuristics<RepetitionsInPathHeuristicsData>
 {
+  @Option(description = "threshold for heuristics of progressobserver")
+  private final int threshold = -1;
   private final Function<? super CFAEdge, Integer> thresholdFunction;
 
   public RepetitionsInPathHeuristics(Configuration config, LogManager logger)
+      throws InvalidConfigurationException
   {
-    int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
-    thresholdFunction = Functions.constant((configThreshold <= 0) ? null : configThreshold);
+    config.inject(this);
+    // there is no dead code in the next line,
+    // because config.inject(this) can change the value of threshold
+    thresholdFunction = Functions.constant((threshold <= 0) ? null : threshold);
   }
 
   @Override
